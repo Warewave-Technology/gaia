@@ -1,7 +1,7 @@
 # Gaia – Tasarım Taslağı
 
 > Durum: **Taslak v0.1** (2026-10-23)
-> Kapsam: Altyapı bileşenlerinin (Linux, Windows/AD, vCenter ve çevre sistemler) tamamını tek bir kontrat üzerinden yöneten servisin tasarımı.
+> Kapsam: Altyapı bileşenlerinin (Linux, Windows/AD, vCenter/Proxmox ve çevre sistemler) tamamını tek bir kontrat üzerinden yöneten servisin tasarımı.
 
 ## 0. Amaç ve Prensipler
 
@@ -25,7 +25,7 @@ Teknolojiler çeşitli olsa da hepsini **tek bir YAML kontratı** yönetir.
 | **Kontrat** | İstenen durum (`Server`) veya tek seferlik iş (`Operation`) | Uygulama ekipleri |
 | **Run** | Bir kontratın bir commit'teki uygulaması ve bu uygulamanın değiştirilemez kaydı | Gaia |
 
-Katalog, provider ile kontrat arasındaki katmandır. Kontrat doğrudan provider'a bağlansaydı kullanıcı cluster, datastore ve portgroup gibi detayları bilmek zorunda kalırdı. Katalogla birlikte tek bir isim (ör. `network: ank-prod-app`) birden çok sisteme yayılır: vCenter portgroup'u, IPAM havuzu, DNS zone'u ve Zabbix proxy'si aynı isimden çözülür.
+Katalog, provider ile kontrat arasındaki katmandır. Kontrat doğrudan provider'a bağlansaydı kullanıcı cluster, datastore ve portgroup gibi detayları bilmek zorunda kalırdı. Katalogla birlikte tek bir isim (ör. `network: ank-prod-app`) birden çok sisteme yayılır: hipervizördeki ağ bağlantısı (vCenter portgroup'u veya Proxmox bridge/VLAN), IPAM havuzu, DNS zone'u ve Zabbix proxy'si aynı isimden çözülür.
 
 ## 2. Repo Düzeni
 
@@ -62,7 +62,7 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 | `AuthConfig` | Sistem | Elle | Kimlik doğrulama, bkz. bölüm 11 |
 | `Provider` | Sistem | Elle | Her dış sistem için bir tane |
 | `Policy` | Sistem | Elle | İsimlendirme, ortamlar, zorunlu etiketler |
-| `Site` | Katalog | Elle | Lokasyon: vCenter yerleşimi, NTP, Zabbix proxy |
+| `Site` | Katalog | Elle | Lokasyon: hipervizör yerleşimi, NTP, Zabbix proxy |
 | `Network` | Katalog | **Üretilen** + elle | `NetworkSource` üretir |
 | `NetworkSource` | Source | Elle | IPAM'dan Network üretir |
 | `Image` | Katalog | Elle | VM şablonu |
@@ -96,7 +96,7 @@ spec:
   credentials: bao://kv/platform/vsphere/ank       # secret'a sadece referans verilir
 ```
 
-Tanımlı provider tipleri: `openbao`, `vsphere`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
+Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
 
 ### 4.2 Platform
 
@@ -121,9 +121,23 @@ kind: Site
 metadata:
   name: ank
 spec:
-  vsphere: { provider: vc-ank, datacenter: DC-ANK, cluster: CL-PROD-01, folder: /Prod }
+  compute: { provider: vc-ank, datacenter: DC-ANK, cluster: CL-PROD-01, folder: /Prod }   # vSphere
   ntp: [ntp1.corp.local, ntp2.corp.local]
   zabbixProxy: zbx-proxy-ank
+---
+apiVersion: gaia/v1alpha1
+kind: Site
+metadata:
+  name: ist
+spec:
+  compute:                                  # Proxmox
+    provider: pve-ist
+    cluster: pve-ist-01
+    nodes: [pve01, pve02, pve03]
+    pool: gaia
+    storage: { default: ceph-vm, snapshots: true }
+  ntp: [ntp1.corp.local]
+  zabbixProxy: zbx-proxy-ist
 ---
 apiVersion: gaia/v1alpha1
 kind: Image
@@ -131,8 +145,13 @@ metadata:
   name: rhel9
 spec:
   os: linux
-  template: tpl-rhel9-latest
   connection: ssh
+  templates:                                # her hipervizör için şablon (bkz. 4.5)
+    - provider: vc-ank
+      template: tpl-rhel9-latest
+    - provider: pve-ist
+      template: { name: tpl-rhel9-latest }
+      customization: cloud-init
 ---
 apiVersion: gaia/v1alpha1
 kind: Size
@@ -177,6 +196,48 @@ spec:
     test: { approval: none }
 ```
 
+### 4.5 Compute provider'ları: vSphere ve Proxmox
+
+Gaia birden fazla hipervizörü destekler: `vsphere` (vCenter) ve `proxmox` (Proxmox VE). Kontrat hipervizörden bağımsızdır. `network` alanı Site'ı, Site da hangi hipervizörün kullanılacağını belirler. Hipervizöre özgü bilgi sadece katalogda durur:
+- `Site.compute`: yerleşim bilgisi.
+- `Network.attachment`: ağ bağlantısı.
+- `Image.templates`: her hipervizör için şablon.
+
+Bu alanların içeriği provider tipine göre değişir ve validasyon da buna göre yapılır. Bir Image'ın, kontratın site'ındaki hipervizör için şablonu yoksa plan reddedilir.
+
+**Kavram eşlemesi**
+
+| Kavram | vSphere | Proxmox | Not |
+|---|---|---|---|
+| Yerleşim | datacenter, cluster, folder, datastore | cluster, node, pool, storage | `Site.compute` |
+| Ağ bağlantısı | portgroup | bridge + VLAN tag veya SDN vnet | `Network.attachment` |
+| Şablon | VM template / content library | Template VM | `Image.templates` |
+| İlk yapılandırma | customization spec | cloud-init (Windows'ta cloudbase-init) | |
+| Graceful shutdown | VMware Tools | QEMU guest agent | Şablonlarda kurulu olmalı |
+| Tag | Kategori + tag | Kategorisiz, sınırlı karakter seti | Proxmox'ta `env.prod` gibi kodlanır |
+| `gaia.uid` işareti | Custom attribute | Custom attribute yok | Proxmox'ta tag'e veya VM notlarındaki yapısal bir bloğa yazılır |
+| VM kimliği | instance UUID | VMID tekrar kullanılabilir | Proxmox'ta dış kimlik olarak SMBIOS UUID tutulur (bkz. 9.1) |
+| Snapshot | Her datastore'da | Depolamaya bağlı (ZFS, Ceph, qcow2, LVM-thin) | Snapshot alınamayan depolama Site'ta işaretlenir; `snapshot: true` isteyen plan reddedilir |
+| Olay kaydı | `LogUserEvent` | Kullanıcı olayı API'si yok | Run kaydı yeterlidir |
+
+**Araçlar**
+- **Pulumi:** vSphere için `vsphere`, Proxmox için topluluk tarafından geliştirilen `proxmoxve` provider'ı (muhlba91, bpg'nin Terraform provider'ını sarar). `proxmoxve` resmi bir Pulumi provider'ı olmadığı için olgunluğu PoC'de doğrulanır. Gaia'nın içindeki VM bileşeni Size, Image ve Network bilgisini provider'ın kaynaklarına çevirir: `vsphere.VirtualMachine` veya `proxmoxve.vm.VirtualMachine`.
+- **Day-2 işler:** Güç ve snapshot işleri Ansible ile değil, provider'ların Go API'si ile doğrudan yapılır (vSphere için govmomi, Proxmox için Proxmox API client'ı). Her compute provider aynı arayüzü uygular:
+
+```go
+type Compute interface {
+    Power(ctx, vm, action) error          // on | off | restart (graceful)
+    Snapshot(ctx, vm, name) error
+    Revert(ctx, vm, name) error
+    DeleteSnapshot(ctx, vm, name) error
+    Discover(ctx) ([]ObservedVM, error)   // keşif, sahipsiz kaynaklar, reconcile
+}
+```
+
+Operation aksiyonları (`power`, `snapshot`, `revert`) her hipervizörde aynı arayüzden geçer ve hipervizör farkı tek bir yerde kalır.
+
+**Önce Proxmox:** İlk yazılacak compute provider Proxmox'tur, vSphere ikinci gelir. Böylece soyutlama baştan iki provider ile sınanmış olur. PoC hedefi: tek bir Linux VM'in Proxmox üzerinde uçtan uca açılması. Bunun için Proxmox'ta cloud-init destekli ve QEMU guest agent kurulu bir şablon gerekir.
+
 ## 5. Üretilen Objeler
 
 `Network`, `AnsibleRole` ve `Team` objeleri asıl kaynaklarından üretilir. Diğer bütün kind'lar elle yazılır. `Team` ve `TeamSource` 14. bölümde anlatılıyor.
@@ -202,7 +263,7 @@ spec:
   naming: 'subnet.site + "-" + subnet.env + "-" + subnet.zone'
   map:
     site: subnet.site
-    portgroup: '"dvPG-VLAN" + string(subnet.vlan)'
+    attachment: '{"portgroup": "dvPG-VLAN" + string(subnet.vlan)}'    # Proxmox site'ı için: {"bridge": "vmbr0", "vlan": subnet.vlan}
     gateway: subnet.gateway
     ipam: '{"pool": subnet.cidr}'
     dns: '{"provider": "corp-ad", "zone": subnet.dnsZone, "reverse": true}'
@@ -322,7 +383,7 @@ spec:
 |---|---|
 | `image` | Image |
 | `size` | Size |
-| `network` | Network (site da buradan gelir) |
+| `network` / `topology[].network` | Network (site ve hipervizör buradan gelir; bkz. 6.5) |
 | `baseline` | Baseline |
 | `ansibleRoles` | AnsibleRole |
 | `apps[].name` | App |
@@ -553,6 +614,33 @@ Yanlış giden bir işi durdurmak için PR açıp merge edilmesini beklemek çok
 
 Bu, arayüzün salt okunur olması kuralının tek istisnasıdır. Durdurmak istenen durumu değiştirmez, sadece yapılan işi azaltır. Kimin durdurduğu run kaydına yazılır. Kaldığı yerden devam ettirmek (resume) PR ile yapılır.
 
+### 6.5 Çoklu site: `topology`
+
+Bir kontrat birden fazla site'a yayılabilir. Tek site için `network` + `replicas` kısa yazımı kalır; birden fazla site için `topology` kullanılır. Site'lar farklı hipervizörlerde olabilir.
+
+```yaml
+spec:
+  # tek site
+  network: ank-prod-app
+  replicas: 3
+
+  # veya birden fazla site
+  topology:
+    - network: ank-prod-app      # vSphere
+      replicas: 2
+    - network: ist-prod-app      # Proxmox
+      replicas: 2
+```
+
+**Kurallar**
+
+- **İsimler:** Sunucu isimleri site'ı içerdiği için çakışmaz (`ankppor01`, `istppor01`). Sıra numarası her site için ayrı ilerler.
+- **Stack:** Her kontrat ve site çifti için ayrı bir Pulumi stack'i açılır. Bir site'taki sorun diğerinin stack'ini etkilemez.
+- **Kısmi başarısızlık:** Bir site'ın hipervizörüne erişilemezse o site'ın aşamaları başarısız olur, diğer site devam eder ve run sonucu `partial` olur.
+- **Sıralı ilerleme:** Rolling update'ler ve Operation'lar varsayılan olarak site site ilerler; bir site tamamen bittikten sonra diğerine geçilir. Böylece bir hata iki site'ı birden etkilemez. Sıra Operation strategy'sinde `siteOrder: [ank, ist]` ile belirlenebilir.
+- **Site kaldırma:** `topology` listesinden bir satırın kaldırılması o site'taki sunucuların decommission edilmesi demektir ve silme semantiğine (bölüm 9) tabidir. Önce satırdaki `replicas` 0 yapılır, decommission tamamlanınca satır kaldırılır. Yaşayan sunucusu olan bir satırı doğrudan silen PR'ı CI reddeder.
+- **Site'a bağlı bileşenler:** Zabbix proxy, NTP, site worker ve DNS zone zaten Site'tan gelir.
+
 ## 7. Çözümleme ve Yürütme
 
 ### 7.1 Yükleme
@@ -625,7 +713,7 @@ spec:
 
 **Site worker'ı:** Ayrılmış bir ağ segmentindeki sunuculara merkezden SSH/WinRM ile erişilemiyorsa o segmentte bir site worker'ı çalışır (`gaia server --role=worker --site=dmz`).
 - Site worker veritabanına bağlanmaz. Gaia API'sine mTLS ile, sadece dışarıya doğru bağlanır, iş alır ve olayları geri gönderir. Böylece segmentin içine doğru firewall izni açmak gerekmez.
-- Pulumi işleri merkezde kalır; vCenter API'si oradan erişilebilir durumda.
+- Pulumi işleri ve day-2 işleri merkezde kalır; hipervizör API'leri (vCenter, Proxmox) oradan erişilebilir durumda.
 - Site worker tasarımda var, ama gerçekten ihtiyaç doğana kadar yazılmaz.
 
 **Runner soyutlaması:** Ansible'ı çalıştıran katman bir arayüzün arkasında durur. İleride AWX gibi bir runner zorunlu tutulursa bu arayüze yeni bir uygulama eklenebilir. Şimdilik tek uygulama ansible-runner.
@@ -638,7 +726,7 @@ Drift, kontratın Git'teki istenen durumu ile sistemlerin gerçek durumu arasın
 
 | Alan | Tespit yöntemi | Maliyet | Varsayılan sıklık |
 |---|---|---|---|
-| Kayıtlar (Zabbix, DNS, IPAM, Warpgate, AD, vCenter tag'leri) | API'den okuyup karşılaştırma | Düşük | 15 dk |
+| Kayıtlar (Zabbix, DNS, IPAM, Warpgate, AD, hipervizör tag'leri) | API'den okuyup karşılaştırma | Düşük | 15 dk |
 | Uygulama versiyonu | `App` objesindeki `versionProbe` | Düşük | 10 dk |
 | Provisioning (VM boyutu, disk, network) | Pulumi `preview --refresh`; state'e yazmaz | Orta | 1 saat |
 | Konfigürasyon (OS, roller, baseline) | Ansible `--check --diff`; aynı commit ve aynı EE ile | Yüksek: her sunucuya SSH/WinRM | Günde bir, gece penceresinde |
@@ -710,7 +798,7 @@ spec:
 
 ### 8.1 Akış
 
-1. **Keşif.** vCenter, Zabbix, AD, DNS ve IPAM taranır. Kayıtlar VM UUID'si, hostname ve IP üzerinden eşleştirilir. Çıktı bir rapordur: her yerde kaydı olanlar, eksik kayıtlar, sahipsiz IP'ler.
+1. **Keşif.** Hipervizörler (vCenter, Proxmox), Zabbix, AD, DNS ve IPAM taranır. Kayıtlar VM UUID'si, hostname ve IP üzerinden eşleştirilir. Çıktı bir rapordur: her yerde kaydı olanlar, eksik kayıtlar, sahipsiz IP'ler.
 2. **Taslak kontrat.** Gözlenen değerler kataloğa ters yönde eşlenir (portgroup → `network`, CPU/RAM → `size`). Eşleşmeyenler açıkça işaretlenir.
 3. **İnceleme.** Taslak PR olarak açılır. Keşfin bilemeyeceği alanları (owner, app, ortam) insan tamamlar.
 4. **Import.** Kaynaklar Pulumi stack'ine `import` edilir, IP'ler IPAM'a kaydedilir. Bu adımın planı **sıfır değişiklik** göstermek zorundadır.
@@ -761,15 +849,15 @@ Ana kural: **bir şeyin silinmesi her zaman açıkça istenir.** Dosya silmek ya
 
 Hostname'in tekrar kullanılması engellenemez. Silinen bir sunucunun adı yeniden verilebilir, Gaia dışında da aynı isimle makine açılabilir. Bu yüzden Gaia bir sunucuyu hostname ile değil, oluşturulduğu anda atanan değişmez bir **UID** ile tanır. Hostname sadece sunucunun bir özelliğidir.
 
-- **Dış sistemlerdeki kimlikler:** Gaia'nın veritabanı her UID için bu kimlikleri tutar: vCenter instance UUID, AD objectGUID, Zabbix hostid, Warpgate hedef ID'si, ajan konsollarındaki ID'ler, IPAM kaydı. Bu kayıtlar sonradan isimle aranmaz, bu ID'lerle bulunur.
-- **İşaretleme:** UID dış sistemlere de yazılır: vCenter'da `gaia.uid` custom attribute'u, Zabbix'te `gaia.uid` tag'i, AD bilgisayar hesabında uygun bir attribute.
+- **Dış sistemlerdeki kimlikler:** Gaia'nın veritabanı her UID için bu kimlikleri tutar: vCenter instance UUID veya Proxmox SMBIOS UUID (VMID tekrar kullanılabildiği için kimlik değildir), AD objectGUID, Zabbix hostid, Warpgate hedef ID'si, ajan konsollarındaki ID'ler, IPAM kaydı. Bu kayıtlar sonradan isimle aranmaz, bu ID'lerle bulunur.
+- **İşaretleme:** UID dış sistemlere de yazılır: vCenter'da `gaia.uid` custom attribute'u, Proxmox'ta tag veya VM notları, Zabbix'te `gaia.uid` tag'i, AD bilgisayar hesabında uygun bir attribute.
 - **Pulumi kaynak adı UID'den türetilir** (`vm-<uid>`). Böylece aynı isimli eski sunucu henüz silinmemişken açılan yeni sunucu stack'te onunla çakışmaz.
 - **Görüntüleme:** Run kayıtları, loglar ve arayüz sunucuyu hostname ve UID ile birlikte gösterir (`ankppor03 · 7f3k`). Aynı isimli farklı sunucuların geçmişi birbirine karışmaz.
 
 ### 9.2 İsim ayırma ve çakışma kontrolü
 
 - **Sıra numarası:** En küçük boş numara verilir. Bir isim, onu taşıyan sunucu silinene kadar dolu sayılır; bekleme süresi de buna dahil. Silme tamamlanınca isim boşalır ve tekrar kullanılabilir.
-- **Çakışma kontrolü:** Plandan önce yeni isim vCenter'da, AD'de (tüm DC'lerde), DNS'te, Zabbix'te, Warpgate'te ve ajan konsollarında aranır:
+- **Çakışma kontrolü:** Plandan önce yeni isim hipervizörde, AD'de (tüm DC'lerde), DNS'te, Zabbix'te, Warpgate'te ve ajan konsollarında aranır:
   - **Kayıt yoksa** isim kullanılır.
   - **Kayıt Gaia'ya ait ve UID'si eşleşiyorsa** (ör. replace) sorun yoktur.
   - **Kayıt başka birine aitse:** Gaia'nın ürettiği isimlerde bir sonraki boş numaraya geçilir ve bu planda belirtilir. Elle verilmiş isimlerde (adopt edilen `hosts` listesi) plan durur.
@@ -1119,7 +1207,7 @@ device_codes         (code_hash, user_code, status, expires_at)
 - **İş kuyruğu:** River (`SKIP LOCKED`) kullanılır. Hangi Gaia replikası boştaysa işi o alır; leader election gerekmez.
 - **Canlı log:** Replikalar arasında `LISTEN/NOTIFY` ile dağıtılır. Kullanıcı hangi replikaya bağlıysa logu canlı görür.
 - **Veritabanında oturum açmaya yarayacak bilgi tutulmaz.** TOTP secret'ları OpenBao transit ile şifrelidir. Token'ların ve kurtarma kodlarının sadece hash'i tutulur. Passkey'lerin sadece public key'i tutulur.
-- **`gaia reconcile`:** vCenter, Zabbix ve AD'yi tarar ve UID'leri `gaia.uid` işaretlerinden bularak `hosts` ile `host_external_ids` tablolarını yeniden kurar.
+- **`gaia reconcile`:** Hipervizörleri, Zabbix'i ve AD'yi tarar ve UID'leri `gaia.uid` işaretlerinden bularak `hosts` ile `host_external_ids` tablolarını yeniden kurar.
 
 ### 12.5 Go tarafı
 
@@ -1284,7 +1372,7 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 
 ## 15. Açık Konular
 
-- [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
+- [ ] **`proxmoxve` Pulumi provider'ının olgunluğu:** Topluluk provider'ı; PoC'de doğrulanacak.
 
 ## 16. Karar Kaydı
 
@@ -1341,3 +1429,7 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | PostgreSQL minimum 16; kural: River'ın test ettiği en eski ana sürüm |
 | 2026-10-23 | Run kayıtlarının arşivi SeaweedFS'te COMPLIANCE modunda Object Lock'lu bucket; ham loglar ayrı bucket'ta |
 | 2026-10-23 | Warpgate RDP'yi v0.27.0'dan beri destekliyor; Windows sunucular Warpgate'e RDP hedefi olarak eklenir |
+| 2026-10-23 | Proxmox VE desteklenir; kontrat hipervizörden bağımsız (`Site.compute`, `Network.attachment`, `Image.templates`) |
+| 2026-10-23 | Güç ve snapshot gibi day-2 işler Ansible yerine provider'ların Go API'si ile (ortak `Compute` arayüzü) |
+| 2026-10-23 | Kontrat `topology` ile birden fazla site'a yayılabilir; kontrat ve site başına ayrı Pulumi stack'i; site site ilerleme |
+| 2026-10-23 | İlk compute provider Proxmox; PoC Proxmox üzerinde |
