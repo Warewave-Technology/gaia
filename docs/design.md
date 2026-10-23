@@ -431,7 +431,7 @@ kind: Operation
 metadata:
   name: patch-2026-11-w2
 spec:
-  action: patch                      # patch | snapshot | revert | power | replace | …
+  action: patch                      # patch | snapshot | revert | power | replace | reconcile | …
   selector: 'labels.env == "prod" && spec.patch.wave == 2'
   options: { scope: security, reboot: auto, snapshot: true }
 ```
@@ -512,6 +512,81 @@ spec:
 - Site worker tasarımda var, ama gerçekten ihtiyaç doğana kadar yazılmaz.
 
 **Runner soyutlaması:** Ansible'ı çalıştıran katman bir arayüzün arkasında durur. İleride AWX gibi bir runner zorunlu tutulursa bu arayüze yeni bir uygulama eklenebilir. Şimdilik tek uygulama ansible-runner.
+
+### 7.5 Drift kontrolü
+
+Drift, kontratın Git'teki istenen durumu ile sistemlerin gerçek durumu arasındaki farktır. Her alanın tespit yöntemi, maliyeti ve riski farklı olduğu için drift alan bazında ele alınır.
+
+#### Alanlar
+
+| Alan | Tespit yöntemi | Maliyet | Varsayılan sıklık |
+|---|---|---|---|
+| Kayıtlar (Zabbix, DNS, IPAM, Warpgate, AD, vCenter tag'leri) | API'den okuyup karşılaştırma | Düşük | 15 dk |
+| Uygulama versiyonu | `App` objesindeki `versionProbe` | Düşük | 10 dk |
+| Provisioning (VM boyutu, disk, network) | Pulumi `preview --refresh`; state'e yazmaz | Orta | 1 saat |
+| Konfigürasyon (OS, roller, baseline) | Ansible `--check --diff`; aynı commit ve aynı EE ile | Yüksek: her sunucuya SSH/WinRM | Günde bir, gece penceresinde |
+| Katalog sapması | Otomatik yayılmayan katalog değişiklikleri (ör. Size, bkz. 7.3) | Yok: plan sırasında çıkar | Her katalog değişikliğinde |
+| Sahipsiz kaynaklar | `gaia.uid` taşıyıp veritabanında karşılığı olmayanlar; Gaia'nın yönettiği folder'larda UID'siz VM'ler | Orta (keşif motoru) | Günde bir |
+| Süresi dolan istisnalar | Kontrattaki `exceptions` | Yok | Günde bir |
+
+İmajın yeni bir şablonu çıkmış olması drift sayılmaz, çünkü imaj sadece VM oluşturulurken kullanılır. Bu durum bilgi amaçlı "eski şablonla kurulmuş" notu olarak gösterilir.
+
+**Uygulama versiyonu** tam bir check-mode çalıştırmadan, ucuz bir sorguyla izlenir:
+
+```yaml
+kind: App
+spec:
+  versionProbe:
+    http: { path: /actuator/info, port: 8080 }
+    extract: 'body.build.version'          # CEL
+```
+
+#### Ansible check-mode
+
+Check-mode her rolde güvenilir değildir: `command` ve `shell` task'ları check-mode'da atlanır, bazı roller ise check-mode'da hata verir. Bu yüzden:
+
+- **Rol yazma kuralı:** Roller check-mode uyumlu olmalıdır. `command` ve `shell` task'ları `changed_when`, `creates` veya `check_mode` ile doğru işaretlenir.
+- **Uyumsuz roller:** Uyumlu olmayan bir rol `meta/gaia.yml` içinde `checkMode: unsupported` olarak işaretlenir. Bu rolün drift sonucu "temiz" değil, **"bilinmiyor"** olarak gösterilir, böylece yanlış bir güven oluşmaz.
+
+#### Drift bulununca
+
+Davranışı alanın yönetim seviyesi belirler (bkz. 8.1):
+
+| Seviye | Davranış |
+|---|---|
+| `observe` | Kaydedilir, arayüzde görünür |
+| `report` | Kaydedilir ve bildirim gönderilir |
+| `enforce` | Kaydedilir, bildirim gönderilir ve Policy'ye göre düzeltilir |
+
+Düzeltme de "her değişiklik Git'ten geçer" kuralına uyar. İstenen durum değişmez, zaten onaylı bir commit'te durur. Değişen, gerçek durumdur.
+
+- **`auto`:** Gaia aynı commit'e yeniden yakınsar. Run kaydında `requestedBy: gaia-drift` yazar; onay olarak orijinal commit'in onayına referans verir. Sadece düşük riskli sınıflarda kullanılır.
+- **`pr`:** Gaia'nın botu bir `Operation` (`action: reconcile`) PR'ı açar ve drift raporunu PR açıklamasına yazar. PR merge edilince düzeltme çalışır. Prod ve yüksek riskli sınıflar için kullanılır.
+
+```yaml
+kind: Policy
+spec:
+  drift:
+    registration:  { every: 15m }
+    versionProbe:  { every: 10m }
+    provisioning:  { every: 1h }
+    configuration: { every: 24h, window: "02:00-05:00", concurrency: 20 }
+    remediation:
+      registration:  auto                         # her ortamda
+      configuration: { default: auto, prod: pr }
+      provisioning:  pr                           # VM boyutu, disk: hiçbir zaman otomatik değil
+```
+
+**Drift'i kabul etmek:** Bilinçli bir sapma kontrata `exceptions` kaydı eklenerek kabul edilir. Bu bir PR olduğu için karar Git'te kayıt altında kalır. Arayüzden drift kabul etmenin bir yolu yoktur.
+
+**Çakışma:** Bir kontrat için apply çalışırken o kontratta drift taraması yapılmaz; kontrat başına alınan kilit bunu sağlar.
+
+#### Kayıt, gösterim ve bildirim
+
+- **Tekilleştirme:** `drift_reports` tablosunda her drift `(host_uid, alan, anahtar)` ile tekilleştirilir; aynı sapma her taramada yeni kayıt oluşturmaz. Kayıtta `first_seen`, `last_seen` ve `resolved_at` alanları vardır. Durum `open`, `resolved`, `accepted` (istisnaya dönüştü) veya `unknown` (check-mode desteklenmiyor) olabilir.
+- **Arayüz:** Genel bakışta alan bazında açık drift sayıları görünür. Kontrat sayfasında sunucu ve alan bazında diff gösterilir (Pulumi diff veya Ansible diff, secret'lar maskeli). İlk görülme zamanı ve varsa düzeltme PR'ının linki de yanında yer alır.
+- **Olası kaynak:** Drift'in ilk görüldüğü zaman aralığında aynı sunucuda bir Warpgate oturumu varsa, arayüz bunu "olası kaynak" olarak gösterir.
+- **Bildirim:** Gaia drift sayılarını Zabbix'e trapper item olarak gönderir, alarmları Zabbix'teki trigger'lar üretir. Ayrı bir bildirim kanalı kurulmaz; müşterinin mevcut eskalasyon düzeni drift için de çalışır.
 
 ## 8. Adopt (Mevcut Sunucuları İçeri Alma)
 
@@ -790,7 +865,7 @@ Roller OIDC grup claim'inden türetilir.
 ### 11.5 Ekranlar
 
 1. **Genel bakış.** Son run'lar, başarısız olanlar, drift sayıları, bekleyen bot PR'ları ve süresi dolmak üzere olan istisnalar.
-2. **Kontratlar.** YAML ve çözümlenmiş hali, ilişki diyagramı (kontrat → katalog objeleri → provider'lar → gerçek kaynaklar), sunucular ve yönetim seviyeleri.
+2. **Kontratlar.** YAML ve çözümlenmiş hali, ilişki diyagramı (kontrat → katalog objeleri → provider'lar → gerçek kaynaklar), sunucular, yönetim seviyeleri ve drift (sunucu ve alan bazında diff, olası kaynak, düzeltme PR'ı).
 3. **Run'lar.** Aşama zaman çizelgesi, host × task matrisi, canlı log, Pulumi diff ve run kaydı. Hata ilgili provider'a ve onun credential referansına bağlanır.
 4. **Katalog.** Kind'a göre gezinme ve label filtreleri. Her obje için nereden üretildiği, patch'leri ve onu kullanan kontratlar.
 5. **Provider'lar.** Bağlantı durumu, son başarılı çağrı, credential'ın geçerlilik durumu.
@@ -886,7 +961,7 @@ plans         (hash, contract, commit, body bytea, created_at)
 -- Sync, keşif, drift
 sync_runs     (source, revision, status, pr_url, errors jsonb, finished_at)
 discoveries   (id, started_at, findings jsonb)
-drift_reports (contract, host_uid, area, findings jsonb, checked_at)
+drift_reports (contract, host_uid, area, key, status, findings jsonb, first_seen, last_seen, resolved_at)   -- bkz. 7.5
 
 -- Kimlik doğrulama
 users                (id, username, provider, created_at, disabled_at)
@@ -944,7 +1019,6 @@ Gaia tek bir binary'dir:
 
 ## 14. Açık Konular
 
-- [ ] **Drift kontrolü:** Ne sıklıkla yapılacak? Sonuç arayüzde nasıl gösterilecek?
 - [ ] **`Operation` kind'ı:** Desteklenecek aksiyon listesi ve onay kuralları.
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
 - [ ] **SeaweedFS object lock** desteğinin doğrulanması.
@@ -987,3 +1061,7 @@ Gaia tek bir binary'dir:
 | 2026-10-23 | Serbest tipler (`raw`, `json`, serbest `dict`/`list`) yasak; sadece `freeform` ve `platform-admin` onayıyla açılır |
 | 2026-10-23 | Secret parametreler sadece `bao://` referansı; owner'a göre yol önekiyle sınırlı |
 | 2026-10-23 | `gaia schema export` ile kontratlar için JSON Schema (editör desteği) ilk sürümde |
+| 2026-10-23 | Drift alan bazında: kayıtlar 15 dk, versiyon 10 dk, provisioning 1 saat, konfigürasyon günlük gece penceresinde |
+| 2026-10-23 | Drift düzeltme: kayıtlar her yerde otomatik; konfigürasyon prod dışında otomatik, prod'da PR; provisioning her zaman PR (`Operation reconcile`) |
+| 2026-10-23 | Roller check-mode uyumlu yazılır; uyumsuzlar `checkMode: unsupported` ile işaretlenir ve drift sonucu "bilinmiyor" olur |
+| 2026-10-23 | Drift bildirimleri Zabbix trapper üzerinden |
