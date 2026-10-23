@@ -73,7 +73,8 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 | `App` | Katalog | Elle | Uygulama: artifact, playbook, parametreler |
 | `Agent` | Katalog | Elle | BigFix, Kaspersky, Zabbix ajanı… |
 | `Server` | Kontrat | Elle | İstenen durum |
-| `Operation` | Kontrat | Elle | Tek seferlik iş: patch, snapshot… |
+| `Operation` | Kontrat | Elle | Tek seferlik iş: patch, snapshot, replace, reconcile, runbook… (bkz. 6.4) |
+| `OperationSchedule` | Kontrat | Elle | Tekrarlayan Operation şablonu (bkz. 6.4) |
 
 Rol objesine `Ansible` öneki bilerek eklendi. "Rol" kelimesi Warpgate rolleri ve RBAC rolleri için de kullanılıyor; önek bu karışıklığı önlüyor.
 
@@ -235,7 +236,7 @@ spec:
 ```
 
 - **İsimlendirme:** Roller birden çok collection'a dağıldığında aynı isimli roller çıkar. Bu yüzden isim `collection.role` biçiminde.
-- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı PR'da birlikte değişir. Parametre formatı 6.2'de.
+- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, `checkMode`, `runbook`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı PR'da birlikte değişir. Parametre formatı 6.2'de.
 
 ### 5.4 Bot PR akışı
 
@@ -423,18 +424,130 @@ Gaia belirli bir commit'teki katalogdan kontrat şemasını JSON Schema olarak d
 
 ### 6.4 Operation
 
-Kalıcı durum olmayan işler ayrı bir kind ile tanımlanır:
+`Operation`, istenen durumu değiştirmeyen ama Git'ten onaylanan tek seferlik işler için kullanılır: patch, reboot, snapshot, replace, drift düzeltmesi.
+
+#### Yaşam döngüsü
+
+```
+PR açılır → Gaia planı PR'a yazar → onay → merge → pending → (pencere gelince) running
+         → succeeded | failed | partial | cancelled | expired
+```
+
+- **Bir kez çalışır.** Çalışma durumu isimle birlikte veritabanında tutulur. Aynı dosya tekrar merge edilse bile yeniden çalışmaz. Tekrar çalıştırmak için yeni isimle yeni bir Operation yazılır.
+- **Değiştirilemez.** `pending` veya daha ileri durumdaki bir Operation dosyasını değiştiren PR'ı CI reddeder.
+- **`notAfter`:** Bu zamana kadar çalışmamış bir Operation `expired` olur. Örneğin bakım penceresi kaçırılırsa onaylı bir patch haftalar sonra kendiliğinden çalışmaz.
+- **Temizlik:** Tamamlanmış Operation dosyalarını bot 30 gün sonra bir PR ile siler. Kayıtlar veritabanında ve run kayıtlarında kalır.
+- **Sonuç:** Bot, sonucu sunucu bazında PR'a yorum olarak yazar.
+
+#### Hedef ve strateji
 
 ```yaml
 apiVersion: gaia/v1alpha1
 kind: Operation
 metadata:
-  name: patch-2026-11-w2
+  name: patch-2026-11-prod-w2
 spec:
-  action: patch                      # patch | snapshot | revert | power | replace | reconcile | …
-  selector: 'labels.env == "prod" && spec.patch.wave == 2'
+  action: patch
+  selector: 'labels.env == "prod" && spec.patch.wave == 2'     # CEL
+  window: { start: "2026-11-09T02:00:00+03:00", end: "2026-11-09T06:00:00+03:00" }
+  notAfter: "2026-11-09T06:00:00+03:00"
+  strategy:
+    batchSize: 20%            # veya sabit sayı
+    maxFailures: 1            # aşılırsa kalan batch'ler durur
+    pauseBetweenBatches: 10m
   options: { scope: security, reboot: auto, snapshot: true }
 ```
+
+- **Hedef onay anında sabitlenir.** Selector plan sırasında çözülür ve etkilenecek sunucular planda listelenerek plan hash'iyle onaylanır. Arada eklenen sunucular çalışmaya dahil edilmez ve raporda belirtilir; arada silinenler atlanır.
+- **Standart adımlar:** Her sunucuda Gaia şu adımları kendisi uygular: Zabbix bakım modu, snapshot (istenmişse), load balancer'dan çıkarma, aksiyonun kendisi, sağlık kontrolü, load balancer'a geri alma, bakım modunun kapatılması.
+- **Kilit:** Operation etkilediği kontratların kilidini alır. O sırada bir apply çalışıyorsa Operation kuyrukta bekler.
+
+PR'a yazılan plan:
+
+```
+Operation patch-2026-11-prod-w2
+  Hedef      18 sunucu, 6 kontrat · pencere 09.11 02:00–06:00
+  Batch      4 batch (5, 5, 4, 4) · hata eşiği 1
+  Adımlar    bakım → snapshot → drain → patch (security) → reboot (gerekirse) → sağlık → geri al
+  Onay       platform-admin (birden fazla owner var)
+```
+
+#### Tekrarlayan işler: OperationSchedule
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: OperationSchedule
+metadata:
+  name: monthly-patch-prod-w2
+spec:
+  recurrence: "FREQ=MONTHLY;BYDAY=2SU"      # iCalendar RRULE: her ayın 2. pazarı
+  start: "02:00"
+  duration: 4h
+  createAhead: 7d                           # Operation PR'ı pencereden 7 gün önce açılır
+  approval: perInstance                     # perInstance | once
+  template:
+    action: patch
+    selector: 'labels.env == "prod" && spec.patch.wave == 2'
+    strategy: { batchSize: 20%, maxFailures: 1 }
+    options: { scope: security, reboot: auto, snapshot: true }
+```
+
+- **`perInstance`:** Bot her pencere için bir Operation PR'ı açar; her biri ayrıca onaylanır. Prod için varsayılan budur.
+- **`once`:** Schedule bir kez onaylanır, her pencerenin Operation'ı doğrudan oluşturulup çalışır. Onay gerektirmeyen ortamlar için kullanılır.
+- **Neden RRULE:** "Her ayın ikinci pazarı" gibi kurallar cron ile düzgün ifade edilemiyor.
+
+#### Aksiyonlar
+
+| Aksiyon | Ne yapar | Not |
+|---|---|---|
+| `patch` | OS güncellemesi (Linux paket yöneticisi, Windows Update) | `scope`, `reboot`, hariç tutulanlar |
+| `reboot` | Kontrollü yeniden başlatma | Drain ve sağlık kontrolüyle |
+| `power` | VM'i açar, kapatır veya yeniden başlatır | Varsayılan graceful |
+| `snapshot` | Snapshot alır | İsim ve açıklama standardıyla |
+| `revert` | Snapshot'a geri döner | Veri kaybına yol açar |
+| `replace` | Sunucuyu aynı isim ve IP ile yeniden kurar | Bkz. 9.5 |
+| `reconcile` | Kontratı onaylı commit'e yeniden yakınsatır | Drift düzeltmesi; genelde bot açar (bkz. 7.5) |
+| `runbook` | Katalogdaki bir runbook rolünü çalıştırır | Aşağıda |
+
+**runbook.** Serbest Ansible çalıştırılamaz. Sadece `meta/gaia.yml` dosyasında `runbook: true` işaretli `AnsibleRole`'ler çalıştırılabilir; parametreleri `params` şemasından geçer (bkz. 6.2). Yeni bir operasyonel iş için Gaia'ya kod yazmak gerekmez, bir rol eklemek yeterlidir.
+
+```yaml
+spec:
+  action: runbook
+  runbook: web.tomcat-restart
+  selector: 'contract == "portal-web"'
+  params: { graceful: true }
+```
+
+#### Onay kuralları
+
+CODEOWNERS sadece dosya yoluna göre onay isteyebilir; aksiyon ve ortam bazında kural koyamaz. Bu yüzden Gaia PR'larda zorunlu bir status check çalıştırır: `gaia/approval`. Bu kontrol, PR'ı onaylayanların gerekli gruplarda olup olmadığına bakar. Prod'da silme için gereken çift onay da aynı mekanizmayla uygulanır (bkz. 9.9).
+
+```yaml
+kind: Policy
+spec:
+  operations:
+    approvals:
+      prod:
+        default: [owner]
+        revert:  [owner, platform-admin]
+        replace: [owner, platform-admin]
+      default:
+        default: [owner]
+    multiOwner: platform-admin           # birden fazla owner'ı etkileyen işler
+    requireWindow:
+      prod: [patch, reboot, power, revert, replace]
+```
+
+**Birden fazla takımı etkileyen işler:** Selector birden fazla takımın kontratlarına dokunuyorsa her owner'dan ayrı onay beklenmez. `platform-admin` onayı yeterlidir; owner'lar PR'da etiketlenerek bilgilendirilir.
+
+#### Durdurma ve duraklatma
+
+Yanlış giden bir işi durdurmak için PR açıp merge edilmesini beklemek çok yavaş kalır. Bu yüzden `operator` rolü çalışan bir run'ı arayüzden veya CLI'dan:
+- **durdurabilir** (cancel),
+- **duraklatabilir** (pause): kalan batch'ler bekletilir.
+
+Bu, arayüzün salt okunur olması kuralının tek istisnasıdır. Durdurmak istenen durumu değiştirmez, sadece yapılan işi azaltır. Kimin durdurduğu run kaydına yazılır. Kaldığı yerden devam ettirmek (resume) PR ile yapılır.
 
 ## 7. Çözümleme ve Yürütme
 
@@ -738,7 +851,7 @@ Bu akış provisioning'in tersidir, ama arada bir bekleme süresi vardır. Bekle
 
 ### 9.9 Prod koruması ve Policy
 
-Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu CODEOWNERS ile zorunlu tutulur. Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.
+Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu, Gaia'nın `gaia/approval` status check'i ile zorunlu tutulur (bkz. 6.4). Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.
 
 ```yaml
 apiVersion: gaia/v1alpha1
@@ -800,7 +913,7 @@ Bir servis hesabıyla yapılmış işlem, ancak o hesabı sadece Gaia'nın kulla
 
 ### 11.1 Prensip
 
-Arayüz ve CLI aynı API'nin istemcileridir; ikisinin yetkisi aynıdır. İnsan token'larıyla okuma ve `plan` yapılabilir, apply yapılamaz. Git'in tetiklediği apply işleri ayrı bir makine kimliğiyle (CI'ın OIDC token'ı, workload identity) çalışır.
+Arayüz ve CLI aynı API'nin istemcileridir; ikisinin yetkisi aynıdır. İnsan token'larıyla okuma ve `plan` yapılabilir, apply yapılamaz. Tek istisna, `operator` rolünün çalışan bir run'ı durdurması veya duraklatmasıdır (bkz. 6.4). Git'in tetiklediği apply işleri ayrı bir makine kimliğiyle (CI'ın OIDC token'ı, workload identity) çalışır.
 
 Arayüzün amacı diyagramları görmek, logları takip etmek ve hataları debug etmektir.
 
@@ -857,7 +970,7 @@ Roller OIDC grup claim'inden türetilir.
 | Rol | Görebildikleri |
 |---|---|
 | `viewer` | Kendi takımının kontratları (`labels.owner`) |
-| `operator` | Tüm kontratlar, loglar, `plan` |
+| `operator` | Tüm kontratlar, loglar, `plan`; çalışan run'ı durdurma ve duraklatma |
 | `platform-admin` | Ek olarak provider sağlığı, oturum yönetimi, kullanıcılar |
 
 **Görünürlük kuralı:** Bir kullanıcının yetkisi olmayan bir kontrat, ilişki diyagramlarında veya "kullanan kontratlar" listelerinde (ör. aynı ağı kullananlar) **adıyla görünür, detayı kapalıdır.** YAML'ı, sunucuları, logları ve run kayıtları açılmaz.
@@ -957,6 +1070,8 @@ run_stages    (run_id, stage, status, started_at, finished_at)
 run_events    (run_id, seq, ts, stage, host_uid, task, status, data jsonb)   -- aylık partition, 90 gün
 run_records   (run_id, body jsonb, prev_hash, record_hash)                    -- sadece insert
 plans         (hash, contract, commit, body bytea, created_at)
+operations   (name, commit, action, status, plan_hash, targets jsonb, window_start, window_end, not_after, cancelled_by, created_at, finished_at)
+operation_schedule_instances (schedule, window_start, operation_name, pr_url)
 
 -- Sync, keşif, drift
 sync_runs     (source, revision, status, pr_url, errors jsonb, finished_at)
@@ -1019,7 +1134,7 @@ Gaia tek bir binary'dir:
 
 ## 14. Açık Konular
 
-- [ ] **`Operation` kind'ı:** Desteklenecek aksiyon listesi ve onay kuralları.
+- [ ] **Kullanıcı ve grup yönetimi:** AD'deki rutin kullanıcı ve grup işleri `runbook` ile yapılabilir. Ama bu işler kalıcı bir durumu tarif ettiği için `User` / `Group` gibi kind'larla tanımlanmalı. Kapsamı ayrıca konuşulacak.
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
 - [ ] **SeaweedFS object lock** desteğinin doğrulanması.
 - [ ] **PostgreSQL minimum sürümü:** Kullanılan kütüphanelerin (River, pgx) gereksinimlerine göre netleştirilecek.
@@ -1065,3 +1180,9 @@ Gaia tek bir binary'dir:
 | 2026-10-23 | Drift düzeltme: kayıtlar her yerde otomatik; konfigürasyon prod dışında otomatik, prod'da PR; provisioning her zaman PR (`Operation reconcile`) |
 | 2026-10-23 | Roller check-mode uyumlu yazılır; uyumsuzlar `checkMode: unsupported` ile işaretlenir ve drift sonucu "bilinmiyor" olur |
 | 2026-10-23 | Drift bildirimleri Zabbix trapper üzerinden |
+| 2026-10-23 | Operation bir kez çalışır, merge sonrası değiştirilemez; `notAfter` ile süresi dolar; bot 30 gün sonra dosyayı temizler |
+| 2026-10-23 | Operation hedefi onay anında sabitlenir; batch stratejisi ve hata eşiği; standart adımları (bakım, snapshot, drain, sağlık) Gaia uygular |
+| 2026-10-23 | Tekrarlayan işler için `OperationSchedule` (RRULE); onay `perInstance` veya `once` |
+| 2026-10-23 | Aksiyonlar: patch, reboot, power, snapshot, revert, replace, reconcile, runbook; runbook sadece `runbook: true` işaretli rollerle |
+| 2026-10-23 | Onaylar `gaia/approval` status check'i ile; birden fazla owner'ı etkileyen işlerde `platform-admin` onayı yeterli |
+| 2026-10-23 | `operator` çalışan run'ı arayüzden ve CLI'dan durdurabilir ve duraklatabilir; devam ettirmek PR ile |
