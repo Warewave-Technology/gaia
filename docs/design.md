@@ -451,7 +451,7 @@ spec:
 
 ```yaml
 run: run-20261104-0042
-requestedBy: yigit.basalma               # PR yazarı
+requestedBy: mehmet.y                    # PR yazarı
 approvedBy: [ayse.k]                     # PR onaylayanlar
 source: { repo: platform/contracts, commit: 3f9c2e1, signed: true }
 catalogCommit: 9a1b0c4
