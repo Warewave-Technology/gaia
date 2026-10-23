@@ -691,18 +691,148 @@ Roller OIDC grup claim'inden türetilir.
 - **Frontend:** React + TypeScript. Diyagramlar için React Flow ve otomatik yerleşim için ELK.js.
 - **Kütüphaneler:** `go-webauthn/webauthn` (passkey), `coreos/go-oidc` (OIDC), `google/cel-go` (CEL), Pulumi Automation API (Go).
 
-## 12. Açık Konular
+## 12. Veritabanı
 
-- [ ] **Gaia'nın kendi veritabanı:** Run kayıtları, oturumlar, sunucu UID'leri ve bunların dış sistemlerdeki kimlik eşleşmeleri (bkz. 9.1). PostgreSQL mi?
+İlke: **istenen durum Git'te, işletme durumu veritabanında.** Kontratlar, katalog ve policy'ler veritabanına girmez. Veritabanında sadece Git'te tutulamayan veriler durur.
+
+### 12.1 Ne tutulur
+
+| Alan | İçerik | Kaybolursa |
+|---|---|---|
+| Sunucu kimlikleri | UID, hostname, durum, dış sistemlerdeki ID'ler | `gaia reconcile` ile dış sistemlerdeki `gaia.uid` işaretlerinden yeniden kurulur |
+| İsim kiralamaları | Hangi ismi hangi UID taşıyor, isim ne zaman boşaldı | Sunucu kimliklerinden türetilir |
+| Run'lar | Run kaydı (hash zinciri), aşamalar, yapısal olaylar | Kayıtların kopyaları SIEM'de ve SeaweedFS'te; asıl kaynak veritabanı |
+| Planlar | Onaylanan planın içeriği ve hash'i | Plan yeniden alınır |
+| İş kuyruğu | Bekleyen apply'lar, sync işleri, drift taramaları, bekleme süresi dolunca çalışacak silme aşaması | Kritik: bekleme süresi zamanlayıcıları burada |
+| Sync durumu | Source'ların son revizyonu, açık bot PR'ları, CEL hataları | Sonraki sync'te yeniden oluşur |
+| Keşif ve drift | Adopt raporları, drift sonuçları | Yeniden taranır |
+| Kimlik doğrulama | Local kullanıcılar, passkey'ler, TOTP, kurtarma kodları, oturumlar, device kodları | Kullanıcılar yeniden kayıt olur, oturumlar düşer |
+| Katalog indeksi | Yüklenen commit'in objeleri ve ters referansları | Git'ten yeniden üretilir (cache) |
+
+IPAM bu veritabanında değildir. IPAM ayrı bir servis ve ayrı bir veritabanıdır; Gaia ona diğer sistemler gibi bir provider üzerinden bağlanır. Böylece provider modeli korunur ve gerekirse NetBox gibi bir alternatife geçmek için sadece provider değişir. Aynı PostgreSQL cluster'ında ayrı bir veritabanı olarak durabilir. Zabbix'in veritabanı ise yüksek yazma yükü nedeniyle ayrı bir cluster'da olmalıdır.
+
+### 12.2 PostgreSQL ve Gaia'nın gereksinimleri
+
+Veritabanı PostgreSQL'dir. PostgreSQL'in nasıl kurulacağı ve işletileceği (HA, replikasyon, yedek, izleme) **veritabanı yöneticisinin kararıdır**; Gaia buna bağımlı değildir. Gaia'nın beklediği şeyler şunlar:
+
+- **Bağlantı:** Bir DSN, `bao://kv/platform/gaia/db` referansıyla OpenBao'dan okunur. TLS zorunludur (`sslmode=verify-full`).
+- **Sürüm:** PostgreSQL 15 veya üstü önerilir. Kesin minimum sürüm, kullanılan kütüphanelere göre netleştirilecek.
+- **Eklenti veya superuser gerekmez.** Bu sayede managed PostgreSQL servislerinde de çalışır.
+- **İki rol:**
+  - `gaia_owner`: Şemanın sahibi. Migration'ları sadece bu rol çalıştırır (`gaia migrate`).
+  - `gaia_app`: Uygulamanın çalışırken kullandığı rol. Sadece DML yapabilir; `run_records` tablosunda `UPDATE` ve `DELETE` yetkisi yoktur.
+- **Bağlantı havuzu:** PgBouncer transaction modunda `LISTEN/NOTIFY` çalışmaz. Önünde böyle bir havuz varsa Gaia'ya canlı bildirimler için ayrı, doğrudan bir DSN verilmelidir (`listenDsn`). Kilitler transaction seviyesinde advisory lock ile alındığı için transaction modundaki havuzdan etkilenmez.
+- **Partition yönetimi Gaia'dadır.** Gelecek ayların partition'larını Gaia önceden açar, saklama süresi dolanları kendisi düşürür. `pg_partman` gibi bir eklenti gerekmez.
+- **Failover:** Gaia bağlantı kopmalarına dayanıklıdır. Bağlantıyı yeniden kurar ve yarım kalan işleri kuyruktan devam ettirir.
+- **Yedek:** Yedek yöneticinin sorumluluğundadır. Önerimiz point-in-time recovery destekli bir yedek, örneğin pgBackRest ile SeaweedFS'e. Yedekten dönülemezse son çare `gaia reconcile`.
+
+### 12.3 Şema taslağı
+
+```sql
+-- Sunucu kimliği
+hosts (
+  uid           text primary key,
+  contract      text not null,
+  hostname      text not null,
+  seq           int,
+  site          text,
+  status        host_status not null,   -- provisioning | active | draining | stopped | decommissioning | deleted
+  created_run   text references runs,
+  deleted_at    timestamptz
+)
+
+host_external_ids (
+  uid           text references hosts,
+  provider      text,                   -- vc-ank, zabbix, corp-ad …
+  kind          text,                   -- vm, host, computer, target, agent:bigfix …
+  external_id   text,
+  unique (provider, kind, external_id)
+)
+
+name_leases (
+  name          text,
+  uid           text references hosts,
+  held_since    timestamptz,
+  released_at   timestamptz
+)
+create unique index on name_leases (name) where released_at is null;   -- bir isim aynı anda tek UID'de
+
+-- Run'lar
+runs          (id, contract, commit, catalog_commit, plan_hash, status, started_at, finished_at)
+run_stages    (run_id, stage, status, started_at, finished_at)
+run_events    (run_id, seq, ts, stage, host_uid, task, status, data jsonb)   -- aylık partition, 90 gün
+run_records   (run_id, body jsonb, prev_hash, record_hash)                    -- sadece insert
+plans         (hash, contract, commit, body bytea, created_at)
+
+-- Sync, keşif, drift
+sync_runs     (source, revision, status, pr_url, errors jsonb, finished_at)
+discoveries   (id, started_at, findings jsonb)
+drift_reports (contract, host_uid, area, findings jsonb, checked_at)
+
+-- Kimlik doğrulama
+users                (id, username, provider, created_at, disabled_at)
+webauthn_credentials (user_id, credential_id, public_key, sign_count, created_at)
+totp_secrets         (user_id, ciphertext)     -- OpenBao transit ile şifreli
+recovery_codes       (user_id, code_hash, used_at)
+sessions             (token_hash, user_id, kind, expires_at, last_seen, ip, user_agent)
+device_codes         (code_hash, user_code, status, expires_at)
+```
+
+### 12.4 Kurallar
+
+- **Run kaydı değiştirilemez.** Değiştirilemez kayıt, run bittiğinde `run_records` tablosuna tek seferde yazılır. `UPDATE` ve `DELETE` hem rol yetkisiyle hem bir trigger ile engellenir. Her kayıt bir öncekinin hash'ini taşır. Run sürerken değişen durum bilgisi `runs` ve `run_stages` tablolarındadır.
+- **Loglar ikiye ayrılır.** Arayüzde sorgulanan yapısal olaylar `run_events` tablosunda 90 gün tutulur. Ham Ansible ve Pulumi çıktısı SeaweedFS'te süresiz arşivlenir.
+- **Kilit:** Aynı kontrat için aynı anda tek run çalışır. Bunu kontrat başına alınan advisory lock sağlar.
+- **İş kuyruğu:** River (`SKIP LOCKED`) kullanılır. Hangi Gaia replikası boştaysa işi o alır; leader election gerekmez.
+- **Canlı log:** Replikalar arasında `LISTEN/NOTIFY` ile dağıtılır. Kullanıcı hangi replikaya bağlıysa logu canlı görür.
+- **Veritabanında oturum açmaya yarayacak bilgi tutulmaz.** TOTP secret'ları OpenBao transit ile şifrelidir. Token'ların ve kurtarma kodlarının sadece hash'i tutulur. Passkey'lerin sadece public key'i tutulur.
+- **`gaia reconcile`:** vCenter, Zabbix ve AD'yi tarar ve UID'leri `gaia.uid` işaretlerinden bularak `hosts` ile `host_external_ids` tablolarını yeniden kurar.
+
+### 12.5 Go tarafı
+
+`pgx` (sürücü), `sqlc` (tip güvenli sorgular), `goose` (migration), `river` (iş kuyruğu).
+
+## 13. Dağıtım
+
+Birincil dağıtım hedefi **VM**. Kubernetes için bir **Helm chart** de hazırlanır. İki yöntemde de aynı binary ve aynı konfigürasyon kullanılır.
+
+### 13.1 Bileşenler
+
+Gaia tek bir binary'dir:
+
+- `gaia server` her şeyi birlikte çalıştırır: API, arayüz, worker'lar, sync ve zamanlayıcı.
+- Ölçeklemek gerekirse roller ayrılabilir: `gaia server --role=api` ve `gaia server --role=worker`.
+- Replikalar stateless'tır; tüm durum veritabanında ve SeaweedFS'te durur. Bu yüzden önlerine bir load balancer konarak istenen sayıda replika çalıştırılabilir.
+
+### 13.2 VM
+
+- **Paketleme:** `nfpm` ile `.deb` ve `.rpm` paketleri üretilir ve Nexus'taki apt/yum reposuna konur.
+- **Servis:** systemd unit'i ile çalışır. Konfigürasyon `/etc/gaia/` altında durur; servis ayrı bir sistem kullanıcısıyla, systemd'nin hardening seçenekleri açık şekilde çalışır.
+- **OpenBao kimliği:** AppRole. `secret_id` OpenBao Agent ile ya da systemd credentials üzerinden verilir.
+- **Migration:** Güncelleme sırasında `gaia migrate`, `gaia_owner` rolüyle ayrı bir adım olarak çalıştırılır.
+- **Kurulumun kendisi:** Gaia'yı VM'e kuran bir Ansible rolü (`gaia.server`) hazırlanır. Gaia'yı da aynı araçlarla kurmuş oluruz.
+
+### 13.3 Kubernetes (Helm)
+
+- **Chart içeriği:** Deployment, Service, Ingress, ConfigMap, ServiceAccount ve PodDisruptionBudget. HorizontalPodAutoscaler isteğe bağlı.
+- **Migration:** `pre-install` / `pre-upgrade` hook'u olarak çalışan bir Job.
+- **OpenBao kimliği:** Kubernetes auth method. Secret'lar OpenBao Agent Injector veya CSI provider ile pod'a gelir; chart Kubernetes Secret'ına düz metin yazmaz.
+- **Rol ayrımı:** `values.yaml` ile API ve worker ayrı Deployment olarak açılabilir.
+- **Veritabanı chart'ın içinde yoktur.** PostgreSQL dışarıda durur ve DSN referansıyla verilir.
+- **Dağıtım:** Container imajı ve chart Nexus'ta tutulur (Docker registry ve Helm hosted repo).
+
+## 14. Açık Konular
+
 - [ ] **Runner seçimi:** Semaphore UI mı, AWX mı? AWX'in sürümleri 2024'ten beri duraklatılmış durumda; bu yüzden Semaphore UI değerlendiriliyor.
 - [ ] **`params` şema formatı:** App için de Ansible `argument_specs` formatını kullanmak her yerde tek format sağlar. Bu yeterli mi?
 - [ ] **Drift kontrolü:** Ne sıklıkla yapılacak? Sonuç arayüzde nasıl gösterilecek?
 - [ ] **`Operation` kind'ı:** Desteklenecek aksiyon listesi ve onay kuralları.
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
 - [ ] **SeaweedFS object lock** desteğinin doğrulanması.
+- [ ] **PostgreSQL minimum sürümü:** Kullanılan kütüphanelerin (River, pgx) gereksinimlerine göre netleştirilecek.
 - [ ] **Warpgate RDP** desteğinin doğrulanması. Desteğin durumu Warpgate sürüm notlarından teyit edilmeli.
 
-## 13. Karar Kaydı
+## 15. Karar Kaydı
 
 | Tarih | Karar |
 |---|---|
@@ -724,3 +854,9 @@ Roller OIDC grup claim'inden türetilir.
 | 2026-10-23 | Decommission'da bekleme süresi: prod 7 gün, test 1 gün; IP karantinası 14 gün; prod'da silme için owner + platform-admin onayı |
 | 2026-10-23 | Zabbix'te geçmiş saklanmaz: host silinince geçmişiyle birlikte silinir |
 | 2026-10-23 | Decommission tamamlanınca kontrat dosyası bot PR ile silinir |
+| 2026-10-23 | Gaia'nın veritabanı PostgreSQL; istenen durum Git'te, işletme durumu veritabanında |
+| 2026-10-23 | PostgreSQL'in yapılandırması veritabanı yöneticisinin kararı; Gaia sadece gereksinimlerini tanımlar (12.2) |
+| 2026-10-23 | IPAM ayrı servis ve ayrı veritabanı (aynı cluster'da olabilir); Zabbix ayrı cluster |
+| 2026-10-23 | `run_events` 90 gün; ham loglar SeaweedFS'te süresiz |
+| 2026-10-23 | `gaia reconcile` kapsamda |
+| 2026-10-23 | Birincil dağıtım VM (deb/rpm + systemd); Helm chart da hazırlanır |
