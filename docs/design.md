@@ -145,8 +145,8 @@ spec:
   playbook: apps/portal.yml
   requires: [web.tomcat]                           # → AnsibleRole/web.tomcat
   params:
-    version: { type: str, required: true }
-    heapMiB: { type: int, default: 2048 }
+    version: { type: str, required: true, gaia: { format: semver } }
+    heapMiB: { type: int, default: 2048, gaia: { min: 512, max: 16384 } }   # format: 6.2
 ---
 apiVersion: gaia/v1alpha1
 kind: Agent
@@ -168,6 +168,8 @@ metadata:
 spec:
   naming: site.name + env.substring(0, 1) + app.substring(0, 3) + pad(seq, 2)   # CEL → ankppor01
   requiredLabels: [env, owner, app]
+  secrets:
+    allowedPrefix: '"bao://kv/apps/" + labels.owner + "/"'          # CEL: secret parametreleri bu önekle sınırlı (6.2)
   environments:
     prod: { approval: required, deleteProtection: true }
     test: { approval: none }
@@ -227,13 +229,13 @@ spec:
     os: 'meta.galaxy_info.platforms.map(p, p.name.lowerAscii())'
     labels: '{"category": role.collection}'
     params: argumentSpecs                                # meta/argument_specs.yml
-    extra: meta/gaia.yml                                 # opsiyonel: monitoring, conflicts…
+    extra: meta/gaia.yml                                 # opsiyonel: monitoring, conflicts, param uzantıları, rules
   output: generated/ansible-roles/
   trigger: { onCommit: true }
 ```
 
 - **İsimlendirme:** Roller birden çok collection'a dağıldığında aynı isimli roller çıkar. Bu yüzden isim `collection.role` biçiminde.
-- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`) rolün yanında tutulur, böylece rol ve metadata'sı aynı PR'da birlikte değişir.
+- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı PR'da birlikte değişir. Parametre formatı 6.2'de.
 
 ### 5.4 Bot PR akışı
 
@@ -332,11 +334,88 @@ spec:
 
 ### 6.2 Kaçış kapısı: `params` şeması
 
-Kontrat Ansible'a serbest `vars` geçemez. Her katalog öğesi kendi `params` şemasını tanımlar ve kontrat sadece bu şemadaki parametreleri geçebilir.
+Kontrat Ansible'a serbest `vars` geçemez. Her katalog öğesi kendi `params` şemasını tanımlar ve kontrat sadece bu şemadaki parametreleri geçebilir. Şemada olmayan bir parametre veya tipi yanlış bir değer validasyonda reddedilir.
 
-- `AnsibleRole`'de şema `argument_specs` dosyasından üretilir.
-- `App`'te şema elle yazılır.
-- Şemada olmayan bir parametre veya tipi yanlış bir değer validasyonda reddedilir.
+Kontratta parametre iki yerde geçilir:
+- **App:** `apps[].params` alanında.
+- **AnsibleRole:** `ansibleRoles` listesindeki bir eleman düz bir isim (`web.nginx`) ya da `{ name, params }` olabilir.
+
+```yaml
+  ansibleRoles:
+    - web.nginx
+    - name: web.tomcat
+      params: { tomcat_heap_mib: 4096 }
+```
+
+#### Format
+
+Katalogda tek format kullanılır. Parametre alanları Ansible `argument_specs` ile aynıdır: `type`, `required`, `default`, `choices`, `elements`, `options`, `no_log`, `description`. Her parametreye bir `gaia` uzantı bloğu, şemanın geneline de CEL ile yazılan `rules` eklenir:
+
+```yaml
+kind: App
+metadata:
+  name: portal
+spec:
+  params:
+    version:
+      type: str
+      required: true
+      gaia: { format: semver }
+    heapMiB:
+      type: int
+      default: 2048
+      gaia: { min: 512, max: 16384 }
+    dbPassword:
+      type: str
+      no_log: true
+      gaia: { secret: true }          # değer sadece bao:// referansı olabilir
+    listenNetwork:
+      type: str
+      gaia: { ref: Network }          # katalogda olan bir Network adı olmalı
+  rules:
+    - rule: 'params.heapMiB <= size.memoryGiB * 1024 * 0.75'
+      message: "heapMiB, sunucu belleğinin %75'ini aşamaz"
+```
+
+**`gaia` uzantıları**
+
+| Alan | Anlamı |
+|---|---|
+| `min`, `max` | Sayılarda değer sınırı, string ve listelerde uzunluk sınırı |
+| `pattern` | Regex |
+| `format` | `semver`, `ipv4`, `cidr`, `hostname`, `fqdn`, `duration` |
+| `secret` | Değer sadece `bao://` referansı olabilir (bkz. kural 2) |
+| `ref` | Değer belirtilen kind'daki bir katalog objesinin adı olmalı |
+| `deprecated` | Kullanımdan kaldırma notu; planda uyarı çıkar |
+| `freeform` | Serbest yapıya izin verir (bkz. kural 1) |
+
+**Rollerde Ansible'ın dosyasına dokunulmaz.** `meta/argument_specs.yml` olduğu gibi kalır. Gaia uzantıları ve kurallar `meta/gaia.yml` dosyasına parametre adıyla yazılır:
+
+```yaml
+# roles/tomcat/meta/gaia.yml
+monitoring: [tomcat]
+params:
+  tomcat_heap_mib: { min: 512, max: 16384 }
+  tomcat_admin_password: { secret: true }
+rules:
+  - rule: 'params.tomcat_heap_mib <= size.memoryGiB * 1024 * 0.75'
+    message: "Heap, sunucu belleğinin %75'ini aşamaz"
+```
+
+`AnsibleRoleSource` bu iki dosyayı birleştirir ve katalogdaki `AnsibleRole` objesini App ile aynı formatta üretir. Kaynakta iki dosya olsa da katalogda tek format vardır.
+
+#### Kurallar
+
+1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog PR'ında `platform-admin` onayı gerektirir.
+2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, Policy'de kontratın owner'ı için izin verilen yol önekiyle sınırlıdır (bkz. 4.4); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
+3. **Kurallar CEL ile.** `rules` ifadeleri `params`, `size`, `image`, `labels` ve `network` değerlerini görebilir. Kubernetes'in CRD'lerde CEL ile yaptığı validasyonla aynı yaklaşım.
+4. **İki aşamalı doğrulama.** Gaia plan sırasında doğrular ve hata PR'da hemen görünür. Ansible çalışırken `argument_specs` ile bir kez daha doğrular. Roller için iki doğrulama aynı kaynaktan geldiği için birbiriyle çelişmez.
+5. **Varsayılanlar planda görünür.** Kontratta yazılmayan parametrelerin varsayılan değerleri planda açıkça gösterilir. Böylece hangi değerle çalışıldığı run kaydında yer alır.
+6. **Uyumluluk.** Bir rolden parametre kaldırılırsa ya da adı değişirse bot PR'ının etki planı o parametreyi kullanan kontratları listeler ve PR geçmez. Kaldırma önce `gaia: { deprecated: "yerine x kullanın" }` ile duyurulur.
+
+#### Editör desteği
+
+Gaia belirli bir commit'teki katalogdan kontrat şemasını JSON Schema olarak dışa verir (`gaia schema export`). Şema seçime göre daralır; örneğin `apps[].name: portal` seçildiğinde sadece portal'ın parametreleri önerilir. VS Code'un YAML eklentisi bu şemayla kontrat yazarken otomatik tamamlama yapar ve hataları anında gösterir. JSON Schema elle yazılmaz, Gaia üretir. İlk sürümün kapsamında.
 
 ### 6.3 Versiyon güncellemesi
 
@@ -865,7 +944,6 @@ Gaia tek bir binary'dir:
 
 ## 14. Açık Konular
 
-- [ ] **`params` şema formatı:** App için de Ansible `argument_specs` formatını kullanmak her yerde tek format sağlar. Bu yeterli mi?
 - [ ] **Drift kontrolü:** Ne sıklıkla yapılacak? Sonuç arayüzde nasıl gösterilecek?
 - [ ] **`Operation` kind'ı:** Desteklenecek aksiyon listesi ve onay kuralları.
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
@@ -905,3 +983,7 @@ Gaia tek bir binary'dir:
 | 2026-10-23 | Ansible execution environment container'ında çalışır: VM'de podman, Kubernetes'te run başına pod; şimdilik tek varsayılan EE |
 | 2026-10-23 | Envanterde `inventory_hostname` sunucunun UID'si |
 | 2026-10-23 | Ayrılmış segmentler için site worker'ı tasarımda var; ihtiyaç doğunca yazılır |
+| 2026-10-23 | `params` formatı: argument_specs tabanı + `gaia` uzantıları + CEL `rules`; rollerde uzantılar `meta/gaia.yml` dosyasında |
+| 2026-10-23 | Serbest tipler (`raw`, `json`, serbest `dict`/`list`) yasak; sadece `freeform` ve `platform-admin` onayıyla açılır |
+| 2026-10-23 | Secret parametreler sadece `bao://` referansı; owner'a göre yol önekiyle sınırlı |
+| 2026-10-23 | `gaia schema export` ile kontratlar için JSON Schema (editör desteği) ilk sürümde |
