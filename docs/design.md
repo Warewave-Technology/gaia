@@ -574,7 +574,7 @@ Plan
   pulumi    + 3 VirtualMachine, tag'ler
   corp-ad   + 3 DNS A/PTR kaydı
   zabbix    + 3 host
-  warpgate  + 3 SSH hedefi
+  warpgate  + 3 SSH hedefi              (Windows imajlarında RDP)
   ansible   ▸ linux-cis-l1 → web.nginx → web.tomcat → portal 2.4.1 → ajanlar
 env=prod → onay gerekli
 ```
@@ -905,7 +905,13 @@ changes: [...]
 
 - **Commit imzası zorunlu, branch'ler korumalı.** "Kim istedi" sorusunun kanıtı imzalı commit'tir.
 - **Kayıtlar hash zinciriyle bağlıdır** ve anında SIEM'e gönderilir. Silinen veya değiştirilen bir kayıt zinciri kırar.
-- **Arşiv:** Kayıtların bir kopyası SeaweedFS'te tutulur. Object lock (WORM) desteği doğrulanmalı.
+- **Arşiv:** Kayıtların bir kopyası SeaweedFS'te, S3 Object Lock'lu bir bucket'ta tutulur.
+  - SeaweedFS S3 Object Lock'u destekler: GOVERNANCE ve COMPLIANCE modları, legal hold. Bu desteğin bulunduğu bir sürüm kullanılmalı; özellik 2025 ortasında eklendi.
+  - Run kayıtları için **COMPLIANCE** modu kullanılır. Bu modda kayıt, admin dahil kimse tarafından saklama süresi bitene kadar silinemez veya değiştirilemez. GOVERNANCE modunda ise bypass yetkisi olan admin silebilir.
+  - Bucket versioning açık olarak ve Object Lock'u baştan etkin şekilde oluşturulmalıdır; mevcut bir bucket'a sonradan eklenemez.
+  - Saklama süresi `runArchive.retention` ile ayarlanır; en fazla 100 yıl olabilir. COMPLIANCE modunda süre sonradan kısaltılamaz.
+  - Ham Ansible ve Pulumi logları kanıt niteliği taşımadığı için Object Lock'suz ayrı bir bucket'ta durur.
+  - Object Lock yazılım seviyesinde bir korumadır. Depolama sunucularına doğrudan erişimi olan biri veriyi yine de silebilir. Bu yüzden SIEM'e gönderilen kopya ikinci bir güvencedir.
 
 ### 10.2 Katman 4: Servis hesaplarını insanlar kullanamasın
 
@@ -1036,7 +1042,11 @@ IPAM bu veritabanında değildir. IPAM ayrı bir servis ve ayrı bir veritabanı
 Veritabanı PostgreSQL'dir. PostgreSQL'in nasıl kurulacağı ve işletileceği (HA, replikasyon, yedek, izleme) **veritabanı yöneticisinin kararıdır**; Gaia buna bağımlı değildir. Gaia'nın beklediği şeyler şunlar:
 
 - **Bağlantı:** Bir DSN, `bao://kv/platform/gaia/db` referansıyla OpenBao'dan okunur. TLS zorunludur (`sslmode=verify-full`).
-- **Sürüm:** PostgreSQL 15 veya üstü önerilir. Kesin minimum sürüm, kullanılan kütüphanelere göre netleştirilecek.
+- **Sürüm:** Minimum **PostgreSQL 16**. Sebebi:
+  - pgx, PostgreSQL ekibinin desteklediği sürümleri destekler (şu an 14 ve üstü).
+  - River ise en güncel üç ana sürümle test edilir. Daha dar olan sınır River'ınki; şu an 16, 17 ve 18.
+  - Kural: Gaia'nın minimum sürümü, River'ın test ettiği en eski ana sürümdür. Yeni bir ana sürüm (ör. 19) çıktığında minimum bir sürüm yükselir; bu sürüm notlarında duyurulur.
+  - Yeni kurulumlarda en güncel ana sürüm önerilir.
 - **Eklenti veya superuser gerekmez.** Bu sayede managed PostgreSQL servislerinde de çalışır.
 - **İki rol:**
   - `gaia_owner`: Şemanın sahibi. Migration'ları sadece bu rol çalıştırır (`gaia migrate`).
@@ -1256,7 +1266,7 @@ access:
 | Tüketici | Gaia nasıl dağıtır |
 |---|---|
 | Gaia arayüzü | `viewer` / `operator` / `platform-admin` rolleri Team üyeliklerinden gelir (bkz. 11.4). OIDC sadece kimlik doğrulama için kullanılır |
-| Warpgate | API ile kullanıcıların rol ve hedef atamaları |
+| Warpgate | API ile kullanıcıların rol ve hedef atamaları. Hedef tipi imajdan gelir: Linux için SSH, Windows için RDP |
 | Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar |
 | Zabbix, Nexus | Kendi API'leriyle kullanıcı ve grup atamaları |
 
@@ -1275,9 +1285,6 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 ## 15. Açık Konular
 
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
-- [ ] **SeaweedFS object lock** desteğinin doğrulanması.
-- [ ] **PostgreSQL minimum sürümü:** Kullanılan kütüphanelerin (River, pgx) gereksinimlerine göre netleştirilecek.
-- [ ] **Warpgate RDP** desteğinin doğrulanması. Desteğin durumu Warpgate sürüm notlarından teyit edilmeli.
 
 ## 16. Karar Kaydı
 
@@ -1331,3 +1338,6 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | Onaylayanlar AD'de ayrı bir grup (`approversGroup`); `labels.owner` bir Team referansı; CODEOWNERS bot tarafından üretilir |
 | 2026-10-23 | Üyelik değişiklikleri iki yönde de otomatik dağıtılır; devre dışı hesapların erişimi her ortamda otomatik kaldırılır |
 | 2026-10-23 | Gaia rolleri Team üyeliklerinden gelir; OIDC sadece kimlik doğrulama için; SSH anahtarlarının kaynağı Git |
+| 2026-10-23 | PostgreSQL minimum 16; kural: River'ın test ettiği en eski ana sürüm |
+| 2026-10-23 | Run kayıtlarının arşivi SeaweedFS'te COMPLIANCE modunda Object Lock'lu bucket; ham loglar ayrı bucket'ta |
+| 2026-10-23 | Warpgate RDP'yi v0.27.0'dan beri destekliyor; Windows sunucular Warpgate'e RDP hedefi olarak eklenir |
