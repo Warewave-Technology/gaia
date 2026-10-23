@@ -51,7 +51,7 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 **Kurallar**
 
 - **Dosya yolu önemsiz.** Gaia dosyanın nerede olduğuna değil, `kind` ve `metadata.name` alanlarına bakar. Bir dosyada birden fazla doküman (`---`) olabilir.
-- **Kimlik:** Bir objenin kimliği `kind + name` ikilisidir ve global olarak tekildir. Aynı ikiliden iki tane varsa yükleme hata verir. Bunun tek istisnası bölüm 5.4'teki patch objeleri.
+- **Kimlik:** Bir objenin kimliği `kind + name` ikilisidir ve global olarak tekildir. Aynı ikiliden iki tane varsa yükleme hata verir. Bunun tek istisnası bölüm 5.5'teki patch objeleri.
 - **Sahiplik:** Kimin hangi dizini onaylayacağı CODEOWNERS ile belirlenir.
 
 ## 3. Kind Listesi
@@ -59,7 +59,7 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 | Kind | Grup | Elle / üretilen | Not |
 |---|---|---|---|
 | `Platform` | Sistem | Elle | Tekil. Engine ayarları |
-| `AuthConfig` | Sistem | Elle | Kimlik doğrulama, bkz. bölüm 10 |
+| `AuthConfig` | Sistem | Elle | Kimlik doğrulama, bkz. bölüm 11 |
 | `Provider` | Sistem | Elle | Her dış sistem için bir tane |
 | `Policy` | Sistem | Elle | İsimlendirme, ortamlar, zorunlu etiketler |
 | `Site` | Katalog | Elle | Lokasyon: vCenter yerleşimi, NTP, Zabbix proxy |
@@ -352,7 +352,7 @@ kind: Operation
 metadata:
   name: patch-2026-11-w2
 spec:
-  action: patch                      # patch | snapshot | revert | power | …
+  action: patch                      # patch | snapshot | revert | power | replace | …
   selector: 'labels.env == "prod" && spec.patch.wave == 2'
   options: { scope: security, reboot: auto, snapshot: true }
 ```
@@ -443,11 +443,137 @@ spec:
 - **İstisnalar süreli ve onaylıdır.** Süresi dolan bir istisna planda uyarı olarak çıkar.
 - **Önce kayıtlar.** `registration: enforce` en az riskli seviye; ilk gün uygulanabilir ve envanteri hemen düzeltir.
 
-## 9. Audit
+## 9. Sunucu Kimliği ve Silme
+
+Ana kural: **bir şeyin silinmesi her zaman açıkça istenir.** Dosya silmek ya da satır kaldırmak gibi örtük işlemler kaynak silmez.
+
+### 9.1 Sunucu kimliği: UID
+
+Hostname'in tekrar kullanılması engellenemez. Silinen bir sunucunun adı yeniden verilebilir, Gaia dışında da aynı isimle makine açılabilir. Bu yüzden Gaia bir sunucuyu hostname ile değil, oluşturulduğu anda atanan değişmez bir **UID** ile tanır. Hostname sadece sunucunun bir özelliğidir.
+
+- **Dış sistemlerdeki kimlikler:** Gaia'nın veritabanı her UID için bu kimlikleri tutar: vCenter instance UUID, AD objectGUID, Zabbix hostid, Warpgate hedef ID'si, ajan konsollarındaki ID'ler, IPAM kaydı. Bu kayıtlar sonradan isimle aranmaz, bu ID'lerle bulunur.
+- **İşaretleme:** UID dış sistemlere de yazılır: vCenter'da `gaia.uid` custom attribute'u, Zabbix'te `gaia.uid` tag'i, AD bilgisayar hesabında uygun bir attribute.
+- **Pulumi kaynak adı UID'den türetilir** (`vm-<uid>`). Böylece aynı isimli eski sunucu henüz silinmemişken açılan yeni sunucu stack'te onunla çakışmaz.
+- **Görüntüleme:** Run kayıtları, loglar ve arayüz sunucuyu hostname ve UID ile birlikte gösterir (`ankppor03 · 7f3k`). Aynı isimli farklı sunucuların geçmişi birbirine karışmaz.
+
+### 9.2 İsim ayırma ve çakışma kontrolü
+
+- **Sıra numarası:** En küçük boş numara verilir. Bir isim, onu taşıyan sunucu silinene kadar dolu sayılır; bekleme süresi de buna dahil. Silme tamamlanınca isim boşalır ve tekrar kullanılabilir.
+- **Çakışma kontrolü:** Plandan önce yeni isim vCenter'da, AD'de (tüm DC'lerde), DNS'te, Zabbix'te, Warpgate'te ve ajan konsollarında aranır:
+  - **Kayıt yoksa** isim kullanılır.
+  - **Kayıt Gaia'ya ait ve UID'si eşleşiyorsa** (ör. replace) sorun yoktur.
+  - **Kayıt başka birine aitse:** Gaia'nın ürettiği isimlerde bir sonraki boş numaraya geçilir ve bu planda belirtilir. Elle verilmiş isimlerde (adopt edilen `hosts` listesi) plan durur.
+- **AD replikasyonu:** Silinen bilgisayar hesabı tüm DC'lerden kalkmadan aynı isimle yeni hesap açılmaz.
+- **DNS:** Eski A/PTR kaydı silindikten sonra, istemci cache'leri boşalsın diye en az kaydın TTL süresi kadar beklenir.
+
+### 9.3 Yeniden kullanılan isim
+
+- **SSH host key:** Aynı isimle açılan yeni sunucunun host key'i farklıdır. Gaia, Ansible'ın `known_hosts` kayıtlarını ve Warpgate hedeflerinin host key'lerini UID'ye bağlı yönetir. Yeni sunucu kurulunca eski kayıt silinir, yenisi yazılır. İleride kullanıcı tarafındaki host key uyarılarını da tamamen kaldırmak istenirse OpenBao SSH CA ile host sertifikası kullanılabilir.
+- **Zabbix:** Host silinince geçmişiyle birlikte silinir. Aynı isimle açılan yeni host sıfırdan başlar.
+- **Ajan konsolları:** Eski kayıt, saklanan ajan ID'si üzerinden silinir; isimle aranmaz.
+
+### 9.4 Ölçek küçültme
+
+`replicas` azaltılırsa varsayılan olarak sıra numarası en yüksek sunucu gider. Belirli bir sunucunun çıkarılması isteniyorsa `retire` alanı kullanılır:
+
+```yaml
+spec:
+  replicas: 2
+  retire: [ankppor01]          # en yüksek sıra numarası yerine bu sunucu gider
+```
+
+```
+$ gaia plan portal-web.yaml
+  ankppor01 · 2c9a   - decommission     drain → snapshot → kapat → 7 gün bekle → sil
+  IPAM               10.20.120.31 karantinaya (14 gün)
+env=prod → onay gerekli (owner + platform-admin)
+```
+
+Silme tamamlandıktan sonra `retire` satırının bir etkisi kalmaz; bot bunu bir PR ile temizler. Bir sunucuyu `retire` listesine eklemeden sadece `Operation` ile silmek mümkün değildir. Aksi halde kontrat hâlâ aynı sayıda sunucu istediği için bir sonraki apply silinen sunucunun yerine yenisini kurar.
+
+### 9.5 Değiştirme (replace)
+
+Bozuk bir sunucunun yerine aynı isim ve aynı IP ile yenisi kurulur. Yeni sunucu yeni bir UID alır.
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata:
+  name: replace-ankppor02
+spec:
+  action: replace
+  target: { contract: portal-web, host: ankppor02 }
+```
+
+Replace işleminde bekleme süresi uygulanmaz, çünkü isim ve IP yeni sunucuya geçer. Güvenlik için eski sunucunun son snapshot'ı alınır.
+
+### 9.6 Kontratın kaldırılması
+
+```yaml
+spec:
+  lifecycle:
+    state: active              # active | decommissioned
+    deletionPolicy: delete     # delete | retain
+```
+
+- **Kontrat dosyasını silmek kaynakları silmez.** Yaşayan kaynağı olan bir kontratın dosyası silinirse CI bunu reddeder.
+- **Silme iki adımda yapılır:**
+  1. Kontratta `lifecycle.state: decommissioned` yapılır ve PR merge edilir. Sunucular decommission akışına girer.
+  2. Akış tamamlanınca bot, kontrat dosyasını silen bir PR açar.
+- **`deletionPolicy: retain`:** Kaynaklar silinmez, sadece Gaia'nın yönetiminden çıkarılır. Pulumi state'inden düşürülür ve envanterde "yönetilmiyor" olarak işaretlenir. Bir sistemi başka bir ekibe veya araca devrederken kullanılır.
+
+### 9.7 Adopt edilmiş sunucular
+
+- Gaia kendi kurmadığı bir VM'i, `provisioning: enforce` seviyesine gelmeden silemez. `observe` veya `report` seviyesindeyken `decommissioned` istenirse plan reddedilir; bu durumda kullanılabilecek tek seçenek `retain`.
+- Adopt edilmiş kontratlarda `deletionPolicy` varsayılanı `retain`.
+
+### 9.8 Decommission akışı
+
+Bu akış provisioning'in tersidir, ama arada bir bekleme süresi vardır. Bekleme süresince geri dönmek için sunucuyu açıp devre dışı bırakılan kayıtları yeniden etkinleştirmek yeterlidir.
+
+| Aşama | Ne yapılır | Geri alınabilir mi |
+|---|---|---|
+| 1. Drain | Sunucu load balancer'dan çıkarılır, bağlantıların bitmesi beklenir | Evet |
+| 2. Bakım modu | Zabbix'te bakıma alınır, alarmlar susturulur | Evet |
+| 3. Son snapshot | Policy'ye göre alınır ve saklanır | – |
+| 4. Kapatma | Graceful shutdown. Zabbix host'u, Warpgate hedefi ve AD bilgisayar hesabı **devre dışı** bırakılır | Evet: aç ve etkinleştir |
+| 5. Bekleme | Prod'da 7 gün, test'te 1 gün; arayüzde "geri al" | Evet |
+| 6. Silme | VM (Pulumi destroy), AD hesabı, DNS kayıtları, Zabbix host'u (geçmişiyle birlikte), Warpgate hedefi ve ajan konsollarındaki kayıtlar silinir | Hayır |
+| 7. Karantina | IP karantinaya alınır. İsim 9.2'deki kurallara göre boşalır | – |
+
+- **Aşama 4'te sunucuya müdahale edilmez.** Domain'den çıkarma veya ajan kaldırma gibi işler yapılmaz, kayıtlar dışarıdan devre dışı bırakılır. Bu sayede geri dönüşte sunucuyu yeniden yapılandırmak gerekmez. Kalıcı temizlik aşama 6'da, sunucuya bağlanmadan, doğrudan API'lerle yapılır.
+- **Kesintiler:** Her adım idempotent ve run devam ettirilebilir. Akış yarıda kalırsa sunucu `decommissioning` durumunda görünür ve sonraki apply kaldığı yerden devam eder.
+
+### 9.9 Prod koruması ve Policy
+
+Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu CODEOWNERS ile zorunlu tutulur. Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: Policy
+metadata:
+  name: default
+spec:
+  decommission:
+    gracePeriod: 7d
+    finalSnapshot: { enabled: true, retention: 30d }
+    ipQuarantine: 14d
+  environments:
+    prod: { deleteProtection: true, decommissionApprovers: [owner, platform-admin] }
+    test: { decommission: { gracePeriod: 1d, finalSnapshot: { enabled: false } } }
+```
+
+### 9.10 Katalog objelerinin silinmesi
+
+- **Kullanımda olan bir katalog objesi silinemez.** Silinirse yükleme sırasında bir referans çözülemez hale gelir ve CI etkilenen kontratları listeler.
+- **Üretilen objeler:** IPAM'dan bir subnet kalkarsa bot PR ilgili `Network` objesini siler. Ağ kullanımdaysa aynı kural nedeniyle PR geçmez.
+- **Kullanımdan kaldırma:** Objeye `gaia/deprecated: "true"` annotation'ı eklenir. Yeni kontratlar bu objeyi seçemez, mevcut kontratların planında uyarı çıkar.
+
+## 10. Audit
 
 İş Git'e dayandığı için iki katman yeterli bulundu.
 
-### 9.1 Katman 1: Değiştirilemez run kaydı
+### 10.1 Katman 1: Değiştirilemez run kaydı
 
 ```yaml
 run: run-20261104-0042
@@ -468,7 +594,7 @@ changes: [...]
 - **Kayıtlar hash zinciriyle bağlıdır** ve anında SIEM'e gönderilir. Silinen veya değiştirilen bir kayıt zinciri kırar.
 - **Arşiv:** Kayıtların bir kopyası SeaweedFS'te tutulur. Object lock (WORM) desteği doğrulanmalı.
 
-### 9.2 Katman 4: Servis hesaplarını insanlar kullanamasın
+### 10.2 Katman 4: Servis hesaplarını insanlar kullanamasın
 
 Bir servis hesabıyla yapılmış işlem, ancak o hesabı sadece Gaia'nın kullanabildiği kanıtlanabiliyorsa kanıt değeri taşır.
 
@@ -476,15 +602,15 @@ Bir servis hesabıyla yapılmış işlem, ancak o hesabı sadece Gaia'nın kulla
 - AD'de bu hesaplara interaktif oturum açma GPO ile yasaklanır.
 - Hesap Gaia'nın IP'si dışından kullanılırsa Zabbix/SIEM'de alarm üretilir.
 
-## 10. Arayüz ve CLI
+## 11. Arayüz ve CLI
 
-### 10.1 Prensip
+### 11.1 Prensip
 
 Arayüz ve CLI aynı API'nin istemcileridir; ikisinin yetkisi aynıdır. İnsan token'larıyla okuma ve `plan` yapılabilir, apply yapılamaz. Git'in tetiklediği apply işleri ayrı bir makine kimliğiyle (CI'ın OIDC token'ı, workload identity) çalışır.
 
 Arayüzün amacı diyagramları görmek, logları takip etmek ve hataları debug etmektir.
 
-### 10.2 Kimlik doğrulama
+### 11.2 Kimlik doğrulama
 
 ```yaml
 apiVersion: gaia/v1alpha1
@@ -518,7 +644,7 @@ spec:
 - `require: mfa` ise giriş parola + TOTP veya passkey ile yapılır.
 - Kurtarma kodları ilk kayıtta bir kez gösterilir.
 
-### 10.3 CLI login
+### 11.3 CLI login
 
 ```
 $ gaia login                      # loopback redirect + PKCE (RFC 8252)
@@ -530,7 +656,7 @@ $ gaia login --device             # device authorization grant (RFC 8628), taray
 - **Token'lar:** Gaia'nın kendi opak token'larıdır, IdP token'ı CLI'a verilmez. Sunucu sadece hash'lerini tutar ve token'lar anında iptal edilebilir. CLI tarafında OS keychain'de saklanır.
 - **Oturumlar:** "Oturumlarım" ekranında aktif UI ve CLI oturumları görülüp tek tek kapatılabilir.
 
-### 10.4 Yetkiler ve görünürlük
+### 11.4 Yetkiler ve görünürlük
 
 Roller OIDC grup claim'inden türetilir.
 
@@ -542,7 +668,7 @@ Roller OIDC grup claim'inden türetilir.
 
 **Görünürlük kuralı:** Bir kullanıcının yetkisi olmayan bir kontrat, ilişki diyagramlarında veya "kullanan kontratlar" listelerinde (ör. aynı ağı kullananlar) **adıyla görünür, detayı kapalıdır.** YAML'ı, sunucuları, logları ve run kayıtları açılmaz.
 
-### 10.5 Ekranlar
+### 11.5 Ekranlar
 
 1. **Genel bakış.** Son run'lar, başarısız olanlar, drift sayıları, bekleyen bot PR'ları ve süresi dolmak üzere olan istisnalar.
 2. **Kontratlar.** YAML ve çözümlenmiş hali, ilişki diyagramı (kontrat → katalog objeleri → provider'lar → gerçek kaynaklar), sunucular ve yönetim seviyeleri.
@@ -552,23 +678,22 @@ Roller OIDC grup claim'inden türetilir.
 6. **Sync.** Source'ların son sync zamanı, CEL hataları ve açık bot PR'ları.
 7. **Keşif.** Adopt raporları ve eşleşmeyen kaynaklar.
 
-### 10.6 Loglar
+### 11.6 Loglar
 
 - **Ansible:** Kendi callback plugin'imiz her task ve host sonucunu yapısal bir olay olarak Gaia'ya gönderir. Host × task matrisi bu olaylardan oluşur.
 - **Pulumi:** Automation API'nin event stream'i kullanılır.
 - **Maskeleme:** Run sırasında OpenBao'dan alınan her değer loglarda maskelenir. Ansible'daki `no_log` ayarına güvenilmez.
 - **Saklama:** Canlı loglar SSE ile akar, run bitince SeaweedFS'e arşivlenir.
 
-### 10.7 Teknoloji
+### 11.7 Teknoloji
 
 - **Backend:** Go. API, SSE ve statik dosyalar tek binary'de; frontend `go:embed` ile içine gömülür.
 - **Frontend:** React + TypeScript. Diyagramlar için React Flow ve otomatik yerleşim için ELK.js.
 - **Kütüphaneler:** `go-webauthn/webauthn` (passkey), `coreos/go-oidc` (OIDC), `google/cel-go` (CEL), Pulumi Automation API (Go).
 
-## 11. Açık Konular
+## 12. Açık Konular
 
-- [ ] **Silme semantiği:** `replicas` azaltıldığında hangi sunucu silinir (en yüksek sıra numaralı mı)? Kontrat dosyası silinirse ne olur?
-- [ ] **Gaia'nın kendi veritabanı:** Run kayıtları, oturumlar, sunucu–IP eşleşmeleri. PostgreSQL mi?
+- [ ] **Gaia'nın kendi veritabanı:** Run kayıtları, oturumlar, sunucu UID'leri ve bunların dış sistemlerdeki kimlik eşleşmeleri (bkz. 9.1). PostgreSQL mi?
 - [ ] **Runner seçimi:** Semaphore UI mı, AWX mı? AWX'in sürümleri 2024'ten beri duraklatılmış durumda; bu yüzden Semaphore UI değerlendiriliyor.
 - [ ] **`params` şema formatı:** App için de Ansible `argument_specs` formatını kullanmak her yerde tek format sağlar. Bu yeterli mi?
 - [ ] **Drift kontrolü:** Ne sıklıkla yapılacak? Sonuç arayüzde nasıl gösterilecek?
@@ -577,7 +702,7 @@ Roller OIDC grup claim'inden türetilir.
 - [ ] **SeaweedFS object lock** desteğinin doğrulanması.
 - [ ] **Warpgate RDP** desteğinin doğrulanması. Desteğin durumu Warpgate sürüm notlarından teyit edilmeli.
 
-## 12. Karar Kaydı
+## 13. Karar Kaydı
 
 | Tarih | Karar |
 |---|---|
@@ -594,3 +719,8 @@ Roller OIDC grup claim'inden türetilir.
 | 2026-10-23 | Üretilen objeler bot PR'ı ile Git'e yazılır |
 | 2026-10-23 | Arayüz sadece görüntüleme ve debug için; OIDC + local; MFA veya passkey zorunlu; CLI tarayıcıda login olup süreli token alır |
 | 2026-10-23 | Yetkisiz kontratlar diyagramlarda adıyla görünür, detayı kapalıdır |
+| 2026-10-23 | Sunucu kimliği hostname değil, değişmez UID. Hostname tekrar kullanılabilir; çakışma kontrolü planda yapılır |
+| 2026-10-23 | Silme her zaman açıkça istenir: `retire`, `lifecycle.state: decommissioned`; kontrat dosyasını silmek kaynak silmez |
+| 2026-10-23 | Decommission'da bekleme süresi: prod 7 gün, test 1 gün; IP karantinası 14 gün; prod'da silme için owner + platform-admin onayı |
+| 2026-10-23 | Zabbix'te geçmiş saklanmaz: host silinince geçmişiyle birlikte silinir |
+| 2026-10-23 | Decommission tamamlanınca kontrat dosyası bot PR ile silinir |
