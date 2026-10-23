@@ -92,7 +92,7 @@ spec:
   credentials: bao://kv/platform/vsphere/ank       # secret'a sadece referans verilir
 ```
 
-Tanımlı provider tipleri: `openbao`, `vsphere`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `runner` (Semaphore/AWX), `git`.
+Tanımlı provider tipleri: `openbao`, `vsphere`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
 
 ### 4.2 Platform
 
@@ -105,7 +105,7 @@ spec:
   secrets: bao
   engines:
     provisioning:  { tool: pulumi,  state: state }        # Pulumi Automation API, state SeaweedFS'te
-    configuration: { tool: ansible, runner: runner, source: config-repo }
+    configuration: { tool: ansible, executor: ansible-runner, source: config-repo }   # ayrıntılar 7.4'te
   runArchive: state                                       # run logları ve kayıtları
 ```
 
@@ -396,6 +396,44 @@ Katalog PR'larında Gaia, değişikliğin kaç kontratı ve kaç sunucuyu etkile
 | AnsibleRole, Baseline, App, Agent | Sonraki apply'da uygulanır |
 | Network, Site | Değiştirilemez; değişiklik için yeni obje açılır |
 
+### 7.4 Ansible'ın çalıştırılması
+
+Ansible'ı harici bir runner (AWX, Semaphore) değil, **Gaia kendisi çalıştırır.** Zamanlama, RBAC, onay, iz kaydı ve canlı log zaten Gaia'da var. Harici bir runner bunların hepsini ikiye katlar ve kendi credential deposunu ister, bu da credential'ların sadece OpenBao'da durması kuralını bozar.
+
+**Motor: ansible-runner.** AWX'in de içeride kullandığı çalıştırma motoru. Ayrı bir servis değil, bir kütüphane ve CLI. Gaia worker'ı her run için şu adımları izler:
+
+1. Geçici bir çalışma dizini açar (tmpfs). Envanteri ve değişkenleri plandan üretip buraya yazar.
+2. Credential'ları OpenBao'dan **o anda** çeker ve bu dizine koyar. Run bitince dizin silinir.
+3. `ansible-runner run -j` komutunu execution environment container'ı içinde çalıştırır.
+4. Komutun JSON olay akışını satır satır okur. Olaylar `run_events` tablosuna yazılır ve canlı olarak arayüze gider; içlerindeki secret değerleri maskelenir.
+
+**Envanterde UID:** `inventory_hostname` sunucunun UID'si, `ansible_host` ise IP veya FQDN'idir. Böylece her olay doğrudan UID ile gelir ve hostname tekrar kullanılsa bile loglar karışmaz (bkz. 9.1).
+
+**Execution environment (EE):** Collection'ların ve Python bağımlılıklarının sürümleri sabitlenmiş bir container imajı. `ansible-builder` ile üretilir ve Nexus'ta tutulur.
+- Şimdilik tek bir varsayılan EE var. Rollerin farklı EE seçmesi gerekirse bir `ExecutionEnvironment` kind'ı eklenir.
+- EE imajının digest'i run kaydına yazılır. Böylece bir run tamamen tekrar üretilebilir: kontrat commit'i, katalog commit'i, config reposu commit'i ve EE digest'i.
+
+```yaml
+kind: Platform
+spec:
+  engines:
+    configuration:
+      tool: ansible
+      executor: ansible-runner
+      executionEnvironment: nexus.corp.local/gaia/ee-default@sha256:4c1e…
+      source: config-repo
+      limits: { concurrentRuns: 10, forks: 25, timeout: 2h }
+```
+
+**Gaia'nın sorumlulukları:** Run'ı iptal etmek, timeout'u uygulamak, eşzamanlılık limitlerini korumak ve container'ı temizlemek. Kalan işi ansible-runner yapar.
+
+**Site worker'ı:** Ayrılmış bir ağ segmentindeki sunuculara merkezden SSH/WinRM ile erişilemiyorsa o segmentte bir site worker'ı çalışır (`gaia server --role=worker --site=dmz`).
+- Site worker veritabanına bağlanmaz. Gaia API'sine mTLS ile, sadece dışarıya doğru bağlanır, iş alır ve olayları geri gönderir. Böylece segmentin içine doğru firewall izni açmak gerekmez.
+- Pulumi işleri merkezde kalır; vCenter API'si oradan erişilebilir durumda.
+- Site worker tasarımda var, ama gerçekten ihtiyaç doğana kadar yazılmaz.
+
+**Runner soyutlaması:** Ansible'ı çalıştıran katman bir arayüzün arkasında durur. İleride AWX gibi bir runner zorunlu tutulursa bu arayüze yeni bir uygulama eklenebilir. Şimdilik tek uygulama ansible-runner.
+
 ## 8. Adopt (Mevcut Sunucuları İçeri Alma)
 
 ### 8.1 Akış
@@ -581,6 +619,8 @@ requestedBy: mehmet.y                    # PR yazarı
 approvedBy: [ayse.k]                     # PR onaylayanlar
 source: { repo: platform/contracts, commit: 3f9c2e1, signed: true }
 catalogCommit: 9a1b0c4
+configCommit: 51e07aa                    # Ansible reposu
+executionEnvironment: nexus.corp.local/gaia/ee-default@sha256:4c1e…
 contract: portal-web
 planHash: sha256:ab12…                   # onaylanan plan ile uygulanan plan aynı mı
 executedAs: { vc-ank: svc-gaia-vm, corp-ad: svc-gaia-ad, linux: gaia }
@@ -680,7 +720,7 @@ Roller OIDC grup claim'inden türetilir.
 
 ### 11.6 Loglar
 
-- **Ansible:** Kendi callback plugin'imiz her task ve host sonucunu yapısal bir olay olarak Gaia'ya gönderir. Host × task matrisi bu olaylardan oluşur.
+- **Ansible:** ansible-runner'ın JSON olay akışı kullanılır (`ansible-runner run -j`); ayrı bir callback plugin'i gerekmez. Olaylar UID ile gelir ve host × task matrisi bu olaylardan oluşur (bkz. 7.4).
 - **Pulumi:** Automation API'nin event stream'i kullanılır.
 - **Maskeleme:** Run sırasında OpenBao'dan alınan her değer loglarda maskelenir. Ansible'daki `no_log` ayarına güvenilmez.
 - **Saklama:** Canlı loglar SSE ile akar, run bitince SeaweedFS'e arşivlenir.
@@ -801,7 +841,7 @@ Birincil dağıtım hedefi **VM**. Kubernetes için bir **Helm chart** de hazır
 Gaia tek bir binary'dir:
 
 - `gaia server` her şeyi birlikte çalıştırır: API, arayüz, worker'lar, sync ve zamanlayıcı.
-- Ölçeklemek gerekirse roller ayrılabilir: `gaia server --role=api` ve `gaia server --role=worker`.
+- Ölçeklemek gerekirse roller ayrılabilir: `gaia server --role=api` ve `gaia server --role=worker`. Ayrılmış ağ segmentleri için `--site` ile site worker'ı çalıştırılabilir (bkz. 7.4).
 - Replikalar stateless'tır; tüm durum veritabanında ve SeaweedFS'te durur. Bu yüzden önlerine bir load balancer konarak istenen sayıda replika çalıştırılabilir.
 
 ### 13.2 VM
@@ -810,6 +850,7 @@ Gaia tek bir binary'dir:
 - **Servis:** systemd unit'i ile çalışır. Konfigürasyon `/etc/gaia/` altında durur; servis ayrı bir sistem kullanıcısıyla, systemd'nin hardening seçenekleri açık şekilde çalışır.
 - **OpenBao kimliği:** AppRole. `secret_id` OpenBao Agent ile ya da systemd credentials üzerinden verilir.
 - **Migration:** Güncelleme sırasında `gaia migrate`, `gaia_owner` rolüyle ayrı bir adım olarak çalıştırılır.
+- **Ansible çalıştırma:** Worker sunucularında EE container'ları için `podman` kurulu olmalıdır. EE imajları Nexus'tan çekilir.
 - **Kurulumun kendisi:** Gaia'yı VM'e kuran bir Ansible rolü (`gaia.server`) hazırlanır. Gaia'yı da aynı araçlarla kurmuş oluruz.
 
 ### 13.3 Kubernetes (Helm)
@@ -818,12 +859,12 @@ Gaia tek bir binary'dir:
 - **Migration:** `pre-install` / `pre-upgrade` hook'u olarak çalışan bir Job.
 - **OpenBao kimliği:** Kubernetes auth method. Secret'lar OpenBao Agent Injector veya CSI provider ile pod'a gelir; chart Kubernetes Secret'ına düz metin yazmaz.
 - **Rol ayrımı:** `values.yaml` ile API ve worker ayrı Deployment olarak açılabilir.
+- **Ansible çalıştırma:** Her Ansible run'ı ayrı bir pod olarak çalışır. Worker'ın ServiceAccount'ı sadece kendi namespace'inde pod oluşturup silebilir.
 - **Veritabanı chart'ın içinde yoktur.** PostgreSQL dışarıda durur ve DSN referansıyla verilir.
 - **Dağıtım:** Container imajı ve chart Nexus'ta tutulur (Docker registry ve Helm hosted repo).
 
 ## 14. Açık Konular
 
-- [ ] **Runner seçimi:** Semaphore UI mı, AWX mı? AWX'in sürümleri 2024'ten beri duraklatılmış durumda; bu yüzden Semaphore UI değerlendiriliyor.
 - [ ] **`params` şema formatı:** App için de Ansible `argument_specs` formatını kullanmak her yerde tek format sağlar. Bu yeterli mi?
 - [ ] **Drift kontrolü:** Ne sıklıkla yapılacak? Sonuç arayüzde nasıl gösterilecek?
 - [ ] **`Operation` kind'ı:** Desteklenecek aksiyon listesi ve onay kuralları.
@@ -860,3 +901,7 @@ Gaia tek bir binary'dir:
 | 2026-10-23 | `run_events` 90 gün; ham loglar SeaweedFS'te süresiz |
 | 2026-10-23 | `gaia reconcile` kapsamda |
 | 2026-10-23 | Birincil dağıtım VM (deb/rpm + systemd); Helm chart da hazırlanır |
+| 2026-10-23 | Harici runner yok: Ansible'ı Gaia ansible-runner ile çalıştırır; runner bir arayüzün arkasında soyutlanır |
+| 2026-10-23 | Ansible execution environment container'ında çalışır: VM'de podman, Kubernetes'te run başına pod; şimdilik tek varsayılan EE |
+| 2026-10-23 | Envanterde `inventory_hostname` sunucunun UID'si |
+| 2026-10-23 | Ayrılmış segmentler için site worker'ı tasarımda var; ihtiyaç doğunca yazılır |
