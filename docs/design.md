@@ -573,6 +573,7 @@ spec:
 | `replace` | Sunucuyu aynı isim ve IP ile yeniden kurar | Bkz. 9.5 |
 | `reconcile` | Kontratı onaylı commit'e yeniden yakınsatır | Drift düzeltmesi; genelde bot açar (bkz. 7.5) |
 | `runbook` | Katalogdaki bir runbook rolünü çalıştırır | Aşağıda |
+| `discover` | Sunucu içi keşif: fact'ler ve check-mode, değişiklik yapmaz | Bkz. 8.3 |
 
 **runbook.** Serbest Ansible çalıştırılamaz. Sadece `meta/gaia.yml` dosyasında `runbook: true` işaretli `AnsibleRole`'ler çalıştırılabilir; parametreleri `params` şemasından geçer (bkz. 6.2). Yeni bir operasyonel iş için Gaia'ya kod yazmak gerekmez, bir rol eklemek yeterlidir.
 
@@ -794,11 +795,11 @@ spec:
 - **Olası kaynak:** Drift'in ilk görüldüğü zaman aralığında aynı sunucuda bir Warpgate oturumu varsa, arayüz bunu "olası kaynak" olarak gösterir.
 - **Bildirim:** Gaia drift sayılarını Zabbix'e trapper item olarak gönderir, alarmları Zabbix'teki trigger'lar üretir. Ayrı bir bildirim kanalı kurulmaz; müşterinin mevcut eskalasyon düzeni drift için de çalışır.
 
-## 8. Adopt (Mevcut Sunucuları İçeri Alma)
+## 8. Keşif ve Adopt (Mevcut Sunucuları İçeri Alma)
 
 ### 8.1 Akış
 
-1. **Keşif.** Hipervizörler (vCenter, Proxmox), Zabbix, AD, DNS ve IPAM taranır. Kayıtlar VM UUID'si, hostname ve IP üzerinden eşleştirilir. Çıktı bir rapordur: her yerde kaydı olanlar, eksik kayıtlar, sahipsiz IP'ler.
+1. **Keşif.** Hipervizörler (vCenter, Proxmox), Zabbix, AD, DNS ve IPAM taranır. Kayıtlar VM UUID'si, hostname ve IP üzerinden eşleştirilir. Çıktı bir rapordur: her yerde kaydı olanlar, eksik kayıtlar, sahipsiz IP'ler. Keşfin kapsamı 8.3'te.
 2. **Taslak kontrat.** Gözlenen değerler kataloğa ters yönde eşlenir (portgroup → `network`, CPU/RAM → `size`). Eşleşmeyenler açıkça işaretlenir.
 3. **İnceleme.** Taslak PR olarak açılır. Keşfin bilemeyeceği alanları (owner, app, ortam) insan tamamlar.
 4. **Import.** Kaynaklar Pulumi stack'ine `import` edilir, IP'ler IPAM'a kaydedilir. Bu adımın planı **sıfır değişiklik** göstermek zorundadır.
@@ -840,6 +841,75 @@ spec:
 - **Şablonsuz kontratta ölçekleme yok.** `size: custom` veya `image: { os: … }` olan bir kontratta ölçekleme yapılamaz, çünkü kullanılacak bir şablon yok.
 - **İstisnalar süreli ve onaylıdır.** Süresi dolan bir istisna planda uyarı olarak çıkar.
 - **Önce kayıtlar.** `registration: enforce` en az riskli seviye; ilk gün uygulanabilir ve envanteri hemen düzeltir.
+
+### 8.3 Keşif
+
+Bir Provider ve Site tanımlandıktan sonra Gaia ortamı keşfeder. Keşif her zaman salt okumadır ve erişim düzeyine göre üçe ayrılır. İlk iki düzey sadece API okur ve site eklenir eklenmez kendiliğinden çalışabilir. Üçüncü düzey sunuculara oturum açtığı için onay gerektirir.
+
+#### Düzey 1: Hipervizörün yapısı (API)
+
+| Ne | Kullanıldığı yer |
+|---|---|
+| Cluster'lar, node'lar ve host'lar | Site objesi taslağı |
+| Datastore ve storage'lar: tip, kapasite, snapshot desteği | `Site.compute.storage`; snapshot desteği otomatik işaretlenir |
+| Ağlar: portgroup, bridge/VLAN, SDN vnet | Network ↔ IPAM subnet eşleme önerisi |
+| Şablonlar: OS, guest agent veya VMware Tools var mı | Image taslakları; guest agent'ı olmayan şablon uyarısı |
+| Mevcut tag'ler, folder'lar ve pool'lar | Kontrat gruplama önerisi, label eşlemesi |
+
+#### Düzey 2: VM'ler ve çevre sistemler (API)
+
+- **VM'ler:** UUID, CPU/RAM, diskler, NIC'ler ve bağlı oldukları ağ, guest'in bildirdiği IP'ler ve hostname, OS bilgisi, güç durumu, snapshot'lar (sayı, yaş, boyut), tag'ler ve oluşturulma tarihi. Bunlar şunlara kaynak olur:
+  - adopt taslakları (Size ve Network eşleşmesi),
+  - eski snapshot, uzun süredir kapalı VM ve guest agent'ı olmayan VM raporları.
+- **IP kullanımı:** Guest IP'leri DNS kayıtlarıyla karşılaştırılır. Bu karşılaştırma iki işe yarar:
+  - **IPAM'ı ilk kez doldurmak.** Gaia'nın IPAM'ı boş başlayacağı için bu önemlidir.
+  - **Tutarsızlıkları bulmak:** aynı IP'yi kullanan iki VM, DNS'te olup VM'de olmayan adresler, VM'de olup DNS'te olmayan adresler, eksik PTR kayıtları.
+- **Zabbix:** İzlenmeyen VM'ler; karşılığı olmayan eski host'lar.
+- **AD:** Uzun süredir oturum açılmamış bilgisayar hesapları. OU yapısından `TeamSource` seçim kuralı için öneri.
+- **DNS:** Zone'lar ve kayıtlar.
+- **Ajan konsolları:** Ajanı eksik sunucular, eski kayıtlar.
+- **Warpgate:** Erişilebilir hedefler, karşılığı olmayan hedefler.
+
+#### Düzey 3: Sunucunun içi (SSH/WinRM)
+
+Ansible fact'leri ve check-mode ile toplanır, sunucuda hiçbir şey değiştirilmez.
+
+| Ne | Kullanıldığı yer |
+|---|---|
+| OS sürümü, bekleyen güncelleme sayısı | Patch durumu raporu |
+| Kurulu paketler ve versiyonları (nginx, haproxy, apache, tomcat, JDK…) | Rol önerisi, uygulama versiyon envanteri |
+| Çalışan servisler ve dinleyen portlar | Rol bazlı servis ve port standardını bugünkü durumdan çıkarmak |
+| Yerel kullanıcılar, sudoers, `authorized_keys` | Erişim durumu, bilinmeyen SSH anahtarları |
+| sshd, NTP, auditd, rsyslog yapılandırmaları | Baseline sapma raporu (`report` modu) |
+| Disktaki ve portlardaki sertifikalar | Süresi yaklaşan sertifikalar |
+| Windows: domain üyeliği, feature/role'ler, kurulu ajanlar | Adopt taslağı, ajan durumu |
+
+Örnek bir rol önerisi: "Bu 14 sunucuda nginx ve tomcat çalışıyor, 80/443/8080 dinleniyor. Bunlar `web.nginx` + `web.tomcat` ile tek bir kontrata adaylar."
+
+Bu düzey her sunucuya oturum açtığı için bir `Operation` (`action: discover`) olarak çalışır. Git'te onaylanır, site site ve batch batch ilerler, run kaydına girer.
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata:
+  name: discover-ist-2026-11
+spec:
+  action: discover
+  selector: 'site == "ist"'          # keşifte bulunan, henüz Gaia'ya ait olmayan sunucular da seçilebilir
+  strategy: { batchSize: 20, maxFailures: 5 }
+  options: { facts: [os, packages, services, ports, users, configs, certificates] }
+```
+
+#### Çıktılar
+
+| Çıktı | Nereye gider |
+|---|---|
+| Raporlar (envanter sağlığı, tutarsızlıklar, temizlik bulguları) | Veritabanı ve arayüzdeki Keşif ekranı; Git'e girmez |
+| IPAM'ın ilk kez doldurulması | Arayüzde gözden geçirilir, onaylanınca IPAM'a aktarılır |
+| Katalog taslakları (Site, Image, `TeamSource` seçim kuralı) | Bot PR |
+| Adopt taslakları (Server kontratları) | Bot PR (bkz. 8.1) |
+
+İlk iki düzeyin raporları sunuculara dokunmadan, sadece API erişimiyle üretilir. Bu yüzden bir ortama girildiğinde ilk hafta verilebilecek somut bir çıktıdır: envanter sağlığı raporu.
 
 ## 9. Sunucu Kimliği ve Silme
 
@@ -1090,7 +1160,7 @@ spec:
 4. **Katalog.** Kind'a göre gezinme ve label filtreleri. Her obje için nereden üretildiği, patch'leri ve onu kullanan kontratlar.
 5. **Provider'lar.** Bağlantı durumu, son başarılı çağrı, credential'ın geçerlilik durumu.
 6. **Sync.** Source'ların son sync zamanı, CEL hataları ve açık bot PR'ları.
-7. **Keşif.** Adopt raporları ve eşleşmeyen kaynaklar.
+7. **Keşif.** Site bazında keşif raporları (envanter sağlığı, tutarsızlıklar, temizlik bulguları), IPAM'ın ilk doldurulması için gözden geçirme ekranı, adopt ve katalog taslakları (bkz. 8.3).
 
 ### 11.6 Loglar
 
@@ -1433,3 +1503,5 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | Güç ve snapshot gibi day-2 işler Ansible yerine provider'ların Go API'si ile (ortak `Compute` arayüzü) |
 | 2026-10-23 | Kontrat `topology` ile birden fazla site'a yayılabilir; kontrat ve site başına ayrı Pulumi stack'i; site site ilerleme |
 | 2026-10-23 | İlk compute provider Proxmox; PoC Proxmox üzerinde |
+| 2026-10-23 | Keşif üç düzeyde: hipervizör yapısı ve VM'ler/çevre sistemler API ile kendiliğinden; sunucu içi keşif `Operation discover` ile onaylı |
+| 2026-10-23 | Keşif çıktıları: raporlar veritabanında; IPAM ilk doldurması arayüzde gözden geçirilerek; katalog ve adopt taslakları bot PR ile |
