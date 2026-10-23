@@ -72,6 +72,9 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 | `AnsibleRoleSource` | Source | Elle | Ansible reposundan AnsibleRole üretir |
 | `App` | Katalog | Elle | Uygulama: artifact, playbook, parametreler |
 | `Agent` | Katalog | Elle | BigFix, Kaspersky, Zabbix ajanı… |
+| `Team` | Erişim | **Üretilen** | `TeamSource` AD'den üretir (bkz. 14) |
+| `TeamSource` | Source | Elle | AD gruplarından Team üretir |
+| `Group` | Erişim | Elle | Team'lere referans veren erişim grubu |
 | `Server` | Kontrat | Elle | İstenen durum |
 | `Operation` | Kontrat | Elle | Tek seferlik iş: patch, snapshot, replace, reconcile, runbook… (bkz. 6.4) |
 | `OperationSchedule` | Kontrat | Elle | Tekrarlayan Operation şablonu (bkz. 6.4) |
@@ -169,8 +172,6 @@ metadata:
 spec:
   naming: site.name + env.substring(0, 1) + app.substring(0, 3) + pad(seq, 2)   # CEL → ankppor01
   requiredLabels: [env, owner, app]
-  secrets:
-    allowedPrefix: '"bao://kv/apps/" + labels.owner + "/"'          # CEL: secret parametreleri bu önekle sınırlı (6.2)
   environments:
     prod: { approval: required, deleteProtection: true }
     test: { approval: none }
@@ -178,7 +179,7 @@ spec:
 
 ## 5. Üretilen Objeler
 
-`Network` ve `AnsibleRole` objeleri asıl kaynaklarından üretilir. Diğer bütün kind'lar elle yazılır.
+`Network`, `AnsibleRole` ve `Team` objeleri asıl kaynaklarından üretilir. Diğer bütün kind'lar elle yazılır. `Team` ve `TeamSource` 14. bölümde anlatılıyor.
 
 ### 5.1 İfade dili: CEL
 
@@ -281,6 +282,7 @@ Patch'ler alan sahipliği kuralına bağlıdır:
 |---|---|---|
 | Network | pool, gateway, site, DNS zone | labels, allowedEnvironments, description |
 | AnsibleRole | source, revision, params, os | labels, monitoring, conflicts, allowedEnvironments |
+| Team | adGroup, approversGroup | displayName, secrets.prefix |
 
 `patch` işareti olmadan yazılan aynı isimli bir obje yükleme hatası verir.
 
@@ -307,7 +309,7 @@ spec:
     - name: portal
       params: { version: 2.4.1 }
   access:
-    - group: SG-Portal-Admins
+    - group: portal-admins          # Group objesi (bkz. 14.3)
       sudo: true
   patch:
     wave: 2
@@ -325,6 +327,8 @@ spec:
 | `ansibleRoles` | AnsibleRole |
 | `apps[].name` | App |
 | `agents` | Agent (zorunlu ajanlar Policy'den kendiliğinden eklenir) |
+| `access[].group` / `access[].team` | Group / Team |
+| `metadata.labels.owner` | Team |
 
 **Kontratta yazılmayan ama yine de uygulananlar**
 
@@ -408,7 +412,7 @@ rules:
 #### Kurallar
 
 1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog PR'ında `platform-admin` onayı gerektirir.
-2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, Policy'de kontratın owner'ı için izin verilen yol önekiyle sınırlıdır (bkz. 4.4); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
+2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, kontratın owner'ı olan Team objesindeki yol önekiyle sınırlıdır (`secrets.prefix`, bkz. 14.1); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
 3. **Kurallar CEL ile.** `rules` ifadeleri `params`, `size`, `image`, `labels` ve `network` değerlerini görebilir. Kubernetes'in CRD'lerde CEL ile yaptığı validasyonla aynı yaklaşım.
 4. **İki aşamalı doğrulama.** Gaia plan sırasında doğrular ve hata PR'da hemen görünür. Ansible çalışırken `argument_specs` ile bir kez daha doğrular. Roller için iki doğrulama aynı kaynaktan geldiği için birbiriyle çelişmez.
 5. **Varsayılanlar planda görünür.** Kontratta yazılmayan parametrelerin varsayılan değerleri planda açıkça gösterilir. Böylece hangi değerle çalışıldığı run kaydında yer alır.
@@ -641,6 +645,7 @@ Drift, kontratın Git'teki istenen durumu ile sistemlerin gerçek durumu arasın
 | Katalog sapması | Otomatik yayılmayan katalog değişiklikleri (ör. Size, bkz. 7.3) | Yok: plan sırasında çıkar | Her katalog değişikliğinde |
 | Sahipsiz kaynaklar | `gaia.uid` taşıyıp veritabanında karşılığı olmayanlar; Gaia'nın yönettiği folder'larda UID'siz VM'ler | Orta (keşif motoru) | Günde bir |
 | Süresi dolan istisnalar | Kontrattaki `exceptions` | Yok | Günde bir |
+| Erişim | AD üyelik değişiklikleri ve devre dışı hesaplar (USN) ile dağıtılmış erişimin karşılaştırılması; her ortamda otomatik düzeltilir (bkz. 14.5) | Düşük | 5 dk |
 
 İmajın yeni bir şablonu çıkmış olması drift sayılmaz, çünkü imaj sadece VM oluşturulurken kullanılır. Bu durum bilgi amaçlı "eski şablonla kurulmuş" notu olarak gösterilir.
 
@@ -890,6 +895,7 @@ configCommit: 51e07aa                    # Ansible reposu
 executionEnvironment: nexus.corp.local/gaia/ee-default@sha256:4c1e…
 contract: portal-web
 planHash: sha256:ab12…                   # onaylanan plan ile uygulanan plan aynı mı
+accessSnapshot: sha256:77d0…             # erişim dağıtılırken kullanılan üye listesi (bkz. 14.2)
 executedAs: { vc-ank: svc-gaia-vm, corp-ad: svc-gaia-ad, linux: gaia }
 startedAt: 2026-11-04T14:02:11Z
 finishedAt: 2026-11-04T14:19:40Z
@@ -931,7 +937,6 @@ spec:
       type: oidc
       issuer: https://sso.corp.local/realms/corp
       clientSecret: bao://kv/platform/gaia/oidc
-      groupsClaim: groups
       mfa:
         trustIdp: true
         acceptAmr: [hwk, mfa]
@@ -965,7 +970,15 @@ $ gaia login --device             # device authorization grant (RFC 8628), taray
 
 ### 11.4 Yetkiler ve görünürlük
 
-Roller OIDC grup claim'inden türetilir.
+Roller Team üyeliklerinden türetilir (AD senkronu, bkz. 14). OIDC sadece kimlik doğrulama için kullanılır. Hangi takımın `operator` veya `platform-admin` olacağı Policy'de tanımlıdır:
+
+```yaml
+kind: Policy
+spec:
+  gaiaRoles:
+    operator: [team-ops]
+    platform-admin: [team-platform]
+```
 
 | Rol | Görebildikleri |
 |---|---|
@@ -1079,7 +1092,8 @@ discoveries   (id, started_at, findings jsonb)
 drift_reports (contract, host_uid, area, key, status, findings jsonb, first_seen, last_seen, resolved_at)   -- bkz. 7.5
 
 -- Kimlik doğrulama
-users                (id, username, provider, created_at, disabled_at)
+users                (id, username, ad_guid, display_name, provider, enabled, synced_at, created_at, disabled_at)
+team_memberships     (team, user_id, via_group, synced_at)      -- AD'den senkron (bkz. 14.2)
 webauthn_credentials (user_id, credential_id, public_key, sign_count, created_at)
 totp_secrets         (user_id, ciphertext)     -- OpenBao transit ile şifreli
 recovery_codes       (user_id, code_hash, used_at)
@@ -1132,15 +1146,140 @@ Gaia tek bir binary'dir:
 - **Veritabanı chart'ın içinde yoktur.** PostgreSQL dışarıda durur ve DSN referansıyla verilir.
 - **Dağıtım:** Container imajı ve chart Nexus'ta tutulur (Docker registry ve Helm hosted repo).
 
-## 14. Açık Konular
+## 14. Erişim Yönetimi: Takımlar ve Gruplar
 
-- [ ] **Kullanıcı ve grup yönetimi:** AD'deki rutin kullanıcı ve grup işleri `runbook` ile yapılabilir. Ama bu işler kalıcı bir durumu tarif ettiği için `User` / `Group` gibi kind'larla tanımlanmalı. Kapsamı ayrıca konuşulacak.
+Kişiler ve gruplar AD'de oluşturulur ve yönetilir. Gaia **AD'ye kullanıcı veya grup olarak hiçbir şey yazmaz**; AD'yi okur ve var olan grupların erişimini dağıtır. Model, Network ve AnsibleRole ile aynıdır: kaynak dışarıdadır, Gaia oradan obje üretir.
+
+```
+AD ──(TeamSource, sync)──► Team objeleri (Git, bot PR)
+                            ▲
+Group objeleri (Git, elle) ─┘  ──► kontrattaki access ──► Warpgate, Linux, Gaia arayüzü, Zabbix/Nexus
+AD üyelikleri ──(5 dk sync)──► Gaia veritabanı ──► aynı tüketicilere dağıtım
+```
+
+Kişinin yaşam döngüsü (hesap açma, kapatma, parola, kilit açma) Gaia'nın kapsamı dışındadır ve AD ile İK/ITSM süreçlerinde kalır.
+
+### 14.1 TeamSource ve Team
+
+`TeamSource`, hangi AD gruplarının takım sayılacağını ve nasıl eşleneceğini tanımlar:
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: TeamSource
+metadata:
+  name: corp-ad-teams
+spec:
+  provider: corp-ad
+  select: 'group.dn.endsWith(",OU=Teams,DC=corp,DC=local")'           # CEL
+  naming: 'group.cn.lowerAscii().replace("sg-team-", "team-")'        # SG-Team-Portal → team-portal
+  map:
+    displayName: group.description
+    approvers: 'group.cn + "-Approvers"'      # onay verebilecekler ayrı bir AD grubu
+    secretsPrefix: '"bao://kv/apps/" + name + "/"'
+  membership:
+    recursive: true                           # iç içe grupları açar
+    sync: { every: 5m, mode: usn }            # AD'den sadece değişiklikleri okur
+  output: generated/teams/
+```
+
+Üretilen Team objesi:
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata:
+  name: team-portal
+  annotations:
+    gaia/generated-by: TeamSource/corp-ad-teams
+spec:
+  displayName: Portal Ekibi
+  adGroup: { provider: corp-ad, dn: "CN=SG-Team-Portal,OU=Teams,DC=corp,DC=local" }
+  approversGroup: { dn: "CN=SG-Team-Portal-Approvers,OU=Teams,DC=corp,DC=local" }
+  secrets: { prefix: "bao://kv/apps/team-portal/" }
+```
+
+- **Team, sahiplik birimidir.** Kontratın `labels.owner` alanı bir Team referansıdır; olmayan bir takım yazılırsa yükleme hata verir.
+- **Owner onayı:** Policy'deki `owner` onayı (bkz. 6.4) Team'in `approversGroup` üyelerine çözülür. Onaylayanlar ayrı bir AD grubunda tutulur; `managedBy` attribute'u tek kişi veya tek grup alabildiği için tercih edilmedi.
+- **Secret öneki:** Secret parametrelerinin izin verilen yol öneki Team'den gelir (bkz. 6.2).
+- **CODEOWNERS:** Bot, CODEOWNERS dosyasını Team objelerinden üretir.
+- **Alan sahipliği:** `adGroup` ve `approversGroup` kaynağa aittir ve patch'lenemez. `displayName` ve `secrets.prefix` patch ile değiştirilebilir (bkz. 5.5).
+
+### 14.2 Üyelik Git'te değil, veritabanında
+
+Takımın kendisi Git'e girer; nadiren değişir ve bot PR ile gelir. Takımın **üyeleri** ise Git'e girmez, AD'den Gaia'nın veritabanına senkronlanır:
+
+- **Üyeliğin doğru kaynağı ve audit'i AD'dir.** Bir kişinin takıma eklenmesine AD'nin süreci karar verir. Bunun için Gaia'da PR açmanın anlamı yoktur; PR'ı reddetmek AD'deki gerçeği değiştirmez.
+- **Gürültü:** Üyelikler sık değişir. Her değişiklik bir bot PR'ı olsaydı repo sürekli dolardı.
+- **Kişisel veri:** Kullanıcı adları bile Git'e girmez. Kullanıcılar Gaia'nın veritabanında tutulur: kullanıcı adı, objectGUID, görünen ad ve hesabın etkin olup olmadığı.
+- **Tekrar üretilebilirlik:** Bir run erişimi hangi üye listesine göre dağıttıysa, o listenin bir kopyası run kaydına yazılır (`accessSnapshot`, bkz. 10.1).
+
+**Onayın yeri:**
+
+| Değişiklik | Onaylandığı yer |
+|---|---|
+| Kişinin bir takıma girmesi veya takımdan çıkması | AD süreci |
+| Bir takıma veya gruba erişim verilmesi (Group, kontrattaki `access`) | Git PR'ı ve `gaia/approval` |
+
+### 14.3 Group
+
+Group elle yazılır ve Team'lere ya da başka Group'lara referans verir. Group'a doğrudan kullanıcı eklenemez; kullanıcılar her zaman AD'den, bir takım üzerinden gelir.
+
+```yaml
+apiVersion: gaia/v1alpha1
+kind: Group
+metadata:
+  name: portal-admins
+spec:
+  teams: [team-portal, team-dba]
+  groups: []                  # iç içe Group
+  owner: team-portal          # bu Group'u değiştiren PR'ları onaylayan takım
+  privileged: true            # prod'da sudo verir
+```
+
+Kontrattaki `access` alanı bir Group'a veya doğrudan bir Team'e referans verir:
+
+```yaml
+access:
+  - group: portal-admins
+    sudo: true
+  - team: team-portal
+```
+
+**Kurallar**
+
+- **Kendi kendini onaylamak yok.** Bir kişi, kendi üyesi olduğu bir takıma veya gruba erişim veren PR'ı onaylayamaz.
+- **Ayrıcalıklı gruplar:** `privileged: true` olan bir Group'u değiştiren PR, owner onayına ek olarak `platform-admin` onayı gerektirir.
+- **AD üzerinden yapılan eklemeler:** Ayrıcalıklı bir Group'un içindeki bir takıma AD'den yeni biri eklenirse Gaia erişimi dağıtır, ama bunu ayrıca bildirir (ör. "prod sudo yetkisi olan gruba AD'den X eklendi"). Kararın yeri AD olduğu için Gaia engellemez, ama görünür kılar.
+
+### 14.4 Dağıtım
+
+| Tüketici | Gaia nasıl dağıtır |
+|---|---|
+| Gaia arayüzü | `viewer` / `operator` / `platform-admin` rolleri Team üyeliklerinden gelir (bkz. 11.4). OIDC sadece kimlik doğrulama için kullanılır |
+| Warpgate | API ile kullanıcıların rol ve hedef atamaları |
+| Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar |
+| Zabbix, Nexus | Kendi API'leriyle kullanıcı ve grup atamaları |
+
+**SSH anahtarları:** Kaynakları Git'tir. Public key secret olmadığı için Git'te tutulmasında sakınca yoktur. Anahtarlar kullanıcı adıyla eşlenir; AD'de etkin olmayan bir kullanıcının anahtarı dağıtılmaz.
+
+### 14.5 Değişiklikler ve işten ayrılma
+
+- **Üyelik değişiklikleri** AD'den 5 dakika içinde görülür ve **iki yönde de otomatik** dağıtılır: erişim eklenir veya kaldırılır. Erişimin kendisi zaten Git'te onaylanmıştır; değişen sadece takımda kimin olduğudur.
+- **Hesabı devre dışı bırakılan veya silinen kişi:** Erişimi her yerden kaldırılır ve Gaia oturumları ile CLI token'ları iptal edilir. Bu her ortamda otomatik yapılır, çünkü erişim kaldırmak onay beklememelidir.
+- **Erişim drift'i:** Bu kontroller drift'in "erişim" alanıdır (bkz. 7.5).
+
+### 14.6 AD'ye yazma
+
+Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisidir. Sunucu tarafında AD'ye yazma gerekebilir: Windows sunucuların domain'e alınması ve bilgisayar hesaplarının silinmesi, ya da DNS AD üzerindeyse A/PTR kayıtları. Bu ihtiyaç varsa yazma yetkisi sadece bilgisayar hesaplarının OU'su ve DNS zone'u ile sınırlıdır. Kullanıcı ve grup nesnelerini kapsamaz.
+
+## 15. Açık Konular
+
 - [ ] **Çoklu vCenter / site:** Bir kontratın birden fazla site'a yayılması isteniyor mu?
 - [ ] **SeaweedFS object lock** desteğinin doğrulanması.
 - [ ] **PostgreSQL minimum sürümü:** Kullanılan kütüphanelerin (River, pgx) gereksinimlerine göre netleştirilecek.
 - [ ] **Warpgate RDP** desteğinin doğrulanması. Desteğin durumu Warpgate sürüm notlarından teyit edilmeli.
 
-## 15. Karar Kaydı
+## 16. Karar Kaydı
 
 | Tarih | Karar |
 |---|---|
@@ -1186,3 +1325,9 @@ Gaia tek bir binary'dir:
 | 2026-10-23 | Aksiyonlar: patch, reboot, power, snapshot, revert, replace, reconcile, runbook; runbook sadece `runbook: true` işaretli rollerle |
 | 2026-10-23 | Onaylar `gaia/approval` status check'i ile; birden fazla owner'ı etkileyen işlerde `platform-admin` onayı yeterli |
 | 2026-10-23 | `operator` çalışan run'ı arayüzden ve CLI'dan durdurabilir ve duraklatabilir; devam ettirmek PR ile |
+| 2026-10-23 | Kişi yaşam döngüsü Gaia dışında; kullanıcı ve grup tarafında Gaia AD'ye yazmaz, okur ve var olan grupların erişimini dağıtır |
+| 2026-10-23 | `TeamSource` AD'den `Team` üretir (bot PR); `Group` elle yazılır ve Team'lere referans verir; `ServiceAccount` kind'ı yok |
+| 2026-10-23 | Takım üyelikleri Git'e girmez, AD'den veritabanına 5 dakikada bir senkronlanır; run kaydında `accessSnapshot` tutulur |
+| 2026-10-23 | Onaylayanlar AD'de ayrı bir grup (`approversGroup`); `labels.owner` bir Team referansı; CODEOWNERS bot tarafından üretilir |
+| 2026-10-23 | Üyelik değişiklikleri iki yönde de otomatik dağıtılır; devre dışı hesapların erişimi her ortamda otomatik kaldırılır |
+| 2026-10-23 | Gaia rolleri Team üyeliklerinden gelir; OIDC sadece kimlik doğrulama için; SSH anahtarlarının kaynağı Git |
