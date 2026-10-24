@@ -87,6 +87,76 @@ func (m *Mirrors) Sync(ctx context.Context, r Repo) (string, error) {
 	return m.resolve(r)
 }
 
+// Fetch brings one more ref of the repository into the mirror, for a
+// preview, and returns its commit: a branch, a tag (refs/tags/…), a
+// GitHub pull request (pull/N) or a full commit SHA. The followed branch
+// is left alone.
+func (m *Mirrors) Fetch(ctx context.Context, r Repo, ref string) (string, error) {
+	if isSHA(ref) {
+		if err := m.Ensure(ctx, r, ref); err != nil {
+			return "", err
+		}
+		return ref, nil
+	}
+	if strings.ContainsAny(ref, " ~^:?*[\\") || strings.Contains(ref, "..") || ref == "" {
+		return "", fmt.Errorf("%s: %q is not a ref", r.Name, ref)
+	}
+	if r.Local() {
+		g, err := gitsrc.Open(r.URL)
+		if err != nil {
+			return "", err
+		}
+		h, err := g.ResolveRevision(plumbing.Revision(ref))
+		if err != nil {
+			return "", fmt.Errorf("%s: %s: %w", r.Name, ref, err)
+		}
+		return h.String(), nil
+	}
+	src := "refs/heads/" + ref
+	switch {
+	case strings.HasPrefix(ref, "refs/"):
+		src = ref
+	case strings.HasPrefix(ref, "pull/"):
+		src = "refs/" + ref + "/head"
+	}
+	if err := m.fetch(ctx, r); err != nil { // the mirror must exist
+		return "", err
+	}
+	l := m.lock(r.URL)
+	l.Lock()
+	defer l.Unlock()
+	auth, err := m.auth(ctx, r)
+	if err != nil {
+		return "", err
+	}
+	g, err := git.PlainOpen(m.Path(r))
+	if err != nil {
+		return "", err
+	}
+	dst := "refs/gaia/preview/" + strings.TrimPrefix(src, "refs/")
+	err = g.FetchContext(ctx, &git.FetchOptions{RemoteName: "origin", RefSpecs: []config.RefSpec{config.RefSpec("+" + src + ":" + dst)}, Auth: auth, Force: true, Tags: git.NoTags})
+	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+		return "", fmt.Errorf("%s: fetch %s: %w", r.Name, ref, err)
+	}
+	h, err := g.Reference(plumbing.ReferenceName(dst), true)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s: %w", r.Name, ref, err)
+	}
+	return h.Hash().String(), nil
+}
+
+func isSHA(s string) bool {
+	if len(s) != 40 {
+		return false
+	}
+	for _, c := range s {
+		if !strings.ContainsRune("0123456789abcdef", c) {
+			return false
+		}
+	}
+	return true
+}
+
 // Ensure makes sure commit is in the mirror, fetching once if it is not.
 func (m *Mirrors) Ensure(ctx context.Context, r Repo, commit string) error {
 	if m.has(r, commit) {
