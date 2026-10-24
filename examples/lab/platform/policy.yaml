@@ -7,3 +7,6 @@ spec:
   requiredLabels: [env, owner, app]
   environments:
     test: { approval: none }
+  gaiaRoles:
+    platform-admin: [team-platform]
+    operator: [team-ops]

@@ -3,6 +3,8 @@ package catalog
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -175,7 +177,13 @@ type PolicySpec struct {
 	Naming         string                       `yaml:"naming"`
 	RequiredLabels []string                     `yaml:"requiredLabels"`
 	Environments   map[string]EnvironmentPolicy `yaml:"environments"`
+	// GaiaRoles gives Gaia's roles to teams (design 11.4): operator and
+	// platform-admin; everyone who signs in is a viewer.
+	GaiaRoles map[string][]string `yaml:"gaiaRoles"`
 }
+
+// GaiaRoles beyond viewer, which everyone has.
+var GaiaRoles = []string{"operator", "platform-admin"}
 
 type EnvironmentPolicy struct {
 	Approval         string `yaml:"approval"`
@@ -184,6 +192,11 @@ type EnvironmentPolicy struct {
 
 func (s *PolicySpec) validate() []string {
 	var out []string
+	for _, role := range sortedKeys(s.GaiaRoles) {
+		if !contains(GaiaRoles, role) {
+			out = append(out, fmt.Sprintf("gaiaRoles.%s: unknown role (%s)", role, strings.Join(GaiaRoles, ", ")))
+		}
+	}
 	for _, name := range sortedKeys(s.Environments) {
 		if a := s.Environments[name].Approval; a != "" && a != "required" && a != "none" {
 			out = append(out, fmt.Sprintf("environments.%s.approval: %q (required or none)", name, a))
@@ -545,4 +558,127 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// AuthConfigSpec is how people sign in to Gaia (design 11.2).
+type AuthConfigSpec struct {
+	// URL is where people open Gaia; passkeys are bound to its host.
+	URL       string         `yaml:"url" gaia:"required"`
+	Require   string         `yaml:"require" gaia:"required"` // mfa | passkey
+	Providers []AuthProvider `yaml:"providers" gaia:"required"`
+	Sessions  AuthSessions   `yaml:"sessions"`
+}
+
+// AuthProvider is one way to sign in: an OIDC identity provider or Gaia's
+// local accounts.
+type AuthProvider struct {
+	Name    string `yaml:"name" gaia:"required"`
+	Type    string `yaml:"type" gaia:"required"` // oidc | local
+	Purpose string `yaml:"purpose"`              // local: break-glass
+	// OIDC
+	Issuer       string   `yaml:"issuer"`
+	ClientID     string   `yaml:"clientId"`
+	ClientSecret string   `yaml:"clientSecret"` // bao://
+	Scopes       []string `yaml:"scopes"`
+	GroupsClaim  string   `yaml:"groupsClaim"` // until teams come from AD (roadmap phase 6)
+	MFA          *OIDCMFA `yaml:"mfa"`
+}
+
+// OIDCMFA is when an OIDC sign-in counts as MFA: the ID token's amr or acr
+// must show it; otherwise Gaia asks for its own passkey.
+type OIDCMFA struct {
+	TrustIdp  bool     `yaml:"trustIdp"`
+	AcceptAmr []string `yaml:"acceptAmr"`
+	AcceptAcr []string `yaml:"acceptAcr"`
+	Fallback  string   `yaml:"fallback"` // local-passkey
+}
+
+// AuthSessions are session lifetimes.
+type AuthSessions struct {
+	UI  UISessions  `yaml:"ui"`
+	CLI CLISessions `yaml:"cli"`
+}
+
+type UISessions struct {
+	TTL  string `yaml:"ttl"`
+	Idle string `yaml:"idle"`
+}
+
+type CLISessions struct {
+	AccessTTL  string `yaml:"accessTtl"`
+	RefreshTTL string `yaml:"refreshTtl"`
+}
+
+// Durations of the sessions with the design's defaults filled in.
+func (s AuthSessions) Durations() (uiTTL, uiIdle, cliAccess, cliRefresh time.Duration) {
+	d := func(v string, def time.Duration) time.Duration {
+		if x, err := time.ParseDuration(v); err == nil && x > 0 {
+			return x
+		}
+		return def
+	}
+	return d(s.UI.TTL, 8*time.Hour), d(s.UI.Idle, 30*time.Minute), d(s.CLI.AccessTTL, time.Hour), d(s.CLI.RefreshTTL, 12*time.Hour)
+}
+
+func (s *AuthConfigSpec) validate() []string {
+	var out []string
+	if u, err := url.Parse(s.URL); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		out = append(out, fmt.Sprintf("url: %q: want https://host", s.URL))
+	}
+	if s.Require != "mfa" && s.Require != "passkey" {
+		out = append(out, fmt.Sprintf("require: %q (mfa or passkey)", s.Require))
+	}
+	seen := map[string]bool{}
+	locals := 0
+	for i, p := range s.Providers {
+		at := fmt.Sprintf("providers[%d]", i)
+		if seen[p.Name] {
+			out = append(out, fmt.Sprintf("%s.name: %q twice", at, p.Name))
+		}
+		seen[p.Name] = true
+		switch p.Type {
+		case "local":
+			locals++
+		case "oidc":
+			u, err := url.Parse(p.Issuer)
+			localHTTP := err == nil && u.Scheme == "http" && isLoopbackHost(u.Hostname())
+			if err != nil || u.Scheme != "https" && !localHTTP {
+				out = append(out, fmt.Sprintf("%s.issuer: %q: want an https URL", at, p.Issuer))
+			}
+			if p.ClientID == "" {
+				out = append(out, at+".clientId: required for oidc")
+			}
+			if p.ClientSecret != "" && !strings.HasPrefix(p.ClientSecret, "bao://") {
+				out = append(out, at+".clientSecret: must be a bao:// reference")
+			}
+			if p.MFA != nil && p.MFA.Fallback != "" && p.MFA.Fallback != "local-passkey" {
+				out = append(out, fmt.Sprintf("%s.mfa.fallback: %q (local-passkey)", at, p.MFA.Fallback))
+			}
+		default:
+			out = append(out, fmt.Sprintf("%s.type: %q (oidc or local)", at, p.Type))
+		}
+	}
+	if locals > 1 {
+		out = append(out, "providers: one local provider at most")
+	}
+	for _, v := range []struct{ name, val string }{
+		{"sessions.ui.ttl", s.Sessions.UI.TTL}, {"sessions.ui.idle", s.Sessions.UI.Idle},
+		{"sessions.cli.accessTtl", s.Sessions.CLI.AccessTTL}, {"sessions.cli.refreshTtl", s.Sessions.CLI.RefreshTTL},
+	} {
+		if v.val != "" {
+			if d, err := time.ParseDuration(v.val); err != nil || d <= 0 {
+				out = append(out, fmt.Sprintf("%s: %q is not a duration", v.name, v.val))
+			}
+		}
+	}
+	return out
+}
+
+// isLoopbackHost allows a plain-http issuer for a local test IdP.
+func isLoopbackHost(h string) bool {
+	if h == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(h)
+	return ip != nil && ip.IsLoopback()
 }

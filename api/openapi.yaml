@@ -4,10 +4,19 @@ info:
   version: v1
   description: |
     Gaia's API. The CLI and the web interface are its clients (design 11.1).
-    Until authentication lands (roadmap phase 2) the server only listens on
-    loopback addresses.
+
+    Every endpoint needs a session unless it says otherwise: the browser's
+    gaia_session cookie, or a CLI access token as a bearer token. A request
+    that changes something with the cookie must carry `X-Gaia-Request: 1`.
+    A contract the caller may not see is shown by name only (design 11.4):
+    lists mark it `restricted`, and its details answer 403.
+    Without an AuthConfig in its catalog the server runs open, on loopback
+    addresses only.
 servers:
   - url: http://127.0.0.1:8080
+security:
+  - session: []
+  - bearer: []
 paths:
   /api/v1/runs:
     get:
@@ -119,10 +128,192 @@ paths:
       responses:
         "200": { description: The contract, content: { application/json: { schema: { $ref: "#/components/schemas/Contract" } } } }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/auth/config:
+    get:
+      summary: How to sign in (public)
+      operationId: authConfig
+      security: []
+      responses:
+        "200":
+          description: Methods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  require: { type: string, enum: [mfa, passkey] }
+                  providers: { type: array, items: { type: object, properties: { name: { type: string }, type: { type: string, enum: [oidc, local] } } } }
+  /api/v1/auth/passkey/begin:
+    post:
+      summary: Start a passkey sign-in (public)
+      operationId: passkeyBegin
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/FlowStart" }
+        "429": { $ref: "#/components/responses/TooMany" }
+  /api/v1/auth/passkey/finish:
+    post:
+      summary: Finish a passkey sign-in; sets the session cookie (public)
+      operationId: passkeyFinish
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Ceremony" }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { $ref: "#/components/schemas/Principal" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/enroll/begin:
+    post:
+      summary: Start registering a passkey with an enrollment token (public)
+      operationId: enrollBegin
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/FlowStart" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/enroll/finish:
+    post:
+      summary: Keep the passkey, get recovery codes and a session (public)
+      operationId: enrollFinish
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Ceremony" }
+      responses:
+        "200": { $ref: "#/components/responses/RecoveryCodes" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/auth/recovery:
+    post:
+      summary: Sign in with a recovery code, which is used up (public)
+      operationId: recoveryLogin
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [username, code], properties: { username: { type: string }, code: { type: string } } } } } }
+      responses:
+        "200": { description: Signed in }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/logout:
+    post:
+      summary: End the current session
+      operationId: logout
+      responses:
+        "204": { description: Signed out }
+  /api/v1/me:
+    get:
+      summary: The caller, their teams and roles
+      operationId: me
+      responses:
+        "200": { description: The caller, content: { application/json: { schema: { $ref: "#/components/schemas/Principal" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/me/sessions:
+    get:
+      summary: The caller's live sessions
+      operationId: mySessions
+      responses:
+        "200": { description: Sessions, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Session" } } } } }
+  /api/v1/me/sessions/{id}:
+    delete:
+      summary: End one of the caller's sessions
+      operationId: revokeMySession
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Ended }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/me/passkeys:
+    get:
+      summary: The caller's passkeys
+      operationId: myPasskeys
+      responses:
+        "200": { description: Passkeys, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Passkey" } } } } }
+  /api/v1/me/passkeys/begin:
+    post:
+      summary: Start adding a passkey (needs a passkey in the last 10 minutes)
+      operationId: addPasskeyBegin
+      responses:
+        "200": { $ref: "#/components/responses/FlowStart" }
+        "403": { $ref: "#/components/responses/StepUp" }
+  /api/v1/me/passkeys/finish:
+    post:
+      summary: Keep the new passkey
+      operationId: addPasskeyFinish
+      requestBody: { $ref: "#/components/requestBodies/Ceremony" }
+      responses:
+        "204": { description: Added }
+        "403": { $ref: "#/components/responses/StepUp" }
+  /api/v1/me/passkeys/{id}:
+    delete:
+      summary: Remove a passkey; the last one cannot be removed
+      operationId: deletePasskey
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Removed }
+        "403": { $ref: "#/components/responses/StepUp" }
+        "409": { description: The last passkey, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/me/recovery-codes:
+    post:
+      summary: Replace the caller's recovery codes
+      operationId: regenerateRecoveryCodes
+      responses:
+        "200": { $ref: "#/components/responses/RecoveryCodes" }
+        "403": { $ref: "#/components/responses/StepUp" }
+  /api/v1/users:
+    get:
+      summary: Accounts (platform-admin)
+      operationId: listUsers
+      responses:
+        "200": { description: Accounts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/User" } } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/users/{id}/disable:
+    post:
+      summary: Disable an account and end its sessions (platform-admin)
+      operationId: disableUser
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Disabled }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/users/{id}/enable:
+    post:
+      summary: Enable an account (platform-admin)
+      operationId: enableUser
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Enabled }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/users/{id}/enroll:
+    post:
+      summary: A new enrollment link for a local account (platform-admin, recent passkey)
+      operationId: reenrollUser
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The link, content: { application/json: { schema: { type: object, properties: { enrollUrl: { type: string } } } } } }
+        "403": { $ref: "#/components/responses/StepUp" }
 components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: gaia_session }
+    bearer: { type: http, scheme: bearer, description: A CLI access token }
+  requestBodies:
+    Ceremony:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [flow, credential]
+            properties:
+              flow: { type: string }
+              credential: { type: object, description: The browser's PublicKeyCredential as JSON }
+              name: { type: string, description: A name for a new passkey }
+              token: { type: string, description: The enrollment token }
   parameters:
     RunID: { name: id, in: path, required: true, schema: { type: string, examples: [run-s62emmzbvofqg3ol] } }
   responses:
+    FlowStart:
+      description: A ceremony to finish with the browser's WebAuthn API
+      content: { application/json: { schema: { type: object, properties: { flow: { type: string }, options: { type: object } } } } }
+    RecoveryCodes:
+      description: Recovery codes, shown once
+      content: { application/json: { schema: { type: object, properties: { recoveryCodes: { type: array, items: { type: string } } } } } }
+    Unauthorized: { description: Not signed in, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    Forbidden: { description: Not allowed, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    StepUp:
+      description: Confirm with a passkey first; the body has stepUp true
+      content: { application/json: { schema: { type: object, properties: { error: { type: string }, stepUp: { type: boolean } } } } }
+    TooMany: { description: Too many attempts, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     BadRequest: { description: A parameter is wrong, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     NotFound: { description: No such object, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   schemas:
@@ -130,6 +321,39 @@ components:
       type: object
       required: [error]
       properties: { error: { type: string } }
+    Principal:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        session: { type: string }
+        sessionKind: { type: string, enum: [ui, cli-access] }
+        teams: { type: array, items: { type: string } }
+        roles: { type: array, items: { type: string, enum: [viewer, operator, platform-admin] } }
+        strongAuthAt: { type: string, format: date-time }
+    Session:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [ui, cli-refresh] }
+        current: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        ip: { type: string }
+        userAgent: { type: string }
+    Passkey:
+      type: object
+      properties: { id: { type: string }, name: { type: string }, createdAt: { type: string, format: date-time }, lastUsedAt: { type: string, format: date-time } }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        provider: { type: string }
+        enabled: { type: boolean }
+        teams: { type: array, items: { type: string } }
     Run:
       type: object
       required: [id, contracts, commit, planHash, status, queuedAt]
@@ -145,6 +369,7 @@ components:
         startedAt: { type: string, format: date-time }
         finishedAt: { type: string, format: date-time }
         stages: { type: array, items: { $ref: "#/components/schemas/Stage" } }
+        restricted: { type: boolean, description: The caller sees the run's contracts by name only; details are left out }
         record:
           type: object
           required: [seq, recordHash, prevHash]
@@ -181,6 +406,7 @@ components:
         liveHosts: { type: integer }
         lastRun: { type: string }
         lastStatus: { type: string }
+        restricted: { type: boolean }
     Contract:
       type: object
       required: [name, hosts, runs]

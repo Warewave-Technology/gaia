@@ -42,7 +42,7 @@ func TestValidate(t *testing.T) {
 	commit := r.Commit("first")
 
 	out := run(t, NewRootCommand("dev"), "validate", "--repo", r.Dir, "--path", "platform", "--path", "contracts")
-	for _, want := range []string{"commit " + commit[:12] + " (HEAD), 15 files", "17 objects (", "Server 1", "references"} {
+	for _, want := range []string{"commit " + commit[:12] + " (HEAD), 16 files", "18 objects (", "Server 1", "references"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}

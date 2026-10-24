@@ -17,8 +17,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Warewave-Technology/gaia/internal/apply"
+	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/server"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -27,6 +29,8 @@ func newServerCommand() *cobra.Command {
 	var dsn, listen, role string
 	var workers int
 	var unsafeNoAuth bool
+	var repo, ref string
+	var paths []string
 	var runTimeout, stopTimeout, eventRetention time.Duration
 	cmd := &cobra.Command{
 		Use:   "server",
@@ -56,16 +60,30 @@ func newServerCommand() *cobra.Command {
 			default:
 				return errors.New("--role: all, api or worker")
 			}
-			if cfg.Listen != "" && !unsafeNoAuth {
-				if err := loopbackOnly(cfg.Listen); err != nil {
-					return err
-				}
-			}
 			s, err := store.Open(ctx, d)
 			if err != nil {
 				return err
 			}
 			defer s.Close()
+			if repo != "" {
+				abs, err := filepath.Abs(repo)
+				if err != nil {
+					return err
+				}
+				cat := &server.CatalogSource{Src: queue.Source{Repo: abs, Commit: ref, Paths: paths}, Log: cfg.Log}
+				if err := cat.Load(); err != nil {
+					return fmt.Errorf("catalog: %w", err)
+				}
+				go cat.Run(ctx, time.Minute)
+				if cat.Graph().AuthConfig() != nil {
+					cfg.Auth = auth.New(s, cat.Graph, cfg.Log)
+				}
+			}
+			if cfg.Listen != "" && cfg.Auth == nil && !unsafeNoAuth {
+				if err := loopbackOnly(cfg.Listen); err != nil {
+					return err
+				}
+			}
 			if cfg.Workers > 0 {
 				secrets, err := baoLogin(ctx, cfg.Log)
 				if err != nil {
@@ -88,7 +106,10 @@ func newServerCommand() *cobra.Command {
 	cmd.Flags().IntVar(&workers, "workers", 2, "runs at once on this server")
 	cmd.Flags().DurationVar(&runTimeout, "run-timeout", 2*time.Hour, "longest a run may take")
 	cmd.Flags().DurationVar(&eventRetention, "event-retention", 90*24*time.Hour, "how long run events stay in the database; the run log archive keeps them")
-	cmd.Flags().BoolVar(&unsafeNoAuth, "unsafe-no-auth", false, "listen on a non-loopback address although the API has no authentication yet")
+	cmd.Flags().BoolVar(&unsafeNoAuth, "unsafe-no-auth", false, "listen on a non-loopback address without an AuthConfig")
+	cmd.Flags().StringVar(&repo, "repo", "", "repository with the catalog (AuthConfig, Policy, contracts); without it the API is open, on loopback only")
+	cmd.Flags().StringVar(&ref, "ref", "HEAD", "ref of --repo to read, reloaded every minute")
+	cmd.Flags().StringSliceVar(&paths, "path", nil, "directory inside --repo; repeatable")
 	cmd.Flags().DurationVar(&stopTimeout, "stop-timeout", 5*time.Minute, "on shutdown, how long runs get to finish before they are cancelled")
 	return cmd
 }

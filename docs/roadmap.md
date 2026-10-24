@@ -8,7 +8,7 @@
 | Faz | İçerik | Bağımlı olduğu | Durum |
 |---|---|---|---|
 | 1 | `gaia server`, API, iş kuyruğu | – | **Tamam** |
-| 2 | Kimlik doğrulama ve yetki | 1 | – |
+| 2 | Kimlik doğrulama ve yetki | 1 | Sürüyor |
 | 3 | Change motoru ve GitHub izleyicisi | 1, 2 | – |
 | 4 | Bildirimler | 3 | – |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |

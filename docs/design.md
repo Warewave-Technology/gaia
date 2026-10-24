@@ -1171,11 +1171,13 @@ kind: AuthConfig
 metadata:
   name: default
 spec:
+  url: https://gaia.corp.local        # passkey'ler bu adresin host'una bağlı
   require: passkey                    # mfa | passkey
   providers:
     - name: corp-sso
       type: oidc
       issuer: https://sso.corp.local/realms/corp
+      clientId: gaia
       clientSecret: bao://kv/platform/gaia/oidc
       mfa:
         trustIdp: true
@@ -1613,3 +1615,5 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | Run'lar River işi: kontrat başına bir iş, worker planı yeniden alır ve hash değiştiyse uygulamaz; işler tekrar denenmez |
 | 2026-10-24 | Çıktı satırları ve Ansible olayları tek sıralı `run_events` akışında; SSE ile canlı, `LISTEN/NOTIFY` ile replikalar arası; ham olaylar `Platform.runLogs` bucket'ına kilitsiz arşivlenir |
 | 2026-10-24 | Worker'lar OpenBao'ya AppRole ile girer (`GAIA_BAO_ADDR`, `GAIA_BAO_ROLE_ID`, secret_id dosyası veya systemd credential'ı) |
+| 2026-10-24 | Local hesaplar CLI'dan (`gaia user add`) veya API'den açılır ve tek kullanımlık bir kayıt bağlantısıyla passkey kaydeder; 10 kurtarma kodu bir kez gösterilir. Passkey girişi kullanıcı adı sormaz (discoverable credential, user verification zorunlu) |
+| 2026-10-24 | Oturumlar opak token, sadece hash'i tutulur; tarayıcı çerezi `SameSite=Strict` ve değişiklik isteklerinde `X-Gaia-Request` başlığı; hassas işlemler son 10 dakikada passkey ister; platform-admin, operator'ün yapabildiklerini kapsar |

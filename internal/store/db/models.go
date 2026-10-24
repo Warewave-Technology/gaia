@@ -70,6 +70,14 @@ func (e HostStatus) Valid() bool {
 	return false
 }
 
+type AuthFlow struct {
+	ID        string
+	Kind      string
+	UserID    pgtype.Text
+	Data      []byte
+	ExpiresAt pgtype.Timestamptz
+}
+
 type Host struct {
 	Uid        string
 	Contract   string
@@ -103,6 +111,12 @@ type PulumiStack struct {
 	SecretsProvider string
 	EncryptedKey    string
 	UpdatedAt       pgtype.Timestamptz
+}
+
+type RecoveryCode struct {
+	UserID   string
+	CodeHash string
+	UsedAt   pgtype.Timestamptz
 }
 
 type Run struct {
@@ -153,4 +167,55 @@ type RunStage struct {
 	Detail     pgtype.Text
 	StartedAt  pgtype.Timestamptz
 	FinishedAt pgtype.Timestamptz
+}
+
+type Session struct {
+	ID           string
+	TokenHash    string
+	UserID       string
+	Kind         string
+	Parent       pgtype.Text
+	ExpiresAt    pgtype.Timestamptz
+	IdleSeconds  pgtype.Int4
+	LastSeenAt   pgtype.Timestamptz
+	StrongAuthAt pgtype.Timestamptz
+	Ip           pgtype.Text
+	UserAgent    pgtype.Text
+	CreatedAt    pgtype.Timestamptz
+	RevokedAt    pgtype.Timestamptz
+}
+
+type TeamMembership struct {
+	UserID   string
+	Team     string
+	Source   string
+	SyncedAt pgtype.Timestamptz
+}
+
+type TotpSecret struct {
+	UserID      string
+	Ciphertext  string
+	ConfirmedAt pgtype.Timestamptz
+}
+
+type User struct {
+	ID           string
+	Username     string
+	DisplayName  pgtype.Text
+	Provider     string
+	Subject      pgtype.Text
+	PasswordHash pgtype.Text
+	Enabled      bool
+	CreatedAt    pgtype.Timestamptz
+	DisabledAt   pgtype.Timestamptz
+}
+
+type WebauthnCredential struct {
+	ID         []byte
+	UserID     string
+	Name       string
+	Credential []byte
+	SignCount  int64
+	CreatedAt  pgtype.Timestamptz
+	LastUsedAt pgtype.Timestamptz
 }

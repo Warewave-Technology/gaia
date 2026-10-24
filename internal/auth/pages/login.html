@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaia · Giriş</title>
+<script src="/auth/gaia-auth.js" defer></script>
+</head>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#F6F7F9;color:#14171C">
+<main style="max-width:380px;margin:12vh auto;padding:32px;background:#fff;border:1px solid #E1E5EB;border-radius:8px">
+<h1 style="margin:0 0 4px;font-size:24px">gaia</h1>
+<p style="margin:0 0 24px;color:#566070">Passkey'inizle giriş yapın.</p>
+<button id="passkey" type="button" style="width:100%;height:44px;border:0;border-radius:6px;background:#1F4FC8;color:#fff;font:inherit;font-weight:600;cursor:pointer">Passkey ile giriş</button>
+<p id="error" role="alert" style="color:#B3261E;min-height:1.5em"></p>
+<details style="margin-top:16px">
+<summary style="cursor:pointer;color:#566070">Kurtarma kodu ile giriş</summary>
+<form id="recovery" style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+<label>Kullanıcı adı <input name="username" autocomplete="username" required style="width:100%;height:36px;box-sizing:border-box"></label>
+<label>Kurtarma kodu <input name="code" autocomplete="one-time-code" required style="width:100%;height:36px;box-sizing:border-box"></label>
+<button type="submit" style="height:40px">Giriş</button>
+</form>
+</details>
+</main>
+</body>
+</html>
