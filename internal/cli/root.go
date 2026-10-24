@@ -29,7 +29,7 @@ func NewIPAMCommand(version string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(newVersionCommand("gaia-ipam", version))
+	root.AddCommand(newVersionCommand("gaia-ipam", version), newIPAMServeCommand(), newIPAMMigrateCommand(), newIPAMPoolCommand())
 	return root
 }
 
