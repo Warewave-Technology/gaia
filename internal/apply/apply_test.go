@@ -140,6 +140,20 @@ type fakeMonitor struct {
 	hosts           map[string]zabbix.Host
 	ids             map[string]string
 	deleted         []string
+	userGroups      map[string]userGroup
+}
+
+type userGroup struct {
+	rights map[string]int
+	users  []string
+}
+
+func (f *fakeMonitor) UserGroup(_ context.Context, name string, rights map[string]int, users []string) ([]string, error) {
+	if f.userGroups == nil {
+		f.userGroups = map[string]userGroup{}
+	}
+	f.userGroups[name] = userGroup{rights: rights, users: users}
+	return nil, nil
 }
 
 func (f *fakeMonitor) Register(_ context.Context, h zabbix.Host, hostID string) (zabbix.Result, error) {
@@ -669,7 +683,7 @@ func TestApplyRegistersServersInMonitoring(t *testing.T) {
 	uid := hosts[0].Uid
 	want := zabbix.Host{
 		UID: uid, Hostname: "labtpoc01", IP: "10.50.0.100",
-		Groups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab"}, Templates: []string{"ICMP Ping"},
+		Groups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab", "Gaia/contract/poc-web"}, Templates: []string{"ICMP Ping"},
 		Tags: []zabbix.Tag{{Tag: "gaia.contract", Value: "poc-web"}, {Tag: "app", Value: "poc"}, {Tag: "env", Value: "test"}, {Tag: "owner", Value: "team-platform"}},
 	}
 	if got := e.monitor.hosts[uid]; !reflect.DeepEqual(got, want) {
@@ -810,6 +824,15 @@ func TestApplyDistributesAccess(t *testing.T) {
 	if !strings.Contains(site, `"role": "gaia_access"`) || !strings.Contains(site, `"name": "ayse"`) || !strings.Contains(site, `"ssh-ed25519 AAAA ayse"`) ||
 		!strings.Contains(site, `"name": "mehmet"`) || strings.Contains(site, "ali") || strings.Contains(site, "Bad Name") {
 		t.Errorf("site.yml = %s", site)
+	}
+	ug, ok := e.monitor.userGroups["Gaia/team-platform"]
+	if !ok || strings.Join(ug.users, ",") != "Bad Name,ayse,mehmet" || len(ug.rights) != 1 || ug.rights["Gaia/contract/poc-web"] != zabbix.PermissionReadWrite {
+		t.Errorf("monitoring user groups = %+v", e.monitor.userGroups)
+	}
+	for hg, perm := range ug.rights {
+		if perm != zabbix.PermissionReadWrite {
+			t.Errorf("%s: permission %d, want read-write (sudo)", hg, perm)
+		}
 	}
 	rec, err := q.RunRecord(ctx, run)
 	if err != nil {

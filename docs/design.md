@@ -1619,6 +1619,12 @@ access:
 - Linux hesap adına uymayan kullanıcı adları atlanır ve run çıktısında görünür.
 - Run kaydının `accessSnapshot`'ı her erişim girdisi için o anki takımları ve kişileri yazar.
 
+**Zabbix'te dağıtım:**
+- Gaia, izlenen her sunucuyu Platform'un host grupları dışında kontratın kendi grubuna da koyar: `Gaia/contract/<kontrat>`. Bu grupta başka kontratın sunucusu olmaz.
+- Erişimi olan her takım için `Gaia/<takım>` adında bir kullanıcı grubu vardır. Hakları, takımın erişebildiği bütün kontratların kendi gruplarıdır: sudo varsa okuma-yazma, yoksa okuma. Ortam ve site gibi ortak gruplara hak verilmez.
+- Üyeler, takımın Zabbix'te aynı kullanıcı adıyla hesabı olan etkin kişileridir. Gaia Zabbix kullanıcısı açmaz; hesabı olmayanlar run çıktısında görünür.
+- Gaia sadece `Gaia/` önekli kullanıcı gruplarına dokunur. Takım kontrattan çıkınca grubu güncellenir ve o kontratın hakkını kaybeder.
+
 ### 14.5 Değişiklikler ve işten ayrılma
 
 - **Üyelik değişiklikleri** AD'den 5 dakika içinde görülür ve **iki yönde de otomatik** dağıtılır: erişim eklenir veya kaldırılır. Erişimin kendisi zaten Git'te onaylanmıştır; değişen sadece takımda kimin olduğudur.
@@ -1734,3 +1740,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | AD üyelikleri veritabanında, hesaplar objectGUID ile; OIDC girişi `directory.claim` ile AD hesabına bağlanır; owner onayı onaycı grubundan; yöneticinin kapattığı hesabı AD açamaz |
 | 2026-10-25 | Erişim planın parçası (çözülmüş takımlar); verilen erişim ayrıcalıklıysa platform-admin, başkasının Group'uysa sahibi onaylar, kazanan takımın üyesi onaylayamaz; ayrıcalıklı gruba AD eklemesi bildirilir |
 | 2026-10-25 | SSH giriş anahtarları Git'te değil Gaia profilinde (kullanıcı adları Git'e girmez); Linux erişimi Gaia'nın gömülü `gaia_access` rolüyle; çıkarılan hesap silinmez, süresi doldurulur |
+| 2026-10-25 | Zabbix'te erişim takım başına `Gaia/<takım>` kullanıcı grubu, sadece kontratların kendi host grubuna (`Gaia/contract/<ad>`) hak; Gaia Zabbix kullanıcısı açmaz |

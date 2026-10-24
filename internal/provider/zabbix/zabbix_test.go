@@ -8,22 +8,26 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
 
 // fake is the part of the Zabbix API the client uses, in memory.
 type fake struct {
-	mu        sync.Mutex
-	groups    map[string]string // name -> id
-	templates map[string]string
-	hosts     map[string]map[string]any
-	next      int
-	calls     []string
+	mu         sync.Mutex
+	groups     map[string]string // name -> id
+	templates  map[string]string
+	hosts      map[string]map[string]any
+	next       int
+	calls      []string
+	users      map[string]string // username -> id
+	userGroups map[string]map[string]any
 }
 
 func newFake() *fake {
-	return &fake{groups: map[string]string{"Gaia": "1"}, templates: map[string]string{"ICMP Ping": "10564"}, hosts: map[string]map[string]any{}, next: 100}
+	return &fake{groups: map[string]string{"Gaia": "1"}, templates: map[string]string{"ICMP Ping": "10564"}, hosts: map[string]map[string]any{}, next: 100,
+		users: map[string]string{"ayse": "7"}, userGroups: map[string]map[string]any{}}
 }
 
 func (f *fake) id() string { f.next++; return strconv.Itoa(f.next) }
@@ -98,6 +102,34 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		result = map[string]any{}
+	case "user.get":
+		out := []map[string]string{}
+		for _, n := range p["filter"].(map[string]any)["username"].([]any) {
+			if id, ok := f.users[n.(string)]; ok {
+				out = append(out, map[string]string{"userid": id, "username": n.(string)})
+			}
+		}
+		result = out
+	case "usergroup.get":
+		out := []map[string]any{}
+		for _, n := range p["filter"].(map[string]any)["name"].([]any) {
+			if g, ok := f.userGroups[n.(string)]; ok {
+				out = append(out, map[string]any{"usrgrpid": g["usrgrpid"]})
+			}
+		}
+		result = out
+	case "usergroup.create":
+		p["usrgrpid"] = f.id()
+		f.userGroups[p["name"].(string)] = p
+		result = map[string]any{"usrgrpids": []any{p["usrgrpid"]}}
+	case "usergroup.update":
+		for n, g := range f.userGroups {
+			if g["usrgrpid"] == p["usrgrpid"] {
+				p["name"] = n
+				f.userGroups[n] = p
+			}
+		}
+		result = map[string]any{"usrgrpids": []any{p["usrgrpid"]}}
 	case "host.delete":
 		var ids []string
 		_ = json.Unmarshal(req.Params, &ids)
@@ -249,5 +281,81 @@ func TestLab(t *testing.T) {
 	}
 	if ok, err := c.Delete(ctx, h.UID, r.HostID); err != nil || !ok {
 		t.Errorf("delete: %v %v", ok, err)
+	}
+}
+
+func TestUserGroupsAreExactlyGaias(t *testing.T) {
+	f := newFake()
+	srv := httptest.NewServer(f)
+	defer srv.Close()
+	c := New(srv.URL, "tok")
+	ctx := context.Background()
+	missing, err := c.UserGroup(ctx, "Gaia/team-web", map[string]int{"Gaia/poc-web": PermissionReadWrite}, []string{"ayse", "can"})
+	if err != nil || strings.Join(missing, ",") != "can" {
+		t.Fatalf("create: %v %v", missing, err)
+	}
+	g := f.userGroups["Gaia/team-web"]
+	rights, _ := json.Marshal(g["hostgroup_rights"])
+	users, _ := json.Marshal(g["users"])
+	if string(rights) != `[{"id":"`+f.groups["Gaia/poc-web"]+`","permission":3}]` || string(users) != `[{"userid":"7"}]` {
+		t.Errorf("group = %s %s", rights, users)
+	}
+	// Updated in place, emptied when the team has nothing left.
+	if _, err := c.UserGroup(ctx, "Gaia/team-web", map[string]int{}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if g := f.userGroups["Gaia/team-web"]; len(g["hostgroup_rights"].([]any)) != 0 || len(g["users"].([]any)) != 0 || len(f.userGroups) != 1 {
+		t.Errorf("after emptying: %+v", f.userGroups)
+	}
+	if _, err := c.UserGroup(ctx, "Zabbix administrators", nil, nil); err == nil {
+		t.Error("changed a group that is not Gaia's")
+	}
+}
+
+// TestLabUserGroups runs against a real Zabbix (make dev-zabbix, or the
+// lab): a Gaia user group with rights and an existing user.
+func TestLabUserGroups(t *testing.T) {
+	url, tok := os.Getenv("GAIA_ZABBIX_URL"), os.Getenv("GAIA_ZABBIX_TOKEN")
+	if url == "" || tok == "" {
+		t.Skip("GAIA_ZABBIX_URL and GAIA_ZABBIX_TOKEN not set")
+	}
+	c := New(url, tok)
+	ctx := context.Background()
+	name := "Gaia/test-team"
+	t.Cleanup(func() {
+		var g []struct {
+			ID string `json:"usrgrpid"`
+		}
+		_ = c.call(ctx, "usergroup.get", map[string]any{"output": []string{"usrgrpid"}, "filter": map[string]any{"name": []string{name}}}, &g)
+		if len(g) > 0 {
+			_ = c.call(ctx, "usergroup.delete", []string{g[0].ID}, nil)
+		}
+	})
+	missing, err := c.UserGroup(ctx, name, map[string]int{"Gaia/contract/test": PermissionReadWrite, "Gaia/contract/other": PermissionRead}, []string{"Admin", "nobody-here"})
+	if err != nil || strings.Join(missing, ",") != "nobody-here" {
+		t.Fatalf("create: %v %v", missing, err)
+	}
+	var got []struct {
+		Rights []struct {
+			ID         string `json:"id"`
+			Permission string `json:"permission"`
+		} `json:"hostgroup_rights"`
+		Users []struct {
+			Username string `json:"username"`
+		} `json:"users"`
+	}
+	if err := c.call(ctx, "usergroup.get", map[string]any{"output": "extend", "selectHostGroupRights": "extend", "selectUsers": []string{"username"}, "filter": map[string]any{"name": []string{name}}}, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || len(got[0].Rights) != 2 || len(got[0].Users) != 1 || got[0].Users[0].Username != "Admin" {
+		t.Fatalf("group = %+v", got)
+	}
+	// Everything taken back: the group stays, empty.
+	if _, err := c.UserGroup(ctx, name, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	_ = c.call(ctx, "usergroup.get", map[string]any{"output": "extend", "selectHostGroupRights": "extend", "selectUsers": []string{"username"}, "filter": map[string]any{"name": []string{name}}}, &got)
+	if len(got) != 1 || len(got[0].Rights) != 0 || len(got[0].Users) != 0 {
+		t.Errorf("emptied group = %+v", got)
 	}
 }

@@ -117,7 +117,7 @@ func TestPlanLab(t *testing.T) {
 		Compute: Compute{Provider: "pve-lab", Type: "proxmox", Template: "vmid 9300", Customization: "cloud-init",
 			Nodes: []string{"proxmox"}, Pool: "gaia", Storage: "local-lvm", Attachment: "vnet gaiapoc"},
 		IPAM:       IPAM{Provider: "ipam", Pool: "10.50.0.0/24", Gateway: "10.50.0.1"},
-		HostGroups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab"},
+		HostGroups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab", "Gaia/contract/poc-web"},
 	}
 	if got, w := fmtServer(s), fmtServer(want); got != w {
 		t.Errorf("server\n got %s\nwant %s", got, w)
@@ -224,7 +224,7 @@ func TestWriteText(t *testing.T) {
 		"ipam       +4 =0 (ipam)",
 		"provision  +4 =0 (pve-lab)",
 		"monitoring +4 =0 (zabbix)",
-		"  monitoring zabbix\n    groups Gaia, Gaia/env/test, Gaia/app/api, Gaia/site/lab\n    templates ICMP Ping\n",
+		"  monitoring zabbix\n    groups Gaia, Gaia/env/test, Gaia/app/api, Gaia/site/lab, Gaia/contract/poc-api\n    templates ICMP Ping\n",
 		"plan " + p.Hash,
 	} {
 		if !strings.Contains(out, want) {

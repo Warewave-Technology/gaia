@@ -5,10 +5,12 @@ package itest
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -138,6 +140,20 @@ func StartSamba(t testing.TB, seed string) *Samba {
 	}
 	port := docker(t, "port", name, "636/tcp")
 	port = port[strings.LastIndex(port, ":")+1:]
+	// After a restart LDAPS takes a moment to listen.
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(ca)
+	for {
+		c, err := tls.DialWithDialer(&net.Dialer{Timeout: 2 * time.Second}, "tcp", "127.0.0.1:"+port, &tls.Config{RootCAs: pool, ServerName: "dc1.gaia.dev", MinVersion: tls.VersionTLS12})
+		if err == nil {
+			_ = c.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("samba's LDAPS does not answer: %v", err)
+		}
+		time.Sleep(time.Second)
+	}
 	return &Samba{
 		URL: "ldaps://127.0.0.1:" + port, CA: ca, BaseDN: "DC=gaia,DC=dev", Name: name,
 		Password: func(user string) string { return "Dev-" + user + "-Password-1!" },

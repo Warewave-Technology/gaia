@@ -84,6 +84,25 @@ services:
       - ./samba-admin-password:/run/secrets/samba-admin-password:ro
     ports: ["127.0.0.1:10389:389", "127.0.0.1:10636:636"]
 
+  # İzleme (isteğe bağlı: make dev-zabbix): Zabbix 7.0, lab'dekiyle aynı sürüm.
+  # Arayüz ve API http://localhost:18080 (Admin / zabbix).
+  zabbix-db:
+    image: docker.io/library/postgres:17-alpine
+    profiles: [zabbix]
+    environment: { POSTGRES_USER: zabbix, POSTGRES_PASSWORD: zabbix, POSTGRES_DB: zabbix }
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "zabbix"], interval: 2s, retries: 30 }
+  zabbix-server:
+    image: docker.io/zabbix/zabbix-server-pgsql:alpine-7.0.32
+    profiles: [zabbix]
+    environment: { DB_SERVER_HOST: zabbix-db, POSTGRES_USER: zabbix, POSTGRES_PASSWORD: zabbix, POSTGRES_DB: zabbix }
+    depends_on: { zabbix-db: { condition: service_healthy } }
+  zabbix-web:
+    image: docker.io/zabbix/zabbix-web-nginx-pgsql:alpine-7.0.32
+    profiles: [zabbix]
+    environment: { DB_SERVER_HOST: zabbix-db, POSTGRES_USER: zabbix, POSTGRES_PASSWORD: zabbix, POSTGRES_DB: zabbix, ZBX_SERVER_HOST: zabbix-server }
+    depends_on: { zabbix-db: { condition: service_healthy } }
+    ports: ["127.0.0.1:18080:8080"]
+
   # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
   init:
     image: docker.io/library/alpine:3.22

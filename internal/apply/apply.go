@@ -240,7 +240,12 @@ func (r *runner) accessOnly(ctx context.Context, p *plan.Plan) error {
 		only := c
 		only.Baseline, only.Roles = nil, nil
 		err := r.d.Store.WithContractLock(ctx, c.Name, func(ctx context.Context) error {
-			return r.stage(ctx, c.Name, "access", func() error { return r.configure(ctx, only, contract, targets) })
+			return r.stage(ctx, c.Name, "access", func() error {
+				if err := r.configure(ctx, only, contract, targets); err != nil {
+					return err
+				}
+				return r.monitorAccess(ctx, c)
+			})
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %w", c.Name, err)
@@ -356,7 +361,12 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		}
 	}
 	if r.configures(ctx, c) && len(w.targets) > 0 {
-		return r.stage(ctx, c.Name, "configure", func() error { return r.configure(ctx, c, contract, w.targets) })
+		if err := r.stage(ctx, c.Name, "configure", func() error { return r.configure(ctx, c, contract, w.targets) }); err != nil {
+			return err
+		}
+	}
+	if c.Monitoring != nil && r.managesAccess(ctx, c) {
+		return r.stage(ctx, c.Name, "access", func() error { return r.monitorAccess(ctx, c) })
 	}
 	return nil
 }
