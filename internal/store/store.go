@@ -91,9 +91,9 @@ func (s *Store) Tx(ctx context.Context, fn func(q *db.Queries) error) error {
 
 // NewHost is a host about to be created.
 type NewHost struct {
-	UID, Contract, Hostname, Site string
-	Seq                           int
-	Run                           string
+	UID, Contract, Hostname, Site, Network string
+	Seq                                    int
+	Run                                    string
 }
 
 // CreateHost records a host in provisioning and its hostname lease in one
@@ -101,7 +101,7 @@ type NewHost struct {
 func (s *Store) CreateHost(ctx context.Context, h NewHost) error {
 	err := s.Tx(ctx, func(q *db.Queries) error {
 		if err := q.InsertHost(ctx, db.InsertHostParams{
-			Uid: h.UID, Contract: h.Contract, Hostname: h.Hostname, Site: h.Site,
+			Uid: h.UID, Contract: h.Contract, Hostname: h.Hostname, Site: h.Site, Network: h.Network,
 			Seq: int32(h.Seq), Status: db.HostStatusProvisioning, CreatedRun: text(h.Run),
 		}); err != nil {
 			return err

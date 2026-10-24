@@ -55,7 +55,7 @@ func (q *Queries) HoldName(ctx context.Context, arg HoldNameParams) error {
 }
 
 const host = `-- name: Host :one
-select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at from hosts where uid = $1
+select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network from hosts where uid = $1
 `
 
 func (q *Queries) Host(ctx context.Context, uid string) (Host, error) {
@@ -72,6 +72,7 @@ func (q *Queries) Host(ctx context.Context, uid string) (Host, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Network,
 	)
 	return i, err
 }
@@ -94,8 +95,8 @@ func (q *Queries) HostByExternalID(ctx context.Context, arg HostByExternalIDPara
 }
 
 const insertHost = `-- name: InsertHost :exec
-insert into hosts (uid, contract, hostname, site, seq, status, created_run)
-values ($1, $2, $3, $4, $5, $6, $7)
+insert into hosts (uid, contract, hostname, site, network, seq, status, created_run)
+values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type InsertHostParams struct {
@@ -103,6 +104,7 @@ type InsertHostParams struct {
 	Contract   string
 	Hostname   string
 	Site       string
+	Network    string
 	Seq        int32
 	Status     HostStatus
 	CreatedRun pgtype.Text
@@ -114,6 +116,7 @@ func (q *Queries) InsertHost(ctx context.Context, arg InsertHostParams) error {
 		arg.Contract,
 		arg.Hostname,
 		arg.Site,
+		arg.Network,
 		arg.Seq,
 		arg.Status,
 		arg.CreatedRun,
@@ -122,7 +125,7 @@ func (q *Queries) InsertHost(ctx context.Context, arg InsertHostParams) error {
 }
 
 const liveHosts = `-- name: LiveHosts :many
-select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at from hosts
+select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network from hosts
 where contract = $1 and status <> 'deleted'
 order by site, seq
 `
@@ -147,6 +150,7 @@ func (q *Queries) LiveHosts(ctx context.Context, contract string) ([]Host, error
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Network,
 		); err != nil {
 			return nil, err
 		}

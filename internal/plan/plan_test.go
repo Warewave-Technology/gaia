@@ -2,6 +2,7 @@ package plan
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/fs"
 	"os"
@@ -40,6 +41,10 @@ func labFiles(t *testing.T, extra ...string) []catalog.File {
 }
 
 func build(t *testing.T, names []string, extra ...string) *Plan {
+	return buildWith(t, NoState{}, names, extra...)
+}
+
+func buildWith(t *testing.T, st State, names []string, extra ...string) *Plan {
 	t.Helper()
 	cat, err := catalog.Load("c0ffee1234567890", labFiles(t, extra...))
 	if err != nil {
@@ -49,7 +54,7 @@ func build(t *testing.T, names []string, extra ...string) *Plan {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := Build(g, names)
+	p, err := Build(context.Background(), g, names, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,13 +163,13 @@ func TestPlanErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Build(g, []string{"nope"}); err == nil || !strings.Contains(err.Error(), `no Server contract "nope"`) {
+	if _, err := Build(context.Background(), g, []string{"nope"}, NoState{}); err == nil || !strings.Contains(err.Error(), `no Server contract "nope"`) {
 		t.Errorf("unknown contract: %v", err)
 	}
-	if _, err := Build(g, nil); err == nil || !strings.Contains(err.Error(), "hostname labtpoc01 is planned for poc-web and poc-web2") {
+	if _, err := Build(context.Background(), g, nil, NoState{}); err == nil || !strings.Contains(err.Error(), "hostname labtpoc01 is planned for poc-web and poc-web2") {
 		t.Errorf("collision: %v", err)
 	}
-	if _, err := Build(g, []string{"poc-api"}); err != nil {
+	if _, err := Build(context.Background(), g, []string{"poc-api"}, NoState{}); err != nil {
 		t.Errorf("one contract alone: %v", err)
 	}
 }
@@ -191,8 +196,8 @@ func TestWriteText(t *testing.T) {
 		"medium: 4 vCPU, 8 GiB, 40 GiB disk + 50 GiB /data · IP from 10.50.0.0/24 (ipam)",
 		"baseline linux-base (baseline/linux.yml)",
 		"role web.nginx (corp.web.nginx) api_key=(no_log) server_name=api.lab.test worker_processes=auto",
-		"ipam       + 4 address(es) (ipam)",
-		"provision  + 4 VM(s) (pve-lab)",
+		"ipam       +4 =0 (ipam)",
+		"provision  +4 =0 (pve-lab)",
 		"plan " + p.Hash,
 	} {
 		if !strings.Contains(out, want) {

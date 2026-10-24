@@ -61,7 +61,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
-| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | Sürüyor: store ve IPAM v0 hazır |
+| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | Sürüyor: store, IPAM v0 ve duruma bakan plan hazır |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
@@ -117,7 +117,13 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Serbest bırakma:** Bırakılan adres karantinaya girer (varsayılan 14 gün, `--quarantine`).
    - **API:** HTTP + JSON, bearer token; `/healthz` token istemez.
    - **Komutlar:** `gaia-ipam serve | migrate | pool set CIDR --gateway --range start-end`.
-3. **Duruma bakan plan:** Mevcut sunucular veritabanından okunur: var olanlar `keep`, eksikler `create` olur. UID üretilir, en küçük boş `seq` verilir.
+3. **Duruma bakan plan:** Mevcut sunucular veritabanından okunur: var olanlar `keep`, eksikler `create` olur. UID üretilir, en küçük boş `seq` verilir. **Tamam** (`plan.State`, `apply.StoreState`).
+   - **Mevcut sunucular:** Ağ ve site bazında tutulur (`keep`).
+   - **Silinenler (`delete`):** Ölçek küçültmede `seq`'i en yüksek olan ya da `retire` listesindeki sunucu; artık kullanılmayan ağdaki sunucular; `decommissioned` kontratın bütün sunucuları.
+   - **Yeni sunucular:** Site'taki en küçük boş `seq` verilir. Silinecek sunucular `seq`'lerini ve isimlerini silinene kadar tutar. Üretilen isim başka bir sunucuda kiralıysa bir sonraki numaraya geçilir. UID planda değil, apply sırasında üretilir; böylece aynı durum aynı hash'i verir.
+   - **Metin çıktısı:** `+` create, `=` keep, `-` delete; özet sistem başına `+N =N` ve `-N` gösterir. Değişiklik yoksa "no changes to servers" yazar.
+   - **Veritabanı:** `gaia plan --dsn` (ya da `$GAIA_DSN`) durumu veritabanından okur. Veritabanı verilmezse her sunucu yeni sayılır ve bu açıkça yazılır.
+   - **Şema:** `hosts` tablosuna `network` eklendi (migration 0002).
 4. **Provisioning:** OpenBao'dan credential okuma; Pulumi Automation API + `proxmoxve`, state SeaweedFS'te.
 5. **`gaia apply`:** Bu adımları sırayla çalıştırır; lab'de uçtan uca bir VM açılır, ikinci apply değişiklik yapmaz.
 
