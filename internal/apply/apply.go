@@ -36,6 +36,7 @@ type Deps struct {
 	Secrets   Secrets
 	Provision func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, w io.Writer) (map[string]pulumi.Result, pulumi.Changes, error)
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
+	Configure Configurer
 	Out       io.Writer
 }
 
@@ -83,6 +84,8 @@ type runner struct {
 	d    Deps
 	run  string
 	used map[string]map[int]bool // VM IDs in use, per compute provider
+	cfg  *config                 // set when a contract has a baseline or roles
+	seq  int                     // last run event
 }
 
 func (r *runner) printf(format string, a ...any) {
@@ -96,9 +99,17 @@ func (r *runner) all(ctx context.Context, p *plan.Plan) error {
 	if err != nil {
 		return err
 	}
-	sshKey, err := r.sshPublicKey(ctx)
+	sshKey, privateKey, err := r.sshKeys(ctx)
 	if err != nil {
 		return err
+	}
+	for _, c := range p.Contracts {
+		if len(c.Servers) > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
+			if r.cfg, err = r.configSetup(ctx, privateKey); err != nil {
+				return err
+			}
+			break
+		}
 	}
 	for _, c := range p.Contracts {
 		if len(c.Servers) == 0 {
@@ -161,19 +172,21 @@ func (r *runner) backend(ctx context.Context) (pulumi.Backend, error) {
 	return b, nil
 }
 
-func (r *runner) sshPublicKey(ctx context.Context) (string, error) {
+// sshKeys returns Gaia's key pair: cloud-init gets the public key, Ansible
+// the private one.
+func (r *runner) sshKeys(ctx context.Context) (public, private string, err error) {
 	ref := r.g.Platform().Spec.(*catalog.PlatformSpec).Engines.Configuration.SSHKey
 	if ref == "" {
-		return "", errors.New("no engines.configuration.sshKey in the Platform: servers would be unreachable")
+		return "", "", errors.New("no engines.configuration.sshKey in the Platform: servers would be unreachable")
 	}
 	f, err := r.d.Secrets.Read(ctx, ref)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if f["public"] == "" {
-		return "", fmt.Errorf("%s: no public key", ref)
+	if f["public"] == "" || f["private"] == "" {
+		return "", "", fmt.Errorf("%s: want private and public", ref)
 	}
-	return strings.TrimSpace(f["public"]), nil
+	return strings.TrimSpace(f["public"]), f["private"], nil
 }
 
 func (r *runner) provider(name string) *catalog.ProviderSpec {
@@ -185,6 +198,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 	q := r.d.Store.Q()
 	contract, _ := r.g.Catalog.Get(catalog.KindServer, c.Name)
 	bySite := map[string][]pulumi.VM{}
+	var targets []target
 	siteCreds := map[string]proxmox.Credentials{} // a site has one compute provider
 	creds := map[string]proxmox.Credentials{}
 
@@ -220,6 +234,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 		bySite[s.Site] = append(bySite[s.Site], r.vm(c, contract, s, addr, vmid, smbios, sshKey))
+		targets = append(targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
 		siteCreds[s.Site] = cr
 	}
 
@@ -253,7 +268,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			}
 		}
 	}
-	return nil
+	return r.configure(ctx, c, contract, targets)
 }
 
 func (r *runner) proxmoxCreds(ctx context.Context, provider string) (proxmox.Credentials, error) {

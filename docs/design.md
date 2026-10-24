@@ -719,6 +719,8 @@ spec:
 - Pulumi işleri ve day-2 işleri merkezde kalır; hipervizör API'leri (vCenter, Proxmox) oradan erişilebilir durumda.
 - Site worker tasarımda var, ama gerçekten ihtiyaç doğana kadar yazılmaz.
 
+**PoC'de doğrulananlar:** Çalışma dizini tmpfs'te; EE imajı rootless podman'da `--userns keep-id` ile çalışır (imajın kullanıcısı çağırana eşlenir). Gaia projeye bir `.gaia/site.yml` yazar: baseline'ı import eder, sonra kontratın rollerini parametreleriyle çalıştırır. Olaylardaki secret'lar event_data çözüldükten sonra maskelenir (Python ASCII dışı karakterleri escape ediyor). İş, imajın digest'iyle çalışır ve bu digest run'a yazılır.
+
 **Runner soyutlaması:** Ansible'ı çalıştıran katman bir arayüzün arkasında durur. İleride AWX gibi bir runner zorunlu tutulursa bu arayüze yeni bir uygulama eklenebilir. Şimdilik tek uygulama ansible-runner.
 
 ### 7.5 Drift kontrolü
@@ -1512,3 +1514,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | Pulumi state'i PostgreSQL'de (DIY backend), ayrı veritabanında; SeaweedFS boşalan dizinleri obje olarak listelediği için state'e uygun değil |
 | 2026-10-24 | Pulumi CLI sürümü Gaia'da sabit (3.272.0, SDK ile aynı); Gaia ilk çalıştırmada kendisi kurar |
 | 2026-10-24 | Her `pulumi up` önce refresh yapar; apply, VM'in planlanan IP'yi guest agent üzerinden bildirdiğini doğrulamadan sunucuyu `active` yapmaz |
+| 2026-10-24 | ansible-runner rootless podman'da `--userns keep-id` ile; çalışma dizini tmpfs'te; EE run'da digest'iyle kullanılır, run sırasında imaj çekilmez |

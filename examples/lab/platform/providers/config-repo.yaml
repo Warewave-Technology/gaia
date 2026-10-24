@@ -4,6 +4,8 @@ metadata:
   name: config-repo
 spec:
   type: git
-  url: git@github.com:Warewave-Technology/gaia.git
-  path: ansible                     # PoC'de roller bu reponun ansible/ dizininde
+  # PoC'de Gaia config reposunu yerel bir klondan okur. Lab'de bu reponun
+  # platform VM'indeki kopyası (lab/ee.yml); roller ansible/ dizininde.
+  url: /home/labadm/gaia
+  path: ansible
   ref: main

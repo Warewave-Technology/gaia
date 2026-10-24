@@ -106,12 +106,28 @@ type PulumiStack struct {
 }
 
 type Run struct {
-	ID         string
-	Contracts  []string
-	Commit     string
-	PlanHash   string
-	Status     string
-	Error      pgtype.Text
-	StartedAt  pgtype.Timestamptz
-	FinishedAt pgtype.Timestamptz
+	ID           string
+	Contracts    []string
+	Commit       string
+	PlanHash     string
+	Status       string
+	Error        pgtype.Text
+	StartedAt    pgtype.Timestamptz
+	FinishedAt   pgtype.Timestamptz
+	ConfigCommit pgtype.Text
+	EeImage      pgtype.Text
+}
+
+type RunEvent struct {
+	RunID     string
+	Seq       int32
+	Stage     string
+	HostUid   pgtype.Text
+	Event     string
+	Task      pgtype.Text
+	Changed   bool
+	Failed    bool
+	Stdout    pgtype.Text
+	Data      []byte
+	CreatedAt pgtype.Timestamptz
 }
