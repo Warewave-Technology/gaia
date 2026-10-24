@@ -205,10 +205,14 @@ func (e *Engine) contract(ctx context.Context, snap repo.Snapshot, g *catalog.Gr
 				if err != nil {
 					return err
 				}
-				if err := q.SetChangeSnapshot(ctx, db.SetChangeSnapshotParams{ID: open.ID, Snapshot: mustJSON(snap), Label: snap.Label(), RequestedBy: by, Commits: mustJSON(commits)}); err != nil {
+				source := open.Source
+				if source != "retry" {
+					source = sourceOf(commits)
+				}
+				if err := q.SetChangeSnapshot(ctx, db.SetChangeSnapshotParams{ID: open.ID, Snapshot: mustJSON(snap), Label: snap.Label(), RequestedBy: by, Commits: mustJSON(commits), Source: source}); err != nil {
 					return err
 				}
-				open.Snapshot, open.Label, open.RequestedBy, open.Commits = mustJSON(snap), snap.Label(), by, mustJSON(commits)
+				open.Snapshot, open.Label, open.RequestedBy, open.Commits, open.Source = mustJSON(snap), snap.Label(), by, mustJSON(commits), source
 			}
 			return e.advance(ctx, open, g)
 		default:
@@ -233,9 +237,8 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 	if err != nil {
 		return err
 	}
-	if source == "commit" && len(commits) > 0 && commits[0].Reverts != "" {
-		// The newest commit is Gaia's revert.
-		source = "revert"
+	if source == "commit" {
+		source = sourceOf(commits)
 	}
 	c := db.Change{
 		ID: store.NewChangeID(), Contract: name, Source: source, Snapshot: mustJSON(snap), Label: snap.Label(),
@@ -250,6 +253,15 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 	}
 	e.log().Info("change", "id", c.ID, "contract", name, "plan", p.Hash)
 	return e.advance(ctx, c, g)
+}
+
+// sourceOf says where a change's commits come from: revert when the
+// newest is Gaia's revert, else commit.
+func sourceOf(commits []Commit) string {
+	if len(commits) > 0 && commits[0].Reverts != "" {
+		return "revert"
+	}
+	return "commit"
 }
 
 // GaiaUser is the account Gaia's own signing key belongs to.

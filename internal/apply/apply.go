@@ -59,18 +59,32 @@ type Deps struct {
 // User is the account cloud-init creates on every server for Gaia.
 const User = "gaia"
 
-// Run applies a plan built from g. Contracts that need approval are
-// refused: the PoC has no approval flow.
-func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, error) {
+// CheckApproval refuses a plan that changes servers in an environment
+// that needs approval, unless the run applies an approved change: approval
+// is given in Gaia's change flow (design 7.6), never by running gaia
+// apply.
+func CheckApproval(p *plan.Plan, approvedBy []string) error {
+	if len(approvedBy) > 0 {
+		return nil
+	}
 	for _, c := range p.Contracts {
 		if c.Approval != "required" {
 			continue
 		}
 		for _, s := range c.Servers {
 			if s.Action != plan.Keep {
-				return "", fmt.Errorf("%s: the plan changes servers and needs approval, which the PoC does not have", c.Name)
+				return fmt.Errorf("%s: the plan changes servers and needs approval; approve its change in gaia server", c.Name)
 			}
 		}
+	}
+	return nil
+}
+
+// Run applies a plan built from g. A plan that needs approval runs only
+// with the approvals of its change (CheckApproval).
+func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, error) {
+	if err := CheckApproval(p, d.ApprovedBy); err != nil {
+		return "", err
 	}
 
 	q := d.Store.Q()

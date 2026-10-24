@@ -60,6 +60,13 @@ services:
       GITEA__webhook__ALLOWED_HOST_LIST: "*"
     ports: ["127.0.0.1:13000:3000", "127.0.0.1:12222:22"]
 
+  # E-posta yakalayıcı (isteğe bağlı: make dev-mail): SMTP 127.0.0.1:11025, gelen kutusu
+  # http://localhost:18025. Bildirimlerin uçtan uca testi için.
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.27.3
+    profiles: [mail]
+    ports: ["127.0.0.1:11025:1025", "127.0.0.1:18025:8025"]
+
   # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
   init:
     image: docker.io/library/alpine:3.22

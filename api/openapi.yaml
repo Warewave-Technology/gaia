@@ -175,6 +175,31 @@ paths:
           description: One result per change
           content: { application/json: { schema: { type: array, items: { type: object, properties: { id: { type: string }, status: { type: string }, error: { type: string } } } } } }
         "403": { description: "Confirm with a passkey first (stepUp: true)", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/changes/{id}/notifications:
+    get:
+      summary: The notifications sent, or being sent, about a change
+      operationId: changeNotifications
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    trigger: { type: string }
+                    channel: { type: string }
+                    recipient: { type: string, description: "team/<name>/<n> or user/<id>" }
+                    status: { type: string, enum: [pending, sent, failed] }
+                    attempts: { type: integer }
+                    lastError: { type: string }
+                    createdAt: { type: string, format: date-time }
+                    sentAt: { type: string, format: date-time }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/v1/changes/{id}/approve:
     post:
       summary: Approve a change for the plan you saw (design 7.6); needs a recent passkey or MFA
@@ -492,6 +517,28 @@ paths:
       responses:
         "200": { description: The caller, content: { application/json: { schema: { $ref: "#/components/schemas/Principal" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/me/notifications:
+    get:
+      summary: Your email notifications (design 7.6)
+      operationId: myNotifications
+      responses:
+        "200": { description: Address and triggers, content: { application/json: { schema: { $ref: "#/components/schemas/Notifications" } } } }
+    put:
+      summary: Choose the triggers you get mail for; local accounts also set their address
+      description: You hear only of contracts you see in full. Leaving email out keeps it.
+      operationId: setMyNotifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [triggers]
+              properties:
+                email: { type: string }
+                triggers: { type: array, items: { type: string } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/Notifications" } } } }
+        "400": { description: An unknown trigger, a bad address, or an address that comes from the identity provider, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/me/sessions:
     get:
       summary: The caller's live sessions
@@ -648,6 +695,13 @@ components:
     BadRequest: { description: A parameter is wrong, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     NotFound: { description: No such object, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   schemas:
+    Notifications:
+      type: object
+      properties:
+        email: { type: string }
+        emailEditable: { type: boolean, description: Local accounts set their address; others get their identity provider's verified one }
+        triggers: { type: array, items: { type: string } }
+        available: { type: array, items: { type: string } }
     Problem:
       type: object
       required: [error]

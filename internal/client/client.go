@@ -116,8 +116,8 @@ type Error struct {
 
 func (e *Error) Error() string { return fmt.Sprintf("%d: %s", e.Status, e.Message) }
 
-func (c *Client) do(ctx context.Context, method, path string, out any) error {
-	resp, err := c.send(ctx, method, path)
+func (c *Client) do(ctx context.Context, method, path string, body, out any) error {
+	resp, err := c.send(ctx, method, path, body)
 	if err != nil {
 		return err
 	}
@@ -135,11 +135,25 @@ func (c *Client) do(ctx context.Context, method, path string, out any) error {
 
 // send makes a signed-in request; a 401 refreshes the access token once
 // and tries again.
-func (c *Client) send(ctx context.Context, method, path string) (*http.Response, error) {
+func (c *Client) send(ctx context.Context, method, path string, body any) (*http.Response, error) {
+	var data []byte
+	if body != nil {
+		var err error
+		if data, err = json.Marshal(body); err != nil {
+			return nil, err
+		}
+	}
 	for attempt := 0; ; attempt++ {
-		req, err := http.NewRequestWithContext(ctx, method, c.Base+path, nil)
+		var rd io.Reader
+		if data != nil {
+			rd = bytes.NewReader(data)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, c.Base+path, rd)
 		if err != nil {
 			return nil, err
+		}
+		if data != nil {
+			req.Header.Set("Content-Type", "application/json")
 		}
 		if err := c.authorize(ctx, req); err != nil {
 			return nil, err
@@ -166,18 +180,18 @@ func (c *Client) Runs(ctx context.Context, contract string, limit int) ([]server
 	}
 	q.Set("limit", strconv.Itoa(limit))
 	var out []server.Run
-	return out, c.do(ctx, http.MethodGet, "/api/v1/runs?"+q.Encode(), &out)
+	return out, c.do(ctx, http.MethodGet, "/api/v1/runs?"+q.Encode(), nil, &out)
 }
 
 // Run returns a run with its stages and record.
 func (c *Client) Run(ctx context.Context, id string) (server.Run, error) {
 	var out server.Run
-	return out, c.do(ctx, http.MethodGet, "/api/v1/runs/"+url.PathEscape(id), &out)
+	return out, c.do(ctx, http.MethodGet, "/api/v1/runs/"+url.PathEscape(id), nil, &out)
 }
 
 // Cancel cancels a queued or running run.
 func (c *Client) Cancel(ctx context.Context, id string) error {
-	return c.do(ctx, http.MethodPost, "/api/v1/runs/"+url.PathEscape(id)+"/cancel", nil)
+	return c.do(ctx, http.MethodPost, "/api/v1/runs/"+url.PathEscape(id)+"/cancel", nil, nil)
 }
 
 // Watch streams a run's events after seq after to fn until the run ends,
@@ -240,7 +254,7 @@ func (c *Client) Watch(ctx context.Context, id string, after int, fn func(server
 // Me is who the client is signed in as.
 func (c *Client) Me(ctx context.Context) (map[string]any, error) {
 	var out map[string]any
-	return out, c.do(ctx, http.MethodGet, "/api/v1/me", &out)
+	return out, c.do(ctx, http.MethodGet, "/api/v1/me", nil, &out)
 }
 
 // Logout ends the CLI session on the server.
@@ -253,10 +267,15 @@ func (c *Client) Logout(ctx context.Context) error {
 
 // Get reads any API path into out.
 func (c *Client) Get(ctx context.Context, path string, out any) error {
-	return c.do(ctx, http.MethodGet, path, out)
+	return c.do(ctx, http.MethodGet, path, nil, out)
 }
 
 // Post sends an API request without a body and reads its answer.
-func (c *Client) Post(ctx context.Context, path string, _ any, out any) error {
-	return c.do(ctx, http.MethodPost, path, out)
+func (c *Client) Post(ctx context.Context, path string, body, out any) error {
+	return c.do(ctx, http.MethodPost, path, body, out)
+}
+
+// Put sends body as JSON and decodes the answer into out.
+func (c *Client) Put(ctx context.Context, path string, body, out any) error {
+	return c.do(ctx, http.MethodPut, path, body, out)
 }

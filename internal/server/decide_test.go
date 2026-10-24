@@ -6,12 +6,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/repo"
+	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 func send(t *testing.T, method, url, token string, body, out any) int {
@@ -208,5 +213,52 @@ spec:
 	var late []map[string]string
 	if code := send(t, "POST", hs.URL+"/api/v1/changes/approve", e.token(a, "can", true), body, &late); code != 200 || len(late) != 2 || late[0]["error"] == "" || late[1]["error"] == "" {
 		t.Errorf("can's batch: %d %v", code, late)
+	}
+}
+
+func TestPeopleChooseTheirNotifications(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	cat := &CatalogSource{Repos: e.repos, Platform: repo.Rev{Name: "platform", URL: e.repo}}
+	if err := cat.Load(ctx); err != nil {
+		t.Fatal(err)
+	}
+	a := auth.New(e.store, cat.Graph, nil)
+	srv, err := New(Config{Listen: "127.0.0.1:0", Auth: a}, e.store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs := httptest.NewServer(srv.Handler())
+	defer hs.Close()
+	ayse := e.person(a, "ayse", "team-platform")
+	url := hs.URL + "/api/v1/me/notifications"
+
+	var n auth.Notifications
+	if code := send(t, "PUT", url, ayse, map[string]any{"email": "ayse@example.com", "triggers": []string{"change.pending", "change.failed"}}, &n); code != 200 ||
+		n.Email != "ayse@example.com" || len(n.Triggers) != 2 || !n.EmailEditable {
+		t.Fatalf("set: %d %+v", code, n)
+	}
+	if code := send(t, "PUT", url, ayse, map[string]any{"triggers": []string{"change.everything"}}, nil); code != 400 {
+		t.Errorf("an unknown trigger: %d", code)
+	}
+	if code := send(t, "PUT", url, ayse, map[string]any{"email": "not mail", "triggers": []string{}}, nil); code != 400 {
+		t.Errorf("a bad address: %d", code)
+	}
+	// Leaving the address out keeps it.
+	n = auth.Notifications{}
+	if code := send(t, "PUT", url, ayse, map[string]any{"triggers": []string{"change.applied"}}, &n); code != 200 || n.Email != "ayse@example.com" || strings.Join(n.Triggers, ",") != "change.applied" {
+		t.Errorf("keep the address: %d %+v", code, n)
+	}
+	subs, _ := e.store.Q().Subscribers(ctx, "change.applied")
+	if len(subs) != 1 || subs[0].Username != "ayse" {
+		t.Errorf("subscribers = %+v", subs)
+	}
+
+	// An identity provider's account keeps the provider's address.
+	id := store.NewUserID()
+	_ = e.store.Q().InsertUser(ctx, db.InsertUserParams{ID: id, Username: "sso", Provider: "dev-sso", Subject: pgtype.Text{String: "s", Valid: true}})
+	tok, _ := a.IssueAccessToken(ctx, id, time.Hour, false)
+	if code := send(t, "PUT", url, tok, map[string]any{"email": "x@example.com", "triggers": []string{}}, nil); code != 400 {
+		t.Errorf("an SSO account sets its address: %d", code)
 	}
 }

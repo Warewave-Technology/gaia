@@ -151,6 +151,7 @@ type claims struct {
 	Username string   `json:"preferred_username"`
 	Name     string   `json:"name"`
 	Email    string   `json:"email"`
+	Verified bool     `json:"email_verified"`
 	AMR      []string `json:"amr"`
 	ACR      string   `json:"acr"`
 	Groups   []string
@@ -278,6 +279,13 @@ func (a *Service) oidcUser(ctx context.Context, provider string, c claims) (stri
 		return "", err
 	}
 	return u.ID, a.store.Tx(ctx, func(q *db.Queries) error {
+		// The provider's verified address is where personal notifications
+		// go; it follows the provider at every sign-in.
+		if c.Email != "" && c.Verified {
+			if err := q.SetEmail(ctx, db.SetEmailParams{ID: u.ID, Email: text(c.Email)}); err != nil {
+				return err
+			}
+		}
 		if err := q.ClearTeams(ctx, db.ClearTeamsParams{UserID: u.ID, Source: "oidc"}); err != nil {
 			return err
 		}
