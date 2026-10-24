@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
@@ -127,21 +125,12 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 		},
 	}
 	r.printf("  configure %s (%d server(s))\n", c.Name, len(hosts))
-	q := r.d.Store.Q()
 	res, err := r.d.Configure.Run(ctx, job, func(e ansible.Event) error {
-		r.seq++
 		if e.Failed {
 			r.printf("    %s: %s failed\n", names[e.Host], e.Task)
 		}
-		created := e.Created
-		if created.IsZero() {
-			created = time.Now()
-		}
-		return q.InsertRunEvent(ctx, db.InsertRunEventParams{
-			RunID: r.run, Seq: int32(r.seq), Stage: "configure", HostUid: pgText(e.Host), Event: e.Type, //nolint:gosec // event counts stay far below 2^31
-			Task: pgText(e.Task), Changed: e.Changed, Failed: e.Failed, Stdout: pgText(e.Stdout), Data: e.Data,
-			CreatedAt: pgtype.Timestamptz{Time: created, Valid: true},
-		})
+		r.events.add(Event{Stage: "configure", Type: e.Type, Host: e.Host, Task: e.Task, Changed: e.Changed, Failed: e.Failed, Stdout: e.Stdout, Data: e.Data, Created: e.Created})
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("configure: %w", err)

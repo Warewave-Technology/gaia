@@ -1,0 +1,200 @@
+openapi: 3.1.0
+info:
+  title: Gaia API
+  version: v1
+  description: |
+    Gaia's API. The CLI and the web interface are its clients (design 11.1).
+    Until authentication lands (roadmap phase 2) the server only listens on
+    loopback addresses.
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /api/v1/runs:
+    get:
+      summary: List runs, newest first
+      operationId: listRuns
+      parameters:
+        - { name: contract, in: query, schema: { type: string }, description: Only runs of this contract }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
+      responses:
+        "200": { description: Runs, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Run" } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/runs/{id}:
+    get:
+      summary: A run with its stages and its record
+      operationId: getRun
+      parameters: [{ $ref: "#/components/parameters/RunID" }]
+      responses:
+        "200": { description: The run, content: { application/json: { schema: { $ref: "#/components/schemas/Run" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/runs/{id}/cancel:
+    post:
+      summary: Cancel a queued or running run
+      description: A queued run never starts; a running one stops where it is and is recorded as cancelled.
+      operationId: cancelRun
+      parameters: [{ $ref: "#/components/parameters/RunID" }]
+      responses:
+        "202": { description: Cancelling, content: { application/json: { schema: { type: object, properties: { status: { type: string, const: cancelling } } } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: The run has already finished, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/runs/{id}/events:
+    get:
+      summary: A run's events after a sequence number
+      operationId: listEvents
+      parameters:
+        - { $ref: "#/components/parameters/RunID" }
+        - { name: after, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 5000, default: 1000 } }
+      responses:
+        "200": { description: Events in order, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Event" } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/runs/{id}/events/stream:
+    get:
+      summary: A run's events as server-sent events
+      description: |
+        Sends the events after Last-Event-ID (or ?after), then each new one as
+        it is written. SSE event names are "log" (output lines) and "ansible";
+        the id is the event's sequence number and the data an Event. When the
+        run has finished and every event is sent, an "end" event carries
+        {"status": …} and the stream closes. Idle streams get a comment every
+        15 seconds.
+      operationId: streamEvents
+      parameters:
+        - { $ref: "#/components/parameters/RunID" }
+        - { name: after, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: Last-Event-ID, in: header, schema: { type: integer } }
+      responses:
+        "200": { description: The stream, content: { text/event-stream: { schema: { type: string } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/runs/{id}/record:
+    get:
+      summary: A run's immutable record
+      operationId: getRecord
+      parameters: [{ $ref: "#/components/parameters/RunID" }]
+      responses:
+        "200":
+          description: The record and its place in the chain
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [seq, recordHash, prevHash, body]
+                properties:
+                  seq: { type: integer }
+                  recordHash: { type: string }
+                  prevHash: { type: string }
+                  archived: { type: string, description: Where the archived copy is }
+                  body: { type: object, description: The record (design 10.1) }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/records/verify:
+    get:
+      summary: Check the hash chain of every run record
+      operationId: verifyRecords
+      responses:
+        "200":
+          description: The result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records, intact]
+                properties:
+                  records: { type: integer, description: Records checked before the first broken one }
+                  intact: { type: boolean }
+                  broken:
+                    type: object
+                    properties: { seq: { type: integer }, run: { type: string }, reason: { type: string } }
+  /api/v1/contracts:
+    get:
+      summary: Contracts Gaia has servers or runs for
+      operationId: listContracts
+      responses:
+        "200": { description: Contracts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/ContractSummary" } } } } }
+  /api/v1/contracts/{name}:
+    get:
+      summary: A contract's servers and recent runs
+      operationId: getContract
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The contract, content: { application/json: { schema: { $ref: "#/components/schemas/Contract" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  parameters:
+    RunID: { name: id, in: path, required: true, schema: { type: string, examples: [run-s62emmzbvofqg3ol] } }
+  responses:
+    BadRequest: { description: A parameter is wrong, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    NotFound: { description: No such object, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  schemas:
+    Problem:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+    Run:
+      type: object
+      required: [id, contracts, commit, planHash, status, queuedAt]
+      properties:
+        id: { type: string }
+        contracts: { type: array, items: { type: string } }
+        commit: { type: string }
+        planHash: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        error: { type: string }
+        requestedBy: { type: string }
+        queuedAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+        stages: { type: array, items: { $ref: "#/components/schemas/Stage" } }
+        record:
+          type: object
+          required: [seq, recordHash, prevHash]
+          properties: { seq: { type: integer }, recordHash: { type: string }, prevHash: { type: string }, archived: { type: string } }
+    Stage:
+      type: object
+      required: [contract, stage, status, startedAt]
+      properties:
+        contract: { type: string, description: Empty for stages of the whole run }
+        stage: { type: string, enum: [ipam, deregister, provision, release, register, configure, record] }
+        status: { type: string, enum: [running, succeeded, failed, cancelled] }
+        detail: { type: string }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+    Event:
+      type: object
+      required: [seq, stage, type, createdAt]
+      properties:
+        seq: { type: integer }
+        stage: { type: string }
+        type: { type: string, description: '"log" for an output line, else an ansible-runner event' }
+        host: { type: string, description: Server UID }
+        task: { type: string }
+        changed: { type: boolean }
+        failed: { type: boolean }
+        stdout: { type: string, description: Secrets masked }
+        data: { type: object, description: ansible-runner event_data, secrets masked }
+        createdAt: { type: string, format: date-time }
+    ContractSummary:
+      type: object
+      required: [name, liveHosts]
+      properties:
+        name: { type: string }
+        liveHosts: { type: integer }
+        lastRun: { type: string }
+        lastStatus: { type: string }
+    Contract:
+      type: object
+      required: [name, hosts, runs]
+      properties:
+        name: { type: string }
+        hosts: { type: array, items: { $ref: "#/components/schemas/Host" } }
+        runs: { type: array, items: { $ref: "#/components/schemas/Run" } }
+    Host:
+      type: object
+      required: [uid, hostname, site, network, status, externalIds]
+      properties:
+        uid: { type: string }
+        hostname: { type: string }
+        site: { type: string }
+        network: { type: string }
+        status: { type: string }
+        externalIds: { type: object, additionalProperties: { type: string }, description: provider/kind to ID }

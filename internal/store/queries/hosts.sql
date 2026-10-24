@@ -47,3 +47,13 @@ where e.provider = $1 and e.kind = $2 and h.status <> 'deleted';
 -- A deleted host's IDs go: Proxmox and IPAM give them out again. The run
 -- record keeps what they were.
 delete from host_external_ids where uid = $1;
+
+-- name: ContractSummaries :many
+-- Every contract Gaia has hosts or runs for, with its live hosts and its
+-- last run.
+select c.name::text as name,
+       (select count(*) from hosts h where h.contract = c.name and h.status <> 'deleted')::int as live_hosts,
+       coalesce((select r.id from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_run,
+       coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
+from (select contract as name from hosts union select unnest(contracts) from runs) c
+order by c.name;

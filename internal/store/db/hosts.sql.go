@@ -11,6 +11,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const contractSummaries = `-- name: ContractSummaries :many
+select c.name::text as name,
+       (select count(*) from hosts h where h.contract = c.name and h.status <> 'deleted')::int as live_hosts,
+       coalesce((select r.id from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_run,
+       coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
+from (select contract as name from hosts union select unnest(contracts) from runs) c
+order by c.name
+`
+
+type ContractSummariesRow struct {
+	Name       string
+	LiveHosts  int32
+	LastRun    string
+	LastStatus string
+}
+
+// Every contract Gaia has hosts or runs for, with its live hosts and its
+// last run.
+func (q *Queries) ContractSummaries(ctx context.Context) ([]ContractSummariesRow, error) {
+	rows, err := q.db.Query(ctx, contractSummaries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ContractSummariesRow
+	for rows.Next() {
+		var i ContractSummariesRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.LiveHosts,
+			&i.LastRun,
+			&i.LastStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteExternalIDs = `-- name: DeleteExternalIDs :exec
 delete from host_external_ids where uid = $1
 `
