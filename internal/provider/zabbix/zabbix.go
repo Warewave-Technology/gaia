@@ -1,0 +1,350 @@
+package zabbix
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"slices"
+	"sort"
+	"strings"
+	"sync/atomic"
+	"time"
+)
+
+// UIDTag is the tag that marks a host as Gaia's server (design 9.1).
+const UIDTag = "gaia.uid"
+
+// Client talks to the Zabbix API (7.0) with an API token.
+type Client struct {
+	endpoint, token string
+	http            *http.Client
+	id              atomic.Int64
+}
+
+// New returns a client for the api_jsonrpc.php endpoint.
+func New(endpoint, token string) *Client {
+	return &Client{endpoint: endpoint, token: token, http: &http.Client{Timeout: 30 * time.Second}}
+}
+
+// Error is an error the API returned.
+type Error struct {
+	Method  string
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    string `json:"data"`
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("zabbix %s: %s %s", e.Method, e.Message, e.Data)
+}
+
+func (c *Client) call(ctx context.Context, method string, params, out any) error {
+	body, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "method": method, "params": params, "id": c.id.Add(1)})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json-rpc")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("zabbix: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("zabbix %s: HTTP %d", method, resp.StatusCode)
+	}
+	var r struct {
+		Result json.RawMessage `json:"result"`
+		Error  *Error          `json:"error"`
+	}
+	if err := json.Unmarshal(data, &r); err != nil {
+		return fmt.Errorf("zabbix %s: %w", method, err)
+	}
+	if r.Error != nil {
+		r.Error.Method = method
+		return r.Error
+	}
+	if out == nil {
+		return nil
+	}
+	return json.Unmarshal(r.Result, out)
+}
+
+// Tag is a Zabbix host tag.
+type Tag struct {
+	Tag   string `json:"tag"`
+	Value string `json:"value"`
+}
+
+// Host is a server as Gaia registers it.
+type Host struct {
+	UID       string
+	Hostname  string
+	IP        string
+	Groups    []string // created when missing
+	Templates []string // technical names; must exist
+	Tags      []Tag    // the UID tag is added
+	Proxy     string   // optional
+}
+
+// Result is what Register did.
+type Result struct {
+	HostID string
+	Action string // create | update | same
+}
+
+type hostRecord struct {
+	HostID      string `json:"hostid"`
+	Host        string `json:"host"`
+	MonitoredBy string `json:"monitored_by"`
+	ProxyID     string `json:"proxyid"`
+	Groups      []struct {
+		GroupID string `json:"groupid"`
+	} `json:"hostgroups"`
+	Templates []struct {
+		TemplateID string `json:"templateid"`
+	} `json:"parentTemplates"`
+	Tags       []Tag `json:"tags"`
+	Interfaces []struct {
+		InterfaceID string `json:"interfaceid"`
+		IP          string `json:"ip"`
+		Main        string `json:"main"`
+		Type        string `json:"type"`
+	} `json:"interfaces"`
+}
+
+// Register creates or updates the host of h.UID: found by hostID when
+// given, else by its UID tag. Hosts are never matched by name, since names
+// are reused (design 9.1).
+func (c *Client) Register(ctx context.Context, h Host, hostID string) (Result, error) {
+	groups, err := c.groupIDs(ctx, h.Groups)
+	if err != nil {
+		return Result{}, err
+	}
+	templates, err := c.templateIDs(ctx, h.Templates)
+	if err != nil {
+		return Result{}, err
+	}
+	proxy := ""
+	if h.Proxy != "" {
+		if proxy, err = c.proxyID(ctx, h.Proxy); err != nil {
+			return Result{}, err
+		}
+	}
+	tags := append([]Tag{{Tag: UIDTag, Value: h.UID}}, h.Tags...)
+	sort.Slice(tags[1:], func(i, j int) bool { return tags[1+i].Tag < tags[1+j].Tag })
+
+	cur, err := c.find(ctx, h.UID, hostID)
+	if err != nil {
+		return Result{}, err
+	}
+	params := map[string]any{
+		"host": h.Hostname, "name": h.Hostname,
+		"groups": idList("groupid", groups), "templates": idList("templateid", templates), "tags": tags,
+		"monitored_by": "0",
+	}
+	if proxy != "" {
+		params["monitored_by"], params["proxyid"] = "1", proxy
+	}
+	if cur == nil {
+		params["interfaces"] = []map[string]any{{"type": 1, "main": 1, "useip": 1, "ip": h.IP, "dns": "", "port": "10050"}}
+		var out struct {
+			HostIDs []string `json:"hostids"`
+		}
+		if err := c.call(ctx, "host.create", params, &out); err != nil {
+			return Result{}, err
+		}
+		return Result{HostID: out.HostIDs[0], Action: "create"}, nil
+	}
+
+	changed := false
+	if !same(cur, h, groups, templates, tags, proxy) {
+		params["hostid"] = cur.HostID
+		// Gaia owns the host: its templates replace the linked ones.
+		if err := c.call(ctx, "host.update", params, nil); err != nil {
+			return Result{}, err
+		}
+		changed = true
+	}
+	for _, i := range cur.Interfaces {
+		if i.Main == "1" && i.Type == "1" && i.IP != h.IP {
+			if err := c.call(ctx, "hostinterface.update", map[string]any{"interfaceid": i.InterfaceID, "ip": h.IP}, nil); err != nil {
+				return Result{}, err
+			}
+			changed = true
+		}
+	}
+	if changed {
+		return Result{HostID: cur.HostID, Action: "update"}, nil
+	}
+	return Result{HostID: cur.HostID, Action: "same"}, nil
+}
+
+// Delete removes the host of uid, with its history (design 9.3). A host
+// that is already gone is not an error.
+func (c *Client) Delete(ctx context.Context, uid, hostID string) (bool, error) {
+	cur, err := c.find(ctx, uid, hostID)
+	if err != nil || cur == nil {
+		return false, err
+	}
+	return true, c.call(ctx, "host.delete", []string{cur.HostID}, nil)
+}
+
+func (c *Client) find(ctx context.Context, uid, hostID string) (*hostRecord, error) {
+	params := map[string]any{
+		"output": []string{"hostid", "host", "monitored_by", "proxyid"}, "selectHostGroups": []string{"groupid"},
+		"selectParentTemplates": []string{"templateid"}, "selectTags": "extend",
+		"selectInterfaces": []string{"interfaceid", "ip", "main", "type"},
+	}
+	if hostID != "" {
+		params["hostids"] = []string{hostID}
+	} else {
+		params["tags"] = []map[string]any{{"tag": UIDTag, "value": uid, "operator": 1}}
+	}
+	var hosts []hostRecord
+	if err := c.call(ctx, "host.get", params, &hosts); err != nil {
+		return nil, err
+	}
+	// The recorded host must still carry the UID: a host ID can point at
+	// another host after a restore.
+	var mine []hostRecord
+	for _, h := range hosts {
+		if slices.Contains(h.Tags, Tag{Tag: UIDTag, Value: uid}) {
+			mine = append(mine, h)
+		}
+	}
+	switch {
+	case len(mine) == 0 && hostID != "":
+		return c.find(ctx, uid, "")
+	case len(mine) == 0:
+		return nil, nil
+	case len(mine) > 1:
+		return nil, fmt.Errorf("zabbix: %d hosts carry %s=%s", len(mine), UIDTag, uid)
+	}
+	return &mine[0], nil
+}
+
+func same(cur *hostRecord, h Host, groups, templates []string, tags []Tag, proxy string) bool {
+	if cur.Host != h.Hostname {
+		return false
+	}
+	if (proxy != "") != (cur.MonitoredBy == "1") || (proxy != "" && cur.ProxyID != proxy) {
+		return false
+	}
+	var g, t []string
+	for _, x := range cur.Groups {
+		g = append(g, x.GroupID)
+	}
+	for _, x := range cur.Templates {
+		t = append(t, x.TemplateID)
+	}
+	ct := slices.Clone(cur.Tags)
+	sort.Slice(ct, func(i, j int) bool { return ct[i].Tag < ct[j].Tag || ct[i].Tag == ct[j].Tag && ct[i].Value < ct[j].Value })
+	want := slices.Clone(tags)
+	sort.Slice(want, func(i, j int) bool {
+		return want[i].Tag < want[j].Tag || want[i].Tag == want[j].Tag && want[i].Value < want[j].Value
+	})
+	return sameSet(g, groups) && sameSet(t, templates) && slices.Equal(ct, want)
+}
+
+func sameSet(a, b []string) bool {
+	a, b = slices.Clone(a), slices.Clone(b)
+	sort.Strings(a)
+	sort.Strings(b)
+	return slices.Equal(a, b)
+}
+
+func idList(key string, ids []string) []map[string]string {
+	out := []map[string]string{}
+	for _, id := range ids {
+		out = append(out, map[string]string{key: id})
+	}
+	return out
+}
+
+// groupIDs returns the IDs of the named host groups, creating missing ones.
+func (c *Client) groupIDs(ctx context.Context, names []string) ([]string, error) {
+	if len(names) == 0 {
+		return nil, errors.New("zabbix: a host needs at least one host group")
+	}
+	var found []struct {
+		GroupID string `json:"groupid"`
+		Name    string `json:"name"`
+	}
+	if err := c.call(ctx, "hostgroup.get", map[string]any{"output": []string{"groupid", "name"}, "filter": map[string]any{"name": names}}, &found); err != nil {
+		return nil, err
+	}
+	byName := map[string]string{}
+	for _, g := range found {
+		byName[g.Name] = g.GroupID
+	}
+	var out []string
+	for _, n := range names {
+		id, ok := byName[n]
+		if !ok {
+			var created struct {
+				GroupIDs []string `json:"groupids"`
+			}
+			if err := c.call(ctx, "hostgroup.create", map[string]any{"name": n}, &created); err != nil {
+				return nil, err
+			}
+			id = created.GroupIDs[0]
+		}
+		out = append(out, id)
+	}
+	return out, nil
+}
+
+func (c *Client) templateIDs(ctx context.Context, names []string) ([]string, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+	var found []struct {
+		TemplateID string `json:"templateid"`
+		Host       string `json:"host"`
+	}
+	if err := c.call(ctx, "template.get", map[string]any{"output": []string{"templateid", "host"}, "filter": map[string]any{"host": names}}, &found); err != nil {
+		return nil, err
+	}
+	byName := map[string]string{}
+	for _, t := range found {
+		byName[t.Host] = t.TemplateID
+	}
+	var out, missing []string
+	for _, n := range names {
+		if id, ok := byName[n]; ok {
+			out = append(out, id)
+		} else {
+			missing = append(missing, n)
+		}
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("zabbix: no template %s", strings.Join(missing, ", "))
+	}
+	return out, nil
+}
+
+func (c *Client) proxyID(ctx context.Context, name string) (string, error) {
+	var found []struct {
+		ProxyID string `json:"proxyid"`
+	}
+	if err := c.call(ctx, "proxy.get", map[string]any{"output": []string{"proxyid"}, "filter": map[string]any{"name": name}}, &found); err != nil {
+		return "", err
+	}
+	if len(found) != 1 {
+		return "", fmt.Errorf("zabbix: no proxy %s", name)
+	}
+	return found[0].ProxyID, nil
+}

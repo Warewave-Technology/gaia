@@ -21,6 +21,7 @@ type Graph struct {
 	out     map[Key][]Ref
 	in      map[Key][]Ref
 	naming  *cel.Program
+	groups  []*cel.Program            // Platform.monitoring.hostGroups
 	rules   map[string][]*cel.Program // by AnsibleRole name, in spec order
 }
 
@@ -38,6 +39,25 @@ func (g *Graph) Hostname(o *Object, site string, seq int) (string, error) {
 		return "", fmt.Errorf("naming %s: %q is not a valid hostname (lowercase letters, digits and '-', at most 63)", g.naming, name)
 	}
 	return name, nil
+}
+
+// HostGroups evaluates the Platform's monitoring host groups for a server
+// of contract o at site, in order, without empty or repeated names.
+func (g *Graph) HostGroups(o *Object, site string, seq int) ([]string, error) {
+	vars := cel.NamingVars(o.Metadata.Name, o.Metadata.Labels, site, seq)
+	var out []string
+	seen := map[string]bool{}
+	for _, p := range g.groups {
+		name, err := p.EvalString(vars)
+		if err != nil {
+			return nil, fmt.Errorf("host group %s: %w", p, err)
+		}
+		if name = strings.TrimSpace(name); name != "" && !seen[name] {
+			seen[name] = true
+			out = append(out, name)
+		}
+	}
+	return out, nil
 }
 
 // Refs returns the references an object makes, in field order.
@@ -171,6 +191,17 @@ func (r *resolver) platform(o *Object) {
 	r.ref(o, "spec.engines.configuration.source", KindProvider, s.Engines.Configuration.Source, "git")
 	if s.RunArchive != "" {
 		r.ref(o, "spec.runArchive", KindProvider, s.RunArchive, "s3")
+	}
+	if m := s.Monitoring; m != nil {
+		r.ref(o, "spec.monitoring.provider", KindProvider, m.Provider, "zabbix")
+		for i, src := range m.HostGroups {
+			p, err := cel.Naming(src)
+			if err != nil {
+				r.fail(o, fmt.Sprintf("spec.monitoring.hostGroups[%d]", i), "%v", err)
+				continue
+			}
+			r.g.groups = append(r.g.groups, p)
+		}
 	}
 }
 

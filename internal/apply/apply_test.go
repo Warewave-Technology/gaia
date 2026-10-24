@@ -23,6 +23,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
+	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -110,6 +111,39 @@ func (f *fakeConfigurer) Run(_ context.Context, j ansible.Job, on func(ansible.E
 	return res, on(ansible.Event{Type: "playbook_on_stats", Data: []byte(`{}`)})
 }
 
+// fakeMonitor keeps hosts by UID.
+type fakeMonitor struct {
+	endpoint, token string
+	hosts           map[string]zabbix.Host
+	ids             map[string]string
+	deleted         []string
+}
+
+func (f *fakeMonitor) Register(_ context.Context, h zabbix.Host, hostID string) (zabbix.Result, error) {
+	id, ok := f.ids[h.UID]
+	switch {
+	case ok && hostID != "" && hostID != id:
+		return zabbix.Result{}, fmt.Errorf("host ID %s, want %s", hostID, id)
+	case !ok:
+		id = fmt.Sprintf("%d", 10000+len(f.ids))
+		f.ids[h.UID], f.hosts[h.UID] = id, h
+		return zabbix.Result{HostID: id, Action: "create"}, nil
+	case !reflect.DeepEqual(f.hosts[h.UID], h):
+		f.hosts[h.UID] = h
+		return zabbix.Result{HostID: id, Action: "update"}, nil
+	}
+	return zabbix.Result{HostID: id, Action: "same"}, nil
+}
+
+func (f *fakeMonitor) Delete(_ context.Context, uid, _ string) (bool, error) {
+	if _, ok := f.hosts[uid]; !ok {
+		return false, nil
+	}
+	delete(f.hosts, uid)
+	f.deleted = append(f.deleted, uid)
+	return true, nil
+}
+
 type env struct {
 	t         *testing.T
 	store     *store.Store
@@ -117,6 +151,7 @@ type env struct {
 	config    string // config repository
 	compute   *fakeCompute
 	configure *fakeConfigurer
+	monitor   *fakeMonitor
 	deps      Deps
 }
 
@@ -154,7 +189,8 @@ func setup(t *testing.T) *env {
 	cr.Write("ansible/baseline/linux.yml", "- hosts: all", "ansible/roles/gaia_linux_base/tasks/main.yml", "- ping: {}")
 	cr.Commit("config")
 
-	e := &env{t: t, store: s, ipam: hs.URL, config: cr.Dir, compute: &fakeCompute{}, configure: &fakeConfigurer{}}
+	e := &env{t: t, store: s, ipam: hs.URL, config: cr.Dir, compute: &fakeCompute{}, configure: &fakeConfigurer{},
+		monitor: &fakeMonitor{hosts: map[string]zabbix.Host{}, ids: map[string]string{}}}
 	e.deps = Deps{
 		Store: s,
 		Secrets: fakeSecrets{
@@ -162,13 +198,18 @@ func setup(t *testing.T) *env {
 			"bao://kv/platform/ssh":          {"public": "ssh-ed25519 AAAA gaia@lab\n", "private": "private-key"},
 			"bao://kv/platform/ipam":         {"token": "ipam-token"},
 			"bao://kv/platform/proxmox/lab":  {"token_id": "gaia@pve!poc", "token_secret": "pve", "insecure": "true"},
+			"bao://kv/platform/zabbix":       {"token": "zbx"},
 		},
 		Provision: e.compute.provision,
 		UsedVMIDs: func(context.Context, proxmox.Credentials) (map[int]bool, error) {
 			return map[int]bool{9300: true, 9400: true}, nil
 		},
 		Configure: e.configure,
-		Out:       io.Discard,
+		Monitor: func(endpoint, token string) Monitor {
+			e.monitor.endpoint, e.monitor.token = endpoint, token
+			return e.monitor
+		},
+		Out: io.Discard,
 	}
 	return e
 }
@@ -250,7 +291,7 @@ func TestApplyCreatesThenKeeps(t *testing.T) {
 	for _, x := range got {
 		ids[x.Provider+"/"+x.Kind] = x.ExternalID
 	}
-	want := map[string]string{"ipam/ip": "10.50.0.100", "pve-lab/vm": "9401", "pve-lab/smbios": SMBIOSUUID(uid)}
+	want := map[string]string{"ipam/ip": "10.50.0.100", "pve-lab/vm": "9401", "pve-lab/smbios": SMBIOSUUID(uid), "zabbix/host": "10000"}
 	if !reflect.DeepEqual(ids, want) {
 		t.Errorf("external IDs = %v, want %v", ids, want)
 	}
@@ -461,5 +502,37 @@ func TestSitePlay(t *testing.T) {
 	c.Roles[0].Params["password"] = plan.Masked
 	if _, err := sitePlay(c); err == nil || !strings.Contains(err.Error(), "no_log") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestApplyRegistersServersInMonitoring(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	hosts, _ := e.store.Q().LiveHosts(ctx, "poc-web")
+	uid := hosts[0].Uid
+	want := zabbix.Host{
+		UID: uid, Hostname: "labtpoc01", IP: "10.50.0.100",
+		Groups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab"}, Templates: []string{"ICMP Ping"},
+		Tags: []zabbix.Tag{{Tag: "gaia.contract", Value: "poc-web"}, {Tag: "app", Value: "poc"}, {Tag: "env", Value: "test"}, {Tag: "owner", Value: "team-platform"}},
+	}
+	if got := e.monitor.hosts[uid]; !reflect.DeepEqual(got, want) {
+		t.Errorf("host\n got %+v\nwant %+v", got, want)
+	}
+	if e.monitor.endpoint != "http://192.168.1.25:8080/api_jsonrpc.php" || e.monitor.token != "zbx" {
+		t.Errorf("monitor at %s with %s", e.monitor.endpoint, e.monitor.token)
+	}
+	id, _ := (&runner{d: e.deps}).externalID(ctx, uid, "zabbix", "host")
+	if id != e.monitor.ids[uid] {
+		t.Errorf("recorded host %q, want %q", id, e.monitor.ids[uid])
+	}
+	// The second apply finds the same host by its recorded ID.
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(e.monitor.ids) != 1 {
+		t.Errorf("%d hosts", len(e.monitor.ids))
 	}
 }

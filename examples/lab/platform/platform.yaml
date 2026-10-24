@@ -13,4 +13,13 @@ spec:
       source: config-repo
       sshKey: bao://kv/platform/ssh   # private, public
       limits: { concurrentRuns: 2, forks: 10, timeout: 1h }
+  monitoring:
+    provider: zabbix
+    hostGroups:                       # CEL, Policy naming'iyle aynı değişkenler
+      - "'Gaia'"
+      - "'Gaia/env/' + env"
+      - "'Gaia/app/' + app"
+      - "'Gaia/site/' + site.name"
+    templates:
+      linux: [ICMP Ping]              # lab'de Zabbix ajanı yok (Agent kind'ı PoC dışında)
   runArchive: run-records

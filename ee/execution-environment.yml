@@ -18,5 +18,10 @@ dependencies:
   galaxy: requirements.yml
   system: bindep.txt
 
+build_arg_defaults:
+  # ansible-core 2.21'de sabit sürümlü collection'lar galaxy'nin yanıt
+  # cache'inde "Missing expected 'results'" hatasına düşüyor.
+  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: "--no-cache --timeout 180"
+
 options:
   package_manager_path: /usr/bin/dnf

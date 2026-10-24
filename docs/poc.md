@@ -63,7 +63,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | **Tamam:** lab'de `gaia apply` ile uçtan uca VM açıldı |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | **Tamam:** baseline lab'de EE içinde çalıştı |
-| **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
+| **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | Sürüyor: Zabbix kaydı hazır |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
 
 ## M1'in iş kırılımı
@@ -157,6 +157,18 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **PoC kısıtları:** Config reposu yerel bir klondan okunur. Host key kontrolü kapalı (yeni sunucuların anahtarlarını Gaia henüz bilmiyor). `no_log` parametreli roller reddedilir. Olaylar tek tek yazılır.
    - **Lab sonucu:** `gaia apply` platform VM'inden çalıştı (podman ve lab ağı orada): provisioning, sonra baseline `labtpoc01`'de `ok=11`. İkinci apply'da `changed=0`. 72 olayın hiçbirinde anahtar yok; çalışma dizini ve container kalmadı.
    - **Başarı kriteri 3 karşılandı.**
+
+## M4'ün iş kırılımı
+
+1. **Zabbix provider'ı.** **Tamam** (`internal/provider/zabbix`, `internal/apply/monitor.go`).
+   - **Katalog:** `Platform.monitoring`: provider, host group'ları (CEL, naming ile aynı değişkenler; boş sonuç grup eklemez) ve şablonlar (Image OS'una ve rollerin `monitoring` adlarına göre). Şablonu tanımlı olmayan bir `monitoring` adı plan hatasıdır.
+   - **Plan:** Her sunucunun host group'ları planda; özet `monitoring +N =N (zabbix)` gösterir.
+   - **Aşama:** Provisioning doğrulandıktan sonra, konfigürasyondan önce (tasarımdaki sıra: `pulumi → register → ansible`).
+   - **Kayıt:** Host, kayıtlı `hostid` ile, yoksa `gaia.uid` tag'iyle bulunur; isimle eşleştirilmez. Kayıtlı ID başka bir UID'nin host'unu gösteriyorsa ona dokunulmaz. Eksik host group'ları oluşturulur; şablonlar var olmalı. Tag'ler: `gaia.uid`, `gaia.contract` ve label'lar. Site'ta `zabbixProxy` varsa host proxy üzerinden izlenir. Değişiklik yoksa `host.update` çağrılmaz. Host ID'si `host_external_ids`'e yazılır (`zabbix/host`).
+   - **API:** Zabbix 7.0 JSON-RPC, API token'ı Bearer header'ında.
+   - **Lab sonucu:** `labtpoc01` Zabbix'e dört host group, beş tag ve `ICMP Ping` şablonuyla kaydedildi. İkinci apply'da `same`. Zabbix VM'e ping atıyor (`icmpping=1`). Lab'de Zabbix ajanı yok; Agent kind'ı PoC dışında.
+   - **Lab düzeltmeleri:** Zabbix server container'ına `NET_RAW` (fping için). EE derlemesinde galaxy'nin yanıt cache'i kapatıldı: ansible-core 2.21'de sabit sürümlü collection'lar "Missing expected 'results'" hatasına düşüyor.
+   - **Başarı kriteri 4 karşılandı.**
 
 ## Kararlar
 

@@ -234,6 +234,14 @@ func TestProviderTypeMustFit(t *testing.T) {
 	wantError(t, lines, "Platform/platform", `spec.engines.provisioning.state: Provider "ipam" has type ipam, want postgres or s3`)
 }
 
+func TestMonitoring(t *testing.T) {
+	m := "    configuration: { tool: ansible, executor: ansible-runner, executionEnvironment: ee:1, source: repo }\n"
+	lines := resolveErrors(t, catalogWith(t, "platform.yaml", m,
+		m+"  monitoring:\n    provider: state\n    hostGroups: [\"'Gaia/' + nope\"]\n"))
+	wantError(t, lines, "Platform/platform", `spec.monitoring.provider: Provider "state" has type`)
+	wantError(t, lines, "Platform/platform", "spec.monitoring.hostGroups[0]: ")
+}
+
 func TestHypervisorSpecificFields(t *testing.T) {
 	lines := resolveErrors(t, catalogWith(t,
 		"sites.yaml", "{ provider: pve, nodes: [n1], vmids: { start: 9400, end: 9499 } }", "{ provider: pve, datacenter: DC }",
