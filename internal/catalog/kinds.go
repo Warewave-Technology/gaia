@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/url"
 	"sort"
 	"strconv"
@@ -28,6 +29,14 @@ type PlatformSpec struct {
 	// Contracts are the repositories with Server and Operation objects
 	// beside the platform repository itself (design 2, 7.6).
 	Contracts []ContractRepo `yaml:"contracts"`
+	// Notifications is how Gaia reaches people who subscribe themselves
+	// (design 7.6): email is an smtp provider.
+	Notifications *PlatformNotifications `yaml:"notifications"`
+}
+
+// PlatformNotifications names the channels of personal subscriptions.
+type PlatformNotifications struct {
+	Email string `yaml:"email"`
 }
 
 // ContractRepo is a git provider and the directories of it to read.
@@ -109,6 +118,7 @@ type ProviderSpec struct {
 	URL       string `yaml:"url"`  // git
 	Path      string `yaml:"path"` // git
 	Ref       string `yaml:"ref"`  // git
+	From      string `yaml:"from"` // smtp: the sender address
 }
 
 type ProviderAuth struct {
@@ -117,7 +127,10 @@ type ProviderAuth struct {
 }
 
 // ProviderTypes are the provider types Gaia knows.
-var ProviderTypes = []string{"activedirectory", "git", "ipam", "nexus", "openbao", "postgres", "proxmox", "s3", "vsphere", "warpgate", "zabbix"}
+var ProviderTypes = []string{"activedirectory", "git", "ipam", "msteams", "nexus", "openbao", "postgres", "proxmox", "s3", "slack", "smtp", "vsphere", "warpgate", "webhook", "zabbix"}
+
+// NotificationTypes are the provider types that carry notifications.
+var NotificationTypes = []string{"msteams", "slack", "smtp", "webhook"}
 
 func (s *ProviderSpec) validate() []string {
 	var out []string
@@ -128,6 +141,25 @@ func (s *ProviderSpec) validate() []string {
 	case "git":
 		if s.URL == "" {
 			out = append(out, "url: required for type git")
+		}
+	case "slack", "msteams":
+		// The incoming webhook's address is the secret: credentials.url.
+		if s.Credentials == "" {
+			out = append(out, "credentials: required for type "+s.Type+" (a bao:// secret with the incoming webhook's url)")
+		}
+		if s.Endpoint != "" {
+			out = append(out, "endpoint: not used for type "+s.Type+"; the webhook url is a secret (credentials)")
+		}
+	case "webhook":
+		if u, err := url.Parse(s.Endpoint); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			out = append(out, fmt.Sprintf("endpoint: %q: want https://host/path", s.Endpoint))
+		}
+	case "smtp":
+		if _, _, err := net.SplitHostPort(s.Endpoint); err != nil {
+			out = append(out, fmt.Sprintf("endpoint: %q: want host:port", s.Endpoint))
+		}
+		if _, err := mail.ParseAddress(s.From); err != nil {
+			out = append(out, fmt.Sprintf("from: %q: want an email address", s.From))
 		}
 	default:
 		if s.Endpoint == "" {
@@ -690,4 +722,69 @@ func isLoopbackHost(h string) bool {
 	}
 	ip := net.ParseIP(h)
 	return ip != nil && ip.IsLoopback()
+}
+
+// TeamSpec is a team: the unit that owns contracts (design 14.1). Teams
+// will be generated from AD by a TeamSource; until then they are written
+// by hand. Members come from sign-in, not from Git.
+type TeamSpec struct {
+	DisplayName    string         `yaml:"displayName"`
+	ADGroup        *ADGroup       `yaml:"adGroup"`
+	ApproversGroup *ADGroup       `yaml:"approversGroup"`
+	Secrets        *TeamSecrets   `yaml:"secrets"`
+	Notifications  []Subscription `yaml:"notifications"`
+}
+
+// ADGroup is a group in Active Directory.
+type ADGroup struct {
+	Provider string `yaml:"provider"`
+	DN       string `yaml:"dn" gaia:"required"`
+}
+
+// TeamSecrets bounds the secrets a team's contracts may refer to.
+type TeamSecrets struct {
+	Prefix string `yaml:"prefix" gaia:"required"`
+}
+
+// Subscription sends some events of a team's contracts to a channel.
+type Subscription struct {
+	Provider string   `yaml:"provider" gaia:"required"`
+	Triggers []string `yaml:"triggers" gaia:"required"`
+	// To are the addresses of an smtp channel.
+	To []string `yaml:"to"`
+}
+
+// Triggers are the events notifications are sent for (design 7.6).
+var Triggers = []string{
+	"change.pending",    // a change waits for approval
+	"change.approved",   // its approvals are complete
+	"change.rejected",   //
+	"change.applied",    //
+	"change.failed",     // its run failed or was cancelled
+	"drift.found",       // the real state differs from the applied one
+	"approval.expiring", // an approved change may not run in time
+}
+
+func (s *TeamSpec) validate() []string {
+	var out []string
+	if s.Secrets != nil && !strings.HasPrefix(s.Secrets.Prefix, "bao://") {
+		out = append(out, "secrets.prefix: must be a bao:// prefix")
+	}
+	for i, n := range s.Notifications {
+		at := fmt.Sprintf("notifications[%d]", i)
+		if len(n.Triggers) == 0 {
+			out = append(out, at+".triggers: at least one")
+		}
+		for _, t := range n.Triggers {
+			if !contains(Triggers, t) {
+				out = append(out, fmt.Sprintf("%s.triggers: %q is unknown (one of %s)", at, t, strings.Join(Triggers, ", ")))
+			}
+		}
+		for _, to := range n.To {
+			if _, err := mail.ParseAddress(to); err != nil {
+				out = append(out, fmt.Sprintf("%s.to: %q is not an email address", at, to))
+			}
+		}
+	}
+	return out
 }

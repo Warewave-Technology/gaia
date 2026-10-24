@@ -77,6 +77,14 @@ func (g *Graph) Policy() *Object {
 	return nil
 }
 
+// Team returns a team's spec, or nil when the catalog has no such Team.
+func (g *Graph) Team(name string) *TeamSpec {
+	if o, ok := g.Catalog.Get(KindTeam, name); ok {
+		return o.Spec.(*TeamSpec)
+	}
+	return nil
+}
+
 // AuthConfig is the catalog's AuthConfig, or nil when it has none.
 func (g *Graph) AuthConfig() *AuthConfigSpec {
 	if a := g.Catalog.List(KindAuthConfig); len(a) > 0 {
@@ -131,6 +139,9 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	}
 	for _, o := range cat.List(KindAnsibleRole) {
 		r.ansibleRole(o)
+	}
+	for _, o := range cat.List(KindTeam) {
+		r.team(o)
 	}
 	for _, o := range cat.List(KindServer) {
 		r.server(o)
@@ -234,6 +245,9 @@ func (r *resolver) platform(o *Object) {
 	if s.RunLogs != "" {
 		r.ref(o, "spec.runLogs", KindProvider, s.RunLogs, "s3")
 	}
+	if n := s.Notifications; n != nil && n.Email != "" {
+		r.ref(o, "spec.notifications.email", KindProvider, n.Email, "smtp")
+	}
 	if m := s.Monitoring; m != nil {
 		r.ref(o, "spec.monitoring.provider", KindProvider, m.Provider, "zabbix")
 		for i, src := range m.HostGroups {
@@ -243,6 +257,27 @@ func (r *resolver) platform(o *Object) {
 				continue
 			}
 			r.g.groups = append(r.g.groups, p)
+		}
+	}
+}
+
+func (r *resolver) team(o *Object) {
+	s := o.Spec.(*TeamSpec)
+	if s.ADGroup != nil && s.ADGroup.Provider != "" {
+		r.ref(o, "spec.adGroup.provider", KindProvider, s.ADGroup.Provider, "activedirectory")
+	}
+	for i, n := range s.Notifications {
+		field := fmt.Sprintf("spec.notifications[%d]", i)
+		p := r.ref(o, field+".provider", KindProvider, n.Provider, NotificationTypes...)
+		if p == nil {
+			continue
+		}
+		smtp := p.Spec.(*ProviderSpec).Type == "smtp"
+		switch {
+		case smtp && len(n.To) == 0:
+			r.fail(o, field+".to", "an smtp channel needs addresses")
+		case !smtp && len(n.To) > 0:
+			r.fail(o, field+".to", "only for smtp channels")
 		}
 	}
 }
@@ -351,6 +386,12 @@ func (r *resolver) server(o *Object) {
 		if _, ok := ps.Environments[env]; env != "" && len(ps.Environments) > 0 && !ok {
 			r.fail(o, "metadata.labels.env", "environment %q is not defined in Policy %q (%s)", env, pol.Metadata.Name, strings.Join(sortedKeys(ps.Environments), ", "))
 		}
+	}
+
+	// The owner is a Team once the catalog has teams; catalogs from before
+	// Team objects name owners freely.
+	if owner := labels["owner"]; owner != "" && len(r.g.Catalog.List(KindTeam)) > 0 {
+		r.ref(o, "metadata.labels.owner", KindTeam, owner)
 	}
 
 	img := r.ref(o, "spec.image", KindImage, s.Image)

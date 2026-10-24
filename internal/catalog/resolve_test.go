@@ -434,3 +434,110 @@ func TestRolesRulesAndValidValues(t *testing.T) {
 	lines = resolveErrors(t, catalogWith(t, "tomcat.yaml", "", mixed, "server.yaml", "", good))
 	wantError(t, lines, "Server/web", `AnsibleRole "web.tomcat" rule 0: no such overload`)
 }
+
+const notifyProviders = `apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: slack-web }
+spec: { type: slack, credentials: bao://kv/platform/slack-web }
+---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: mail }
+spec: { type: smtp, endpoint: "mail:25", from: gaia@example.com }
+`
+
+func TestTeamsAndNotifications(t *testing.T) {
+	team := `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec:
+  displayName: Web
+  notifications:
+    - { provider: slack-web, triggers: [change.pending, change.failed] }
+    - { provider: mail, triggers: [change.applied], to: [web@example.com] }
+`
+	fs := catalogWith(t, "notify.yaml", "", notifyProviders, "team.yaml", "", team,
+		"platform.yaml", "  secrets: bao\n", "  secrets: bao\n  notifications: { email: mail }\n")
+	cat, err := Load("c0ffee", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := Resolve(cat)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if tm := g.Team("team-web"); tm == nil || len(tm.Notifications) != 2 {
+		t.Fatalf("team = %+v", tm)
+	}
+	// Once there are teams, an owner must be one.
+	lines := resolveErrors(t, catalogWith(t, "notify.yaml", "", notifyProviders, "team.yaml", "", team, "server.yaml", "owner: team-web", "owner: team-nope"))
+	wantError(t, lines, "Server/web", `metadata.labels.owner: Team "team-nope" not found`)
+
+	bad := `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec:
+  notifications:
+    - { provider: mail, triggers: [change.applied] }
+    - { provider: slack-web, triggers: [change.done], to: [a@example.com] }
+    - { provider: bao, triggers: [change.failed] }
+`
+	lines = loadOrResolveErrors(t, catalogWith(t, "notify.yaml", "", notifyProviders, "team.yaml", "", bad))
+	wantError(t, lines, "Team/team-web", `"change.done" is unknown`)
+}
+
+func TestNotificationChannelRules(t *testing.T) {
+	team := `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec:
+  notifications:
+    - { provider: mail, triggers: [change.applied] }
+    - { provider: slack-web, triggers: [change.failed], to: [a@example.com] }
+    - { provider: bao, triggers: [change.failed] }
+`
+	lines := resolveErrors(t, catalogWith(t, "notify.yaml", "", notifyProviders, "team.yaml", "", team))
+	wantError(t, lines, "Team/team-web", "spec.notifications[0].to: an smtp channel needs addresses")
+	wantError(t, lines, "Team/team-web", "spec.notifications[1].to: only for smtp channels")
+	wantError(t, lines, "Team/team-web", `spec.notifications[2].provider: Provider "bao" has type openbao`)
+
+	providers := `apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: s }
+spec: { type: slack, endpoint: https://hooks.slack.com/x }
+---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: m }
+spec: { type: smtp, endpoint: mail }
+---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: w }
+spec: { type: webhook, endpoint: "ftp://x" }
+`
+	lines = loadOrResolveErrors(t, catalogWith(t, "notify.yaml", "", providers))
+	wantError(t, lines, "Provider/s", "credentials: required for type slack")
+	wantError(t, lines, "Provider/s", "endpoint: not used for type slack")
+	wantError(t, lines, "Provider/m", `endpoint: "mail": want host:port`)
+	wantError(t, lines, "Provider/m", `from: "": want an email address`)
+	wantError(t, lines, "Provider/w", `endpoint: "ftp://x"`)
+}
+
+// loadOrResolveErrors returns the errors of whichever step fails first.
+func loadOrResolveErrors(t *testing.T, fs []File) []string {
+	t.Helper()
+	cat, err := Load("c0ffee", fs)
+	if err == nil {
+		_, err = Resolve(cat)
+	}
+	var errs Errors
+	if !errors.As(err, &errs) {
+		t.Fatalf("want errors, got %v", err)
+	}
+	var out []string
+	for _, e := range errs {
+		out = append(out, e.Error())
+	}
+	return out
+}

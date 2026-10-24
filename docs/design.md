@@ -890,6 +890,31 @@ pending ──gereksinimler──► approved ──pencere──► running ─
 - **Kanallar:** Slack, Microsoft Teams, e-posta (SMTP) ve webhook. Her biri bir Provider'dır (`slack`, `msteams`, `smtp`, `webhook`).
 - **Abonelik:** Team başına (`Team`'e patch ile eklenen `notifications`) ve kişi başına (Gaia profili). Onay bekleyen bir Change, onaylayabilecek takımların kanallarına gider.
 
+```yaml
+kind: Provider
+metadata: { name: slack-portal }
+spec: { type: slack, credentials: bao://kv/platform/notify/slack-portal }   # url: gelen webhook adresi
+---
+kind: Provider
+metadata: { name: mail }
+spec: { type: smtp, endpoint: "smtp.corp.local:587", from: gaia@corp.local, credentials: bao://kv/platform/notify/smtp }
+---
+kind: Team
+metadata: { name: team-portal }
+spec:
+  notifications:
+    - { provider: slack-portal, triggers: [change.pending, change.failed] }
+    - { provider: mail, triggers: [change.applied], to: [portal-ops@corp.local] }
+```
+
+- **Kanal tipleri:**
+  - `slack` ve `msteams`: gelen webhook'un adresi bir sırdır (`credentials` içinde `url`)
+  - `webhook`: `endpoint`'e JSON gönderir; `credentials` içinde `secret` varsa gövde `X-Gaia-Signature-256` ile imzalanır
+  - `smtp`: `endpoint` (host:port) ve `from`
+- **Tetikleyiciler:** `change.pending`, `change.approved`, `change.rejected`, `change.applied`, `change.failed`, `drift.found`, `approval.expiring`.
+- **Kişisel abonelikler** `Platform.spec.notifications.email`'deki smtp kanalından gider.
+- **Team objesi:** TeamSource gelene kadar (Faz 7) elle yazılır. Katalogda Team varsa kontratın `owner`'ı bir Team olmak zorundadır; Team'i olmayan eski kataloglar yüklenmeye devam eder.
+
 ## 8. Keşif ve Adopt (Mevcut Sunucuları İçeri Alma)
 
 ### 8.1 Akış
@@ -1645,3 +1670,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Başarısız Change aynı plan ve commit'lerle kendiliğinden tekrar açılmaz; yeni commit veya `retry` gerekir |
 | 2026-10-25 | Onay ve red plan hash'iyle gönderilir, step-up passkey veya TOTP ile; red gerekçe ister; çoklu owner'da owner onayını platform-admin de verebilir |
 | 2026-10-25 | Gaia'nın commit'leri `gaia` sistem hesabının anahtarıyla imzalanır, isteyen `Gaia-Requested-By` ile commit sahibi sayılır; Gaia yerel çalışma kopyasına yazmaz |
+| 2026-10-25 | Team objesi TeamSource'tan önce elle yazılabilir; bildirim kanalları Provider (`slack`, `msteams`, `smtp`, `webhook`), abonelikler `Team.spec.notifications` |
