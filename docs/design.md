@@ -834,12 +834,13 @@ Model Argo CD'den esinlenir. Git istenen durumun geçmişidir; değişikliğin i
 | Kilit | Kontratta çalışan başka bir run yok |
 
 **Onay.**
-- Onay Gaia'da verilir: arayüzden ya da `gaia approve` ile. Onay anında passkey veya MFA yeniden istenir (step-up).
+- Onay Gaia'da verilir: arayüzden ya da `gaia change approve` ile (komut, Change'in onay sayfasını tarayıcıda açar). Onay anında passkey veya MFA yeniden istenir (step-up, 10 dakika geçerli). Terminal token'ı tek başına onay veremez.
+- Onay ve red, Change'in plan hash'iyle gönderilir: onaycının gördüğü plan artık Change'in planı değilse karar kabul edilmez. Kararlar silinmez ve değiştirilmez.
 - Onaycıların Git hesabı olması gerekmez. Kimlikleri AD'den gelir (Team'in `approversGroup`'u, Policy'deki `gaiaRoles`).
 - Onay, Change'in o anki **plan hash'ine** bağlıdır. Yeni bir commit kontratın planını değiştirmezse onay geçerli kalır; değiştirirse düşer.
 - **Kendi kendini onaylamak yok.** Commit sahibi kendi Change'ini onaylayamaz. Erişim veren bir değişikliği, o erişimi alacak takımın üyesi onaylayamaz (bkz. 14.3).
 - **Red:** Onaycı gerekçesiyle reddeder. Reddedilen Change, kontratı değiştiren yeni bir commit gelene kadar bekler.
-- **Gruplu onay:** Birden fazla owner'ı etkileyen bir commit'in Change'lerini (ör. bir katalog değişikliği) `platform-admin` tek seferde onaylayabilir.
+- **Gruplu onay:** Birden fazla owner'ı etkileyen bir commit'in Change'lerini (ör. bir katalog değişikliği) `platform-admin` tek seferde onaylayabilir. Bir Change'in getirdiği commit'lerden biri başka bir owner'ın açık Change'inde de varsa, owner onayını `platform-admin` de verebilir. Aynı commit'in Change'leri `?commit=` ile listelenir, toplu onay her Change için ayrı karar olarak kaydedilir.
 
 **Uygulama.** Bütün gereksinimler sağlanınca Gaia uygular; ayrıca bir "uygula" adımı yoktur. Onay gerektirmeyen ortamlarda bu, commit gelir gelmez olur (Argo CD'deki auto-sync).
 - Uygulamadan hemen önce plan yeniden alınır. Hash onaylananla aynı değilse (arada gerçek durum değiştiyse) uygulama durur ve Change yeniden onaya düşer.
@@ -858,7 +859,7 @@ pending ──gereksinimler──► approved ──pencere──► running ─
 
 **Plan hash'i.** Planın ne yaptığını tanımlar, nereden geldiğini değil: commit etiketi hash'e girmez. Kontratın planını değiştirmeyen bir commit Change'i ve onaylarını korur; Change yeni commit'e kayar.
 
-**Değerlendirme.** Her repo yenilemesinde, bir run bitince ve bir onay geldiğinde yapılır. Aynı anda tek replika değerlendirir (advisory lock); değerlendirme tekrar tekrar çalıştırılabilir. Bir run, tamamlandığında kontratın "uygulanan" durumunu (görüntü ve hemen sonra alınan plan hash'i) yazar.
+**Değerlendirme.** Her repo yenilemesinde, bir run bitince ve bir onay geldiğinde yapılır. Run'ı worker'a hiç ulaşmadan biten (kuyruktayken iptal edilen) ya da worker'ı ölen bir Change, sonraki değerlendirmede run'ın sonucuna göre kapatılır. Aynı anda tek replika değerlendirir (advisory lock); değerlendirme tekrar tekrar çalıştırılabilir. Bir run, tamamlandığında kontratın "uygulanan" durumunu (görüntü ve hemen sonra alınan plan hash'i) yazar.
 
 **Kontrat durumu.** Argo CD'deki gibi iki eksen:
 - **Sync:** `Synced` (son commit uygulandı), `OutOfSync` (açık bir Change var), `Drifted` (gerçek durum sapmış).
@@ -1633,3 +1634,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | İstenen durum bir anlık görüntü: platform ve kontrat repolarının commit'leri; config reposunun commit'i run için sabitlenir ama plan kimliğine girmez. Repolar bare ayna olarak tutulur; ssh'ta `known_hosts` zorunlu |
 | 2026-10-25 | Plan hash'i commit etiketini içermez; plana dokunmayan commit Change'i ve onaylarını korur |
 | 2026-10-25 | Başarısız Change aynı plan ve commit'lerle kendiliğinden tekrar açılmaz; yeni commit veya `retry` gerekir |
+| 2026-10-25 | Onay ve red plan hash'iyle gönderilir, step-up passkey veya TOTP ile; red gerekçe ister; çoklu owner'da owner onayını platform-admin de verebilir |

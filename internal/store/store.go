@@ -184,6 +184,17 @@ func (s *Store) WithLock(ctx context.Context, name string, fn func(context.Conte
 	})
 }
 
+// WaitLock runs fn holding the advisory lock name, waiting for it when
+// another replica holds it.
+func (s *Store) WaitLock(ctx context.Context, name string, fn func(context.Context) error) error {
+	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `select pg_advisory_xact_lock(hashtextextended($1, 0))`, name); err != nil {
+			return err
+		}
+		return fn(ctx)
+	})
+}
+
 // NewUID returns a new host UID: 16 lowercase base32 characters.
 func NewUID() string { return newID(10) }
 

@@ -31,6 +31,7 @@ select * from changes where id = $1;
 select * from changes
 where (sqlc.arg(contract)::text = '' or contract = sqlc.arg(contract)::text)
   and (not sqlc.arg(open_only)::boolean or status in ('pending', 'approved', 'running'))
+  and (sqlc.arg(commit_sha)::text = '' or commits @> jsonb_build_array(jsonb_build_object('commit', sqlc.arg(commit_sha)::text)))
 order by created_at desc, id desc
 limit sqlc.arg(max_rows);
 
@@ -64,3 +65,6 @@ select * from approvals where change_id = $1 order by id;
 -- Enabled people in any of the teams.
 select distinct u.id, u.username from users u join team_memberships t on t.user_id = u.id
 where t.team = any (sqlc.arg(teams)::text[]) and u.enabled order by u.username;
+
+-- name: OpenChanges :many
+select * from changes where status in ('pending', 'approved', 'running') order by contract;

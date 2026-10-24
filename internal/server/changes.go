@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -57,7 +59,7 @@ func (s *Server) listChanges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.store.Q().Changes(r.Context(), db.ChangesParams{
-		Contract: r.URL.Query().Get("contract"), OpenOnly: r.URL.Query().Get("open") == "true", MaxRows: int32(limit), //nolint:gosec // bounded above
+		Contract: r.URL.Query().Get("contract"), OpenOnly: r.URL.Query().Get("open") == "true", CommitSha: r.URL.Query().Get("commit"), MaxRows: int32(limit), //nolint:gosec // bounded above
 	})
 	if err != nil {
 		s.fail(w, err)
@@ -134,4 +136,126 @@ func (s *Server) retryChange(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusAccepted, map[string]string{"change": id})
 	}
+}
+
+// strong asks for a recent passkey or MFA, when sign-in is on.
+func (s *Server) strong(h http.HandlerFunc) http.HandlerFunc {
+	if s.cfg.Auth == nil {
+		return h
+	}
+	return s.cfg.Auth.Strong(h)
+}
+
+// decideChange approves or rejects a change for the plan the person saw
+// (design 7.6). Only who the approval gate lists may decide.
+func (s *Server) decideChange(approve bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		p := auth.From(r.Context())
+		if s.cfg.Changes == nil || p == nil {
+			writeJSON(w, http.StatusServiceUnavailable, Problem{Error: "this server does not take decisions"})
+			return
+		}
+		var b struct {
+			PlanHash string `json:"planHash"`
+			Comment  string `json:"comment"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&b); err != nil || b.PlanHash == "" {
+			badRequest(w, errors.New("send the planHash you decide on"))
+			return
+		}
+		if !approve && strings.TrimSpace(b.Comment) == "" {
+			badRequest(w, errors.New("say why you reject"))
+			return
+		}
+		c, err := s.store.Q().Change(r.Context(), r.PathValue("id"))
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		if !s.full(r, []string{c.Contract}) {
+			forbidden(w)
+			return
+		}
+		err = s.cfg.Changes.Decide(r.Context(), change.Decision{
+			Change: c.ID, PlanHash: b.PlanHash, UserID: p.UserID, Username: p.Username, Approve: approve, Comment: strings.TrimSpace(b.Comment),
+		})
+		switch {
+		case errors.Is(err, change.ErrNotApprover):
+			writeJSON(w, http.StatusForbidden, Problem{Error: err.Error()})
+		case errors.Is(err, change.ErrClosed), errors.Is(err, change.ErrStalePlan), errors.Is(err, change.ErrDecided), errors.Is(err, change.ErrNoApproval):
+			writeJSON(w, http.StatusConflict, Problem{Error: err.Error()})
+		case err != nil:
+			s.fail(w, err)
+		default:
+			c, err := s.store.Q().Change(r.Context(), c.ID)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, changeJSON(c))
+		}
+	}
+}
+
+// approveChanges approves several changes at once: those one commit
+// brings to several owners, which a platform-admin may approve together
+// (design 7.6). Each is decided on its own; the answer says how each went.
+func (s *Server) approveChanges(w http.ResponseWriter, r *http.Request) {
+	p := auth.From(r.Context())
+	if s.cfg.Changes == nil || p == nil {
+		writeJSON(w, http.StatusServiceUnavailable, Problem{Error: "this server does not take decisions"})
+		return
+	}
+	var b struct {
+		Changes []struct {
+			ID       string `json:"id"`
+			PlanHash string `json:"planHash"`
+		} `json:"changes"`
+		Comment string `json:"comment"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&b); err != nil || len(b.Changes) == 0 || len(b.Changes) > 100 {
+		badRequest(w, errors.New("send 1 to 100 changes, each with the planHash you approve"))
+		return
+	}
+	type result struct {
+		ID     string `json:"id"`
+		Status string `json:"status,omitempty"`
+		Error  string `json:"error,omitempty"`
+	}
+	out := make([]result, 0, len(b.Changes))
+	for _, ch := range b.Changes {
+		res := result{ID: ch.ID}
+		c, err := s.store.Q().Change(r.Context(), ch.ID)
+		switch {
+		case err != nil:
+			res.Error = "no such change"
+		case !s.full(r, []string{c.Contract}):
+			res.Error = "you may see this contract's name only"
+		default:
+			err = s.cfg.Changes.Decide(r.Context(), change.Decision{
+				Change: c.ID, PlanHash: ch.PlanHash, UserID: p.UserID, Username: p.Username, Approve: true, Comment: strings.TrimSpace(b.Comment),
+			})
+			if err != nil {
+				if !decisionError(err) {
+					s.fail(w, err)
+					return
+				}
+				res.Error = err.Error()
+			} else if c, err = s.store.Q().Change(r.Context(), c.ID); err == nil {
+				res.Status = c.Status
+			}
+		}
+		out = append(out, res)
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// decisionError reports whether err is a refused decision, not a failure.
+func decisionError(err error) bool {
+	for _, e := range []error{change.ErrNotApprover, change.ErrClosed, change.ErrStalePlan, change.ErrDecided, change.ErrNoApproval} {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+	return false
 }

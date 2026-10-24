@@ -18,7 +18,7 @@ func (r *runner) writeRecord(ctx context.Context, p *plan.Plan, status, msg stri
 		contracts = append(contracts, c.Name)
 	}
 	rec := runrecord.Record{
-		Run: r.run, RequestedBy: r.d.RequestedBy, ApprovedBy: []string{},
+		Run: r.run, RequestedBy: r.d.RequestedBy, ApprovedBy: append([]string{}, r.d.ApprovedBy...),
 		Source: r.d.Source, CatalogCommit: p.Commit,
 		Contracts: contracts, PlanHash: p.Hash, ExecutedAs: r.executedAs,
 		StartedAt: r.started, FinishedAt: time.Now().UTC(), Result: status, Error: msg,

@@ -351,6 +351,30 @@ func (a *Service) stepUpFinish(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// stepUpTOTP confirms the current browser session with a TOTP code, for
+// local accounts that sign in with a password and MFA.
+func (a *Service) stepUpTOTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	p := From(ctx)
+	if p.SessionKind != KindUI {
+		problem(w, http.StatusForbidden, "confirm in the browser")
+		return
+	}
+	var b struct{ Code string }
+	if !decode(w, r, &b) {
+		return
+	}
+	if err := a.checkTOTP(ctx, p.UserID, b.Code, false); err != nil {
+		problem(w, http.StatusUnauthorized, "the code is not valid")
+		return
+	}
+	if err := a.store.Q().SetStrongAuth(ctx, p.SessionID); err != nil {
+		a.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // cliLogout ends the CLI session a refresh token belongs to, with its
 // access tokens.
 func (a *Service) cliLogout(w http.ResponseWriter, r *http.Request) {

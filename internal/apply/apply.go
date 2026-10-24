@@ -50,8 +50,10 @@ type Deps struct {
 	// Who asked for the run and where its contracts came from, for the
 	// run record.
 	RequestedBy string
-	Source      runrecord.Source
-	Out         io.Writer
+	// ApprovedBy are who approved the change the run applies.
+	ApprovedBy []string
+	Source     runrecord.Source
+	Out        io.Writer
 }
 
 // User is the account cloud-init creates on every server for Gaia.

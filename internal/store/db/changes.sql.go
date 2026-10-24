@@ -74,18 +74,25 @@ const changes = `-- name: Changes :many
 select id, contract, source, snapshot, label, plan_hash, plan, status, requested_by, commits, run_id, created_at, updated_at, finished_at from changes
 where ($1::text = '' or contract = $1::text)
   and (not $2::boolean or status in ('pending', 'approved', 'running'))
+  and ($3::text = '' or commits @> jsonb_build_array(jsonb_build_object('commit', $3::text)))
 order by created_at desc, id desc
-limit $3
+limit $4
 `
 
 type ChangesParams struct {
-	Contract string
-	OpenOnly bool
-	MaxRows  int32
+	Contract  string
+	OpenOnly  bool
+	CommitSha string
+	MaxRows   int32
 }
 
 func (q *Queries) Changes(ctx context.Context, arg ChangesParams) ([]Change, error) {
-	rows, err := q.db.Query(ctx, changes, arg.Contract, arg.OpenOnly, arg.MaxRows)
+	rows, err := q.db.Query(ctx, changes,
+		arg.Contract,
+		arg.OpenOnly,
+		arg.CommitSha,
+		arg.MaxRows,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +317,45 @@ func (q *Queries) OpenChange(ctx context.Context, contract string) (Change, erro
 		&i.FinishedAt,
 	)
 	return i, err
+}
+
+const openChanges = `-- name: OpenChanges :many
+select id, contract, source, snapshot, label, plan_hash, plan, status, requested_by, commits, run_id, created_at, updated_at, finished_at from changes where status in ('pending', 'approved', 'running') order by contract
+`
+
+func (q *Queries) OpenChanges(ctx context.Context) ([]Change, error) {
+	rows, err := q.db.Query(ctx, openChanges)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Change
+	for rows.Next() {
+		var i Change
+		if err := rows.Scan(
+			&i.ID,
+			&i.Contract,
+			&i.Source,
+			&i.Snapshot,
+			&i.Label,
+			&i.PlanHash,
+			&i.Plan,
+			&i.Status,
+			&i.RequestedBy,
+			&i.Commits,
+			&i.RunID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setApplied = `-- name: SetApplied :exec

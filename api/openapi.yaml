@@ -135,6 +135,7 @@ paths:
       parameters:
         - { name: contract, in: query, schema: { type: string } }
         - { name: open, in: query, schema: { type: boolean }, description: Only pending, approved and running ones }
+        - { name: commit, in: query, schema: { type: string }, description: Only changes that bring this commit (one commit's changes across contracts) }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       responses:
         "200": { description: Changes, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Change" } } } } }
@@ -155,6 +156,48 @@ paths:
       responses:
         "202": { description: The new change, content: { application/json: { schema: { type: object, properties: { change: { type: string } } } } } }
         "409": { description: Not retryable, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/changes/approve:
+    post:
+      summary: Approve several changes at once, e.g. one commit's changes across owners (platform-admin)
+      description: Each change is decided on its own, as by POST /api/v1/changes/{id}/approve; the answer says how each went.
+      operationId: approveChanges
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [changes]
+              properties:
+                changes: { type: array, maxItems: 100, items: { type: object, required: [id, planHash], properties: { id: { type: string }, planHash: { type: string } } } }
+                comment: { type: string }
+      responses:
+        "200":
+          description: One result per change
+          content: { application/json: { schema: { type: array, items: { type: object, properties: { id: { type: string }, status: { type: string }, error: { type: string } } } } } }
+        "403": { description: "Confirm with a passkey first (stepUp: true)", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/changes/{id}/approve:
+    post:
+      summary: Approve a change for the plan you saw (design 7.6); needs a recent passkey or MFA
+      description: Only the people the approval gate lists may decide, and never someone who signed the change's commits.
+      operationId: approveChange
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { $ref: "#/components/requestBodies/Decision" }
+      responses:
+        "200": { description: The change after the decision, content: { application/json: { schema: { $ref: "#/components/schemas/Change" } } } }
+        "400": { description: No plan hash, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "403": { description: "Not an approver, or confirm with a passkey first (stepUp: true)", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "409": { description: "Closed, decided already, needs no approval, or the plan is not the one you saw", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/changes/{id}/reject:
+    post:
+      summary: Reject a change, with a reason; it closes the change
+      operationId: rejectChange
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { $ref: "#/components/requestBodies/Decision" }
+      responses:
+        "200": { description: The rejected change, content: { application/json: { schema: { $ref: "#/components/schemas/Change" } } } }
+        "400": { description: No plan hash or no reason, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "403": { description: Not an approver, or confirm first, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "409": { description: Closed, decided already or another plan, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/auth/config:
     get:
       summary: How to sign in (public)
@@ -356,6 +399,14 @@ paths:
       responses:
         "204": { description: Confirmed }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/step-up/totp:
+    post:
+      summary: Confirm the browser session with a TOTP code, for accounts without a passkey
+      operationId: stepUpTOTP
+      requestBody: { content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string } } } } } }
+      responses:
+        "204": { description: Confirmed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/auth/logout:
     post:
       summary: End the current session
@@ -480,6 +531,15 @@ components:
     session: { type: apiKey, in: cookie, name: gaia_session }
     bearer: { type: http, scheme: bearer, description: A CLI access token }
   requestBodies:
+    Decision:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [planHash]
+            properties:
+              planHash: { type: string, description: The plan you decide on }
+              comment: { type: string, description: Required to reject }
     Ceremony:
       content:
         application/json:
