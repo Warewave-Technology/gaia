@@ -165,6 +165,16 @@ func TestPlanHashIsStableAndFollowsInput(t *testing.T) {
 	if c.Hash == a.Hash {
 		t.Error("two replicas hash like one")
 	}
+	// Another commit with the same content plans the same.
+	cat, err := catalog.Load("another-commit", labFiles(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, _ := catalog.Resolve(cat)
+	d, err := Build(context.Background(), g, nil, NoState{})
+	if err != nil || d.Hash != a.Hash || d.Commit != "another-commit" {
+		t.Errorf("another commit: %s (%s), %v", d.Hash, d.Commit, err)
+	}
 }
 
 func TestPlanErrors(t *testing.T) {

@@ -19,9 +19,11 @@ type CatalogSource struct {
 	Repos    *repo.Mirrors
 	Platform repo.Rev // Commit is ignored: the ref's head is followed
 	Log      *slog.Logger
-	// OnChange is called after a refresh found a new snapshot.
-	OnChange func(context.Context, repo.Snapshot, *catalog.Graph)
+	// After is called after every refresh that loaded: the change engine
+	// evaluates there, also when only the database changed.
+	After func(context.Context, repo.Snapshot, *catalog.Graph)
 
+	kick chan struct{}
 	mu   sync.RWMutex
 	snap repo.Snapshot
 	g    *catalog.Graph
@@ -38,15 +40,28 @@ func (c *CatalogSource) Load(ctx context.Context) error {
 	}
 	c.mu.Lock()
 	c.err = err
-	changed := err == nil && snap.Label() != c.snap.Label()
 	if err == nil {
 		c.snap, c.g = snap, g
 	}
 	c.mu.Unlock()
-	if changed && c.OnChange != nil {
-		c.OnChange(ctx, snap, g)
+	if err == nil && c.After != nil {
+		c.After(ctx, snap, g)
 	}
 	return err
+}
+
+// Kick asks for a refresh now: a webhook, an approval, a finished run.
+func (c *CatalogSource) Kick() {
+	c.mu.Lock()
+	if c.kick == nil {
+		c.kick = make(chan struct{}, 1)
+	}
+	k := c.kick
+	c.mu.Unlock()
+	select {
+	case k <- struct{}{}:
+	default:
+	}
 }
 
 // Graph is the last catalog that loaded, or nil.
@@ -64,7 +79,13 @@ func (c *CatalogSource) Snapshot() (repo.Snapshot, error) {
 }
 
 // Run refreshes every interval, or at once when kicked, until ctx ends.
-func (c *CatalogSource) Run(ctx context.Context, every time.Duration, kick <-chan struct{}) {
+func (c *CatalogSource) Run(ctx context.Context, every time.Duration) {
+	c.mu.Lock()
+	if c.kick == nil {
+		c.kick = make(chan struct{}, 1)
+	}
+	kick := c.kick
+	c.mu.Unlock()
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {

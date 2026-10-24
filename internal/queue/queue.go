@@ -36,6 +36,7 @@ type ApplyArgs struct {
 	Contract    string        `json:"contract"`
 	PlanHash    string        `json:"plan_hash"`
 	RequestedBy string        `json:"requested_by,omitempty"`
+	ChangeID    string        `json:"change_id,omitempty"`
 }
 
 func (ApplyArgs) Kind() string { return "gaia.apply" }
@@ -87,6 +88,38 @@ func Enqueue(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *ca
 	return ids, nil
 }
 
+// ErrPlanChanged: the contract's plan is not the one asked for any more.
+var ErrPlanChanged = errors.New("the plan changed")
+
+// EnqueueChange queues the run of a change: one contract whose plan must
+// still have the change's hash. The run and the change's link to it are
+// written in one transaction.
+func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *catalog.Graph, snap repo.Snapshot, contract, planHash, changeID, requestedBy string) (string, error) {
+	p, err := plan.Build(ctx, g, []string{contract}, apply.StoreState{S: s})
+	if err != nil {
+		return "", err
+	}
+	if p.Hash != planHash {
+		return "", ErrPlanChanged
+	}
+	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: planHash, RequestedBy: requestedBy, ChangeID: changeID}
+	err = s.TxFunc(ctx, func(tx pgx.Tx) error {
+		q := db.New(tx)
+		if err := q.QueueRun(ctx, db.QueueRunParams{ID: a.Run, Contracts: []string{contract}, Commit: snap.Label(), PlanHash: planHash, RequestedBy: text(requestedBy)}); err != nil {
+			return err
+		}
+		res, err := c.InsertTx(ctx, tx, a, nil)
+		if err != nil {
+			return err
+		}
+		if err := q.SetRunJob(ctx, db.SetRunJobParams{ID: a.Run, JobID: pgtype.Int8{Int64: res.Job.ID, Valid: true}}); err != nil {
+			return err
+		}
+		return q.SetChangeRun(ctx, db.SetChangeRunParams{ID: changeID, RunID: pgtype.Text{String: a.Run, Valid: true}})
+	})
+	return a.Run, err
+}
+
 // ErrFinished: the run has already ended.
 var ErrFinished = errors.New("run has already finished")
 
@@ -128,6 +161,10 @@ type ApplyWorker struct {
 	MaxDuration time.Duration
 	// BusyWait is how long a run waits when its contract is busy.
 	BusyWait time.Duration
+	// Finished is told about every run that ends, with the graph it ran
+	// with (nil when it could not load); the change engine closes the run's
+	// change.
+	Finished func(context.Context, ApplyArgs, *catalog.Graph) error
 }
 
 // Timeout is the longest a run may take.
@@ -151,30 +188,36 @@ func (w *ApplyWorker) Work(ctx context.Context, job *river.Job[ApplyArgs]) error
 		}
 		return river.JobSnooze(wait)
 	}
-	if err := w.work(ctx, a); err != nil {
+	g, err := w.work(ctx, a)
+	if w.Finished != nil {
+		if ferr := w.Finished(context.WithoutCancel(ctx), a, g); ferr != nil {
+			err = errors.Join(err, fmt.Errorf("closing the change: %w", ferr))
+		}
+	}
+	if err != nil {
 		// The run has its error; retrying would apply a stale plan.
 		return river.JobCancel(err)
 	}
 	return nil
 }
 
-func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) error {
+func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, error) {
 	g, err := w.Repos.Graph(ctx, a.Snapshot)
 	if err != nil {
-		return w.fail(ctx, a, err)
+		return nil, w.fail(ctx, a, err)
 	}
 	// The plan is taken again: the state may have changed since the run was
 	// queued, and then the queued plan is not the one to apply.
 	p, err := plan.Build(ctx, g, []string{a.Contract}, apply.StoreState{S: w.Store})
 	if err != nil {
-		return w.fail(ctx, a, err)
+		return g, w.fail(ctx, a, err)
 	}
 	if p.Hash != a.PlanHash {
-		return w.fail(ctx, a, fmt.Errorf("the plan changed since the run was queued (%s, now %s)", short(a.PlanHash), short(p.Hash)))
+		return g, w.fail(ctx, a, fmt.Errorf("the plan changed since the run was queued (%s, now %s)", short(a.PlanHash), short(p.Hash)))
 	}
 	deps, err := w.Systems(g)
 	if err != nil {
-		return w.fail(ctx, a, err)
+		return g, w.fail(ctx, a, err)
 	}
 	pr := a.Snapshot.Platform
 	signed, _ := gitsrc.Signed(w.Repos.Path(pr.Repo()), pr.Commit)
@@ -182,12 +225,12 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) error {
 	deps.Source = runrecord.Source{Repo: pr.URL, Commit: pr.Commit, Signed: signed}
 	if c := a.Snapshot.Config; c != nil {
 		if err := w.Repos.Ensure(ctx, c.Repo(), c.Commit); err != nil {
-			return w.fail(ctx, a, err)
+			return g, w.fail(ctx, a, err)
 		}
 		deps.Config = &apply.ConfigRepo{Path: w.Repos.Path(c.Repo()), Commit: c.Commit, Paths: c.Paths}
 	}
 	_, err = apply.Run(ctx, g, p, deps)
-	return err
+	return g, err
 }
 
 // fail ends a queued run that could not start.

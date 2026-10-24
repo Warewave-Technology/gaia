@@ -20,9 +20,12 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/server"
+	"github.com/Warewave-Technology/gaia/internal/signature"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -70,6 +73,7 @@ func newServerCommand() *cobra.Command {
 			bao := &baoAccess{log: cfg.Log}
 			cfg.Repos = &repo.Mirrors{Dir: dataDir, Secrets: bao}
 			var cat *server.CatalogSource
+			var engine *change.Engine
 			if repoURL != "" {
 				platform := repo.Rev{Name: "platform", URL: repoURL, Ref: ref, Credentials: repoCreds, Paths: paths}
 				if !strings.Contains(repoURL, "://") && !strings.Contains(repoURL, "@") {
@@ -78,10 +82,21 @@ func newServerCommand() *cobra.Command {
 					}
 				}
 				cat = &server.CatalogSource{Repos: cfg.Repos, Platform: platform, Log: cfg.Log}
+				engine = &change.Engine{Store: s, Repos: cfg.Repos, Log: cfg.Log, Keys: func(ctx context.Context) ([]signature.Key, error) {
+					return signingKeys(ctx, auth.New(s, cat.Graph, cfg.Log))
+				}}
+				cat.After = func(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) {
+					if engine.Queue == nil {
+						return
+					}
+					if err := engine.Evaluate(ctx, snap, g); err != nil {
+						cfg.Log.Warn("change engine", "err", err)
+					}
+				}
 				if err := cat.Load(ctx); err != nil {
 					return fmt.Errorf("desired state: %w", err)
 				}
-				go cat.Run(ctx, refresh, nil)
+				cfg.Changes, cfg.Catalog = engine, cat
 				if cat.Graph().AuthConfig() != nil {
 					cfg.Auth = auth.New(s, cat.Graph, cfg.Log)
 				}
@@ -119,9 +134,31 @@ func newServerCommand() *cobra.Command {
 					cfg.Auth.WithTransit(c).WithSecrets(c)
 				}
 			}
+			if cfg.Workers > 0 {
+				// Every worker closes the changes of the runs it finishes,
+				// with or without a repository of its own.
+				closer := engine
+				if closer == nil {
+					closer = &change.Engine{Store: s, Log: cfg.Log}
+				}
+				cfg.Finished = func(ctx context.Context, a queue.ApplyArgs, g *catalog.Graph) error {
+					err := closer.Finished(ctx, a, g)
+					if cat != nil {
+						cat.Kick()
+					}
+					return err
+				}
+			}
 			srv, err := server.New(cfg, s)
 			if err != nil {
 				return err
+			}
+			if engine != nil {
+				// The engine queues runs with the server's queue client; the
+				// first evaluation happens at the first refresh.
+				engine.Queue = srv.Queue()
+				go cat.Run(ctx, refresh)
+				cat.Kick()
 			}
 			return srv.Run(ctx)
 		},
@@ -157,6 +194,20 @@ func loopbackOnly(addr string) error {
 		return nil
 	}
 	return fmt.Errorf("--listen %s: the API has no authentication yet; listen on a loopback address or pass --unsafe-no-auth", addr)
+}
+
+// signingKeys are the registered keys in the form the signature check
+// takes.
+func signingKeys(ctx context.Context, a *auth.Service) ([]signature.Key, error) {
+	signers, err := a.Signers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]signature.Key, 0, len(signers))
+	for _, sg := range signers {
+		out = append(out, signature.Key{UserID: sg.UserID, Username: sg.Username, Kind: sg.Kind, Fingerprint: sg.Fingerprint, PublicKey: sg.PublicKey})
+	}
+	return out, nil
 }
 
 func defaultDataDir() string {

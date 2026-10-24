@@ -144,7 +144,12 @@ func Build(ctx context.Context, g *catalog.Graph, names []string, st State) (*Pl
 		p.Contracts = append(p.Contracts, c)
 	}
 
-	sum, err := hash(p)
+	// The hash is what the plan does, not where it came from: a commit that
+	// leaves a contract's plan alone keeps its hash, and with it the
+	// approvals given for it (design 7.6).
+	content := *p
+	content.Commit = ""
+	sum, err := hash(&content)
 	if err != nil {
 		return nil, err
 	}

@@ -854,6 +854,12 @@ pending ──gereksinimler──► approved ──pencere──► running ─
    └─ superseded (aynı kontrata yeni bir commit geldi ve planı değiştirdi)
 ```
 
+**Başarısız Change.** Başarısız, iptal edilmiş veya reddedilmiş bir Change aynı planla ve aynı commit'lerle kendiliğinden tekrar açılmaz; döngüye girmemek için. Yeni bir commit ya da `operator`'ün "tekrar dene" (`retry`) komutu yeni bir Change açar ve gereksinimler yeniden kontrol edilir.
+
+**Plan hash'i.** Planın ne yaptığını tanımlar, nereden geldiğini değil: commit etiketi hash'e girmez. Kontratın planını değiştirmeyen bir commit Change'i ve onaylarını korur; Change yeni commit'e kayar.
+
+**Değerlendirme.** Her repo yenilemesinde, bir run bitince ve bir onay geldiğinde yapılır. Aynı anda tek replika değerlendirir (advisory lock); değerlendirme tekrar tekrar çalıştırılabilir. Bir run, tamamlandığında kontratın "uygulanan" durumunu (görüntü ve hemen sonra alınan plan hash'i) yazar.
+
 **Kontrat durumu.** Argo CD'deki gibi iki eksen:
 - **Sync:** `Synced` (son commit uygulandı), `OutOfSync` (açık bir Change var), `Drifted` (gerçek durum sapmış).
 - **Sağlık:** son run'ın sonucu ve izleme durumu.
@@ -1625,3 +1631,5 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | CLI girişi: tarayıcıda onay + loopback + PKCE (RFC 8252) ve `--device` (RFC 8628, isteğin IP'si onaydan önce gösterilir); refresh token + kısa access token, OS keychain'de (yoksa 0600 dosya); CLI token'ı CLI veya cihaz girişini onaylayamaz |
 | 2026-10-24 | İmza anahtarları (SSH veya OpenPGP) kişinin profiline kaydedilir; parmak izi tekil; eklemek ve kaldırmak son 10 dakikada passkey ister |
 | 2026-10-24 | İstenen durum bir anlık görüntü: platform ve kontrat repolarının commit'leri; config reposunun commit'i run için sabitlenir ama plan kimliğine girmez. Repolar bare ayna olarak tutulur; ssh'ta `known_hosts` zorunlu |
+| 2026-10-25 | Plan hash'i commit etiketini içermez; plana dokunmayan commit Change'i ve onaylarını korur |
+| 2026-10-25 | Başarısız Change aynı plan ve commit'lerle kendiliğinden tekrar açılmaz; yeni commit veya `retry` gerekir |

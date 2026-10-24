@@ -52,6 +52,11 @@ type env struct {
 	queue *river.Client[pgx.Tx]
 	busy  time.Duration
 	repos *repo.Mirrors
+	git   *gittest.Repo
+	// finished is the workers' run-finished hook, when a test sets one.
+	finished func(context.Context, queue.ApplyArgs, *catalog.Graph) error
+	// failing makes the workers' systems fail to start.
+	failing bool
 }
 
 // setup migrates a database and commits the lab example, with poc-web at
@@ -99,10 +104,13 @@ func setup(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &env{t: t, store: s, repo: r.Dir, queue: q, repos: &repo.Mirrors{Dir: t.TempDir()}}
+	return &env{t: t, store: s, repo: r.Dir, queue: q, repos: &repo.Mirrors{Dir: t.TempDir()}, git: r}
 }
 
 func (e *env) systems(*catalog.Graph) (apply.Deps, error) {
+	if e.failing {
+		return apply.Deps{}, fmt.Errorf("proxmox is down")
+	}
 	return apply.Deps{
 		Store: e.store,
 		Secrets: secrets{
@@ -144,7 +152,7 @@ func (e *env) enqueue() string {
 // start runs a worker server until the test ends.
 func (e *env) start() *Server {
 	e.t.Helper()
-	srv, err := New(Config{Workers: 1, Repos: e.repos, Systems: e.systems, StopTimeout: 5 * time.Second, BusyWait: e.busy}, e.store)
+	srv, err := New(Config{Workers: 1, Repos: e.repos, Systems: e.systems, Finished: e.finished, StopTimeout: 5 * time.Second, BusyWait: e.busy}, e.store)
 	if err != nil {
 		e.t.Fatal(err)
 	}
@@ -308,4 +316,9 @@ func TestOldEventsArePruned(t *testing.T) {
 	if len(after) != len(before)-1 || after[0].Seq != 2 {
 		t.Errorf("%d events before, %d after", len(before), len(after))
 	}
+}
+
+func readFile(dir, rel string) (string, error) {
+	b, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(rel)))
+	return string(b), err
 }

@@ -70,12 +70,58 @@ func (e HostStatus) Valid() bool {
 	return false
 }
 
+type Approval struct {
+	ID        int64
+	ChangeID  string
+	PlanHash  string
+	UserID    string
+	Username  string
+	Decision  string
+	Comment   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
 type AuthFlow struct {
 	ID        string
 	Kind      string
 	UserID    pgtype.Text
 	Data      []byte
 	ExpiresAt pgtype.Timestamptz
+}
+
+type Change struct {
+	ID          string
+	Contract    string
+	Source      string
+	Snapshot    []byte
+	Label       string
+	PlanHash    string
+	Plan        []byte
+	Status      string
+	RequestedBy []string
+	Commits     []byte
+	RunID       pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+	FinishedAt  pgtype.Timestamptz
+}
+
+type ChangeGate struct {
+	ChangeID string
+	Gate     string
+	Status   string
+	Detail   []byte
+}
+
+type ContractState struct {
+	Contract        string
+	Sync            string
+	AppliedSnapshot []byte
+	AppliedLabel    pgtype.Text
+	AppliedPlanHash pgtype.Text
+	AppliedAt       pgtype.Timestamptz
+	Error           pgtype.Text
+	EvaluatedAt     pgtype.Timestamptz
 }
 
 type DeviceCode struct {

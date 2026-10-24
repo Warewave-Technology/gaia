@@ -99,9 +99,8 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	}
 	// The run's outcome is recorded even when its context ended.
 	ctx = context.WithoutCancel(ctx)
-	if ferr := q.FinishRun(ctx, db.FinishRunParams{ID: runID, Status: status, Error: pgText(msg)}); ferr != nil {
-		err = errors.Join(err, ferr)
-	}
+	// The run is marked finished last: whoever sees it finished finds its
+	// record and every event (the event stream ends on it).
 	if rerr := r.stage(ctx, "", "record", func() error { return r.writeRecord(ctx, p, status, msg) }); rerr != nil {
 		err = errors.Join(err, rerr)
 	}
@@ -110,6 +109,9 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	}
 	if lerr := r.archiveLogs(ctx); lerr != nil {
 		err = errors.Join(err, fmt.Errorf("run logs: %w (the events are in the database)", lerr))
+	}
+	if ferr := q.FinishRun(ctx, db.FinishRunParams{ID: runID, Status: status, Error: pgText(msg)}); ferr != nil {
+		err = errors.Join(err, ferr)
 	}
 	return runID, err
 }

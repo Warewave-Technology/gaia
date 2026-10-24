@@ -55,5 +55,5 @@ select c.name::text as name,
        (select count(*) from hosts h where h.contract = c.name and h.status <> 'deleted')::int as live_hosts,
        coalesce((select r.id from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_run,
        coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
-from (select contract as name from hosts union select unnest(contracts) from runs) c
+from (select contract as name from hosts union select unnest(contracts) from runs union select contract from contract_states) c
 order by c.name;

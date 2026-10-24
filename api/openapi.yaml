@@ -128,6 +128,33 @@ paths:
       responses:
         "200": { description: The contract, content: { application/json: { schema: { $ref: "#/components/schemas/Contract" } } } }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/changes:
+    get:
+      summary: Changes, newest first (design 7.6)
+      operationId: listChanges
+      parameters:
+        - { name: contract, in: query, schema: { type: string } }
+        - { name: open, in: query, schema: { type: boolean }, description: Only pending, approved and running ones }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
+      responses:
+        "200": { description: Changes, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Change" } } } } }
+  /api/v1/changes/{id}:
+    get:
+      summary: A change with its plan, requirements, commits and approvals
+      operationId: getChange
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The change, content: { application/json: { schema: { $ref: "#/components/schemas/Change" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/changes/{id}/retry:
+    post:
+      summary: Open a new change for a failed or cancelled one whose plan is still current (operator)
+      operationId: retryChange
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "202": { description: The new change, content: { application/json: { schema: { type: object, properties: { change: { type: string } } } } } }
+        "409": { description: Not retryable, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/auth/config:
     get:
       summary: How to sign in (public)
@@ -493,6 +520,38 @@ components:
       type: object
       required: [error]
       properties: { error: { type: string } }
+    Change:
+      type: object
+      required: [id, contract, source, status, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        contract: { type: string }
+        source: { type: string, enum: [commit, retry, revert, drift] }
+        status: { type: string, enum: [pending, approved, running, applied, failed, cancelled, rejected, superseded] }
+        label: { type: string, description: The snapshot's commits }
+        planHash: { type: string }
+        requestedBy: { type: array, items: { type: string }, description: Who signed the commits it brings }
+        commits:
+          type: array
+          items: { type: object, properties: { repo: { type: string }, commit: { type: string }, signer: { type: string }, problem: { type: string } } }
+        gates:
+          type: array
+          items:
+            type: object
+            properties:
+              gate: { type: string, enum: [validation, signature, approval, lock] }
+              status: { type: string, enum: [ok, waiting, failed] }
+              detail: { type: object, description: "approval: groups with candidates and approvedBy, and the excluded signers" }
+        approvals:
+          type: array
+          items: { type: object, properties: { username: { type: string }, decision: { type: string, enum: [approve, reject] }, planHash: { type: string }, comment: { type: string }, createdAt: { type: string, format: date-time } } }
+        plan: { type: object }
+        snapshot: { type: object }
+        runId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+        restricted: { type: boolean }
     Principal:
       type: object
       properties:
@@ -586,6 +645,8 @@ components:
         liveHosts: { type: integer }
         lastRun: { type: string }
         lastStatus: { type: string }
+        sync: { type: string, enum: [synced, out-of-sync, unknown] }
+        openChange: { type: string }
         restricted: { type: boolean }
     Contract:
       type: object
