@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/mail"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -422,20 +423,20 @@ type BaselineSpec struct {
 // written by hand; later AnsibleRoleSource generates it.
 type AnsibleRoleSpec struct {
 	Source              RoleSource       `yaml:"source" gaia:"required"`
-	OS                  []string         `yaml:"os"`
-	Monitoring          []string         `yaml:"monitoring"`
-	Conflicts           []string         `yaml:"conflicts"`
-	AllowedEnvironments []string         `yaml:"allowedEnvironments"`
-	CheckMode           string           `yaml:"checkMode"`
-	Runbook             bool             `yaml:"runbook"`
-	Params              map[string]Param `yaml:"params"`
-	Rules               []Rule           `yaml:"rules"`
+	OS                  []string         `yaml:"os,omitempty"`
+	Monitoring          []string         `yaml:"monitoring,omitempty"`
+	Conflicts           []string         `yaml:"conflicts,omitempty"`
+	AllowedEnvironments []string         `yaml:"allowedEnvironments,omitempty"`
+	CheckMode           string           `yaml:"checkMode,omitempty"`
+	Runbook             bool             `yaml:"runbook,omitempty"`
+	Params              map[string]Param `yaml:"params,omitempty"`
+	Rules               []Rule           `yaml:"rules,omitempty"`
 }
 
 type RoleSource struct {
 	Provider string `yaml:"provider" gaia:"required"`
 	Role     string `yaml:"role" gaia:"required"`
-	Revision string `yaml:"revision"`
+	Revision string `yaml:"revision,omitempty"`
 }
 
 // Param follows Ansible's argument_specs, with Gaia's extensions under
@@ -956,6 +957,41 @@ func (s *NetworkSourceSpec) validate() []string {
 	}
 	if s.Map.Attachment == "" {
 		out = append(out, "map.attachment: required (how a VM joins the network)")
+	}
+	if s.Output != "" && (strings.HasPrefix(s.Output, "/") || strings.Contains(s.Output, "..")) {
+		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
+	}
+	return out
+}
+
+// AnsibleRoleSourceSpec makes AnsibleRole objects from the roles of a git
+// repository (design 5.3), usually the config repository. paths and
+// exclude are globs of role directories, inside the provider's path.
+// Expressions are CEL over role (name, collection, namespace, fqcn, path)
+// and meta (meta/main.yml); map expressions also see name, the object's.
+// Params come from meta/argument_specs.yml (the main entry point), and
+// Gaia's own fields from meta/gaia.yml.
+type AnsibleRoleSourceSpec struct {
+	Provider string   `yaml:"provider" gaia:"required"`
+	Paths    []string `yaml:"paths" gaia:"required"`
+	Exclude  []string `yaml:"exclude"`
+	Naming   string   `yaml:"naming" gaia:"required"`
+	Map      RoleMap  `yaml:"map"`
+	Output   string   `yaml:"output" gaia:"required"`
+}
+
+// RoleMap fills a generated AnsibleRole.
+type RoleMap struct {
+	OS     string `yaml:"os"`
+	Labels string `yaml:"labels"`
+}
+
+func (s *AnsibleRoleSourceSpec) validate() []string {
+	var out []string
+	for i, p := range append(append([]string{}, s.Paths...), s.Exclude...) {
+		if _, err := path.Match(p, ""); err != nil || strings.HasPrefix(p, "/") {
+			out = append(out, fmt.Sprintf("paths/exclude[%d]: %q is not a glob of directories", i, p))
+		}
 	}
 	if s.Output != "" && (strings.HasPrefix(s.Output, "/") || strings.Contains(s.Output, "..")) {
 		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))

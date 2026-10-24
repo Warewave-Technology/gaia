@@ -312,6 +312,13 @@ spec:
 
 - **İsimlendirme:** Roller birden çok collection'a dağıldığında aynı isimli roller çıkar. Bu yüzden isim `collection.role` biçiminde.
 - **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, `checkMode`, `runbook`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı commit'te birlikte değişir. Parametre formatı 6.2'de.
+- **Okunan repo:** Roller Source'un provider'ından okunur. Bu provider görüntünün config reposuysa görüntüdeki commit kullanılır, değilse provider'ın başı. `paths` ve `exclude`, provider'ın `path`'i içindeki rol dizinlerinin glob'larıdır. `exclude` desenleri yolun sonuyla da eşleşir (`*/roles/_*`).
+- **İfadeler:** `role` değişkeni `name`, `collection`, `namespace`, `fqcn` ve `path`'i verir. Collection rolleri `.../ansible_collections/<ns>/<collection>/roles/<ad>` yolundan tanınır. `meta`, `meta/main.yml`'dir. `map.os` bir liste, `map.labels` bir map döndürür.
+- **Üretilen AnsibleRole:**
+  - `source.role` rolün FQCN'idir.
+  - Parametreler `meta/argument_specs.yml`'nin `main` giriş noktasından gelir. `meta/gaia.yml`'deki `params` sadece var olan parametrelere `gaia` uzantısı ekler.
+  - `source-revision` rol dizininin git tree hash'idir. Rolü değiştirmeyen commit'ler üretilen dosyayı değiştirmez.
+- **Dışarıda bırakılanlar:** Metadata'sı okunamayan ya da geçerli bir AnsibleRole olmayan rol (örneğin izin verilmeyen bir parametre tipi) raporla dışarıda bırakılır.
 
 ### 5.4 Üretilen objelerin Git'e yazılması
 
@@ -363,7 +370,7 @@ Patch'ler alan sahipliği kuralına bağlıdır:
 | Kind | Kaynağın sahibi (patch'lenemez) | Elle eklenebilir |
 |---|---|---|
 | Network | pool, gateway, site, DNS zone, attachment | labels (metadata), allowedEnvironments, description |
-| AnsibleRole | source, revision, params, os | labels, monitoring, conflicts, allowedEnvironments |
+| AnsibleRole | source, revision, params, os, checkMode, runbook, rules | labels (metadata), monitoring, conflicts, allowedEnvironments |
 | Team | adGroup, approversGroup | displayName, secrets.prefix |
 
 `patch` işareti olmadan yazılan aynı isimli bir obje yükleme hatası verir.

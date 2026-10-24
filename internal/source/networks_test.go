@@ -52,7 +52,7 @@ func labRepo(t *testing.T, extra map[string]string) repo.Rev {
 	if _, err := git.PlainClone(bare, true, &git.CloneOptions{URL: src.Dir}); err != nil {
 		t.Fatal(err)
 	}
-	return repo.Rev{Name: "platform", URL: "file://" + bare, Ref: "master"}
+	return repo.Rev{Name: "platform", URL: "file://" + bare, Ref: "master", Paths: []string{"platform", "contracts"}}
 }
 
 func TestNetworkSourceWritesNetworks(t *testing.T) {

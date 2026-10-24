@@ -13,7 +13,7 @@
 | 4 | Bildirimler | 3 | **Tamam** (lab oturumu sonda) |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | **Tamam** (lab oturumu sonda) |
-| 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | – |
+| 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | **Tamam** |
 | 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | – |
 | 9 | Provider'lar: vSphere, AD, DNS, Warpgate, Nexus | 1 | – |
 | 10 | Yaşam döngüsü: drift, keşif, adopt, reconcile | 3, 8, 9 | – |
@@ -169,6 +169,12 @@ Tasarım 14.
 
 - `NetworkSource` (IPAM'dan `Network`), `AnsibleRoleSource` (rol reposundan `AnsibleRole`, `meta/gaia.yml`).
 - Elle ekleme ve patch (5.5); sync raporu; Gaia'nın imzalı commit'leri.
+
+**Durum:** Tamam.
+- NetworkSource: IPAM havuzlarının ad, label ve tag'lerinden.
+- AnsibleRoleSource: rol dizinlerinden, `meta/argument_specs.yml` ve `meta/gaia.yml` ile.
+- Patch'ler: Team, Network, AnsibleRole.
+- Ortak makine (Faz 6'da kuruldu): sync raporu, yüklenmeyen objelerin dışarıda bırakılması ve Gaia'nın imzalı commit'leri.
 
 ## Faz 8: Kontrat genişlemeleri
 

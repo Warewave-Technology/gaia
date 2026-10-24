@@ -23,13 +23,14 @@ const (
 // Patchable are the spec fields a patch may set on a generated object of
 // each kind; the rest belong to the object's source.
 var Patchable = map[string][]string{
-	KindTeam:    {"displayName", "secrets", "notifications"},
-	KindNetwork: {"allowedEnvironments", "description"},
+	KindTeam:        {"displayName", "secrets", "notifications"},
+	KindNetwork:     {"allowedEnvironments", "description"},
+	KindAnsibleRole: {"monitoring", "conflicts", "allowedEnvironments"},
 }
 
 // PatchableLabels are the kinds whose generated objects may get labels
 // from a patch (metadata.labels, merged).
-var PatchableLabels = map[string]bool{KindNetwork: true}
+var PatchableLabels = map[string]bool{KindNetwork: true, KindAnsibleRole: true}
 
 // Generated reports whether the object was written by a Source.
 func (o *Object) Generated() bool { return o.Metadata.Annotations[AnnotationGeneratedBy] != "" }
