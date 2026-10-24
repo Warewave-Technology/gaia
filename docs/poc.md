@@ -60,7 +60,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | Adım | İçerik | Bağımlılık | Durum |
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
-| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet hazır |
+| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli ve yükleyici hazır |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | – |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
@@ -69,8 +69,14 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 ## M1'in iş kırılımı
 
 1. **Repo iskeleti:** Go modülü, `cmd/gaia` ve `cmd/gaia-ipam`, paket sınırları, örnek katalog, EE tanımı, CI. **Tamam.**
-2. **Obje modeli:** `apiVersion` / `kind` / `metadata` / `spec`; PoC kind'larının Go tipleri ve şemaları.
-3. **Yükleyici:** Bir Git commit'indeki dosyaları okur. Çoklu doküman (`---`) desteklenir; kimlik `kind + name` ve tekildir.
+2. **Obje modeli:** `apiVersion` / `kind` / `metadata` / `spec`; PoC kind'larının Go tipleri ve şemaları. **Tamam** (`internal/catalog`).
+   - **Katı çözümleme:** Bilinmeyen alanlar, eksik zorunlu alanlar ve tip hataları dosya:satır:sütun ve alan yoluyla raporlanır (ör. `spec.attachment: unknown field "vnett"`).
+   - **Kind kuralları:** Örneğin Server'da `network` ya da `topology`'den sadece biri olabilir; Network'te tek bir `attachment` biçimi kullanılır; parametrelerde serbest tiplere izin verilmez (6.2).
+   - **Patch objeleri:** Henüz desteklenmiyor. Üretilen objeler gelince eklenecek.
+3. **Yükleyici:** Bir Git commit'indeki dosyaları okur. Çoklu doküman (`---`) desteklenir; kimlik `kind + name` ve tekildir. **Tamam** (`internal/gitsrc`, go-git).
+   - **Çalışma dizini okunmaz:** Commit'lenmemiş değişiklikler yükleyiciye girmez.
+   - **Tüm hatalar tek seferde:** Bir yükleme bütün sorunları birlikte raporlar.
+   - **`gaia validate --repo . --ref HEAD --path <dizin>`:** Bugünkü hâliyle yükleme ve obje kontrollerini yapar; referans kontrolü 4. adımla eklenecek.
 4. **Graf:** Kontrattan kataloğa (`network → Network` vb.) ve katalog içindeki (`Network.site → Site → Provider`) referansları çözer. Hatalar tek seferde, dosya ve satır bilgisiyle raporlanır.
 5. **CEL:** Policy `naming` ve `pad`; ifadeler yüklemede derlenir.
 6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi.
