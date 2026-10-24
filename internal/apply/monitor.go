@@ -2,8 +2,11 @@ package apply
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -16,6 +19,7 @@ import (
 type Monitor interface {
 	Register(ctx context.Context, h zabbix.Host, hostID string) (zabbix.Result, error)
 	Delete(ctx context.Context, uid, hostID string) (bool, error)
+	UserGroup(ctx context.Context, name string, rights map[string]int, usernames []string) ([]string, error)
 }
 
 // monitor returns the client of the contract's monitoring provider.
@@ -100,4 +104,103 @@ func (r *runner) externalID(ctx context.Context, uid, provider, kind string) (st
 		}
 	}
 	return "", nil
+}
+
+// monitorAccess gives the teams of a contract's access its host groups in
+// monitoring (design 14.4): one user group per team, Gaia/<team>, with
+// read rights, or read-write where the access has sudo, on the own host
+// group of every contract the team has access to; as members, the
+// team's people who have a user there. Teams the contract no longer
+// names are updated too, so that they lose its host groups.
+func (r *runner) monitorAccess(ctx context.Context, c plan.Contract) error {
+	if c.Monitoring == nil {
+		return nil
+	}
+	plans := map[string]plan.Contract{c.Name: c}
+	teams := map[string]bool{}
+	for _, a := range c.Access {
+		for _, t := range a.Teams {
+			teams[t] = true
+		}
+	}
+	states, err := r.d.Store.Q().ContractStates(ctx)
+	if err != nil {
+		return err
+	}
+	for _, st := range states {
+		var p plan.Plan
+		if len(st.AppliedPlan) == 0 || json.Unmarshal(st.AppliedPlan, &p) != nil {
+			continue
+		}
+		for _, x := range p.Contracts {
+			if x.Name == c.Name {
+				for _, a := range x.Access {
+					for _, t := range a.Teams {
+						teams[t] = true // named before: may lose it now
+					}
+				}
+				continue
+			}
+			plans[x.Name] = x
+		}
+	}
+	if len(teams) == 0 {
+		return nil
+	}
+	m, err := r.monitor(ctx, c.Monitoring.Provider)
+	if err != nil {
+		return err
+	}
+	names := make([]string, 0, len(teams))
+	for t := range teams {
+		names = append(names, t)
+	}
+	sort.Strings(names)
+	for _, team := range names {
+		rights := map[string]int{}
+		for _, x := range plans {
+			if x.Monitoring == nil || x.Monitoring.Provider != c.Monitoring.Provider {
+				continue
+			}
+			perm := 0
+			for _, a := range x.Access {
+				if slices.Contains(a.Teams, team) {
+					p := zabbix.PermissionRead
+					if a.Sudo {
+						p = zabbix.PermissionReadWrite
+					}
+					perm = max(perm, p)
+				}
+			}
+			if perm == 0 {
+				continue
+			}
+			// Only the contract's own group: the others (environment,
+			// site...) hold other contracts' servers too.
+			if running(x) > 0 {
+				hg := plan.ContractHostGroup(x.Name)
+				rights[hg] = max(rights[hg], perm)
+			}
+		}
+		rows, err := r.d.Store.Q().TeamLogins(ctx, []string{team})
+		if err != nil {
+			return err
+		}
+		var users []string
+		for _, row := range rows {
+			if !slices.Contains(users, row.Username) {
+				users = append(users, row.Username)
+			}
+		}
+		missing, err := m.UserGroup(ctx, zabbix.UserGroupPrefix+team, rights, users)
+		if err != nil {
+			return fmt.Errorf("monitoring access of %s: %w", team, err)
+		}
+		r.printf("  monitoring access %s%s: %d host group(s), %d user(s)\n", zabbix.UserGroupPrefix, team, len(rights), len(users)-len(missing))
+		if len(missing) > 0 {
+			r.printf("    no monitoring user for %s\n", strings.Join(missing, ", "))
+		}
+		r.change(runrecord.Change{Contract: c.Name, Stage: "access", Action: "monitoring-group", Detail: fmt.Sprintf("%s%s: %d host groups, %d users", zabbix.UserGroupPrefix, team, len(rights), len(users)-len(missing))})
+	}
+	return nil
 }

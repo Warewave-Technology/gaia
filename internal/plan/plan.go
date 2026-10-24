@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -39,6 +40,10 @@ type Contract struct {
 	// in the teams are not part of the plan; they come from AD.
 	Access []Access `json:"access,omitempty"`
 }
+
+// ContractHostGroup is the monitoring host group of a contract's servers
+// alone.
+func ContractHostGroup(contract string) string { return "Gaia/contract/" + contract }
 
 // Access is one access entry of a contract.
 type Access struct {
@@ -319,6 +324,11 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			}
 			if c.Servers[i].HostGroups, err = g.HostGroups(o, srv.Site, srv.Seq); err != nil {
 				return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+			}
+			// The contract's own group: what its access gives teams rights
+			// on in monitoring, and nothing else is in.
+			if own := ContractHostGroup(c.Name); !slices.Contains(c.Servers[i].HostGroups, own) {
+				c.Servers[i].HostGroups = append(c.Servers[i].HostGroups, own)
 			}
 		}
 	}

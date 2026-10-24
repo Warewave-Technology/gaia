@@ -56,3 +56,5 @@ Uçtan uca senaryo (Faz 3):
 - Gaia'nın okuma hesabı `gaia-reader`
 
 Parolalar `Dev-<kullanıcı>-Password-1!` biçimindedir. Okuma hesabı ve DC'nin sertifikası OpenBao'ya (`kv/platform/ad/gaia-dev`) yazılır. Sertifika `dc1.gaia.dev` adına olduğundan sırda `server_name` vardır.
+
+`make dev-zabbix` Zabbix 7.0'ı (lab'deki sürüm) başlatır: arayüz ve API `http://localhost:18080` (Admin / zabbix). API adresi `http://127.0.0.1:18080/api_jsonrpc.php`'dir. Gerçek Zabbix'e karşı testler `GAIA_ZABBIX_URL` ve `GAIA_ZABBIX_TOKEN` ile çalışır (`go test ./internal/provider/zabbix -run TestLab`). Token için `user.login` oturumu da kullanılabilir.

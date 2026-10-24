@@ -12,7 +12,7 @@
 | 3 | Change motoru ve GitHub izleyicisi | 1, 2 | **Tamam** (lab oturumu sonda) |
 | 4 | Bildirimler | 3 | **Tamam** (lab oturumu sonda) |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
-| 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | – |
+| 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | **Tamam** (lab oturumu sonda) |
 | 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | – |
 | 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | – |
 | 9 | Provider'lar: vSphere, AD, DNS, Warpgate, Nexus | 1 | – |
@@ -151,6 +151,19 @@ Tasarım 14.
 - Gaia rollerinin Team üyeliklerinden gelmesi; devre dışı hesapların erişiminin ve oturumlarının kaldırılması.
 
 **Bitti sayılır:** Samba AD'de bir kişi takıma eklenince 5 dakika içinde sunucuya erişiyor, çıkarılınca erişimi gidiyor.
+
+**Durum:**
+- Tamam:
+  - AD okuma, TeamSource ve üretilmiş objeler ile patch'ler
+  - üyelik senkronu ve OIDC'nin AD hesabına bağlanması
+  - Group ve kontrat erişimi ile onay kuralları
+  - Linux dağıtımı (`gaia_access`), erişim run'ları ve Zabbix kullanıcı grupları
+- Doğrulama:
+  - AD tarafı gerçek Samba AD'ye karşı test edildi
+  - Linux rolü Rocky 9 konteynerinde denendi
+  - Zabbix grupları gerçek Zabbix 7.0'a karşı test edildi
+- Kalan: "Bitti sayılır" senaryosu gerçek sunucularla lab oturumunda.
+- Warpgate dağıtımı Faz 9'da.
 
 ## Faz 7: Source'lar
 

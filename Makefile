@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc dev-git dev-mail dev-ad
+.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -55,5 +55,8 @@ dev-ad:
 	  bao kv put -mount=kv platform/ad/gaia-dev username=gaia-reader@gaia.dev password='Dev-gaia-reader-Password-1!' \
 	  server_name=dc1.gaia.dev ca="$$(docker compose -f deploy/dev/compose.yaml exec -T samba cat /var/lib/samba/private/tls/ca.pem)"
 
+dev-zabbix:
+	docker compose -f deploy/dev/compose.yaml --profile zabbix up -d zabbix-db zabbix-server zabbix-web
+
 dev-down:
-	docker compose -f deploy/dev/compose.yaml --profile oidc --profile git --profile mail --profile ad down -v
+	docker compose -f deploy/dev/compose.yaml --profile oidc --profile git --profile mail --profile ad --profile zabbix down -v

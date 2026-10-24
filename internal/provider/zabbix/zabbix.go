@@ -350,3 +350,76 @@ func (c *Client) proxyID(ctx context.Context, name string) (string, error) {
 	}
 	return found[0].ProxyID, nil
 }
+
+// Zabbix permissions of a user group on a host group.
+const (
+	PermissionRead      = 2
+	PermissionReadWrite = 3
+)
+
+// UserGroupPrefix names the user groups Gaia manages; it leaves others
+// alone.
+const UserGroupPrefix = "Gaia/"
+
+// UserGroup makes a Gaia user group exactly so (design 14.4): rights on
+// host groups by name, and as members the Zabbix users of those names.
+// Gaia does not create Zabbix users; it returns the names it found none
+// for.
+func (c *Client) UserGroup(ctx context.Context, name string, rights map[string]int, usernames []string) ([]string, error) {
+	if !strings.HasPrefix(name, UserGroupPrefix) {
+		return nil, fmt.Errorf("zabbix: %q is not a Gaia user group", name)
+	}
+	hostGroups := make([]string, 0, len(rights))
+	for g := range rights {
+		hostGroups = append(hostGroups, g)
+	}
+	sort.Strings(hostGroups)
+	var rightList []map[string]any
+	if len(hostGroups) > 0 {
+		ids, err := c.groupIDs(ctx, hostGroups)
+		if err != nil {
+			return nil, err
+		}
+		for i, id := range ids {
+			rightList = append(rightList, map[string]any{"id": id, "permission": rights[hostGroups[i]]})
+		}
+	}
+	users := []map[string]string{}
+	var missing []string
+	if len(usernames) > 0 {
+		var found []struct {
+			UserID   string `json:"userid"`
+			Username string `json:"username"`
+		}
+		if err := c.call(ctx, "user.get", map[string]any{"output": []string{"userid", "username"}, "filter": map[string]any{"username": usernames}}, &found); err != nil {
+			return nil, err
+		}
+		byName := map[string]string{}
+		for _, u := range found {
+			byName[u.Username] = u.UserID
+		}
+		for _, n := range usernames {
+			if id, ok := byName[n]; ok {
+				users = append(users, map[string]string{"userid": id})
+			} else {
+				missing = append(missing, n)
+			}
+		}
+	}
+	if rightList == nil {
+		rightList = []map[string]any{}
+	}
+	var existing []struct {
+		ID string `json:"usrgrpid"`
+	}
+	if err := c.call(ctx, "usergroup.get", map[string]any{"output": []string{"usrgrpid"}, "filter": map[string]any{"name": []string{name}}}, &existing); err != nil {
+		return nil, err
+	}
+	params := map[string]any{"hostgroup_rights": rightList, "users": users}
+	if len(existing) == 0 {
+		params["name"] = name
+		return missing, c.call(ctx, "usergroup.create", params, nil)
+	}
+	params["usrgrpid"] = existing[0].ID
+	return missing, c.call(ctx, "usergroup.update", params, nil)
+}
