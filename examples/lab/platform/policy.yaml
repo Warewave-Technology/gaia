@@ -1,0 +1,9 @@
+apiVersion: gaia/v1alpha1
+kind: Policy
+metadata:
+  name: default
+spec:
+  naming: site.name + env.substring(0, 1) + app.substring(0, 3) + pad(seq, 2)   # → labtpoc01
+  requiredLabels: [env, owner, app]
+  environments:
+    test: { approval: none }

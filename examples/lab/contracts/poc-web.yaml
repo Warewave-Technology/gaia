@@ -1,0 +1,11 @@
+apiVersion: gaia/v1alpha1
+kind: Server
+metadata:
+  name: poc-web
+  labels: { app: poc, env: test, owner: team-platform }
+spec:
+  replicas: 1
+  image: rocky9
+  size: small
+  network: lab-poc
+  baseline: linux-base

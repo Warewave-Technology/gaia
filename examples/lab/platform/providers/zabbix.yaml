@@ -1,0 +1,8 @@
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata:
+  name: zabbix
+spec:
+  type: zabbix
+  endpoint: http://192.168.1.25:8080/api_jsonrpc.php
+  credentials: bao://kv/platform/zabbix

@@ -1,0 +1,15 @@
+apiVersion: gaia/v1alpha1
+kind: Platform
+metadata:
+  name: platform
+spec:
+  secrets: bao
+  engines:
+    provisioning: { tool: pulumi, state: state }
+    configuration:
+      tool: ansible
+      executor: ansible-runner
+      executionEnvironment: localhost/gaia/ee-default:dev     # lab'de Nexus yok; podman'da yerel imaj
+      source: config-repo
+      limits: { concurrentRuns: 2, forks: 10, timeout: 1h }
+  runArchive: run-records

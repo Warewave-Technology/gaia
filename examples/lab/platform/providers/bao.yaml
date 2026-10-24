@@ -1,0 +1,7 @@
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata:
+  name: bao
+spec:
+  type: openbao
+  endpoint: http://192.168.1.25:8200

@@ -1,0 +1,11 @@
+apiVersion: gaia/v1alpha1
+kind: Image
+metadata:
+  name: rocky9
+spec:
+  os: linux
+  connection: ssh
+  templates:
+    - provider: pve-lab
+      template: { vmid: 9300 }      # gaia-lab-rocky9-tpl
+      customization: cloud-init
