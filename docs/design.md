@@ -419,6 +419,11 @@ spec:
 | `access[].group` / `access[].team` | Group / Team |
 | `metadata.labels.owner` | Team |
 
+**Uygulama sırası:** baseline, ajanlar (önce zorunlular), kontratın rolleri, uygulamalar, erişim.
+- **Zorunlu ajanlar:** `mandatory: true` olan ve `os`'u imajın işletim sistemini kapsayan Agent'lar, kontrat yazmasa da eklenir.
+- **App:** Config reposundaki playbook'u, `requires`'taki rollerin kontratta olmasını ister. Parametreleri ve kuralları rollerle aynı biçimdedir.
+- **App'in artifact'ı:** `artifact.path`'teki `${param}` değerleriyle Nexus adresine çevrilir ve playbook'a `gaia_app.artifact` olarak verilir.
+
 **Kontratta yazılmayan ama yine de uygulananlar**
 
 - **Zorunlu ajanlar:** Policy'den gelir.
@@ -502,6 +507,9 @@ rules:
 
 1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog değişikliğinde `platform-admin` onayı gerektirir.
 2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, kontratın owner'ı olan Team objesindeki yol önekiyle sınırlıdır (`secrets.prefix`, bkz. 14.1); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
+   - **Referans biçimi:** `bao://<yol>#<alan>`. Alan yazılmazsa sırrın `value` alanı kullanılır.
+   - **Planda:** Plan ve run kaydı referansı taşır, değeri değil. Değer sadece run sırasında çözülür, Ansible'a verilir ve olaylarda maskelenir.
+   - **`no_log` parametreler:** Kontratta değer olarak yazılamaz, `bao://` referansı gerekir. Rolün kendi `no_log` varsayılanı planda maskelenir ve Ansible'a geçilmez; rol kendi varsayılanını kullanır.
 3. **Kurallar CEL ile.** `rules` ifadeleri `params`, `size`, `image`, `labels` ve `network` değerlerini görebilir. Kubernetes'in CRD'lerde CEL ile yaptığı validasyonla aynı yaklaşım.
    - CEL aritmetikte int ile double'ı karıştırmaz: `size.memoryGiB * 0.75` hata verir. Ya tam sayılarla yazılır (`x * 4 <= y * 3`) ya da `double(...)` ile dönüştürülür. Karşılaştırmalarda karıştırmak serbesttir (`int <= double`).
    - Kurallar yüklemede derlenir; derlenmeyen bir kural validasyonda hata verir. `params` dinamik tipli olduğu için tip uyuşmazlıkları kural çalışırken raporlanır.
@@ -1754,3 +1762,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Erişim planın parçası (çözülmüş takımlar); verilen erişim ayrıcalıklıysa platform-admin, başkasının Group'uysa sahibi onaylar, kazanan takımın üyesi onaylayamaz; ayrıcalıklı gruba AD eklemesi bildirilir |
 | 2026-10-25 | SSH giriş anahtarları Git'te değil Gaia profilinde (kullanıcı adları Git'e girmez); Linux erişimi Gaia'nın gömülü `gaia_access` rolüyle; çıkarılan hesap silinmez, süresi doldurulur |
 | 2026-10-25 | Zabbix'te erişim takım başına `Gaia/<takım>` kullanıcı grubu, sadece kontratların kendi host grubuna (`Gaia/contract/<ad>`) hak; Gaia Zabbix kullanıcısı açmaz |
+| 2026-10-25 | Secret parametre değeri planda ve kayıtta değil, sadece run'da; referans `bao://<yol>#<alan>`; `no_log` parametreye kontratta düz değer yazılamaz |

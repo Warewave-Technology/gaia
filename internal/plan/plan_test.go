@@ -149,7 +149,7 @@ func TestPlanServersRolesAndMasking(t *testing.T) {
 		t.Errorf("hostnames = %s", got)
 	}
 	r := c.Roles[0]
-	if r.Params["worker_processes"] != "auto" || r.Params["server_name"] != "api.lab.test" || r.Params["api_key"] != Masked {
+	if r.Params["worker_processes"] != "auto" || r.Params["server_name"] != "api.lab.test" || r.Params["api_key"] != "bao://kv/apps/api/key" {
 		t.Errorf("role params = %v", r.Params)
 	}
 }
@@ -220,7 +220,7 @@ func TestWriteText(t *testing.T) {
 		"lab / lab-poc · proxmox pve-lab · template vmid 9300 · vnet gaiapoc",
 		"medium: 4 vCPU, 8 GiB, 40 GiB disk + 50 GiB /data · IP from 10.50.0.0/24 (ipam)",
 		"baseline linux-base (baseline/linux.yml)",
-		"role web.nginx (corp.web.nginx) api_key=(no_log) server_name=api.lab.test worker_processes=auto",
+		"role web.nginx (corp.web.nginx) api_key=bao://kv/apps/api/key server_name=api.lab.test worker_processes=auto",
 		"ipam       +4 =0 (ipam)",
 		"provision  +4 =0 (pve-lab)",
 		"monitoring +4 =0 (zabbix)",

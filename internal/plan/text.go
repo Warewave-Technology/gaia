@@ -101,14 +101,28 @@ func WriteText(w io.Writer, p *Plan) error {
 				pr.f("    templates %s\n", strings.Join(c.Monitoring.Templates, ", "))
 			}
 		}
-		if running > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
+		if running > 0 && (c.Baseline != nil || len(c.Roles) > 0 || len(c.Agents) > 0 || len(c.Apps) > 0) {
 			configure += running
 			pr.f("  configure\n")
 			if c.Baseline != nil {
 				pr.f("    baseline %s (%s)\n", c.Baseline.Name, c.Baseline.Playbook)
 			}
+			for _, a := range c.Agents {
+				kind := "agent"
+				if a.Mandatory {
+					kind = "agent (mandatory)"
+				}
+				pr.f("    %s %s (%s)%s\n", kind, a.Name, a.Role, params(a.Params))
+			}
 			for _, r := range c.Roles {
 				pr.f("    role %s (%s)%s\n", r.Name, r.Role, params(r.Params))
+			}
+			for _, a := range c.Apps {
+				extra := ""
+				if a.Artifact != "" {
+					extra = " from " + a.Artifact
+				}
+				pr.f("    app %s (%s)%s%s\n", a.Name, a.Playbook, params(a.Params), extra)
 			}
 		}
 		if len(c.Access) > 0 {

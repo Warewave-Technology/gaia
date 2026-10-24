@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -274,7 +275,7 @@ func setup(t *testing.T) *env {
 
 // graph is the lab example with IPAM pointing at the test server and the
 // contract changed by edit.
-func (e *env) graph(edit func(string) string) *catalog.Graph {
+func (e *env) files(edit func(string) string) []catalog.File {
 	t := e.t
 	t.Helper()
 	root := filepath.Join("..", "..", "examples", "lab")
@@ -304,7 +305,13 @@ func (e *env) graph(edit func(string) string) *catalog.Graph {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cat, err := catalog.Load("c0ffee", files)
+	return files
+}
+
+func (e *env) graph(edit func(string) string) *catalog.Graph {
+	t := e.t
+	t.Helper()
+	cat, err := catalog.Load("c0ffee", e.files(edit))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,6 +320,18 @@ func (e *env) graph(edit func(string) string) *catalog.Graph {
 		t.Fatal(err)
 	}
 	return g
+}
+
+// graphErr is graph for catalogs expected not to load or resolve.
+func (e *env) graphErr(edit func(string) string) error {
+	e.t.Helper()
+	files := e.files(edit)
+	cat, err := catalog.Load("c0ffee", files)
+	if err != nil {
+		return err
+	}
+	_, err = catalog.Resolve(cat)
+	return err
 }
 
 func (e *env) apply(edit func(string) string) (*plan.Plan, error) {
@@ -667,9 +686,10 @@ func TestSitePlay(t *testing.T) {
 			t.Errorf("%s not in %s", s, got)
 		}
 	}
+	// A no_log default masked in the plan is the role's own: not passed.
 	c.Roles[0].Params["password"] = plan.Masked
-	if _, err := sitePlay(c, nil, false); err == nil || !strings.Contains(err.Error(), "no_log") {
-		t.Errorf("err = %v", err)
+	if got, err := sitePlay(c, nil, false); err != nil || strings.Contains(string(got), "password") {
+		t.Errorf("masked param: %s %v", got, err)
 	}
 }
 
@@ -894,6 +914,97 @@ func TestRunAccessOnlyDistributesAccess(t *testing.T) {
 	for _, c := range body.Changes {
 		if c.Stage == "provision" {
 			t.Errorf("the access run provisioned: %+v", c)
+		}
+	}
+}
+
+const agentsAndApps = `---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform }
+spec: { secrets: { prefix: "bao://kv/apps/team-platform/" } }
+---
+apiVersion: gaia/v1alpha1
+kind: AnsibleRole
+metadata: { name: web.tomcat }
+spec: { source: { provider: config-repo, role: corp.web.tomcat } }
+---
+apiVersion: gaia/v1alpha1
+kind: AnsibleRole
+metadata: { name: agents.bigfix }
+spec:
+  source: { provider: config-repo, role: corp.agents.bigfix }
+  params: { relay: { type: str, default: relay.lab } }
+---
+apiVersion: gaia/v1alpha1
+kind: AnsibleRole
+metadata: { name: agents.zabbix }
+spec: { source: { provider: config-repo, role: corp.agents.zabbix } }
+---
+apiVersion: gaia/v1alpha1
+kind: Agent
+metadata: { name: bigfix }
+spec: { os: [linux], ansibleRole: agents.bigfix }
+---
+apiVersion: gaia/v1alpha1
+kind: Agent
+metadata: { name: zabbix-agent }
+spec: { os: [linux], ansibleRole: agents.zabbix, mandatory: true }
+---
+apiVersion: gaia/v1alpha1
+kind: App
+metadata: { name: portal }
+spec:
+  playbook: apps/portal.yml
+  requires: [web.tomcat]
+  params:
+    version: { type: str, required: true, gaia: { format: semver } }
+    dbPassword: { type: str, no_log: true, gaia: { secret: true } }
+`
+
+func TestApplyRunsAgentsAndAppsWithSecrets(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	e.deps.Secrets.(fakeSecrets)["bao://kv/apps/team-platform/portal"] = map[string]string{"db_password": "s3cret-db"}
+	g := e.graph(func(c string) string {
+		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  ansibleRoles: [web.tomcat]\n  agents: [bigfix]\n  apps:\n    - name: portal\n      params: { version: 2.4.1, dbPassword: \"bao://kv/apps/team-platform/portal#db_password\" }\n", 1) + agentsAndApps
+	})
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := p.Contracts[0]
+	if len(c.Agents) != 2 || c.Agents[0].Name != "zabbix-agent" || !c.Agents[0].Mandatory || c.Agents[1].Params["relay"] != "relay.lab" ||
+		len(c.Apps) != 1 || c.Apps[0].Params["dbPassword"] != "bao://kv/apps/team-platform/portal#db_password" {
+		t.Fatalf("plan = %+v", c)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	j := e.configure.jobs[0]
+	site := e.configure.projects[0][".gaia/site.yml"]
+	last := -1
+	for _, x := range []string{"baseline/linux.yml", "corp.agents.zabbix", "corp.agents.bigfix", "corp.web.tomcat", "apps/portal.yml"} {
+		i := strings.Index(site, x)
+		if i <= last {
+			t.Errorf("%s out of order in %s", x, site)
+		}
+		last = i
+	}
+	if !strings.Contains(site, `"dbPassword": "s3cret-db"`) || !strings.Contains(site, `"version": "2.4.1"`) || !slices.Contains(j.Secrets, "s3cret-db") {
+		t.Errorf("secrets: site %s, job secrets %v", site, j.Secrets)
+	}
+	if strings.Contains(fmt.Sprint(p), "s3cret-db") {
+		t.Error("the secret is in the plan")
+	}
+
+	// Another team's secret, or a value in Git, does not plan.
+	for _, v := range []string{`"bao://kv/apps/team-web/portal#x"`, `hunter2`} {
+		bad := e.graphErr(func(c string) string {
+			return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  ansibleRoles: [web.tomcat]\n  apps:\n    - name: portal\n      params: { version: 2.4.1, dbPassword: "+v+" }\n", 1) + agentsAndApps
+		})
+		if bad == nil || !strings.Contains(bad.Error(), "dbPassword") {
+			t.Errorf("%s: %v", v, bad)
 		}
 	}
 }

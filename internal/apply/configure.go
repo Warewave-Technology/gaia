@@ -122,7 +122,11 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 			return err
 		}
 	}
-	site, err := sitePlay(c, users, r.managesAccess(ctx, c))
+	resolved, secrets, err := r.resolveSecrets(ctx, c)
+	if err != nil {
+		return err
+	}
+	site, err := sitePlay(resolved, users, r.managesAccess(ctx, c))
 	if err != nil {
 		return err
 	}
@@ -137,7 +141,7 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	cfg := r.cfg
 	job := ansible.Job{
 		Name: "gaia-" + r.run + "-" + c.Name, Image: cfg.image, Playbook: sitePlaybook,
-		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout,
+		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout, Secrets: secrets,
 		Project: func(dir string) error {
 			if _, err := gitsrc.Export(cfg.repo, cfg.commit, cfg.dir, dir); err != nil {
 				return err
@@ -202,9 +206,83 @@ func (r *runner) hostVars(c plan.Contract, contract *catalog.Object, s plan.Serv
 }
 
 // configures reports whether a contract's servers are configured: a
-// baseline, roles, or access to distribute or take back.
+// baseline, agents, roles, apps, or access to distribute or take back.
 func (r *runner) configures(ctx context.Context, c plan.Contract) bool {
-	return c.Baseline != nil || len(c.Roles) > 0 || r.managesAccess(ctx, c)
+	return c.Baseline != nil || len(c.Roles) > 0 || len(c.Agents) > 0 || len(c.Apps) > 0 || r.managesAccess(ctx, c)
+}
+
+// given are the params passed to Ansible: those masked in the plan (a
+// no_log default the role has itself) are left to the role.
+func given(params map[string]any) map[string]any {
+	out := map[string]any{}
+	for k, v := range params {
+		if v != plan.Masked {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// resolveSecrets replaces bao:// references in the contract's params with
+// their values, for this run only, and returns the values so that they
+// are masked in its events (design 6.2). A reference is
+// bao://<path>#<field>; without a field, the secret's "value".
+func (r *runner) resolveSecrets(ctx context.Context, c plan.Contract) (plan.Contract, []string, error) {
+	var secrets []string
+	cache := map[string]map[string]string{}
+	resolve := func(params map[string]any) (map[string]any, error) {
+		if len(params) == 0 {
+			return params, nil
+		}
+		out := make(map[string]any, len(params))
+		for k, v := range params {
+			ref, ok := v.(string)
+			if !ok || !strings.HasPrefix(ref, "bao://") {
+				out[k] = v
+				continue
+			}
+			path, field, _ := strings.Cut(ref, "#")
+			if field == "" {
+				field = "value"
+			}
+			sec, ok := cache[path]
+			if !ok {
+				var err error
+				if sec, err = r.d.Secrets.Read(ctx, path); err != nil {
+					return nil, fmt.Errorf("param %s: %w", k, err)
+				}
+				cache[path] = sec
+			}
+			val, ok := sec[field]
+			if !ok {
+				return nil, fmt.Errorf("param %s: %s has no field %q", k, path, field)
+			}
+			out[k] = val
+			secrets = append(secrets, val)
+		}
+		return out, nil
+	}
+	out := c
+	var err error
+	out.Roles = append([]plan.Role(nil), c.Roles...)
+	for i := range out.Roles {
+		if out.Roles[i].Params, err = resolve(out.Roles[i].Params); err != nil {
+			return c, nil, fmt.Errorf("role %s: %w", out.Roles[i].Name, err)
+		}
+	}
+	out.Agents = append([]plan.Agent(nil), c.Agents...)
+	for i := range out.Agents {
+		if out.Agents[i].Params, err = resolve(out.Agents[i].Params); err != nil {
+			return c, nil, fmt.Errorf("agent %s: %w", out.Agents[i].Name, err)
+		}
+	}
+	out.Apps = append([]plan.App(nil), c.Apps...)
+	for i := range out.Apps {
+		if out.Apps[i].Params, err = resolve(out.Apps[i].Params); err != nil {
+			return c, nil, fmt.Errorf("app %s: %w", out.Apps[i].Name, err)
+		}
+	}
+	return out, secrets, nil
 }
 
 // managesAccess reports whether Gaia manages the contract's accounts: it
@@ -280,17 +358,24 @@ func sitePlay(c plan.Contract, users []access.User, manageAccess bool) ([]byte, 
 	if c.Baseline != nil {
 		plays = append(plays, map[string]any{"import_playbook": "../" + c.Baseline.Playbook})
 	}
+	if len(c.Agents) > 0 {
+		var roles []any
+		for _, a := range c.Agents {
+			roles = append(roles, map[string]any{"role": a.Role, "vars": given(a.Params)})
+		}
+		plays = append(plays, map[string]any{"name": "Agents of " + c.Name, "hosts": "all", "become": true, "roles": roles})
+	}
 	if len(c.Roles) > 0 {
 		var roles []any
 		for _, ro := range c.Roles {
-			for k, v := range ro.Params {
-				if v == plan.Masked {
-					return nil, fmt.Errorf("role %s: param %s is no_log; secret params are not supported yet", ro.Name, k)
-				}
-			}
-			roles = append(roles, map[string]any{"role": ro.Role, "vars": ro.Params})
+			roles = append(roles, map[string]any{"role": ro.Role, "vars": given(ro.Params)})
 		}
 		plays = append(plays, map[string]any{"name": "Roles of " + c.Name, "hosts": "all", "become": true, "roles": roles})
+	}
+	for _, a := range c.Apps {
+		vars := given(a.Params)
+		vars["gaia_app"] = map[string]any{"name": a.Name, "artifact": a.Artifact}
+		plays = append(plays, map[string]any{"import_playbook": "../" + a.Playbook, "vars": vars})
 	}
 	if manageAccess {
 		if users == nil {

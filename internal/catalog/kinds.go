@@ -528,6 +528,16 @@ type ServerSpec struct {
 	// Access is who may log in to the servers (design 14.3): a Group or a
 	// Team, with sudo or not.
 	Access []Access `yaml:"access"`
+	// Apps are the applications deployed on the servers, with their
+	// params; Agents the agents installed besides the mandatory ones.
+	Apps   []AppRef `yaml:"apps"`
+	Agents []string `yaml:"agents"`
+}
+
+// AppRef is an App on a contract's servers and the params it gets.
+type AppRef struct {
+	Name   string         `yaml:"name" gaia:"required"`
+	Params map[string]any `yaml:"params"`
 }
 
 // Access grants a Group or a Team login to a contract's servers.
@@ -997,4 +1007,44 @@ func (s *AnsibleRoleSourceSpec) validate() []string {
 		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
 	}
 	return out
+}
+
+// AppSpec is an application (design 4.3): a playbook in the config
+// repository, the roles it needs on the server, its params and rules,
+// and where its artifact comes from (${param} in path is the param's
+// value).
+type AppSpec struct {
+	Playbook string           `yaml:"playbook" gaia:"required"`
+	Requires []string         `yaml:"requires"`
+	Artifact *Artifact        `yaml:"artifact"`
+	Params   map[string]Param `yaml:"params"`
+	Rules    []Rule           `yaml:"rules"`
+}
+
+// Artifact is a file in an artifact repository (a nexus provider).
+type Artifact struct {
+	Provider   string `yaml:"provider" gaia:"required"`
+	Repository string `yaml:"repository" gaia:"required"`
+	Path       string `yaml:"path" gaia:"required"`
+}
+
+func (s *AppSpec) validate() []string {
+	var out []string
+	if s.Playbook != "" && (strings.HasPrefix(s.Playbook, "/") || strings.Contains(s.Playbook, "..")) {
+		out = append(out, fmt.Sprintf("playbook: %q: a path inside the config repository", s.Playbook))
+	}
+	for _, name := range sortedKeys(s.Params) {
+		out = append(out, validateParam("params."+name, s.Params[name])...)
+	}
+	return out
+}
+
+// AgentSpec is an agent installed on servers by an AnsibleRole (design
+// 4.3). A mandatory agent goes on every server of its operating systems
+// without a contract naming it.
+type AgentSpec struct {
+	OS          []string       `yaml:"os"`
+	AnsibleRole string         `yaml:"ansibleRole" gaia:"required"`
+	Params      map[string]any `yaml:"params"`
+	Mandatory   bool           `yaml:"mandatory"`
 }

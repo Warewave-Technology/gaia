@@ -30,6 +30,8 @@ const (
 	KindGroup       = "Group"
 	KindNetworkSrc  = "NetworkSource"
 	KindRoleSource  = "AnsibleRoleSource"
+	KindApp         = "App"
+	KindAgent       = "Agent"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -50,6 +52,8 @@ var newSpec = map[string]func() any{
 	KindGroup:       func() any { return &GroupSpec{} },
 	KindNetworkSrc:  func() any { return &NetworkSourceSpec{} },
 	KindRoleSource:  func() any { return &AnsibleRoleSourceSpec{} },
+	KindApp:         func() any { return &AppSpec{} },
+	KindAgent:       func() any { return &AgentSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.
