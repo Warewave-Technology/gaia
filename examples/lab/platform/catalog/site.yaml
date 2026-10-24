@@ -8,4 +8,5 @@ spec:
     nodes: [proxmox]
     pool: gaia
     storage: { default: local-lvm, snapshots: true }
+    vmids: { start: 9400, end: 9499 }   # lab destroy.yml bu aralığı siler
   ntp: [pool.ntp.org]

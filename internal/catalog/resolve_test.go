@@ -60,7 +60,7 @@ spec: { type: vsphere, endpoint: https://vc }
 kind: Site
 metadata: { name: lab }
 spec:
-  compute: { provider: pve, nodes: [n1] }
+  compute: { provider: pve, nodes: [n1], vmids: { start: 9400, end: 9499 } }
 ---
 apiVersion: gaia/v1alpha1
 kind: Site
@@ -236,12 +236,13 @@ func TestProviderTypeMustFit(t *testing.T) {
 
 func TestHypervisorSpecificFields(t *testing.T) {
 	lines := resolveErrors(t, catalogWith(t,
-		"sites.yaml", "{ provider: pve, nodes: [n1] }", "{ provider: pve, datacenter: DC }",
+		"sites.yaml", "{ provider: pve, nodes: [n1], vmids: { start: 9400, end: 9499 } }", "{ provider: pve, datacenter: DC }",
 		"networks.yaml", "{ portgroup: pg120 }", "{ vnet: v2 }",
 		"image.yaml", "template: tpl-rocky9", "template: { vmid: 1 }",
 	))
 	wantError(t, lines, "Site/lab", "spec.compute.nodes: at least one node for Proxmox")
 	wantError(t, lines, "Site/lab", "datacenter and folder are vSphere fields")
+	wantError(t, lines, "Site/lab", "spec.compute.vmids: the VM ID range Gaia may use is required for Proxmox")
 	wantError(t, lines, "Network/ank-app", `Site "ank" is on vSphere: use portgroup`)
 	wantError(t, lines, "Image/rocky9", "spec.templates[1].template: vSphere templates are named")
 }

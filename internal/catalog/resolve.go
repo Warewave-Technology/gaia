@@ -188,12 +188,15 @@ func (r *resolver) site(o *Object) {
 		if c.Datacenter != "" || c.Folder != "" {
 			r.fail(o, "spec.compute", "datacenter and folder are vSphere fields")
 		}
+		if c.VMIDs == nil {
+			r.fail(o, "spec.compute.vmids", "the VM ID range Gaia may use is required for Proxmox")
+		}
 	case "vsphere":
 		if c.Datacenter == "" || c.Cluster == "" {
 			r.fail(o, "spec.compute", "datacenter and cluster are required for vSphere")
 		}
-		if len(c.Nodes) > 0 || c.Pool != "" {
-			r.fail(o, "spec.compute", "nodes and pool are Proxmox fields")
+		if len(c.Nodes) > 0 || c.Pool != "" || c.VMIDs != nil {
+			r.fail(o, "spec.compute", "nodes, pool and vmids are Proxmox fields")
 		}
 	}
 }

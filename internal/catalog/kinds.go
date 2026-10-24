@@ -35,6 +35,9 @@ type ConfigurationEngine struct {
 	ExecutionEnvironment string       `yaml:"executionEnvironment" gaia:"required"`
 	Source               string       `yaml:"source" gaia:"required"`
 	Limits               EngineLimits `yaml:"limits"`
+	// SSHKey is Gaia's key pair (private, public) for reaching servers:
+	// cloud-init gets the public key, Ansible the private one.
+	SSHKey string `yaml:"sshKey"`
 }
 
 type EngineLimits struct {
@@ -54,6 +57,9 @@ func (s *PlatformSpec) validate() []string {
 	}
 	if c.Executor != "ansible-runner" {
 		out = append(out, fmt.Sprintf("engines.configuration.executor: %q is not supported (ansible-runner)", c.Executor))
+	}
+	if c.SSHKey != "" && !strings.HasPrefix(c.SSHKey, "bao://") {
+		out = append(out, "engines.configuration.sshKey: must be a bao:// reference")
 	}
 	if c.Limits.Timeout != "" {
 		if _, err := time.ParseDuration(c.Limits.Timeout); err != nil {
@@ -149,6 +155,20 @@ type Compute struct {
 	Nodes      []string `yaml:"nodes"`
 	Pool       string   `yaml:"pool"`
 	Storage    *Storage `yaml:"storage"`
+	// VMIDs is the Proxmox VM ID range Gaia allocates from.
+	VMIDs *IDRange `yaml:"vmids"`
+}
+
+type IDRange struct {
+	Start int `yaml:"start" gaia:"required"`
+	End   int `yaml:"end" gaia:"required"`
+}
+
+func (s *SiteSpec) validate() []string {
+	if r := s.Compute.VMIDs; r != nil && (r.Start < 100 || r.End < r.Start) {
+		return []string{"compute.vmids: start >= 100 and end >= start"}
+	}
+	return nil
 }
 
 type Storage struct {

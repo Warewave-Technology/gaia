@@ -11,5 +11,6 @@ spec:
       executor: ansible-runner
       executionEnvironment: localhost/gaia/ee-default:dev     # lab'de Nexus yok; podman'da yerel imaj
       source: config-repo
+      sshKey: bao://kv/platform/ssh   # private, public
       limits: { concurrentRuns: 2, forks: 10, timeout: 1h }
   runArchive: run-records
