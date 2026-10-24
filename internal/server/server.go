@@ -18,6 +18,8 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
+	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -43,6 +45,12 @@ type Config struct {
 	Auth *auth.Service
 	// Repos are the local mirrors workers read snapshots from.
 	Repos *repo.Mirrors
+	// Finished is told about every run that ends (the change engine).
+	Finished func(context.Context, queue.ApplyArgs, *catalog.Graph) error
+	// Changes is the change engine and Catalog the desired state it
+	// follows; the changes API needs both.
+	Changes *change.Engine
+	Catalog *CatalogSource
 }
 
 // Server is a running gaia server.
@@ -64,7 +72,7 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 	rc := &river.Config{Logger: cfg.Log}
 	if cfg.Workers > 0 {
 		workers := river.NewWorkers()
-		if err := river.AddWorkerSafely(workers, &queue.ApplyWorker{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, MaxDuration: cfg.RunTimeout, BusyWait: cfg.BusyWait}); err != nil {
+		if err := river.AddWorkerSafely(workers, &queue.ApplyWorker{Store: s, Repos: cfg.Repos, Finished: cfg.Finished, Systems: cfg.Systems, MaxDuration: cfg.RunTimeout, BusyWait: cfg.BusyWait}); err != nil {
 			return nil, err
 		}
 		if err := river.AddWorkerSafely(workers, &queue.PruneEventsWorker{Store: s, Retention: cfg.EventRetention}); err != nil {

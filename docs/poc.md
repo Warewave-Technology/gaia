@@ -134,7 +134,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Kontrat başına plan:** Sunucular hostname, `seq`, site, ağ, compute (provider, tip, şablon, node, pool, storage, ağ bağlantısı) ve IPAM havuzuyla listelenir. Ardından baseline ve roller gelir; rol parametreleri varsayılanları uygulanmış olarak gösterilir, `no_log` olanlar maskelenir. Policy'ye göre onay gerekip gerekmediği de yazılır.
    - **Kontrol:** Kontratlar arasında hostname çakışması plan hatasıdır.
    - **`decommissioned` kontratlar:** Sunucu planlanmaz. Silme planı M2'de, uygulanması M4.3'te geldi.
-   - **Plan hash'i:** Kanonik JSON'un SHA-256'sı. Aynı girdi aynı hash'i, farklı girdi farklı hash'i verir.
+   - **Plan hash'i:** Kanonik JSON'un SHA-256'sı. Aynı girdi aynı hash'i, farklı girdi farklı hash'i verir. (2026-10-25'ten beri commit etiketi hash'e girmiyor; bkz. design 7.6.)
    - **Komut:** `gaia plan [kontrat...] --repo --ref --path [--json]`. `--json`'da stdout'a sadece plan yazılır.
    - **M1'de sistem durumu okunmaz:** Her sunucu `create` olarak görünür ve `seq` her site için 1'den başlar. M2'de mevcut sunucular, IP'ler ve isim kiralamaları okunacak.
    - **Başarı kriteri 1 karşılandı:** `gaia plan` çözümlenmiş planı gösteriyor ve hiçbir sisteme dokunmuyor.

@@ -250,3 +250,13 @@ func (c *Client) Logout(ctx context.Context) error {
 	}
 	return c.post(ctx, "/api/v1/auth/cli/logout", map[string]string{"refreshToken": c.creds.RefreshToken}, nil)
 }
+
+// Get reads any API path into out.
+func (c *Client) Get(ctx context.Context, path string, out any) error {
+	return c.do(ctx, http.MethodGet, path, out)
+}
+
+// Post sends an API request without a body and reads its answer.
+func (c *Client) Post(ctx context.Context, path string, _ any, out any) error {
+	return c.do(ctx, http.MethodPost, path, out)
+}

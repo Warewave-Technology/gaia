@@ -86,6 +86,7 @@ begin
   grant usage, select on all sequences in schema public to gaia_app;
   revoke update, delete, truncate on run_records from gaia_app;
   grant update (archived) on run_records to gaia_app;
+  revoke update, delete, truncate on approvals from gaia_app;
   revoke all on goose_db_version from gaia_app;
   grant select on goose_db_version to gaia_app;
 end
@@ -165,13 +166,19 @@ func (s *Store) CreateHost(ctx context.Context, h NewHost) error {
 // transaction-level advisory lock: it is released when fn returns, also
 // through a connection pooler in transaction mode.
 func (s *Store) WithContractLock(ctx context.Context, contract string, fn func(context.Context) error) error {
+	return s.WithLock(ctx, "gaia/contract/"+contract, fn)
+}
+
+// WithLock runs fn while holding the named advisory lock, or returns
+// ErrLocked at once when someone else holds it.
+func (s *Store) WithLock(ctx context.Context, name string, fn func(context.Context) error) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		var ok bool
-		if err := tx.QueryRow(ctx, `select pg_try_advisory_xact_lock(hashtextextended('gaia/contract/' || $1, 0))`, contract).Scan(&ok); err != nil {
+		if err := tx.QueryRow(ctx, `select pg_try_advisory_xact_lock(hashtextextended($1, 0))`, name).Scan(&ok); err != nil {
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("%s: %w", contract, ErrLocked)
+			return fmt.Errorf("%s: %w", strings.TrimPrefix(name, "gaia/contract/"), ErrLocked)
 		}
 		return fn(ctx)
 	})
@@ -245,6 +252,9 @@ func NewUserID() string { return "usr-" + newID(10) }
 
 // NewSessionID returns a new session's ID.
 func NewSessionID() string { return "ses-" + newID(10) }
+
+// NewChangeID returns a new change's ID.
+func NewChangeID() string { return "chg-" + newID(10) }
 
 // NewFlowID returns a new sign-in ceremony's ID.
 func NewFlowID() string { return "flw-" + newID(16) }

@@ -16,6 +16,7 @@ type Repo struct {
 	t    *testing.T
 	Dir  string
 	repo *git.Repository
+	n    int
 }
 
 // New creates an empty repository.
@@ -46,6 +47,14 @@ func (r *Repo) Write(kv ...string) {
 // Commit stages everything and commits it; it returns the commit hash.
 func (r *Repo) Commit(msg string) string {
 	r.t.Helper()
+	return r.CommitSigned(msg, nil)
+}
+
+// CommitSigned is Commit signed with signer (nil: unsigned). Commits get
+// increasing times, so that history has an order.
+func (r *Repo) CommitSigned(msg string, signer git.Signer) string {
+	r.t.Helper()
+	r.n++
 	wt, err := r.repo.Worktree()
 	if err != nil {
 		r.t.Fatal(err)
@@ -54,7 +63,8 @@ func (r *Repo) Commit(msg string) string {
 		r.t.Fatal(err)
 	}
 	h, err := wt.Commit(msg, &git.CommitOptions{
-		Author: &object.Signature{Name: "test", Email: "test@example.com", When: time.Unix(1700000000, 0)},
+		Author: &object.Signature{Name: "test", Email: "test@example.com", When: time.Unix(1700000000+int64(r.n), 0)},
+		Signer: signer, AllowEmptyCommits: true,
 	})
 	if err != nil {
 		r.t.Fatal(err)

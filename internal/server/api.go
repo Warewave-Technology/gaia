@@ -38,6 +38,9 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/records/verify", "", s.verifyRecords},
 		{"GET", "/api/v1/contracts", "", s.listContracts},
 		{"GET", "/api/v1/contracts/{name}", "", s.getContract},
+		{"GET", "/api/v1/changes", "", s.listChanges},
+		{"GET", "/api/v1/changes/{id}", "", s.getChange},
+		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
 	}
 }
 
@@ -117,6 +120,9 @@ type ContractSummary struct {
 	LiveHosts  int32  `json:"liveHosts"`
 	LastRun    string `json:"lastRun,omitempty"`
 	LastStatus string `json:"lastStatus,omitempty"`
+	// Sync is synced, out-of-sync or unknown (design 7.6).
+	Sync       string `json:"sync,omitempty"`
+	OpenChange string `json:"openChange,omitempty"`
 	Restricted bool   `json:"restricted,omitempty"`
 }
 
@@ -415,7 +421,14 @@ func (s *Server) listContracts(w http.ResponseWriter, r *http.Request) {
 			out = append(out, ContractSummary{Name: c.Name, Restricted: true})
 			continue
 		}
-		out = append(out, ContractSummary{Name: c.Name, LiveHosts: c.LiveHosts, LastRun: c.LastRun, LastStatus: c.LastStatus})
+		cs := ContractSummary{Name: c.Name, LiveHosts: c.LiveHosts, LastRun: c.LastRun, LastStatus: c.LastStatus}
+		if st, err := s.store.Q().ContractState(r.Context(), c.Name); err == nil {
+			cs.Sync = st.Sync
+		}
+		if oc, err := s.store.Q().OpenChange(r.Context(), c.Name); err == nil {
+			cs.OpenChange = oc.ID
+		}
+		out = append(out, cs)
 	}
 	writeJSON(w, http.StatusOK, out)
 }
