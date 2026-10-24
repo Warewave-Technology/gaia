@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 )
@@ -35,6 +37,11 @@ type Contract struct {
 	Baseline   *Baseline         `json:"baseline,omitempty"`
 	Roles      []Role            `json:"roles,omitempty"`
 	Monitoring *Monitoring       `json:"monitoring,omitempty"`
+	// Agents are installed before the contract's roles; mandatory ones
+	// come from the catalog by the image's operating system.
+	Agents []Agent `json:"agents,omitempty"`
+	// Apps are deployed after the roles.
+	Apps []App `json:"apps,omitempty"`
 	// Access is who may log in (design 14.3), teams resolved: a change
 	// to it is a change to the contract, approved like any. The people
 	// in the teams are not part of the plan; they come from AD.
@@ -44,6 +51,22 @@ type Contract struct {
 // ContractHostGroup is the monitoring host group of a contract's servers
 // alone.
 func ContractHostGroup(contract string) string { return "Gaia/contract/" + contract }
+
+// Agent is an agent and the role that installs it.
+type Agent struct {
+	Name      string         `json:"name"`
+	Role      string         `json:"role"`
+	Params    map[string]any `json:"params,omitempty"`
+	Mandatory bool           `json:"mandatory,omitempty"`
+}
+
+// App is an application, its playbook, params and artifact.
+type App struct {
+	Name     string         `json:"name"`
+	Playbook string         `json:"playbook"`
+	Params   map[string]any `json:"params,omitempty"`
+	Artifact string         `json:"artifact,omitempty"` // URL
+}
 
 // Access is one access entry of a contract.
 type Access struct {
@@ -302,6 +325,36 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			Params: mask(rs.Params, catalog.EffectiveParams(rs.Params, rr.Params)),
 		})
 	}
+	seen := map[string]bool{}
+	addAgent := func(name string, mandatory bool) {
+		if seen[name] {
+			return
+		}
+		seen[name] = true
+		as := mustGet(g, catalog.KindAgent, name).Spec.(*catalog.AgentSpec)
+		rs := mustGet(g, catalog.KindAnsibleRole, as.AnsibleRole).Spec.(*catalog.AnsibleRoleSpec)
+		c.Agents = append(c.Agents, Agent{Name: name, Role: rs.Source.Role, Mandatory: mandatory,
+			Params: mask(rs.Params, catalog.EffectiveParams(rs.Params, as.Params))})
+	}
+	for _, o := range g.Catalog.List(catalog.KindAgent) {
+		as := o.Spec.(*catalog.AgentSpec)
+		if as.Mandatory && (len(as.OS) == 0 || slices.Contains(as.OS, img.OS)) {
+			addAgent(o.Metadata.Name, true)
+		}
+	}
+	for _, name := range s.Agents {
+		addAgent(name, false)
+	}
+	for _, ar := range s.Apps {
+		as := mustGet(g, catalog.KindApp, ar.Name).Spec.(*catalog.AppSpec)
+		params := catalog.EffectiveParams(as.Params, ar.Params)
+		app := App{Name: ar.Name, Playbook: as.Playbook, Params: mask(as.Params, params)}
+		if a := as.Artifact; a != nil {
+			ps := mustGet(g, catalog.KindProvider, a.Provider).Spec.(*catalog.ProviderSpec)
+			app.Artifact = strings.TrimRight(ps.Endpoint, "/") + "/repository/" + a.Repository + "/" + strings.TrimLeft(expand(a.Path, params), "/")
+		}
+		c.Apps = append(c.Apps, app)
+	}
 	for _, a := range s.Access {
 		if a.Team != "" {
 			c.Access = append(c.Access, Access{Via: "team/" + a.Team, Teams: []string{a.Team}, Sudo: a.Sudo})
@@ -411,9 +464,21 @@ func attachment(a catalog.Attachment) string {
 	return "portgroup " + a.Portgroup
 }
 
+// expand replaces ${name} in s with params' values.
+func expand(s string, params map[string]any) string {
+	return os.Expand(s, func(k string) string {
+		if v, ok := params[k]; ok {
+			return fmt.Sprint(v)
+		}
+		return "${" + k + "}"
+	})
+}
+
+// mask hides the values of no_log params. A bao:// reference is kept: it
+// is not the secret, and the run resolves it (design 6.2).
 func mask(schema map[string]catalog.Param, params map[string]any) map[string]any {
-	for k := range params {
-		if schema[k].NoLog {
+	for k, v := range params {
+		if ref, _ := v.(string); schema[k].NoLog && !strings.HasPrefix(ref, "bao://") {
 			params[k] = Masked
 		}
 	}

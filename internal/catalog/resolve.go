@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/Warewave-Technology/gaia/internal/cel"
@@ -188,6 +189,24 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	}
 	for _, o := range cat.List(KindGroup) {
 		r.group(o)
+	}
+	for _, o := range cat.List(KindApp) {
+		r.app(o)
+	}
+	for _, o := range cat.List(KindAgent) {
+		as := o.Spec.(*AgentSpec)
+		if role := r.ref(o, "spec.ansibleRole", KindAnsibleRole, as.AnsibleRole); role != nil {
+			rs := role.Spec.(*AnsibleRoleSpec)
+			for _, name := range sortedKeys(as.Params) {
+				if p, ok := rs.Params[name]; !ok {
+					r.fail(o, "spec.params", "AnsibleRole %q has no param %q", as.AnsibleRole, name)
+				} else {
+					for _, msg := range checkValue(name, p, as.Params[name]) {
+						r.fail(o, "spec.params."+name, "%s", msg)
+					}
+				}
+			}
+		}
 	}
 	for _, o := range cat.List(KindServer) {
 		r.server(o)
@@ -502,6 +521,24 @@ func (r *resolver) ansibleRole(o *Object) {
 	}
 }
 
+func (r *resolver) app(o *Object) {
+	s := o.Spec.(*AppSpec)
+	for i, req := range s.Requires {
+		r.ref(o, fmt.Sprintf("spec.requires[%d]", i), KindAnsibleRole, req)
+	}
+	if s.Artifact != nil {
+		r.ref(o, "spec.artifact.provider", KindProvider, s.Artifact.Provider, "nexus")
+	}
+	for i, rule := range s.Rules {
+		p, err := cel.Rule(rule.Rule)
+		if err != nil {
+			r.fail(o, fmt.Sprintf("spec.rules[%d].rule", i), "%v", err)
+			continue
+		}
+		r.g.rules["app/"+o.Metadata.Name] = append(r.g.rules["app/"+o.Metadata.Name], p)
+	}
+}
+
 func (r *resolver) server(o *Object) {
 	s := o.Spec.(*ServerSpec)
 	labels := o.Metadata.Labels
@@ -584,6 +621,32 @@ func (r *resolver) server(o *Object) {
 			r.roleRules(o, field, rr, rs, nets)
 		}
 	}
+	for i, ar := range s.Apps {
+		field := fmt.Sprintf("spec.apps[%d]", i)
+		app := r.ref(o, field+".name", KindApp, ar.Name)
+		if app == nil {
+			continue
+		}
+		as := app.Spec.(*AppSpec)
+		for _, req := range as.Requires {
+			if _, ok := roles[req]; !ok {
+				r.fail(o, field, "App %q needs AnsibleRole %q in ansibleRoles", ar.Name, req)
+			}
+		}
+		if r.params(o, field, "App "+strconv.Quote(ar.Name), as.Params, ar.Params) {
+			r.evalRules(o, field, "App "+strconv.Quote(ar.Name), r.g.rules["app/"+ar.Name], as.Rules, EffectiveParams(as.Params, ar.Params), nets)
+		}
+	}
+	for i, name := range s.Agents {
+		field := fmt.Sprintf("spec.agents[%d]", i)
+		agent := r.ref(o, field, KindAgent, name)
+		if agent == nil {
+			continue
+		}
+		if as := agent.Spec.(*AgentSpec); imgOS != "" && len(as.OS) > 0 && !contains(as.OS, imgOS) {
+			r.fail(o, field, "Agent %q is for %s, Image %q is %s", name, strings.Join(as.OS, ", "), s.Image, imgOS)
+		}
+	}
 	reported := map[[2]string]bool{}
 	for _, name := range sortedKeys(roles) {
 		for _, c := range roles[name].Spec.(*AnsibleRoleSpec).Conflicts {
@@ -633,7 +696,12 @@ func (r *resolver) hostname(o *Object, field string, net *Object) {
 
 // roleRules evaluates the role's rules for each network of the server.
 func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRoleSpec, nets []*Object) {
-	progs := r.g.rules[rr.Name]
+	r.evalRules(o, field, "AnsibleRole "+strconv.Quote(rr.Name), r.g.rules[rr.Name], rs.Rules, EffectiveParams(rs.Params, rr.Params), nets)
+}
+
+// evalRules evaluates rules of a role or an app for each network of the
+// server; what names them in messages.
+func (r *resolver) evalRules(o *Object, field, what string, progs []*cel.Program, rules []Rule, params map[string]any, nets []*Object) {
 	if len(progs) == 0 {
 		return
 	}
@@ -648,7 +716,6 @@ func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRol
 	for k, v := range o.Metadata.Labels {
 		labels[k] = v
 	}
-	params := EffectiveParams(rs.Params, rr.Params)
 	for _, net := range nets {
 		vars := map[string]any{
 			"params":  params,
@@ -661,9 +728,9 @@ func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRol
 			ok, err := p.EvalBool(vars)
 			switch {
 			case err != nil:
-				r.fail(o, field, "AnsibleRole %q rule %d: %v", rr.Name, i, err)
+				r.fail(o, field, "%s rule %d: %v", what, i, err)
 			case !ok:
-				r.fail(o, field, "AnsibleRole %q: %s", rr.Name, rs.Rules[i].Message)
+				r.fail(o, field, "%s: %s", what, rules[i].Message)
 			}
 		}
 	}
@@ -673,21 +740,46 @@ func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRol
 // required ones without a default are given. Values are checked later,
 // with the full params schema.
 func (r *resolver) roleParams(o *Object, field string, rr RoleRef, rs *AnsibleRoleSpec) bool {
+	return r.params(o, field, "AnsibleRole "+strconv.Quote(rr.Name), rs.Params, rr.Params)
+}
+
+// params checks the params a contract gives a role or an app: they exist
+// in the schema, their values fit, required ones are given, and secret
+// references stay under the owner team's prefix (design 6.2, rule 2).
+func (r *resolver) params(o *Object, field, what string, schema map[string]Param, given map[string]any) bool {
 	before := len(r.errs)
-	for _, name := range sortedKeys(rr.Params) {
-		p, ok := rs.Params[name]
-		if !ok {
-			r.fail(o, field+".params", "AnsibleRole %q has no param %q%s", rr.Name, name, nearest(name, sortedKeys(rs.Params)))
-			continue
-		}
-		for _, msg := range checkValue(name, p, rr.Params[name]) {
-			r.fail(o, field+".params."+name, "AnsibleRole %q: %s", rr.Name, msg)
+	prefix, checkPrefix := "", false
+	if owner := o.Metadata.Labels["owner"]; owner != "" && len(r.g.Catalog.List(KindTeam)) > 0 {
+		checkPrefix = true
+		if t := r.g.Team(owner); t != nil && t.Secrets != nil {
+			prefix = t.Secrets.Prefix
 		}
 	}
-	for _, name := range sortedKeys(rs.Params) {
-		p := rs.Params[name]
-		if _, given := rr.Params[name]; p.Required && p.Default == nil && !given {
-			r.fail(o, field, "AnsibleRole %q requires param %q", rr.Name, name)
+	for _, name := range sortedKeys(given) {
+		p, ok := schema[name]
+		if !ok {
+			r.fail(o, field+".params", "%s has no param %q%s", what, name, nearest(name, sortedKeys(schema)))
+			continue
+		}
+		msgs := checkValue(name, p, given[name])
+		for _, msg := range msgs {
+			r.fail(o, field+".params."+name, "%s: %s", what, msg)
+		}
+		v, _ := given[name].(string)
+		switch {
+		case len(msgs) > 0:
+		case p.NoLog && !strings.HasPrefix(v, "bao://"):
+			r.fail(o, field+".params."+name, "%s: %s is no_log; give a bao:// reference, not a value in Git", what, name)
+		case strings.HasPrefix(v, "bao://") && checkPrefix && prefix == "":
+			r.fail(o, field+".params."+name, "%s: Team %q has no secrets.prefix; it may refer to no secret", what, o.Metadata.Labels["owner"])
+		case strings.HasPrefix(v, "bao://") && checkPrefix && !strings.HasPrefix(v, prefix):
+			r.fail(o, field+".params."+name, "%s: %s is not under Team %q's secrets (%s)", what, v, o.Metadata.Labels["owner"], prefix)
+		}
+	}
+	for _, name := range sortedKeys(schema) {
+		p := schema[name]
+		if _, ok := given[name]; p.Required && p.Default == nil && !ok {
+			r.fail(o, field, "%s requires param %q", what, name)
 		}
 	}
 	return len(r.errs) == before
