@@ -37,15 +37,15 @@ func NewS3(endpoint, bucket, accessKey, secretKey string) (*S3, error) {
 	return &S3{client: c, bucket: bucket}, nil
 }
 
-// Put writes the object with a COMPLIANCE retention and returns its
-// s3:// location with the version.
+// Put writes the object, with a COMPLIANCE retention until retainUntil
+// unless that is zero, and returns its s3:// location with the version.
 func (s *S3) Put(ctx context.Context, key string, data []byte, retainUntil time.Time) (string, error) {
-	info, err := s.client.PutObject(ctx, s.bucket, key, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
-		ContentType:     "application/json",
-		Mode:            minio.Compliance,
-		RetainUntilDate: retainUntil.UTC().Truncate(time.Second),
-		SendContentMd5:  true, // Object Lock requires it
-	})
+	opts := minio.PutObjectOptions{ContentType: "application/json", SendContentMd5: true}
+	if !retainUntil.IsZero() {
+		// Object Lock requires Content-MD5, sent above.
+		opts.Mode, opts.RetainUntilDate = minio.Compliance, retainUntil.UTC().Truncate(time.Second)
+	}
+	info, err := s.client.PutObject(ctx, s.bucket, key, bytes.NewReader(data), int64(len(data)), opts)
 	if err != nil {
 		return "", fmt.Errorf("archive %s/%s: %w", s.bucket, key, err)
 	}

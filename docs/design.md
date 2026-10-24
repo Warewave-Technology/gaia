@@ -1610,3 +1610,6 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | İlk Git sunucusu GitHub (webhook + fetch); diğerleri aynı arayüze eklenir |
 | 2026-10-24 | API REST + JSON (`/api/v1`), OpenAPI 3.1 şeması repoda; arayüzün istemcisi şemadan üretilir; canlı olaylar SSE ile |
 | 2026-10-24 | Yol haritası `docs/roadmap.md`'de; arayüz ekranları tasarım taslağı onaylanınca yazılır |
+| 2026-10-24 | Run'lar River işi: kontrat başına bir iş, worker planı yeniden alır ve hash değiştiyse uygulamaz; işler tekrar denenmez |
+| 2026-10-24 | Çıktı satırları ve Ansible olayları tek sıralı `run_events` akışında; SSE ile canlı, `LISTEN/NOTIFY` ile replikalar arası; ham olaylar `Platform.runLogs` bucket'ına kilitsiz arşivlenir |
+| 2026-10-24 | Worker'lar OpenBao'ya AppRole ile girer (`GAIA_BAO_ADDR`, `GAIA_BAO_ROLE_ID`, secret_id dosyası veya systemd credential'ı) |

@@ -15,7 +15,14 @@ Gaia'yı bu ortamla çalıştırmak için:
 
 ```
 export GAIA_DSN="postgres://gaia_owner:dev@127.0.0.1:15432/gaia?sslmode=disable"
-export GAIA_BAO_TOKEN=dev-root
+export GAIA_BAO_TOKEN=dev-root                 # gaia apply için
+```
+
+`gaia server`'ın worker'ları AppRole ile girer (`gaia` rolü, sadece `kv/platform/*` okuma ve Pulumi anahtarı):
+
+```
+unset GAIA_BAO_TOKEN
+export GAIA_BAO_ADDR=http://127.0.0.1:18200 GAIA_BAO_ROLE_ID=gaia-dev GAIA_BAO_SECRET_ID=gaia-dev-secret-id
 ```
 
 Portlar, makinedeki başka servislerle çakışmasın diye standart portların 10000 fazlasıdır. Ortam sadece yerel kullanım içindir; sırları sabittir ve bütün portlar `127.0.0.1`'e bağlıdır.

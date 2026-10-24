@@ -156,8 +156,8 @@ func Key(r db.RunRecord) string {
 	return fmt.Sprintf("records/%04d/%02d/%s.json", t.Year(), t.Month(), r.RunID)
 }
 
-// Archive stores records where nobody can change them before retention
-// ends.
+// Archive stores objects; with a retention, where nobody can change them
+// before it ends.
 type Archive interface {
 	Put(ctx context.Context, key string, data []byte, retainUntil time.Time) (string, error)
 }

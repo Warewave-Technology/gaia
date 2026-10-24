@@ -61,8 +61,35 @@ func Migrate(ctx context.Context, dsn string) (err error) {
 	if _, err := p.Up(ctx); err != nil {
 		return err
 	}
-	return migrateRiver(ctx, dsn)
+	if err := migrateRiver(ctx, dsn); err != nil {
+		return err
+	}
+	_, err = sqlDB.ExecContext(ctx, appGrants)
+	return err
 }
+
+// AppRole is the role Gaia runs as (design 12.2). The database
+// administrator creates it; gaia migrate, run as the owner, grants it
+// what it needs after every migration. It may not change or delete run
+// records and approvals; of a record it may only fill in the archive
+// location, once (the trigger checks that).
+const AppRole = "gaia_app"
+
+const appGrants = `
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'gaia_app') then
+    return;
+  end if;
+  grant usage on schema public to gaia_app;
+  grant select, insert, update, delete on all tables in schema public to gaia_app;
+  grant usage, select on all sequences in schema public to gaia_app;
+  revoke update, delete, truncate on run_records from gaia_app;
+  grant update (archived) on run_records to gaia_app;
+  revoke all on goose_db_version from gaia_app;
+  grant select on goose_db_version to gaia_app;
+end
+$$;`
 
 // migrateRiver creates and updates the job queue's tables (River).
 func migrateRiver(ctx context.Context, dsn string) error {

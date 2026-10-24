@@ -270,3 +270,23 @@ func TestHealth(t *testing.T) {
 }
 
 func q(e *env) *db.Queries { return e.store.Q() }
+
+func TestOldEventsArePruned(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	run := e.enqueue()
+	e.start()
+	e.waitFor(run, "succeeded")
+	if _, err := e.store.Pool().Exec(ctx, "update run_events set created_at = now() - interval '100 days' where seq = 1"); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := e.store.Q().RunEvents(ctx, run)
+	w := &queue.PruneEventsWorker{Store: e.store}
+	if err := w.Work(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := e.store.Q().RunEvents(ctx, run)
+	if len(after) != len(before)-1 || after[0].Seq != 2 {
+		t.Errorf("%d events before, %d after", len(before), len(after))
+	}
+}
