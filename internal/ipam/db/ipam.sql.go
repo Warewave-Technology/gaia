@@ -103,7 +103,7 @@ func (q *Queries) LiveAllocationOf(ctx context.Context, arg LiveAllocationOfPara
 }
 
 const lockPool = `-- name: LockPool :one
-select cidr, gateway, range_start, range_end from pools where cidr = $1 for update
+select cidr, gateway, range_start, range_end, name, labels, tags from pools where cidr = $1 for update
 `
 
 func (q *Queries) LockPool(ctx context.Context, cidr netip.Prefix) (Pool, error) {
@@ -114,12 +114,15 @@ func (q *Queries) LockPool(ctx context.Context, cidr netip.Prefix) (Pool, error)
 		&i.Gateway,
 		&i.RangeStart,
 		&i.RangeEnd,
+		&i.Name,
+		&i.Labels,
+		&i.Tags,
 	)
 	return i, err
 }
 
 const pools = `-- name: Pools :many
-select cidr, gateway, range_start, range_end from pools order by cidr
+select cidr, gateway, range_start, range_end, name, labels, tags from pools order by cidr
 `
 
 func (q *Queries) Pools(ctx context.Context) ([]Pool, error) {
@@ -136,6 +139,9 @@ func (q *Queries) Pools(ctx context.Context) ([]Pool, error) {
 			&i.Gateway,
 			&i.RangeStart,
 			&i.RangeEnd,
+			&i.Name,
+			&i.Labels,
+			&i.Tags,
 		); err != nil {
 			return nil, err
 		}
@@ -215,10 +221,11 @@ func (q *Queries) UnavailableIPs(ctx context.Context, pool netip.Prefix) ([]neti
 }
 
 const upsertPool = `-- name: UpsertPool :exec
-insert into pools (cidr, gateway, range_start, range_end)
-values ($1, $2, $3, $4)
+insert into pools (cidr, gateway, range_start, range_end, name, labels, tags)
+values ($1, $2, $3, $4, $5, $6, $7)
 on conflict (cidr) do update
-set gateway = excluded.gateway, range_start = excluded.range_start, range_end = excluded.range_end
+set gateway = excluded.gateway, range_start = excluded.range_start, range_end = excluded.range_end,
+    name = excluded.name, labels = excluded.labels, tags = excluded.tags
 `
 
 type UpsertPoolParams struct {
@@ -226,6 +233,9 @@ type UpsertPoolParams struct {
 	Gateway    *netip.Addr
 	RangeStart netip.Addr
 	RangeEnd   netip.Addr
+	Name       string
+	Labels     []byte
+	Tags       []string
 }
 
 func (q *Queries) UpsertPool(ctx context.Context, arg UpsertPoolParams) error {
@@ -234,6 +244,9 @@ func (q *Queries) UpsertPool(ctx context.Context, arg UpsertPoolParams) error {
 		arg.Gateway,
 		arg.RangeStart,
 		arg.RangeEnd,
+		arg.Name,
+		arg.Labels,
+		arg.Tags,
 	)
 	return err
 }

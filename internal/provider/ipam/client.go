@@ -32,6 +32,12 @@ func (c *Client) SetPool(ctx context.Context, p ipam.Pool) error {
 }
 
 // Allocate returns owner's address in pool, allocating one if needed.
+// Pools lists the pools with what they are for.
+func (c *Client) Pools(ctx context.Context) ([]ipam.Pool, error) {
+	var out []ipam.Pool
+	return out, c.do(ctx, http.MethodGet, "/v1/pools", nil, &out)
+}
+
 func (c *Client) Allocate(ctx context.Context, pool, owner, hostname string) (ipam.Allocation, error) {
 	var a ipam.Allocation
 	err := c.do(ctx, http.MethodPost, "/v1/allocations", ipam.AllocateRequest{Pool: pool, Owner: owner, Hostname: hostname}, &a)

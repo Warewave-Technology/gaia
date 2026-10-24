@@ -33,6 +33,11 @@ type Pool struct {
 	Gateway    string `json:"gateway,omitempty"`
 	RangeStart string `json:"rangeStart"`
 	RangeEnd   string `json:"rangeEnd"`
+	// What the pool is for, for a NetworkSource (design 5.2): a name,
+	// labels such as site, env, zone, vlan or dnsZone, and tags.
+	Name   string            `json:"name,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
+	Tags   []string          `json:"tags,omitempty"`
 }
 
 // AllocateRequest asks for an address for a host.
@@ -125,7 +130,19 @@ func (s *Server) SetPool(ctx context.Context, p Pool) error {
 		}
 		gw = &a
 	}
-	return db.New(s.pool).UpsertPool(ctx, db.UpsertPoolParams{Cidr: cidr, Gateway: gw, RangeStart: start, RangeEnd: end})
+	labels := p.Labels
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	lj, err := json.Marshal(labels)
+	if err != nil {
+		return err
+	}
+	tags := p.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+	return db.New(s.pool).UpsertPool(ctx, db.UpsertPoolParams{Cidr: cidr, Gateway: gw, RangeStart: start, RangeEnd: end, Name: p.Name, Labels: lj, Tags: tags})
 }
 
 // Allocate gives owner the lowest free address of the pool. Asking again
@@ -295,7 +312,8 @@ func (s *Server) Handler() http.Handler {
 		}
 		out := []Pool{}
 		for _, p := range rows {
-			v := Pool{CIDR: p.Cidr.String(), RangeStart: p.RangeStart.String(), RangeEnd: p.RangeEnd.String()}
+			v := Pool{CIDR: p.Cidr.String(), RangeStart: p.RangeStart.String(), RangeEnd: p.RangeEnd.String(), Name: p.Name, Tags: p.Tags}
+			_ = json.Unmarshal(p.Labels, &v.Labels)
 			if p.Gateway != nil {
 				v.Gateway = p.Gateway.String()
 			}

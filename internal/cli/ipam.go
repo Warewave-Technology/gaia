@@ -112,7 +112,8 @@ func newIPAMMigrateCommand() *cobra.Command {
 
 func newIPAMPoolCommand() *cobra.Command {
 	cmd := &cobra.Command{Use: "pool", Short: "Manage pools"}
-	var endpoint, tokenFile, gateway, rng string
+	var endpoint, tokenFile, gateway, rng, name string
+	var labels, tags []string
 	set := &cobra.Command{
 		Use:   "set CIDR",
 		Short: "Create or update a pool",
@@ -126,7 +127,14 @@ func newIPAMPoolCommand() *cobra.Command {
 			if !ok {
 				return fmt.Errorf("--range %q: want start-end", rng)
 			}
-			p := ipam.Pool{CIDR: args[0], Gateway: gateway, RangeStart: start, RangeEnd: end}
+			p := ipam.Pool{CIDR: args[0], Gateway: gateway, RangeStart: start, RangeEnd: end, Name: name, Tags: tags, Labels: map[string]string{}}
+			for _, l := range labels {
+				k, v, ok := strings.Cut(l, "=")
+				if !ok || k == "" {
+					return fmt.Errorf("--label %q: want key=value", l)
+				}
+				p.Labels[k] = v
+			}
 			if err := ipamclient.New(endpoint, token).SetPool(cmd.Context(), p); err != nil {
 				return err
 			}
@@ -138,6 +146,9 @@ func newIPAMPoolCommand() *cobra.Command {
 	tokenFlag(set, &tokenFile)
 	set.Flags().StringVar(&gateway, "gateway", "", "gateway address (never allocated)")
 	set.Flags().StringVar(&rng, "range", "", "addresses to allocate from, start-end")
+	set.Flags().StringVar(&name, "name", "", "what the pool is called")
+	set.Flags().StringSliceVar(&labels, "label", nil, "key=value, such as site=ank or vlan=120; repeatable")
+	set.Flags().StringSliceVar(&tags, "tag", nil, "a tag such as gaia-managed; repeatable")
 	_ = set.MarkFlagRequired("range")
 	cmd.AddCommand(set)
 	return cmd
