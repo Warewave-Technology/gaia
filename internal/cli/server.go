@@ -24,6 +24,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
@@ -130,6 +131,13 @@ func newServerCommand() *cobra.Command {
 				if _, err := bao.client(ctx, ""); err != nil {
 					return err
 				}
+				cfg.NotifySecrets = func(ctx context.Context, addr, ref string) (map[string]string, error) {
+					c, err := bao.client(ctx, addr)
+					if err != nil {
+						return nil, err
+					}
+					return c.Read(ctx, ref)
+				}
 				cfg.Systems = func(g *catalog.Graph) (apply.Deps, error) {
 					c, err := bao.client(ctx, secretsEndpoint(g))
 					if err != nil {
@@ -154,12 +162,13 @@ func newServerCommand() *cobra.Command {
 					cfg.Auth.WithTransit(c).WithSecrets(c)
 				}
 			}
+			var closer *change.Engine
 			if cfg.Workers > 0 {
 				// Every worker closes the changes of the runs it finishes,
 				// with or without a repository of its own.
-				closer := engine
+				closer = engine
 				if closer == nil {
-					closer = &change.Engine{Store: s, Log: cfg.Log}
+					closer = &change.Engine{Store: s, Repos: cfg.Repos, Log: cfg.Log}
 				}
 				cfg.Finished = func(ctx context.Context, a queue.ApplyArgs, g *catalog.Graph) error {
 					err := closer.Finished(ctx, a, g)
@@ -173,10 +182,15 @@ func newServerCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			notifier := &notify.Notifier{Store: s, Queue: srv.Queue(), Log: cfg.Log}
+			if closer != nil {
+				closer.Notify = notifier
+			}
 			if engine != nil {
 				// The engine queues runs with the server's queue client; the
 				// first evaluation happens at the first refresh.
 				engine.Queue = srv.Queue()
+				engine.Notify = notifier
 				go cat.Run(ctx, refresh)
 				cat.Kick()
 			}

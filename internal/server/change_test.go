@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/signature"
@@ -314,5 +315,75 @@ func TestAChangeWhoseRunWasCancelledInTheQueueIsClosed(t *testing.T) {
 	}
 	if _, ok := e.open("poc-web"); ok {
 		t.Error("the cancelled change was opened again by itself")
+	}
+}
+
+// The engine tells subscribers what happens: pending, approved, applied
+// and rejected, each once.
+func TestTheEngineNotifies(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	en.Notify = &notify.Notifier{Store: e.store, Queue: e.queue}
+	e.finished = en.Finished
+	mehmet := e.signer("mehmet", "team-platform")
+	e.signer("ayse", "team-platform")
+	e.edit("platform/policy.yaml", "test: { approval: none }", "test: { approval: required }")
+	e.git.Write("platform/notify.yaml", `apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: hook }
+spec: { type: webhook, endpoint: "http://127.0.0.1:9/hook" }
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform }
+spec:
+  notifications:
+    - { provider: hook, triggers: [change.pending, change.approved, change.applied, change.failed, change.rejected] }
+`)
+	e.git.CommitSigned("notify the platform team", mehmet.git)
+	e.start()
+
+	triggers := func(change string) string {
+		rows, err := e.store.Q().Notifications(ctx, db.NotificationsParams{ChangeID: change, MaxRows: 50})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for i := len(rows) - 1; i >= 0; i-- {
+			out = append(out, rows[i].Trigger)
+		}
+		return strings.Join(out, ",")
+	}
+	e.evaluate(en)
+	e.evaluate(en)
+	c, _ := e.open("poc-web")
+	if got := triggers(c.ID); got != "change.pending" {
+		t.Fatalf("after evaluating twice: %s", got)
+	}
+	u, _ := e.store.Q().UserByName(ctx, "ayse")
+	if err := en.Decide(ctx, change.Decision{Change: c.ID, PlanHash: c.PlanHash, UserID: u.ID, Username: "ayse", Approve: true}); err != nil {
+		t.Fatal(err)
+	}
+	e.waitChange(c.ID, change.Applied, change.Failed)
+	if got := triggers(c.ID); got != "change.pending,change.approved,change.applied" {
+		t.Errorf("triggers = %s", got)
+	}
+	var m notify.Message
+	rows, _ := e.store.Q().Notifications(ctx, db.NotificationsParams{ChangeID: c.ID, MaxRows: 1})
+	_ = json.Unmarshal(rows[0].Message, &m)
+	if strings.Join(m.Event.ApprovedBy, ",") != "ayse" || m.Event.Run == "" || m.Channel.Endpoint != "http://127.0.0.1:9/hook" {
+		t.Errorf("applied message = %+v", m)
+	}
+
+	e.edit("contracts/poc-web.yaml", "app: poc", "app: poc2")
+	e.git.CommitSigned("rename", mehmet.git)
+	e.evaluate(en)
+	c2, _ := e.open("poc-web")
+	if err := en.Decide(ctx, change.Decision{Change: c2.ID, PlanHash: c2.PlanHash, UserID: u.ID, Username: "ayse", Comment: "no"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := triggers(c2.ID); got != "change.pending,change.rejected" {
+		t.Errorf("rejected: %s", got)
 	}
 }

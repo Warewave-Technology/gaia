@@ -22,6 +22,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
@@ -60,6 +61,45 @@ type Engine struct {
 	// Keys are the registered signing keys.
 	Keys func(context.Context) ([]signature.Key, error)
 	Log  *slog.Logger
+	// Notify tells subscribers what happens to changes; nil sends nothing.
+	Notify *notify.Notifier
+}
+
+// emit sends an event about c; a notification that cannot be recorded is
+// logged and does not hold the change up.
+func (e *Engine) emit(ctx context.Context, g *catalog.Graph, trigger string, c db.Change, edit func(*notify.Event)) {
+	if e.Notify == nil {
+		return
+	}
+	if g == nil && e.Repos != nil {
+		var snap repo.Snapshot
+		if err := json.Unmarshal(c.Snapshot, &snap); err == nil {
+			g, _ = e.Repos.Graph(ctx, snap)
+		}
+	}
+	ev := notify.Event{Trigger: trigger, Change: c.ID, Contract: c.Contract, Status: c.Status, PlanHash: c.PlanHash,
+		Label: c.Label, Source: c.Source, RequestedBy: c.RequestedBy, Run: c.RunID.String}
+	var p plan.Plan
+	if json.Unmarshal(c.Plan, &p) == nil {
+		for _, ct := range p.Contracts {
+			for _, sv := range ct.Servers {
+				switch sv.Action {
+				case plan.Create:
+					ev.Summary.Create++
+				case plan.Delete:
+					ev.Summary.Delete++
+				default:
+					ev.Summary.Keep++
+				}
+			}
+		}
+	}
+	if edit != nil {
+		edit(&ev)
+	}
+	if err := e.Notify.Emit(ctx, g, ev); err != nil {
+		e.log().Warn("notification", "change", c.ID, "trigger", trigger, "err", err)
+	}
 }
 
 func (e *Engine) log() *slog.Logger {
@@ -334,12 +374,26 @@ func (e *Engine) advance(ctx context.Context, c db.Change, g *catalog.Graph) err
 			return err
 		}
 	}
+	if gates["approval"].Status == Waiting && gates["signature"].Status == OK {
+		e.emit(ctx, g, "change.pending", c, func(ev *notify.Event) {
+			for _, gr := range need.Groups {
+				if gr.ApprovedBy == "" {
+					ev.Approvers = append(ev.Approvers, notify.Approver{Name: gr.Name, Teams: gr.Teams, Candidates: gr.Candidates, Why: gr.Why})
+				}
+			}
+		})
+	}
 	if gates["signature"].Status != OK || gates["approval"].Status != OK {
 		return nil
 	}
 	if c.Status == Pending && len(need.Groups) > 0 {
-		if _, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: c.ID, Status: Approved, FromStatuses: []string{Pending}}); err != nil {
+		n, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: c.ID, Status: Approved, FromStatuses: []string{Pending}})
+		if err != nil {
 			return err
+		}
+		if n == 1 {
+			c.Status = Approved
+			e.emit(ctx, g, "change.approved", c, func(ev *notify.Event) { ev.ApprovedBy = need.approvers() })
 		}
 	}
 	return e.start(ctx, c, g, need.approvers())
@@ -415,17 +469,34 @@ func (e *Engine) Finished(ctx context.Context, a queue.ApplyArgs, g *catalog.Gra
 	case "cancelled":
 		status = Cancelled
 	}
-	if _, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: a.ChangeID, Status: status, FromStatuses: []string{Running}}); err != nil {
+	// The contract's state first: whoever sees the change applied finds it
+	// synced.
+	if status == Applied && g != nil {
+		p, err := plan.Build(ctx, g, []string{a.Contract}, apply.StoreState{S: e.Store})
+		if err != nil {
+			return err
+		}
+		if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: a.Contract, AppliedSnapshot: mustJSON(a.Snapshot), AppliedLabel: text(a.Snapshot.Label()), AppliedPlanHash: text(p.Hash)}); err != nil {
+			return err
+		}
+	}
+	n, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: a.ChangeID, Status: status, FromStatuses: []string{Running}})
+	if err != nil || n != 1 {
 		return err
 	}
-	if status != Applied || g == nil {
-		return nil
-	}
-	p, err := plan.Build(ctx, g, []string{a.Contract}, apply.StoreState{S: e.Store})
+	c, err := q.Change(ctx, a.ChangeID)
 	if err != nil {
 		return err
 	}
-	return q.SetApplied(ctx, db.SetAppliedParams{Contract: a.Contract, AppliedSnapshot: mustJSON(a.Snapshot), AppliedLabel: text(a.Snapshot.Label()), AppliedPlanHash: text(p.Hash)})
+	trigger := "change.applied"
+	if status != Applied {
+		trigger = "change.failed"
+	}
+	e.emit(ctx, g, trigger, c, func(ev *notify.Event) {
+		ev.Error = run.Error.String
+		ev.ApprovedBy = a.ApprovedBy
+	})
+	return nil
 }
 
 func mustJSON(v any) []byte {

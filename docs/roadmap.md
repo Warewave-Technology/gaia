@@ -116,6 +116,18 @@ Gaia'nın omurgası (tasarım 7.6).
 
 **Bitti sayılır:** Dört kanal yerelde test edilmiş (Slack/Teams için webhook alıcısı, SMTP için MailHog).
 
+**Durum:**
+- Tamam:
+  - katalog: Team, kanal Provider'ları, `Platform.spec.notifications`
+  - motorun olayları (onay bekliyor, onaylandı, reddedildi, uygulandı, başarısız)
+  - `notifications` tablosu ve tekrar denemeli teslim
+  - dört kanal, sahte alıcılarla test edildi
+- Kalan:
+  - kişisel abonelik API'si ve e-posta adresi
+  - Mailpit'le uçtan uca test
+  - lab oturumu (Faz 3'ün uygulaması da burada)
+- Sonraki fazlara bırakılan tetikleyiciler: `drift.found` (drift), `approval.expiring` (pencereler).
+
 ## Faz 5: Arayüz
 
 - Önce tasarım taslağı; onaylanınca ekranlar.
