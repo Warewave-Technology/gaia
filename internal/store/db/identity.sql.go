@@ -27,6 +27,52 @@ func (q *Queries) AddTeam(ctx context.Context, arg AddTeamParams) error {
 	return err
 }
 
+const allSigningKeys = `-- name: AllSigningKeys :many
+select k.fingerprint, k.user_id, k.kind, k.name, k.public_key, k.created_at, k.revoked_at, u.username from signing_keys k join users u on u.id = k.user_id
+where k.revoked_at is null and u.enabled
+`
+
+type AllSigningKeysRow struct {
+	Fingerprint string
+	UserID      string
+	Kind        string
+	Name        string
+	PublicKey   string
+	CreatedAt   pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
+	Username    string
+}
+
+// Every live key, for verifying commit signatures.
+func (q *Queries) AllSigningKeys(ctx context.Context) ([]AllSigningKeysRow, error) {
+	rows, err := q.db.Query(ctx, allSigningKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AllSigningKeysRow
+	for rows.Next() {
+		var i AllSigningKeysRow
+		if err := rows.Scan(
+			&i.Fingerprint,
+			&i.UserID,
+			&i.Kind,
+			&i.Name,
+			&i.PublicKey,
+			&i.CreatedAt,
+			&i.RevokedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const clearTeams = `-- name: ClearTeams :exec
 delete from team_memberships where user_id = $1 and source = $2
 `
@@ -82,6 +128,24 @@ func (q *Queries) Credentials(ctx context.Context, userID string) ([]WebauthnCre
 	return items, nil
 }
 
+const decideDeviceCode = `-- name: DecideDeviceCode :execrows
+update device_codes set status = $2, user_id = $3 where user_code = $1 and status = 'pending' and expires_at > now()
+`
+
+type DecideDeviceCodeParams struct {
+	UserCode string
+	Status   string
+	UserID   pgtype.Text
+}
+
+func (q *Queries) DecideDeviceCode(ctx context.Context, arg DecideDeviceCodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, decideDeviceCode, arg.UserCode, arg.Status, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteCredential = `-- name: DeleteCredential :execrows
 delete from webauthn_credentials where id = $1 and user_id = $2
 `
@@ -108,6 +172,48 @@ func (q *Queries) DeleteRecoveryCodes(ctx context.Context, userID string) error 
 	return err
 }
 
+const deviceCode = `-- name: DeviceCode :one
+select code_hash, user_code, status, user_id, ip, user_agent, created_at, expires_at, polled_at from device_codes where code_hash = $1
+`
+
+func (q *Queries) DeviceCode(ctx context.Context, codeHash string) (DeviceCode, error) {
+	row := q.db.QueryRow(ctx, deviceCode, codeHash)
+	var i DeviceCode
+	err := row.Scan(
+		&i.CodeHash,
+		&i.UserCode,
+		&i.Status,
+		&i.UserID,
+		&i.Ip,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.PolledAt,
+	)
+	return i, err
+}
+
+const deviceCodeByUserCode = `-- name: DeviceCodeByUserCode :one
+select code_hash, user_code, status, user_id, ip, user_agent, created_at, expires_at, polled_at from device_codes where user_code = $1 and expires_at > now()
+`
+
+func (q *Queries) DeviceCodeByUserCode(ctx context.Context, userCode string) (DeviceCode, error) {
+	row := q.db.QueryRow(ctx, deviceCodeByUserCode, userCode)
+	var i DeviceCode
+	err := row.Scan(
+		&i.CodeHash,
+		&i.UserCode,
+		&i.Status,
+		&i.UserID,
+		&i.Ip,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.PolledAt,
+	)
+	return i, err
+}
+
 const insertCredential = `-- name: InsertCredential :exec
 insert into webauthn_credentials (id, user_id, name, credential, sign_count) values ($1, $2, $3, $4, $5)
 `
@@ -127,6 +233,29 @@ func (q *Queries) InsertCredential(ctx context.Context, arg InsertCredentialPara
 		arg.Name,
 		arg.Credential,
 		arg.SignCount,
+	)
+	return err
+}
+
+const insertDeviceCode = `-- name: InsertDeviceCode :exec
+insert into device_codes (code_hash, user_code, ip, user_agent, expires_at) values ($1, $2, $3, $4, $5)
+`
+
+type InsertDeviceCodeParams struct {
+	CodeHash  string
+	UserCode  string
+	Ip        pgtype.Text
+	UserAgent pgtype.Text
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) InsertDeviceCode(ctx context.Context, arg InsertDeviceCodeParams) error {
+	_, err := q.db.Exec(ctx, insertDeviceCode,
+		arg.CodeHash,
+		arg.UserCode,
+		arg.Ip,
+		arg.UserAgent,
+		arg.ExpiresAt,
 	)
 	return err
 }
@@ -202,6 +331,29 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) er
 	return err
 }
 
+const insertSigningKey = `-- name: InsertSigningKey :exec
+insert into signing_keys (fingerprint, user_id, kind, name, public_key) values ($1, $2, $3, $4, $5)
+`
+
+type InsertSigningKeyParams struct {
+	Fingerprint string
+	UserID      string
+	Kind        string
+	Name        string
+	PublicKey   string
+}
+
+func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
+	_, err := q.db.Exec(ctx, insertSigningKey,
+		arg.Fingerprint,
+		arg.UserID,
+		arg.Kind,
+		arg.Name,
+		arg.PublicKey,
+	)
+	return err
+}
+
 const insertUser = `-- name: InsertUser :exec
 insert into users (id, username, display_name, provider, subject, password_hash)
 values ($1, $2, $3, $4, $5, $6)
@@ -246,6 +398,15 @@ func (q *Queries) PeekFlow(ctx context.Context, id string) (AuthFlow, error) {
 	return i, err
 }
 
+const pollDeviceCode = `-- name: PollDeviceCode :exec
+update device_codes set polled_at = now() where code_hash = $1
+`
+
+func (q *Queries) PollDeviceCode(ctx context.Context, codeHash string) error {
+	_, err := q.db.Exec(ctx, pollDeviceCode, codeHash)
+	return err
+}
+
 const pruneFlows = `-- name: PruneFlows :exec
 delete from auth_flows where expires_at < now()
 `
@@ -269,6 +430,23 @@ type RevokeSessionParams struct {
 // access tokens).
 func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error) {
 	result, err := q.db.Exec(ctx, revokeSession, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeSigningKey = `-- name: RevokeSigningKey :execrows
+update signing_keys set revoked_at = now() where fingerprint = $1 and user_id = $2 and revoked_at is null
+`
+
+type RevokeSigningKeyParams struct {
+	Fingerprint string
+	UserID      string
+}
+
+func (q *Queries) RevokeSigningKey(ctx context.Context, arg RevokeSigningKeyParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeSigningKey, arg.Fingerprint, arg.UserID)
 	if err != nil {
 		return 0, err
 	}
@@ -408,6 +586,69 @@ func (q *Queries) SetUserEnabled(ctx context.Context, arg SetUserEnabledParams) 
 	return err
 }
 
+const signingKey = `-- name: SigningKey :one
+select k.fingerprint, k.user_id, k.kind, k.name, k.public_key, k.created_at, k.revoked_at, u.username from signing_keys k join users u on u.id = k.user_id where k.fingerprint = $1
+`
+
+type SigningKeyRow struct {
+	Fingerprint string
+	UserID      string
+	Kind        string
+	Name        string
+	PublicKey   string
+	CreatedAt   pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
+	Username    string
+}
+
+func (q *Queries) SigningKey(ctx context.Context, fingerprint string) (SigningKeyRow, error) {
+	row := q.db.QueryRow(ctx, signingKey, fingerprint)
+	var i SigningKeyRow
+	err := row.Scan(
+		&i.Fingerprint,
+		&i.UserID,
+		&i.Kind,
+		&i.Name,
+		&i.PublicKey,
+		&i.CreatedAt,
+		&i.RevokedAt,
+		&i.Username,
+	)
+	return i, err
+}
+
+const signingKeys = `-- name: SigningKeys :many
+select fingerprint, user_id, kind, name, public_key, created_at, revoked_at from signing_keys where user_id = $1 and revoked_at is null order by created_at
+`
+
+func (q *Queries) SigningKeys(ctx context.Context, userID string) ([]SigningKey, error) {
+	rows, err := q.db.Query(ctx, signingKeys, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SigningKey
+	for rows.Next() {
+		var i SigningKey
+		if err := rows.Scan(
+			&i.Fingerprint,
+			&i.UserID,
+			&i.Kind,
+			&i.Name,
+			&i.PublicKey,
+			&i.CreatedAt,
+			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const tOTP = `-- name: TOTP :one
 select user_id, ciphertext, confirmed_at, last_step from totp_secrets where user_id = $1
 `
@@ -504,6 +745,18 @@ type UseCredentialParams struct {
 func (q *Queries) UseCredential(ctx context.Context, arg UseCredentialParams) error {
 	_, err := q.db.Exec(ctx, useCredential, arg.ID, arg.Credential, arg.SignCount)
 	return err
+}
+
+const useDeviceCode = `-- name: UseDeviceCode :execrows
+update device_codes set status = 'used' where code_hash = $1 and status = 'approved'
+`
+
+func (q *Queries) UseDeviceCode(ctx context.Context, codeHash string) (int64, error) {
+	result, err := q.db.Exec(ctx, useDeviceCode, codeHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const useRecoveryCode = `-- name: UseRecoveryCode :execrows

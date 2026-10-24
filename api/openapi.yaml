@@ -232,6 +232,103 @@ paths:
       responses:
         "200": { description: Signed in; recoveryCodes after a first passkey, content: { application/json: { schema: { type: object, properties: { next: { type: string }, recoveryCodes: { type: array, items: { type: string } } } } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/cli/authorize:
+    post:
+      summary: The browser approves a CLI sign-in on this machine (browser session)
+      description: Answers with the loopback address to send the one-time code to (RFC 8252). The code lives two minutes.
+      operationId: cliAuthorize
+      requestBody: { content: { application/json: { schema: { type: object, required: [redirectUri, state, codeChallenge], properties: { redirectUri: { type: string, description: "http://127.0.0.1:<port>/..." }, state: { type: string }, codeChallenge: { type: string, description: S256 } } } } } }
+      responses:
+        "200": { description: Where to go, content: { application/json: { schema: { type: object, properties: { redirect: { type: string } } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/auth/cli/token:
+    post:
+      summary: Trade the code and the PKCE verifier for CLI tokens (public)
+      operationId: cliToken
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [code, codeVerifier, redirectUri], properties: { code: { type: string }, codeVerifier: { type: string }, redirectUri: { type: string } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Tokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/cli/refresh:
+    post:
+      summary: A new access token from the refresh token (public)
+      operationId: cliRefresh
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [refreshToken], properties: { refreshToken: { type: string } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Tokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/cli/logout:
+    post:
+      summary: End the CLI session of a refresh token, with its access tokens (public)
+      operationId: cliLogout
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [refreshToken], properties: { refreshToken: { type: string } } } } } }
+      responses:
+        "204": { description: Ended }
+  /api/v1/auth/device:
+    post:
+      summary: Start a device sign-in (public, RFC 8628)
+      operationId: deviceStart
+      security: []
+      responses:
+        "200":
+          description: The codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { deviceCode: { type: string }, userCode: { type: string }, verificationUri: { type: string }, interval: { type: integer }, expiresIn: { type: integer } }
+  /api/v1/auth/device/token:
+    post:
+      summary: Poll a device sign-in (public)
+      description: Errors are RFC 8628's — authorization_pending, slow_down, access_denied, expired_token, invalid_grant — in the error field of a 400.
+      operationId: deviceToken
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [deviceCode], properties: { deviceCode: { type: string } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Tokens" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/auth/device/{code}:
+    get:
+      summary: Where a device sign-in comes from, to check before approving (browser session)
+      operationId: deviceInfo
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The request, content: { application/json: { schema: { type: object, properties: { ip: { type: string }, userAgent: { type: string }, requestedAt: { type: string, format: date-time } } } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/auth/device/{code}/approve:
+    post:
+      summary: Approve a device sign-in (browser session)
+      operationId: deviceApprove
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Approved }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/auth/device/{code}/deny:
+    post:
+      summary: Deny a device sign-in (browser session)
+      operationId: deviceDeny
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Denied }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/auth/step-up/begin:
+    post:
+      summary: Confirm the browser session with a passkey (step-up)
+      operationId: stepUpBegin
+      responses:
+        "200": { $ref: "#/components/responses/FlowStart" }
+  /api/v1/auth/step-up/finish:
+    post:
+      summary: Finish the step-up; sensitive work is allowed for 10 minutes
+      operationId: stepUpFinish
+      requestBody: { $ref: "#/components/requestBodies/Ceremony" }
+      responses:
+        "204": { description: Confirmed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/auth/logout:
     post:
       summary: End the current session
@@ -296,6 +393,29 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/RecoveryCodes" }
         "403": { $ref: "#/components/responses/StepUp" }
+  /api/v1/me/signing-keys:
+    get:
+      summary: The caller's commit signing keys (design 7.6)
+      operationId: mySigningKeys
+      responses:
+        "200": { description: Keys, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SigningKey" } } } } }
+    post:
+      summary: Register an SSH or armored OpenPGP public key (recent passkey)
+      operationId: addSigningKey
+      requestBody: { content: { application/json: { schema: { type: object, required: [publicKey], properties: { name: { type: string }, publicKey: { type: string } } } } } }
+      responses:
+        "201": { description: Registered, content: { application/json: { schema: { $ref: "#/components/schemas/SigningKey" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/StepUp" }
+  /api/v1/me/signing-keys/{fingerprint}:
+    delete:
+      summary: Revoke a signing key (recent passkey)
+      operationId: revokeSigningKey
+      parameters: [{ name: fingerprint, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Revoked }
+        "403": { $ref: "#/components/responses/StepUp" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/users:
     get:
       summary: Accounts (platform-admin)
@@ -358,6 +478,13 @@ components:
     StepUp:
       description: Confirm with a passkey first; the body has stepUp true
       content: { application/json: { schema: { type: object, properties: { error: { type: string }, stepUp: { type: boolean } } } } }
+    Tokens:
+      description: CLI tokens; refresh fields only when a session starts
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { accessToken: { type: string }, accessExpiresAt: { type: string, format: date-time }, refreshToken: { type: string }, refreshExpiresAt: { type: string, format: date-time } }
     TooMany: { description: Too many attempts, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     BadRequest: { description: A parameter is wrong, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     NotFound: { description: No such object, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
@@ -390,6 +517,14 @@ components:
     Passkey:
       type: object
       properties: { id: { type: string }, name: { type: string }, createdAt: { type: string, format: date-time }, lastUsedAt: { type: string, format: date-time } }
+    SigningKey:
+      type: object
+      properties:
+        fingerprint: { type: string, description: "SHA256:… for SSH keys, upper-case hex for OpenPGP" }
+        kind: { type: string, enum: [ssh, gpg] }
+        name: { type: string }
+        publicKey: { type: string }
+        createdAt: { type: string, format: date-time }
     User:
       type: object
       properties:

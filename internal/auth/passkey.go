@@ -88,13 +88,18 @@ func (a *Service) relyingParty() (*webauthn.WebAuthn, error) {
 
 // saveFlow keeps a ceremony's server side until it is finished.
 func (a *Service) saveFlow(ctx context.Context, kind, userID string, data any) (string, error) {
+	return a.saveFlowTTL(ctx, kind, userID, data, flowTTL)
+}
+
+// saveFlowTTL is saveFlow with its own lifetime.
+func (a *Service) saveFlowTTL(ctx context.Context, kind, userID string, data any, ttl time.Duration) (string, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return "", err
 	}
 	id := store.NewFlowID()
 	return id, a.store.Q().InsertFlow(ctx, db.InsertFlowParams{
-		ID: id, Kind: kind, UserID: text(userID), Data: b, ExpiresAt: pgtype.Timestamptz{Time: a.now().Add(flowTTL), Valid: true},
+		ID: id, Kind: kind, UserID: text(userID), Data: b, ExpiresAt: pgtype.Timestamptz{Time: a.now().Add(ttl), Valid: true},
 	})
 }
 

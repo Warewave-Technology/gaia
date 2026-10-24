@@ -8,7 +8,7 @@
 | Faz | İçerik | Bağımlı olduğu | Durum |
 |---|---|---|---|
 | 1 | `gaia server`, API, iş kuyruğu | – | **Tamam** |
-| 2 | Kimlik doğrulama ve yetki | 1 | Sürüyor |
+| 2 | Kimlik doğrulama ve yetki | 1 | **Tamam** |
 | 3 | Change motoru ve GitHub izleyicisi | 1, 2 | – |
 | 4 | Bildirimler | 3 | – |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
@@ -68,6 +68,15 @@ Tasarım 11.2–11.4.
 - İmza anahtarları: kullanıcı SSH/GPG anahtarını profiline kaydeder (Faz 3 kullanır).
 
 **Bitti sayılır:** Arayüz ve CLI oturumla API'yi kullanıyor; roller ve görünürlük testlerle doğrulanmış.
+
+**Sonuç (2026-10-24):**
+- `AuthConfig` ve `Policy.gaiaRoles`.
+- Local hesaplar: tek kullanımlık kayıt bağlantısı, passkey, kurtarma kodları; `require: mfa`'da parola + TOTP (tohum OpenBao transit ile şifreli).
+- OIDC: PKCE + nonce. MFA kanıtı `amr`/`acr` ile; yoksa Gaia passkey'i. Takımlar groups claim'inden. Yerel Keycloak'la uçtan uca denendi.
+- Oturumlar: opak token (hash), tarayıcı çerezi ve CSRF başlığı, boşta kalma süresi, step-up.
+- CLI: `gaia login` (loopback + PKCE) ve `--device`; refresh/access token'ları keychain'de. `gaia logout`, `gaia whoami`.
+- Roller ve görünürlük API'de; imza anahtarları kayıtlı (Faz 3 commit doğrulamasında kullanacak).
+- Giriş sayfaları sade ve sıkı CSP'li; Faz 5'te arayüze taşınacak.
 
 ## Faz 3: Change motoru ve GitHub izleyicisi
 

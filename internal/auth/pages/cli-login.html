@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaia · CLI girişi</title>
+<script src="/auth/gaia-auth.js" defer></script>
+</head>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#F6F7F9;color:#14171C">
+<main style="max-width:420px;margin:12vh auto;padding:32px;background:#fff;border:1px solid #E1E5EB;border-radius:8px">
+<h1 style="margin:0 0 4px;font-size:24px">CLI girişi</h1>
+<p style="margin:0 0 16px;color:#566070">Bu makinedeki <code>gaia</code> komutu, <strong id="who"></strong> olarak giriş yapmak istiyor.</p>
+<p style="margin:0 0 24px;color:#566070">Yanıt bu adrese gidecek: <code id="target"></code></p>
+<button id="cli-approve" type="button" style="width:100%;height:44px;border:0;border-radius:6px;background:#1F4FC8;color:#fff;font:inherit;font-weight:600;cursor:pointer">Onayla</button>
+<p id="error" role="alert" style="color:#B3261E;min-height:1.5em"></p>
+<p id="done" hidden style="color:#17703F">Onaylandı. Terminale dönebilirsiniz.</p>
+</main>
+</body>
+</html>
