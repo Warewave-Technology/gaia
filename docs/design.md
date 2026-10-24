@@ -1077,7 +1077,7 @@ changes: [...]
   - SeaweedFS S3 Object Lock'u destekler: GOVERNANCE ve COMPLIANCE modları, legal hold. Bu desteğin bulunduğu bir sürüm kullanılmalı; özellik 2025 ortasında eklendi.
   - Run kayıtları için **COMPLIANCE** modu kullanılır. Bu modda kayıt, admin dahil kimse tarafından saklama süresi bitene kadar silinemez veya değiştirilemez. GOVERNANCE modunda ise bypass yetkisi olan admin silebilir.
   - Bucket versioning açık olarak ve Object Lock'u baştan etkin şekilde oluşturulmalıdır; mevcut bir bucket'a sonradan eklenemez.
-  - Saklama süresi `runArchive.retention` ile ayarlanır; en fazla 100 yıl olabilir. COMPLIANCE modunda süre sonradan kısaltılamaz.
+  - Saklama süresi `runArchive`'ın gösterdiği provider'da `retention` ile ayarlanır (`30d`, `10y`); en fazla 100 yıl olabilir. COMPLIANCE modunda süre sonradan kısaltılamaz.
   - Ham Ansible ve Pulumi logları kanıt niteliği taşımadığı için Object Lock'suz ayrı bir bucket'ta durur.
   - Object Lock yazılım seviyesinde bir korumadır. Depolama sunucularına doğrudan erişimi olan biri veriyi yine de silebilir. Bu yüzden SIEM'e gönderilen kopya ikinci bir güvencedir.
 
@@ -1522,3 +1522,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | Her `pulumi up` önce refresh yapar; apply, VM'in planlanan IP'yi guest agent üzerinden bildirdiğini doğrulamadan sunucuyu `active` yapmaz |
 | 2026-10-24 | ansible-runner rootless podman'da `--userns keep-id` ile; çalışma dizini tmpfs'te; EE run'da digest'iyle kullanılır, run sırasında imaj çekilmez |
 | 2026-10-24 | İzleme `Platform.monitoring` ile: host group'ları label'lardan CEL ile, şablonlar Image OS'una ve rollerin `monitoring` adlarına göre; Zabbix host'u `gaia.uid` tag'iyle bulunur, isimle değil |
+| 2026-10-24 | Run kaydı gövdesi hash'lenen metin olarak saklanır (jsonb anahtarları yeniden sıralar); arşiv kopyası gövdeyi baytı baytına taşır; saklama süresi arşiv provider'ında (`retention`) |

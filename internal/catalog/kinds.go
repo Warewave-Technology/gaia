@@ -1,8 +1,10 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -87,9 +89,12 @@ type ProviderSpec struct {
 	Credentials string        `yaml:"credentials"`
 	Auth        *ProviderAuth `yaml:"auth"`
 	Bucket      string        `yaml:"bucket"` // s3
-	URL         string        `yaml:"url"`    // git
-	Path        string        `yaml:"path"`   // git
-	Ref         string        `yaml:"ref"`    // git
+	// Retention is how long run records are locked in an s3 archive
+	// (COMPLIANCE): 30d, 10y or a Go duration.
+	Retention string `yaml:"retention"`
+	URL       string `yaml:"url"`  // git
+	Path      string `yaml:"path"` // git
+	Ref       string `yaml:"ref"`  // git
 }
 
 type ProviderAuth struct {
@@ -118,10 +123,48 @@ func (s *ProviderSpec) validate() []string {
 	if s.Type == "s3" && s.Bucket == "" {
 		out = append(out, "bucket: required for type s3")
 	}
+	if s.Retention != "" {
+		if s.Type != "s3" {
+			out = append(out, "retention: only for type s3")
+		} else if _, err := ParseRetention(s.Retention); err != nil {
+			out = append(out, "retention: "+err.Error())
+		}
+	}
 	if s.Credentials != "" && !strings.HasPrefix(s.Credentials, "bao://") {
 		out = append(out, "credentials: must be a bao:// reference")
 	}
 	return out
+}
+
+// maxRetention is S3 Object Lock's limit (design 10.1).
+const maxRetention = 100 * 365 * 24 * time.Hour
+
+// ParseRetention reads a retention: days (30d), years (10y, 365 days
+// each) or a Go duration; at least one hour and at most 100 years.
+func ParseRetention(s string) (time.Duration, error) {
+	var d time.Duration
+	switch {
+	case s == "":
+		return 0, errors.New("empty")
+	case strings.HasSuffix(s, "d") || strings.HasSuffix(s, "y"):
+		n, err := strconv.Atoi(s[:len(s)-1])
+		if err != nil || n <= 0 {
+			return 0, fmt.Errorf("%q: want a positive number of days (30d) or years (10y)", s)
+		}
+		d = time.Duration(n) * 24 * time.Hour
+		if strings.HasSuffix(s, "y") {
+			d *= 365
+		}
+	default:
+		var err error
+		if d, err = time.ParseDuration(s); err != nil {
+			return 0, fmt.Errorf("%q: want 30d, 10y or a duration", s)
+		}
+	}
+	if d < time.Hour || d > maxRetention {
+		return 0, fmt.Errorf("%q: between 1h and 100y", s)
+	}
+	return d, nil
 }
 
 // PolicySpec holds naming and environment rules.

@@ -2,6 +2,7 @@ package apply
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -24,6 +25,7 @@ import (
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
+	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -144,6 +146,18 @@ func (f *fakeMonitor) Delete(_ context.Context, uid, _ string) (bool, error) {
 	return true, nil
 }
 
+// memArchive keeps archived records.
+type memArchive struct {
+	at      string // endpoint/bucket it was opened for
+	objects map[string][]byte
+	until   map[string]time.Time
+}
+
+func (m *memArchive) Put(_ context.Context, key string, data []byte, until time.Time) (string, error) {
+	m.objects[key], m.until[key] = data, until
+	return "mem://" + key, nil
+}
+
 type env struct {
 	t         *testing.T
 	store     *store.Store
@@ -152,6 +166,7 @@ type env struct {
 	compute   *fakeCompute
 	configure *fakeConfigurer
 	monitor   *fakeMonitor
+	archive   *memArchive
 	deps      Deps
 }
 
@@ -190,7 +205,8 @@ func setup(t *testing.T) *env {
 	cr.Commit("config")
 
 	e := &env{t: t, store: s, ipam: hs.URL, config: cr.Dir, compute: &fakeCompute{}, configure: &fakeConfigurer{},
-		monitor: &fakeMonitor{hosts: map[string]zabbix.Host{}, ids: map[string]string{}}}
+		monitor: &fakeMonitor{hosts: map[string]zabbix.Host{}, ids: map[string]string{}},
+		archive: &memArchive{objects: map[string][]byte{}, until: map[string]time.Time{}}}
 	e.deps = Deps{
 		Store: s,
 		Secrets: fakeSecrets{
@@ -199,6 +215,7 @@ func setup(t *testing.T) *env {
 			"bao://kv/platform/ipam":         {"token": "ipam-token"},
 			"bao://kv/platform/proxmox/lab":  {"token_id": "gaia@pve!poc", "token_secret": "pve", "insecure": "true"},
 			"bao://kv/platform/zabbix":       {"token": "zbx"},
+			"bao://kv/platform/seaweedfs":    {"access_key": "ak", "secret_key": "sk"},
 		},
 		Provision: e.compute.provision,
 		UsedVMIDs: func(context.Context, proxmox.Credentials) (map[int]bool, error) {
@@ -209,7 +226,15 @@ func setup(t *testing.T) *env {
 			e.monitor.endpoint, e.monitor.token = endpoint, token
 			return e.monitor
 		},
-		Out: io.Discard,
+		Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
+			if ak != "ak" || sk != "sk" {
+				return nil, fmt.Errorf("credentials %s/%s", ak, sk)
+			}
+			e.archive.at = endpoint + "/" + bucket
+			return e.archive, nil
+		},
+		RequestedBy: "ops@lab",
+		Out:         io.Discard,
 	}
 	return e
 }
@@ -534,5 +559,67 @@ func TestApplyRegistersServersInMonitoring(t *testing.T) {
 	}
 	if len(e.monitor.ids) != 1 {
 		t.Errorf("%d hosts", len(e.monitor.ids))
+	}
+}
+
+func TestApplyWritesTheRunRecord(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	g := e.graph(nil)
+	p, _ := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	run, err := Run(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := e.store.Q()
+	rec, err := q.RunRecord(ctx, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body runrecord.Record
+	if err := json.Unmarshal([]byte(rec.Body), &body); err != nil {
+		t.Fatal(err)
+	}
+	hosts, _ := q.LiveHosts(ctx, "poc-web")
+	uid := hosts[0].Uid
+	if body.Run != run || body.RequestedBy != "ops@lab" || body.Result != "succeeded" || body.PlanHash != p.Hash ||
+		body.CatalogCommit != "c0ffee" || body.Source.Commit != "c0ffee" || len(body.ConfigCommit) != 40 ||
+		body.ExecutionEnvironment != "localhost/gaia/ee-default:dev@sha256:ee" || body.FinishedAt.Before(body.StartedAt) {
+		t.Errorf("record = %+v", body)
+	}
+	if want := map[string]string{"linux": "gaia", "pve-lab": "gaia@pve!poc", "zabbix": "api token"}; !reflect.DeepEqual(body.ExecutedAs, want) {
+		t.Errorf("executedAs = %v", body.ExecutedAs)
+	}
+	var stages []string
+	for _, c := range body.Changes {
+		stages = append(stages, c.Stage+":"+c.Action)
+		if c.Stage != "provision" && c.UID != uid {
+			t.Errorf("change without the UID: %+v", c)
+		}
+	}
+	if got := strings.Join(stages, ","); got != "plan:create,provision:pulumi up,monitoring:create,configure:ansible" {
+		t.Errorf("changes = %s", got)
+	}
+
+	if e.archive.at != "http://192.168.1.25:8333/gaia-run-records" || len(e.archive.objects) != 1 {
+		t.Fatalf("archive at %s: %v", e.archive.at, e.archive.objects)
+	}
+	key := runrecord.Key(rec)
+	if rec.Archived.String != "mem://"+key || time.Until(e.archive.until[key]) < 23*time.Hour {
+		t.Errorf("archived %q until %s", rec.Archived.String, e.archive.until[key])
+	}
+
+	// A failed run is recorded too, and the chain holds.
+	e.deps.Provision = func(context.Context, pulumi.Backend, pulumi.Stack, io.Writer) (map[string]pulumi.Result, pulumi.Changes, error) {
+		return nil, nil, fmt.Errorf("proxmox is down")
+	}
+	p, _ = plan.Build(ctx, g, nil, StoreState{S: e.store})
+	failed, _ := Run(ctx, g, p, e.deps)
+	r2, err := q.RunRecord(ctx, failed)
+	if err != nil || r2.PrevHash != rec.RecordHash || !strings.Contains(r2.Body, `"result":"failed"`) || !strings.Contains(r2.Body, "proxmox is down") {
+		t.Errorf("failed run record: %+v, %v", r2, err)
+	}
+	if n, err := runrecord.Verify(ctx, q); err != nil || n != 2 {
+		t.Errorf("verify: %d, %v", n, err)
 	}
 }
