@@ -9,10 +9,11 @@ insert into contract_states (contract, sync, error, evaluated_at) values ($1, $2
 on conflict (contract) do update set sync = excluded.sync, error = excluded.error, evaluated_at = now();
 
 -- name: SetApplied :exec
-insert into contract_states (contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at)
-values ($1, 'synced', $2, $3, $4, now())
+insert into contract_states (contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_plan, applied_at)
+values ($1, 'synced', $2, $3, $4, $5, now())
 on conflict (contract) do update set sync = 'synced', error = null, applied_snapshot = excluded.applied_snapshot,
-    applied_label = excluded.applied_label, applied_plan_hash = excluded.applied_plan_hash, applied_at = now();
+    applied_label = excluded.applied_label, applied_plan_hash = excluded.applied_plan_hash,
+    applied_plan = excluded.applied_plan, applied_at = now();
 
 -- name: OpenChange :one
 select * from changes where contract = $1 and status in ('pending', 'approved', 'running');

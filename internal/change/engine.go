@@ -488,7 +488,7 @@ func (e *Engine) Finished(ctx context.Context, a queue.ApplyArgs, g *catalog.Gra
 		if err != nil {
 			return err
 		}
-		if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: a.Contract, AppliedSnapshot: mustJSON(a.Snapshot), AppliedLabel: text(a.Snapshot.Label()), AppliedPlanHash: text(p.Hash)}); err != nil {
+		if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: a.Contract, AppliedSnapshot: mustJSON(a.Snapshot), AppliedLabel: text(a.Snapshot.Label()), AppliedPlanHash: text(p.Hash), AppliedPlan: mustJSON(p)}); err != nil {
 			return err
 		}
 	}

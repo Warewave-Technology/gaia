@@ -14,11 +14,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc/gittest"
 	"github.com/Warewave-Technology/gaia/internal/itest"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/signature"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -146,7 +150,7 @@ func TestTeamSourceWritesTeams(t *testing.T) {
 
 	// The team that owns poc-web cannot go: the catalog would not load.
 	samba.Exec(t, "group", "delete", "SG-Team-Platform")
-	if r := run(); r.Status != "refused" || !strings.Contains(r.Error, `Team "team-platform" not found`) {
+	if r := run(); r.Status != "refused" || !strings.Contains(r.Error, "the catalog would not load") || !strings.Contains(r.Error, "team-platform") {
 		t.Errorf("removing an owner: %+v", r)
 	}
 }
@@ -179,6 +183,31 @@ func members(t *testing.T, ctx context.Context, s *Syncer, st *store.Store, samb
 		}
 		return strings.Join(out, ",")
 	}
+	// A privileged group with team-platform in it, and a patch giving the
+	// generated team a channel for it.
+	pushFile(t, bare(platform), "platform/access.yaml", `apiVersion: gaia/v1alpha1
+kind: Group
+metadata: { name: platform-sudo }
+spec: { teams: [team-platform], owner: team-platform, privileged: true }
+---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: hook }
+spec: { type: webhook, endpoint: "http://127.0.0.1:9/hook" }
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform, annotations: { gaia/mode: patch } }
+spec:
+  notifications:
+    - { provider: hook, triggers: [access.privileged] }
+`)
+	rc, err := river.NewClient(riverpgxv5.New(st.Pool()), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Notify = &notify.Notifier{Store: st, Queue: rc}
+
 	// A local account named ayse is someone else.
 	_ = q.InsertUser(ctx, db.InsertUserParams{ID: store.NewUserID(), Username: "ayse", Provider: "local"})
 
@@ -226,6 +255,10 @@ func members(t *testing.T, ctx context.Context, s *Syncer, st *store.Store, samb
 		strings.Join(rep.Disabled, ";") != "mehmet" {
 		t.Errorf("after AD changed: %+v", rep)
 	}
+	sent, _ := q.Notifications(ctx, db.NotificationsParams{MaxRows: 10})
+	if len(sent) != 1 || sent[0].Trigger != "access.privileged" || sent[0].Channel != "hook" || !strings.Contains(string(sent[0].Message), `"person": "zeynep"`) {
+		t.Errorf("notifications = %+v", sent)
+	}
 	if s, _ := q.SessionByToken(ctx, "h"); !s.RevokedAt.Valid {
 		t.Error("mehmet's session is still alive")
 	}
@@ -264,3 +297,30 @@ func runOnce(t *testing.T, ctx context.Context, s *Syncer, m *repo.Mirrors, plat
 }
 
 func pgText(s string) pgtype.Text { return pgtype.Text{String: s, Valid: true} }
+
+func bare(r repo.Rev) string { return strings.TrimPrefix(r.URL, "file://") }
+
+// pushFile commits a file to a bare repository's master through a clone.
+func pushFile(t *testing.T, bare, path, content string) {
+	t.Helper()
+	dir := t.TempDir()
+	cl, err := git.PlainClone(dir, false, &git.CloneOptions{URL: bare})
+	if err != nil {
+		t.Fatal(err)
+	}
+	full := filepath.Join(dir, filepath.FromSlash(path))
+	_ = os.MkdirAll(filepath.Dir(full), 0o755)
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	wt, _ := cl.Worktree()
+	if _, err := wt.Add(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Commit("add "+path, &git.CommitOptions{Author: &object.Signature{Name: "t", Email: "t@x", When: time.Now()}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := cl.Push(&git.PushOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}

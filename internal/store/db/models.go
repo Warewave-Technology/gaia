@@ -122,6 +122,7 @@ type ContractState struct {
 	AppliedAt       pgtype.Timestamptz
 	Error           pgtype.Text
 	EvaluatedAt     pgtype.Timestamptz
+	AppliedPlan     []byte
 }
 
 type DeviceCode struct {

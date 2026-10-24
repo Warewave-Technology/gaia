@@ -34,6 +34,19 @@ type Contract struct {
 	Baseline   *Baseline         `json:"baseline,omitempty"`
 	Roles      []Role            `json:"roles,omitempty"`
 	Monitoring *Monitoring       `json:"monitoring,omitempty"`
+	// Access is who may log in (design 14.3), teams resolved: a change
+	// to it is a change to the contract, approved like any. The people
+	// in the teams are not part of the plan; they come from AD.
+	Access []Access `json:"access,omitempty"`
+}
+
+// Access is one access entry of a contract.
+type Access struct {
+	Via        string   `json:"via"` // group/<name> or team/<name>
+	Teams      []string `json:"teams"`
+	Sudo       bool     `json:"sudo,omitempty"`
+	Privileged bool     `json:"privileged,omitempty"`
+	Owner      string   `json:"owner,omitempty"` // the group's owner team
 }
 
 // Monitoring is where the contract's servers are registered and with
@@ -283,6 +296,18 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			Name: rr.Name, Role: rs.Source.Role, Provider: rs.Source.Provider,
 			Params: mask(rs.Params, catalog.EffectiveParams(rs.Params, rr.Params)),
 		})
+	}
+	for _, a := range s.Access {
+		if a.Team != "" {
+			c.Access = append(c.Access, Access{Via: "team/" + a.Team, Teams: []string{a.Team}, Sudo: a.Sudo})
+			continue
+		}
+		teams, privileged := g.GroupTeams(a.Group)
+		owner := ""
+		if o, ok := g.Catalog.Get(catalog.KindGroup, a.Group); ok {
+			owner = o.Spec.(*catalog.GroupSpec).Owner
+		}
+		c.Access = append(c.Access, Access{Via: "group/" + a.Group, Teams: teams, Sudo: a.Sudo, Privileged: privileged, Owner: owner})
 	}
 	if m := g.Platform().Spec.(*catalog.PlatformSpec).Monitoring; m != nil {
 		if c.Monitoring, err = monitoring(g, m, img, s); err != nil {

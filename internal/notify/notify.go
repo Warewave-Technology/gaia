@@ -46,6 +46,15 @@ type Event struct {
 	Approvers []Approver `json:"approvers,omitempty"`
 	// URL is the change's page.
 	URL string `json:"url,omitempty"`
+
+	// Events that are not a change's: Key tells them apart, Teams are
+	// told besides the owner's, and Group, Team and Person say who got
+	// access where.
+	Key    string   `json:"key,omitempty"`
+	Teams  []string `json:"teams,omitempty"`
+	Group  string   `json:"group,omitempty"`
+	Team   string   `json:"team,omitempty"`
+	Person string   `json:"person,omitempty"`
 }
 
 // Approver is one approval a pending change needs.
@@ -110,6 +119,9 @@ func (n *Notifier) Emit(ctx context.Context, g *catalog.Graph, ev Event) error {
 		ev.URL = a.URL + "/approve/" + ev.Change
 	}
 	key := ev.Change + "/" + ev.Trigger
+	if ev.Key != "" {
+		key = ev.Key
+	}
 	var errs []error
 	send := func(recipient string, ch Channel) {
 		if err := n.record(ctx, key, recipient, ev, ch); err != nil {
@@ -121,7 +133,7 @@ func (n *Notifier) Emit(ctx context.Context, g *catalog.Graph, ev Event) error {
 	if o, ok := g.Catalog.Get(catalog.KindServer, ev.Contract); ok {
 		owner = o.Metadata.Labels["owner"]
 	}
-	teams := []string{owner}
+	teams := append([]string{owner}, ev.Teams...)
 	if ev.Trigger == "change.pending" {
 		for _, a := range ev.Approvers {
 			teams = append(teams, a.Teams...)
@@ -171,7 +183,7 @@ func (n *Notifier) people(ctx context.Context, g *catalog.Graph, ev Event, email
 			return err
 		}
 		roles := g.RolesOf(teams)
-		if !slices.Contains(teams, owner) && !slices.Contains(roles, "operator") && !slices.Contains(roles, "platform-admin") {
+		if (owner == "" || !slices.Contains(teams, owner)) && !slices.Contains(roles, "operator") && !slices.Contains(roles, "platform-admin") {
 			continue
 		}
 		ch, err := channel(g, email)

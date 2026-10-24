@@ -127,7 +127,7 @@ func (q *Queries) Changes(ctx context.Context, arg ChangesParams) ([]Change, err
 }
 
 const contractState = `-- name: ContractState :one
-select contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at, error, evaluated_at from contract_states where contract = $1
+select contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at, error, evaluated_at, applied_plan from contract_states where contract = $1
 `
 
 func (q *Queries) ContractState(ctx context.Context, contract string) (ContractState, error) {
@@ -142,12 +142,13 @@ func (q *Queries) ContractState(ctx context.Context, contract string) (ContractS
 		&i.AppliedAt,
 		&i.Error,
 		&i.EvaluatedAt,
+		&i.AppliedPlan,
 	)
 	return i, err
 }
 
 const contractStates = `-- name: ContractStates :many
-select contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at, error, evaluated_at from contract_states order by contract
+select contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at, error, evaluated_at, applied_plan from contract_states order by contract
 `
 
 func (q *Queries) ContractStates(ctx context.Context) ([]ContractState, error) {
@@ -168,6 +169,7 @@ func (q *Queries) ContractStates(ctx context.Context) ([]ContractState, error) {
 			&i.AppliedAt,
 			&i.Error,
 			&i.EvaluatedAt,
+			&i.AppliedPlan,
 		); err != nil {
 			return nil, err
 		}
@@ -359,10 +361,11 @@ func (q *Queries) OpenChanges(ctx context.Context) ([]Change, error) {
 }
 
 const setApplied = `-- name: SetApplied :exec
-insert into contract_states (contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_at)
-values ($1, 'synced', $2, $3, $4, now())
+insert into contract_states (contract, sync, applied_snapshot, applied_label, applied_plan_hash, applied_plan, applied_at)
+values ($1, 'synced', $2, $3, $4, $5, now())
 on conflict (contract) do update set sync = 'synced', error = null, applied_snapshot = excluded.applied_snapshot,
-    applied_label = excluded.applied_label, applied_plan_hash = excluded.applied_plan_hash, applied_at = now()
+    applied_label = excluded.applied_label, applied_plan_hash = excluded.applied_plan_hash,
+    applied_plan = excluded.applied_plan, applied_at = now()
 `
 
 type SetAppliedParams struct {
@@ -370,6 +373,7 @@ type SetAppliedParams struct {
 	AppliedSnapshot []byte
 	AppliedLabel    pgtype.Text
 	AppliedPlanHash pgtype.Text
+	AppliedPlan     []byte
 }
 
 func (q *Queries) SetApplied(ctx context.Context, arg SetAppliedParams) error {
@@ -378,6 +382,7 @@ func (q *Queries) SetApplied(ctx context.Context, arg SetAppliedParams) error {
 		arg.AppliedSnapshot,
 		arg.AppliedLabel,
 		arg.AppliedPlanHash,
+		arg.AppliedPlan,
 	)
 	return err
 }

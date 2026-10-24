@@ -523,6 +523,16 @@ type ServerSpec struct {
 	Patch        *PatchSetting `yaml:"patch"`
 	Lifecycle    *Lifecycle    `yaml:"lifecycle"`
 	Retire       []string      `yaml:"retire"`
+	// Access is who may log in to the servers (design 14.3): a Group or a
+	// Team, with sudo or not.
+	Access []Access `yaml:"access"`
+}
+
+// Access grants a Group or a Team login to a contract's servers.
+type Access struct {
+	Group string `yaml:"group"`
+	Team  string `yaml:"team"`
+	Sudo  bool   `yaml:"sudo"`
 }
 
 type Placement struct {
@@ -564,7 +574,32 @@ func (r *RoleRef) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
+func (s *ServerSpec) validateAccess() []string {
+	var out []string
+	seen := map[string]bool{}
+	for i, a := range s.Access {
+		at := fmt.Sprintf("access[%d]", i)
+		if (a.Group == "") == (a.Team == "") {
+			out = append(out, at+": name a group or a team")
+			continue
+		}
+		k := "group/" + a.Group + "team/" + a.Team
+		if seen[k] {
+			out = append(out, at+": listed twice")
+		}
+		seen[k] = true
+	}
+	return out
+}
+
 func (s *ServerSpec) validate() []string {
+	if out := s.validateAccess(); len(out) > 0 {
+		return append(out, s.validateRest()...)
+	}
+	return s.validateRest()
+}
+
+func (s *ServerSpec) validateRest() []string {
 	var out []string
 	switch {
 	case s.Network != "" && len(s.Topology) > 0:
@@ -783,6 +818,7 @@ var Triggers = []string{
 	"change.failed",     // its run failed or was cancelled
 	"drift.found",       // the real state differs from the applied one
 	"approval.expiring", // an approved change may not run in time
+	"access.privileged", // AD added someone to a team in a privileged group
 }
 
 func (s *TeamSpec) validate() []string {
@@ -861,4 +897,22 @@ func (s *TeamSourceSpec) validate() []string {
 		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
 	}
 	return out
+}
+
+// GroupSpec is an access group (design 14.3): teams and other groups,
+// never people. Its owner approves the changes it makes to contracts;
+// a privileged group's changes also need a platform admin.
+type GroupSpec struct {
+	Description string   `yaml:"description"`
+	Teams       []string `yaml:"teams"`
+	Groups      []string `yaml:"groups"`
+	Owner       string   `yaml:"owner" gaia:"required"`
+	Privileged  bool     `yaml:"privileged"`
+}
+
+func (s *GroupSpec) validate() []string {
+	if len(s.Teams) == 0 && len(s.Groups) == 0 {
+		return []string{"teams: a group needs teams or groups"}
+	}
+	return nil
 }

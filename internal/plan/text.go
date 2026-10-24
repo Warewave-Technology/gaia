@@ -111,6 +111,23 @@ func WriteText(w io.Writer, p *Plan) error {
 				pr.f("    role %s (%s)%s\n", r.Name, r.Role, params(r.Params))
 			}
 		}
+		if len(c.Access) > 0 {
+			pr.f("  access\n")
+			for _, a := range c.Access {
+				var flags []string
+				if a.Sudo {
+					flags = append(flags, "sudo")
+				}
+				if a.Privileged {
+					flags = append(flags, "privileged")
+				}
+				extra := ""
+				if len(flags) > 0 {
+					extra = " [" + strings.Join(flags, ", ") + "]"
+				}
+				pr.f("    %s: %s%s\n", a.Via, strings.Join(a.Teams, ", "), extra)
+			}
+		}
 	}
 
 	pr.f("\nsummary\n")

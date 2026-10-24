@@ -1584,6 +1584,18 @@ access:
 - **Ayrıcalıklı gruplar:** `privileged: true` olan bir Group'u değiştiren Change, owner onayına ek olarak `platform-admin` onayı gerektirir.
 - **AD üzerinden yapılan eklemeler:** Ayrıcalıklı bir Group'un içindeki bir takıma AD'den yeni biri eklenirse Gaia erişimi dağıtır, ama bunu ayrıca bildirir (ör. "prod sudo yetkisi olan gruba AD'den X eklendi"). Kararın yeri AD olduğu için Gaia engellemez, ama görünür kılar.
 
+**Planla bağlantısı:** Kontratın planı erişimi de içerir. Her girdi için şunlar plandadır: gruba mı takıma mı verildiği, çözülmüş takım listesi, sudo, ayrıcalık ve grubun sahibi. Erişim vermek veya bir Group'un takımlarını değiştirmek planı, dolayısıyla plan hash'ini değiştirir ve bir Change olur. Takımların içindeki kişiler plana girmez; onların değişikliği AD'den gelir ve onaysız dağıtılır (14.5).
+
+**Ne verildiği:** Gaia, Change'in planını kontratta en son uygulanan planla karşılaştırır. Yeni bir girdi, takım listesi genişleyen ya da sudo kazanan bir girdi "verilen erişim"dir. Erişimi kaldırmak veya daraltmak ek onay gerektirmez.
+
+**Verilen erişimin onayları:**
+- Ayrıcalıklı bir Group üzerinden: `platform-admin`
+- Başka bir takımın sahibi olduğu Group üzerinden: Group'un sahibi (onaycı grubu varsa ondan)
+- Erişim kazanan takımların üyeleri bu Change'i onaylayamaz.
+- Bu onaylar ortamın `approval` ayarından bağımsızdır.
+
+**Ayrıcalıklı gruba AD'den eklenme:** Takıma AD'de eklenen kişi ayrıcalıklı bir Group'un takımındaysa `access.privileged` bildirimi Group'un sahibine ve `platform-admin` takımlarına gider. Bir dizinin ilk senkronu bildirim üretmez.
+
 ### 14.4 Dağıtım
 
 | Tüketici | Gaia nasıl dağıtır |
@@ -1703,3 +1715,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Gaia'nın commit'leri `gaia` sistem hesabının anahtarıyla imzalanır, isteyen `Gaia-Requested-By` ile commit sahibi sayılır; Gaia yerel çalışma kopyasına yazmaz |
 | 2026-10-25 | Team objesi TeamSource'tan önce elle yazılabilir; bildirim kanalları Provider (`slack`, `msteams`, `smtp`, `webhook`), abonelikler `Team.spec.notifications` |
 | 2026-10-25 | AD üyelikleri veritabanında, hesaplar objectGUID ile; OIDC girişi `directory.claim` ile AD hesabına bağlanır; owner onayı onaycı grubundan; yöneticinin kapattığı hesabı AD açamaz |
+| 2026-10-25 | Erişim planın parçası (çözülmüş takımlar); verilen erişim ayrıcalıklıysa platform-admin, başkasının Group'uysa sahibi onaylar, kazanan takımın üyesi onaylayamaz; ayrıcalıklı gruba AD eklemesi bildirilir |
