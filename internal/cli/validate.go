@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -36,23 +37,18 @@ func newValidateCommand() *cobra.Command {
 			}
 
 			out := cmd.OutOrStdout()
-			cat, err := catalog.Load(commit, all)
-			if _, werr := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], ref, len(all)); werr != nil {
-				return werr
-			}
-			var errs catalog.Errors
-			if errors.As(err, &errs) {
-				for _, e := range errs {
-					if _, werr := fmt.Fprintln(out, e.Error()); werr != nil {
-						return werr
-					}
-				}
-				return fmt.Errorf("%d problem(s) found", len(errs))
-			}
-			if err != nil {
+			if _, err := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], ref, len(all)); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(out, "%d objects: %s\n", cat.Len(), summary(cat))
+			cat, err := catalog.Load(commit, all)
+			if err != nil {
+				return report(out, err)
+			}
+			g, err := catalog.Resolve(cat)
+			if err != nil {
+				return report(out, err)
+			}
+			_, err = fmt.Fprintf(out, "%d objects (%s), %d references\n", cat.Len(), summary(cat), refCount(g))
 			return err
 		},
 	}
@@ -60,6 +56,30 @@ func newValidateCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ref, "ref", "HEAD", "commit, branch or tag to read")
 	cmd.Flags().StringSliceVar(&paths, "path", nil, "directory inside the repository; repeatable (default: the whole tree)")
 	return cmd
+}
+
+// report prints each problem and returns an error with their count.
+func report(out io.Writer, err error) error {
+	var errs catalog.Errors
+	if !errors.As(err, &errs) {
+		return err
+	}
+	for _, e := range errs {
+		if _, werr := fmt.Fprintln(out, e.Error()); werr != nil {
+			return werr
+		}
+	}
+	return fmt.Errorf("%d problem(s) found", len(errs))
+}
+
+func refCount(g *catalog.Graph) int {
+	n := 0
+	for _, k := range catalog.Kinds() {
+		for _, o := range g.Catalog.List(k) {
+			n += len(g.Refs(o.Key()))
+		}
+	}
+	return n
 }
 
 func summary(cat *catalog.Catalog) string {
