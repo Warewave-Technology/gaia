@@ -198,6 +198,24 @@ paths:
         "400": { description: No plan hash or no reason, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "403": { description: Not an approver, or confirm first, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "409": { description: Closed, decided already or another plan, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/commits/{sha}/revert:
+    post:
+      summary: Have Gaia write the revert of a commit (design 7.6)
+      description: >-
+        Gaia writes a commit signed with its key on top of the followed branch, naming
+        the caller in a Gaia-Requested-By trailer. Its changes wait for their requirements
+        like any, and the caller may not approve them. Operators may revert any commit;
+        others only one whose changes were all to contracts they see in full.
+      operationId: revertCommit
+      parameters: [{ name: sha, in: path, required: true, schema: { type: string, pattern: "^[0-9a-f]{40}$" } }]
+      requestBody: { content: { application/json: { schema: { type: object, required: [repo], properties: { repo: { type: string, description: "platform, or a git provider's name" } } } } } }
+      responses:
+        "201": { description: Written, content: { application/json: { schema: { type: object, properties: { commit: { type: string }, reverts: { type: string } } } } } }
+        "400": { description: Not a full SHA or no repo, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "403": { description: Not an operator nor the owner of what the commit changed, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "404": { description: No such repository or commit, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "409": { description: "Later commits changed the same files, a merge commit, or the branch moved", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "503": { description: gaia server has no --signing-key, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/webhooks/github:
     post:
       summary: GitHub push webhook (public; checked with X-Hub-Signature-256)

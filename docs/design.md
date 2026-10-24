@@ -873,6 +873,13 @@ pending ──gereksinimler──► approved ──pencere──► running ─
 **Gaia'nın yazdıkları.** Source'ların ürettiği objeler, decommission sonrası kontratın silinmesi, Operation temizliği ve geri almalar Gaia'nın kendi anahtarıyla imzalanmış commit'lerdir ve doğrudan izlenen branch'e yazılır. Etkileri normal bir Change olarak görünür ve aynı kurallarla onaylanır; örneğin katalog değişikliği `platform-admin` ister. Gaia doğrulamayan bir commit yazmaz.
 
 **Geri alma.** Git tek geçmiş olduğu için geri alma da bir commit'tir. Arayüzde "geri al" denince Gaia ilgili commit'in revert'ünü yazar; bu da bir Change olarak onaydan geçer. Gaia hiçbir zaman izlenen branch'in son halinden farklı bir şey uygulamaz.
+- Gaia'nın anahtarı OpenBao'dadır (`gaia server --signing-key`, OpenSSH `private_key`). Gaia açılışta bu anahtarın açık yarısını `gaia` sistem hesabına kayıtlı imza anahtarı olarak ekler. Bu hesap giriş yapamaz: passkey'i, parolası ve OIDC kimliği yoktur.
+- Gaia commit'i kimin için yazdıysa onu `Gaia-Requested-By` trailer'ına yazar. Motor, Gaia'nın imzaladığı commit'lerde commit sahibi olarak bu kişiyi alır. Kişi bu commit'in Change'ini onaylayamaz. Başkalarının commit'lerindeki trailer'a bakılmaz.
+- Revert, commit'in değiştirdiği dosyaları ondan önceki hallerine döndürür. Sonraki bir commit aynı dosyaları değiştirmişse Gaia revert'ü yazmaz ve o dosyaları sayar; birleştirme elle yapılır. Merge commit'leri revert edilmez.
+- **Yazma yetkisi:**
+  - Gaia sadece URL ile izlediği repolara yazar; yerel bir çalışma kopyasına yazmaz. İtme, okumada kullanılan kimlik bilgisiyle yapılır; bu kimlik bilgisinin yazma yetkisi olmalıdır.
+  - Gaia sadece yazmaya başladığı baş commit'in üzerine iter; arada branch ilerlemişse yeniden denenir.
+  - Operator her commit'i revert ettirebilir; diğerleri sadece Change'leri tamamen kendi kontratlarına olan commit'leri.
 
 **Önizleme.** İzlenmeyen bir branch veya PR için plan istenebilir (`gaia plan --ref`, ileride PR yorumu olarak). Önizleme hiçbir şey uygulamaz ve Change açmaz.
 
@@ -1635,3 +1642,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Plan hash'i commit etiketini içermez; plana dokunmayan commit Change'i ve onaylarını korur |
 | 2026-10-25 | Başarısız Change aynı plan ve commit'lerle kendiliğinden tekrar açılmaz; yeni commit veya `retry` gerekir |
 | 2026-10-25 | Onay ve red plan hash'iyle gönderilir, step-up passkey veya TOTP ile; red gerekçe ister; çoklu owner'da owner onayını platform-admin de verebilir |
+| 2026-10-25 | Gaia'nın commit'leri `gaia` sistem hesabının anahtarıyla imzalanır, isteyen `Gaia-Requested-By` ile commit sahibi sayılır; Gaia yerel çalışma kopyasına yazmaz |

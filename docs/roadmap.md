@@ -96,7 +96,9 @@ Gaia'nın omurgası (tasarım 7.6).
 
 **Durum:**
 - Tamam: repolar ve anlık görüntü; imza doğrulaması; Change motoru (gereksinimler, supersede, retry, sync durumu); onay ve red (API, onay sayfası, `gaia change approve`, step-up, toplu onay, çoklu owner); run kaydında `approvedBy`.
-- Kalan: GitHub webhook'u; Gaia'nın imzalı commit'leri ve revert; `gaia plan --ref`; lab uçtan uca testi.
+- Tamam: GitHub webhook'u; Gaia'nın imzalı commit'leri ve revert (`gaia revert`).
+- Kalan: `gaia plan --ref`; uçtan uca test (gerçek bir Git sunucusuyla: ssh ile fetch/push ve webhook).
+- Faz 10'a taşındı: decommission sonrası kontrat dosyasının silinmesi (Gaia'nın commit yazıcısını kullanır).
 
 ## Faz 4: Bildirimler
 

@@ -128,6 +128,30 @@ func newChangeCommand() *cobra.Command {
 	return cmd
 }
 
+func newRevertCommand() *cobra.Command {
+	var addr, repoName string
+	cmd := &cobra.Command{
+		Use:   "revert COMMIT",
+		Short: "Have Gaia write the revert of a commit, signed with its key",
+		Long: "revert asks gaia server to write a commit that takes back COMMIT, on top of\n" +
+			"the followed branch. The revert is a commit like any: its changes wait for\n" +
+			"their requirements, and you may not approve them yourself.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var out map[string]string
+			body := map[string]string{"repo": repoName}
+			if err := apiClient(addr).Post(cmd.Context(), "/api/v1/commits/"+url.PathEscape(args[0])+"/revert", body, &out); err != nil {
+				return hint(err)
+			}
+			_, err := fmt.Fprintf(cmd.OutOrStdout(), "wrote %s, which reverts %s; see gaia change list\n", short(out["commit"]), short(out["reverts"]))
+			return err
+		},
+	}
+	cmd.Flags().StringVar(&repoName, "repo", "platform", "the repository the commit is in: platform, or a git provider's name")
+	serverFlag(cmd, &addr)
+	return cmd
+}
+
 // gateDetail says in a line what a gate waits for.
 func gateDetail(gate string, raw json.RawMessage) string {
 	if gate != "approval" {
