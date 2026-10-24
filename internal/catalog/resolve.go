@@ -143,6 +143,13 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindTeamSource) {
 		r.teamSource(o)
 	}
+	for _, o := range cat.List(KindAuthConfig) {
+		for i, p := range o.Spec.(*AuthConfigSpec).Providers {
+			if p.Directory != nil {
+				r.ref(o, fmt.Sprintf("spec.providers[%d].directory.provider", i), KindProvider, p.Directory.Provider, "activedirectory")
+			}
+		}
+	}
 	for _, o := range cat.List(KindTeam) {
 		r.team(o)
 	}

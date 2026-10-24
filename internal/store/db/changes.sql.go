@@ -483,8 +483,13 @@ func (q *Queries) SetGate(ctx context.Context, arg SetGateParams) error {
 
 const teamMembers = `-- name: TeamMembers :many
 select distinct u.id, u.username from users u join team_memberships t on t.user_id = u.id
-where t.team = any ($1::text[]) and u.enabled order by u.username
+where t.team = any ($1::text[]) and t.role = $2::text and u.enabled order by u.username
 `
+
+type TeamMembersParams struct {
+	Teams []string
+	Role  string
+}
 
 type TeamMembersRow struct {
 	ID       string
@@ -492,8 +497,8 @@ type TeamMembersRow struct {
 }
 
 // Enabled people in any of the teams.
-func (q *Queries) TeamMembers(ctx context.Context, teams []string) ([]TeamMembersRow, error) {
-	rows, err := q.db.Query(ctx, teamMembers, teams)
+func (q *Queries) TeamMembers(ctx context.Context, arg TeamMembersParams) ([]TeamMembersRow, error) {
+	rows, err := q.db.Query(ctx, teamMembers, arg.Teams, arg.Role)
 	if err != nil {
 		return nil, err
 	}

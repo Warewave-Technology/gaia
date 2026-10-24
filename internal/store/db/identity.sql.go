@@ -13,7 +13,7 @@ import (
 
 const addTeam = `-- name: AddTeam :exec
 insert into team_memberships (user_id, team, source) values ($1, $2, $3)
-on conflict (user_id, team, source) do update set synced_at = now()
+on conflict (user_id, team, source, role) do update set synced_at = now()
 `
 
 type AddTeamParams struct {
@@ -214,6 +214,116 @@ func (q *Queries) DeviceCodeByUserCode(ctx context.Context, userCode string) (De
 	return i, err
 }
 
+const directoryUser = `-- name: DirectoryUser :one
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where provider = $1 and subject = $2
+`
+
+type DirectoryUserParams struct {
+	Provider string
+	Subject  pgtype.Text
+}
+
+func (q *Queries) DirectoryUser(ctx context.Context, arg DirectoryUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, directoryUser, arg.Provider, arg.Subject)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Provider,
+		&i.Subject,
+		&i.PasswordHash,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.DisabledAt,
+		&i.Email,
+		&i.DirectoryName,
+		&i.DisabledBy,
+	)
+	return i, err
+}
+
+const directoryUserByName = `-- name: DirectoryUserByName :one
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where provider = $1 and directory_name = $2
+`
+
+type DirectoryUserByNameParams struct {
+	Provider      string
+	DirectoryName pgtype.Text
+}
+
+func (q *Queries) DirectoryUserByName(ctx context.Context, arg DirectoryUserByNameParams) (User, error) {
+	row := q.db.QueryRow(ctx, directoryUserByName, arg.Provider, arg.DirectoryName)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Provider,
+		&i.Subject,
+		&i.PasswordHash,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.DisabledAt,
+		&i.Email,
+		&i.DirectoryName,
+		&i.DisabledBy,
+	)
+	return i, err
+}
+
+const directoryUsers = `-- name: DirectoryUsers :many
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where provider = $1 order by username
+`
+
+func (q *Queries) DirectoryUsers(ctx context.Context, provider string) ([]User, error) {
+	rows, err := q.db.Query(ctx, directoryUsers, provider)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.DisplayName,
+			&i.Provider,
+			&i.Subject,
+			&i.PasswordHash,
+			&i.Enabled,
+			&i.CreatedAt,
+			&i.DisabledAt,
+			&i.Email,
+			&i.DirectoryName,
+			&i.DisabledBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const dropSourceTeams = `-- name: DropSourceTeams :exec
+delete from team_memberships where source = $1 and not (team = any ($2::text[]))
+`
+
+type DropSourceTeamsParams struct {
+	Source string
+	Teams  []string
+}
+
+// Teams a source no longer has.
+func (q *Queries) DropSourceTeams(ctx context.Context, arg DropSourceTeamsParams) error {
+	_, err := q.db.Exec(ctx, dropSourceTeams, arg.Source, arg.Teams)
+	return err
+}
+
 const insertCredential = `-- name: InsertCredential :exec
 insert into webauthn_credentials (id, user_id, name, credential, sign_count) values ($1, $2, $3, $4, $5)
 `
@@ -256,6 +366,38 @@ func (q *Queries) InsertDeviceCode(ctx context.Context, arg InsertDeviceCodePara
 		arg.Ip,
 		arg.UserAgent,
 		arg.ExpiresAt,
+	)
+	return err
+}
+
+const insertDirectoryUser = `-- name: InsertDirectoryUser :exec
+insert into users (id, username, display_name, provider, subject, directory_name, email, enabled, disabled_by, disabled_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, case when $8::boolean then null else now() end)
+`
+
+type InsertDirectoryUserParams struct {
+	ID            string
+	Username      string
+	DisplayName   pgtype.Text
+	Provider      string
+	Subject       pgtype.Text
+	DirectoryName pgtype.Text
+	Email         pgtype.Text
+	Enabled       bool
+	DisabledBy    pgtype.Text
+}
+
+func (q *Queries) InsertDirectoryUser(ctx context.Context, arg InsertDirectoryUserParams) error {
+	_, err := q.db.Exec(ctx, insertDirectoryUser,
+		arg.ID,
+		arg.Username,
+		arg.DisplayName,
+		arg.Provider,
+		arg.Subject,
+		arg.DirectoryName,
+		arg.Email,
+		arg.Enabled,
+		arg.DisabledBy,
 	)
 	return err
 }
@@ -378,6 +520,36 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.PasswordHash,
 	)
 	return err
+}
+
+const membershipUsers = `-- name: MembershipUsers :many
+select user_id from team_memberships where team = $1 and source = $2 and role = $3 order by user_id
+`
+
+type MembershipUsersParams struct {
+	Team   string
+	Source string
+	Role   string
+}
+
+func (q *Queries) MembershipUsers(ctx context.Context, arg MembershipUsersParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, membershipUsers, arg.Team, arg.Source, arg.Role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const peekFlow = `-- name: PeekFlow :one
@@ -534,6 +706,34 @@ func (q *Queries) SessionByToken(ctx context.Context, tokenHash string) (Session
 	return i, err
 }
 
+const setMemberships = `-- name: SetMemberships :exec
+with gone as (
+    delete from team_memberships where team = $1 and source = $2 and role = $3
+      and not (user_id = any ($4::text[]))
+)
+insert into team_memberships (user_id, team, source, role)
+select unnest($4::text[]), $1, $2, $3
+on conflict (user_id, team, source, role) do update set synced_at = now()
+`
+
+type SetMembershipsParams struct {
+	Team   string
+	Source string
+	Role   string
+	Users  []string
+}
+
+// The members of a team from a source, all at once.
+func (q *Queries) SetMemberships(ctx context.Context, arg SetMembershipsParams) error {
+	_, err := q.db.Exec(ctx, setMemberships,
+		arg.Team,
+		arg.Source,
+		arg.Role,
+		arg.Users,
+	)
+	return err
+}
+
 const setPasswordHash = `-- name: SetPasswordHash :exec
 update users set password_hash = $2 where id = $1
 `
@@ -573,7 +773,8 @@ func (q *Queries) SetTOTP(ctx context.Context, arg SetTOTPParams) error {
 }
 
 const setUserEnabled = `-- name: SetUserEnabled :exec
-update users set enabled = $2, disabled_at = case when $2 then null else now() end where id = $1
+update users set enabled = $2, disabled_at = case when $2 then null else now() end,
+    disabled_by = case when $2 then null else 'admin' end where id = $1
 `
 
 type SetUserEnabledParams struct {
@@ -581,6 +782,7 @@ type SetUserEnabledParams struct {
 	Enabled bool
 }
 
+// By an admin: the directory does not open an account an admin closed.
 func (q *Queries) SetUserEnabled(ctx context.Context, arg SetUserEnabledParams) error {
 	_, err := q.db.Exec(ctx, setUserEnabled, arg.ID, arg.Enabled)
 	return err
@@ -732,6 +934,35 @@ func (q *Queries) UnusedRecoveryCodes(ctx context.Context, userID string) (int64
 	return count, err
 }
 
+const updateDirectoryUser = `-- name: UpdateDirectoryUser :exec
+update users set display_name = $2, directory_name = $3, email = $4,
+    enabled = case when disabled_by = 'admin' then enabled else $5::boolean end,
+    disabled_by = case when disabled_by = 'admin' then disabled_by when $5::boolean then null else 'directory' end,
+    disabled_at = case when disabled_by = 'admin' then disabled_at when $5::boolean then null else coalesce(disabled_at, now()) end
+where id = $1
+`
+
+type UpdateDirectoryUserParams struct {
+	ID            string
+	DisplayName   pgtype.Text
+	DirectoryName pgtype.Text
+	Email         pgtype.Text
+	Active        bool
+}
+
+// An account an admin closed stays closed; the directory only opens what
+// it closed.
+func (q *Queries) UpdateDirectoryUser(ctx context.Context, arg UpdateDirectoryUserParams) error {
+	_, err := q.db.Exec(ctx, updateDirectoryUser,
+		arg.ID,
+		arg.DisplayName,
+		arg.DirectoryName,
+		arg.Email,
+		arg.Active,
+	)
+	return err
+}
+
 const useCredential = `-- name: UseCredential :exec
 update webauthn_credentials set credential = $2, sign_count = $3, last_used_at = now() where id = $1
 `
@@ -795,7 +1026,7 @@ func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64
 }
 
 const user = `-- name: User :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where id = $1
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where id = $1
 `
 
 func (q *Queries) User(ctx context.Context, id string) (User, error) {
@@ -812,12 +1043,14 @@ func (q *Queries) User(ctx context.Context, id string) (User, error) {
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.Email,
+		&i.DirectoryName,
+		&i.DisabledBy,
 	)
 	return i, err
 }
 
 const userByName = `-- name: UserByName :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where username = $1
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where username = $1
 `
 
 func (q *Queries) UserByName(ctx context.Context, username string) (User, error) {
@@ -834,12 +1067,14 @@ func (q *Queries) UserByName(ctx context.Context, username string) (User, error)
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.Email,
+		&i.DirectoryName,
+		&i.DisabledBy,
 	)
 	return i, err
 }
 
 const userBySubject = `-- name: UserBySubject :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where provider = $1 and subject = $2
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users where provider = $1 and subject = $2
 `
 
 type UserBySubjectParams struct {
@@ -861,6 +1096,8 @@ func (q *Queries) UserBySubject(ctx context.Context, arg UserBySubjectParams) (U
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.Email,
+		&i.DirectoryName,
+		&i.DisabledBy,
 	)
 	return i, err
 }
@@ -906,7 +1143,7 @@ func (q *Queries) UserSessions(ctx context.Context, userID string) ([]Session, e
 }
 
 const users = `-- name: Users :many
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users order by username
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email, directory_name, disabled_by from users order by username
 `
 
 func (q *Queries) Users(ctx context.Context) ([]User, error) {
@@ -929,6 +1166,8 @@ func (q *Queries) Users(ctx context.Context) ([]User, error) {
 			&i.CreatedAt,
 			&i.DisabledAt,
 			&i.Email,
+			&i.DirectoryName,
+			&i.DisabledBy,
 		); err != nil {
 			return nil, err
 		}

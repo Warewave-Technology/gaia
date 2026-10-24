@@ -15,7 +15,9 @@ select * from users where provider = $1 and subject = $2;
 select * from users order by username;
 
 -- name: SetUserEnabled :exec
-update users set enabled = $2, disabled_at = case when $2 then null else now() end where id = $1;
+-- By an admin: the directory does not open an account an admin closed.
+update users set enabled = $2, disabled_at = case when $2 then null else now() end,
+    disabled_by = case when $2 then null else 'admin' end where id = $1;
 
 -- name: SetPasswordHash :exec
 update users set password_hash = $2 where id = $1;
@@ -25,7 +27,7 @@ select distinct team from team_memberships where user_id = $1 order by team;
 
 -- name: AddTeam :exec
 insert into team_memberships (user_id, team, source) values ($1, $2, $3)
-on conflict (user_id, team, source) do update set synced_at = now();
+on conflict (user_id, team, source, role) do update set synced_at = now();
 
 -- name: ClearTeams :exec
 delete from team_memberships where user_id = $1 and source = $2;
@@ -148,3 +150,42 @@ where k.revoked_at is null and u.enabled;
 
 -- name: RevokeSigningKey :execrows
 update signing_keys set revoked_at = now() where fingerprint = $1 and user_id = $2 and revoked_at is null;
+
+-- name: DirectoryUser :one
+select * from users where provider = $1 and subject = $2;
+
+-- name: DirectoryUserByName :one
+select * from users where provider = $1 and directory_name = $2;
+
+-- name: DirectoryUsers :many
+select * from users where provider = $1 order by username;
+
+-- name: InsertDirectoryUser :exec
+insert into users (id, username, display_name, provider, subject, directory_name, email, enabled, disabled_by, disabled_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, case when $8::boolean then null else now() end);
+
+-- name: UpdateDirectoryUser :exec
+-- An account an admin closed stays closed; the directory only opens what
+-- it closed.
+update users set display_name = $2, directory_name = $3, email = $4,
+    enabled = case when disabled_by = 'admin' then enabled else sqlc.arg(active)::boolean end,
+    disabled_by = case when disabled_by = 'admin' then disabled_by when sqlc.arg(active)::boolean then null else 'directory' end,
+    disabled_at = case when disabled_by = 'admin' then disabled_at when sqlc.arg(active)::boolean then null else coalesce(disabled_at, now()) end
+where id = $1;
+
+-- name: SetMemberships :exec
+-- The members of a team from a source, all at once.
+with gone as (
+    delete from team_memberships where team = $1 and source = $2 and role = $3
+      and not (user_id = any (sqlc.arg(users)::text[]))
+)
+insert into team_memberships (user_id, team, source, role)
+select unnest(sqlc.arg(users)::text[]), $1, $2, $3
+on conflict (user_id, team, source, role) do update set synced_at = now();
+
+-- name: DropSourceTeams :exec
+-- Teams a source no longer has.
+delete from team_memberships where source = $1 and not (team = any (sqlc.arg(teams)::text[]));
+
+-- name: MembershipUsers :many
+select user_id from team_memberships where team = $1 and source = $2 and role = $3 order by user_id;

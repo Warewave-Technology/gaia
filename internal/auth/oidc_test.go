@@ -20,6 +20,9 @@ import (
 	"github.com/descope/virtualwebauthn"
 	jose "github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+
+	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 // idp is a minimal OpenID provider: discovery, JWKS, and a token endpoint
@@ -278,6 +281,63 @@ func TestSafeNext(t *testing.T) {
 	for in, want := range map[string]string{"/runs": "/runs", "": "/", "https://evil.example": "/", "//evil.example": "/", "/\\evil": "/"} {
 		if got := safeNext(in); got != want {
 			t.Errorf("safeNext(%q) = %q", in, got)
+		}
+	}
+}
+
+func TestOIDCSignInIsTheDirectoryAccount(t *testing.T) {
+	p := newIdP(t)
+	g := labGraphWith(t, func(path, c string) string {
+		if path != "platform/auth.yaml" {
+			return c
+		}
+		c = strings.Replace(c, "  providers:\n", fmt.Sprintf(`  providers:
+    - name: corp-sso
+      type: oidc
+      issuer: %s
+      clientId: gaia
+      clientSecret: bao://kv/platform/gaia/oidc
+      groupsClaim: groups
+      directory: { provider: corp-ad, claim: upn }
+      mfa: { trustIdp: true, acceptAmr: [hwk] }
+`, p.srv.URL), 1)
+		return c + `---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: corp-ad }
+spec: { type: activedirectory, endpoint: "ldaps://dc1:636", credentials: bao://kv/platform/ad }
+`
+	})
+	e := setupWith(t, g)
+	e.auth.WithSecrets(secretMap{"bao://kv/platform/gaia/oidc": {"client_secret": "s3cret"}})
+	ctx := context.Background()
+	q := e.store.Q()
+	account := func(name string, enabled bool) string {
+		id := store.NewUserID()
+		if err := q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id, Username: name, Provider: "corp-ad",
+			Subject: text("guid-" + name), DirectoryName: text(name), Enabled: enabled}); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	ids := []string{account("ayse", true), account("ali", false)}
+	if err := q.SetMemberships(ctx, db.SetMembershipsParams{Team: "team-platform", Source: "ad:corp-ad", Role: "member", Users: ids}); err != nil {
+		t.Fatal(err)
+	}
+
+	b := e.noRedirect(nil)
+	resp := b.oidcLogin(p, map[string]any{"sub": "x-1", "upn": "AYSE@gaia.dev", "groups": []string{"team-web"}, "amr": []string{"hwk"}})
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("callback: %d", resp.StatusCode)
+	}
+	_, me := b.do("GET", "/api/v1/me", nil)
+	if me["username"] != "ayse" || strings.Join(anyStrings(me["teams"]), ",") != "team-platform" {
+		t.Errorf("me = %v (teams come from the directory, not the token)", me)
+	}
+	for _, upn := range []string{"nobody@gaia.dev", "ali@gaia.dev", ""} {
+		r := e.noRedirect(nil).oidcLogin(p, map[string]any{"sub": "x-2", "upn": upn, "amr": []string{"hwk"}})
+		if r.StatusCode != http.StatusForbidden {
+			t.Errorf("%q: %d", upn, r.StatusCode)
 		}
 	}
 }

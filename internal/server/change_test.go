@@ -387,3 +387,43 @@ spec:
 		t.Errorf("rejected: %s", got)
 	}
 }
+
+// A team with an approvers group: its people approve the owner's part,
+// not every member.
+func TestOwnersApproveThroughTheApproversGroup(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	can := e.signer("can", "team-web")
+	e.signer("mehmet")
+	e.signer("ayse")
+	e.edit("platform/policy.yaml", "test: { approval: none }", "test: { approval: required }")
+	e.git.Write("platform/teams.yaml", `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform }
+spec:
+  approversGroup: { dn: "CN=SG-Team-Platform-Approvers,OU=Teams,DC=gaia,DC=dev" }
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec: {}
+`)
+	e.git.CommitSigned("approvers", can.git)
+	q := e.store.Q()
+	id := func(name string) string { u, _ := q.UserByName(ctx, name); return u.ID }
+	_ = q.SetMemberships(ctx, db.SetMembershipsParams{Team: "team-platform", Source: "ad:corp", Role: "member", Users: []string{id("mehmet"), id("ayse")}})
+	_ = q.SetMemberships(ctx, db.SetMembershipsParams{Team: "team-platform", Source: "ad:corp", Role: "approver", Users: []string{id("ayse")}})
+	e.evaluate(en)
+	c, _ := e.open("poc-web")
+	rows, _ := q.Gates(ctx, c.ID)
+	var need change.Need
+	for _, r := range rows {
+		if r.Gate == "approval" {
+			_ = json.Unmarshal(r.Detail, &need)
+		}
+	}
+	if len(need.Groups) != 1 || need.Groups[0].Role != "approver" || strings.Join(need.Groups[0].Candidates, ",") != "ayse" {
+		t.Errorf("need = %+v", need)
+	}
+}

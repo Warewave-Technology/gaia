@@ -1537,6 +1537,15 @@ Takımın kendisi Git'e girer; nadiren değişir ve Gaia'nın commit'iyle gelir.
 - **Kişisel veri:** Kullanıcı adları bile Git'e girmez. Kullanıcılar Gaia'nın veritabanında tutulur: kullanıcı adı, objectGUID, görünen ad ve hesabın etkin olup olmadığı.
 - **Tekrar üretilebilirlik:** Bir run erişimi hangi üye listesine göre dağıttıysa, o listenin bir kopyası run kaydına yazılır (`accessSnapshot`, bkz. 10.1).
 
+**Senkron:**
+- Gaia her Team'in AD grubunun ve onaycı grubunun üyelerini okur (TeamSource'un `membership.recursive`'i ile iç içe gruplar dahil). Varsayılan aralık 5 dakikadır (`membership.sync.every`).
+- Hesaplar objectGUID ile tutulur. Hesabın adı (sAMAccountName), görünen adı ve adresi her senkronda güncellenir. Ad yerel bir hesapla çakışırsa Gaia'daki adı `ad.<provider>` ekiyle yazılır (örneğin `ayse.corp-ad`).
+- Üyelikler "üye" ve "onaycı" olarak ayrı tutulur. Owner onayı, Team'in onaycı grubu varsa onun üyelerinden, yoksa takımın üyelerinden gelir.
+- AD'de devre dışı bırakılan veya silinen hesap Gaia'da kapanır, oturumları ve CLI token'ları biter. AD'de yeniden açılan hesap Gaia'da da açılır; ama bir yöneticinin Gaia'da kapattığı hesabı AD açamaz.
+- Her senkronun raporu (`Directory/<provider>`) takıma girenleri, çıkanları ve kapanan hesapları listeler (`GET /api/v1/sources`).
+
+**Giriş:** OIDC sağlayıcısında `directory: { provider, claim }` varsa giriş AD hesabına bağlanır. Claim'in değeri (`@`'den önceki kısmı), Gaia'nın AD'den aldığı hesabın sAMAccountName'idir. Takımlar ve roller token'dan değil AD'den gelir. Gaia'nın tanımadığı ya da kapalı bir hesapla giriş reddedilir.
+
 **Onayın yeri:**
 
 | Değişiklik | Onaylandığı yer |
@@ -1693,3 +1702,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Onay ve red plan hash'iyle gönderilir, step-up passkey veya TOTP ile; red gerekçe ister; çoklu owner'da owner onayını platform-admin de verebilir |
 | 2026-10-25 | Gaia'nın commit'leri `gaia` sistem hesabının anahtarıyla imzalanır, isteyen `Gaia-Requested-By` ile commit sahibi sayılır; Gaia yerel çalışma kopyasına yazmaz |
 | 2026-10-25 | Team objesi TeamSource'tan önce elle yazılabilir; bildirim kanalları Provider (`slack`, `msteams`, `smtp`, `webhook`), abonelikler `Team.spec.notifications` |
+| 2026-10-25 | AD üyelikleri veritabanında, hesaplar objectGUID ile; OIDC girişi `directory.claim` ile AD hesabına bağlanır; owner onayı onaycı grubundan; yöneticinin kapattığı hesabı AD açamaz |

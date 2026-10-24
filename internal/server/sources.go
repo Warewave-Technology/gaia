@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/source"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -36,7 +38,9 @@ func (s *Sources) kicks() chan struct{} {
 
 // Run runs the sources every interval until ctx ends. A run that writes
 // a commit refreshes the catalog, so its changes are evaluated at once.
+// Team memberships are synced on their own, more often (Members).
 func (s *Sources) Run(ctx context.Context, every time.Duration) {
+	go s.members(ctx)
 	kick := s.kicks()
 	t := time.NewTicker(every)
 	defer t.Stop()
@@ -63,11 +67,39 @@ func (s *Sources) once(ctx context.Context) {
 		wrote, err = s.Syncer.Run(ctx, snap, g)
 		return err
 	})
-	if err != nil && s.Syncer.Log != nil {
+	if err != nil && !errors.Is(err, store.ErrLocked) && s.Syncer.Log != nil {
 		s.Syncer.Log.Warn("sources", "err", err)
 	}
 	if wrote {
 		s.Catalog.Kick()
+	}
+}
+
+// members syncs team memberships from the directories every
+// membership.sync.every of the TeamSources (the shortest; 5m when none
+// says).
+func (s *Sources) members(ctx context.Context) {
+	for {
+		every := 5 * time.Minute
+		if g := s.Catalog.Graph(); g != nil {
+			for i, o := range g.Catalog.List(catalog.KindTeamSource) {
+				if d := o.Spec.(*catalog.TeamSourceSpec).Every(); i == 0 || d < every {
+					every = d
+				}
+			}
+			err := s.Store.WithLock(ctx, "gaia/members", func(ctx context.Context) error {
+				_, err := s.Syncer.Memberships(ctx, g)
+				return err
+			})
+			if err != nil && !errors.Is(err, store.ErrLocked) && s.Syncer.Log != nil {
+				s.Syncer.Log.Warn("memberships", "err", err)
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(every):
+		}
 	}
 }
 
