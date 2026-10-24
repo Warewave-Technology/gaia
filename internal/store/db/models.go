@@ -78,6 +78,18 @@ type AuthFlow struct {
 	ExpiresAt pgtype.Timestamptz
 }
 
+type DeviceCode struct {
+	CodeHash  string
+	UserCode  string
+	Status    string
+	UserID    pgtype.Text
+	Ip        pgtype.Text
+	UserAgent pgtype.Text
+	CreatedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+	PolledAt  pgtype.Timestamptz
+}
+
 type Host struct {
 	Uid        string
 	Contract   string
@@ -183,6 +195,16 @@ type Session struct {
 	UserAgent    pgtype.Text
 	CreatedAt    pgtype.Timestamptz
 	RevokedAt    pgtype.Timestamptz
+}
+
+type SigningKey struct {
+	Fingerprint string
+	UserID      string
+	Kind        string
+	Name        string
+	PublicKey   string
+	CreatedAt   pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
 }
 
 type TeamMembership struct {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Warewave-Technology/gaia/internal/client"
 	"github.com/Warewave-Technology/gaia/internal/server"
 )
 
@@ -29,9 +28,9 @@ func newRunCommand() *cobra.Command {
 	list := &cobra.Command{
 		Use: "list", Short: "List runs, newest first", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			runs, err := client.New(addr).Runs(cmd.Context(), contract, limit)
+			runs, err := apiClient(addr).Runs(cmd.Context(), contract, limit)
 			if err != nil {
-				return err
+				return hint(err)
 			}
 			tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 4, 2, ' ', 0)
 			_, _ = fmt.Fprintln(tw, "RUN\tCONTRACTS\tSTATUS\tCOMMIT\tQUEUED\tBY")
@@ -47,9 +46,9 @@ func newRunCommand() *cobra.Command {
 	show := &cobra.Command{
 		Use: "show RUN", Short: "Show a run's stages and record", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r, err := client.New(addr).Run(cmd.Context(), args[0])
+			r, err := apiClient(addr).Run(cmd.Context(), args[0])
 			if err != nil {
-				return err
+				return hint(err)
 			}
 			out := cmd.OutOrStdout()
 			_, _ = fmt.Fprintf(out, "run      %s\nstatus   %s\ncommit   %s\nplan     %s\nby       %s\n", r.ID, r.Status, r.Commit, r.PlanHash, r.RequestedBy)
@@ -78,11 +77,11 @@ func newRunCommand() *cobra.Command {
 		Use: "watch RUN", Short: "Follow a run's output until it ends", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
-			status, err := client.New(addr).Watch(cmd.Context(), args[0], 0, func(e server.Event) error {
+			status, err := apiClient(addr).Watch(cmd.Context(), args[0], 0, func(e server.Event) error {
 				return printEvent(out, e)
 			})
 			if err != nil {
-				return err
+				return hint(err)
 			}
 			_, err = fmt.Fprintf(out, "\nrun %s %s\n", args[0], status)
 			if err == nil && status != "succeeded" {
@@ -95,8 +94,8 @@ func newRunCommand() *cobra.Command {
 	cancel := &cobra.Command{
 		Use: "cancel RUN", Short: "Cancel a queued or running run", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := client.New(addr).Cancel(cmd.Context(), args[0]); err != nil {
-				return err
+			if err := apiClient(addr).Cancel(cmd.Context(), args[0]); err != nil {
+				return hint(err)
 			}
 			_, err := fmt.Fprintf(cmd.OutOrStdout(), "cancelling %s\n", args[0])
 			return err

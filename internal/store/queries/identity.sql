@@ -113,3 +113,38 @@ update totp_secrets set last_step = $2 where user_id = $1 and last_step < $2 and
 -- name: PeekFlow :one
 -- A flow read without using it up: an OIDC sign-in waiting for a passkey.
 select * from auth_flows where id = $1 and expires_at > now();
+
+-- name: InsertDeviceCode :exec
+insert into device_codes (code_hash, user_code, ip, user_agent, expires_at) values ($1, $2, $3, $4, $5);
+
+-- name: DeviceCodeByUserCode :one
+select * from device_codes where user_code = $1 and expires_at > now();
+
+-- name: DeviceCode :one
+select * from device_codes where code_hash = $1;
+
+-- name: DecideDeviceCode :execrows
+update device_codes set status = $2, user_id = $3 where user_code = $1 and status = 'pending' and expires_at > now();
+
+-- name: PollDeviceCode :exec
+update device_codes set polled_at = now() where code_hash = $1;
+
+-- name: UseDeviceCode :execrows
+update device_codes set status = 'used' where code_hash = $1 and status = 'approved';
+
+-- name: InsertSigningKey :exec
+insert into signing_keys (fingerprint, user_id, kind, name, public_key) values ($1, $2, $3, $4, $5);
+
+-- name: SigningKeys :many
+select * from signing_keys where user_id = $1 and revoked_at is null order by created_at;
+
+-- name: SigningKey :one
+select k.*, u.username from signing_keys k join users u on u.id = k.user_id where k.fingerprint = $1;
+
+-- name: AllSigningKeys :many
+-- Every live key, for verifying commit signatures.
+select k.*, u.username from signing_keys k join users u on u.id = k.user_id
+where k.revoked_at is null and u.enabled;
+
+-- name: RevokeSigningKey :execrows
+update signing_keys set revoked_at = now() where fingerprint = $1 and user_id = $2 and revoked_at is null;

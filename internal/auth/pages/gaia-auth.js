@@ -61,6 +61,76 @@ function credentialJSON(c) {
   return out;
 }
 
+// nextPath keeps redirects on this site.
+function nextPath(v) {
+  if (!v || !v.startsWith("/") || v.startsWith("//") || v.includes("\\")) return "/";
+  return v;
+}
+
+async function signedIn() {
+  const r = await fetch("/api/v1/me", { credentials: "same-origin" });
+  if (r.status === 401) {
+    location.href = "/login?next=" + encodeURIComponent(location.pathname + location.search);
+    return null;
+  }
+  return r.json();
+}
+
+async function cliPage() {
+  const me = await signedIn();
+  if (!me) return;
+  const q = new URLSearchParams(location.search);
+  document.getElementById("who").textContent = me.username;
+  document.getElementById("target").textContent = q.get("redirect_uri");
+  document.getElementById("cli-approve").addEventListener("click", async () => {
+    try {
+      const out = await post("/api/v1/auth/cli/authorize", {
+        redirectUri: q.get("redirect_uri"), state: q.get("state"), codeChallenge: q.get("code_challenge"),
+      });
+      document.getElementById("done").hidden = false;
+      location.href = out.redirect;
+    } catch (e) {
+      showError(e);
+    }
+  });
+}
+
+async function devicePage() {
+  if (!(await signedIn())) return;
+  const form = document.getElementById("device-form");
+  const q = new URLSearchParams(location.search);
+  if (q.get("code")) form.code.value = q.get("code");
+  let code = "";
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    code = form.code.value.trim().toUpperCase();
+    try {
+      const r = await fetch("/api/v1/auth/device/" + encodeURIComponent(code), { credentials: "same-origin" });
+      const info = await r.json();
+      if (!r.ok) throw new Error(info.error);
+      document.getElementById("device-ip").textContent = info.ip;
+      document.getElementById("device-time").textContent = new Date(info.requestedAt).toLocaleString();
+      document.getElementById("device-agent").textContent = info.userAgent;
+      document.getElementById("device-check").hidden = false;
+    } catch (e) {
+      showError(e);
+    }
+  });
+  const decide = (what) => async () => {
+    try {
+      await post("/api/v1/auth/device/" + encodeURIComponent(code) + "/" + what);
+      document.getElementById("device-check").hidden = true;
+      const done = document.getElementById("done");
+      done.textContent = what === "approve" ? "Onaylandı. Terminale dönebilirsiniz." : "Reddedildi.";
+      done.hidden = false;
+    } catch (e) {
+      showError(e);
+    }
+  };
+  document.getElementById("device-approve").addEventListener("click", decide("approve"));
+  document.getElementById("device-deny").addEventListener("click", decide("deny"));
+}
+
 function showError(e) {
   document.getElementById("error").textContent = e.message || String(e);
 }
@@ -70,7 +140,7 @@ async function login() {
     const start = await post("/api/v1/auth/passkey/begin");
     const cred = await navigator.credentials.get(requestOptions(start.options));
     await post("/api/v1/auth/passkey/finish", { flow: start.flow, credential: credentialJSON(cred) });
-    location.href = new URLSearchParams(location.search).get("next") || "/";
+    location.href = nextPath(new URLSearchParams(location.search).get("next"));
   } catch (e) {
     showError(e);
   }
@@ -107,7 +177,7 @@ async function passwordLogin(ev) {
   const f = new FormData(ev.target);
   try {
     await post("/api/v1/auth/password", { username: f.get("username"), password: f.get("password"), code: f.get("code") });
-    location.href = new URLSearchParams(location.search).get("next") || "/";
+    location.href = nextPath(new URLSearchParams(location.search).get("next"));
   } catch (e) {
     showError(e);
   }
@@ -152,16 +222,18 @@ async function step() {
     const done = await post("/api/v1/auth/oidc/passkey/finish", { flow: start.flow, credential: credentialJSON(cred) });
     if (done.recoveryCodes) {
       showCodes(done.recoveryCodes);
-      document.getElementById("codes-next").href = done.next || "/";
+      document.getElementById("codes-next").href = nextPath(done.next);
       return;
     }
-    location.href = done.next || "/";
+    location.href = nextPath(done.next);
   } catch (e) {
     showError(e);
   }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (document.getElementById("cli-approve")) return cliPage();
+  if (document.getElementById("device-form")) return devicePage();
   const params = new URLSearchParams(location.search);
   try {
     const cfg = await (await fetch("/api/v1/auth/config")).json();
