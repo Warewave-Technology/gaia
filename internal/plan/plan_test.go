@@ -46,6 +46,21 @@ func build(t *testing.T, names []string, extra ...string) *Plan {
 
 func buildWith(t *testing.T, st State, names []string, extra ...string) *Plan {
 	t.Helper()
+	p, err := tryBuildWith(t, st, names, extra...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// tryBuild returns the plan's error; catalog errors fail the test.
+func tryBuild(t *testing.T, names []string, extra ...string) (*Plan, error) {
+	t.Helper()
+	return tryBuildWith(t, NoState{}, names, extra...)
+}
+
+func tryBuildWith(t *testing.T, st State, names []string, extra ...string) (*Plan, error) {
+	t.Helper()
 	cat, err := catalog.Load("c0ffee1234567890", labFiles(t, extra...))
 	if err != nil {
 		t.Fatal(err)
@@ -54,11 +69,7 @@ func buildWith(t *testing.T, st State, names []string, extra ...string) *Plan {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := Build(context.Background(), g, names, st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return p
+	return Build(context.Background(), g, names, st)
 }
 
 const role = `apiVersion: gaia/v1alpha1
@@ -105,13 +116,17 @@ func TestPlanLab(t *testing.T) {
 		Action: "create", Hostname: "labtpoc01", Seq: 1, Site: "lab", Network: "lab-poc",
 		Compute: Compute{Provider: "pve-lab", Type: "proxmox", Template: "vmid 9300", Customization: "cloud-init",
 			Nodes: []string{"proxmox"}, Pool: "gaia", Storage: "local-lvm", Attachment: "vnet gaiapoc"},
-		IPAM: IPAM{Provider: "ipam", Pool: "10.50.0.0/24", Gateway: "10.50.0.1"},
+		IPAM:       IPAM{Provider: "ipam", Pool: "10.50.0.0/24", Gateway: "10.50.0.1"},
+		HostGroups: []string{"Gaia", "Gaia/env/test", "Gaia/app/poc", "Gaia/site/lab"},
 	}
 	if got, w := fmtServer(s), fmtServer(want); got != w {
 		t.Errorf("server\n got %s\nwant %s", got, w)
 	}
 	if c.Baseline == nil || c.Baseline.Playbook != "baseline/linux.yml" {
 		t.Errorf("baseline = %+v", c.Baseline)
+	}
+	if m := c.Monitoring; m == nil || m.Provider != "zabbix" || strings.Join(m.Templates, ",") != "ICMP Ping" {
+		t.Errorf("monitoring = %+v", m)
 	}
 	if !strings.HasPrefix(p.Hash, "sha256:") || len(p.Hash) != len("sha256:")+64 {
 		t.Errorf("hash = %q", p.Hash)
@@ -198,11 +213,29 @@ func TestWriteText(t *testing.T) {
 		"role web.nginx (corp.web.nginx) api_key=(no_log) server_name=api.lab.test worker_processes=auto",
 		"ipam       +4 =0 (ipam)",
 		"provision  +4 =0 (pve-lab)",
+		"monitoring +4 =0 (zabbix)",
+		"  monitoring zabbix\n    groups Gaia, Gaia/env/test, Gaia/app/api, Gaia/site/lab\n    templates ICMP Ping\n",
 		"plan " + p.Hash,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
+	}
+}
+
+func TestMonitoringTemplatesOfRoles(t *testing.T) {
+	monitored := strings.Replace(role, "spec:\n", "spec:\n  monitoring: [nginx]\n", 1)
+	if _, err := tryBuild(t, nil, "platform/catalog/role.yaml", monitored, "contracts/poc-api.yaml", web); err == nil ||
+		!strings.Contains(err.Error(), `role web.nginx: monitoring "nginx" has no templates in the Platform`) {
+		t.Errorf("err = %v", err)
+	}
+	platform := strings.Replace(readLab(t, "platform/platform.yaml"), "linux: [ICMP Ping]", "linux: [ICMP Ping]\n      nginx: [Nginx by Zabbix agent, ICMP Ping]", 1)
+	p, err := tryBuild(t, nil, "platform/catalog/role.yaml", monitored, "contracts/poc-api.yaml", web, "platform/platform.yaml", platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(p.Contracts[0].Monitoring.Templates, ","); got != "ICMP Ping,Nginx by Zabbix agent" {
+		t.Errorf("templates = %s", got)
 	}
 }
 

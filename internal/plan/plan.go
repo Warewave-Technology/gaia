@@ -23,16 +23,24 @@ type Plan struct {
 
 // Contract is the plan of one Server contract.
 type Contract struct {
-	Name     string            `json:"name"`
-	Labels   map[string]string `json:"labels,omitempty"`
-	Env      string            `json:"env,omitempty"`
-	Approval string            `json:"approval"` // required | none
-	Image    string            `json:"image"`
-	Size     Size              `json:"size"`
-	Disks    []catalog.Disk    `json:"disks,omitempty"`
-	Servers  []Server          `json:"servers"`
-	Baseline *Baseline         `json:"baseline,omitempty"`
-	Roles    []Role            `json:"roles,omitempty"`
+	Name       string            `json:"name"`
+	Labels     map[string]string `json:"labels,omitempty"`
+	Env        string            `json:"env,omitempty"`
+	Approval   string            `json:"approval"` // required | none
+	Image      string            `json:"image"`
+	Size       Size              `json:"size"`
+	Disks      []catalog.Disk    `json:"disks,omitempty"`
+	Servers    []Server          `json:"servers"`
+	Baseline   *Baseline         `json:"baseline,omitempty"`
+	Roles      []Role            `json:"roles,omitempty"`
+	Monitoring *Monitoring       `json:"monitoring,omitempty"`
+}
+
+// Monitoring is where the contract's servers are registered and with
+// which templates: the image OS's, then each role's.
+type Monitoring struct {
+	Provider  string   `json:"provider"`
+	Templates []string `json:"templates,omitempty"`
 }
 
 type Size struct {
@@ -60,6 +68,8 @@ type Server struct {
 	Network  string  `json:"network"`
 	Compute  Compute `json:"compute"`
 	IPAM     IPAM    `json:"ipam"`
+	// HostGroups are the server's monitoring host groups.
+	HostGroups []string `json:"hostGroups,omitempty"`
 }
 
 type Compute struct {
@@ -269,7 +279,47 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			Params: mask(rs.Params, catalog.EffectiveParams(rs.Params, rr.Params)),
 		})
 	}
+	if m := g.Platform().Spec.(*catalog.PlatformSpec).Monitoring; m != nil {
+		if c.Monitoring, err = monitoring(g, m, img, s); err != nil {
+			return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+		}
+		for i, srv := range c.Servers {
+			if srv.Action == Delete {
+				continue
+			}
+			if c.Servers[i].HostGroups, err = g.HostGroups(o, srv.Site, srv.Seq); err != nil {
+				return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+			}
+		}
+	}
 	return c, nil
+}
+
+// monitoring lists the templates of the image's OS and of each role's
+// monitoring names; a name without templates in the Platform is an error.
+func monitoring(g *catalog.Graph, m *catalog.Monitoring, img *catalog.ImageSpec, s *catalog.ServerSpec) (*Monitoring, error) {
+	out := &Monitoring{Provider: m.Provider}
+	seen := map[string]bool{}
+	add := func(ts []string) {
+		for _, t := range ts {
+			if !seen[t] {
+				seen[t] = true
+				out.Templates = append(out.Templates, t)
+			}
+		}
+	}
+	add(m.Templates[img.OS])
+	for _, rr := range s.AnsibleRoles {
+		rs := mustGet(g, catalog.KindAnsibleRole, rr.Name).Spec.(*catalog.AnsibleRoleSpec)
+		for _, name := range rs.Monitoring {
+			ts, ok := m.Templates[name]
+			if !ok {
+				return nil, fmt.Errorf("role %s: monitoring %q has no templates in the Platform", rr.Name, name)
+			}
+			add(ts)
+		}
+	}
+	return out, nil
 }
 
 // placements is the server's networks with their replica counts.

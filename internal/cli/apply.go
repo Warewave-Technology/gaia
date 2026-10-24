@@ -15,6 +15,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
+	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -26,8 +27,9 @@ func newApplyCommand() *cobra.Command {
 		Use:   "apply [contract...]",
 		Short: "Apply contracts at a commit",
 		Long: "apply plans like `gaia plan`, prints the plan and, with --yes, carries it out:\n" +
-			"IPAM addresses, VMs through Pulumi, the baseline and roles through ansible-runner\n" +
-			"in the execution environment (podman), and the records in Gaia's database.\n" +
+			"IPAM addresses, VMs through Pulumi, registration in monitoring, the baseline and\n" +
+			"roles through ansible-runner in the execution environment (podman), and the\n" +
+			"records in Gaia's database.\n" +
 			"OpenBao is reached at the Platform's secrets provider with $GAIA_BAO_TOKEN.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -70,6 +72,7 @@ func newApplyCommand() *cobra.Command {
 					return proxmox.New(c).UsedVMIDs(ctx)
 				},
 				Configure: ansible.Podman{},
+				Monitor:   func(endpoint, token string) apply.Monitor { return zabbix.New(endpoint, token) },
 				Out:       out,
 			})
 			if err != nil {

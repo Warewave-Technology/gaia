@@ -17,8 +17,9 @@ func WriteText(w io.Writer, p *Plan) error {
 	}
 
 	type counts struct{ create, keep, delete int }
-	addrs := map[string]*counts{} // per IPAM provider
-	vms := map[string]*counts{}   // per compute provider
+	addrs := map[string]*counts{}    // per IPAM provider
+	vms := map[string]*counts{}      // per compute provider
+	monitors := map[string]*counts{} // per monitoring provider
 	bump := func(m map[string]*counts, k, action string) {
 		if m[k] == nil {
 			m[k] = &counts{}
@@ -54,6 +55,9 @@ func WriteText(w io.Writer, p *Plan) error {
 				pr.f("  - %-14s %s / %s · uid %s (%s)\n", s.Hostname, s.Site, s.Network, s.UID, s.Status)
 				bump(vms, "", Delete)
 				bump(addrs, "", Delete)
+				if c.Monitoring != nil {
+					bump(monitors, "", Delete)
+				}
 				changed = true
 				continue
 			case Create:
@@ -67,12 +71,34 @@ func WriteText(w io.Writer, p *Plan) error {
 				"", c.Size.Name, c.Size.CPU, c.Size.MemoryGiB, disk, s.IPAM.Pool, s.IPAM.Provider)
 			bump(addrs, s.IPAM.Provider, s.Action)
 			bump(vms, s.Compute.Provider, s.Action)
+			if c.Monitoring != nil {
+				bump(monitors, c.Monitoring.Provider, s.Action)
+			}
 			running++
 		}
 		if changed {
 			changes++
 			if c.Approval == "required" {
 				needApproval = append(needApproval, c.Name)
+			}
+		}
+		if running > 0 && c.Monitoring != nil {
+			var groups []string
+			seen := map[string]bool{}
+			for _, s := range c.Servers {
+				for _, g := range s.HostGroups {
+					if !seen[g] {
+						seen[g] = true
+						groups = append(groups, g)
+					}
+				}
+			}
+			pr.f("  monitoring %s\n", c.Monitoring.Provider)
+			if len(groups) > 0 {
+				pr.f("    groups %s\n", strings.Join(groups, ", "))
+			}
+			if len(c.Monitoring.Templates) > 0 {
+				pr.f("    templates %s\n", strings.Join(c.Monitoring.Templates, ", "))
 			}
 		}
 		if running > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
@@ -102,6 +128,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	}
 	line("ipam", addrs)
 	line("provision", vms)
+	line("monitoring", monitors)
 	if configure > 0 {
 		pr.f("  configure  %d server(s)\n", configure)
 	}

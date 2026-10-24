@@ -110,6 +110,12 @@ spec:
   engines:
     provisioning:  { tool: pulumi,  state: state }        # Pulumi Automation API, state PostgreSQL'de (12.1)
     configuration: { tool: ansible, executor: ansible-runner, source: config-repo }   # ayrıntılar 7.4'te
+  monitoring:
+    provider: zabbix
+    hostGroups: ["'Gaia/env/' + env", "'Gaia/app/' + app", "'Gaia/site/' + site.name"]   # CEL, naming değişkenleri
+    templates:
+      linux: [Linux by Zabbix agent]                      # Image.os'a göre
+      tomcat: [Apache Tomcat by JMX]                      # AnsibleRole.monitoring adına göre
   runArchive: run-records                                 # run kayıtlarının arşivi, SeaweedFS (Object Lock)
 ```
 
@@ -1515,3 +1521,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | Pulumi CLI sürümü Gaia'da sabit (3.272.0, SDK ile aynı); Gaia ilk çalıştırmada kendisi kurar |
 | 2026-10-24 | Her `pulumi up` önce refresh yapar; apply, VM'in planlanan IP'yi guest agent üzerinden bildirdiğini doğrulamadan sunucuyu `active` yapmaz |
 | 2026-10-24 | ansible-runner rootless podman'da `--userns keep-id` ile; çalışma dizini tmpfs'te; EE run'da digest'iyle kullanılır, run sırasında imaj çekilmez |
+| 2026-10-24 | İzleme `Platform.monitoring` ile: host group'ları label'lardan CEL ile, şablonlar Image OS'una ve rollerin `monitoring` adlarına göre; Zabbix host'u `gaia.uid` tag'iyle bulunur, isimle değil |

@@ -37,6 +37,7 @@ type Deps struct {
 	Provision func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, w io.Writer) (map[string]pulumi.Result, pulumi.Changes, error)
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
 	Configure Configurer
+	Monitor   func(endpoint, token string) Monitor
 	Out       io.Writer
 }
 
@@ -67,7 +68,7 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if err := q.StartRun(ctx, db.StartRunParams{ID: runID, Contracts: names, Commit: p.Commit, PlanHash: p.Hash}); err != nil {
 		return "", err
 	}
-	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}}
+	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{}}
 	err := r.all(ctx, p)
 	status, msg := "succeeded", ""
 	if err != nil {
@@ -80,12 +81,13 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 }
 
 type runner struct {
-	g    *catalog.Graph
-	d    Deps
-	run  string
-	used map[string]map[int]bool // VM IDs in use, per compute provider
-	cfg  *config                 // set when a contract has a baseline or roles
-	seq  int                     // last run event
+	g        *catalog.Graph
+	d        Deps
+	run      string
+	used     map[string]map[int]bool // VM IDs in use, per compute provider
+	cfg      *config                 // set when a contract has a baseline or roles
+	monitors map[string]Monitor      // per monitoring provider
+	seq      int                     // last run event
 }
 
 func (r *runner) printf(format string, a ...any) {
@@ -267,6 +269,9 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 				return err
 			}
 		}
+	}
+	if err := r.register(ctx, c, contract, targets); err != nil {
+		return err
 	}
 	return r.configure(ctx, c, contract, targets)
 }

@@ -14,9 +14,19 @@ import (
 
 // PlatformSpec is the single Platform object: engine settings.
 type PlatformSpec struct {
-	Secrets    string  `yaml:"secrets" gaia:"required"`
-	Engines    Engines `yaml:"engines" gaia:"required"`
-	RunArchive string  `yaml:"runArchive"`
+	Secrets    string      `yaml:"secrets" gaia:"required"`
+	Engines    Engines     `yaml:"engines" gaia:"required"`
+	Monitoring *Monitoring `yaml:"monitoring"`
+	RunArchive string      `yaml:"runArchive"`
+}
+
+// Monitoring is where servers are registered. Host groups are CEL
+// expressions with the naming variables (an empty result adds no group);
+// templates are listed per image OS and per role monitoring name.
+type Monitoring struct {
+	Provider   string              `yaml:"provider" gaia:"required"`
+	HostGroups []string            `yaml:"hostGroups"`
+	Templates  map[string][]string `yaml:"templates"`
 }
 
 type Engines struct {
