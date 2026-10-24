@@ -1,0 +1,277 @@
+package plan
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strconv"
+
+	"github.com/Warewave-Technology/gaia/internal/catalog"
+)
+
+// Plan is what applying contracts at one commit would do.
+type Plan struct {
+	Commit    string     `json:"commit"`
+	Contracts []Contract `json:"contracts"`
+	// Hash is over the canonical JSON of the plan without the hash: what
+	// is approved is what is applied (design 10.1).
+	Hash string `json:"hash"`
+}
+
+// Contract is the plan of one Server contract.
+type Contract struct {
+	Name     string            `json:"name"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	Env      string            `json:"env,omitempty"`
+	Approval string            `json:"approval"` // required | none
+	Image    string            `json:"image"`
+	Size     Size              `json:"size"`
+	Disks    []catalog.Disk    `json:"disks,omitempty"`
+	Servers  []Server          `json:"servers"`
+	Baseline *Baseline         `json:"baseline,omitempty"`
+	Roles    []Role            `json:"roles,omitempty"`
+}
+
+type Size struct {
+	Name      string `json:"name"`
+	CPU       int    `json:"cpu"`
+	MemoryGiB int    `json:"memoryGiB"`
+	DiskGiB   int    `json:"diskGiB"`
+}
+
+// Server is one server of a contract.
+type Server struct {
+	Action   string  `json:"action"` // create
+	Hostname string  `json:"hostname"`
+	Seq      int     `json:"seq"`
+	Site     string  `json:"site"`
+	Network  string  `json:"network"`
+	Compute  Compute `json:"compute"`
+	IPAM     IPAM    `json:"ipam"`
+}
+
+type Compute struct {
+	Provider      string   `json:"provider"`
+	Type          string   `json:"type"`
+	Template      string   `json:"template"`
+	Customization string   `json:"customization,omitempty"`
+	Nodes         []string `json:"nodes,omitempty"`
+	Pool          string   `json:"pool,omitempty"`
+	Storage       string   `json:"storage,omitempty"`
+	Datacenter    string   `json:"datacenter,omitempty"`
+	Cluster       string   `json:"cluster,omitempty"`
+	Attachment    string   `json:"attachment"`
+}
+
+type IPAM struct {
+	Provider string `json:"provider"`
+	Pool     string `json:"pool"`
+	Gateway  string `json:"gateway,omitempty"`
+}
+
+type Baseline struct {
+	Name     string `json:"name"`
+	Playbook string `json:"playbook"`
+}
+
+// Role is an AnsibleRole run on every server of the contract, with its
+// params as the role will see them. Values of no_log params are masked.
+type Role struct {
+	Name     string         `json:"name"`
+	Role     string         `json:"role"`
+	Provider string         `json:"provider"`
+	Params   map[string]any `json:"params,omitempty"`
+}
+
+// Masked replaces the value of a no_log param in a plan.
+const Masked = "(no_log)"
+
+// Build plans the given contracts, or every Server when names is empty.
+// The graph must have resolved without errors.
+//
+// In the PoC nothing is read from the systems yet: every server is to be
+// created, numbered from 1 in each site.
+func Build(g *catalog.Graph, names []string) (*Plan, error) {
+	servers := g.Catalog.List(catalog.KindServer)
+	if len(names) > 0 {
+		servers = servers[:0:0]
+		for _, n := range names {
+			o, ok := g.Catalog.Get(catalog.KindServer, n)
+			if !ok {
+				return nil, fmt.Errorf("no Server contract %q", n)
+			}
+			servers = append(servers, o)
+		}
+		sort.Slice(servers, func(i, j int) bool { return servers[i].Metadata.Name < servers[j].Metadata.Name })
+	}
+
+	p := &Plan{Commit: g.Catalog.Commit, Contracts: []Contract{}}
+	owners := map[string]string{} // hostname -> contract
+	for _, o := range servers {
+		c, err := contract(g, o)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range c.Servers {
+			if other, dup := owners[s.Hostname]; dup {
+				return nil, fmt.Errorf("hostname %s is planned for %s and %s", s.Hostname, other, c.Name)
+			}
+			owners[s.Hostname] = c.Name
+		}
+		p.Contracts = append(p.Contracts, c)
+	}
+
+	sum, err := hash(p)
+	if err != nil {
+		return nil, err
+	}
+	p.Hash = sum
+	return p, nil
+}
+
+func contract(g *catalog.Graph, o *catalog.Object) (Contract, error) {
+	s := o.Spec.(*catalog.ServerSpec)
+	size := mustGet(g, catalog.KindSize, s.Size).Spec.(*catalog.SizeSpec)
+	img := mustGet(g, catalog.KindImage, s.Image).Spec.(*catalog.ImageSpec)
+	c := Contract{
+		Name:     o.Metadata.Name,
+		Labels:   o.Metadata.Labels,
+		Env:      o.Metadata.Labels["env"],
+		Approval: approval(g, o.Metadata.Labels["env"]),
+		Image:    s.Image,
+		Size:     Size{Name: s.Size, CPU: size.CPU, MemoryGiB: size.MemoryGiB, DiskGiB: size.DiskGiB},
+		Disks:    s.Disks,
+		Servers:  []Server{},
+	}
+
+	decommissioned := s.Lifecycle != nil && s.Lifecycle.State == "decommissioned"
+	seqs := map[string]int{} // per site
+	for _, pl := range placements(s) {
+		if decommissioned {
+			break
+		}
+		net := mustGet(g, catalog.KindNetwork, pl.Network)
+		ns := net.Spec.(*catalog.NetworkSpec)
+		site := mustGet(g, catalog.KindSite, ns.Site).Spec.(*catalog.SiteSpec)
+		ptype := mustGet(g, catalog.KindProvider, site.Compute.Provider).Spec.(*catalog.ProviderSpec).Type
+		tpl := template(img, site.Compute.Provider)
+		for i := 0; i < pl.Replicas; i++ {
+			seqs[ns.Site]++
+			seq := seqs[ns.Site]
+			host, err := g.Hostname(o, ns.Site, seq)
+			if err != nil {
+				return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+			}
+			srv := Server{
+				Action: "create", Hostname: host, Seq: seq, Site: ns.Site, Network: pl.Network,
+				Compute: Compute{
+					Provider: site.Compute.Provider, Type: ptype,
+					Template: templateName(tpl.Template), Customization: tpl.Customization,
+					Nodes: site.Compute.Nodes, Pool: site.Compute.Pool,
+					Datacenter: site.Compute.Datacenter, Cluster: site.Compute.Cluster,
+					Attachment: attachment(ns.Attachment),
+				},
+				IPAM: IPAM{Provider: ns.IPAM.Provider, Pool: ns.IPAM.Pool, Gateway: ns.Gateway},
+			}
+			if site.Compute.Storage != nil {
+				srv.Compute.Storage = site.Compute.Storage.Default
+			}
+			c.Servers = append(c.Servers, srv)
+		}
+	}
+
+	if s.Baseline != "" {
+		b := mustGet(g, catalog.KindBaseline, s.Baseline).Spec.(*catalog.BaselineSpec)
+		c.Baseline = &Baseline{Name: s.Baseline, Playbook: b.Playbook}
+	}
+	for _, rr := range s.AnsibleRoles {
+		rs := mustGet(g, catalog.KindAnsibleRole, rr.Name).Spec.(*catalog.AnsibleRoleSpec)
+		c.Roles = append(c.Roles, Role{
+			Name: rr.Name, Role: rs.Source.Role, Provider: rs.Source.Provider,
+			Params: mask(rs.Params, catalog.EffectiveParams(rs.Params, rr.Params)),
+		})
+	}
+	return c, nil
+}
+
+// placements is the server's networks with their replica counts.
+func placements(s *catalog.ServerSpec) []catalog.Placement {
+	if s.Network == "" {
+		return s.Topology
+	}
+	n := 1
+	if s.Replicas != nil {
+		n = *s.Replicas
+	}
+	return []catalog.Placement{{Network: s.Network, Replicas: n}}
+}
+
+func approval(g *catalog.Graph, env string) string {
+	if pol := g.Policy(); pol != nil {
+		if e, ok := pol.Spec.(*catalog.PolicySpec).Environments[env]; ok && e.Approval == "required" {
+			return "required"
+		}
+	}
+	return "none"
+}
+
+func template(img *catalog.ImageSpec, provider string) catalog.ImageTemplate {
+	for _, t := range img.Templates {
+		if t.Provider == provider {
+			return t
+		}
+	}
+	return catalog.ImageTemplate{} // Resolve guarantees one exists
+}
+
+func templateName(t catalog.TemplateRef) string {
+	if t.VMID != 0 {
+		return "vmid " + strconv.Itoa(t.VMID)
+	}
+	return t.Name
+}
+
+func attachment(a catalog.Attachment) string {
+	switch {
+	case a.VNet != "":
+		return "vnet " + a.VNet
+	case a.Bridge != "" && a.VLAN != 0:
+		return fmt.Sprintf("bridge %s vlan %d", a.Bridge, a.VLAN)
+	case a.Bridge != "":
+		return "bridge " + a.Bridge
+	}
+	return "portgroup " + a.Portgroup
+}
+
+func mask(schema map[string]catalog.Param, params map[string]any) map[string]any {
+	for k := range params {
+		if schema[k].NoLog {
+			params[k] = Masked
+		}
+	}
+	if len(params) == 0 {
+		return nil
+	}
+	return params
+}
+
+func mustGet(g *catalog.Graph, kind, name string) *catalog.Object {
+	o, ok := g.Catalog.Get(kind, name)
+	if !ok {
+		panic(fmt.Sprintf("plan: %s/%s missing from a resolved graph", kind, name))
+	}
+	return o
+}
+
+func hash(p *Plan) (string, error) {
+	cp := *p
+	cp.Hash = ""
+	data, err := json.Marshal(cp) // maps marshal with sorted keys
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}

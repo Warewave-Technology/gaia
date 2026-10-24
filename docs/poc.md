@@ -60,7 +60,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | Adım | İçerik | Bağımlılık | Durum |
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
-| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli, yükleyici, referans grafı ve CEL hazır |
+| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | – |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
@@ -95,7 +95,14 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Rol kuralları:** `rules` yüklemede derlenir. Her kontratta varsayılanlar uygulanmış parametrelerle ve her ağ için çalıştırılır; `false` sonuç kuralın mesajıyla raporlanır.
    - **Ortam ayarları:** Ortak ortamda strings uzantısı (`substring`, `lowerAscii`, `replace`, `format`…) ve sayısal tipler arası karşılaştırma açık; değerlendirme maliyeti sınırlı.
    - **Hata biçimi:** CEL derleme hataları tek satır ve sütun numarasıyla verilir.
-6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi.
+6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi. **Tamam** (`internal/plan`).
+   - **Kontrat başına plan:** Sunucular hostname, `seq`, site, ağ, compute (provider, tip, şablon, node, pool, storage, ağ bağlantısı) ve IPAM havuzuyla listelenir. Ardından baseline ve roller gelir; rol parametreleri varsayılanları uygulanmış olarak gösterilir, `no_log` olanlar maskelenir. Policy'ye göre onay gerekip gerekmediği de yazılır.
+   - **Kontrol:** Kontratlar arasında hostname çakışması plan hatasıdır.
+   - **`decommissioned` kontratlar:** Sunucu planlanmaz. Silme planı M4'te gelecek.
+   - **Plan hash'i:** Kanonik JSON'un SHA-256'sı. Aynı girdi aynı hash'i, farklı girdi farklı hash'i verir.
+   - **Komut:** `gaia plan [kontrat...] --repo --ref --path [--json]`. `--json`'da stdout'a sadece plan yazılır.
+   - **M1'de sistem durumu okunmaz:** Her sunucu `create` olarak görünür ve `seq` her site için 1'den başlar. M2'de mevcut sunucular, IP'ler ve isim kiralamaları okunacak.
+   - **Başarı kriteri 1 karşılandı:** `gaia plan` çözümlenmiş planı gösteriyor ve hiçbir sisteme dokunmuyor.
 
 ## Kararlar
 

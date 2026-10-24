@@ -9,7 +9,12 @@ Git doğru kaynaktır: değişiklikler yalnızca Git'ten uygulanır. Arayüz ve 
 
 ## Durum
 
-Proje **PoC aşamasında**. Repo iskeleti hazır; ilk adım katalog motoru ve `gaia plan`. Plan ve adımlar: [docs/poc.md](docs/poc.md).
+Proje **PoC aşamasında**. M1 tamamlandı: katalog motoru, CEL ve `gaia plan`. Sırada M2 (provisioning) var. Plan ve adımlar: [docs/poc.md](docs/poc.md).
+
+```bash
+gaia validate --path examples/lab/platform --path examples/lab/contracts
+gaia plan     --path examples/lab/platform --path examples/lab/contracts
+```
 
 ## Yapı
 

@@ -392,7 +392,7 @@ func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRol
 	for k, v := range o.Metadata.Labels {
 		labels[k] = v
 	}
-	params := effectiveParams(rs.Params, rr.Params)
+	params := EffectiveParams(rs.Params, rr.Params)
 	for _, net := range nets {
 		vars := map[string]any{
 			"params":  params,

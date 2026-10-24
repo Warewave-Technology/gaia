@@ -207,8 +207,8 @@ func describe(v any) string {
 	return fmt.Sprintf("%T", v)
 }
 
-// effectiveParams is given over defaults, as the role will see them.
-func effectiveParams(schema map[string]Param, given map[string]any) map[string]any {
+// EffectiveParams is given over defaults, as the role will see them.
+func EffectiveParams(schema map[string]Param, given map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, p := range schema {
 		if p.Default != nil {
