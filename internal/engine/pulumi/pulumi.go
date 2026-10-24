@@ -4,10 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
+	"strconv"
+
+	"github.com/blang/semver"
 
 	"github.com/muhlba91/pulumi-proxmoxve/sdk/v8/go/proxmoxve"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto/debug"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optpreview"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optup"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
@@ -20,6 +26,12 @@ import (
 // Project is the Pulumi project of every Gaia stack.
 const Project = "gaia"
 
+// cliVersion is the Pulumi CLI Gaia runs, the version of the SDK in
+// go.mod. Gaia installs it rather than using whatever pulumi is on PATH:
+// the CLI's state backend reads its URL parameters through its own
+// gocloud version, so a different CLI understands different parameters.
+var cliVersion = semver.MustParse("3.272.0")
+
 // The Proxmox provider plugin; the version matches the SDK in go.mod.
 const (
 	proxmoxPlugin        = "proxmoxve"
@@ -30,9 +42,25 @@ const (
 // Backend is where stacks keep their state and how secrets in it are
 // encrypted.
 type Backend struct {
-	URL             string            // s3://gaia-state?... (SeaweedFS)
+	URL             string            // postgres://... or s3://...
 	SecretsProvider string            // hashivault://pulumi (OpenBao transit)
 	Env             map[string]string // credentials for both
+	Settings        SettingsStore     // where stack secrets settings are kept
+}
+
+// Settings are a stack's secrets settings: the provider and the data key,
+// encrypted by it.
+type Settings struct {
+	SecretsProvider string
+	EncryptedKey    string
+}
+
+// SettingsStore keeps stack settings between runs: an inline program's
+// workspace is temporary, and Pulumi would otherwise fall back to a
+// passphrase it does not have.
+type SettingsStore interface {
+	LoadStack(ctx context.Context, name string) (Settings, bool, error)
+	SaveStack(ctx context.Context, name string, s Settings) error
 }
 
 // VM is one Proxmox VM of a stack.
@@ -82,14 +110,18 @@ func Program(st Stack) pulumi.RunFunc {
 			return err
 		}
 		vmids := pulumi.IntMap{}
+		addrs := pulumi.StringArrayArrayMap{}
 		for _, v := range st.VMs {
 			vm, err := proxmoxve.NewVmLegacy(ctx, "vm-"+v.UID, vmArgs(v), pulumi.Provider(prov))
 			if err != nil {
 				return err
 			}
 			vmids[v.UID] = vm.VmId
+			addrs[v.UID] = vm.Ipv4Addresses
 		}
 		ctx.Export("vmids", vmids)
+		// The addresses the guest agent reports, per interface.
+		ctx.Export("ipv4", addrs)
 		return nil
 	}
 }
@@ -143,16 +175,67 @@ func vmArgs(v VM) *proxmoxve.VmLegacyArgs {
 	}
 }
 
+// command returns the pinned Pulumi CLI, installing it under the user's
+// cache directory the first time.
+func command(ctx context.Context) (auto.PulumiCommand, error) {
+	cache, err := os.UserCacheDir()
+	if err != nil {
+		return nil, err
+	}
+	opts := &auto.PulumiCommandOptions{Version: cliVersion, Root: filepath.Join(cache, "gaia", "pulumi-"+cliVersion.String())}
+	if cmd, err := auto.NewPulumiCommand(opts); err == nil {
+		return cmd, nil
+	}
+	cmd, err := auto.InstallPulumiCommand(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("install pulumi %s: %w", cliVersion, err)
+	}
+	return cmd, nil
+}
+
 func stack(ctx context.Context, b Backend, st Stack) (auto.Stack, error) {
+	cmd, err := command(ctx)
+	if err != nil {
+		return auto.Stack{}, err
+	}
 	proj := auto.Project(workspace.Project{
 		Name:    tokens.PackageName(Project),
 		Runtime: workspace.NewProjectRuntimeInfo("go", nil),
 		Backend: &workspace.ProjectBackend{URL: b.URL},
 	})
-	s, err := auto.UpsertStackInlineSource(ctx, st.Name, Project, Program(st),
-		proj, auto.SecretsProvider(b.SecretsProvider), auto.EnvVars(b.Env))
+	ws, err := auto.NewLocalWorkspace(ctx, auto.Program(Program(st)), auto.Pulumi(cmd), proj,
+		auto.SecretsProvider(b.SecretsProvider), auto.EnvVars(b.Env))
 	if err != nil {
-		return auto.Stack{}, fmt.Errorf("stack %s: %w", st.Name, err)
+		return auto.Stack{}, err
+	}
+	saved, ok, err := b.Settings.LoadStack(ctx, st.Name)
+	if err != nil {
+		return auto.Stack{}, err
+	}
+	var s auto.Stack
+	if ok {
+		if err := ws.SaveStackSettings(ctx, st.Name, &workspace.ProjectStack{SecretsProvider: saved.SecretsProvider, EncryptedKey: saved.EncryptedKey}); err != nil {
+			return auto.Stack{}, err
+		}
+		// A stack missing from the backend (a new backend, a removed
+		// stack) is created again with the saved settings.
+		if s, err = auto.UpsertStack(ctx, st.Name, ws); err != nil {
+			return auto.Stack{}, fmt.Errorf("stack %s: %w", st.Name, err)
+		}
+	} else {
+		if s, err = auto.UpsertStack(ctx, st.Name, ws); err != nil {
+			return auto.Stack{}, fmt.Errorf("stack %s: %w", st.Name, err)
+		}
+		ps, err := ws.StackSettings(ctx, st.Name)
+		if err != nil {
+			return auto.Stack{}, err
+		}
+		if ps.SecretsProvider == "" || ps.EncryptedKey == "" {
+			return auto.Stack{}, fmt.Errorf("stack %s: created without %s secrets", st.Name, b.SecretsProvider)
+		}
+		if err := b.Settings.SaveStack(ctx, st.Name, Settings{SecretsProvider: ps.SecretsProvider, EncryptedKey: ps.EncryptedKey}); err != nil {
+			return auto.Stack{}, err
+		}
 	}
 	if err := s.Workspace().InstallPluginFromServer(ctx, proxmoxPlugin, proxmoxPluginVersion, proxmoxPluginServer); err != nil {
 		return auto.Stack{}, fmt.Errorf("install %s plugin: %w", proxmoxPlugin, err)
@@ -160,23 +243,50 @@ func stack(ctx context.Context, b Backend, st Stack) (auto.Stack, error) {
 	return s, nil
 }
 
-// Up brings the stack to the program and returns each VM's ID by UID and
-// what changed. Progress goes to w.
-func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]int, Changes, error) {
+// Result is what Up reports per VM, by UID.
+type Result struct {
+	VMID int
+	IPv4 []string // the addresses the guest agent reports
+}
+
+// Up brings the stack to the program and returns each VM's ID and
+// addresses by UID, and what changed. It refreshes first: what is compared
+// with the program is the VMs as they are, not as the last run left them.
+// Progress goes to w.
+func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]Result, Changes, error) {
 	s, err := stack(ctx, b, st)
 	if err != nil {
 		return nil, nil, err
 	}
-	res, err := s.Up(ctx, optup.ProgressStreams(w), optup.SuppressProgress())
+	opts := []optup.Option{optup.ProgressStreams(w), optup.SuppressProgress(), optup.Refresh()}
+	if lvl, ok := debugLevel(); ok {
+		opts = append(opts, optup.DebugLogging(debug.LoggingOptions{LogLevel: &lvl, FlowToPlugins: true, Debug: true}), optup.ErrorProgressStreams(w))
+	}
+	res, err := s.Up(ctx, opts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("pulumi up %s: %w", st.Name, err)
 	}
-	vmids := map[string]int{}
+	vms := map[string]Result{}
 	if out, ok := res.Outputs["vmids"].Value.(map[string]any); ok {
 		for uid, v := range out {
 			if f, ok := v.(float64); ok {
-				vmids[uid] = int(f)
+				vms[uid] = Result{VMID: int(f)}
 			}
+		}
+	}
+	if out, ok := res.Outputs["ipv4"].Value.(map[string]any); ok {
+		for uid, ifaces := range out {
+			r := vms[uid]
+			list, _ := ifaces.([]any)
+			for _, iface := range list {
+				addrs, _ := iface.([]any)
+				for _, a := range addrs {
+					if s, ok := a.(string); ok {
+						r.IPv4 = append(r.IPv4, s)
+					}
+				}
+			}
+			vms[uid] = r
 		}
 	}
 	changes := Changes{}
@@ -185,7 +295,7 @@ func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]int, 
 			changes[k] = n
 		}
 	}
-	return vmids, changes, nil
+	return vms, changes, nil
 }
 
 // Preview returns what Up would change, without changing anything.
@@ -230,4 +340,18 @@ func (c Changes) Changed() bool {
 		}
 	}
 	return false
+}
+
+// debugLevel is $GAIA_PULUMI_DEBUG: a Pulumi log level for both the CLI
+// and the providers. The logs may hold secrets; use it on a lab only.
+func debugLevel() (uint, bool) {
+	v := os.Getenv("GAIA_PULUMI_DEBUG")
+	if v == "" {
+		return 0, false
+	}
+	n, err := strconv.ParseUint(v, 10, 8)
+	if err != nil || n == 0 {
+		return 9, true
+	}
+	return uint(n), true
 }

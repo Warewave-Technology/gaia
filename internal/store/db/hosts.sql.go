@@ -40,6 +40,37 @@ func (q *Queries) ExternalIDs(ctx context.Context, uid string) ([]HostExternalID
 	return items, nil
 }
 
+const externalIDsOfKind = `-- name: ExternalIDsOfKind :many
+select e.external_id from host_external_ids e join hosts h on h.uid = e.uid
+where e.provider = $1 and e.kind = $2 and h.status <> 'deleted'
+`
+
+type ExternalIDsOfKindParams struct {
+	Provider string
+	Kind     string
+}
+
+// IDs a provider has given out, for live hosts: a VM ID in use by Gaia.
+func (q *Queries) ExternalIDsOfKind(ctx context.Context, arg ExternalIDsOfKindParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, externalIDsOfKind, arg.Provider, arg.Kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var external_id string
+		if err := rows.Scan(&external_id); err != nil {
+			return nil, err
+		}
+		items = append(items, external_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const holdName = `-- name: HoldName :exec
 insert into name_leases (name, uid) values ($1, $2)
 `

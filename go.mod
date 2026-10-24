@@ -4,6 +4,7 @@ go 1.27.1
 
 require (
 	cel.dev/cel-go v0.32.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/muhlba91/pulumi-proxmoxve/sdk/v8 v8.6.0
@@ -24,7 +25,6 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/bubbles v1.0.0 // indirect

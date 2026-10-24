@@ -167,7 +167,7 @@ func (r *resolver) naming() {
 func (r *resolver) platform(o *Object) {
 	s := o.Spec.(*PlatformSpec)
 	r.ref(o, "spec.secrets", KindProvider, s.Secrets, "openbao")
-	r.ref(o, "spec.engines.provisioning.state", KindProvider, s.Engines.Provisioning.State, "s3")
+	r.ref(o, "spec.engines.provisioning.state", KindProvider, s.Engines.Provisioning.State, "postgres", "s3")
 	r.ref(o, "spec.engines.configuration.source", KindProvider, s.Engines.Configuration.Source, "git")
 	if s.RunArchive != "" {
 		r.ref(o, "spec.runArchive", KindProvider, s.RunArchive, "s3")

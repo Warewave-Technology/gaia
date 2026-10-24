@@ -231,7 +231,7 @@ func TestReferenceLinesPointAtTheField(t *testing.T) {
 
 func TestProviderTypeMustFit(t *testing.T) {
 	lines := resolveErrors(t, catalogWith(t, "platform.yaml", "state: state", "state: ipam"))
-	wantError(t, lines, "Platform/platform", `spec.engines.provisioning.state: Provider "ipam" has type ipam, want s3`)
+	wantError(t, lines, "Platform/platform", `spec.engines.provisioning.state: Provider "ipam" has type ipam, want postgres or s3`)
 }
 
 func TestHypervisorSpecificFields(t *testing.T) {

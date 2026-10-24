@@ -5,3 +5,4 @@ metadata:
 spec:
   type: ipam
   endpoint: http://192.168.1.25:8090
+  credentials: bao://kv/platform/ipam   # token

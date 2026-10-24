@@ -98,6 +98,13 @@ type NameLease struct {
 	ReleasedAt pgtype.Timestamptz
 }
 
+type PulumiStack struct {
+	Name            string
+	SecretsProvider string
+	EncryptedKey    string
+	UpdatedAt       pgtype.Timestamptz
+}
+
 type Run struct {
 	ID         string
 	Contracts  []string
