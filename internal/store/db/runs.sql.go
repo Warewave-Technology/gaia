@@ -11,6 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelQueuedRun = `-- name: CancelQueuedRun :execrows
+update runs set status = 'cancelled', error = $2, finished_at = now() where id = $1 and status = 'queued'
+`
+
+type CancelQueuedRunParams struct {
+	ID    string
+	Error pgtype.Text
+}
+
+func (q *Queries) CancelQueuedRun(ctx context.Context, arg CancelQueuedRunParams) (int64, error) {
+	result, err := q.db.Exec(ctx, cancelQueuedRun, arg.ID, arg.Error)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const finishRun = `-- name: FinishRun :exec
 update runs set status = $2, error = $3, finished_at = now() where id = $1
 `
@@ -26,8 +43,56 @@ func (q *Queries) FinishRun(ctx context.Context, arg FinishRunParams) error {
 	return err
 }
 
+const finishStage = `-- name: FinishStage :exec
+update run_stages set status = $4, detail = $5, finished_at = now()
+where run_id = $1 and contract = $2 and stage = $3
+`
+
+type FinishStageParams struct {
+	RunID    string
+	Contract string
+	Stage    string
+	Status   string
+	Detail   pgtype.Text
+}
+
+func (q *Queries) FinishStage(ctx context.Context, arg FinishStageParams) error {
+	_, err := q.db.Exec(ctx, finishStage,
+		arg.RunID,
+		arg.Contract,
+		arg.Stage,
+		arg.Status,
+		arg.Detail,
+	)
+	return err
+}
+
+const queueRun = `-- name: QueueRun :exec
+insert into runs (id, contracts, commit, plan_hash, status, requested_by)
+values ($1, $2, $3, $4, 'queued', $5)
+`
+
+type QueueRunParams struct {
+	ID          string
+	Contracts   []string
+	Commit      string
+	PlanHash    string
+	RequestedBy pgtype.Text
+}
+
+func (q *Queries) QueueRun(ctx context.Context, arg QueueRunParams) error {
+	_, err := q.db.Exec(ctx, queueRun,
+		arg.ID,
+		arg.Contracts,
+		arg.Commit,
+		arg.PlanHash,
+		arg.RequestedBy,
+	)
+	return err
+}
+
 const run = `-- name: Run :one
-select id, contracts, commit, plan_hash, status, error, started_at, finished_at, config_commit, ee_image from runs where id = $1
+select id, contracts, commit, plan_hash, status, error, started_at, finished_at, config_commit, ee_image, job_id, requested_by, queued_at from runs where id = $1
 `
 
 func (q *Queries) Run(ctx context.Context, id string) (Run, error) {
@@ -44,28 +109,157 @@ func (q *Queries) Run(ctx context.Context, id string) (Run, error) {
 		&i.FinishedAt,
 		&i.ConfigCommit,
 		&i.EeImage,
+		&i.JobID,
+		&i.RequestedBy,
+		&i.QueuedAt,
 	)
 	return i, err
 }
 
+const runStages = `-- name: RunStages :many
+select run_id, contract, stage, status, detail, started_at, finished_at from run_stages where run_id = $1 order by started_at, contract, stage
+`
+
+func (q *Queries) RunStages(ctx context.Context, runID string) ([]RunStage, error) {
+	rows, err := q.db.Query(ctx, runStages, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunStage
+	for rows.Next() {
+		var i RunStage
+		if err := rows.Scan(
+			&i.RunID,
+			&i.Contract,
+			&i.Stage,
+			&i.Status,
+			&i.Detail,
+			&i.StartedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const runs = `-- name: Runs :many
+select id, contracts, commit, plan_hash, status, error, started_at, finished_at, config_commit, ee_image, job_id, requested_by, queued_at from runs
+where ($1::text = '' or $1::text = any (contracts))
+order by queued_at desc, id desc
+limit $2
+`
+
+type RunsParams struct {
+	Contract string
+	MaxRows  int32
+}
+
+// Newest first; contract "" lists every run.
+func (q *Queries) Runs(ctx context.Context, arg RunsParams) ([]Run, error) {
+	rows, err := q.db.Query(ctx, runs, arg.Contract, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Run
+	for rows.Next() {
+		var i Run
+		if err := rows.Scan(
+			&i.ID,
+			&i.Contracts,
+			&i.Commit,
+			&i.PlanHash,
+			&i.Status,
+			&i.Error,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.ConfigCommit,
+			&i.EeImage,
+			&i.JobID,
+			&i.RequestedBy,
+			&i.QueuedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setRunJob = `-- name: SetRunJob :exec
+update runs set job_id = $2 where id = $1
+`
+
+type SetRunJobParams struct {
+	ID    string
+	JobID pgtype.Int8
+}
+
+func (q *Queries) SetRunJob(ctx context.Context, arg SetRunJobParams) error {
+	_, err := q.db.Exec(ctx, setRunJob, arg.ID, arg.JobID)
+	return err
+}
+
 const startRun = `-- name: StartRun :exec
-insert into runs (id, contracts, commit, plan_hash, status)
-values ($1, $2, $3, $4, 'running')
+insert into runs (id, contracts, commit, plan_hash, status, requested_by, started_at)
+values ($1, $2, $3, $4, 'running', $5, now())
 `
 
 type StartRunParams struct {
-	ID        string
-	Contracts []string
-	Commit    string
-	PlanHash  string
+	ID          string
+	Contracts   []string
+	Commit      string
+	PlanHash    string
+	RequestedBy pgtype.Text
 }
 
+// A run that starts right away, without the queue (gaia apply).
 func (q *Queries) StartRun(ctx context.Context, arg StartRunParams) error {
 	_, err := q.db.Exec(ctx, startRun,
 		arg.ID,
 		arg.Contracts,
 		arg.Commit,
 		arg.PlanHash,
+		arg.RequestedBy,
 	)
 	return err
+}
+
+const startStage = `-- name: StartStage :exec
+insert into run_stages (run_id, contract, stage, status)
+values ($1, $2, $3, 'running')
+on conflict (run_id, contract, stage) do update set status = 'running', detail = null, started_at = now(), finished_at = null
+`
+
+type StartStageParams struct {
+	RunID    string
+	Contract string
+	Stage    string
+}
+
+func (q *Queries) StartStage(ctx context.Context, arg StartStageParams) error {
+	_, err := q.db.Exec(ctx, startStage, arg.RunID, arg.Contract, arg.Stage)
+	return err
+}
+
+const takeRun = `-- name: TakeRun :execrows
+update runs set status = 'running', started_at = now() where id = $1 and status = 'queued'
+`
+
+// A worker takes a queued run.
+func (q *Queries) TakeRun(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, takeRun, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

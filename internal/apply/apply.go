@@ -42,6 +42,8 @@ type Deps struct {
 	Monitor   func(endpoint, token string) Monitor
 	// Archive opens the run record archive (Platform.runArchive).
 	Archive func(endpoint, bucket, accessKey, secretKey string) (runrecord.Archive, error)
+	// RunID is a queued run to take; empty starts a new run.
+	RunID string
 	// Who asked for the run and where its contracts came from, for the
 	// run record.
 	RequestedBy string
@@ -66,20 +68,30 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 		}
 	}
 
-	runID := store.NewRunID()
-	var names []string
-	for _, c := range p.Contracts {
-		names = append(names, c.Name)
-	}
 	q := d.Store.Q()
-	if err := q.StartRun(ctx, db.StartRunParams{ID: runID, Contracts: names, Commit: p.Commit, PlanHash: p.Hash}); err != nil {
-		return "", err
+	runID := d.RunID
+	if runID == "" {
+		runID = store.NewRunID()
+		if err := q.StartRun(ctx, db.StartRunParams{ID: runID, Contracts: p.ContractNames(), Commit: p.Commit, PlanHash: p.Hash, RequestedBy: pgText(d.RequestedBy)}); err != nil {
+			return "", err
+		}
+	} else {
+		n, err := q.TakeRun(ctx, runID)
+		if err != nil {
+			return runID, err
+		}
+		if n != 1 {
+			return runID, fmt.Errorf("run %s is not queued", runID)
+		}
 	}
 	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{},
 		executedAs: map[string]string{"linux": User}, started: time.Now().UTC()}
 	err := r.all(ctx, p)
 	status, msg := "succeeded", ""
-	if err != nil {
+	switch {
+	case err != nil && ctx.Err() != nil:
+		status, msg = "cancelled", err.Error()
+	case err != nil:
 		status, msg = "failed", err.Error()
 	}
 	// The run's outcome is recorded even when its context ended.
@@ -87,7 +99,7 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if ferr := q.FinishRun(ctx, db.FinishRunParams{ID: runID, Status: status, Error: pgText(msg)}); ferr != nil {
 		err = errors.Join(err, ferr)
 	}
-	if rerr := r.writeRecord(ctx, p, status, msg); rerr != nil {
+	if rerr := r.stage(ctx, "", "record", func() error { return r.writeRecord(ctx, p, status, msg) }); rerr != nil {
 		err = errors.Join(err, rerr)
 	}
 	return runID, err
@@ -215,15 +227,53 @@ func (r *runner) provider(name string) *catalog.ProviderSpec {
 	return o.Spec.(*catalog.ProviderSpec)
 }
 
-func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.Backend, sshKey string) error {
-	q := r.d.Store.Q()
-	contract, _ := r.g.Catalog.Get(catalog.KindServer, c.Name)
-	bySite := map[string][]pulumi.VM{}
-	var targets []target
-	siteCreds := map[string]proxmox.Credentials{} // a site has one compute provider
-	creds := map[string]proxmox.Credentials{}
+// work is what one contract's run does, gathered while preparing it.
+type work struct {
+	bySite    map[string][]pulumi.VM
+	siteCreds map[string]proxmox.Credentials // a site has one compute provider
+	creds     map[string]proxmox.Credentials
+	targets   []target
+	gone      []doomed
+}
 
-	var gone []doomed
+// contract runs one contract's stages in the order of design 7.2:
+// addresses and IDs, deregistering what goes, provisioning, releasing what
+// went, registering, configuring.
+func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.Backend, sshKey string) error {
+	contract, _ := r.g.Catalog.Get(catalog.KindServer, c.Name)
+	w := &work{bySite: map[string][]pulumi.VM{}, siteCreds: map[string]proxmox.Credentials{}, creds: map[string]proxmox.Credentials{}}
+	if err := r.stage(ctx, c.Name, "ipam", func() error { return r.prepare(ctx, c, contract, w, sshKey) }); err != nil {
+		return err
+	}
+	if len(w.gone) > 0 {
+		// Monitoring goes first, so that a VM going away raises no alerts.
+		if err := r.stage(ctx, c.Name, "deregister", func() error { return r.unregister(ctx, c, w.gone) }); err != nil {
+			return err
+		}
+	}
+	if err := r.stage(ctx, c.Name, "provision", func() error { return r.provision(ctx, c, backend, w) }); err != nil {
+		return err
+	}
+	if len(w.gone) > 0 {
+		if err := r.stage(ctx, c.Name, "release", func() error { return r.release(ctx, c, w.gone, w.creds) }); err != nil {
+			return err
+		}
+	}
+	if c.Monitoring != nil && len(w.targets) > 0 {
+		if err := r.stage(ctx, c.Name, "register", func() error { return r.register(ctx, c, contract, w.targets) }); err != nil {
+			return err
+		}
+	}
+	if (c.Baseline != nil || len(c.Roles) > 0) && len(w.targets) > 0 {
+		return r.stage(ctx, c.Name, "configure", func() error { return r.configure(ctx, c, contract, w.targets) })
+	}
+	return nil
+}
+
+// prepare records new hosts and gives every server its address, VM ID
+// and SMBIOS UUID; servers that go are marked decommissioning.
+func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog.Object, w *work, sshKey string) error {
+	q := r.d.Store.Q()
 	for _, s := range c.Servers {
 		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "plan", Action: s.Action})
 		if s.Action == plan.Delete {
@@ -231,18 +281,18 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			if err != nil {
 				return err
 			}
-			gone = append(gone, d)
+			w.gone = append(w.gone, d)
 			if d.compute != "" {
-				cr, err := cached(creds, d.compute, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, d.compute) })
+				cr, err := cached(w.creds, d.compute, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, d.compute) })
 				if err != nil {
 					return err
 				}
 				// The stack runs even when no server of the site is left:
 				// that is how its VMs are destroyed.
-				if _, ok := bySite[s.Site]; !ok {
-					bySite[s.Site] = nil
+				if _, ok := w.bySite[s.Site]; !ok {
+					w.bySite[s.Site] = nil
 				}
-				siteCreds[s.Site] = cr
+				w.siteCreds[s.Site] = cr
 			}
 			continue
 		}
@@ -257,7 +307,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			r.changes[len(r.changes)-1].UID = s.UID
 		}
 
-		cr, err := cached(creds, s.Compute.Provider, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, s.Compute.Provider) })
+		cr, err := cached(w.creds, s.Compute.Provider, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, s.Compute.Provider) })
 		if err != nil {
 			return err
 		}
@@ -273,24 +323,25 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		if err := q.SetExternalID(ctx, db.SetExternalIDParams{Uid: s.UID, Provider: s.Compute.Provider, Kind: "smbios", ExternalID: smbios}); err != nil {
 			return err
 		}
-		bySite[s.Site] = append(bySite[s.Site], r.vm(c, contract, s, addr, vmid, smbios, sshKey))
-		targets = append(targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
-		siteCreds[s.Site] = cr
+		w.bySite[s.Site] = append(w.bySite[s.Site], r.vm(c, contract, s, addr, vmid, smbios, sshKey))
+		w.targets = append(w.targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
+		w.siteCreds[s.Site] = cr
 	}
+	return nil
+}
 
-	// Monitoring goes first, so that a VM going away raises no alerts.
-	if err := r.unregister(ctx, c, gone); err != nil {
-		return err
-	}
-
-	sites := make([]string, 0, len(bySite))
-	for site := range bySite {
+// provision runs one Pulumi stack per site and checks every VM: its ID
+// and the address its guest agent reports.
+func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.Backend, w *work) error {
+	q := r.d.Store.Q()
+	sites := make([]string, 0, len(w.bySite))
+	for site := range w.bySite {
 		sites = append(sites, site)
 	}
 	sort.Strings(sites)
 	for _, site := range sites {
-		vms := bySite[site]
-		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: siteCreds[site], VMs: vms}
+		vms := w.bySite[site]
+		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VMs: vms}
 		r.printf("  pulumi up %s (%d VM)\n", stack.Name, len(vms))
 		got, changes, err := r.d.Provision(ctx, backend, stack, r.d.Out)
 		if err != nil {
@@ -314,13 +365,27 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			}
 		}
 	}
-	if err := r.release(ctx, c, gone, creds); err != nil {
+	return nil
+}
+
+// stage runs fn as one stage of the contract and records how it ended.
+func (r *runner) stage(ctx context.Context, contract, name string, fn func() error) error {
+	q := r.d.Store.Q()
+	if err := q.StartStage(ctx, db.StartStageParams{RunID: r.run, Contract: contract, Stage: name}); err != nil {
 		return err
 	}
-	if err := r.register(ctx, c, contract, targets); err != nil {
-		return err
+	err := fn()
+	status, detail := "succeeded", ""
+	switch {
+	case err != nil && ctx.Err() != nil:
+		status, detail = "cancelled", err.Error()
+	case err != nil:
+		status, detail = "failed", err.Error()
 	}
-	return r.configure(ctx, c, contract, targets)
+	if ferr := q.FinishStage(context.WithoutCancel(ctx), db.FinishStageParams{RunID: r.run, Contract: contract, Stage: name, Status: status, Detail: pgText(detail)}); ferr != nil {
+		err = errors.Join(err, ferr)
+	}
+	return err
 }
 
 // running counts the servers of c that stay.

@@ -27,19 +27,9 @@ func (s *source) flags(cmd *cobra.Command) {
 // graph loads and resolves the objects. It prints which commit was read
 // and, on problems, each of them; the error then carries their count.
 func (s *source) graph(out io.Writer) (*catalog.Graph, error) {
-	paths := s.paths
-	if len(paths) == 0 {
-		paths = []string{""}
-	}
-	var all []catalog.File
-	var commit string
-	for _, p := range paths {
-		files, c, err := gitsrc.Files(s.repo, s.ref, p)
-		if err != nil {
-			return nil, err
-		}
-		all = append(all, files...)
-		commit = c
+	all, commit, err := gitsrc.Load(s.repo, s.ref, s.paths)
+	if err != nil {
+		return nil, err
 	}
 	if _, err := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], s.ref, len(all)); err != nil {
 		return nil, err
