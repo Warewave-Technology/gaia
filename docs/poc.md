@@ -6,7 +6,7 @@
 ## Sınanacak varsayımlar
 
 1. **`proxmoxve` Pulumi provider'ı:** Şablondan klonlama, cloud-init ile IP verme, disk büyütme, tag ve not yazma güvenilir çalışıyor mu?
-2. **Pulumi'nin Gaia içinde çalışması:** Automation API (Go), state SeaweedFS'te (S3), secret'lar OpenBao transit ile; birlikte düzgün çalışıyor mu?
+2. **Pulumi'nin Gaia içinde çalışması:** Automation API (Go), state uzak bir backend'de, secret'lar OpenBao transit ile; birlikte düzgün çalışıyor mu? (State SeaweedFS'te planlanmıştı; PostgreSQL'e taşındı, bkz. M2.5.)
 3. **Ansible:** ansible-runner podman'daki EE içinde çalışırken JSON olay akışı Go'dan okunabiliyor mu? Envanterde UID ve secret maskeleme beklendiği gibi oluyor mu?
 4. **Katalog motoru:** Graf, referans çözümleme ve CEL (isimlendirme, kurallar) pratikte kullanışlı mı?
 5. **Kimlik ve yaşam döngüsü:** UID, isim kiralama ve run kaydı (hash zinciri) tutarlı mı? Aynı kontrat ikinci kez uygulandığında değişiklik üretmiyor mu?
@@ -17,7 +17,7 @@
 2. `gaia apply` şunları yapar:
    - Proxmox'ta şablondan VM açar.
    - IP'yi IPAM'dan alır, hostname'i Policy'den üretir, UID'yi VM'e yazar.
-   - State'i SeaweedFS'e kaydeder, credential'ları OpenBao'dan çeker.
+   - State'i kaydeder (PostgreSQL), credential'ları OpenBao'dan çeker.
 3. Baseline rolü ansible-runner ile EE içinde çalışır. Olaylar `run_events` tablosuna UID ile yazılır, secret'lar maskelenir.
 4. Sunucu Zabbix'e doğru tag ve host group ile kaydedilir.
 5. Run kaydı yazılır: commit, EE digest'i, plan hash'i ve hash zinciri.
@@ -62,7 +62,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | **Tamam:** lab'de `gaia apply` ile uçtan uca VM açıldı |
-| **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
+| **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | **Tamam:** baseline lab'de EE içinde çalıştı |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
 
@@ -140,6 +140,24 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Lab sonucu:** `labtpoc01` (VM 9400, 10.50.0.100/24) açıldı. SMBIOS UUID ve tag'ler veritabanıyla aynı. Gaia'nın anahtarıyla platform VM üzerinden SSH ve `sudo` çalışıyor, internete çıkıyor.
    - **İkinci apply:** Gaia'nın planı `= labtpoc01`, "no changes to servers". Pulumi ise her run'da diske etkisiz bir update gönderiyor. Neden `proxmoxve` v8.6.0'daki (Terraform provider v0.112.0) bir uyumsuzluk: disk `speed` bloğunun varsayılanı sıfırlarla dolu, okumada ise blok hiç dönmüyor. `ignoreChanges` bunu bastırmıyor, çünkü fark girdiyle provider'ın kendi state'i arasında. VM konfigürasyonu değişmiyor. Upstream'e bildirilecek (design.md, Açık Konular).
 
+## M3'ün iş kırılımı
+
+1. **EE imajı ve baseline rolü.** **Tamam** (`ee/`, `ansible/`).
+   - **EE:** ansible-builder v3, Rocky Linux 9 tabanı, Python 3.12, ansible-core 2.21, ansible-runner 2.4. Collection'lar sabit (`ansible.posix` 2.2.2, `community.general` 13.5.0). SSH için `openssh-clients` (`bindep.txt`).
+   - **Lab'de imaj:** Platform VM'inde labadm kullanıcısıyla, rootless podman'da derlenir (`lab/ee.yml`): `localhost/gaia/ee-default:dev`. Nexus PoC'de yok.
+   - **Config reposu:** Bu reponun `ansible/` dizini. `baseline/linux.yml` ve `gaia_linux_base` rolü: hostname, saat dilimi, chrony (Site'ın NTP'si), SSH sıkılaştırma, `/etc/ansible/facts.d/gaia.fact` (UID, kontrat, label'lar) ve motd. Gaia'nın verdiği değişkenler `ansible/README.md`'de.
+2. **ansible-runner sarmalayıcısı ve configure aşaması.** **Tamam** (`internal/engine/ansible`, `internal/apply/configure.go`).
+   - **Çalışma dizini:** Her iş için tmpfs'te (`/dev/shm`) açılır: envanter, `env/ssh_key`, `env/cmdline` (`--forks`) ve proje. Proje config reposunun ilgili commit'inden çıkarılır; Gaia içine bir `.gaia/site.yml` yazar (baseline'ı import eder, sonra kontratın rolleri). İş bitince dizin silinir.
+   - **Container:** `podman run --rm --userns keep-id ... ansible-runner run /runner -p .gaia/site.yml -j`. EE imajının kullanıcısı (1000) rootless podman'da çağıranın kullanıcısına eşlenir; yoksa `/runner`'a yazamaz. Root olarak çalışınca `--user 0`.
+   - **Timeout ve iptal:** `limits.timeout` aşılırsa container `podman rm -f` ile kaldırılır, süreç grubu öldürülür.
+   - **Olaylar:** JSON akışı satır satır okunur, her olay `run_events`'e yazılır (migration 0004): aşama, UID, task, `changed`, `failed`, stdout ve event_data. Event_data 64 KiB ile sınırlı.
+   - **Maskeleme:** SSH anahtarı ve verilen secret'lar (tamamı ve çok satırlıların her uzun satırı) stdout'ta ve event_data'nın bütün string'lerinde `********` olur. Event_data önce çözülür, çünkü Python ASCII dışı karakterleri `\uXXXX` olarak yazıyor ve ham metinde eşleşme kaçabiliyor.
+   - **Run'da kayıt:** Config reposunun commit'i ve EE imajının digest'li referansı (`runs.config_commit`, `runs.ee_image`). İş bu digest'le çalışır; Gaia run sırasında imaj çekmez.
+   - **Hata:** Başarısız veya erişilemeyen bir sunucu run'ı başarısız yapar. Sunucu `active` kalır; bir sonraki apply konfigürasyonu tekrar dener.
+   - **PoC kısıtları:** Config reposu yerel bir klondan okunur. Host key kontrolü kapalı (yeni sunucuların anahtarlarını Gaia henüz bilmiyor). `no_log` parametreli roller reddedilir. Olaylar tek tek yazılır.
+   - **Lab sonucu:** `gaia apply` platform VM'inden çalıştı (podman ve lab ağı orada): provisioning, sonra baseline `labtpoc01`'de `ok=11`. İkinci apply'da `changed=0`. 72 olayın hiçbirinde anahtar yok; çalışma dizini ve container kalmadı.
+   - **Başarı kriteri 3 karşılandı.**
+
 ## Kararlar
 
 - Tetikleme CLI'dan, yerel Git checkout'undan; PR ve webhook akışı ek maddede.
@@ -147,3 +165,4 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 - IPAM v0 bu repoda, ayrı binary olarak (`cmd/gaia-ipam`).
 - Şablon Rocky Linux 9. GenericCloud imajında qemu-guest-agent kurulu geliyor.
 - Envanter kararını sınamak için Zabbix PoC'de var.
+- Lab'de `gaia apply` platform VM'inden, labadm kullanıcısıyla çalışır (`~/.config/gaia/env`); Mac'ten lab ağına doğrudan erişim yok.

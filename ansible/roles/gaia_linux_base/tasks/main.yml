@@ -1,0 +1,68 @@
+---
+- name: Gaia değişkenleri
+  ansible.builtin.assert:
+    that:
+      - gaia_uid is defined
+      - gaia_hostname is defined
+      - gaia_contract is defined
+    fail_msg: "Bu rol Gaia'nın envanteriyle çalışır."
+    quiet: true
+
+- name: Hostname
+  ansible.builtin.hostname:
+    name: "{{ gaia_hostname }}"
+
+- name: Saat dilimi
+  community.general.timezone:
+    name: "{{ gaia_timezone }}"
+
+- name: Temel paketler
+  ansible.builtin.dnf:
+    name: "{{ gaia_base_packages }}"
+    state: present
+
+- name: Chrony
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    mode: "0644"
+  when: gaia_ntp | length > 0
+  notify: Restart chronyd
+
+- name: Chrony çalışıyor
+  ansible.builtin.service:
+    name: chronyd
+    enabled: true
+    state: started
+
+- name: SSH sıkılaştırma
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-gaia.conf
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+    content: |
+      # Gaia baseline
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+  notify: Reload sshd
+
+- name: Fact dizini
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d
+    state: directory
+    mode: "0755"
+
+- name: Gaia fact'leri
+  ansible.builtin.copy:
+    dest: /etc/ansible/facts.d/gaia.fact
+    mode: "0644"
+    content: "{{ {'uid': gaia_uid, 'hostname': gaia_hostname, 'contract': gaia_contract, 'site': gaia_site | default(''), 'labels': gaia_labels} | to_nice_json }}\n"
+
+- name: Motd
+  ansible.builtin.copy:
+    dest: /etc/motd
+    mode: "0644"
+    content: |
+      {{ gaia_hostname }} ({{ gaia_uid }}) Gaia tarafından yönetilir: {{ gaia_contract }}
+      Elle yapılan değişiklikler bir sonraki apply'da geri alınabilir.

@@ -1,6 +1,7 @@
 package gitsrc
 
 import (
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -73,5 +74,31 @@ func TestErrors(t *testing.T) {
 	}
 	if _, _, err := Files(t.TempDir(), "HEAD", ""); err == nil {
 		t.Error("not a repository: no error")
+	}
+}
+
+func TestExportWritesTheSubtreeOfTheCommit(t *testing.T) {
+	r := gittest.New(t)
+	r.Write("ansible/site.yml", "- hosts: all", "ansible/roles/x/tasks/main.yml", "- debug: {}", "platform/p.yaml", "p: 1")
+	commit := r.Commit("first")
+	r.Write("ansible/site.yml", "uncommitted")
+
+	dest := t.TempDir()
+	got, err := Export(r.Dir, "HEAD", "ansible", dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != commit {
+		t.Errorf("commit = %s, want %s", got, commit)
+	}
+	data, err := os.ReadFile(filepath.Join(dest, "site.yml"))
+	if err != nil || string(data) != "- hosts: all" {
+		t.Errorf("site.yml = %q, %v", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(dest, "roles", "x", "tasks", "main.yml")); err != nil {
+		t.Error(err)
+	}
+	if _, err := os.Stat(filepath.Join(dest, "p.yaml")); !os.IsNotExist(err) {
+		t.Errorf("a file outside the subtree was exported: %v", err)
 	}
 }

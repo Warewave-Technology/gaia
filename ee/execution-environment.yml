@@ -16,6 +16,7 @@ dependencies:
   ansible_runner:
     package_pip: ansible-runner>=2.4,<3
   galaxy: requirements.yml
+  system: bindep.txt
 
 options:
   package_manager_path: /usr/bin/dnf

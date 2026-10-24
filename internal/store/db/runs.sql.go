@@ -27,7 +27,7 @@ func (q *Queries) FinishRun(ctx context.Context, arg FinishRunParams) error {
 }
 
 const run = `-- name: Run :one
-select id, contracts, commit, plan_hash, status, error, started_at, finished_at from runs where id = $1
+select id, contracts, commit, plan_hash, status, error, started_at, finished_at, config_commit, ee_image from runs where id = $1
 `
 
 func (q *Queries) Run(ctx context.Context, id string) (Run, error) {
@@ -42,6 +42,8 @@ func (q *Queries) Run(ctx context.Context, id string) (Run, error) {
 		&i.Error,
 		&i.StartedAt,
 		&i.FinishedAt,
+		&i.ConfigCommit,
+		&i.EeImage,
 	)
 	return i, err
 }

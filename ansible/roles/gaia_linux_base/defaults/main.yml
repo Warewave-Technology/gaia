@@ -1,0 +1,6 @@
+---
+gaia_ntp: []
+gaia_dns: []
+gaia_labels: {}
+gaia_timezone: Europe/Istanbul
+gaia_base_packages: [chrony]

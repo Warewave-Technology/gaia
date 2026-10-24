@@ -1,0 +1,7 @@
+---
+# Baseline: linux-base. Gaia her Linux sunucuda, rollerden önce çalıştırır.
+- name: Linux baseline
+  hosts: all
+  become: true
+  roles:
+    - gaia_linux_base

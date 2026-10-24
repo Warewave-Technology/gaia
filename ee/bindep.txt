@@ -1,0 +1,2 @@
+# ansible-runner'ın SSH bağlantıları için
+openssh-clients [platform:rpm]
