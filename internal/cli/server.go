@@ -33,7 +33,7 @@ func newServerCommand() *cobra.Command {
 	var dsn, listen, role string
 	var workers int
 	var unsafeNoAuth bool
-	var repoURL, ref, repoCreds, dataDir string
+	var repoURL, ref, repoCreds, dataDir, webhookSecret string
 	var refresh time.Duration
 	var paths []string
 	var runTimeout, stopTimeout, eventRetention time.Duration
@@ -97,6 +97,16 @@ func newServerCommand() *cobra.Command {
 					return fmt.Errorf("desired state: %w", err)
 				}
 				cfg.Changes, cfg.Catalog = engine, cat
+				if webhookSecret != "" {
+					sec, err := bao.Read(ctx, webhookSecret)
+					if err != nil {
+						return fmt.Errorf("--webhook-secret: %w", err)
+					}
+					if sec["secret"] == "" {
+						return errors.New("--webhook-secret: the secret has no \"secret\" field")
+					}
+					cfg.WebhookSecret = []byte(sec["secret"])
+				}
 				if cat.Graph().AuthConfig() != nil {
 					cfg.Auth = auth.New(s, cat.Graph, cfg.Log)
 				}
@@ -174,6 +184,7 @@ func newServerCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ref, "ref", "", "branch of --repo to follow (default: HEAD for a path, main for a URL)")
 	cmd.Flags().StringSliceVar(&paths, "path", nil, "directory inside --repo; repeatable")
 	cmd.Flags().StringVar(&repoCreds, "repo-credentials", "", "bao:// reference with a token (https) or private_key and known_hosts (ssh); needs $GAIA_BAO_ADDR")
+	cmd.Flags().StringVar(&webhookSecret, "webhook-secret", "", "bao:// reference whose secret field checks GitHub push webhooks (POST /api/v1/webhooks/github)")
 	cmd.Flags().DurationVar(&refresh, "refresh", 3*time.Minute, "how often the repositories are fetched; a webhook fetches at once")
 	cmd.Flags().StringVar(&dataDir, "data-dir", defaultDataDir(), "where repository mirrors are kept")
 	cmd.Flags().DurationVar(&stopTimeout, "stop-timeout", 5*time.Minute, "on shutdown, how long runs get to finish before they are cancelled")

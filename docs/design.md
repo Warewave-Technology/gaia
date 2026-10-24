@@ -814,7 +814,7 @@ Model Argo CD'den esinlenir. Git istenen durumun geçmişidir; değişikliğin i
 - Platform reposunu sunucunun kendi ayarı söyler (`gaia server --repo`, `--repo-credentials`). Kontrat repoları `Platform.spec.contracts`'ta, config reposu `engines.configuration.source`'ta birer `git` Provider'ı olarak yazılıdır.
 - Her repo yerel bir aynada (bare clone) tutulur. Kimlik bilgisi OpenBao'dadır: https için token; ssh için anahtar ve `known_hosts`. Host anahtarı bilinmeyen bir sunucuya bağlanılmaz.
 - **Anlık görüntü (snapshot):** İstenen durum, platform reposu ile kontrat repolarının birer commit'idir. Plan, Change ve run bu görüntüye bağlıdır. Config reposunun commit'i de görüntüde sabitlenir, ama planın kimliğine girmez: rol kodu bir sonraki run'da uygulanır (7.3).
-- Yeni commit'i webhook ile hemen, webhook gelmezse periyodik fetch ile (varsayılan 3 dakika) öğrenir.
+- Yeni commit'i webhook ile hemen, webhook gelmezse periyodik fetch ile (varsayılan 3 dakika) öğrenir. GitHub webhook'u `POST /api/v1/webhooks/github` adresine `push` olayıyla gelir ve `X-Hub-Signature-256` ile doğrulanır (sır OpenBao'da, `gaia server --webhook-secret`). Gaia olayın içeriğine güvenmez; geçerli bir olay sadece fetch'i öne alır, commit'ler Git'ten okunur.
 - PR, review ve branch koruması ekiplerin tercihidir; Gaia bunlara bakmaz ve onların yerine geçmez. Branch korumasının ve CI'da `gaia validate`'in açık olması önerilir.
 - İzlenen branch'in son commit'i doğrulanmıyorsa o repodan hiçbir Change uygulanmaz; Gaia hatayı gösterir.
 

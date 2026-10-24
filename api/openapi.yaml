@@ -198,6 +198,22 @@ paths:
         "400": { description: No plan hash or no reason, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "403": { description: Not an approver, or confirm first, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "409": { description: Closed, decided already or another plan, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/webhooks/github:
+    post:
+      summary: GitHub push webhook (public; checked with X-Hub-Signature-256)
+      description: A valid push fetches the followed repositories now. Only the signature is trusted; commits are read from Git. Off (404) unless gaia server has --webhook-secret.
+      operationId: githubWebhook
+      security: []
+      parameters:
+        - { name: X-GitHub-Event, in: header, required: true, schema: { type: string } }
+        - { name: X-Hub-Signature-256, in: header, required: true, schema: { type: string } }
+      requestBody: { content: { application/json: { schema: { type: object } } } }
+      responses:
+        "200": { description: ping }
+        "202": { description: push; fetching }
+        "204": { description: Another event, ignored }
+        "401": { description: The signature does not match }
+        "404": { description: Webhooks are off }
   /api/v1/auth/config:
     get:
       summary: How to sign in (public)
