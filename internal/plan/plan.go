@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -41,9 +42,18 @@ type Size struct {
 	DiskGiB   int    `json:"diskGiB"`
 }
 
+// Actions on a server.
+const (
+	Create = "create"
+	Keep   = "keep"
+	Delete = "delete"
+)
+
 // Server is one server of a contract.
 type Server struct {
-	Action   string  `json:"action"` // create
+	Action   string  `json:"action"` // create | keep | delete
+	UID      string  `json:"uid,omitempty"`
+	Status   string  `json:"status,omitempty"` // current status, for kept and deleted servers
 	Hostname string  `json:"hostname"`
 	Seq      int     `json:"seq"`
 	Site     string  `json:"site"`
@@ -88,12 +98,10 @@ type Role struct {
 // Masked replaces the value of a no_log param in a plan.
 const Masked = "(no_log)"
 
-// Build plans the given contracts, or every Server when names is empty.
-// The graph must have resolved without errors.
-//
-// In the PoC nothing is read from the systems yet: every server is to be
-// created, numbered from 1 in each site.
-func Build(g *catalog.Graph, names []string) (*Plan, error) {
+// Build plans the given contracts, or every Server when names is empty,
+// against the servers Gaia already manages. The graph must have resolved
+// without errors.
+func Build(ctx context.Context, g *catalog.Graph, names []string, st State) (*Plan, error) {
 	servers := g.Catalog.List(catalog.KindServer)
 	if len(names) > 0 {
 		servers = servers[:0:0]
@@ -110,11 +118,14 @@ func Build(g *catalog.Graph, names []string) (*Plan, error) {
 	p := &Plan{Commit: g.Catalog.Commit, Contracts: []Contract{}}
 	owners := map[string]string{} // hostname -> contract
 	for _, o := range servers {
-		c, err := contract(g, o)
+		c, err := contract(ctx, g, o, st)
 		if err != nil {
 			return nil, err
 		}
 		for _, s := range c.Servers {
+			if s.Action == Delete {
+				continue
+			}
 			if other, dup := owners[s.Hostname]; dup {
 				return nil, fmt.Errorf("hostname %s is planned for %s and %s", s.Hostname, other, c.Name)
 			}
@@ -131,7 +142,7 @@ func Build(g *catalog.Graph, names []string) (*Plan, error) {
 	return p, nil
 }
 
-func contract(g *catalog.Graph, o *catalog.Object) (Contract, error) {
+func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State) (Contract, error) {
 	s := o.Spec.(*catalog.ServerSpec)
 	size := mustGet(g, catalog.KindSize, s.Size).Spec.(*catalog.SizeSpec)
 	img := mustGet(g, catalog.KindImage, s.Image).Spec.(*catalog.ImageSpec)
@@ -146,8 +157,25 @@ func contract(g *catalog.Graph, o *catalog.Object) (Contract, error) {
 		Servers:  []Server{},
 	}
 
+	live, err := st.LiveHosts(ctx, c.Name)
+	if err != nil {
+		return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+	}
+	// Sequence numbers in use per site, including servers about to go:
+	// they hold theirs until they are deleted.
+	used := map[string]map[int]bool{}
+	for _, h := range live {
+		if used[h.Site] == nil {
+			used[h.Site] = map[int]bool{}
+		}
+		used[h.Site][h.Seq] = true
+	}
+	retire := map[string]bool{}
+	for _, name := range s.Retire {
+		retire[name] = true
+	}
+
 	decommissioned := s.Lifecycle != nil && s.Lifecycle.State == "decommissioned"
-	seqs := map[string]int{} // per site
 	for _, pl := range placements(s) {
 		if decommissioned {
 			break
@@ -157,15 +185,9 @@ func contract(g *catalog.Graph, o *catalog.Object) (Contract, error) {
 		site := mustGet(g, catalog.KindSite, ns.Site).Spec.(*catalog.SiteSpec)
 		ptype := mustGet(g, catalog.KindProvider, site.Compute.Provider).Spec.(*catalog.ProviderSpec).Type
 		tpl := template(img, site.Compute.Provider)
-		for i := 0; i < pl.Replicas; i++ {
-			seqs[ns.Site]++
-			seq := seqs[ns.Site]
-			host, err := g.Hostname(o, ns.Site, seq)
-			if err != nil {
-				return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
-			}
+		desired := func(action string) Server {
 			srv := Server{
-				Action: "create", Hostname: host, Seq: seq, Site: ns.Site, Network: pl.Network,
+				Action: action, Site: ns.Site, Network: pl.Network,
 				Compute: Compute{
 					Provider: site.Compute.Provider, Type: ptype,
 					Template: templateName(tpl.Template), Customization: tpl.Customization,
@@ -178,8 +200,62 @@ func contract(g *catalog.Graph, o *catalog.Object) (Contract, error) {
 			if site.Compute.Storage != nil {
 				srv.Compute.Storage = site.Compute.Storage.Default
 			}
+			return srv
+		}
+
+		// Existing servers of this network: retired ones go, then the
+		// highest sequence numbers beyond the replica count (design 9.4).
+		var mine []Host
+		for _, h := range live {
+			if h.Network == pl.Network && h.Site == ns.Site && !retire[h.Hostname] {
+				mine = append(mine, h)
+			}
+		}
+		sort.Slice(mine, func(i, j int) bool { return mine[i].Seq < mine[j].Seq })
+		keep := mine
+		if len(keep) > pl.Replicas {
+			keep = mine[:pl.Replicas]
+		}
+		for _, h := range keep {
+			srv := desired(Keep)
+			srv.UID, srv.Status, srv.Hostname, srv.Seq = h.UID, h.Status, h.Hostname, h.Seq
 			c.Servers = append(c.Servers, srv)
 		}
+
+		for n := len(keep); n < pl.Replicas; n++ {
+			seq, host, err := nextName(ctx, g, o, st, ns.Site, used)
+			if err != nil {
+				return Contract{}, fmt.Errorf("%s: %w", c.Name, err)
+			}
+			srv := desired(Create)
+			srv.Hostname, srv.Seq = host, seq
+			c.Servers = append(c.Servers, srv)
+		}
+	}
+
+	// Everything else goes: retired, beyond the count, on a network the
+	// contract no longer uses, or the whole contract when decommissioned.
+	kept := map[string]bool{}
+	for _, srv := range c.Servers {
+		kept[srv.UID] = true
+	}
+	var gone []Host
+	for _, h := range live {
+		if !kept[h.UID] {
+			gone = append(gone, h)
+		}
+	}
+	sort.Slice(gone, func(i, j int) bool {
+		if gone[i].Site != gone[j].Site {
+			return gone[i].Site < gone[j].Site
+		}
+		return gone[i].Seq > gone[j].Seq
+	})
+	for _, h := range gone {
+		c.Servers = append(c.Servers, Server{
+			Action: Delete, UID: h.UID, Status: h.Status, Hostname: h.Hostname,
+			Seq: h.Seq, Site: h.Site, Network: h.Network,
+		})
 	}
 
 	if s.Baseline != "" {

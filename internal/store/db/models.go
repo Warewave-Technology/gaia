@@ -81,6 +81,7 @@ type Host struct {
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
 	DeletedAt  pgtype.Timestamptz
+	Network    string
 }
 
 type HostExternalID struct {

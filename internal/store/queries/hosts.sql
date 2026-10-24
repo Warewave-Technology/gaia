@@ -7,8 +7,8 @@ order by site, seq;
 select * from hosts where uid = $1;
 
 -- name: InsertHost :exec
-insert into hosts (uid, contract, hostname, site, seq, status, created_run)
-values ($1, $2, $3, $4, $5, $6, $7);
+insert into hosts (uid, contract, hostname, site, network, seq, status, created_run)
+values ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: SetHostStatus :exec
 update hosts
