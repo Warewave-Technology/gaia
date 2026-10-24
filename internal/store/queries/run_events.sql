@@ -7,3 +7,6 @@ select * from run_events where run_id = $1 order by seq;
 
 -- name: SetRunConfiguration :exec
 update runs set config_commit = $2, ee_image = $3 where id = $1;
+
+-- name: RunEventsAfter :many
+select * from run_events where run_id = $1 and seq > $2 order by seq limit $3;

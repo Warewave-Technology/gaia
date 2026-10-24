@@ -573,12 +573,26 @@ func TestApplyConfiguresServers(t *testing.T) {
 		t.Errorf("site.yml = %s", proj[".gaia/site.yml"])
 	}
 
-	evs, err := q.RunEvents(ctx, run)
+	all, err := q.RunEvents(ctx, run)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(evs) != 2 || evs[0].Seq != 1 || evs[0].HostUid.String != uid || evs[0].Stage != "configure" || !evs[0].Changed || evs[1].Event != "playbook_on_stats" || evs[1].HostUid.Valid {
+	evs := ansibleEvents(all)
+	if len(evs) != 2 || evs[0].HostUid.String != uid || evs[0].Stage != "configure" || !evs[0].Changed || evs[1].Event != "playbook_on_stats" || evs[1].HostUid.Valid {
 		t.Errorf("events = %+v", evs)
+	}
+	// Output lines are events of their stage, in order with the rest.
+	var stages []string
+	for i, e := range all {
+		if int(e.Seq) != i+1 {
+			t.Fatalf("event %d has seq %d", i, e.Seq)
+		}
+		if e.Event == "log" && (len(stages) == 0 || stages[len(stages)-1] != e.Stage) {
+			stages = append(stages, e.Stage)
+		}
+	}
+	if got := strings.Join(stages, ","); got != ",ipam,provision,register,configure,record" {
+		t.Errorf("log stages = %s", got)
 	}
 	r, _ := q.Run(ctx, run)
 	if r.EeImage.String != "localhost/gaia/ee-default:dev@sha256:ee" || len(r.ConfigCommit.String) != 40 {
@@ -601,10 +615,21 @@ func TestFailedConfigureFailsTheRun(t *testing.T) {
 	if r.Status != "failed" {
 		t.Errorf("run = %+v", r)
 	}
-	evs, _ := e.store.Q().RunEvents(ctx, run)
-	if len(evs) == 0 || !evs[0].Failed {
+	all, _ := e.store.Q().RunEvents(ctx, run)
+	if evs := ansibleEvents(all); len(evs) == 0 || !evs[0].Failed {
 		t.Errorf("events = %+v", evs)
 	}
+}
+
+// ansibleEvents leaves out output lines.
+func ansibleEvents(all []db.RunEvent) []db.RunEvent {
+	var out []db.RunEvent
+	for _, e := range all {
+		if e.Event != "log" {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // failAll makes every host of a job fail.

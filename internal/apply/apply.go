@@ -85,7 +85,7 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 		}
 	}
 	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{},
-		executedAs: map[string]string{"linux": User}, started: time.Now().UTC()}
+		executedAs: map[string]string{"linux": User}, started: time.Now().UTC(), events: newEvents(d.Store, runID)}
 	err := r.all(ctx, p)
 	status, msg := "succeeded", ""
 	switch {
@@ -102,6 +102,9 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if rerr := r.stage(ctx, "", "record", func() error { return r.writeRecord(ctx, p, status, msg) }); rerr != nil {
 		err = errors.Join(err, rerr)
 	}
+	if eerr := r.events.close(); eerr != nil {
+		err = errors.Join(err, fmt.Errorf("run events: %w", eerr))
+	}
 	return runID, err
 }
 
@@ -112,7 +115,7 @@ type runner struct {
 	used     map[string]map[int]bool // VM IDs in use, per compute provider
 	cfg      *config                 // set when a contract has a baseline or roles
 	monitors map[string]Monitor      // per monitoring provider
-	seq      int                     // last run event
+	events   *events
 	// For the run record.
 	started    time.Time
 	changes    []runrecord.Change
@@ -122,9 +125,15 @@ type runner struct {
 func (r *runner) change(c runrecord.Change) { r.changes = append(r.changes, c) }
 
 func (r *runner) printf(format string, a ...any) {
-	if r.d.Out != nil {
-		_, _ = fmt.Fprintf(r.d.Out, format, a...)
+	_, _ = fmt.Fprintf(r.out(), format, a...)
+}
+
+// out is where a run's output goes: its events, and Deps.Out when set.
+func (r *runner) out() io.Writer {
+	if r.d.Out == nil {
+		return r.events
 	}
+	return io.MultiWriter(r.d.Out, r.events)
 }
 
 func (r *runner) all(ctx context.Context, p *plan.Plan) error {
@@ -343,7 +352,7 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 		vms := w.bySite[site]
 		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VMs: vms}
 		r.printf("  pulumi up %s (%d VM)\n", stack.Name, len(vms))
-		got, changes, err := r.d.Provision(ctx, backend, stack, r.d.Out)
+		got, changes, err := r.d.Provision(ctx, backend, stack, r.out())
 		if err != nil {
 			return err
 		}
@@ -374,6 +383,7 @@ func (r *runner) stage(ctx context.Context, contract, name string, fn func() err
 	if err := q.StartStage(ctx, db.StartStageParams{RunID: r.run, Contract: contract, Stage: name}); err != nil {
 		return err
 	}
+	r.events.setStage(name)
 	err := fn()
 	status, detail := "succeeded", ""
 	switch {

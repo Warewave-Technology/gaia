@@ -83,6 +83,48 @@ func (q *Queries) RunEvents(ctx context.Context, runID string) ([]RunEvent, erro
 	return items, nil
 }
 
+const runEventsAfter = `-- name: RunEventsAfter :many
+select run_id, seq, stage, host_uid, event, task, changed, failed, stdout, data, created_at from run_events where run_id = $1 and seq > $2 order by seq limit $3
+`
+
+type RunEventsAfterParams struct {
+	RunID string
+	Seq   int32
+	Limit int32
+}
+
+func (q *Queries) RunEventsAfter(ctx context.Context, arg RunEventsAfterParams) ([]RunEvent, error) {
+	rows, err := q.db.Query(ctx, runEventsAfter, arg.RunID, arg.Seq, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunEvent
+	for rows.Next() {
+		var i RunEvent
+		if err := rows.Scan(
+			&i.RunID,
+			&i.Seq,
+			&i.Stage,
+			&i.HostUid,
+			&i.Event,
+			&i.Task,
+			&i.Changed,
+			&i.Failed,
+			&i.Stdout,
+			&i.Data,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setRunConfiguration = `-- name: SetRunConfiguration :exec
 update runs set config_commit = $2, ee_image = $3 where id = $1
 `

@@ -131,6 +131,9 @@ func (s *Server) stopTimeout() time.Duration {
 }
 
 func (s *Server) routes() {
+	for _, rt := range s.apiRoutes() {
+		s.mux.HandleFunc(rt.method+" "+rt.path, rt.h)
+	}
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintln(w, "ok")
