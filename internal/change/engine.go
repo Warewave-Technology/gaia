@@ -48,6 +48,9 @@ const (
 	Blocked = "failed"
 )
 
+// lockName is held while changes are evaluated or decided.
+const lockName = "gaia/change-engine"
+
 // Engine evaluates changes.
 type Engine struct {
 	Store *store.Store
@@ -69,7 +72,7 @@ func (e *Engine) log() *slog.Logger {
 // safe to call often: one replica evaluates at a time and the others skip.
 func (e *Engine) Evaluate(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) error {
 	ran := false
-	err := e.Store.WithLock(ctx, "gaia/change-engine", func(ctx context.Context) error {
+	err := e.Store.WithLock(ctx, lockName, func(ctx context.Context) error {
 		ran = true
 		keys, err := e.keyring(ctx)
 		if err != nil {
@@ -120,6 +123,18 @@ func (e *Engine) contract(ctx context.Context, snap repo.Snapshot, g *catalog.Gr
 	hasOpen := err == nil
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
+	}
+
+	if hasOpen && open.Status == Running {
+		// A run that ended without its worker closing the change (cancelled
+		// before it started, or the worker died): close it now.
+		closed, err := e.reconcile(ctx, open)
+		if err != nil {
+			return err
+		}
+		if closed {
+			return e.contract(ctx, snap, g, keys, name)
+		}
 	}
 
 	if st.AppliedPlanHash.Valid && st.AppliedPlanHash.String == p.Hash {
@@ -307,13 +322,13 @@ func (e *Engine) advance(ctx context.Context, c db.Change, g *catalog.Graph) err
 			return err
 		}
 	}
-	return e.start(ctx, c, g)
+	return e.start(ctx, c, g, need.approvers())
 }
 
 // start queues the change's run. The queue plans again: when the plan is
 // no longer the change's, the run is not queued and the next evaluation
 // replaces the change.
-func (e *Engine) start(ctx context.Context, c db.Change, g *catalog.Graph) error {
+func (e *Engine) start(ctx context.Context, c db.Change, g *catalog.Graph, approvedBy []string) error {
 	var snap repo.Snapshot
 	if err := json.Unmarshal(c.Snapshot, &snap); err != nil {
 		return err
@@ -322,7 +337,7 @@ func (e *Engine) start(ctx context.Context, c db.Change, g *catalog.Graph) error
 	if len(c.RequestedBy) > 0 {
 		by = c.RequestedBy[0]
 	}
-	runs, err := queue.EnqueueChange(ctx, e.Store, e.Queue, g, snap, c.Contract, c.PlanHash, c.ID, by)
+	runs, err := queue.EnqueueChange(ctx, e.Store, e.Queue, g, snap, c.Contract, c.PlanHash, c.ID, by, approvedBy)
 	if errors.Is(err, queue.ErrPlanChanged) {
 		e.log().Info("change waits: the plan changed", "id", c.ID)
 		return nil
@@ -332,6 +347,33 @@ func (e *Engine) start(ctx context.Context, c db.Change, g *catalog.Graph) error
 	}
 	e.log().Info("change running", "id", c.ID, "run", runs)
 	return nil
+}
+
+// reconcile closes a running change whose run has ended, as Finished
+// would have; it reports whether it did.
+func (e *Engine) reconcile(ctx context.Context, c db.Change) (bool, error) {
+	if !c.RunID.Valid {
+		return false, nil
+	}
+	run, err := e.Store.Q().Run(ctx, c.RunID.String)
+	if err != nil {
+		return false, err
+	}
+	if run.Status == "queued" || run.Status == "running" {
+		return false, nil
+	}
+	var snap repo.Snapshot
+	if err := json.Unmarshal(c.Snapshot, &snap); err != nil {
+		return false, err
+	}
+	var g *catalog.Graph
+	if run.Status == "succeeded" {
+		if g, err = e.Repos.Graph(ctx, snap); err != nil {
+			return false, err
+		}
+	}
+	e.log().Info("change closed after its run", "id", c.ID, "run", run.ID, "status", run.Status)
+	return true, e.Finished(ctx, queue.ApplyArgs{Run: run.ID, Snapshot: snap, Contract: c.Contract, ChangeID: c.ID}, g)
 }
 
 // Finished closes a change after its run: applied, failed or cancelled.

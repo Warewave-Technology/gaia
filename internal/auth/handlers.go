@@ -69,6 +69,8 @@ func (a *Service) Routes() []Route {
 		{Method: "POST", Path: "/api/v1/auth/device/{code}/deny", Handler: a.deviceDecide(false)},
 		{Method: "POST", Path: "/api/v1/auth/step-up/begin", Handler: a.stepUpBegin},
 		{Method: "POST", Path: "/api/v1/auth/step-up/finish", Handler: a.stepUpFinish},
+		{Method: "POST", Path: "/api/v1/auth/step-up/totp", Handler: limited(a.stepUpTOTP)},
+		{Method: "GET", Path: "/approve/{id}", Public: true, Handler: a.page("pages/approve.html")},
 		{Method: "GET", Path: "/api/v1/me/signing-keys", Handler: a.mySigningKeys},
 		{Method: "POST", Path: "/api/v1/me/signing-keys", Handler: a.strong(a.addSigningKey)},
 		{Method: "DELETE", Path: "/api/v1/me/signing-keys/{fingerprint}", Handler: a.strong(a.revokeSigningKey)},
@@ -156,6 +158,10 @@ func (a *Service) limiter(ip string) *rate.Limiter {
 // strongWindow is how recent a passkey or MFA must be for sensitive
 // changes; older sessions step up first.
 const strongWindow = 10 * time.Minute
+
+// Strong lets a request through when its passkey or MFA is recent; else it
+// answers 403 with stepUp set, and the page confirms with a passkey first.
+func (a *Service) Strong(h http.HandlerFunc) http.HandlerFunc { return a.strong(h) }
 
 func (a *Service) strong(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

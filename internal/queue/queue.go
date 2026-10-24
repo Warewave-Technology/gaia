@@ -36,6 +36,7 @@ type ApplyArgs struct {
 	Contract    string        `json:"contract"`
 	PlanHash    string        `json:"plan_hash"`
 	RequestedBy string        `json:"requested_by,omitempty"`
+	ApprovedBy  []string      `json:"approved_by,omitempty"`
 	ChangeID    string        `json:"change_id,omitempty"`
 }
 
@@ -94,7 +95,7 @@ var ErrPlanChanged = errors.New("the plan changed")
 // EnqueueChange queues the run of a change: one contract whose plan must
 // still have the change's hash. The run and the change's link to it are
 // written in one transaction.
-func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *catalog.Graph, snap repo.Snapshot, contract, planHash, changeID, requestedBy string) (string, error) {
+func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *catalog.Graph, snap repo.Snapshot, contract, planHash, changeID, requestedBy string, approvedBy []string) (string, error) {
 	p, err := plan.Build(ctx, g, []string{contract}, apply.StoreState{S: s})
 	if err != nil {
 		return "", err
@@ -102,7 +103,7 @@ func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx],
 	if p.Hash != planHash {
 		return "", ErrPlanChanged
 	}
-	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: planHash, RequestedBy: requestedBy, ChangeID: changeID}
+	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: planHash, RequestedBy: requestedBy, ApprovedBy: approvedBy, ChangeID: changeID}
 	err = s.TxFunc(ctx, func(tx pgx.Tx) error {
 		q := db.New(tx)
 		if err := q.QueueRun(ctx, db.QueueRunParams{ID: a.Run, Contracts: []string{contract}, Commit: snap.Label(), PlanHash: planHash, RequestedBy: text(requestedBy)}); err != nil {
@@ -221,7 +222,7 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	}
 	pr := a.Snapshot.Platform
 	signed, _ := gitsrc.Signed(w.Repos.Path(pr.Repo()), pr.Commit)
-	deps.RunID, deps.RequestedBy = a.Run, a.RequestedBy
+	deps.RunID, deps.RequestedBy, deps.ApprovedBy = a.Run, a.RequestedBy, a.ApprovedBy
 	deps.Source = runrecord.Source{Repo: pr.URL, Commit: pr.Commit, Signed: signed}
 	if c := a.Snapshot.Config; c != nil {
 		if err := w.Repos.Ensure(ctx, c.Repo(), c.Commit); err != nil {

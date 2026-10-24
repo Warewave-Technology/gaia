@@ -21,7 +21,12 @@ async function post(path, body) {
     credentials: "same-origin",
   });
   const data = r.status === 204 ? {} : await r.json();
-  if (!r.ok) throw new Error(data.error || r.statusText);
+  if (!r.ok) {
+    const e = new Error(data.error || r.statusText);
+    e.status = r.status;
+    e.stepUp = data.stepUp === true;
+    throw e;
+  }
   return data;
 }
 
@@ -131,6 +136,133 @@ async function devicePage() {
   document.getElementById("device-deny").addEventListener("click", decide("deny"));
 }
 
+// stepUp confirms the session with a passkey, or with a TOTP code for
+// accounts that have none.
+async function stepUp() {
+  let start;
+  try {
+    start = await post("/api/v1/auth/step-up/begin");
+  } catch (e) {
+    if (e.status !== 409) throw e;
+    const form = document.getElementById("stepup-totp");
+    form.hidden = false;
+    form.code.focus();
+    await new Promise((resolve, reject) => {
+      form.onsubmit = async (ev) => {
+        ev.preventDefault();
+        try {
+          await post("/api/v1/auth/step-up/totp", { code: form.code.value });
+          form.hidden = true;
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+    });
+    return;
+  }
+  const cred = await navigator.credentials.get(requestOptions(start.options));
+  await post("/api/v1/auth/step-up/finish", { flow: start.flow, credential: credentialJSON(cred) });
+}
+
+function cell(row, text, tag) {
+  const td = document.createElement(tag || "td");
+  td.textContent = text;
+  td.style.cssText = "text-align:left;padding:6px 8px;border-bottom:1px solid #E1E5EB";
+  row.appendChild(td);
+}
+
+function item(list, text) {
+  const li = document.createElement("li");
+  li.textContent = text;
+  list.appendChild(li);
+}
+
+const gateText = {
+  validation: "Kontrat planlanabiliyor",
+  signature: "Commit'ler kayıtlı anahtarlarla imzalı",
+  approval: "Onay",
+  ok: "tamam",
+  waiting: "bekliyor",
+  failed: "engelli",
+};
+
+async function approvePage() {
+  const me = await signedIn();
+  if (!me) return;
+  const id = decodeURIComponent(location.pathname.split("/").pop());
+  const r = await fetch("/api/v1/changes/" + encodeURIComponent(id), { credentials: "same-origin" });
+  const c = await r.json();
+  if (!r.ok) return showError(new Error(c.error || r.statusText));
+  document.getElementById("change-contract").textContent = c.contract;
+  document.getElementById("change-id").textContent = c.id;
+  document.getElementById("change-status").textContent = c.status;
+  document.getElementById("change-plan").textContent = c.planHash;
+
+  const table = document.getElementById("change-servers");
+  const head = document.createElement("tr");
+  ["İşlem", "Sunucu", "Site", "Ağ"].forEach((h) => cell(head, h, "th"));
+  table.appendChild(head);
+  for (const ct of (c.plan && c.plan.contracts) || []) {
+    for (const s of ct.servers || []) {
+      const row = document.createElement("tr");
+      cell(row, s.action);
+      cell(row, s.hostname);
+      cell(row, s.site);
+      cell(row, s.network);
+      if (s.action === "delete") row.style.color = "#B3261E";
+      table.appendChild(row);
+    }
+  }
+  const commits = document.getElementById("change-commits");
+  for (const cm of c.commits || []) {
+    item(commits, cm.repo + " " + cm.commit.slice(0, 12) + " · " + (cm.problem || cm.signer));
+  }
+  const gates = document.getElementById("change-gates");
+  let mine = false;
+  const order = ["validation", "signature", "approval", "lock"];
+  const sorted = (c.gates || []).slice().sort((a, b) => order.indexOf(a.gate) - order.indexOf(b.gate));
+  for (const g of sorted) {
+    let text = (gateText[g.gate] || g.gate) + ": " + (gateText[g.status] || g.status);
+    if (g.gate === "approval") {
+      for (const grp of (g.detail && g.detail.groups) || []) {
+        text += " · " + grp.name + " (" + grp.why + "): " + (grp.approvedBy ? "onaylayan " + grp.approvedBy : "onaylayabilecekler: " + (grp.candidates || []).join(", "));
+        if (!grp.approvedBy && (grp.candidates || []).includes(me.username)) mine = true;
+      }
+    }
+    item(gates, text);
+  }
+  for (const a of c.approvals || []) {
+    item(gates, a.username + " " + (a.decision === "approve" ? "onayladı" : "reddetti") + (a.planHash === c.planHash ? "" : " (eski plan)") + (a.comment ? ": " + a.comment : ""));
+  }
+  if (!mine || (c.status !== "pending" && c.status !== "approved")) return;
+  document.getElementById("decide").hidden = false;
+
+  const decide = (what) => async () => {
+    document.getElementById("error").textContent = "";
+    const body = { planHash: c.planHash, comment: document.getElementById("comment").value };
+    if (what === "reject" && !body.comment.trim()) return showError(new Error("Reddetmek için bir not yazın."));
+    const url = "/api/v1/changes/" + encodeURIComponent(c.id) + "/" + what;
+    try {
+      try {
+        await post(url, body);
+      } catch (e) {
+        if (!e.stepUp) throw e;
+        await stepUp();
+        await post(url, body);
+      }
+      document.getElementById("decide").hidden = true;
+      const done = document.getElementById("done");
+      done.textContent = what === "approve" ? "Onaylandı." : "Reddedildi.";
+      done.hidden = false;
+    } catch (e) {
+      showError(e);
+    }
+  };
+  document.getElementById("approve").addEventListener("click", decide("approve"));
+  document.getElementById("reject").addEventListener("click", decide("reject"));
+}
+
 function showError(e) {
   document.getElementById("error").textContent = e.message || String(e);
 }
@@ -234,6 +366,7 @@ async function step() {
 document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("cli-approve")) return cliPage();
   if (document.getElementById("device-form")) return devicePage();
+  if (document.getElementById("approve-page")) return approvePage();
   const params = new URLSearchParams(location.search);
   try {
     const cfg = await (await fetch("/api/v1/auth/config")).json();

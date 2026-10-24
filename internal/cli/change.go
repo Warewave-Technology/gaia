@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -95,7 +96,32 @@ func newChangeCommand() *cobra.Command {
 		},
 	}
 
-	for _, c := range []*cobra.Command{list, show, retry} {
+	var noBrowser bool
+	approve := &cobra.Command{
+		Use:   "approve CHANGE",
+		Short: "Open the change's approval page in the browser",
+		Long: "approve opens the page where you see the change's plan and approve or reject it.\n" +
+			"Decisions are made in the browser, confirmed with your passkey: a terminal\n" +
+			"token alone cannot approve.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := apiClient(addr)
+			// The change must exist and be visible before the page opens.
+			var ch struct{ ID, Status string }
+			if err := c.Get(cmd.Context(), "/api/v1/changes/"+url.PathEscape(args[0]), &ch); err != nil {
+				return hint(err)
+			}
+			page := c.Base + "/approve/" + url.PathEscape(ch.ID)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is %s: %s\n", ch.ID, ch.Status, page)
+			if noBrowser {
+				return nil
+			}
+			return openBrowser(page)
+		},
+	}
+	approve.Flags().BoolVar(&noBrowser, "no-browser", false, "print the page's address only")
+
+	for _, c := range []*cobra.Command{list, show, retry, approve} {
 		serverFlag(c, &addr)
 		cmd.AddCommand(c)
 	}

@@ -2,7 +2,10 @@ package change
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
+	"sort"
+	"strings"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -33,6 +36,26 @@ func (n Need) satisfied() bool {
 		}
 	}
 	return true
+}
+
+func (n Need) approvers() []string {
+	out := []string{}
+	for _, g := range n.Groups {
+		if g.ApprovedBy != "" {
+			out = append(out, g.ApprovedBy)
+		}
+	}
+	return out
+}
+
+// may reports whether username may decide on the change.
+func (n Need) may(username string) bool {
+	for _, g := range n.Groups {
+		if slices.Contains(g.Candidates, username) {
+			return true
+		}
+	}
+	return false
 }
 
 // approval works out who must approve a change (design 6.4, 9.9) and who
@@ -67,7 +90,18 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		if ep.Approval != "required" {
 			why = "deleting servers in env " + env
 		}
-		need.Groups = append(need.Groups, Group{Name: "owner", Teams: []string{owner}, Why: why})
+		gr := Group{Name: "owner", Teams: []string{owner}, Why: why}
+		others, err := e.otherOwners(ctx, c, g, owner)
+		if err != nil {
+			return need, err
+		}
+		if len(others) > 0 {
+			// A commit that changes several owners' contracts: a
+			// platform-admin may approve for the owner (design 7.6).
+			gr.Teams = append(gr.Teams, roles["platform-admin"]...)
+			gr.Why += "; the same commits change " + strings.Join(others, ", ") + ", so a platform-admin may approve too"
+		}
+		need.Groups = append(need.Groups, gr)
 	}
 	if deletes && ep.DeleteProtection {
 		need.Groups = append(need.Groups, Group{Name: "platform-admin", Teams: roles["platform-admin"], Why: "deleting servers in env " + env})
@@ -110,4 +144,42 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		}
 	}
 	return need, nil
+}
+
+// otherOwners returns the owners, other than owner, of the open changes
+// that bring any of c's commits.
+func (e *Engine) otherOwners(ctx context.Context, c db.Change, g *catalog.Graph, owner string) ([]string, error) {
+	var mine []Commit
+	_ = json.Unmarshal(c.Commits, &mine)
+	set := map[string]bool{}
+	for _, cm := range mine {
+		set[cm.Repo+"@"+cm.Commit] = true
+	}
+	open, err := e.Store.Q().OpenChanges(ctx)
+	if err != nil {
+		return nil, err
+	}
+	found := map[string]bool{}
+	for _, o := range open {
+		if o.ID == c.ID {
+			continue
+		}
+		var theirs []Commit
+		_ = json.Unmarshal(o.Commits, &theirs)
+		shared := slices.ContainsFunc(theirs, func(cm Commit) bool { return set[cm.Repo+"@"+cm.Commit] })
+		if !shared {
+			continue
+		}
+		if other, ok := g.Catalog.Get(catalog.KindServer, o.Contract); ok {
+			if ow := other.Metadata.Labels["owner"]; ow != "" && ow != owner {
+				found[ow] = true
+			}
+		}
+	}
+	out := make([]string, 0, len(found))
+	for ow := range found {
+		out = append(out, ow)
+	}
+	sort.Strings(out)
+	return out, nil
 }

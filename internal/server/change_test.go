@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/signature"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -288,5 +289,30 @@ func TestAFailedChangeWaitsForARetry(t *testing.T) {
 	}
 	if _, err := en.Retry(ctx, id, snap, g); err == nil {
 		t.Error("an applied change was retried")
+	}
+}
+
+// A run cancelled before any worker took it never reaches the worker's
+// hook; the next evaluation closes its change.
+func TestAChangeWhoseRunWasCancelledInTheQueueIsClosed(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	mehmet := e.signer("mehmet", "team-web")
+	e.git.CommitSigned("go", mehmet.git)
+	e.evaluate(en) // no worker: the run stays queued
+	c, _ := e.open("poc-web")
+	if c.Status != change.Running || !c.RunID.Valid {
+		t.Fatalf("change = %+v", c)
+	}
+	if err := queue.Cancel(ctx, e.store, e.queue, c.RunID.String, "test"); err != nil {
+		t.Fatal(err)
+	}
+	e.evaluate(en)
+	if got, _ := e.store.Q().Change(ctx, c.ID); got.Status != change.Cancelled {
+		t.Fatalf("change = %s", got.Status)
+	}
+	if _, ok := e.open("poc-web"); ok {
+		t.Error("the cancelled change was opened again by itself")
 	}
 }

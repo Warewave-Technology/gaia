@@ -41,6 +41,9 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/changes", "", s.listChanges},
 		{"GET", "/api/v1/changes/{id}", "", s.getChange},
 		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
+		{"POST", "/api/v1/changes/approve", "", s.strong(s.approveChanges)},
+		{"POST", "/api/v1/changes/{id}/approve", "", s.strong(s.decideChange(true))},
+		{"POST", "/api/v1/changes/{id}/reject", "", s.strong(s.decideChange(false))},
 	}
 }
 
@@ -206,7 +209,11 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) cancelRun(w http.ResponseWriter, r *http.Request) {
-	err := queue.Cancel(r.Context(), s.store, s.queue, r.PathValue("id"), "api")
+	by := "api"
+	if p := auth.From(r.Context()); p != nil {
+		by = p.Username
+	}
+	err := queue.Cancel(r.Context(), s.store, s.queue, r.PathValue("id"), by)
 	switch {
 	case errors.Is(err, queue.ErrFinished):
 		writeJSON(w, http.StatusConflict, Problem{Error: err.Error()})

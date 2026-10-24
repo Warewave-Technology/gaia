@@ -94,6 +94,10 @@ Gaia'nın omurgası (tasarım 7.6).
 
 **Bitti sayılır:** Lab'de: commit → Change → onay → uygulama; supersede, red ve revert; imzasız commit'in uygulanmaması.
 
+**Durum:**
+- Tamam: repolar ve anlık görüntü; imza doğrulaması; Change motoru (gereksinimler, supersede, retry, sync durumu); onay ve red (API, onay sayfası, `gaia change approve`, step-up, toplu onay, çoklu owner); run kaydında `approvedBy`.
+- Kalan: GitHub webhook'u; Gaia'nın imzalı commit'leri ve revert; `gaia plan --ref`; lab uçtan uca testi.
+
 ## Faz 4: Bildirimler
 
 - Provider tipleri: `slack`, `msteams`, `smtp`, `webhook`.
