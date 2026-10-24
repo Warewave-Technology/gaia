@@ -31,14 +31,16 @@ type Error struct {
 
 func (e Error) Error() string {
 	var b strings.Builder
-	b.WriteString(e.File)
-	if e.Line > 0 {
-		fmt.Fprintf(&b, ":%d", e.Line)
-		if e.Column > 0 {
-			fmt.Fprintf(&b, ":%d", e.Column)
+	if e.File != "" {
+		b.WriteString(e.File)
+		if e.Line > 0 {
+			fmt.Fprintf(&b, ":%d", e.Line)
+			if e.Column > 0 {
+				fmt.Fprintf(&b, ":%d", e.Column)
+			}
 		}
+		b.WriteString(": ")
 	}
-	b.WriteString(": ")
 	if e.Object != "" {
 		b.WriteString(e.Object + ": ")
 	}
@@ -117,13 +119,7 @@ func Load(commit string, files []File) (*Catalog, error) {
 	}
 
 	if len(errs) > 0 {
-		sort.SliceStable(errs, func(i, j int) bool {
-			a, b := errs[i], errs[j]
-			if a.File != b.File {
-				return a.File < b.File
-			}
-			return a.Line < b.Line
-		})
+		sortErrors(errs)
 		return cat, errs
 	}
 	return cat, nil
@@ -161,6 +157,7 @@ func decodeObject(file string, root *yaml.Node) (*Object, Errors) {
 		Kind:       env.Kind,
 		Metadata:   env.Metadata,
 		Source:     Source{File: file, Line: root.Line},
+		node:       root,
 	}
 	id := env.Kind + "/" + env.Metadata.Name
 	at := func(line int, format string, a ...any) Error {

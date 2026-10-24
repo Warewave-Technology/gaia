@@ -3,6 +3,10 @@ package catalog
 import (
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // APIVersion is the only API version this Gaia understands.
@@ -77,6 +81,53 @@ type Object struct {
 	Metadata   Metadata
 	Spec       any
 	Source     Source
+
+	node *yaml.Node // the document, for positions of fields
+}
+
+// Line returns the line of a field given as a path such as
+// "spec.templates[0].provider", or of the nearest parent that exists.
+func (o *Object) Line(field string) int {
+	n := o.node
+	if n == nil {
+		return o.Source.Line
+	}
+	line := n.Line
+	for _, part := range strings.Split(field, ".") {
+		name, idx := part, -1
+		if i := strings.IndexByte(part, '['); i >= 0 && strings.HasSuffix(part, "]") {
+			name = part[:i]
+			idx, _ = strconv.Atoi(part[i+1 : len(part)-1])
+		}
+		key, val := mappingEntry(n, name)
+		if val == nil {
+			return line
+		}
+		n, line = val, key.Line
+		if idx >= 0 {
+			if n.Kind != yaml.SequenceNode || idx >= len(n.Content) {
+				return line
+			}
+			n = n.Content[idx]
+			line = n.Line
+		}
+	}
+	return line
+}
+
+func mappingEntry(n *yaml.Node, key string) (k, v *yaml.Node) {
+	if n.Kind == yaml.AliasNode {
+		n = n.Alias
+	}
+	if n.Kind != yaml.MappingNode {
+		return nil, nil
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key {
+			return n.Content[i], n.Content[i+1]
+		}
+	}
+	return nil, nil
 }
 
 // Key returns the object's identity.

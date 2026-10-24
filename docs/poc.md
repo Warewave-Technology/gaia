@@ -60,7 +60,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | Adım | İçerik | Bağımlılık | Durum |
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
-| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli ve yükleyici hazır |
+| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli, yükleyici ve referans grafı hazır |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | – |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
@@ -77,7 +77,18 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Çalışma dizini okunmaz:** Commit'lenmemiş değişiklikler yükleyiciye girmez.
    - **Tüm hatalar tek seferde:** Bir yükleme bütün sorunları birlikte raporlar.
    - **`gaia validate --repo . --ref HEAD --path <dizin>`:** Bugünkü hâliyle yükleme ve obje kontrollerini yapar; referans kontrolü 4. adımla eklenecek.
-4. **Graf:** Kontrattan kataloğa (`network → Network` vb.) ve katalog içindeki (`Network.site → Site → Provider`) referansları çözer. Hatalar tek seferde, dosya ve satır bilgisiyle raporlanır.
+4. **Graf:** Kontrattan kataloğa (`network → Network` vb.) ve katalog içindeki (`Network.site → Site → Provider`) referansları çözer. Hatalar tek seferde, dosya ve satır bilgisiyle raporlanır. **Tamam** (`catalog.Resolve`).
+   - **Referansın varlığı:** Bulunamayan bir referans için en yakın ad önerilir (`did you mean "small"?`). Graf ileri ve geri kenarları tutar; geri kenarlar arayüzdeki "kullanan kontratlar" için.
+   - **Provider tipi:** Referans verilen provider alanla uyumlu olmalı (`state` → s3, `secrets` → openbao, `source` → git, `compute` → proxmox ya da vsphere).
+   - **Hipervizöre özgü alanlar:** Proxmox'ta `nodes`, vSphere'de `datacenter` + `cluster` zorunlu. Ağ bağlantısı site'ın hipervizörüne uygun olmalı. vSphere şablonları adla verilir.
+   - **Kontrat kuralları:**
+     - İmajın, kontratın her site'ı için bir şablonu olmalı.
+     - Ortam Network'te ve Policy'de tanımlı olmalı; Policy'deki zorunlu etiketler bulunmalı.
+     - Baseline ve rollerin OS'i imajla uyumlu olmalı.
+     - Rol çakışmalarına izin verilmez.
+     - Rol parametrelerinin adları rolün şemasında olmalı; varsayılanı olmayan zorunlu parametreler verilmeli. Değer kontrolleri CEL adımıyla gelecek.
+   - **Tekil objeler:** Tam bir Platform olmalı; en fazla bir Policy olabilir.
+   - **`gaia validate`:** Yüklemeden sonra grafı da kontrol eder.
 5. **CEL:** Policy `naming` ve `pad`; ifadeler yüklemede derlenir.
 6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi.
 
