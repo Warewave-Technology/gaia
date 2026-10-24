@@ -44,17 +44,24 @@ type config struct {
 func (r *runner) configSetup(ctx context.Context, privateKey string) (*config, error) {
 	ce := r.g.Platform().Spec.(*catalog.PlatformSpec).Engines.Configuration
 	src := r.provider(ce.Source)
-	repo, err := localRepo(src.URL)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ce.Source, err)
-	}
-	ref := src.Ref
-	if ref == "" {
-		ref = "HEAD"
-	}
-	commit, err := gitsrc.Resolve(repo, ref, src.Path)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ce.Source, err)
+	var repo, commit string
+	if pinned := r.d.Config; pinned != nil {
+		repo, commit = pinned.Path, pinned.Commit
+		if _, err := gitsrc.Resolve(repo, commit, src.Path); err != nil {
+			return nil, fmt.Errorf("%s: %w", ce.Source, err)
+		}
+	} else {
+		var err error
+		if repo, err = localRepo(src.URL); err != nil {
+			return nil, fmt.Errorf("%s: %w", ce.Source, err)
+		}
+		ref := src.Ref
+		if ref == "" {
+			ref = "HEAD"
+		}
+		if commit, err = gitsrc.Resolve(repo, ref, src.Path); err != nil {
+			return nil, fmt.Errorf("%s: %w", ce.Source, err)
+		}
 	}
 	image, err := r.d.Configure.Image(ctx, ce.ExecutionEnvironment)
 	if err != nil {
@@ -71,6 +78,13 @@ func (r *runner) configSetup(ctx context.Context, privateKey string) (*config, e
 	}
 	r.printf("config %s at %s, ee %s\n", ce.Source, commit[:12], image)
 	return c, nil
+}
+
+// ConfigRepo is the config repository's local copy and the commit a run
+// uses.
+type ConfigRepo struct {
+	Path, Commit string
+	Paths        []string
 }
 
 // localRepo is the path of a config repository Gaia can read. The PoC

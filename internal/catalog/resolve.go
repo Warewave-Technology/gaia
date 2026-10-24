@@ -228,6 +228,9 @@ func (r *resolver) platform(o *Object) {
 			r.fail(o, "spec.runArchive", "Provider %q has no retention; run records are locked for it", s.RunArchive)
 		}
 	}
+	for i, c := range s.Contracts {
+		r.ref(o, fmt.Sprintf("spec.contracts[%d].provider", i), KindProvider, c.Provider, "git")
+	}
 	if s.RunLogs != "" {
 		r.ref(o, "spec.runLogs", KindProvider, s.RunLogs, "s3")
 	}

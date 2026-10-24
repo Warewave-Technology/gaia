@@ -19,6 +19,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/queue"
+	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -40,6 +41,8 @@ type Config struct {
 	// Auth signs people in and guards the API. Without it the API is open,
 	// which the CLI allows only on loopback addresses.
 	Auth *auth.Service
+	// Repos are the local mirrors workers read snapshots from.
+	Repos *repo.Mirrors
 }
 
 // Server is a running gaia server.
@@ -61,7 +64,7 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 	rc := &river.Config{Logger: cfg.Log}
 	if cfg.Workers > 0 {
 		workers := river.NewWorkers()
-		if err := river.AddWorkerSafely(workers, &queue.ApplyWorker{Store: s, Systems: cfg.Systems, MaxDuration: cfg.RunTimeout, BusyWait: cfg.BusyWait}); err != nil {
+		if err := river.AddWorkerSafely(workers, &queue.ApplyWorker{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, MaxDuration: cfg.RunTimeout, BusyWait: cfg.BusyWait}); err != nil {
 			return nil, err
 		}
 		if err := river.AddWorkerSafely(workers, &queue.PruneEventsWorker{Store: s, Retention: cfg.EventRetention}); err != nil {
