@@ -1,0 +1,49 @@
+package cli
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/Warewave-Technology/gaia/internal/store"
+)
+
+// dsnFlag adds --dsn, defaulting to $GAIA_DSN.
+func dsnFlag(cmd *cobra.Command, dsn *string) {
+	cmd.Flags().StringVar(dsn, "dsn", "", "PostgreSQL DSN (default $GAIA_DSN)")
+}
+
+func resolveDSN(dsn string) (string, error) {
+	if dsn == "" {
+		dsn = os.Getenv("GAIA_DSN")
+	}
+	if dsn == "" {
+		return "", errors.New("no database: set --dsn or GAIA_DSN")
+	}
+	return dsn, nil
+}
+
+func newMigrateCommand() *cobra.Command {
+	var dsn string
+	cmd := &cobra.Command{
+		Use:   "migrate",
+		Short: "Bring Gaia's database schema up to date",
+		Long:  "migrate applies Gaia's schema migrations. Run it with the role that owns the\nschema (gaia_owner).",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			d, err := resolveDSN(dsn)
+			if err != nil {
+				return err
+			}
+			if err := store.Migrate(cmd.Context(), d); err != nil {
+				return fmt.Errorf("migrate: %w", err)
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), "schema up to date")
+			return err
+		},
+	}
+	dsnFlag(cmd, &dsn)
+	return cmd
+}
