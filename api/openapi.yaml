@@ -216,6 +216,44 @@ paths:
         "404": { description: No such repository or commit, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "409": { description: "Later commits changed the same files, a merge commit, or the branch moved", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "503": { description: gaia server has no --signing-key, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/preview:
+    get:
+      summary: Plan a ref Gaia does not follow, against what is applied (design 7.6)
+      description: >-
+        A branch, refs/tags/…, pull/N (a GitHub pull request) or a full commit SHA of a followed
+        platform or contract repository; the other repositories stay at their heads. Nothing is
+        applied and no change is opened. Contracts the caller may not see are named only.
+      operationId: preview
+      parameters:
+        - { name: ref, in: query, required: true, schema: { type: string } }
+        - { name: repo, in: query, schema: { type: string, default: platform } }
+      responses:
+        "200":
+          description: Each contract's plan at the ref; error says why it does not load or plan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repo: { type: string }
+                  ref: { type: string }
+                  commit: { type: string }
+                  label: { type: string }
+                  error: { type: string }
+                  contracts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        changed: { type: boolean }
+                        planHash: { type: string }
+                        appliedPlanHash: { type: string }
+                        plan: { type: object }
+                        removed: { type: boolean }
+                        restricted: { type: boolean }
+        "404": { description: No such followed repository, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+        "422": { description: The ref cannot be fetched, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/webhooks/github:
     post:
       summary: GitHub push webhook (public; checked with X-Hub-Signature-256)

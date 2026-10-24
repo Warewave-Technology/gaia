@@ -43,6 +43,7 @@ func (s *Server) apiRoutes() []route {
 		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
 		{"POST", "/api/v1/webhooks/github", public, s.githubWebhook},
 		{"POST", "/api/v1/commits/{sha}/revert", "", s.revertCommit},
+		{"GET", "/api/v1/preview", "", s.preview},
 		{"POST", "/api/v1/changes/approve", "", s.strong(s.approveChanges)},
 		{"POST", "/api/v1/changes/{id}/approve", "", s.strong(s.decideChange(true))},
 		{"POST", "/api/v1/changes/{id}/reject", "", s.strong(s.decideChange(false))},

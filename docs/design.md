@@ -881,7 +881,9 @@ pending ──gereksinimler──► approved ──pencere──► running ─
   - Gaia sadece yazmaya başladığı baş commit'in üzerine iter; arada branch ilerlemişse yeniden denenir.
   - Operator her commit'i revert ettirebilir; diğerleri sadece Change'leri tamamen kendi kontratlarına olan commit'leri.
 
-**Önizleme.** İzlenmeyen bir branch veya PR için plan istenebilir (`gaia plan --ref`, ileride PR yorumu olarak). Önizleme hiçbir şey uygulamaz ve Change açmaz.
+**Önizleme.** İzlenmeyen bir branch veya PR için plan istenebilir (`gaia preview REF`, ileride PR yorumu olarak). Önizleme hiçbir şey uygulamaz ve Change açmaz.
+- Sunucu, izlenen bir platform veya kontrat reposunun ref'ini (branch, `refs/tags/…`, GitHub PR'ı için `pull/N` ya da tam commit SHA'sı) aynaya ayrı bir yere (`refs/gaia/preview/…`) çeker. Diğer repolar başlarında kalır. Sonuç, her kontratın planı ve uygulanan planla farkıdır. Ref'te artık olmayan uygulanmış kontratlar "kaldırılıyor" olarak gösterilir. Görme yetkisi olmayan kontratların sadece adı görünür.
+- `gaia plan --ref` aynı işi yerel bir repodan ve veritabanı erişimiyle yapar.
 
 **Bildirimler.** argocd-notifications'tan esinlenir.
 - **Tetikleyiciler:** onay bekliyor, onaylandı, reddedildi, uygulandı, başarısız, drift bulundu, onayın süresi doluyor.

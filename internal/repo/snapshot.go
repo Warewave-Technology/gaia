@@ -93,6 +93,12 @@ func (m *Mirrors) Head(ctx context.Context, platform Rev) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 	platform.Commit = commit
+	return m.At(ctx, platform)
+}
+
+// At returns the snapshot of a platform repository at its commit, with
+// the contract and config repositories its Platform names at their heads.
+func (m *Mirrors) At(ctx context.Context, platform Rev) (Snapshot, error) {
 	s := Snapshot{Platform: platform}
 	files, err := m.files(ctx, platform, false)
 	if err != nil {
