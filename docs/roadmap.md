@@ -98,7 +98,14 @@ Gaia'nın omurgası (tasarım 7.6).
 - Tamam: repolar ve anlık görüntü; imza doğrulaması; Change motoru (gereksinimler, supersede, retry, sync durumu); onay ve red (API, onay sayfası, `gaia change approve`, step-up, toplu onay, çoklu owner); run kaydında `approvedBy`.
 - Tamam: GitHub webhook'u; Gaia'nın imzalı commit'leri ve revert (`gaia revert`).
 - Tamam: önizleme (`gaia preview`, `GET /api/v1/preview`).
-- Kalan: uçtan uca test (gerçek bir Git sunucusuyla: ssh ile fetch/push ve webhook).
+- Tamam: gerçek bir Git sunucusuyla (Gitea, `make dev-git`) uçtan uca test:
+  - ssh ile fetch ve push; kimlik bilgisi ve `known_hosts` OpenBao'dan
+  - imzalı webhook'la anında Change
+  - onay
+  - kuyruktaki run'ın iptali ve Change'in kapanması
+  - Gaia'nın ssh ile push'ladığı imzalı revert (`git verify-commit` doğruluyor)
+  - isteyenin onaylayamaması
+- Kalan: uygulamanın gerçek sunucularla lab'de denenmesi. Faz 4'le birlikte yapılacak: uygulanan bir Change bildirimleri de tetiklediği için tek bir lab oturumu ikisini birden doğrular.
 - Faz 10'a taşındı: decommission sonrası kontrat dosyasının silinmesi (Gaia'nın commit yazıcısını kullanır).
 
 ## Faz 4: Bildirimler

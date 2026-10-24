@@ -193,6 +193,10 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 	if err != nil {
 		return err
 	}
+	if source == "commit" && len(commits) > 0 && commits[0].Reverts != "" {
+		// The newest commit is Gaia's revert.
+		source = "revert"
+	}
 	c := db.Change{
 		ID: store.NewChangeID(), Contract: name, Source: source, Snapshot: mustJSON(snap), Label: snap.Label(),
 		PlanHash: p.Hash, Plan: mustJSON(p), Status: Pending, RequestedBy: by, Commits: mustJSON(commits),
@@ -216,7 +220,8 @@ type Commit struct {
 	Repo    string `json:"repo"`
 	Commit  string `json:"commit"`
 	Signer  string `json:"signer,omitempty"`
-	For     string `json:"for,omitempty"` // whom Gaia wrote it for
+	For     string `json:"for,omitempty"`     // whom Gaia wrote it for
+	Reverts string `json:"reverts,omitempty"` // the commit a Gaia revert takes back
 	Problem string `json:"problem,omitempty"`
 }
 
@@ -259,6 +264,7 @@ func (e *Engine) commits(ctx context.Context, st db.ContractState, snap repo.Sna
 				// and may not approve its change.
 				if obj, err := g.CommitObject(plumbing.NewHash(s.Commit)); err == nil {
 					c.For = repo.Trailer(obj.Message, repo.TrailerRequestedBy)
+					c.Reverts = repo.Trailer(obj.Message, repo.TrailerReverts)
 				}
 				who = c.For
 			}

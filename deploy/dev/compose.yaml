@@ -45,6 +45,21 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports: ["127.0.0.1:18081:18081"]
 
+  # Git sunucusu (isteğe bağlı: make dev-git). GitHub yerine uçtan uca test için:
+  # ssh ile fetch/push ve X-Hub-Signature-256 imzalı webhook. Yönetici gaia-admin / dev-git-password.
+  gitea:
+    image: docker.io/gitea/gitea:1.24.6
+    profiles: [git]
+    environment:
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__server__ROOT_URL: http://localhost:13000/
+      GITEA__server__SSH_DOMAIN: 127.0.0.1
+      GITEA__server__SSH_PORT: "12222"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__webhook__ALLOWED_HOST_LIST: "*"
+    ports: ["127.0.0.1:13000:3000", "127.0.0.1:12222:22"]
+
   # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
   init:
     image: docker.io/library/alpine:3.22

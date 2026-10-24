@@ -107,7 +107,7 @@ func TestARevertIsAChangeTheRequesterMayNotApprove(t *testing.T) {
 	}
 	var commits []change.Commit
 	_ = json.Unmarshal(c.Commits, &commits)
-	if strings.Join(c.RequestedBy, ",") != "ayse" || len(commits) != 1 || commits[0].Signer != "gaia" || commits[0].For != "ayse" || commits[0].Problem != "" {
+	if strings.Join(c.RequestedBy, ",") != "ayse" || len(commits) != 1 || commits[0].Signer != "gaia" || commits[0].For != "ayse" || commits[0].Problem != "" || c.Source != "revert" {
 		t.Fatalf("change by %v, commits %+v", c.RequestedBy, commits)
 	}
 	if g := gates(t, e, c.ID); g["signature"] != "ok" || g["approval"] != "waiting" {
