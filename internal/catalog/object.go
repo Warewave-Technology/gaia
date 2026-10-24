@@ -27,6 +27,7 @@ const (
 	KindAuthConfig  = "AuthConfig"
 	KindTeam        = "Team"
 	KindTeamSource  = "TeamSource"
+	KindGroup       = "Group"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -44,6 +45,7 @@ var newSpec = map[string]func() any{
 	KindAuthConfig:  func() any { return &AuthConfigSpec{} },
 	KindTeam:        func() any { return &TeamSpec{} },
 	KindTeamSource:  func() any { return &TeamSourceSpec{} },
+	KindGroup:       func() any { return &GroupSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.

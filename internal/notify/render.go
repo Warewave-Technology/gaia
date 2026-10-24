@@ -14,6 +14,7 @@ var titles = map[string]string{
 	"change.failed":     "başarısız",
 	"drift.found":       "sapma bulundu",
 	"approval.expiring": "onayın süresi doluyor",
+	"access.privileged": "ayrıcalıklı gruba AD'den yeni üye",
 }
 
 // render is a notification as a title and plain text lines.
@@ -24,6 +25,11 @@ func render(ev Event) (string, string) {
 	}
 	title := fmt.Sprintf("%s: değişiklik %s", ev.Contract, what)
 	var b strings.Builder
+	if ev.Trigger == "access.privileged" {
+		title = fmt.Sprintf("%s: %s", ev.Group, what)
+		fmt.Fprintf(&b, "Kişi: %s\nTakım: %s\nGrup: %s\n%s", ev.Person, ev.Team, ev.Group, ev.Comment)
+		return title, strings.TrimRight(b.String(), "\n")
+	}
 	line := func(k, v string) {
 		if v != "" {
 			fmt.Fprintf(&b, "%s: %s\n", k, v)

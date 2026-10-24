@@ -204,6 +204,9 @@ func newServerCommand() *cobra.Command {
 				engine.Queue = srv.Queue()
 				engine.Notify = notifier
 				if cfg.Sources != nil {
+					cfg.Sources.Syncer.Notify = notifier
+				}
+				if cfg.Sources != nil {
 					go cfg.Sources.Run(ctx, sourceEvery)
 				}
 				go cat.Run(ctx, refresh)

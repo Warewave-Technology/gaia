@@ -7,12 +7,14 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Warewave-Technology/gaia/internal/ad"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -82,6 +84,12 @@ func (s *Syncer) members(ctx context.Context, g *catalog.Graph, provider string,
 	defer func() { _ = dir.Close() }()
 	q := s.Store.Q()
 	source := "ad:" + provider
+	// The first sync of a directory brings everyone; that is not news.
+	known0, err := q.DirectoryUsers(ctx, provider)
+	if err != nil {
+		return rep, err
+	}
+	first := len(known0) == 0
 	ids := map[string]string{} // GUID → user id
 	names := map[string]string{}
 	seen := map[string]bool{}
@@ -133,6 +141,9 @@ func (s *Syncer) members(ctx context.Context, g *catalog.Graph, provider string,
 			for _, id := range userIDs {
 				if !slices.Contains(before, id) {
 					rep.Joined = append(rep.Joined, fmt.Sprintf("%s/%s: %s", o.Metadata.Name, role, names[id]))
+					if role == "member" && !first {
+						s.privileged(ctx, g, o.Metadata.Name, names[id], id)
+					}
 				}
 			}
 			for _, id := range before {
@@ -225,4 +236,33 @@ func (s *Syncer) account(ctx context.Context, provider string, u ad.User, rep *M
 		rep.Enabled = append(rep.Enabled, cur.Username)
 	}
 	return cur.ID, nil
+}
+
+// privileged tells the owners of privileged groups, and the platform
+// admins, that AD added someone to one of their teams (design 14.3):
+// Gaia distributes the access, since AD decides who is in a team, but
+// makes it seen.
+func (s *Syncer) privileged(ctx context.Context, g *catalog.Graph, team, person, userID string) {
+	if s.Notify == nil {
+		return
+	}
+	var admins []string
+	if pol := g.Policy(); pol != nil {
+		admins = pol.Spec.(*catalog.PolicySpec).GaiaRoles["platform-admin"]
+	}
+	for _, o := range g.Catalog.List(catalog.KindGroup) {
+		teams, privileged := g.GroupTeams(o.Metadata.Name)
+		if !privileged || !slices.Contains(teams, team) {
+			continue
+		}
+		gs := o.Spec.(*catalog.GroupSpec)
+		ev := notify.Event{
+			Trigger: "access.privileged", Key: fmt.Sprintf("access/%s/%s/%s/%s", o.Metadata.Name, team, userID, time.Now().UTC().Format(time.RFC3339)),
+			Teams: append([]string{gs.Owner}, admins...), Group: o.Metadata.Name, Team: team, Person: person,
+			Comment: "AD'de " + team + " takımına eklendi; Gaia erişimi dağıtıyor.",
+		}
+		if err := s.Notify.Emit(ctx, g, ev); err != nil {
+			s.log().Warn("notification", "group", o.Metadata.Name, "err", err)
+		}
+	}
 }

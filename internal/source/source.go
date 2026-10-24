@@ -21,6 +21,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -36,6 +37,9 @@ type Syncer struct {
 	Writer  *repo.Writer
 	Secrets Secrets
 	Log     *slog.Logger
+	// Notify reports what needs to be seen, such as AD adding someone to
+	// a privileged group's team.
+	Notify *notify.Notifier
 }
 
 func (s *Syncer) log() *slog.Logger {

@@ -627,3 +627,49 @@ spec:
 	wantError(t, lines, "TeamSource/corp", `spec.provider: Provider "bao" has type openbao`)
 	wantError(t, loadErrors(t, catalogWith(t, "src.yaml", "", strings.Replace(src, "every: 5m", "every: 10s", 1))), "at least 1m")
 }
+
+const groups = `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-dba }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Group
+metadata: { name: dbas }
+spec: { teams: [team-dba], owner: team-dba, privileged: true }
+---
+apiVersion: gaia/v1alpha1
+kind: Group
+metadata: { name: web-admins }
+spec: { teams: [team-web], groups: [dbas], owner: team-web }
+`
+
+func TestGroupsAndAccess(t *testing.T) {
+	fs := catalogWith(t, "groups.yaml", "", groups, "server.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: web-admins, sudo: true }\n    - { team: team-web }\n")
+	cat, err := Load("c0ffee", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := Resolve(cat)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	teams, privileged := g.GroupTeams("web-admins")
+	if strings.Join(teams, ",") != "team-dba,team-web" || !privileged {
+		t.Errorf("web-admins = %v %v", teams, privileged)
+	}
+
+	cycle := strings.Replace(groups, "spec: { teams: [team-dba], owner: team-dba, privileged: true }", "spec: { teams: [team-dba], groups: [web-admins], owner: team-dba }", 1)
+	lines := resolveErrors(t, catalogWith(t, "groups.yaml", "", cycle))
+	wantError(t, lines, "Group/dbas", `contains dbas again`)
+
+	bad := catalogWith(t, "groups.yaml", "", groups, "server.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: nope }\n    - { team: team-web, group: dbas }\n")
+	wantError(t, loadOrResolveErrors(t, bad), "Server/web", "access[1]: name a group or a team")
+	bad = catalogWith(t, "groups.yaml", "", groups, "server.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: nope }\n")
+	wantError(t, resolveErrors(t, bad), "Server/web", `spec.access[0].group: Group "nope" not found`)
+}

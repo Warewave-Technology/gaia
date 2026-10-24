@@ -153,6 +153,9 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindTeam) {
 		r.team(o)
 	}
+	for _, o := range cat.List(KindGroup) {
+		r.group(o)
+	}
 	for _, o := range cat.List(KindServer) {
 		r.server(o)
 	}
@@ -292,6 +295,74 @@ func (r *resolver) team(o *Object) {
 	}
 }
 
+func (r *resolver) group(o *Object) {
+	s := o.Spec.(*GroupSpec)
+	r.ref(o, "spec.owner", KindTeam, s.Owner)
+	for i, t := range s.Teams {
+		r.ref(o, fmt.Sprintf("spec.teams[%d]", i), KindTeam, t)
+	}
+	for i, gr := range s.Groups {
+		if r.ref(o, fmt.Sprintf("spec.groups[%d]", i), KindGroup, gr) == nil {
+			continue
+		}
+		if r.g.reaches(gr, o.Metadata.Name, map[string]bool{}) {
+			r.fail(o, fmt.Sprintf("spec.groups[%d]", i), "Group %q contains %s again", gr, o.Metadata.Name)
+		}
+	}
+}
+
+// reaches reports whether group from contains group to, through nesting.
+func (g *Graph) reaches(from, to string, seen map[string]bool) bool {
+	if from == to {
+		return true
+	}
+	if seen[from] {
+		return false
+	}
+	seen[from] = true
+	o, ok := g.Catalog.Get(KindGroup, from)
+	if !ok {
+		return false
+	}
+	for _, n := range o.Spec.(*GroupSpec).Groups {
+		if g.reaches(n, to, seen) {
+			return true
+		}
+	}
+	return false
+}
+
+// GroupTeams returns the teams of a group, nested groups opened, sorted,
+// and whether it or a group inside it is privileged.
+func (g *Graph) GroupTeams(name string) (teams []string, privileged bool) {
+	set := map[string]bool{}
+	var walk func(string, map[string]bool)
+	walk = func(n string, seen map[string]bool) {
+		if seen[n] {
+			return
+		}
+		seen[n] = true
+		o, ok := g.Catalog.Get(KindGroup, n)
+		if !ok {
+			return
+		}
+		s := o.Spec.(*GroupSpec)
+		privileged = privileged || s.Privileged
+		for _, t := range s.Teams {
+			set[t] = true
+		}
+		for _, sub := range s.Groups {
+			walk(sub, seen)
+		}
+	}
+	walk(name, map[string]bool{})
+	for t := range set {
+		teams = append(teams, t)
+	}
+	sort.Strings(teams)
+	return teams, privileged
+}
+
 func (r *resolver) teamSource(o *Object) {
 	s := o.Spec.(*TeamSourceSpec)
 	r.ref(o, "spec.provider", KindProvider, s.Provider, "activedirectory")
@@ -419,6 +490,14 @@ func (r *resolver) server(o *Object) {
 	// Team objects name owners freely.
 	if owner := labels["owner"]; owner != "" && len(r.g.Catalog.List(KindTeam)) > 0 {
 		r.ref(o, "metadata.labels.owner", KindTeam, owner)
+	}
+
+	for i, a := range s.Access {
+		if a.Group != "" {
+			r.ref(o, fmt.Sprintf("spec.access[%d].group", i), KindGroup, a.Group)
+		} else {
+			r.ref(o, fmt.Sprintf("spec.access[%d].team", i), KindTeam, a.Team)
+		}
 	}
 
 	img := r.ref(o, "spec.image", KindImage, s.Image)

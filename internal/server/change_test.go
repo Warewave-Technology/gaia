@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -425,5 +426,88 @@ spec: {}
 	}
 	if len(need.Groups) != 1 || need.Groups[0].Role != "approver" || strings.Join(need.Groups[0].Candidates, ",") != "ayse" {
 		t.Errorf("need = %+v", need)
+	}
+}
+
+// Granting access through a privileged group needs a platform admin and
+// the group's owner, and nobody in the team gaining access approves it;
+// once applied, the same access needs nothing more.
+func TestAccessGrantsNeedTheirApprovers(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	e.finished = en.Finished
+	can := e.signer("can", "team-web")
+	e.signer("ayse", "team-platform") // platform-admin
+	e.signer("deniz", "team-dba", "team-platform")
+	e.signer("selin", "team-sec")
+	e.git.Write("platform/access.yaml", `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-dba }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-sec }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Group
+metadata: { name: dbas }
+spec: { teams: [team-dba], owner: team-sec, privileged: true }
+`)
+	e.edit("contracts/poc-web.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: dbas, sudo: true }\n")
+	e.git.CommitSigned("dbas get sudo on poc-web", can.git)
+	e.start()
+
+	e.evaluate(en)
+	c, _ := e.open("poc-web")
+	need := func(id string) change.Need {
+		rows, _ := e.store.Q().Gates(ctx, id)
+		var n change.Need
+		for _, r := range rows {
+			if r.Gate == "approval" {
+				_ = json.Unmarshal(r.Detail, &n)
+			}
+		}
+		return n
+	}
+	n := need(c.ID)
+	got := map[string]string{}
+	for _, gr := range n.Groups {
+		got[gr.Name] = strings.Join(gr.Candidates, ",")
+	}
+	// deniz is a platform admin too, but gains the access: ayse approves.
+	if len(n.Groups) != 2 || got["platform-admin"] != "ayse" || got["group-owner/dbas"] != "selin" || !slices.Contains(n.Excluded, "deniz") {
+		t.Fatalf("need = %+v", n)
+	}
+	for _, who := range []string{"ayse", "selin"} {
+		u, _ := e.store.Q().UserByName(ctx, who)
+		if err := en.Decide(ctx, change.Decision{Change: c.ID, PlanHash: c.PlanHash, UserID: u.ID, Username: who, Approve: true}); err != nil {
+			t.Fatalf("%s: %v", who, err)
+		}
+	}
+	if c := e.waitChange(c.ID, change.Applied, change.Failed); c.Status != change.Applied {
+		t.Fatalf("change = %+v", c)
+	}
+
+	// The access is applied: another change to the contract needs no
+	// approval for it (test needs none otherwise).
+	e.edit("contracts/poc-web.yaml", "app: poc", "app: poc2")
+	e.git.CommitSigned("rename", can.git)
+	e.evaluate(en)
+	c2, _ := e.open("poc-web")
+	if n := need(c2.ID); len(n.Groups) != 0 {
+		t.Errorf("after the access was applied: %+v", n)
 	}
 }

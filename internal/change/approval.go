@@ -3,9 +3,12 @@ package change
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -16,7 +19,8 @@ import (
 // by someone who did not sign the change's commits.
 type Need struct {
 	Groups []Group `json:"groups"`
-	// Excluded are the change's signers: they may not approve it.
+	// Excluded may not approve it: its signers, and the members of the
+	// teams it gives access to.
 	Excluded []string `json:"excluded,omitempty"`
 }
 
@@ -69,7 +73,7 @@ func (n Need) may(username string) bool {
 //
 // Approvals count only for the change's plan hash.
 func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p *plan.Plan) (Need, error) {
-	need := Need{Excluded: c.RequestedBy}
+	need := Need{Excluded: append([]string{}, c.RequestedBy...)}
 	contract, ok := g.Catalog.Get(catalog.KindServer, c.Contract)
 	if !ok {
 		return need, nil
@@ -114,11 +118,46 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 	if deletes && ep.DeleteProtection {
 		need.Groups = append(need.Groups, Group{Name: "platform-admin", Teams: roles["platform-admin"], Role: "member", Why: "deleting servers in env " + env})
 	}
+
+	// Access the change grants (design 14.3): through a privileged group
+	// it needs a platform admin; through another team's group, that
+	// team; and nobody approves access for a team they are in.
+	q := e.Store.Q()
+	granted, err := e.granted(ctx, c.Contract, p)
+	if err != nil {
+		return need, err
+	}
+	for _, a := range granted {
+		group := strings.TrimPrefix(a.Via, "group/")
+		if a.Privileged {
+			why := "access through privileged group " + group
+			if i := slices.IndexFunc(need.Groups, func(gr Group) bool { return gr.Name == "platform-admin" }); i >= 0 {
+				need.Groups[i].Why += "; " + why
+			} else {
+				need.Groups = append(need.Groups, Group{Name: "platform-admin", Teams: roles["platform-admin"], Role: "member", Why: why})
+			}
+		}
+		if a.Owner != "" && a.Owner != owner && !slices.ContainsFunc(need.Groups, func(gr Group) bool { return gr.Name == "group-owner/"+group }) {
+			gr := Group{Name: "group-owner/" + group, Teams: []string{a.Owner}, Role: "member", Why: "access through group " + group + ", which " + a.Owner + " owns"}
+			if t := g.Team(a.Owner); t != nil && t.ApproversGroup != nil {
+				gr.Role = "approver"
+			}
+			need.Groups = append(need.Groups, gr)
+		}
+		gainers, err := q.TeamMembers(ctx, db.TeamMembersParams{Teams: a.Teams, Role: "member"})
+		if err != nil {
+			return need, err
+		}
+		for _, m := range gainers {
+			if !slices.Contains(need.Excluded, m.Username) {
+				need.Excluded = append(need.Excluded, m.Username)
+			}
+		}
+	}
 	if len(need.Groups) == 0 {
 		return need, nil
 	}
 
-	q := e.Store.Q()
 	approvals, err := q.Approvals(ctx, c.ID)
 	if err != nil {
 		return need, err
@@ -140,7 +179,7 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		}
 		gr.Candidates = []string{}
 		for _, m := range members {
-			if !slices.Contains(c.RequestedBy, m.Username) && !slices.Contains(gr.Candidates, m.Username) {
+			if !slices.Contains(need.Excluded, m.Username) && !slices.Contains(gr.Candidates, m.Username) {
 				gr.Candidates = append(gr.Candidates, m.Username)
 			}
 		}
@@ -199,4 +238,52 @@ func (e *Engine) otherOwners(ctx context.Context, c db.Change, g *catalog.Graph,
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+// granted returns the access entries of the change's plan that are new
+// or different from the plan last applied: what the change grants.
+func (e *Engine) granted(ctx context.Context, contract string, p *plan.Plan) ([]plan.Access, error) {
+	var now []plan.Access
+	for _, c := range p.Contracts {
+		if c.Name == contract {
+			now = c.Access
+		}
+	}
+	if len(now) == 0 {
+		return nil, nil
+	}
+	before := map[string]plan.Access{}
+	st, err := e.Store.Q().ContractState(ctx, contract)
+	if err == nil && len(st.AppliedPlan) > 0 {
+		var ap plan.Plan
+		if json.Unmarshal(st.AppliedPlan, &ap) == nil {
+			for _, c := range ap.Contracts {
+				if c.Name == contract {
+					for _, a := range c.Access {
+						before[a.Via] = a
+					}
+				}
+			}
+		}
+	} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	var out []plan.Access
+	for _, a := range now {
+		b, ok := before[a.Via]
+		if !ok || b.Sudo != a.Sudo && a.Sudo || !subset(a.Teams, b.Teams) {
+			out = append(out, a)
+		}
+	}
+	return out, nil
+}
+
+// subset reports whether every element of a is in b.
+func subset(a, b []string) bool {
+	for _, x := range a {
+		if !slices.Contains(b, x) {
+			return false
+		}
+	}
+	return true
 }
