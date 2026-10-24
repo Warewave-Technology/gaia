@@ -3,6 +3,41 @@
 > Hedef: Tek bir Linux VM'i Proxmox üzerinde, bir kontrattan uçtan uca açmak ve kapatmak.
 > Tasarım: [design.md](design.md). Örnek katalog ve kontrat: [examples/lab](../examples/lab).
 
+## Sonuç (2026-10-24)
+
+PoC tamamlandı. Bir kontrattan Proxmox'ta VM açıldı, Zabbix'e kaydedildi, baseline'ı uygulandı, kayıt altına alındı ve `replicas: 0` ile kapatıldı.
+
+| # | Kriter | Durum |
+|---|---|---|
+| 1 | `gaia plan` çözümlenmiş planı gösterir, hiçbir sisteme dokunmaz | Karşılandı (M1) |
+| 2 | `gaia apply`: şablondan VM, IPAM'dan IP, Policy'den hostname, UID'nin VM'e yazılması, state, OpenBao'dan credential'lar | Karşılandı, bir sapmayla: state SeaweedFS yerine PostgreSQL'de (M2.5) |
+| 3 | Baseline EE içinde ansible-runner ile; olaylar UID ile, secret'lar maskeli | Karşılandı (M3) |
+| 4 | Zabbix'e doğru tag ve host group ile kayıt | Karşılandı (M4.1) |
+| 5 | Run kaydı: commit, EE digest'i, plan hash'i, hash zinciri | Karşılandı (M4.2) |
+| 6 | İkinci apply değişiklik yapmaz | Gaia, Zabbix ve Ansible için karşılandı. Pulumi her run'da diske etkisiz bir update gönderiyor (provider uyumsuzluğu, bkz. M2.5) |
+| 7 | `replicas: 0`: VM silinir, IP serbest kalır, Zabbix host'u silinir, isim kiralaması biter | Karşılandı (M4.3) |
+
+**Varsayımlar:**
+1. **`proxmoxve`:** Klon, cloud-init, disk büyütme, tag ve not çalışıyor. İki pürüz çıktı:
+   - Klon sırasında `Sys.Console` yetkisi gerekiyor.
+   - Disk `speed` varsayılanı her run'da fark üretiyor.
+2. **Pulumi Gaia içinde:** Automation API, OpenBao transit ve uzak state birlikte çalışıyor. Gerekenler:
+   - CLI sürümü sabitlenmeli.
+   - Stack ayarları Gaia'nın veritabanında tutulmalı.
+   - State S3 yerine PostgreSQL'de durmalı (SeaweedFS'in liste davranışı).
+3. **Ansible:** JSON olay akışı Go'dan okunuyor; UID envanteri ve maskeleme beklendiği gibi. Rootless podman'da `--userns keep-id` gerekiyor.
+4. **Katalog motoru:** Graf, referans çözümleme ve CEL kullanışlı. CEL, isimlendirmenin yanında Zabbix host group'larında da kullanıldı.
+5. **Kimlik ve yaşam döngüsü:** UID, isim kiralama ve hash zinciri tutarlı. Silinen bir sunucunun ismi ve VMID'i tekrar kullanılabiliyor, IP'si karantinada.
+
+**Açık kalanlar (PoC dışı):**
+- Onay akışı ve PR/webhook tetiklemesi
+- Uzak config reposu
+- Host key yönetimi
+- `no_log` parametreli roller
+- Zabbix ajanı (Agent kind'ı)
+- Decommission bekleme süreleri
+- `proxmoxve` disk `speed` sorununu upstream'e bildirmek
+
 ## Sınanacak varsayımlar
 
 1. **`proxmoxve` Pulumi provider'ı:** Şablondan klonlama, cloud-init ile IP verme, disk büyütme, tag ve not yazma güvenilir çalışıyor mu?
