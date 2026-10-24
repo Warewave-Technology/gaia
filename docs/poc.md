@@ -61,7 +61,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
-| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | Sürüyor: store hazır |
+| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | Sürüyor: store ve IPAM v0 hazır |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
@@ -112,7 +112,11 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Kontrat kilidi:** Transaction seviyesinde advisory lock. İkinci bir run beklemeden `ErrLocked` alır.
    - **`gaia migrate --dsn` (`$GAIA_DSN`):** Lab veritabanına uygulandı.
    - **Testler:** Entegrasyon testleri Docker'da PostgreSQL 17 ile `GAIA_INTEGRATION=1` altında çalışır (`make itest`). CI'da da açık.
-2. **IPAM v0:** `gaia-ipam`: havuz, IP ayırma, serbest bırakma; kendi veritabanı. Gaia tarafında provider istemcisi.
+2. **IPAM v0:** `gaia-ipam`: havuz, IP ayırma, serbest bırakma; kendi veritabanı. Gaia tarafında provider istemcisi. **Tamam** (`internal/ipam`, `internal/provider/ipam`).
+   - **IP ayırma:** Havuz satırı kilitlenir, aralıktaki en küçük boş adres verilir. Ağ adresi, broadcast, gateway, kullanımdaki ve karantinadaki adresler atlanır. Aynı sahip (UID) için tekrarlanan çağrı aynı adresi döndürür. Eşzamanlı çağrılar çakışmaz.
+   - **Serbest bırakma:** Bırakılan adres karantinaya girer (varsayılan 14 gün, `--quarantine`).
+   - **API:** HTTP + JSON, bearer token; `/healthz` token istemez.
+   - **Komutlar:** `gaia-ipam serve | migrate | pool set CIDR --gateway --range start-end`.
 3. **Duruma bakan plan:** Mevcut sunucular veritabanından okunur: var olanlar `keep`, eksikler `create` olur. UID üretilir, en küçük boş `seq` verilir.
 4. **Provisioning:** OpenBao'dan credential okuma; Pulumi Automation API + `proxmoxve`, state SeaweedFS'te.
 5. **`gaia apply`:** Bu adımları sırayla çalıştırır; lab'de uçtan uca bir VM açılır, ikinci apply değişiklik yapmaz.
