@@ -66,9 +66,30 @@ func (m *Mirrors) files(ctx context.Context, r Rev, prefix bool) ([]catalog.File
 
 // Graph loads and resolves the objects of a snapshot.
 func (m *Mirrors) Graph(ctx context.Context, s Snapshot) (*catalog.Graph, error) {
+	return m.GraphWith(ctx, s, nil)
+}
+
+// GraphWith is Graph with some files of the platform repository replaced
+// (nil removes one): the catalog a commit Gaia is about to write would
+// give, so that Gaia never writes one that does not load.
+func (m *Mirrors) GraphWith(ctx context.Context, s Snapshot, overlay map[string][]byte) (*catalog.Graph, error) {
 	files, err := m.files(ctx, s.Platform, false)
 	if err != nil {
 		return nil, err
+	}
+	if overlay != nil {
+		kept := files[:0]
+		for _, f := range files {
+			if _, ok := overlay[f.Path]; !ok {
+				kept = append(kept, f)
+			}
+		}
+		files = kept
+		for p, data := range overlay {
+			if data != nil && inPaths(p, s.Platform.Paths) {
+				files = append(files, catalog.File{Path: p, Data: data})
+			}
+		}
 	}
 	for _, c := range s.Contracts {
 		fs, err := m.files(ctx, c, true)
@@ -82,6 +103,19 @@ func (m *Mirrors) Graph(ctx context.Context, s Snapshot) (*catalog.Graph, error)
 		return nil, err
 	}
 	return catalog.Resolve(cat)
+}
+
+func inPaths(p string, paths []string) bool {
+	if len(paths) == 0 {
+		return true
+	}
+	for _, d := range paths {
+		d = strings.Trim(d, "/")
+		if d == "" || d == "." || strings.HasPrefix(p, d+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // Head syncs every repository a platform repository leads to and returns

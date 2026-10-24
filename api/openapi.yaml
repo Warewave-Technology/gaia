@@ -279,6 +279,33 @@ paths:
                         restricted: { type: boolean }
         "404": { description: No such followed repository, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "422": { description: The ref cannot be fetched, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/sources:
+    get:
+      summary: What each Source (TeamSource...) did last, the sync report (design 5.4)
+      operationId: listSources
+      responses:
+        "200":
+          description: One report per source
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    source: { type: string, description: Kind/name }
+                    status: { type: string, enum: [unchanged, committed, refused, failed] }
+                    commit: { type: string, description: Gaia's commit, when one was written }
+                    detail: { type: object, description: "added, changed and removed files; problems: what was left out and why" }
+                    error: { type: string }
+                    ranAt: { type: string, format: date-time }
+  /api/v1/sources/sync:
+    post:
+      summary: Run the sources now (platform-admin)
+      operationId: syncSources
+      responses:
+        "202": { description: Running }
+        "503": { description: This server runs no sources }
   /api/v1/webhooks/github:
     post:
       summary: GitHub push webhook (public; checked with X-Hub-Signature-256)

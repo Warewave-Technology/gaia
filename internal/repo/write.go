@@ -31,6 +31,7 @@ type Writer struct {
 const (
 	TrailerRequestedBy = "Gaia-Requested-By"
 	TrailerReverts     = "Gaia-Reverts"
+	TrailerSource      = "Gaia-Source"
 )
 
 // Errors a writer is refused with.
@@ -120,6 +121,43 @@ func (w *Writer) Revert(ctx context.Context, r Repo, commit, requestedBy string)
 		}
 		subject, _, _ := strings.Cut(c.Message, "\n")
 		return fmt.Sprintf("Revert %q\n\nThis reverts commit %s.\n\n%s: %s\n%s: %s\n", subject, c.Hash, TrailerReverts, c.Hash, TrailerRequestedBy, requestedBy), nil
+	})
+}
+
+// Commit writes files (path → content; nil removes the file) on top of
+// the followed branch's head and pushes. base is the commit the caller
+// built the files from: when the branch has moved since, nothing is
+// written (ErrMoved) and the caller works it out again.
+func (w *Writer) Commit(ctx context.Context, r Repo, base, message string, files map[string][]byte) (string, error) {
+	return w.write(ctx, r, func(_ *git.Repository, wt *git.Worktree, head *object.Commit) (string, error) {
+		if base != "" && head.Hash.String() != base {
+			return "", ErrMoved
+		}
+		root := wt.Filesystem.Root()
+		for p, data := range files {
+			if strings.HasPrefix(p, "/") || strings.Contains(p, "..") {
+				return "", fmt.Errorf("%s: not a path inside the repository", p)
+			}
+			full := filepath.Join(root, filepath.FromSlash(p))
+			if data == nil {
+				if _, err := os.Stat(full); err == nil {
+					if _, err := wt.Remove(p); err != nil {
+						return "", err
+					}
+				}
+				continue
+			}
+			if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
+				return "", err
+			}
+			if err := os.WriteFile(full, data, 0o644); err != nil { //nolint:gosec // a catalog file, in Gaia's temporary clone
+				return "", err
+			}
+			if _, err := wt.Add(p); err != nil {
+				return "", err
+			}
+		}
+		return message, nil
 	})
 }
 

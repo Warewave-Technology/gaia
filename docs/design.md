@@ -326,6 +326,14 @@ metadata:
 
 `content-hash` tutmayan, yani elle düzenlenmiş bir obje CI'da ve yükleme sırasında reddedilir.
 
+- **Hash'in kapsamı:** `content-hash`, objenin kind, ad, label ve spec'inin hash'idir. Kaynakların hepsi aynı makineyi kullanır: render, çıktı dizinindeki dosyalarla karşılaştırma, yeni katalogun yüklenip yüklenmediğinin denenmesi ve imzalı commit.
+- **Senkron:** `gaia server` kaynakları belirli aralıklarla (`--source-every`, varsayılan 10 dk) ve istek üzerine (`POST /api/v1/sources/sync`) çalıştırır. Aynı anda tek replika çalıştırır.
+- **Rapor:** Her kaynağın son raporu `GET /api/v1/sources`'tadır:
+  - eklenen, değişen ve silinen dosyalar
+  - dışarıda bırakılanlar ve nedenleri
+  - yazılmayan bir commit'in sebebi
+- **Çakışma:** Kaynağın commit'i, okuduğu baş commit'in üzerine yazılır. Arada branch ilerlemişse yazılmaz; bir sonraki çalışmada yeniden denenir.
+
 ### 5.5 Elle ekleme
 
 **Yeni obje.** IPAM'da olmayan bir ağ veya repoda olmayan bir rol için elle `Network` / `AnsibleRole` yazılabilir. İsmi üretilmiş bir objeyle çakışmamalıdır.
@@ -1516,7 +1524,9 @@ spec:
 - **Owner onayı:** Policy'deki `owner` onayı (bkz. 6.4) Team'in `approversGroup` üyelerine çözülür. Onaylayanlar ayrı bir AD grubunda tutulur; `managedBy` attribute'u tek kişi veya tek grup alabildiği için tercih edilmedi.
 - **Secret öneki:** Secret parametrelerinin izin verilen yol öneki Team'den gelir (bkz. 6.2).
 - **Onaycılar:** Change'lerin owner onayı, Team'in `approversGroup` üyelerine çözülür (bkz. 7.6). CODEOWNERS üretilmez.
-- **Alan sahipliği:** `adGroup` ve `approversGroup` kaynağa aittir ve patch'lenemez. `displayName` ve `secrets.prefix` patch ile değiştirilebilir (bkz. 5.5).
+- **Alan sahipliği:** `adGroup` ve `approversGroup` kaynağa aittir ve patch'lenemez. `displayName`, `secrets` ve `notifications` patch ile değiştirilebilir (bkz. 5.5).
+- **Üretim:** `select` ile seçilen her AD grubu bir Team olur. `map.approvers` onaycı grubunun adını (cn) verir; böyle bir grup yoksa Team onaycı grubu olmadan yazılır ve raporda görünür. Aynı ada çıkan iki gruptan hiçbiri yazılmaz.
+- **Gaia'nın objenin kaynağını izlemesi:** `source-revision`, AD grubunun objectGUID'idir. Grup yeniden adlandırılsa da aynı kalır.
 
 ### 14.2 Üyelik Git'te değil, veritabanında
 

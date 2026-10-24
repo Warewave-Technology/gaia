@@ -140,6 +140,9 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindAnsibleRole) {
 		r.ansibleRole(o)
 	}
+	for _, o := range cat.List(KindTeamSource) {
+		r.teamSource(o)
+	}
 	for _, o := range cat.List(KindTeam) {
 		r.team(o)
 	}
@@ -278,6 +281,23 @@ func (r *resolver) team(o *Object) {
 			r.fail(o, field+".to", "an smtp channel needs addresses")
 		case !smtp && len(n.To) > 0:
 			r.fail(o, field+".to", "only for smtp channels")
+		}
+	}
+}
+
+func (r *resolver) teamSource(o *Object) {
+	s := o.Spec.(*TeamSourceSpec)
+	r.ref(o, "spec.provider", KindProvider, s.Provider, "activedirectory")
+	if _, err := cel.GroupRule(s.Select); err != nil {
+		r.fail(o, "spec.select", "%v", err)
+	}
+	for field, src := range map[string]string{"spec.naming": s.Naming, "spec.map.displayName": s.Map.DisplayName,
+		"spec.map.approvers": s.Map.Approvers, "spec.map.secretsPrefix": s.Map.SecretsPrefix} {
+		if src == "" && field != "spec.naming" {
+			continue
+		}
+		if _, err := cel.GroupString(src); err != nil {
+			r.fail(o, field, "%v", err)
 		}
 	}
 }

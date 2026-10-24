@@ -259,9 +259,9 @@ func TestParseError(t *testing.T) {
 	wantError(t, lines, "bad.yaml:")
 }
 
-func TestPatchNotSupportedYet(t *testing.T) {
+func TestOnlySomeKindsArePatched(t *testing.T) {
 	p := strings.Replace(network, "  name: lab-poc\n", "  name: lab-poc\n  annotations: { gaia/mode: patch }\n", 1)
-	wantError(t, loadErrors(t, files("p.yaml", p)), "patch objects")
+	wantError(t, loadErrors(t, files("p.yaml", p)), "Network objects cannot be patched")
 }
 
 func TestParamSchemaChecks(t *testing.T) {

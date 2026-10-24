@@ -82,6 +82,7 @@ type validator interface{ validate() []string }
 func Load(commit string, files []File) (*Catalog, error) {
 	cat := newCatalog(commit)
 	var errs Errors
+	var patches []*Object
 	sorted := append([]File(nil), files...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Path < sorted[j].Path })
 
@@ -109,6 +110,10 @@ func Load(commit string, files []File) (*Catalog, error) {
 			if obj == nil {
 				continue
 			}
+			if obj.Metadata.Annotations[AnnotationMode] == "patch" {
+				patches = append(patches, obj)
+				continue
+			}
 			if prev, dup := cat.objects[obj.Key()]; dup {
 				errs = append(errs, Error{File: f.Path, Line: obj.Source.Line, Object: obj.Key().String(),
 					Msg: "defined more than once (also at " + prev.Source.String() + ")"})
@@ -118,6 +123,7 @@ func Load(commit string, files []File) (*Catalog, error) {
 		}
 	}
 
+	errs = append(errs, applyPatches(cat.objects, patches)...)
 	if len(errs) > 0 {
 		sortErrors(errs)
 		return cat, errs
@@ -180,8 +186,9 @@ func decodeObject(file string, root *yaml.Node) (*Object, Errors) {
 			errs = append(errs, at(root.Line, "metadata.labels: invalid key %q", k))
 		}
 	}
-	if env.Metadata.Annotations["gaia/mode"] == "patch" {
-		errs = append(errs, at(root.Line, "patch objects apply to generated objects, which this version does not load yet"))
+	patch := env.Metadata.Annotations[AnnotationMode] == "patch"
+	if m := env.Metadata.Annotations[AnnotationMode]; m != "" && !patch {
+		errs = append(errs, at(root.Line, "metadata.annotations: %s %q (patch)", AnnotationMode, m))
 	}
 	if !known {
 		return nil, errs
@@ -192,15 +199,21 @@ func decodeObject(file string, root *yaml.Node) (*Object, Errors) {
 		errs = append(errs, fileErrors(file, id, toPosErrors(err, &env.Spec))...)
 		return nil, errs
 	}
-	if v, ok := spec.(validator); ok {
+	// A patch is checked once merged into its generated object.
+	if v, ok := spec.(validator); ok && !patch {
 		for _, msg := range v.validate() {
 			errs = append(errs, at(env.Spec.Line, "spec.%s", msg))
+		}
+	}
+	obj.Spec = spec
+	if obj.Generated() && !patch {
+		if msg := checkGenerated(obj); msg != "" {
+			errs = append(errs, at(root.Line, "%s", msg))
 		}
 	}
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	obj.Spec = spec
 	return obj, nil
 }
 

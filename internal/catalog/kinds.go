@@ -738,16 +738,16 @@ func isLoopbackHost(h string) bool {
 // will be generated from AD by a TeamSource; until then they are written
 // by hand. Members come from sign-in, not from Git.
 type TeamSpec struct {
-	DisplayName    string         `yaml:"displayName"`
-	ADGroup        *ADGroup       `yaml:"adGroup"`
-	ApproversGroup *ADGroup       `yaml:"approversGroup"`
-	Secrets        *TeamSecrets   `yaml:"secrets"`
-	Notifications  []Subscription `yaml:"notifications"`
+	DisplayName    string         `yaml:"displayName,omitempty"`
+	ADGroup        *ADGroup       `yaml:"adGroup,omitempty"`
+	ApproversGroup *ADGroup       `yaml:"approversGroup,omitempty"`
+	Secrets        *TeamSecrets   `yaml:"secrets,omitempty"`
+	Notifications  []Subscription `yaml:"notifications,omitempty"`
 }
 
 // ADGroup is a group in Active Directory.
 type ADGroup struct {
-	Provider string `yaml:"provider"`
+	Provider string `yaml:"provider,omitempty"`
 	DN       string `yaml:"dn" gaia:"required"`
 }
 
@@ -761,7 +761,7 @@ type Subscription struct {
 	Provider string   `yaml:"provider" gaia:"required"`
 	Triggers []string `yaml:"triggers" gaia:"required"`
 	// To are the addresses of an smtp channel.
-	To []string `yaml:"to"`
+	To []string `yaml:"to,omitempty"`
 }
 
 // Triggers are the events notifications are sent for (design 7.6).
@@ -795,6 +795,60 @@ func (s *TeamSpec) validate() []string {
 				out = append(out, fmt.Sprintf("%s.to: %q is not an email address", at, to))
 			}
 		}
+	}
+	return out
+}
+
+// TeamSourceSpec says which AD groups are teams and how they map
+// (design 14.1). Expressions are CEL over group (dn, cn, description,
+// guid); map expressions also see name, the team's name.
+type TeamSourceSpec struct {
+	Provider   string         `yaml:"provider" gaia:"required"`
+	Select     string         `yaml:"select" gaia:"required"`
+	Naming     string         `yaml:"naming" gaia:"required"`
+	Map        TeamSourceMap  `yaml:"map"`
+	Membership TeamMembership `yaml:"membership"`
+	Output     string         `yaml:"output" gaia:"required"`
+}
+
+// TeamSourceMap fills a generated Team: approvers is the common name of
+// the team's approvers group.
+type TeamSourceMap struct {
+	DisplayName   string `yaml:"displayName"`
+	Approvers     string `yaml:"approvers"`
+	SecretsPrefix string `yaml:"secretsPrefix"`
+}
+
+// TeamMembership is how members are read: nested groups opened, and how
+// often.
+type TeamMembership struct {
+	Recursive bool           `yaml:"recursive"`
+	Sync      MembershipSync `yaml:"sync"`
+}
+
+// MembershipSync is the membership refresh interval (5m by default).
+type MembershipSync struct {
+	Every string `yaml:"every"`
+}
+
+// Every is the membership refresh interval.
+func (s *TeamSourceSpec) Every() time.Duration {
+	d, err := time.ParseDuration(s.Membership.Sync.Every)
+	if err != nil || d <= 0 {
+		return 5 * time.Minute
+	}
+	return d
+}
+
+func (s *TeamSourceSpec) validate() []string {
+	var out []string
+	if e := s.Membership.Sync.Every; e != "" {
+		if d, err := time.ParseDuration(e); err != nil || d < time.Minute {
+			out = append(out, fmt.Sprintf("membership.sync.every: %q: a duration of at least 1m", e))
+		}
+	}
+	if s.Output != "" && (strings.HasPrefix(s.Output, "/") || strings.Contains(s.Output, "..")) {
+		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
 	}
 	return out
 }

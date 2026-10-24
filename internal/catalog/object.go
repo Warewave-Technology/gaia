@@ -26,6 +26,7 @@ const (
 	KindServer      = "Server"
 	KindAuthConfig  = "AuthConfig"
 	KindTeam        = "Team"
+	KindTeamSource  = "TeamSource"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -42,6 +43,7 @@ var newSpec = map[string]func() any{
 	KindServer:      func() any { return &ServerSpec{} },
 	KindAuthConfig:  func() any { return &AuthConfigSpec{} },
 	KindTeam:        func() any { return &TeamSpec{} },
+	KindTeamSource:  func() any { return &TeamSourceSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.
@@ -85,6 +87,8 @@ type Object struct {
 	Metadata   Metadata
 	Spec       any
 	Source     Source
+	// Patches are the patch objects merged into this generated object.
+	Patches []Source
 
 	node *yaml.Node // the document, for positions of fields
 }

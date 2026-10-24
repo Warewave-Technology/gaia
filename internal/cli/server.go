@@ -30,6 +30,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/server"
 	"github.com/Warewave-Technology/gaia/internal/signature"
+	gsource "github.com/Warewave-Technology/gaia/internal/source"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -38,7 +39,7 @@ func newServerCommand() *cobra.Command {
 	var workers int
 	var unsafeNoAuth bool
 	var repoURL, ref, repoCreds, dataDir, webhookSecret, signingKey, author string
-	var refresh time.Duration
+	var refresh, sourceEvery time.Duration
 	var paths []string
 	var runTimeout, stopTimeout, eventRetention time.Duration
 	cmd := &cobra.Command{
@@ -101,12 +102,23 @@ func newServerCommand() *cobra.Command {
 					return fmt.Errorf("desired state: %w", err)
 				}
 				cfg.Changes, cfg.Catalog = engine, cat
+				cfg.Sources = &server.Sources{Catalog: cat, Store: s, Syncer: &gsource.Syncer{
+					Store: s, Repos: cfg.Repos, Log: cfg.Log,
+					Secrets: func(ctx context.Context, addr, ref string) (map[string]string, error) {
+						c, err := bao.client(ctx, addr)
+						if err != nil {
+							return nil, err
+						}
+						return c.Read(ctx, ref)
+					},
+				}}
 				if signingKey != "" {
 					w, err := gaiaWriter(ctx, s, bao, cfg.Repos, signingKey, author)
 					if err != nil {
 						return fmt.Errorf("--signing-key: %w", err)
 					}
 					cfg.Writer = w
+					cfg.Sources.Syncer.Writer = w
 				}
 				if webhookSecret != "" {
 					sec, err := bao.Read(ctx, webhookSecret)
@@ -191,6 +203,9 @@ func newServerCommand() *cobra.Command {
 				// first evaluation happens at the first refresh.
 				engine.Queue = srv.Queue()
 				engine.Notify = notifier
+				if cfg.Sources != nil {
+					go cfg.Sources.Run(ctx, sourceEvery)
+				}
 				go cat.Run(ctx, refresh)
 				cat.Kick()
 			}
@@ -211,6 +226,7 @@ func newServerCommand() *cobra.Command {
 	cmd.Flags().StringVar(&signingKey, "signing-key", "", "bao:// reference whose private_key (OpenSSH) signs Gaia's own commits, such as reverts; the key needs push access through --repo-credentials and the providers' credentials")
 	cmd.Flags().StringVar(&author, "commit-author", "Gaia <gaia@localhost>", "author of Gaia's commits")
 	cmd.Flags().StringVar(&webhookSecret, "webhook-secret", "", "bao:// reference whose secret field checks GitHub push webhooks (POST /api/v1/webhooks/github)")
+	cmd.Flags().DurationVar(&sourceEvery, "source-every", 10*time.Minute, "how often sources (TeamSource...) read their systems; POST /api/v1/sources/sync runs them at once")
 	cmd.Flags().DurationVar(&refresh, "refresh", 3*time.Minute, "how often the repositories are fetched; a webhook fetches at once")
 	cmd.Flags().StringVar(&dataDir, "data-dir", defaultDataDir(), "where repository mirrors are kept")
 	cmd.Flags().DurationVar(&stopTimeout, "stop-timeout", 5*time.Minute, "on shutdown, how long runs get to finish before they are cancelled")

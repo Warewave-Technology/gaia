@@ -92,7 +92,23 @@ func (p *Program) eval(vars map[string]any) (ref.Val, error) {
 	return v, nil
 }
 
+// GroupRule compiles a TeamSource select expression: it sees group (dn,
+// cn, description, guid) and returns a bool.
+func GroupRule(src string) (*Program, error) {
+	return compile(groupEnv, src, gocel.BoolType)
+}
+
+// GroupString compiles a TeamSource naming or map expression: it sees
+// group and name (the team's name; "" while naming) and returns a string.
+func GroupString(src string) (*Program, error) {
+	return compile(groupEnv, src, gocel.StringType)
+}
+
 var (
+	groupEnv = mustEnv(
+		gocel.Variable("group", gocel.MapType(gocel.StringType, gocel.StringType)),
+		gocel.Variable("name", gocel.StringType),
+	)
 	namingEnv = mustEnv(
 		gocel.Variable("site", gocel.MapType(gocel.StringType, gocel.DynType)),
 		gocel.Variable("env", gocel.StringType),

@@ -269,6 +269,15 @@ type SigningKey struct {
 	RevokedAt   pgtype.Timestamptz
 }
 
+type SourceReport struct {
+	Source string
+	Status string
+	Commit pgtype.Text
+	Detail []byte
+	Error  pgtype.Text
+	RanAt  pgtype.Timestamptz
+}
+
 type TeamMembership struct {
 	UserID   string
 	Team     string
