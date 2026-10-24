@@ -1,0 +1,94 @@
+---
+# Gaia's access role (design 14.4): local accounts for the people a
+# contract's access names, their SSH keys and sudo. Gaia runs it itself;
+# it is not part of the config repository.
+#
+#   gaia_access_group  the group of the accounts Gaia manages
+#   gaia_access_users  [{name, keys: [...], sudo: bool}]
+#
+# An account Gaia no longer lists is not deleted (its home stays): it is
+# expired, its keys and sudo rule removed. Listed again, it opens.
+
+- name: Gaia's account group
+  ansible.builtin.group:
+    name: "{{ gaia_access_group }}"
+    system: true
+
+- name: Accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.name }} (Gaia)"
+    groups: ["{{ gaia_access_group }}"]
+    append: true
+    shell: /bin/bash
+    create_home: true
+    expires: -1
+  loop: "{{ gaia_access_users }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: SSH directories
+  ansible.builtin.file:
+    path: "~{{ item.name }}/.ssh"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0700"
+  loop: "{{ gaia_access_users }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: SSH keys, exactly those in Gaia
+  ansible.builtin.copy:
+    dest: "~{{ item.name }}/.ssh/authorized_keys"
+    content: "{{ (item['keys'] | join('\n')) ~ ('\n' if item['keys'] | length > 0 else '') }}"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0600"
+  loop: "{{ gaia_access_users }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/gaia-{{ item.name | replace('.', '_') }}"
+    content: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  loop: "{{ gaia_access_users | selectattr('sudo') | list }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: No sudo for the others
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/gaia-{{ item.name | replace('.', '_') }}"
+    state: absent
+  loop: "{{ gaia_access_users | rejectattr('sudo') | list }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Accounts Gaia manages
+  ansible.builtin.getent:
+    database: group
+    key: "{{ gaia_access_group }}"
+
+- name: Accounts no longer listed
+  ansible.builtin.set_fact:
+    gaia_access_gone: >-
+      {{ (ansible_facts.getent_group[gaia_access_group][2] | default('')).split(',')
+         | reject('equalto', '') | difference(gaia_access_users | map(attribute='name')) }}
+
+- name: Close them
+  ansible.builtin.user:
+    name: "{{ item }}"
+    expires: 0
+  loop: "{{ gaia_access_gone }}"
+
+- name: Remove their keys
+  ansible.builtin.file:
+    path: "~{{ item }}/.ssh/authorized_keys"
+    state: absent
+  loop: "{{ gaia_access_gone }}"
+
+- name: Remove their sudo
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/gaia-{{ item | replace('.', '_') }}"
+    state: absent
+  loop: "{{ gaia_access_gone }}"

@@ -22,7 +22,7 @@ func (r *runner) writeRecord(ctx context.Context, p *plan.Plan, status, msg stri
 		Source: r.d.Source, CatalogCommit: p.Commit,
 		Contracts: contracts, PlanHash: p.Hash, ExecutedAs: r.executedAs,
 		StartedAt: r.started, FinishedAt: time.Now().UTC(), Result: status, Error: msg,
-		Changes: r.changes,
+		Changes: r.changes, AccessSnapshot: r.access,
 	}
 	if rec.Source.Commit == "" {
 		rec.Source.Commit = p.Commit

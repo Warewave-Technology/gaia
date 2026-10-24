@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/apply/access"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
@@ -106,13 +109,20 @@ type target struct {
 
 // configure runs the contract's baseline and roles on its servers.
 func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catalog.Object, targets []target) error {
-	if (c.Baseline == nil && len(c.Roles) == 0) || len(targets) == 0 {
+	if !r.configures(ctx, c) || len(targets) == 0 {
 		return nil
 	}
 	if r.cfg == nil {
 		return errors.New("configure: no configuration setup")
 	}
-	site, err := sitePlay(c)
+	var users []access.User
+	if r.managesAccess(ctx, c) {
+		var err error
+		if users, err = r.accessUsers(ctx, c); err != nil {
+			return err
+		}
+	}
+	site, err := sitePlay(c, users, r.managesAccess(ctx, c))
 	if err != nil {
 		return err
 	}
@@ -133,6 +143,9 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 				return err
 			}
 			if err := os.MkdirAll(filepath.Join(dir, ".gaia"), 0o750); err != nil {
+				return err
+			}
+			if err := access.WriteRoles(filepath.Join(dir, ".gaia")); err != nil {
 				return err
 			}
 			return os.WriteFile(filepath.Join(dir, sitePlaybook), site, 0o600)
@@ -188,9 +201,81 @@ func (r *runner) hostVars(c plan.Contract, contract *catalog.Object, s plan.Serv
 	return v
 }
 
-// sitePlay is the playbook of a contract: its baseline, then its roles
-// with their params. JSON is YAML.
-func sitePlay(c plan.Contract) ([]byte, error) {
+// configures reports whether a contract's servers are configured: a
+// baseline, roles, or access to distribute or take back.
+func (r *runner) configures(ctx context.Context, c plan.Contract) bool {
+	return c.Baseline != nil || len(c.Roles) > 0 || r.managesAccess(ctx, c)
+}
+
+// managesAccess reports whether Gaia manages the contract's accounts: it
+// has access entries, or had them when last applied (to take them back).
+func (r *runner) managesAccess(ctx context.Context, c plan.Contract) bool {
+	if len(c.Access) > 0 {
+		return true
+	}
+	st, err := r.d.Store.Q().ContractState(ctx, c.Name)
+	if err != nil || len(st.AppliedPlan) == 0 {
+		return false
+	}
+	var ap plan.Plan
+	if json.Unmarshal(st.AppliedPlan, &ap) != nil {
+		return false
+	}
+	for _, x := range ap.Contracts {
+		if x.Name == c.Name && len(x.Access) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// linuxName is what a Linux account name may be (useradd's default rule).
+var linuxName = regexp.MustCompile(`^[a-z_][a-z0-9_.-]{0,31}$`)
+
+// accessUsers are the accounts a contract's access gives: the enabled
+// members of its teams now, with their login keys, sudo when any entry
+// that names them says so. The run record keeps who and why.
+func (r *runner) accessUsers(ctx context.Context, c plan.Contract) ([]access.User, error) {
+	byName := map[string]*access.User{}
+	var order []string
+	for _, a := range c.Access {
+		rows, err := r.d.Store.Q().TeamLogins(ctx, a.Teams)
+		if err != nil {
+			return nil, err
+		}
+		grant := runrecord.AccessGrant{Contract: c.Name, Via: a.Via, Teams: a.Teams, Users: []string{}, Sudo: a.Sudo}
+		for _, row := range rows {
+			if !linuxName.MatchString(row.Username) {
+				r.printf("  access: %s is not a Linux account name; skipped\n", row.Username)
+				continue
+			}
+			u, ok := byName[row.Username]
+			if !ok {
+				u = &access.User{Name: row.Username, Keys: []string{}}
+				byName[row.Username] = u
+				order = append(order, row.Username)
+			}
+			u.Sudo = u.Sudo || a.Sudo
+			if row.PublicKey != "" && !slices.Contains(u.Keys, row.PublicKey) {
+				u.Keys = append(u.Keys, row.PublicKey)
+			}
+			if !slices.Contains(grant.Users, row.Username) {
+				grant.Users = append(grant.Users, row.Username)
+			}
+		}
+		r.access = append(r.access, grant)
+	}
+	sort.Strings(order)
+	out := make([]access.User, 0, len(order))
+	for _, n := range order {
+		out = append(out, *byName[n])
+	}
+	return out, nil
+}
+
+// sitePlay is the playbook of a contract: its baseline, its roles with
+// their params, then the access Gaia manages. JSON is YAML.
+func sitePlay(c plan.Contract, users []access.User, manageAccess bool) ([]byte, error) {
 	var plays []any
 	if c.Baseline != nil {
 		plays = append(plays, map[string]any{"import_playbook": "../" + c.Baseline.Playbook})
@@ -206,6 +291,13 @@ func sitePlay(c plan.Contract) ([]byte, error) {
 			roles = append(roles, map[string]any{"role": ro.Role, "vars": ro.Params})
 		}
 		plays = append(plays, map[string]any{"name": "Roles of " + c.Name, "hosts": "all", "become": true, "roles": roles})
+	}
+	if manageAccess {
+		if users == nil {
+			users = []access.User{}
+		}
+		plays = append(plays, map[string]any{"name": "Access to " + c.Name, "hosts": "all", "become": true,
+			"roles": []any{map[string]any{"role": access.Role, "vars": map[string]any{"gaia_access_group": access.Group, "gaia_access_users": users}}}})
 	}
 	return json.MarshalIndent(plays, "", "  ")
 }

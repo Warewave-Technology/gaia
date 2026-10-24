@@ -544,6 +544,30 @@ paths:
       responses:
         "200": { description: The caller, content: { application/json: { schema: { $ref: "#/components/schemas/Principal" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/me/login-keys:
+    get:
+      summary: Your SSH keys for logging in to servers (design 14.4)
+      operationId: myLoginKeys
+      responses:
+        "200": { description: Live keys, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/LoginKey" } } } } }
+    post:
+      summary: Add an SSH key for logging in to servers; needs a recent passkey or MFA
+      description: Servers whose access names one of your teams get it at their next run.
+      operationId: addLoginKey
+      requestBody: { content: { application/json: { schema: { type: object, required: [publicKey], properties: { name: { type: string }, publicKey: { type: string } } } } } }
+      responses:
+        "201": { description: Added, content: { application/json: { schema: { $ref: "#/components/schemas/LoginKey" } } } }
+        "400": { description: Not an SSH public key }
+        "403": { description: "Confirm with a passkey first (stepUp: true)" }
+        "409": { description: Registered already }
+  /api/v1/me/login-keys/{fingerprint}:
+    delete:
+      summary: Remove an SSH login key
+      operationId: revokeLoginKey
+      parameters: [{ name: fingerprint, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Removed }
+        "404": { description: No such key }
   /api/v1/me/notifications:
     get:
       summary: Your email notifications (design 7.6)
@@ -722,6 +746,13 @@ components:
     BadRequest: { description: A parameter is wrong, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
     NotFound: { description: No such object, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   schemas:
+    LoginKey:
+      type: object
+      properties:
+        fingerprint: { type: string }
+        name: { type: string }
+        publicKey: { type: string }
+        createdAt: { type: string, format: date-time }
     Notifications:
       type: object
       properties:

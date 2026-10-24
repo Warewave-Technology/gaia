@@ -215,3 +215,34 @@ func TestStepUpAndSigningKeys(t *testing.T) {
 		t.Errorf("signers after revoke = %+v", signers)
 	}
 }
+
+func TestLoginKeys(t *testing.T) {
+	e := setup(t)
+	id, link := e.user("selin")
+	b := e.browser(id)
+	b.enroll(link) // a fresh passkey: strong enough to add keys
+	pub, _, _ := ed25519.GenerateKey(rand.Reader)
+	sshPub, _ := ssh.NewPublicKey(pub)
+	key := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPub))) + " selin@laptop"
+
+	code, k := b.do("POST", "/api/v1/me/login-keys", map[string]string{"name": "laptop", "publicKey": key})
+	if code != 201 || !strings.HasPrefix(k["fingerprint"].(string), "SHA256:") || k["publicKey"] != key {
+		t.Fatalf("add: %d %v", code, k)
+	}
+	if code, _ := b.do("POST", "/api/v1/me/login-keys", map[string]string{"publicKey": key}); code != 409 {
+		t.Errorf("twice: %d", code)
+	}
+	if code, _ := b.do("POST", "/api/v1/me/login-keys", map[string]string{"publicKey": "-----BEGIN PGP PUBLIC KEY BLOCK-----"}); code != 400 {
+		t.Errorf("not an SSH key: %d", code)
+	}
+	rows, _ := e.store.Q().LoginKeys(context.Background(), id)
+	if len(rows) != 1 {
+		t.Fatalf("keys = %+v", rows)
+	}
+	if code, _ := b.do("DELETE", "/api/v1/me/login-keys/"+url.PathEscape(k["fingerprint"].(string)), nil); code != 204 {
+		t.Errorf("remove: %d", code)
+	}
+	if rows, _ := e.store.Q().LoginKeys(context.Background(), id); len(rows) != 0 {
+		t.Errorf("after removing: %+v", rows)
+	}
+}

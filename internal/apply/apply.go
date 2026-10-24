@@ -144,6 +144,7 @@ type runner struct {
 	started    time.Time
 	changes    []runrecord.Change
 	executedAs map[string]string // provider -> identity
+	access     []runrecord.AccessGrant
 }
 
 func (r *runner) change(c runrecord.Change) { r.changes = append(r.changes, c) }
@@ -170,7 +171,7 @@ func (r *runner) all(ctx context.Context, p *plan.Plan) error {
 		return err
 	}
 	for _, c := range p.Contracts {
-		if running(c) > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
+		if running(c) > 0 && r.configures(ctx, c) {
 			if r.cfg, err = r.configSetup(ctx, privateKey); err != nil {
 				return err
 			}
@@ -297,7 +298,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 	}
-	if (c.Baseline != nil || len(c.Roles) > 0) && len(w.targets) > 0 {
+	if r.configures(ctx, c) && len(w.targets) > 0 {
 		return r.stage(ctx, c.Name, "configure", func() error { return r.configure(ctx, c, contract, w.targets) })
 	}
 	return nil

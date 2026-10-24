@@ -425,6 +425,27 @@ func (q *Queries) InsertFlow(ctx context.Context, arg InsertFlowParams) error {
 	return err
 }
 
+const insertLoginKey = `-- name: InsertLoginKey :exec
+insert into login_keys (fingerprint, user_id, name, public_key) values ($1, $2, $3, $4)
+`
+
+type InsertLoginKeyParams struct {
+	Fingerprint string
+	UserID      string
+	Name        string
+	PublicKey   string
+}
+
+func (q *Queries) InsertLoginKey(ctx context.Context, arg InsertLoginKeyParams) error {
+	_, err := q.db.Exec(ctx, insertLoginKey,
+		arg.Fingerprint,
+		arg.UserID,
+		arg.Name,
+		arg.PublicKey,
+	)
+	return err
+}
+
 const insertRecoveryCode = `-- name: InsertRecoveryCode :exec
 insert into recovery_codes (user_id, code_hash) values ($1, $2)
 `
@@ -522,6 +543,37 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 	return err
 }
 
+const loginKeys = `-- name: LoginKeys :many
+select fingerprint, user_id, name, public_key, created_at, revoked_at from login_keys where user_id = $1 and revoked_at is null order by created_at
+`
+
+func (q *Queries) LoginKeys(ctx context.Context, userID string) ([]LoginKey, error) {
+	rows, err := q.db.Query(ctx, loginKeys, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LoginKey
+	for rows.Next() {
+		var i LoginKey
+		if err := rows.Scan(
+			&i.Fingerprint,
+			&i.UserID,
+			&i.Name,
+			&i.PublicKey,
+			&i.CreatedAt,
+			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const membershipUsers = `-- name: MembershipUsers :many
 select user_id from team_memberships where team = $1 and source = $2 and role = $3 order by user_id
 `
@@ -586,6 +638,23 @@ delete from auth_flows where expires_at < now()
 func (q *Queries) PruneFlows(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, pruneFlows)
 	return err
+}
+
+const revokeLoginKey = `-- name: RevokeLoginKey :execrows
+update login_keys set revoked_at = now() where fingerprint = $1 and user_id = $2 and revoked_at is null
+`
+
+type RevokeLoginKeyParams struct {
+	Fingerprint string
+	UserID      string
+}
+
+func (q *Queries) RevokeLoginKey(ctx context.Context, arg RevokeLoginKeyParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeLoginKey, arg.Fingerprint, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const revokeSession = `-- name: RevokeSession :execrows
@@ -888,6 +957,48 @@ func (q *Queries) TakeFlow(ctx context.Context, arg TakeFlowParams) (AuthFlow, e
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const teamLogins = `-- name: TeamLogins :many
+select distinct u.id, u.username, t.team, coalesce(k.public_key, '')::text as public_key
+from team_memberships t join users u on u.id = t.user_id
+left join login_keys k on k.user_id = u.id and k.revoked_at is null
+where t.team = any ($1::text[]) and t.role = 'member' and u.enabled
+order by u.username, t.team, public_key
+`
+
+type TeamLoginsRow struct {
+	ID        string
+	Username  string
+	Team      string
+	PublicKey string
+}
+
+// Enabled members of teams with their live login keys (none: an empty
+// key), for distributing access.
+func (q *Queries) TeamLogins(ctx context.Context, teams []string) ([]TeamLoginsRow, error) {
+	rows, err := q.db.Query(ctx, teamLogins, teams)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TeamLoginsRow
+	for rows.Next() {
+		var i TeamLoginsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Team,
+			&i.PublicKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const teams = `-- name: Teams :many

@@ -1605,7 +1605,19 @@ access:
 | Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar |
 | Zabbix, Nexus | Kendi API'leriyle kullanıcı ve grup atamaları |
 
-**SSH anahtarları:** Kaynakları Git'tir. Public key secret olmadığı için Git'te tutulmasında sakınca yoktur. Anahtarlar kullanıcı adıyla eşlenir; AD'de etkin olmayan bir kullanıcının anahtarı dağıtılmaz.
+**SSH anahtarları:**
+- Kişiler sunuculara giriş anahtarlarını Gaia profiline kaydeder (`/api/v1/me/login-keys`; eklemek için passkey/MFA yeniden istenir).
+- Anahtarlar Git'te tutulmaz: Git'e kullanıcı adı girmez (14.2) ve imza anahtarlarında olduğu gibi anahtarın sahibi Gaia'daki hesaptır.
+- AD'de etkin olmayan bir kullanıcının anahtarı dağıtılmaz.
+
+**Linux'ta dağıtım:** Gaia, kendi içinde taşıdığı `gaia_access` Ansible rolünü run'ın configure adımında, kontratın baseline ve rollerinden sonra çalıştırır. Rol config reposunun parçası değildir.
+- Erişimin takımlarındaki etkin üyeler `gaia-users` grubunda yerel hesap olarak açılır.
+- `authorized_keys` tam olarak Gaia'daki anahtarlardır.
+- sudo, `/etc/sudoers.d/gaia-<ad>` dosyasıyla verilir ve `visudo` ile doğrulanır.
+- Listeden çıkan hesap silinmez, ev dizini kalır. Hesabın süresi doldurulur ve anahtarları ile sudo kuralı kaldırılır. Yeniden listelenince açılır.
+- Bir kontratın erişimi tamamen kaldırılırsa, son uygulanan planda erişim olduğu için rol bir kez daha çalışır ve hesapları kapatır.
+- Linux hesap adına uymayan kullanıcı adları atlanır ve run çıktısında görünür.
+- Run kaydının `accessSnapshot`'ı her erişim girdisi için o anki takımları ve kişileri yazar.
 
 ### 14.5 Değişiklikler ve işten ayrılma
 
@@ -1716,3 +1728,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Team objesi TeamSource'tan önce elle yazılabilir; bildirim kanalları Provider (`slack`, `msteams`, `smtp`, `webhook`), abonelikler `Team.spec.notifications` |
 | 2026-10-25 | AD üyelikleri veritabanında, hesaplar objectGUID ile; OIDC girişi `directory.claim` ile AD hesabına bağlanır; owner onayı onaycı grubundan; yöneticinin kapattığı hesabı AD açamaz |
 | 2026-10-25 | Erişim planın parçası (çözülmüş takımlar); verilen erişim ayrıcalıklıysa platform-admin, başkasının Group'uysa sahibi onaylar, kazanan takımın üyesi onaylayamaz; ayrıcalıklı gruba AD eklemesi bildirilir |
+| 2026-10-25 | SSH giriş anahtarları Git'te değil Gaia profilinde (kullanıcı adları Git'e girmez); Linux erişimi Gaia'nın gömülü `gaia_access` rolüyle; çıkarılan hesap silinmez, süresi doldurulur |
