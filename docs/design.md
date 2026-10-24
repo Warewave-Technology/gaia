@@ -282,6 +282,12 @@ spec:
 
 Örnek, subnet üzerinde site, env, zone, vlan, gateway, dnsZone ve tags alanlarının tanımlı olduğu bir IPAM varsayar.
 
+- **Gaia'nın IPAM'ında** her havuzun bir adı, label'ları (site, env, zone, vlan, dnsZone...) ve tag'leri vardır (`gaia-ipam pool set --label ... --tag ...`).
+- **İfadelerin gördüğü `subnet`:** `cidr`, `gateway`, `name`, `rangeStart`, `rangeEnd`, `tags`, `labels`. Her label ayrıca üst seviyede de görünür (`subnet.site`). Label değerleri metindir; sayı gereken yerde `int(subnet.vlan)` yazılır.
+- **map ifadeleri** metin, sayı, liste veya map döndürebilir ve ağın adını (`name`) da görür.
+- **Varsayılanlar:** `ipam` yazılmazsa Source'un provider'ı ve havuzun cidr'ı kullanılır; `gateway` yazılmazsa havuzunki.
+- **Dışarıda bırakılanlar:** İfadesi hata veren ya da geçerli bir Network olmayan havuz atlanır. Yeni katalog yüklenmezse Gaia hatanın gösterdiği, bu Source'un eklediği veya değiştirdiği dosyaları dışarıda bırakıp yeniden dener; böylece tek bir bozuk havuz diğerlerini bekletmez. Hata Source'un kendi dosyasına bağlanamıyorsa (örneğin kullanılan bir ağın silinmesi) commit yazılmaz. Hepsi raporda görünür.
+
 ### 5.3 AnsibleRoleSource
 
 ```yaml
@@ -356,7 +362,7 @@ Patch'ler alan sahipliği kuralına bağlıdır:
 
 | Kind | Kaynağın sahibi (patch'lenemez) | Elle eklenebilir |
 |---|---|---|
-| Network | pool, gateway, site, DNS zone | labels, allowedEnvironments, description |
+| Network | pool, gateway, site, DNS zone, attachment | labels (metadata), allowedEnvironments, description |
 | AnsibleRole | source, revision, params, os | labels, monitoring, conflicts, allowedEnvironments |
 | Team | adGroup, approversGroup | displayName, secrets.prefix |
 

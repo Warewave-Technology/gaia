@@ -14,6 +14,7 @@ import (
 	"io"
 	"log/slog"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -66,12 +67,17 @@ type Report struct {
 func (s *Syncer) Run(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) (bool, error) {
 	wrote := false
 	var errs []error
-	for _, o := range g.Catalog.List(catalog.KindTeamSource) {
-		rep := s.teams(ctx, snap, g, o)
+	run := func(rep Report) {
 		wrote = wrote || rep.Status == "committed"
 		if err := s.save(ctx, rep); err != nil {
 			errs = append(errs, err)
 		}
+	}
+	for _, o := range g.Catalog.List(catalog.KindTeamSource) {
+		run(s.teams(ctx, snap, g, o))
+	}
+	for _, o := range g.Catalog.List(catalog.KindNetworkSrc) {
+		run(s.networks(ctx, snap, g, o))
 	}
 	return wrote, errors.Join(errs...)
 }
@@ -82,6 +88,21 @@ func (s *Syncer) save(ctx context.Context, r Report) error {
 	return s.Store.Q().SetSourceReport(ctx, db.SetSourceReportParams{
 		Source: r.Source, Status: r.Status, Commit: text(r.Commit), Detail: detail, Error: text(r.Error),
 	})
+}
+
+// secret reads a provider's credentials from the Platform's OpenBao.
+func (s *Syncer) secret(ctx context.Context, g *catalog.Graph, ps *catalog.ProviderSpec, name string) (map[string]string, error) {
+	if ps.Credentials == "" {
+		return map[string]string{}, nil
+	}
+	if s.Secrets == nil {
+		return nil, fmt.Errorf("%s: no access to OpenBao", name)
+	}
+	addr := ""
+	if b, ok := g.Catalog.Get(catalog.KindProvider, g.Platform().Spec.(*catalog.PlatformSpec).Secrets); ok {
+		addr = b.Spec.(*catalog.ProviderSpec).Endpoint
+	}
+	return s.Secrets(ctx, addr, ps.Credentials)
 }
 
 // write compares a source's rendered files with its output directory at
@@ -122,9 +143,34 @@ func (s *Syncer) write(ctx context.Context, snap repo.Snapshot, rep *Report, out
 		rep.Status = "unchanged"
 		return
 	}
-	if _, err := s.Repos.GraphWith(ctx, snap, changes); err != nil {
-		rep.Status, rep.Error = "refused", "the catalog would not load: "+err.Error()
-		return
+	// Objects that do not load are left out, one by one; what cannot be
+	// put on an object of this source refuses the whole commit.
+	for {
+		_, err := s.Repos.GraphWith(ctx, snap, changes)
+		if err == nil {
+			break
+		}
+		var errs catalog.Errors
+		dropped := false
+		if errors.As(err, &errs) {
+			for _, e := range errs {
+				if data, ok := changes[e.File]; ok && data != nil {
+					delete(changes, e.File)
+					rep.Problems = append(rep.Problems, e.Error()+" (left out)")
+					rep.Added = slices.DeleteFunc(rep.Added, func(p string) bool { return p == e.File })
+					rep.Changed = slices.DeleteFunc(rep.Changed, func(p string) bool { return p == e.File })
+					dropped = true
+				}
+			}
+		}
+		if !dropped {
+			rep.Status, rep.Error = "refused", "the catalog would not load: "+err.Error()
+			return
+		}
+		if len(changes) == 0 {
+			rep.Status = "unchanged"
+			return
+		}
 	}
 	if s.Writer == nil || s.Writer.Signer == nil {
 		rep.Status, rep.Error = "refused", "Gaia has no signing key to write the change (gaia server --signing-key)"

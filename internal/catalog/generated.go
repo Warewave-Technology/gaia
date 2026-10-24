@@ -23,8 +23,13 @@ const (
 // Patchable are the spec fields a patch may set on a generated object of
 // each kind; the rest belong to the object's source.
 var Patchable = map[string][]string{
-	KindTeam: {"displayName", "secrets", "notifications"},
+	KindTeam:    {"displayName", "secrets", "notifications"},
+	KindNetwork: {"allowedEnvironments", "description"},
 }
+
+// PatchableLabels are the kinds whose generated objects may get labels
+// from a patch (metadata.labels, merged).
+var PatchableLabels = map[string]bool{KindNetwork: true}
 
 // Generated reports whether the object was written by a Source.
 func (o *Object) Generated() bool { return o.Metadata.Annotations[AnnotationGeneratedBy] != "" }
@@ -137,7 +142,23 @@ func applyPatches(objects map[Key]*Object, patches []*Object) Errors {
 			at("%s is written by hand (%s); change it there", p.Key(), target.Source)
 			continue
 		}
+		if len(p.Metadata.Labels) > 0 {
+			if !PatchableLabels[p.Kind] {
+				at("metadata.labels: %s objects get no labels from a patch", p.Kind)
+				continue
+			}
+			if target.Metadata.Labels == nil {
+				target.Metadata.Labels = map[string]string{}
+			}
+			for k, v := range p.Metadata.Labels {
+				target.Metadata.Labels[k] = v
+			}
+		}
 		pn, tn := specNode(p.node), specNode(target.node)
+		if pn == nil && len(p.Metadata.Labels) > 0 {
+			target.Patches = append(target.Patches, p.Source)
+			continue
+		}
 		if pn == nil || pn.Kind != yaml.MappingNode || tn == nil || tn.Kind != yaml.MappingNode {
 			at("spec: want a mapping")
 			continue
@@ -183,4 +204,12 @@ func applyPatches(objects map[Key]*Object, patches []*Object) Errors {
 		target.Patches = append(target.Patches, p.Source)
 	}
 	return errs
+}
+
+// Validate runs a spec's own checks, for those who build specs.
+func Validate(spec any) []string {
+	if v, ok := spec.(validator); ok {
+		return v.validate()
+	}
+	return nil
 }

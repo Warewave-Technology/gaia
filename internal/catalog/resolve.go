@@ -143,6 +143,24 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindTeamSource) {
 		r.teamSource(o)
 	}
+	for _, o := range cat.List(KindNetworkSrc) {
+		s := o.Spec.(*NetworkSourceSpec)
+		r.ref(o, "spec.provider", KindProvider, s.Provider, "ipam")
+		if _, err := cel.SubnetRule(s.Select); err != nil {
+			r.fail(o, "spec.select", "%v", err)
+		}
+		if _, err := cel.SubnetString(s.Naming); err != nil {
+			r.fail(o, "spec.naming", "%v", err)
+		}
+		for field, src := range s.Map.Fields() {
+			if src == "" {
+				continue
+			}
+			if _, err := cel.SubnetValue(src); err != nil {
+				r.fail(o, "spec.map."+field, "%v", err)
+			}
+		}
+	}
 	for _, o := range cat.List(KindAuthConfig) {
 		for i, p := range o.Spec.(*AuthConfigSpec).Providers {
 			if p.Directory != nil {
