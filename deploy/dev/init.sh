@@ -16,6 +16,7 @@ bao POST kv/data/platform/postgres '{"data":{"username":"gaia_owner","password":
 bao POST kv/data/platform/pulumi-state '{"data":{"username":"gaia_owner","password":"dev"}}'
 bao POST kv/data/platform/seaweedfs '{"data":{"access_key":"gaia-dev","secret_key":"gaia-dev-secret"}}'
 bao POST kv/data/platform/ipam '{"data":{"token":"dev-ipam-token"}}'
+bao POST kv/data/platform/gaia/oidc '{"data":{"client_secret":"gaia-dev-oidc-secret"}}'
 
 # Gaia's AppRole: reads the platform's secrets and uses the Pulumi key.
 bao PUT sys/policies/acl/gaia '{"policy":"path \"kv/data/platform/*\" { capabilities = [\"read\"] }\npath \"transit/encrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/decrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/keys/pulumi\" { capabilities = [\"read\"] }\npath \"transit/encrypt/gaia-auth\" { capabilities = [\"update\"] }\npath \"transit/decrypt/gaia-auth\" { capabilities = [\"update\"] }"}'

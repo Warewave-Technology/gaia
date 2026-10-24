@@ -141,7 +141,28 @@ async function totpFinish(ev) {
   }
 }
 
+// step finishes an OIDC sign-in with Gaia's passkey: an existing one, or
+// the person's first.
+async function step() {
+  try {
+    const start = await post("/api/v1/auth/oidc/passkey/begin");
+    const cred = start.register
+      ? await navigator.credentials.create(creationOptions(start.options))
+      : await navigator.credentials.get(requestOptions(start.options));
+    const done = await post("/api/v1/auth/oidc/passkey/finish", { flow: start.flow, credential: credentialJSON(cred) });
+    if (done.recoveryCodes) {
+      showCodes(done.recoveryCodes);
+      document.getElementById("codes-next").href = done.next || "/";
+      return;
+    }
+    location.href = done.next || "/";
+  } catch (e) {
+    showError(e);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(location.search);
   try {
     const cfg = await (await fetch("/api/v1/auth/config")).json();
     if (cfg.require === "mfa") {
@@ -150,8 +171,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (el) el.hidden = false;
       }
     }
+    const box = document.getElementById("providers");
+    if (box) {
+      for (const p of cfg.providers.filter((p) => p.type === "oidc")) {
+        const a = document.createElement("a");
+        a.href = "/auth/oidc/" + encodeURIComponent(p.name) + "/start?next=" + encodeURIComponent(params.get("next") || "/");
+        a.textContent = p.name + " ile giriş";
+        a.style.cssText = "display:block;text-align:center;padding:12px;border:1px solid #C6CCD5;border-radius:6px;color:#14171C;text-decoration:none;font-weight:600";
+        box.appendChild(a);
+      }
+    }
   } catch (e) {
     /* the page still offers passkeys */
+  }
+  if (params.get("step") === "passkey") {
+    document.getElementById("intro").textContent = "Kimliğiniz doğrulandı. Girişi Gaia passkey'inizle tamamlayın.";
+    document.getElementById("step").hidden = false;
+    document.getElementById("step").addEventListener("click", step);
+    document.getElementById("passkey").hidden = true;
+    document.getElementById("providers").hidden = true;
   }
   const pw = document.getElementById("password");
   if (pw) pw.addEventListener("submit", passwordLogin);

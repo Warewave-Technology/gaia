@@ -1,0 +1,40 @@
+{
+  "realm": "gaia-dev",
+  "enabled": true,
+  "groups": [{ "name": "team-platform" }, { "name": "team-web" }],
+  "clients": [
+    {
+      "clientId": "gaia",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "gaia-dev-oidc-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8080/auth/oidc/dev-sso/callback"],
+      "webOrigins": ["http://localhost:8080"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": { "claim.name": "groups", "full.path": "false", "id.token.claim": "true", "access.token.claim": "false", "userinfo.token.claim": "true" }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "ayse", "enabled": true, "email": "ayse@gaia.invalid", "emailVerified": true,
+      "firstName": "Ayşe", "lastName": "Dev",
+      "credentials": [{ "type": "password", "value": "ayse-dev-password", "temporary": false }],
+      "groups": ["team-platform"]
+    },
+    {
+      "username": "mehmet", "enabled": true, "email": "mehmet@gaia.invalid", "emailVerified": true,
+      "firstName": "Mehmet", "lastName": "Dev",
+      "credentials": [{ "type": "password", "value": "mehmet-dev-password", "temporary": false }],
+      "groups": ["team-web"]
+    }
+  ]
+}
