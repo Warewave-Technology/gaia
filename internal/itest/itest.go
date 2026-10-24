@@ -114,9 +114,19 @@ func StartSamba(t testing.TB, seed string) *Samba {
 	}
 	docker(t, "cp", seed, name+":/tmp/seed.sh")
 	docker(t, "exec", name, "sh", "/tmp/seed.sh")
-	ca, err := exec.Command("docker", "exec", name, "cat", "/var/lib/samba/private/tls/ca.pem").Output()
-	if err != nil {
-		t.Fatal(err)
+	// Samba writes its TLS certificate when the LDAP server first starts,
+	// which can be after samba-tool answers.
+	var ca []byte
+	for {
+		out, err := exec.Command("docker", "exec", name, "cat", "/var/lib/samba/private/tls/ca.pem").Output()
+		if err == nil && bytes.Contains(out, []byte("BEGIN CERTIFICATE")) {
+			ca = out
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("samba wrote no TLS certificate: %v", err)
+		}
+		time.Sleep(time.Second)
 	}
 	port := docker(t, "port", name, "636/tcp")
 	port = port[strings.LastIndex(port, ":")+1:]
