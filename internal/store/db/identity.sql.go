@@ -391,13 +391,18 @@ func (q *Queries) SetUserEnabled(ctx context.Context, arg SetUserEnabledParams) 
 }
 
 const tOTP = `-- name: TOTP :one
-select user_id, ciphertext, confirmed_at from totp_secrets where user_id = $1
+select user_id, ciphertext, confirmed_at, last_step from totp_secrets where user_id = $1
 `
 
 func (q *Queries) TOTP(ctx context.Context, userID string) (TotpSecret, error) {
 	row := q.db.QueryRow(ctx, tOTP, userID)
 	var i TotpSecret
-	err := row.Scan(&i.UserID, &i.Ciphertext, &i.ConfirmedAt)
+	err := row.Scan(
+		&i.UserID,
+		&i.Ciphertext,
+		&i.ConfirmedAt,
+		&i.LastStep,
+	)
 	return i, err
 }
 
@@ -494,6 +499,24 @@ type UseRecoveryCodeParams struct {
 
 func (q *Queries) UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error) {
 	result, err := q.db.Exec(ctx, useRecoveryCode, arg.UserID, arg.CodeHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const useTOTPStep = `-- name: UseTOTPStep :execrows
+update totp_secrets set last_step = $2 where user_id = $1 and last_step < $2 and confirmed_at is not null
+`
+
+type UseTOTPStepParams struct {
+	UserID   string
+	LastStep int64
+}
+
+// A code is used once: only a later time step than the last one counts.
+func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useTOTPStep, arg.UserID, arg.LastStep)
 	if err != nil {
 		return 0, err
 	}

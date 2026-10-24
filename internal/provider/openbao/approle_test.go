@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,5 +66,25 @@ func TestAppRoleSession(t *testing.T) {
 
 	if _, err := Login(ctx, addr, "gaia-role", "wrong", nil); err == nil {
 		t.Error("login with a wrong secret_id")
+	}
+}
+
+func TestTransit(t *testing.T) {
+	itest.Require(t)
+	addr := itest.StartOpenBao(t)
+	bao(t, addr, "POST", "sys/mounts/transit", `{"type":"transit"}`)
+	bao(t, addr, "POST", "transit/keys/gaia-auth", `{}`)
+	c := New(addr, itest.OpenBaoRootToken)
+	ctx := context.Background()
+	ct, err := c.Encrypt(ctx, "gaia-auth", []byte("JBSWY3DPEHPK3PXP"))
+	if err != nil || !strings.HasPrefix(ct, "vault:v1:") {
+		t.Fatalf("encrypt: %q %v", ct, err)
+	}
+	pt, err := c.Decrypt(ctx, "gaia-auth", ct)
+	if err != nil || string(pt) != "JBSWY3DPEHPK3PXP" {
+		t.Errorf("decrypt: %q %v", pt, err)
+	}
+	if _, err := c.Decrypt(ctx, "gaia-auth", "vault:v1:bm9wZQ=="); err == nil {
+		t.Error("decrypted garbage")
 	}
 }

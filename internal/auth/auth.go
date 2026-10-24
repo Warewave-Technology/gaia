@@ -60,6 +60,7 @@ type Service struct {
 	log     *slog.Logger
 	now     func() time.Time
 	limits  limiters
+	transit Transit
 }
 
 // New returns the sign-in service. catalog returns the current catalog.

@@ -95,16 +95,70 @@ async function enroll() {
     const done = await post("/api/v1/auth/enroll/finish", {
       token, flow: start.flow, name: document.getElementById("name").value, credential: credentialJSON(cred),
     });
-    history.replaceState(null, "", location.pathname);
-    document.getElementById("codelist").textContent = done.recoveryCodes.join("\n");
-    document.getElementById("codes").hidden = false;
+    showCodes(done.recoveryCodes);
     document.getElementById("enroll").disabled = true;
   } catch (e) {
     showError(e);
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+async function passwordLogin(ev) {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  try {
+    await post("/api/v1/auth/password", { username: f.get("username"), password: f.get("password"), code: f.get("code") });
+    location.href = new URLSearchParams(location.search).get("next") || "/";
+  } catch (e) {
+    showError(e);
+  }
+}
+
+function showCodes(codes) {
+  history.replaceState(null, "", location.pathname);
+  document.getElementById("codelist").textContent = codes.join("\n");
+  document.getElementById("codes").hidden = false;
+}
+
+async function totpBegin() {
+  try {
+    const setup = await post("/api/v1/auth/enroll/totp/begin", { token: location.hash.slice(1) });
+    document.getElementById("totp-secret").textContent = setup.secret;
+    document.getElementById("totp-uri").href = setup.uri;
+    document.getElementById("totp-form").hidden = false;
+  } catch (e) {
+    showError(e);
+  }
+}
+
+async function totpFinish(ev) {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  try {
+    const done = await post("/api/v1/auth/enroll/totp/finish", { token: location.hash.slice(1), password: f.get("password"), code: f.get("code") });
+    showCodes(done.recoveryCodes);
+  } catch (e) {
+    showError(e);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const cfg = await (await fetch("/api/v1/auth/config")).json();
+    if (cfg.require === "mfa") {
+      for (const id of ["password", "totp"]) {
+        const el = document.getElementById(id);
+        if (el) el.hidden = false;
+      }
+    }
+  } catch (e) {
+    /* the page still offers passkeys */
+  }
+  const pw = document.getElementById("password");
+  if (pw) pw.addEventListener("submit", passwordLogin);
+  const tb = document.getElementById("totp-begin");
+  if (tb) tb.addEventListener("click", totpBegin);
+  const tf = document.getElementById("totp-form");
+  if (tf) tf.addEventListener("submit", totpFinish);
   const p = document.getElementById("passkey");
   if (p) p.addEventListener("click", login);
   const r = document.getElementById("recovery");
