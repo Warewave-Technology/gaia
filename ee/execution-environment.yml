@@ -1,0 +1,21 @@
+# Gaia'nin varsayilan Ansible execution environment'i (ansible-builder v3).
+#   ansible-builder build -f ee/execution-environment.yml -t localhost/gaia/ee-default:dev
+# Run kaydina imajin digest'i yazilir; collection ve paket surumleri burada sabit.
+version: 3
+
+images:
+  base_image:
+    name: quay.io/rockylinux/rockylinux:9
+
+dependencies:
+  python_interpreter:
+    package_system: python3.12
+    python_path: /usr/bin/python3.12
+  ansible_core:
+    package_pip: ansible-core>=2.21,<2.22
+  ansible_runner:
+    package_pip: ansible-runner>=2.4,<3
+  galaxy: requirements.yml
+
+options:
+  package_manager_path: /usr/bin/dnf

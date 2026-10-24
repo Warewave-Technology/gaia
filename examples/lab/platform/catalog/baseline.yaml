@@ -1,0 +1,7 @@
+apiVersion: gaia/v1alpha1
+kind: Baseline
+metadata:
+  name: linux-base
+spec:
+  os: linux
+  playbook: baseline/linux.yml

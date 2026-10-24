@@ -1,0 +1,9 @@
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata:
+  name: config-repo
+spec:
+  type: git
+  url: git@github.com:Warewave-Technology/gaia.git
+  path: ansible                     # PoC'de roller bu reponun ansible/ dizininde
+  ref: main

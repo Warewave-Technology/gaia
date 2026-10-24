@@ -1,0 +1,12 @@
+apiVersion: gaia/v1alpha1
+kind: Network
+metadata:
+  name: lab-poc
+  labels: { site: lab, env: test, zone: app }
+spec:
+  site: lab
+  attachment: { vnet: gaiapoc }     # Proxmox SDN VNet
+  ipam: { provider: ipam, pool: 10.50.0.0/24 }
+  gateway: 10.50.0.1
+  dns: { servers: [1.1.1.1] }
+  allowedEnvironments: [test]

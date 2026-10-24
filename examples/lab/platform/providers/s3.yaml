@@ -1,0 +1,19 @@
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata:
+  name: state
+spec:
+  type: s3
+  endpoint: http://192.168.1.25:8333
+  bucket: gaia-state
+  credentials: bao://kv/platform/seaweedfs
+---
+apiVersion: gaia/v1alpha1
+kind: Provider
+metadata:
+  name: run-records
+spec:
+  type: s3
+  endpoint: http://192.168.1.25:8333
+  bucket: gaia-run-records          # Object Lock (COMPLIANCE)
+  credentials: bao://kv/platform/seaweedfs

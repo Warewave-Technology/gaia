@@ -1,0 +1,11 @@
+apiVersion: gaia/v1alpha1
+kind: Site
+metadata:
+  name: lab
+spec:
+  compute:
+    provider: pve-lab
+    nodes: [proxmox]
+    pool: gaia
+    storage: { default: local-lvm, snapshots: true }
+  ntp: [pool.ntp.org]

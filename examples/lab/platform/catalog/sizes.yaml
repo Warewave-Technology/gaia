@@ -1,0 +1,11 @@
+apiVersion: gaia/v1alpha1
+kind: Size
+metadata:
+  name: small
+spec: { cpu: 2, memoryGiB: 2, diskGiB: 20 }
+---
+apiVersion: gaia/v1alpha1
+kind: Size
+metadata:
+  name: medium
+spec: { cpu: 4, memoryGiB: 8, diskGiB: 40 }

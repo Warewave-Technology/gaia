@@ -1,0 +1,6 @@
+/bin/
+/dist/
+/lab/
+/context/
+*.test
+coverage.out
