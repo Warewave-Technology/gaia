@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -509,5 +510,39 @@ spec: { teams: [team-dba], owner: team-sec, privileged: true }
 	c2, _ := e.open("poc-web")
 	if n := need(c2.ID); len(n.Groups) != 0 {
 		t.Errorf("after the access was applied: %+v", n)
+	}
+}
+
+// When a team's people change, the contracts that give it access get an
+// access run with what was applied; one waiting is enough.
+func TestPeopleChangesStartAccessRuns(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	e.finished = en.Finished
+	can := e.signer("can", "team-web")
+	e.git.Write("platform/teams.yaml", "apiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-web }\nspec: {}\n")
+	e.edit("contracts/poc-web.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { team: team-web }\n")
+	e.git.CommitSigned("web gets access", can.git)
+	srv := e.start()
+	e.evaluate(en)
+	c, _ := e.open("poc-web")
+	if c := e.waitChange(c.ID, change.Applied, change.Failed); c.Status != change.Applied {
+		t.Fatalf("change = %+v", c)
+	}
+
+	if runs, err := queue.Redistribute(ctx, e.store, srv.Queue(), []string{"team-ops"}); err != nil || len(runs) != 0 {
+		t.Errorf("a team without access: %v %v", runs, err)
+	}
+	runs, err := queue.Redistribute(ctx, e.store, srv.Queue(), []string{"team-web"})
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("redistribute: %v %v", runs, err)
+	}
+	r := e.waitFor(runs[0], "succeeded", "failed")
+	if r.Status != "succeeded" || r.RequestedBy.String != queue.AccessRequester {
+		t.Errorf("access run = %+v", r)
+	}
+	if _, err := queue.EnqueueAccess(ctx, e.store, srv.Queue(), "nope"); !errors.Is(err, queue.ErrNotApplied) {
+		t.Errorf("a contract never applied: %v", err)
 	}
 }

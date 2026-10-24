@@ -41,3 +41,8 @@ select * from run_stages where run_id = $1 order by started_at, contract, stage;
 
 -- name: CancelQueuedRun :execrows
 update runs set status = 'cancelled', error = $2, finished_at = now() where id = $1 and status = 'queued';
+
+-- name: QueuedRunBy :one
+-- A run of the contract still waiting, asked for by requester.
+select id from runs where status = 'queued' and sqlc.arg(contract)::text = any (contracts)
+  and requested_by = sqlc.arg(requested_by)::text limit 1;

@@ -91,6 +91,24 @@ func (q *Queries) QueueRun(ctx context.Context, arg QueueRunParams) error {
 	return err
 }
 
+const queuedRunBy = `-- name: QueuedRunBy :one
+select id from runs where status = 'queued' and $1::text = any (contracts)
+  and requested_by = $2::text limit 1
+`
+
+type QueuedRunByParams struct {
+	Contract    string
+	RequestedBy string
+}
+
+// A run of the contract still waiting, asked for by requester.
+func (q *Queries) QueuedRunBy(ctx context.Context, arg QueuedRunByParams) (string, error) {
+	row := q.db.QueryRow(ctx, queuedRunBy, arg.Contract, arg.RequestedBy)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const run = `-- name: Run :one
 select id, contracts, commit, plan_hash, status, error, started_at, finished_at, config_commit, ee_image, job_id, requested_by, queued_at from runs where id = $1
 `

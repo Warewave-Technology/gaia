@@ -86,7 +86,19 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if err := CheckApproval(p, d.ApprovedBy); err != nil {
 		return "", err
 	}
+	return run(ctx, g, p, d, func(ctx context.Context, r *runner) error { return r.all(ctx, p) })
+}
 
+// RunAccess distributes the access of a plan already applied again
+// (design 14.5): the people of its teams changed, or their keys. Nothing
+// is provisioned; only the access play runs on the contract's live
+// servers. p must be the plan last applied, never one waiting for
+// approval.
+func RunAccess(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, error) {
+	return run(ctx, g, p, d, func(ctx context.Context, r *runner) error { return r.accessOnly(ctx, p) })
+}
+
+func run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps, do func(context.Context, *runner) error) (string, error) {
 	q := d.Store.Q()
 	runID := d.RunID
 	if runID == "" {
@@ -105,7 +117,7 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	}
 	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{},
 		executedAs: map[string]string{"linux": User}, started: time.Now().UTC(), events: newEvents(d.Store, runID)}
-	err := r.all(ctx, p)
+	err := do(ctx, r)
 	status, msg := "succeeded", ""
 	switch {
 	case err != nil && ctx.Err() != nil:
@@ -184,6 +196,51 @@ func (r *runner) all(ctx context.Context, p *plan.Plan) error {
 		}
 		err := r.d.Store.WithContractLock(ctx, c.Name, func(ctx context.Context) error {
 			return r.contract(ctx, c, backend, sshKey)
+		})
+		if err != nil {
+			return fmt.Errorf("%s: %w", c.Name, err)
+		}
+	}
+	return nil
+}
+
+// accessOnly runs the access play of each contract on its live servers.
+func (r *runner) accessOnly(ctx context.Context, p *plan.Plan) error {
+	live := 0
+	for _, c := range p.Contracts {
+		live += running(c)
+	}
+	if live == 0 {
+		r.printf("no servers; nothing to distribute\n")
+		return nil
+	}
+	_, privateKey, err := r.sshKeys(ctx)
+	if err != nil {
+		return err
+	}
+	if r.cfg, err = r.configSetup(ctx, privateKey); err != nil {
+		return err
+	}
+	for _, c := range p.Contracts {
+		contract, ok := r.g.Catalog.Get(catalog.KindServer, c.Name)
+		if !ok {
+			return fmt.Errorf("%s: not in the catalog", c.Name)
+		}
+		var targets []target
+		for _, s := range c.Servers {
+			if s.Action == plan.Delete || s.UID == "" {
+				continue
+			}
+			addr, err := r.address(ctx, s)
+			if err != nil {
+				return fmt.Errorf("%s: %w", s.Hostname, err)
+			}
+			targets = append(targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
+		}
+		only := c
+		only.Baseline, only.Roles = nil, nil
+		err := r.d.Store.WithContractLock(ctx, c.Name, func(ctx context.Context) error {
+			return r.stage(ctx, c.Name, "access", func() error { return r.configure(ctx, only, contract, targets) })
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %w", c.Name, err)

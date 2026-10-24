@@ -204,6 +204,20 @@ func newServerCommand() *cobra.Command {
 				engine.Queue = srv.Queue()
 				engine.Notify = notifier
 				if cfg.Sources != nil {
+					cfg.Sources.Queue = srv.Queue()
+				}
+				if cfg.Auth != nil {
+					cfg.Auth.OnLoginKeys = func(ctx context.Context, userID string) {
+						teams, err := s.Q().Teams(ctx, userID)
+						if err == nil {
+							_, err = queue.Redistribute(ctx, s, srv.Queue(), teams)
+						}
+						if err != nil {
+							cfg.Log.Warn("access runs after a key change", "err", err)
+						}
+					}
+				}
+				if cfg.Sources != nil {
 					cfg.Sources.Syncer.Notify = notifier
 				}
 				if cfg.Sources != nil {
