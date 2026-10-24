@@ -12,9 +12,51 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 )
 
+// source is where commands read objects from: directories of one commit.
+type source struct {
+	repo, ref string
+	paths     []string
+}
+
+func (s *source) flags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&s.repo, "repo", ".", "repository (any directory inside it)")
+	cmd.Flags().StringVar(&s.ref, "ref", "HEAD", "commit, branch or tag to read")
+	cmd.Flags().StringSliceVar(&s.paths, "path", nil, "directory inside the repository; repeatable (default: the whole tree)")
+}
+
+// graph loads and resolves the objects. It prints which commit was read
+// and, on problems, each of them; the error then carries their count.
+func (s *source) graph(out io.Writer) (*catalog.Graph, error) {
+	paths := s.paths
+	if len(paths) == 0 {
+		paths = []string{""}
+	}
+	var all []catalog.File
+	var commit string
+	for _, p := range paths {
+		files, c, err := gitsrc.Files(s.repo, s.ref, p)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, files...)
+		commit = c
+	}
+	if _, err := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], s.ref, len(all)); err != nil {
+		return nil, err
+	}
+	cat, err := catalog.Load(commit, all)
+	if err != nil {
+		return nil, report(out, err)
+	}
+	g, err := catalog.Resolve(cat)
+	if err != nil {
+		return nil, report(out, err)
+	}
+	return g, nil
+}
+
 func newValidateCommand() *cobra.Command {
-	var repo, ref string
-	var paths []string
+	var src source
 	cmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Load and check catalog and contract files at a commit",
@@ -22,39 +64,16 @@ func newValidateCommand() *cobra.Command {
 			"checks it as Gaia objects. Uncommitted changes are not read.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if len(paths) == 0 {
-				paths = []string{""}
-			}
-			var all []catalog.File
-			var commit string
-			for _, p := range paths {
-				files, c, err := gitsrc.Files(repo, ref, p)
-				if err != nil {
-					return err
-				}
-				all = append(all, files...)
-				commit = c
-			}
-
 			out := cmd.OutOrStdout()
-			if _, err := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], ref, len(all)); err != nil {
+			g, err := src.graph(out)
+			if err != nil {
 				return err
 			}
-			cat, err := catalog.Load(commit, all)
-			if err != nil {
-				return report(out, err)
-			}
-			g, err := catalog.Resolve(cat)
-			if err != nil {
-				return report(out, err)
-			}
-			_, err = fmt.Fprintf(out, "%d objects (%s), %d references\n", cat.Len(), summary(cat), refCount(g))
+			_, err = fmt.Fprintf(out, "%d objects (%s), %d references\n", g.Catalog.Len(), summary(g.Catalog), refCount(g))
 			return err
 		},
 	}
-	cmd.Flags().StringVar(&repo, "repo", ".", "repository (any directory inside it)")
-	cmd.Flags().StringVar(&ref, "ref", "HEAD", "commit, branch or tag to read")
-	cmd.Flags().StringSliceVar(&paths, "path", nil, "directory inside the repository; repeatable (default: the whole tree)")
+	src.flags(cmd)
 	return cmd
 }
 
