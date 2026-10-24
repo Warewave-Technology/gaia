@@ -25,6 +25,7 @@ const (
 	KindAnsibleRole = "AnsibleRole"
 	KindServer      = "Server"
 	KindAuthConfig  = "AuthConfig"
+	KindTeam        = "Team"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -40,6 +41,7 @@ var newSpec = map[string]func() any{
 	KindAnsibleRole: func() any { return &AnsibleRoleSpec{} },
 	KindServer:      func() any { return &ServerSpec{} },
 	KindAuthConfig:  func() any { return &AuthConfigSpec{} },
+	KindTeam:        func() any { return &TeamSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.
