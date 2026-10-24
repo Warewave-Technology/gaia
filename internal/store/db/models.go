@@ -283,6 +283,7 @@ type TeamMembership struct {
 	Team     string
 	Source   string
 	SyncedAt pgtype.Timestamptz
+	Role     string
 }
 
 type TotpSecret struct {
@@ -293,16 +294,18 @@ type TotpSecret struct {
 }
 
 type User struct {
-	ID           string
-	Username     string
-	DisplayName  pgtype.Text
-	Provider     string
-	Subject      pgtype.Text
-	PasswordHash pgtype.Text
-	Enabled      bool
-	CreatedAt    pgtype.Timestamptz
-	DisabledAt   pgtype.Timestamptz
-	Email        pgtype.Text
+	ID            string
+	Username      string
+	DisplayName   pgtype.Text
+	Provider      string
+	Subject       pgtype.Text
+	PasswordHash  pgtype.Text
+	Enabled       bool
+	CreatedAt     pgtype.Timestamptz
+	DisabledAt    pgtype.Timestamptz
+	Email         pgtype.Text
+	DirectoryName pgtype.Text
+	DisabledBy    pgtype.Text
 }
 
 type UserSubscription struct {

@@ -22,8 +22,11 @@ type Need struct {
 
 // Group is one approval the change needs.
 type Group struct {
-	Name       string   `json:"name"` // owner | platform-admin
-	Teams      []string `json:"teams"`
+	Name  string   `json:"name"` // owner | platform-admin
+	Teams []string `json:"teams"`
+	// Role is who of the teams approve: their members, or the people of
+	// the team's approvers group (design 14.1).
+	Role       string   `json:"role"`
 	Candidates []string `json:"candidates"`
 	ApprovedBy string   `json:"approvedBy,omitempty"`
 	Why        string   `json:"why"`
@@ -90,7 +93,10 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		if ep.Approval != "required" {
 			why = "deleting servers in env " + env
 		}
-		gr := Group{Name: "owner", Teams: []string{owner}, Why: why}
+		gr := Group{Name: "owner", Teams: []string{owner}, Role: "member", Why: why}
+		if t := g.Team(owner); t != nil && t.ApproversGroup != nil {
+			gr.Role = "approver"
+		}
 		others, err := e.otherOwners(ctx, c, g, owner)
 		if err != nil {
 			return need, err
@@ -98,13 +104,15 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		if len(others) > 0 {
 			// A commit that changes several owners' contracts: a
 			// platform-admin may approve for the owner (design 7.6).
+			// The platform admins' teams approve by membership; when the
+			// owner's team has approvers, they stay the owner's.
 			gr.Teams = append(gr.Teams, roles["platform-admin"]...)
 			gr.Why += "; the same commits change " + strings.Join(others, ", ") + ", so a platform-admin may approve too"
 		}
 		need.Groups = append(need.Groups, gr)
 	}
 	if deletes && ep.DeleteProtection {
-		need.Groups = append(need.Groups, Group{Name: "platform-admin", Teams: roles["platform-admin"], Why: "deleting servers in env " + env})
+		need.Groups = append(need.Groups, Group{Name: "platform-admin", Teams: roles["platform-admin"], Role: "member", Why: "deleting servers in env " + env})
 	}
 	if len(need.Groups) == 0 {
 		return need, nil
@@ -117,13 +125,22 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 	}
 	for i := range need.Groups {
 		gr := &need.Groups[i]
-		members, err := q.TeamMembers(ctx, gr.Teams)
+		members, err := q.TeamMembers(ctx, db.TeamMembersParams{Teams: gr.Teams[:1], Role: gr.Role})
 		if err != nil {
 			return need, err
 		}
+		if len(gr.Teams) > 1 {
+			// Further teams (platform admins for a commit across owners)
+			// approve by membership.
+			more, err := q.TeamMembers(ctx, db.TeamMembersParams{Teams: gr.Teams[1:], Role: "member"})
+			if err != nil {
+				return need, err
+			}
+			members = append(members, more...)
+		}
 		gr.Candidates = []string{}
 		for _, m := range members {
-			if !slices.Contains(c.RequestedBy, m.Username) {
+			if !slices.Contains(c.RequestedBy, m.Username) && !slices.Contains(gr.Candidates, m.Username) {
 				gr.Candidates = append(gr.Candidates, m.Username)
 			}
 		}

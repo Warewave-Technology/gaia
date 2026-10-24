@@ -202,12 +202,22 @@ func (a *Service) oidcCallback(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusUnauthorized)
 		return
 	}
+	var all map[string]any
+	_ = idt.Claims(&all)
 	if prov.GroupsClaim != "" {
-		var all map[string]any
-		_ = idt.Claims(&all)
 		c.Groups = stringList(all[prov.GroupsClaim])
 	}
-	userID, err := a.oidcUser(ctx, prov.Name, c)
+	var userID string
+	if d := prov.Directory; d != nil {
+		claim := d.Claim
+		if claim == "" {
+			claim = "preferred_username"
+		}
+		v, _ := all[claim].(string)
+		userID, err = a.directoryUser(ctx, d.Provider, v)
+	} else {
+		userID, err = a.oidcUser(ctx, prov.Name, c)
+	}
 	if err != nil {
 		a.fail(w, err, http.StatusForbidden)
 		return
@@ -248,6 +258,27 @@ func mfaShown(prov *catalog.AuthProvider, c claims) bool {
 
 // oidcUser finds the person by provider and subject, creating them on
 // their first sign-in, and replaces their teams from the groups claim.
+// directoryUser is the account a sign-in names in the directory (design
+// 14): the one Gaia synced from AD with that sAMAccountName. Teams and
+// roles are the directory's; a sign-in that names no account, or a closed
+// one, is refused.
+func (a *Service) directoryUser(ctx context.Context, provider, value string) (string, error) {
+	name, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(value)), "@")
+	if name == "" {
+		return "", errors.New("the ID token does not name a directory account")
+	}
+	u, err := a.store.Q().DirectoryUserByName(ctx, db.DirectoryUserByNameParams{Provider: provider, DirectoryName: text(name)})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return "", fmt.Errorf("%s is not in a team Gaia knows (directory %s)", name, provider)
+	case err != nil:
+		return "", err
+	case !u.Enabled:
+		return "", errors.New("this account is disabled")
+	}
+	return u.ID, nil
+}
+
 func (a *Service) oidcUser(ctx context.Context, provider string, c claims) (string, error) {
 	if c.Subject == "" {
 		return "", errors.New("the ID token has no subject")

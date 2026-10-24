@@ -631,8 +631,18 @@ type AuthProvider struct {
 	ClientID     string   `yaml:"clientId"`
 	ClientSecret string   `yaml:"clientSecret"` // bao://
 	Scopes       []string `yaml:"scopes"`
-	GroupsClaim  string   `yaml:"groupsClaim"` // until teams come from AD (roadmap phase 6)
+	GroupsClaim  string   `yaml:"groupsClaim"` // teams from the token, when there is no directory
 	MFA          *OIDCMFA `yaml:"mfa"`
+	// Directory ties sign-ins to Active Directory accounts (design 14):
+	// teams and roles then come from AD, not from the token.
+	Directory *AuthDirectory `yaml:"directory"`
+}
+
+// AuthDirectory says which AD account a sign-in is: the account whose
+// sAMAccountName is the claim's value (what precedes an @ is used).
+type AuthDirectory struct {
+	Provider string `yaml:"provider" gaia:"required"`
+	Claim    string `yaml:"claim"` // preferred_username by default; upn, email...
 }
 
 // OIDCMFA is when an OIDC sign-in counts as MFA: the ID token's amr or acr

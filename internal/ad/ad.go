@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -192,6 +193,44 @@ func (d *Directory) User(username string) (User, error) {
 		return User{}, fmt.Errorf("ad: %d accounts named %s", len(entries), username)
 	}
 	return user(entries[0]), nil
+}
+
+// ErrNoAccount: the directory has no such account (any more).
+var ErrNoAccount = errors.New("ad: no such account")
+
+// UserByGUID finds an account by its objectGUID, as User.GUID writes it.
+func (d *Directory) UserByGUID(id string) (User, error) {
+	raw, err := guidBytes(id)
+	if err != nil {
+		return User{}, err
+	}
+	var esc strings.Builder
+	for _, b := range raw {
+		fmt.Fprintf(&esc, "\\%02x", b)
+	}
+	entries, err := d.search(d.BaseDN, "(&(objectCategory=person)(objectClass=user)(objectGUID="+esc.String()+"))", userAttrs)
+	if err != nil {
+		return User{}, err
+	}
+	if len(entries) == 0 {
+		return User{}, ErrNoAccount
+	}
+	return user(entries[0]), nil
+}
+
+func guidBytes(s string) ([]byte, error) {
+	h := strings.ReplaceAll(s, "-", "")
+	b, err := hex.DecodeString(h)
+	if err != nil || len(b) != 16 {
+		return nil, fmt.Errorf("ad: %q is not a GUID", s)
+	}
+	// The first three fields are little-endian on the wire.
+	out := make([]byte, 16)
+	binary.LittleEndian.PutUint32(out[0:4], binary.BigEndian.Uint32(b[0:4]))
+	binary.LittleEndian.PutUint16(out[4:6], binary.BigEndian.Uint16(b[4:6]))
+	binary.LittleEndian.PutUint16(out[6:8], binary.BigEndian.Uint16(b[6:8]))
+	copy(out[8:], b[8:])
+	return out, nil
 }
 
 // accountDisable is userAccountControl's ACCOUNTDISABLE bit.

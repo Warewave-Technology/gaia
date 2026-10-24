@@ -64,7 +64,7 @@ select * from approvals where change_id = $1 order by id;
 -- name: TeamMembers :many
 -- Enabled people in any of the teams.
 select distinct u.id, u.username from users u join team_memberships t on t.user_id = u.id
-where t.team = any (sqlc.arg(teams)::text[]) and u.enabled order by u.username;
+where t.team = any (sqlc.arg(teams)::text[]) and t.role = sqlc.arg(role)::text and u.enabled order by u.username;
 
 -- name: OpenChanges :many
 select * from changes where status in ('pending', 'approved', 'running') order by contract;

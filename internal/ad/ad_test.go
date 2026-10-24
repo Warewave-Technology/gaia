@@ -2,6 +2,7 @@ package ad
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -68,6 +69,13 @@ func TestReadTheDirectory(t *testing.T) {
 	u, err := d.User("Ayse")
 	if err != nil || u.Mail != "ayse@gaia.dev" || u.DisplayName == "" || len(u.GUID) != 36 {
 		t.Errorf("ayse = %+v, %v", u, err)
+	}
+
+	if byID, err := d.UserByGUID(u.GUID); err != nil || byID.Username != "ayse" {
+		t.Errorf("by GUID = %+v, %v", byID, err)
+	}
+	if _, err := d.UserByGUID("00000000-0000-0000-0000-000000000000"); !errors.Is(err, ErrNoAccount) {
+		t.Errorf("an unknown GUID: %v", err)
 	}
 
 	// The certificate names dc1.gaia.dev, not 127.0.0.1; a wrong password
