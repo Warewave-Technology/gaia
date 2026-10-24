@@ -61,7 +61,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
-| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | Sürüyor: store, IPAM v0, duruma bakan plan ve provisioning motoru hazır |
+| **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | **Tamam:** lab'de `gaia apply` ile uçtan uca VM açıldı |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
@@ -124,12 +124,21 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Metin çıktısı:** `+` create, `=` keep, `-` delete; özet sistem başına `+N =N` ve `-N` gösterir. Değişiklik yoksa "no changes to servers" yazar.
    - **Veritabanı:** `gaia plan --dsn` (ya da `$GAIA_DSN`) durumu veritabanından okur. Veritabanı verilmezse her sunucu yeni sayılır ve bu açıkça yazılır.
    - **Şema:** `hosts` tablosuna `network` eklendi (migration 0002).
-4. **Provisioning:** OpenBao'dan credential okuma; Pulumi Automation API + `proxmoxve`, state SeaweedFS'te. **Tamam** (`internal/engine/pulumi`, `internal/provider/{openbao,proxmox}`). Gerçek ortamda deneme 5. adımda.
+4. **Provisioning:** OpenBao'dan credential okuma; Pulumi Automation API + `proxmoxve`, state PostgreSQL'de. **Tamam** (`internal/engine/pulumi`, `internal/provider/{openbao,proxmox}`). Gerçek ortamda deneme 5. adımda.
    - **OpenBao istemcisi:** `bao://<mount>/<path>` referanslarını KV v2'den okur.
    - **Proxmox istemcisi:** Kümede kullanılan VMID'leri okur. Gaia, Site'taki `compute.vmids` aralığında en küçük boş VMID'i seçer.
-   - **Pulumi motoru:** Her kontrat ve site için bir stack açılır (`gaia` projesi); state SeaweedFS'te, secret'lar `hashivault://pulumi` ile şifreli tutulur. Proxmox credential'ı state'e secret olarak girer. Her sunucu `vm-<UID>` adlı bir `VmLegacy` kaynağıdır: şablondan tam klon, CPU, bellek, diskler, ağ bağlantısı, cloud-init (IP, gateway, DNS, kullanıcı ve SSH anahtarı), agent, tag'ler, açıklama ve SMBIOS UUID. Yeni `Vm` kaynağı kendi dokümantasyonunda deneysel olarak işaretli olduğu için kullanılmadı. Plugin sürümü SDK ile aynı (v8.6.0).
+   - **Pulumi motoru:** Her kontrat ve site için bir stack açılır (`gaia` projesi); state PostgreSQL'de (`pulumi` veritabanı), secret'lar `hashivault://pulumi` ile şifreli tutulur. Proxmox credential'ı state'e secret olarak girer. Her sunucu `vm-<UID>` adlı bir `VmLegacy` kaynağıdır: şablondan tam klon, CPU, bellek, diskler, ağ bağlantısı, cloud-init (IP, gateway, DNS, kullanıcı ve SSH anahtarı), agent, tag'ler, açıklama ve SMBIOS UUID. Yeni `Vm` kaynağı kendi dokümantasyonunda deneysel olarak işaretli olduğu için kullanılmadı. Plugin sürümü SDK ile aynı (v8.6.0).
    - **Katalog:** Site'a `compute.vmids` eklendi (Proxmox'ta zorunlu); Platform'a `engines.configuration.sshKey` eklendi (`bao://`).
-5. **`gaia apply`:** Bu adımları sırayla çalıştırır; lab'de uçtan uca bir VM açılır, ikinci apply değişiklik yapmaz.
+5. **`gaia apply`:** Bu adımları sırayla çalıştırır; lab'de uçtan uca bir VM açılır, ikinci apply değişiklik yapmaz. **Tamam** (`internal/apply`).
+   - **Akış:** Planı yazdırır; `--yes` yoksa durur. Her kontrat kilit altında işlenir. Sırası: sunucu kaydı ve isim kiralaması, IPAM'dan IP, Proxmox'tan boş VMID, SMBIOS UUID, `pulumi up`. Her adımın sonucu `host_external_ids`'e yazılır (`ip`, `vm`, `smbios`).
+   - **Doğrulama:** `pulumi up` önce refresh yapar. Apply, VM'in VMID'ini ve guest agent'ın planlanan IP'yi bildirdiğini doğrulamadan sunucuyu `active` yapmaz. Yarım kalan bir klon (cloud-init diski olmadan) bu yüzden başarılı sayılmadı.
+   - **Silme reddedilir:** `delete` içeren plan M4'e kadar uygulanmaz.
+   - **Pulumi state'i PostgreSQL'de:** SeaweedFS boşalan dizinleri listede 0 baytlık obje olarak döndürüyor ve Pulumi'nin kilit kontrolü `unexpected end of JSON input` ile düşüyor. State Pulumi'nin `postgres://` DIY backend'ine taşındı (`state` provider'ı `type: postgres`, kullanıcı bilgisi `bao://kv/platform/pulumi-state`). SeaweedFS'te sadece run kayıtları kalır.
+   - **Stack ayarları:** Automation API her run'da geçici bir çalışma dizini açtığı için şifreli anahtar kayboluyordu. Ayarlar `pulumi_stacks` tablosunda tutulur (migration 0003).
+   - **Pulumi CLI sabit:** 3.272.0, SDK ile aynı. Gaia ilk çalıştırmada indirir (kullanıcının cache dizininde `gaia/`; Linux'ta `~/.cache`, macOS'ta `~/Library/Caches`). Eski CLI'lar S3 URL parametrelerini tanımıyordu.
+   - **Proxmox yetkisi:** Klon sırasında provider seri konsolu okuduğu için `gaia@pve`'ye `/` üzerinde `Sys.Console` gerekiyor (lab'de `GaiaConsole` rolü).
+   - **Lab sonucu:** `labtpoc01` (VM 9400, 10.50.0.100/24) açıldı. SMBIOS UUID ve tag'ler veritabanıyla aynı. Gaia'nın anahtarıyla platform VM üzerinden SSH ve `sudo` çalışıyor, internete çıkıyor.
+   - **İkinci apply:** Gaia'nın planı `= labtpoc01`, "no changes to servers". Pulumi ise her run'da diske etkisiz bir update gönderiyor. Neden `proxmoxve` v8.6.0'daki (Terraform provider v0.112.0) bir uyumsuzluk: disk `speed` bloğunun varsayılanı sıfırlarla dolu, okumada ise blok hiç dönmüyor. `ignoreChanges` bunu bastırmıyor, çünkü fark girdiyle provider'ın kendi state'i arasında. VM konfigürasyonu değişmiyor. Upstream'e bildirilecek (design.md, Açık Konular).
 
 ## Kararlar
 

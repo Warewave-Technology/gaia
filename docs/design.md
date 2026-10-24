@@ -96,7 +96,7 @@ spec:
   credentials: bao://kv/platform/vsphere/ank       # secret'a sadece referans verilir
 ```
 
-Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
+Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `postgres` (Pulumi state), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
 
 ### 4.2 Platform
 
@@ -108,9 +108,9 @@ metadata:
 spec:
   secrets: bao
   engines:
-    provisioning:  { tool: pulumi,  state: state }        # Pulumi Automation API, state SeaweedFS'te
+    provisioning:  { tool: pulumi,  state: state }        # Pulumi Automation API, state PostgreSQL'de (12.1)
     configuration: { tool: ansible, executor: ansible-runner, source: config-repo }   # ayrıntılar 7.4'te
-  runArchive: state                                       # run logları ve kayıtları
+  runArchive: run-records                                 # run kayıtlarının arşivi, SeaweedFS (Object Lock)
 ```
 
 ### 4.3 Örnek katalog objeleri
@@ -221,7 +221,7 @@ Bu alanların içeriği provider tipine göre değişir ve validasyon da buna g�
 | Olay kaydı | `LogUserEvent` | Kullanıcı olayı API'si yok | Run kaydı yeterlidir |
 
 **Araçlar**
-- **Pulumi:** vSphere için `vsphere`, Proxmox için topluluk tarafından geliştirilen `proxmoxve` provider'ı (muhlba91, bpg'nin Terraform provider'ını sarar). `proxmoxve` resmi bir Pulumi provider'ı olmadığı için olgunluğu PoC'de doğrulanır. Gaia'nın içindeki VM bileşeni Size, Image ve Network bilgisini provider'ın kaynaklarına çevirir: `vsphere.VirtualMachine` veya `proxmoxve.vm.VirtualMachine`.
+- **Pulumi:** vSphere için `vsphere`, Proxmox için topluluk tarafından geliştirilen `proxmoxve` provider'ı (muhlba91, bpg'nin Terraform provider'ını sarar). `proxmoxve` resmi bir Pulumi provider'ı olmadığı için olgunluğu PoC'de doğrulanır. Gaia'nın içindeki VM bileşeni Size, Image ve Network bilgisini provider'ın kaynaklarına çevirir: `vsphere.VirtualMachine` veya `proxmoxve.VmLegacy`.
 - **Day-2 işler:** Güç ve snapshot işleri Ansible ile değil, provider'ların Go API'si ile doğrudan yapılır (vSphere için govmomi, Proxmox için Proxmox API client'ı). Her compute provider aynı arayüzü uygular:
 
 ```go
@@ -1197,6 +1197,8 @@ spec:
 
 IPAM bu veritabanında değildir. IPAM ayrı bir servis ve ayrı bir veritabanıdır; Gaia ona diğer sistemler gibi bir provider üzerinden bağlanır. Böylece provider modeli korunur ve gerekirse NetBox gibi bir alternatife geçmek için sadece provider değişir. Aynı PostgreSQL cluster'ında ayrı bir veritabanı olarak durabilir. Zabbix'in veritabanı ise yüksek yazma yükü nedeniyle ayrı bir cluster'da olmalıdır.
 
+Pulumi state'i de aynı cluster'da ayrı bir veritabanında durur (Pulumi'nin `postgres://` DIY backend'i). State'teki secret'lar OpenBao transit anahtarıyla şifrelidir (`hashivault://pulumi`). Stack ayarları (secrets provider ve şifreli anahtar) Gaia'nın veritabanında `pulumi_stacks` tablosunda tutulur, çünkü Automation API her run'da geçici bir çalışma dizini açar. SeaweedFS state için kullanılmadı: boşalan dizinleri listede 0 baytlık obje olarak döndürüyor ve bu, Pulumi'nin kilit kontrolünü bozuyor.
+
 ### 12.2 PostgreSQL ve Gaia'nın gereksinimleri
 
 Veritabanı PostgreSQL'dir. PostgreSQL'in nasıl kurulacağı ve işletileceği (HA, replikasyon, yedek, izleme) **veritabanı yöneticisinin kararıdır**; Gaia buna bağımlı değildir. Gaia'nın beklediği şeyler şunlar:
@@ -1444,7 +1446,7 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 
 ## 15. Açık Konular
 
-- [ ] **`proxmoxve` Pulumi provider'ının olgunluğu:** Topluluk provider'ı; PoC'de doğrulanacak.
+- [ ] **`proxmoxve` Pulumi provider'ının olgunluğu:** Topluluk provider'ı; PoC'de doğrulanıyor. Klon, cloud-init, SMBIOS UUID ve tag'ler lab'de çalıştı. Bilinen sorun (v8.6.0, Terraform provider v0.112.0): disk `speed` bloğunun varsayılanı sıfırlarla dolu, okumada ise hiç dönmüyor. Bu yüzden her apply'da diske etkisiz bir update gidiyor. Upstream'e bildirilecek.
 
 ## 16. Karar Kaydı
 
@@ -1507,3 +1509,6 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | İlk compute provider Proxmox; PoC Proxmox üzerinde |
 | 2026-10-23 | Keşif üç düzeyde: hipervizör yapısı ve VM'ler/çevre sistemler API ile kendiliğinden; sunucu içi keşif `Operation discover` ile onaylı |
 | 2026-10-23 | Keşif çıktıları: raporlar veritabanında; IPAM ilk doldurması arayüzde gözden geçirilerek; katalog ve adopt taslakları bot PR ile |
+| 2026-10-24 | Pulumi state'i PostgreSQL'de (DIY backend), ayrı veritabanında; SeaweedFS boşalan dizinleri obje olarak listelediği için state'e uygun değil |
+| 2026-10-24 | Pulumi CLI sürümü Gaia'da sabit (3.272.0, SDK ile aynı); Gaia ilk çalıştırmada kendisi kurar |
+| 2026-10-24 | Her `pulumi up` önce refresh yapar; apply, VM'in planlanan IP'yi guest agent üzerinden bildirdiğini doğrulamadan sunucuyu `active` yapmaz |

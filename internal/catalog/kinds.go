@@ -88,7 +88,7 @@ type ProviderAuth struct {
 }
 
 // ProviderTypes are the provider types Gaia knows.
-var ProviderTypes = []string{"activedirectory", "git", "ipam", "nexus", "openbao", "proxmox", "s3", "vsphere", "warpgate", "zabbix"}
+var ProviderTypes = []string{"activedirectory", "git", "ipam", "nexus", "openbao", "postgres", "proxmox", "s3", "vsphere", "warpgate", "zabbix"}
 
 func (s *ProviderSpec) validate() []string {
 	var out []string

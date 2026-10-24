@@ -37,3 +37,8 @@ select * from host_external_ids where uid = $1 order by provider, kind;
 
 -- name: HostByExternalID :one
 select uid from host_external_ids where provider = $1 and kind = $2 and external_id = $3;
+
+-- name: ExternalIDsOfKind :many
+-- IDs a provider has given out, for live hosts: a VM ID in use by Gaia.
+select e.external_id from host_external_ids e join hosts h on h.uid = e.uid
+where e.provider = $1 and e.kind = $2 and h.status <> 'deleted';

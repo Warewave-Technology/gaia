@@ -16,7 +16,7 @@ func NewRootCommand(version string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(newVersionCommand("gaia", version), newValidateCommand(), newPlanCommand(), newMigrateCommand())
+	root.AddCommand(newVersionCommand("gaia", version), newValidateCommand(), newPlanCommand(), newApplyCommand(), newMigrateCommand())
 	return root
 }
 

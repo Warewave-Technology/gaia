@@ -5,8 +5,12 @@ package apply
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
+	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 // StoreState reads a plan's State from Gaia's database.
@@ -30,4 +34,24 @@ func (s StoreState) NameHolder(ctx context.Context, name string) (string, error)
 		return "", nil
 	}
 	return uid, err
+}
+
+func pgText(s string) pgtype.Text { return pgtype.Text{String: s, Valid: s != ""} }
+
+// StackSettings keeps Pulumi stack settings in Gaia's database.
+type StackSettings struct{ S *store.Store }
+
+func (s StackSettings) LoadStack(ctx context.Context, name string) (pulumi.Settings, bool, error) {
+	row, err := s.S.Q().PulumiStack(ctx, name)
+	if store.IsNotFound(err) {
+		return pulumi.Settings{}, false, nil
+	}
+	if err != nil {
+		return pulumi.Settings{}, false, err
+	}
+	return pulumi.Settings{SecretsProvider: row.SecretsProvider, EncryptedKey: row.EncryptedKey}, true, nil
+}
+
+func (s StackSettings) SaveStack(ctx context.Context, name string, v pulumi.Settings) error {
+	return s.S.Q().SavePulumiStack(ctx, db.SavePulumiStackParams{Name: name, SecretsProvider: v.SecretsProvider, EncryptedKey: v.EncryptedKey})
 }
