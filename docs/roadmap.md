@@ -122,10 +122,15 @@ Gaia'nın omurgası (tasarım 7.6).
   - motorun olayları (onay bekliyor, onaylandı, reddedildi, uygulandı, başarısız)
   - `notifications` tablosu ve tekrar denemeli teslim
   - dört kanal, sahte alıcılarla test edildi
-- Kalan:
-  - kişisel abonelik API'si ve e-posta adresi
-  - Mailpit'le uçtan uca test
-  - lab oturumu (Faz 3'ün uygulaması da burada)
+- Tamam:
+  - kişisel abonelikler (`/api/v1/me/notifications`, `gaia notifications`)
+  - e-posta adresi: OIDC'nin doğrulanmış adresi, yerel hesapta kişinin kendisi
+  - Change'in bildirim listesi
+- Uçtan uca test: Gitea + Mailpit + yerel webhook alıcısı. İmzalı push'tan sonra şu olaylar dört kanala da ulaştı:
+  - onay bekliyor
+  - onaylandı
+  - gerçek worker'da başlayıp hata veren run sonrası "başarısız" (hata ve onaylayan mesajda)
+- Kalan: lab oturumu (Faz 3'ün uygulaması da burada).
 - Sonraki fazlara bırakılan tetikleyiciler: `drift.found` (drift), `approval.expiring` (pencereler).
 
 ## Faz 5: Arayüz

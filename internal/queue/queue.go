@@ -216,6 +216,9 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	if p.Hash != a.PlanHash {
 		return g, w.fail(ctx, a, fmt.Errorf("the plan changed since the run was queued (%s, now %s)", short(a.PlanHash), short(p.Hash)))
 	}
+	if err := apply.CheckApproval(p, a.ApprovedBy); err != nil {
+		return g, w.fail(ctx, a, err)
+	}
 	deps, err := w.Systems(g)
 	if err != nil {
 		return g, w.fail(ctx, a, err)

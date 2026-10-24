@@ -397,7 +397,7 @@ func (q *Queries) SetChangeRun(ctx context.Context, arg SetChangeRunParams) erro
 }
 
 const setChangeSnapshot = `-- name: SetChangeSnapshot :exec
-update changes set snapshot = $2, label = $3, requested_by = $4, commits = $5, updated_at = now() where id = $1
+update changes set snapshot = $2, label = $3, requested_by = $4, commits = $5, source = $6, updated_at = now() where id = $1
 `
 
 type SetChangeSnapshotParams struct {
@@ -406,6 +406,7 @@ type SetChangeSnapshotParams struct {
 	Label       string
 	RequestedBy []string
 	Commits     []byte
+	Source      string
 }
 
 // A newer commit that leaves the plan alone: the change follows it and
@@ -417,6 +418,7 @@ func (q *Queries) SetChangeSnapshot(ctx context.Context, arg SetChangeSnapshotPa
 		arg.Label,
 		arg.RequestedBy,
 		arg.Commits,
+		arg.Source,
 	)
 	return err
 }

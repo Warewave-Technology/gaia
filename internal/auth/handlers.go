@@ -72,6 +72,8 @@ func (a *Service) Routes() []Route {
 		{Method: "POST", Path: "/api/v1/auth/step-up/totp", Handler: limited(a.stepUpTOTP)},
 		{Method: "GET", Path: "/approve/{id}", Public: true, Handler: a.page("pages/approve.html")},
 		{Method: "GET", Path: "/api/v1/me/signing-keys", Handler: a.mySigningKeys},
+		{Method: "GET", Path: "/api/v1/me/notifications", Handler: a.myNotifications},
+		{Method: "PUT", Path: "/api/v1/me/notifications", Handler: a.setMyNotifications},
 		{Method: "POST", Path: "/api/v1/me/signing-keys", Handler: a.strong(a.addSigningKey)},
 		{Method: "DELETE", Path: "/api/v1/me/signing-keys/{fingerprint}", Handler: a.strong(a.revokeSigningKey)},
 		{Method: "GET", Path: "/api/v1/users", Role: "platform-admin", Handler: a.listUsers},

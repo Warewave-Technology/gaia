@@ -842,7 +842,7 @@ Model Argo CD'den esinlenir. Git istenen durumun geçmişidir; değişikliğin i
 - **Red:** Onaycı gerekçesiyle reddeder. Reddedilen Change, kontratı değiştiren yeni bir commit gelene kadar bekler.
 - **Gruplu onay:** Birden fazla owner'ı etkileyen bir commit'in Change'lerini (ör. bir katalog değişikliği) `platform-admin` tek seferde onaylayabilir. Bir Change'in getirdiği commit'lerden biri başka bir owner'ın açık Change'inde de varsa, owner onayını `platform-admin` de verebilir. Aynı commit'in Change'leri `?commit=` ile listelenir, toplu onay her Change için ayrı karar olarak kaydedilir.
 
-**Uygulama.** Bütün gereksinimler sağlanınca Gaia uygular; ayrıca bir "uygula" adımı yoktur. Onay gerektirmeyen ortamlarda bu, commit gelir gelmez olur (Argo CD'deki auto-sync).
+**Uygulama.** Bütün gereksinimler sağlanınca Gaia uygular; ayrıca bir "uygula" adımı yoktur. Onay gerektiren bir ortamda sunucuları değiştiren plan sadece onaylanmış bir Change'in run'ıyla uygulanır; `gaia apply` onu reddeder. Onay gerektirmeyen ortamlarda bu, commit gelir gelmez olur (Argo CD'deki auto-sync).
 - Uygulamadan hemen önce plan yeniden alınır. Hash onaylananla aynı değilse (arada gerçek durum değiştiyse) uygulama durur ve Change yeniden onaya düşer.
 - **Asıl koruma Gaia'dadır.** Git'e yazabilen biri istediği commit'i atabilir; Gaia o commit'i ancak gereksinimler sağlanınca uygular. Uygulamanın kanıtı Git'teki bir merge değil, Gaia'daki onay kaydıdır.
 
@@ -912,7 +912,7 @@ spec:
   - `webhook`: `endpoint`'e JSON gönderir; `credentials` içinde `secret` varsa gövde `X-Gaia-Signature-256` ile imzalanır
   - `smtp`: `endpoint` (host:port) ve `from`
 - **Tetikleyiciler:** `change.pending`, `change.approved`, `change.rejected`, `change.applied`, `change.failed`, `drift.found`, `approval.expiring`.
-- **Kişisel abonelikler** `Platform.spec.notifications.email`'deki smtp kanalından gider.
+- **Kişisel abonelikler** `Platform.spec.notifications.email`'deki smtp kanalından gider. Kişi tetikleyicilerini profilinden seçer (`gaia notifications set`). Adres OIDC hesaplarında sağlayıcının doğruladığı `email`'dir ve her girişte güncellenir; yerel hesaplarda kişi kendisi yazar.
 - **Kime gider:**
   - kontratın owner takımının kanalları
   - onay bekleyen bir Change için ayrıca onaylayabilecek takımların kanalları

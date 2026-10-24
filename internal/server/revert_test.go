@@ -118,32 +118,52 @@ func TestARevertIsAChangeTheRequesterMayNotApprove(t *testing.T) {
 	if code := send(t, "POST", hs.URL+"/api/v1/changes/"+c.ID+"/approve", e.token(a, "ayse", true), body, &out); code != 403 {
 		t.Errorf("the requester approves: %d %v", code, out)
 	}
-	if code := send(t, "POST", hs.URL+"/api/v1/changes/"+c.ID+"/approve", e.token(a, "mehmet", true), body, &out); code != 200 {
-		t.Errorf("mehmet approves: %d %v", code, out)
+
+	// A newer commit that leaves the plan alone: the change follows it, and
+	// is no longer the revert's but mehmet's, so now ayse may approve.
+	commitTo(t, bare, "README.md", func(string) string { return "notes\n" }, mehmet.git)
+	evaluate()
+	c2, _ := e.open("poc-web")
+	if c2.ID != c.ID || c2.Source != "commit" || strings.Join(c2.RequestedBy, ",") != "mehmet" {
+		t.Fatalf("after a newer commit: %+v", c2)
+	}
+	if code := send(t, "POST", hs.URL+"/api/v1/changes/"+c.ID+"/approve", e.token(a, "mehmet", true), body, &out); code != 403 {
+		t.Errorf("the signer approves: %d %v", code, out)
+	}
+	if code := send(t, "POST", hs.URL+"/api/v1/changes/"+c.ID+"/approve", e.token(a, "ayse", true), body, &out); code != 200 {
+		t.Errorf("ayse approves: %d %v", code, out)
 	}
 
 	// Someone pushes a commit that changes the same file: reverting the
 	// target again is refused, naming the file.
+	commitTo(t, bare, "contracts/poc-web.yaml", func(s string) string { return strings.Replace(s, "labels: {", "labels: { tier: web,", 1) }, mehmet.git)
+	if code := send(t, "POST", url, e.token(a, "ayse", false), map[string]string{"repo": "platform"}, &out); code != 409 || !strings.Contains(out["error"], "contracts/poc-web.yaml") {
+		t.Errorf("a conflicting revert: %d %v", code, out)
+	}
+}
+
+// commitTo commits an edit of path to a bare repository's master, through a
+// clone, signed by signer.
+func commitTo(t *testing.T, bare, path string, edit func(string) string, signer git.Signer) {
+	t.Helper()
 	dir := t.TempDir()
 	cl, err := git.PlainClone(dir, false, &git.CloneOptions{URL: bare})
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, _ := os.ReadFile(filepath.Join(dir, "contracts", "poc-web.yaml"))
-	if err := os.WriteFile(filepath.Join(dir, "contracts", "poc-web.yaml"), []byte(strings.Replace(string(data), "labels: {", "labels: { tier: web,", 1)), 0o644); err != nil {
+	p := filepath.Join(dir, filepath.FromSlash(path))
+	data, _ := os.ReadFile(p)
+	if err := os.WriteFile(p, []byte(edit(string(data))), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	wt, _ := cl.Worktree()
-	if _, err := wt.Add("contracts/poc-web.yaml"); err != nil {
+	if _, err := wt.Add(path); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := wt.Commit("again", &git.CommitOptions{Author: &object.Signature{Name: "m", Email: "m@x", When: time.Now()}, Signer: mehmet.git}); err != nil {
+	if _, err := wt.Commit("edit "+path, &git.CommitOptions{Author: &object.Signature{Name: "m", Email: "m@x", When: time.Now()}, Signer: signer}); err != nil {
 		t.Fatal(err)
 	}
 	if err := cl.Push(&git.PushOptions{}); err != nil {
 		t.Fatal(err)
-	}
-	if code := send(t, "POST", url, e.token(a, "ayse", false), map[string]string{"repo": "platform"}, &out); code != 409 || !strings.Contains(out["error"], "contracts/poc-web.yaml") {
-		t.Errorf("a conflicting revert: %d %v", code, out)
 	}
 }

@@ -43,7 +43,7 @@ where id = $1 and status = any (sqlc.arg(from_statuses)::text[]);
 -- name: SetChangeSnapshot :exec
 -- A newer commit that leaves the plan alone: the change follows it and
 -- keeps its approvals.
-update changes set snapshot = $2, label = $3, requested_by = $4, commits = $5, updated_at = now() where id = $1;
+update changes set snapshot = $2, label = $3, requested_by = $4, commits = $5, source = $6, updated_at = now() where id = $1;
 
 -- name: SetChangeRun :exec
 update changes set run_id = $2, status = 'running', updated_at = now() where id = $1;

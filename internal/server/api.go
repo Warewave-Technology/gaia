@@ -41,6 +41,7 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/changes", "", s.listChanges},
 		{"GET", "/api/v1/changes/{id}", "", s.getChange},
 		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
+		{"GET", "/api/v1/changes/{id}/notifications", "", s.changeNotifications},
 		{"POST", "/api/v1/webhooks/github", public, s.githubWebhook},
 		{"POST", "/api/v1/commits/{sha}/revert", "", s.revertCommit},
 		{"GET", "/api/v1/preview", "", s.preview},

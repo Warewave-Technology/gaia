@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc dev-git
+.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc dev-git dev-mail
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -34,5 +34,8 @@ dev-git:
 	docker compose -f deploy/dev/compose.yaml --profile git up -d --wait gitea
 	docker compose -f deploy/dev/compose.yaml exec -u git gitea gitea admin user create --admin --username gaia-admin --password dev-git-password --email admin@gaia.dev --must-change-password=false || true
 
+dev-mail:
+	docker compose -f deploy/dev/compose.yaml --profile mail up -d mailpit
+
 dev-down:
-	docker compose -f deploy/dev/compose.yaml --profile oidc --profile git down -v
+	docker compose -f deploy/dev/compose.yaml --profile oidc --profile git --profile mail down -v

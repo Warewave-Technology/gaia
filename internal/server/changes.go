@@ -259,3 +259,40 @@ func decisionError(err error) bool {
 	}
 	return false
 }
+
+// Notification is one message Gaia sent, or is sending, about a change.
+type Notification struct {
+	ID        int64      `json:"id"`
+	Trigger   string     `json:"trigger"`
+	Channel   string     `json:"channel"`
+	Recipient string     `json:"recipient"`
+	Status    string     `json:"status"`
+	Attempts  int32      `json:"attempts"`
+	LastError string     `json:"lastError,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+	SentAt    *time.Time `json:"sentAt,omitempty"`
+}
+
+func (s *Server) changeNotifications(w http.ResponseWriter, r *http.Request) {
+	q := s.store.Q()
+	c, err := q.Change(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if !s.full(r, []string{c.Contract}) {
+		forbidden(w)
+		return
+	}
+	rows, err := q.Notifications(r.Context(), db.NotificationsParams{ChangeID: c.ID, MaxRows: 500})
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	out := make([]Notification, 0, len(rows))
+	for _, n := range rows {
+		out = append(out, Notification{ID: n.ID, Trigger: n.Trigger, Channel: n.Channel, Recipient: n.Recipient, Status: n.Status,
+			Attempts: n.Attempts, LastError: n.LastError.String, CreatedAt: n.CreatedAt.Time, SentAt: timePtr(n.SentAt)})
+	}
+	writeJSON(w, http.StatusOK, out)
+}

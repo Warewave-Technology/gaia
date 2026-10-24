@@ -47,3 +47,5 @@ Uçtan uca senaryo (Faz 3):
    ```
 
 4. İmzalı bir commit push'lanır → webhook → Change. Onay, revert (`gaia revert`; Gaia ssh ile push'lar) → webhook → isteyenin onaylayamadığı yeni Change.
+
+`make dev-mail` bir e-posta yakalayıcı (Mailpit) başlatır: SMTP `127.0.0.1:11025`, gelen kutusu `http://localhost:18025`. `smtp` kanalı `endpoint: "127.0.0.1:11025"` ile buna gönderir. Slack/Teams/webhook kanalları için gelen istekleri bir dosyaya yazan küçük bir HTTP alıcısı yeterlidir: kanalın `url`'i OpenBao'da ona işaret eder.
