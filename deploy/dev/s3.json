@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "gaia",
+      "credentials": [{ "accessKey": "gaia-dev", "secretKey": "gaia-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

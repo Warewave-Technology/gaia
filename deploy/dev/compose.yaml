@@ -1,0 +1,45 @@
+# Gaia'nın yerel geliştirme ortamı. Sırlar sabit ve sadece yerel kullanım için.
+#   make dev-up      ortamı kurar ve başlangıç ayarlarını yapar
+#   make dev-down    kapatır ve verileri siler
+name: gaia-dev
+
+services:
+  postgres:
+    image: docker.io/library/postgres:17-alpine
+    environment:
+      POSTGRES_USER: gaia_owner
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: gaia
+    volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports: ["127.0.0.1:15432:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "gaia_owner", "-d", "gaia"]
+      interval: 2s
+      retries: 30
+
+  # Dev modunda: bellekte, mühürsüz, root token "dev-root".
+  openbao:
+    image: docker.io/openbao/openbao:2.7.1
+    command: ["server", "-dev", "-dev-root-token-id=dev-root", "-dev-listen-address=0.0.0.0:8200"]
+    cap_add: [IPC_LOCK]
+    ports: ["127.0.0.1:18200:8200"]
+
+  seaweedfs:
+    image: docker.io/chrislusf/seaweedfs:4.48
+    command: ["server", "-dir=/data", "-s3", "-s3.config=/etc/seaweedfs/s3.json", "-volume.max=0", "-master.volumeSizeLimitMB=256"]
+    volumes:
+      - ./s3.json:/etc/seaweedfs/s3.json:ro
+    ports: ["127.0.0.1:18333:8333"]
+
+  # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
+  init:
+    image: docker.io/library/alpine:3.22
+    depends_on:
+      postgres: { condition: service_healthy }
+      openbao: { condition: service_started }
+      seaweedfs: { condition: service_started }
+    volumes:
+      - ./init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+    restart: "no"
