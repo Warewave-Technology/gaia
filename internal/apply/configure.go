@@ -17,6 +17,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
+	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
@@ -147,8 +148,9 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	}
 	for _, h := range hosts {
 		st := res.Stats
-		r.printf("    %s ok=%d changed=%d failed=%d unreachable=%d\n",
-			names[h.Name], st.OK[h.Name], st.Changed[h.Name], st.Failures[h.Name], st.Unreachable[h.Name])
+		detail := fmt.Sprintf("ok=%d changed=%d failed=%d unreachable=%d", st.OK[h.Name], st.Changed[h.Name], st.Failures[h.Name], st.Unreachable[h.Name])
+		r.printf("    %s %s\n", names[h.Name], detail)
+		r.change(runrecord.Change{Contract: c.Name, UID: h.Name, Hostname: names[h.Name], Stage: "configure", Action: "ansible", Detail: detail})
 	}
 	if failed := res.Failed(); len(failed) > 0 {
 		var hs []string

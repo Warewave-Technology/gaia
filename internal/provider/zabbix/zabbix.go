@@ -251,7 +251,9 @@ func same(cur *hostRecord, h Host, groups, templates []string, tags []Tag, proxy
 		t = append(t, x.TemplateID)
 	}
 	ct := slices.Clone(cur.Tags)
-	sort.Slice(ct, func(i, j int) bool { return ct[i].Tag < ct[j].Tag || ct[i].Tag == ct[j].Tag && ct[i].Value < ct[j].Value })
+	sort.Slice(ct, func(i, j int) bool {
+		return ct[i].Tag < ct[j].Tag || ct[i].Tag == ct[j].Tag && ct[i].Value < ct[j].Value
+	})
 	want := slices.Clone(tags)
 	sort.Slice(want, func(i, j int) bool {
 		return want[i].Tag < want[j].Tag || want[i].Tag == want[j].Tag && want[i].Value < want[j].Value

@@ -190,7 +190,9 @@ func (r *resolver) platform(o *Object) {
 	r.ref(o, "spec.engines.provisioning.state", KindProvider, s.Engines.Provisioning.State, "postgres", "s3")
 	r.ref(o, "spec.engines.configuration.source", KindProvider, s.Engines.Configuration.Source, "git")
 	if s.RunArchive != "" {
-		r.ref(o, "spec.runArchive", KindProvider, s.RunArchive, "s3")
+		if a := r.ref(o, "spec.runArchive", KindProvider, s.RunArchive, "s3"); a != nil && a.Spec.(*ProviderSpec).Retention == "" {
+			r.fail(o, "spec.runArchive", "Provider %q has no retention; run records are locked for it", s.RunArchive)
+		}
 	}
 	if m := s.Monitoring; m != nil {
 		r.ref(o, "spec.monitoring.provider", KindProvider, m.Provider, "zabbix")

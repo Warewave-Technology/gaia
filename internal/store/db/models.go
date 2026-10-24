@@ -131,3 +131,13 @@ type RunEvent struct {
 	Data      []byte
 	CreatedAt pgtype.Timestamptz
 }
+
+type RunRecord struct {
+	Seq        int64
+	RunID      string
+	Body       string
+	PrevHash   string
+	RecordHash string
+	Archived   pgtype.Text
+	CreatedAt  pgtype.Timestamptz
+}

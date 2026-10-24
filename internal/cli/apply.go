@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -12,10 +14,12 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
+	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
+	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -64,6 +68,10 @@ func newApplyCommand() *cobra.Command {
 			}
 
 			bao := openbao.New(secretsEndpoint(g), token)
+			origin, err := src.recordSource(p.Commit)
+			if err != nil {
+				return err
+			}
 			run, err := apply.Run(ctx, g, p, apply.Deps{
 				Store:     s,
 				Secrets:   bao,
@@ -73,7 +81,12 @@ func newApplyCommand() *cobra.Command {
 				},
 				Configure: ansible.Podman{},
 				Monitor:   func(endpoint, token string) apply.Monitor { return zabbix.New(endpoint, token) },
-				Out:       out,
+				Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
+					return runrecord.NewS3(endpoint, bucket, ak, sk)
+				},
+				RequestedBy: requester(),
+				Source:      origin,
+				Out:         out,
 			})
 			if err != nil {
 				return fmt.Errorf("run %s: %w", run, err)
@@ -86,6 +99,31 @@ func newApplyCommand() *cobra.Command {
 	dsnFlag(cmd, &dsn)
 	cmd.Flags().BoolVar(&yes, "yes", false, "apply the plan; without it apply only prints it")
 	return cmd
+}
+
+// requester is who runs the CLI, for the run record. In the PoC that is
+// the local account; with the platform service it is the PR author.
+func requester() string {
+	name := os.Getenv("USER")
+	if u, err := user.Current(); err == nil {
+		name = u.Username
+	}
+	host, _ := os.Hostname()
+	return name + "@" + host
+}
+
+// recordSource is the run record's source: the repository and whether
+// the commit is signed.
+func (s *source) recordSource(commit string) (runrecord.Source, error) {
+	repo, err := filepath.Abs(s.repo)
+	if err != nil {
+		return runrecord.Source{}, err
+	}
+	signed, err := gitsrc.Signed(repo, commit)
+	if err != nil {
+		return runrecord.Source{}, err
+	}
+	return runrecord.Source{Repo: repo, Commit: commit, Signed: signed}, nil
 }
 
 func secretsEndpoint(g *catalog.Graph) string {

@@ -12,12 +12,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
+	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -38,7 +40,13 @@ type Deps struct {
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
 	Configure Configurer
 	Monitor   func(endpoint, token string) Monitor
-	Out       io.Writer
+	// Archive opens the run record archive (Platform.runArchive).
+	Archive func(endpoint, bucket, accessKey, secretKey string) (runrecord.Archive, error)
+	// Who asked for the run and where its contracts came from, for the
+	// run record.
+	RequestedBy string
+	Source      runrecord.Source
+	Out         io.Writer
 }
 
 // User is the account cloud-init creates on every server for Gaia.
@@ -68,14 +76,20 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if err := q.StartRun(ctx, db.StartRunParams{ID: runID, Contracts: names, Commit: p.Commit, PlanHash: p.Hash}); err != nil {
 		return "", err
 	}
-	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{}}
+	r := &runner{g: g, d: d, run: runID, used: map[string]map[int]bool{}, monitors: map[string]Monitor{},
+		executedAs: map[string]string{"linux": User}, started: time.Now().UTC()}
 	err := r.all(ctx, p)
 	status, msg := "succeeded", ""
 	if err != nil {
 		status, msg = "failed", err.Error()
 	}
+	// The run's outcome is recorded even when its context ended.
+	ctx = context.WithoutCancel(ctx)
 	if ferr := q.FinishRun(ctx, db.FinishRunParams{ID: runID, Status: status, Error: pgText(msg)}); ferr != nil {
 		err = errors.Join(err, ferr)
+	}
+	if rerr := r.writeRecord(ctx, p, status, msg); rerr != nil {
+		err = errors.Join(err, rerr)
 	}
 	return runID, err
 }
@@ -88,7 +102,13 @@ type runner struct {
 	cfg      *config                 // set when a contract has a baseline or roles
 	monitors map[string]Monitor      // per monitoring provider
 	seq      int                     // last run event
+	// For the run record.
+	started    time.Time
+	changes    []runrecord.Change
+	executedAs map[string]string // provider -> identity
 }
+
+func (r *runner) change(c runrecord.Change) { r.changes = append(r.changes, c) }
 
 func (r *runner) printf(format string, a ...any) {
 	if r.d.Out != nil {
@@ -205,6 +225,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 	creds := map[string]proxmox.Credentials{}
 
 	for _, s := range c.Servers {
+		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "plan", Action: s.Action})
 		if s.Action == plan.Create {
 			s.UID = store.NewUID()
 			if err := r.d.Store.CreateHost(ctx, store.NewHost{
@@ -213,6 +234,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 				return fmt.Errorf("%s: %w (plan again)", s.Hostname, err)
 			}
 			r.printf("  %s: uid %s\n", s.Hostname, s.UID)
+			r.changes[len(r.changes)-1].UID = s.UID
 		}
 
 		cr, ok := creds[s.Compute.Provider]
@@ -222,6 +244,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 				return err
 			}
 			creds[s.Compute.Provider] = cr
+			r.executedAs[s.Compute.Provider] = cr.TokenID
 		}
 		addr, err := r.address(ctx, s)
 		if err != nil {
@@ -254,6 +277,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 		r.printf("  %s: %s\n", stack.Name, changes)
+		r.change(runrecord.Change{Contract: c.Name, Stage: "provision", Action: "pulumi up", Detail: stack.Name + ": " + changes.String()})
 		for _, v := range vms {
 			res := got[v.UID]
 			if res.VMID != v.VMID {

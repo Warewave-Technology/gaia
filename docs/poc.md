@@ -169,6 +169,23 @@ Proxmox lab'i bu reponun dışında kuruluyor.
    - **Lab sonucu:** `labtpoc01` Zabbix'e dört host group, beş tag ve `ICMP Ping` şablonuyla kaydedildi. İkinci apply'da `same`. Zabbix VM'e ping atıyor (`icmpping=1`). Lab'de Zabbix ajanı yok; Agent kind'ı PoC dışında.
    - **Lab düzeltmeleri:** Zabbix server container'ına `NET_RAW` (fping için). EE derlemesinde galaxy'nin yanıt cache'i kapatıldı: ansible-core 2.21'de sabit sürümlü collection'lar "Missing expected 'results'" hatasına düşüyor.
    - **Başarı kriteri 4 karşılandı.**
+2. **Run kaydı ve hash zinciri.** **Tamam** (`internal/runrecord`, migration 0005).
+   - **İçerik:** Tasarım 10.1'deki alanlar:
+     - `requestedBy`: PoC'de CLI'ı çalıştıran yerel hesap
+     - `approvedBy`: PoC'de boş
+     - kaynak repo ve commit; commit'in imzalı olup olmadığı
+     - katalog commit'i, config reposu commit'i, EE digest'i
+     - kontratlar, plan hash'i
+     - `executedAs`: provider başına kimlik
+     - zamanlar, sonuç, hata
+     - `changes`: aşama başına, UID ile
+   - **Zincir:** Kayıt run bitince bir kez yazılır, başarısız run'lar dahil. Hash'i, önceki kaydın hash'i ile gövdenin SHA-256'sı. Gövde, hash'lenen metin olarak saklanır. Yazarken tablo kilitlenir, böylece zincir dallanmaz.
+   - **Değiştirilemezlik:** Trigger `UPDATE`, `DELETE` ve `TRUNCATE`'i reddeder. Tek istisna, arşiv adresinin bir kez yazılması. Trigger'ı kapatabilen biri gövdeyi değiştirse ya da bir kaydı silse bile `gaia record verify` kırılan yeri gösterir.
+   - **Arşiv:** `Platform.runArchive`'daki S3 bucket'ı, COMPLIANCE modunda Object Lock ile. Saklama süresi provider'da: `retention`, lab'de `1d`. Kopya sıkıştırılmış JSON'dur ve gövdeyi baytı baytına taşır, böylece arşivdeki kopya tek başına doğrulanabilir. Anahtar: `records/<yıl>/<ay>/<run>.json`. Arşivleme başarısız olursa run hata döner; kayıt veritabanında kalır.
+   - **Komutlar:**
+     - `gaia record verify`: zinciri baştan sona kontrol eder
+     - `gaia record show RUN`: bir run'ın kaydını gösterir
+   - **Lab'de doğrulandı:** SeaweedFS COMPLIANCE kilitli bir versiyonun silinmesini reddediyor (`TestS3Lab`).
 
 ## Kararlar
 

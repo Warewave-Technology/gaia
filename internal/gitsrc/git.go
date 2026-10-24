@@ -137,3 +137,17 @@ func Resolve(repoPath, ref, dir string) (string, error) {
 	_, hash, err := treeAt(repoPath, ref, dir)
 	return hash, err
 }
+
+// Signed reports whether the commit carries a signature. It does not
+// verify the signature against a keyring.
+func Signed(repoPath, commit string) (bool, error) {
+	repo, err := git.PlainOpenWithOptions(repoPath, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		return false, err
+	}
+	c, err := repo.CommitObject(plumbing.NewHash(commit))
+	if err != nil {
+		return false, err
+	}
+	return c.PGPSignature != "", nil
+}

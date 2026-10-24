@@ -8,6 +8,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
+	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
@@ -31,6 +32,7 @@ func (r *runner) monitor(ctx context.Context, provider string) (Monitor, error) 
 		return nil, fmt.Errorf("%s: no token", p.Credentials)
 	}
 	m := r.d.Monitor(p.Endpoint, f["token"])
+	r.executedAs[provider] = "api token"
 	r.monitors[provider] = m
 	return m, nil
 }
@@ -66,6 +68,7 @@ func (r *runner) register(ctx context.Context, c plan.Contract, contract *catalo
 			return err
 		}
 		r.printf("  %s %s: %s (host %s)\n", c.Monitoring.Provider, t.s.Hostname, res.Action, res.HostID)
+		r.change(runrecord.Change{Contract: c.Name, UID: t.s.UID, Hostname: t.s.Hostname, Stage: "monitoring", Action: res.Action, Detail: c.Monitoring.Provider + " host " + res.HostID})
 	}
 	return nil
 }
