@@ -41,11 +41,15 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/changes", "", s.listChanges},
 		{"GET", "/api/v1/changes/{id}", "", s.getChange},
 		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
+		{"POST", "/api/v1/webhooks/github", public, s.githubWebhook},
 		{"POST", "/api/v1/changes/approve", "", s.strong(s.approveChanges)},
 		{"POST", "/api/v1/changes/{id}/approve", "", s.strong(s.decideChange(true))},
 		{"POST", "/api/v1/changes/{id}/reject", "", s.strong(s.decideChange(false))},
 	}
 }
+
+// public marks a route that needs no sign-in; it checks the caller itself.
+const public = "public"
 
 // full reports whether the caller sees every contract of the list in full.
 func (s *Server) full(r *http.Request, contracts []string) bool {

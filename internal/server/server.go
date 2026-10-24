@@ -51,6 +51,8 @@ type Config struct {
 	// follows; the changes API needs both.
 	Changes *change.Engine
 	Catalog *CatalogSource
+	// WebhookSecret checks GitHub's push webhooks; empty turns them off.
+	WebhookSecret []byte
 }
 
 // Server is a running gaia server.
@@ -157,7 +159,7 @@ func (s *Server) stopTimeout() time.Duration {
 func (s *Server) routes() {
 	for _, rt := range s.apiRoutes() {
 		h := rt.h
-		if s.cfg.Auth != nil {
+		if s.cfg.Auth != nil && rt.role != public {
 			h = s.cfg.Auth.Guard(rt.role, h)
 		}
 		s.mux.HandleFunc(rt.method+" "+rt.path, h)
