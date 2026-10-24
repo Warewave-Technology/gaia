@@ -14,6 +14,7 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/riverqueue/river"
@@ -207,11 +208,15 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 	return e.advance(ctx, c, g)
 }
 
+// GaiaUser is the account Gaia's own signing key belongs to.
+const GaiaUser = "gaia"
+
 // Commit is a commit a change brings and who signed it.
 type Commit struct {
 	Repo    string `json:"repo"`
 	Commit  string `json:"commit"`
 	Signer  string `json:"signer,omitempty"`
+	For     string `json:"for,omitempty"` // whom Gaia wrote it for
 	Problem string `json:"problem,omitempty"`
 }
 
@@ -248,10 +253,19 @@ func (e *Engine) commits(ctx context.Context, st db.ContractState, snap repo.Sna
 		}
 		for _, s := range signed {
 			c := Commit{Repo: rev.Name, Commit: s.Commit, Signer: s.Signer.Username}
+			who := s.Signer.Username
+			if s.Problem == nil && who == GaiaUser {
+				// Gaia writes for someone (a revert): they own the commit,
+				// and may not approve its change.
+				if obj, err := g.CommitObject(plumbing.NewHash(s.Commit)); err == nil {
+					c.For = repo.Trailer(obj.Message, repo.TrailerRequestedBy)
+				}
+				who = c.For
+			}
 			if s.Problem != nil {
 				c.Problem = s.Problem.Error()
-			} else if !slices.Contains(by, s.Signer.Username) {
-				by = append(by, s.Signer.Username)
+			} else if who != "" && !slices.Contains(by, who) {
+				by = append(by, who)
 			}
 			out = append(out, c)
 		}

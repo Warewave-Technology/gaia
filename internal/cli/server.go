@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"net/mail"
+
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/ssh"
 	"io"
 	"log/slog"
 	"net"
@@ -33,7 +36,7 @@ func newServerCommand() *cobra.Command {
 	var dsn, listen, role string
 	var workers int
 	var unsafeNoAuth bool
-	var repoURL, ref, repoCreds, dataDir, webhookSecret string
+	var repoURL, ref, repoCreds, dataDir, webhookSecret, signingKey, author string
 	var refresh time.Duration
 	var paths []string
 	var runTimeout, stopTimeout, eventRetention time.Duration
@@ -97,6 +100,13 @@ func newServerCommand() *cobra.Command {
 					return fmt.Errorf("desired state: %w", err)
 				}
 				cfg.Changes, cfg.Catalog = engine, cat
+				if signingKey != "" {
+					w, err := gaiaWriter(ctx, s, bao, cfg.Repos, signingKey, author)
+					if err != nil {
+						return fmt.Errorf("--signing-key: %w", err)
+					}
+					cfg.Writer = w
+				}
 				if webhookSecret != "" {
 					sec, err := bao.Read(ctx, webhookSecret)
 					if err != nil {
@@ -184,11 +194,37 @@ func newServerCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ref, "ref", "", "branch of --repo to follow (default: HEAD for a path, main for a URL)")
 	cmd.Flags().StringSliceVar(&paths, "path", nil, "directory inside --repo; repeatable")
 	cmd.Flags().StringVar(&repoCreds, "repo-credentials", "", "bao:// reference with a token (https) or private_key and known_hosts (ssh); needs $GAIA_BAO_ADDR")
+	cmd.Flags().StringVar(&signingKey, "signing-key", "", "bao:// reference whose private_key (OpenSSH) signs Gaia's own commits, such as reverts; the key needs push access through --repo-credentials and the providers' credentials")
+	cmd.Flags().StringVar(&author, "commit-author", "Gaia <gaia@localhost>", "author of Gaia's commits")
 	cmd.Flags().StringVar(&webhookSecret, "webhook-secret", "", "bao:// reference whose secret field checks GitHub push webhooks (POST /api/v1/webhooks/github)")
 	cmd.Flags().DurationVar(&refresh, "refresh", 3*time.Minute, "how often the repositories are fetched; a webhook fetches at once")
 	cmd.Flags().StringVar(&dataDir, "data-dir", defaultDataDir(), "where repository mirrors are kept")
 	cmd.Flags().DurationVar(&stopTimeout, "stop-timeout", 5*time.Minute, "on shutdown, how long runs get to finish before they are cancelled")
 	return cmd
+}
+
+// gaiaWriter reads Gaia's signing key and registers its public half, so
+// that Gaia's commits pass the signature gate.
+func gaiaWriter(ctx context.Context, s *store.Store, bao *baoAccess, m *repo.Mirrors, ref, author string) (*repo.Writer, error) {
+	sec, err := bao.Read(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if sec["private_key"] == "" {
+		return nil, errors.New("the secret has no private_key field")
+	}
+	key, err := ssh.ParsePrivateKey([]byte(sec["private_key"]))
+	if err != nil {
+		return nil, err
+	}
+	if err := change.RegisterGaiaKey(ctx, s, key.PublicKey()); err != nil {
+		return nil, err
+	}
+	a, err := mail.ParseAddress(author)
+	if err != nil {
+		return nil, fmt.Errorf("--commit-author: %w", err)
+	}
+	return &repo.Writer{Mirrors: m, Signer: signature.SSHSigner{Key: key}, Name: a.Name, Email: a.Address}, nil
 }
 
 // loopbackOnly refuses API addresses other machines can reach: the API

@@ -51,6 +51,9 @@ type Config struct {
 	// follows; the changes API needs both.
 	Changes *change.Engine
 	Catalog *CatalogSource
+	// Writer writes Gaia's own commits (reverts); nil when Gaia has no
+	// signing key.
+	Writer *repo.Writer
 	// WebhookSecret checks GitHub's push webhooks; empty turns them off.
 	WebhookSecret []byte
 }
