@@ -67,6 +67,23 @@ services:
     profiles: [mail]
     ports: ["127.0.0.1:11025:1025", "127.0.0.1:18025:8025"]
 
+  # Active Directory (isteğe bağlı: make dev-ad): Samba AD DC, realm GAIA.DEV.
+  # LDAPS 127.0.0.1:10636. Takımlar, kullanıcılar ve Gaia'nın okuma hesabı
+  # ad-seed.sh ile kurulur. Yönetici parolası samba-admin-password'de.
+  samba:
+    image: docker.io/instantlinux/samba-dc:4.23.8-r0
+    profiles: [ad]
+    hostname: dc1
+    cap_add: [SYS_ADMIN]   # provisioning writes NT ACLs as extended attributes
+    environment:
+      REALM: gaia.dev
+      WORKGROUP: GAIA
+      NETBIOS_NAME: DC1
+      BIND_INTERFACES_ONLY: "no"
+    volumes:
+      - ./samba-admin-password:/run/secrets/samba-admin-password:ro
+    ports: ["127.0.0.1:10389:389", "127.0.0.1:10636:636"]
+
   # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
   init:
     image: docker.io/library/alpine:3.22

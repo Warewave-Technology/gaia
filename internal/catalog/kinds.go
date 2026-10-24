@@ -119,6 +119,9 @@ type ProviderSpec struct {
 	Path      string `yaml:"path"` // git
 	Ref       string `yaml:"ref"`  // git
 	From      string `yaml:"from"` // smtp: the sender address
+	// BaseDN is where an activedirectory provider searches; empty is the
+	// directory's default naming context.
+	BaseDN string `yaml:"baseDN"`
 }
 
 type ProviderAuth struct {
@@ -153,6 +156,13 @@ func (s *ProviderSpec) validate() []string {
 	case "webhook":
 		if u, err := url.Parse(s.Endpoint); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
 			out = append(out, fmt.Sprintf("endpoint: %q: want https://host/path", s.Endpoint))
+		}
+	case "activedirectory":
+		if u, err := url.Parse(s.Endpoint); err != nil || (u.Scheme != "ldaps" && u.Scheme != "ldap") || u.Host == "" {
+			out = append(out, fmt.Sprintf("endpoint: %q: want ldaps://host or ldap://host (StartTLS)", s.Endpoint))
+		}
+		if s.Credentials == "" {
+			out = append(out, "credentials: required for type activedirectory (username, password; ca and server_name optional)")
 		}
 	case "smtp":
 		if _, _, err := net.SplitHostPort(s.Endpoint); err != nil {
