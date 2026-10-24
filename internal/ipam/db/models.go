@@ -26,4 +26,7 @@ type Pool struct {
 	Gateway    *netip.Addr
 	RangeStart netip.Addr
 	RangeEnd   netip.Addr
+	Name       string
+	Labels     []byte
+	Tags       []string
 }

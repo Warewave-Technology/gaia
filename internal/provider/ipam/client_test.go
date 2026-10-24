@@ -135,3 +135,28 @@ func TestErrors(t *testing.T) {
 		t.Errorf("wrong token: %v", err)
 	}
 }
+
+func TestPoolsSayWhatTheyAreFor(t *testing.T) {
+	itest.Require(t)
+	c := serve(t, itest.StartPostgres(t), time.Hour)
+	ctx := context.Background()
+	p := ipam.Pool{CIDR: "10.20.1.0/24", Gateway: "10.20.1.1", RangeStart: "10.20.1.10", RangeEnd: "10.20.1.200",
+		Name: "ank-prod-app", Labels: map[string]string{"site": "ank", "env": "prod", "vlan": "120"}, Tags: []string{"gaia-managed"}}
+	if err := c.SetPool(ctx, p); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.SetPool(ctx, ipam.Pool{CIDR: "10.20.2.0/24", RangeStart: "10.20.2.10", RangeEnd: "10.20.2.20"}); err != nil {
+		t.Fatal(err)
+	}
+	pools, err := c.Pools(ctx)
+	if err != nil || len(pools) != 2 {
+		t.Fatalf("pools = %+v, %v", pools, err)
+	}
+	got := pools[0]
+	if got.Name != "ank-prod-app" || got.Labels["vlan"] != "120" || strings.Join(got.Tags, ",") != "gaia-managed" || got.Gateway != "10.20.1.1" {
+		t.Errorf("pool = %+v", got)
+	}
+	if pools[1].Name != "" || len(pools[1].Labels) != 0 || len(pools[1].Tags) != 0 {
+		t.Errorf("a pool without labels = %+v", pools[1])
+	}
+}

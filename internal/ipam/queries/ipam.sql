@@ -1,8 +1,9 @@
 -- name: UpsertPool :exec
-insert into pools (cidr, gateway, range_start, range_end)
-values (@cidr, sqlc.narg('gateway'), @range_start, @range_end)
+insert into pools (cidr, gateway, range_start, range_end, name, labels, tags)
+values (@cidr, sqlc.narg('gateway'), @range_start, @range_end, @name, @labels, @tags)
 on conflict (cidr) do update
-set gateway = excluded.gateway, range_start = excluded.range_start, range_end = excluded.range_end;
+set gateway = excluded.gateway, range_start = excluded.range_start, range_end = excluded.range_end,
+    name = excluded.name, labels = excluded.labels, tags = excluded.tags;
 
 -- name: Pools :many
 select * from pools order by cidr;
