@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -672,4 +673,38 @@ func TestGroupsAndAccess(t *testing.T) {
 	wantError(t, loadOrResolveErrors(t, bad), "Server/web", "access[1]: name a group or a team")
 	bad = catalogWith(t, "groups.yaml", "", groups, "server.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: nope }\n")
 	wantError(t, resolveErrors(t, bad), "Server/web", `spec.access[0].group: Group "nope" not found`)
+}
+
+func TestOperationChecks(t *testing.T) {
+	op := func(spec string) string {
+		return "apiVersion: gaia/v1alpha1\nkind: Operation\nmetadata: { name: op }\nspec:\n" + spec
+	}
+	ok := op("  action: reboot\n  selector: 'labels.env == \"test\" && spec.replicas > 0'\n  strategy: { batchSize: 20%, maxFailures: 1, pauseBetweenBatches: 5m }\n")
+	cat, err := Load("c0ffee", catalogWith(t, "op.yaml", "", ok))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Resolve(cat); err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	s := cat.List(KindOperation)[0].Spec.(*OperationSpec)
+	if got := fmt.Sprint(s.Batches(12)); got != "[2 2 2 2 2 2]" {
+		t.Errorf("batches of 12 at 20%% = %s", got)
+	}
+	if got := fmt.Sprint((&OperationSpec{Strategy: Strategy{BatchSize: "5"}}).Batches(12)); got != "[5 5 2]" {
+		t.Errorf("batches of 12 by 5 = %s", got)
+	}
+	for spec, want := range map[string]string{
+		"  action: power\n  selector: 'true'\n":                                                                                `action: "power"`,
+		"  action: runbook\n  selector: 'true'\n":                                                                              "runbook: names the role",
+		"  action: reboot\n  selector: 'true'\n  strategy: { batchSize: 150% }\n":                                              "strategy.batchSize",
+		"  action: reboot\n  selector: 'true'\n  window: { start: \"2026-11-09T06:00:00Z\", end: \"2026-11-09T02:00:00Z\" }\n": "window: end must be after start",
+		"  action: reboot\n  selector: 'true'\n  notAfter: tomorrow\n":                                                         "RFC 3339",
+	} {
+		wantError(t, loadErrors(t, catalogWith(t, "op.yaml", "", op(spec))), "Operation/op", want)
+	}
+	role := "apiVersion: gaia/v1alpha1\nkind: AnsibleRole\nmetadata: { name: web.restart }\nspec: { source: { provider: repo, role: corp.web.restart } }\n"
+	lines := resolveErrors(t, catalogWith(t, "role.yaml", "", role, "op.yaml", "", op("  action: runbook\n  runbook: web.restart\n  selector: 'contract =='\n")))
+	wantError(t, lines, "Operation/op", "spec.selector:")
+	wantError(t, lines, "Operation/op", `AnsibleRole "web.restart" is not a runbook`)
 }

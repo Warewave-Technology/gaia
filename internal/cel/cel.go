@@ -126,6 +126,13 @@ func (p *Program) EvalValue(vars map[string]any) (any, error) {
 	return pb.(*structpb.Value).AsInterface(), nil
 }
 
+// Selector compiles an Operation selector: it sees contract (the name),
+// labels, env, owner and spec (the contract's spec as written), and
+// returns a bool.
+func Selector(src string) (*Program, error) {
+	return compile(selectorEnv, src, gocel.BoolType)
+}
+
 // RoleString compiles an AnsibleRoleSource naming expression: it sees role
 // (name, collection, namespace, fqcn, path) and meta (meta/main.yml).
 func RoleString(src string) (*Program, error) {
@@ -151,6 +158,13 @@ func GroupString(src string) (*Program, error) {
 }
 
 var (
+	selectorEnv = mustEnv(
+		gocel.Variable("contract", gocel.StringType),
+		gocel.Variable("labels", gocel.MapType(gocel.StringType, gocel.StringType)),
+		gocel.Variable("env", gocel.StringType),
+		gocel.Variable("owner", gocel.StringType),
+		gocel.Variable("spec", gocel.MapType(gocel.StringType, gocel.DynType)),
+	)
 	roleEnv = mustEnv(
 		gocel.Variable("role", gocel.MapType(gocel.StringType, gocel.StringType)),
 		gocel.Variable("meta", gocel.MapType(gocel.StringType, gocel.DynType)),

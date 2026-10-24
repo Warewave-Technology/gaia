@@ -279,6 +279,27 @@ paths:
                         restricted: { type: boolean }
         "404": { description: No such followed repository, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "422": { description: The ref cannot be fetched, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/operations:
+    get:
+      summary: Operations and how they went per server (operator; design 6.4)
+      operationId: listOperations
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    status: { type: string, enum: [scheduled, running, succeeded, failed, partial, cancelled, expired] }
+                    change: { type: string }
+                    run: { type: string }
+                    results: { type: array, items: { type: object, properties: { uid: { type: string }, hostname: { type: string }, contract: { type: string }, batch: { type: integer }, result: { type: string, enum: [ok, failed, skipped, not run] }, detail: { type: string } } } }
+                    updatedAt: { type: string, format: date-time }
+                    finishedAt: { type: string, format: date-time }
   /api/v1/sources:
     get:
       summary: What each Source (TeamSource...) did last, the sync report (design 5.4)

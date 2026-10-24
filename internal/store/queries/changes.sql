@@ -38,7 +38,7 @@ limit sqlc.arg(max_rows);
 
 -- name: SetChangeStatus :execrows
 update changes set status = $2, updated_at = now(),
-    finished_at = case when $2 in ('applied', 'failed', 'cancelled', 'rejected', 'superseded') then now() else finished_at end
+    finished_at = case when $2 in ('applied', 'failed', 'cancelled', 'rejected', 'superseded', 'expired') then now() else finished_at end
 where id = $1 and status = any (sqlc.arg(from_statuses)::text[]);
 
 -- name: SetChangeSnapshot :exec

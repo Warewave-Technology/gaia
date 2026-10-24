@@ -158,26 +158,36 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		return need, nil
 	}
 
+	return need, e.fill(ctx, c, &need)
+}
+
+// fill finds each group's candidates (its teams' people, less the
+// excluded) and who of them approved the change's plan.
+func (e *Engine) fill(ctx context.Context, c db.Change, need *Need) error {
+	q := e.Store.Q()
 	approvals, err := q.Approvals(ctx, c.ID)
 	if err != nil {
-		return need, err
+		return err
 	}
 	for i := range need.Groups {
 		gr := &need.Groups[i]
+		gr.Candidates = []string{}
+		if len(gr.Teams) == 0 {
+			continue // nobody may approve: the change waits, and says so
+		}
 		members, err := q.TeamMembers(ctx, db.TeamMembersParams{Teams: gr.Teams[:1], Role: gr.Role})
 		if err != nil {
-			return need, err
+			return err
 		}
 		if len(gr.Teams) > 1 {
 			// Further teams (platform admins for a commit across owners)
 			// approve by membership.
 			more, err := q.TeamMembers(ctx, db.TeamMembersParams{Teams: gr.Teams[1:], Role: "member"})
 			if err != nil {
-				return need, err
+				return err
 			}
 			members = append(members, more...)
 		}
-		gr.Candidates = []string{}
 		for _, m := range members {
 			if !slices.Contains(need.Excluded, m.Username) && !slices.Contains(gr.Candidates, m.Username) {
 				gr.Candidates = append(gr.Candidates, m.Username)
@@ -199,7 +209,7 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 			}
 		}
 	}
-	return need, nil
+	return nil
 }
 
 // otherOwners returns the owners, other than owner, of the open changes

@@ -1008,3 +1008,57 @@ func TestApplyRunsAgentsAndAppsWithSecrets(t *testing.T) {
 		}
 	}
 }
+
+const rebootOp = `---
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: reboot-poc }
+spec:
+  action: reboot
+  selector: 'contract == "poc-web" && labels.env == "test"'
+  strategy: { batchSize: "1", maxFailures: 0 }
+`
+
+func TestRunOperationInBatches(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	edit := func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 3", 1) + rebootOp }
+	g := e.graph(edit)
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	op, err := plan.BuildOperation(ctx, g, "reboot-poc", StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(op.Targets) != 3 || len(op.Batches) != 3 || strings.Join(op.Steps, ",") != "maintenance,reboot,health,end maintenance" || op.Contracts[0] != "poc-web" {
+		t.Fatalf("operation plan = %+v", op)
+	}
+	// The second server fails: the third batch does not run.
+	e.configure.fail = op.Batches[1][0]
+	jobs := len(e.configure.jobs)
+	_, out, err := RunOperation(ctx, g, op, e.deps)
+	if err == nil || out.Status != "partial" {
+		t.Fatalf("outcome = %+v, %v", out, err)
+	}
+	var got []string
+	for _, r := range out.Results {
+		got = append(got, fmt.Sprintf("%d:%s", r.Batch, r.Result))
+	}
+	if strings.Join(got, ",") != "1:ok,2:failed,3:not run" || len(e.configure.jobs)-jobs != 2 {
+		t.Errorf("results = %v, jobs %d", got, len(e.configure.jobs)-jobs)
+	}
+	site := e.configure.projects[len(e.configure.projects)-1][".gaia/site.yml"]
+	if !strings.Contains(site, "ansible.builtin.reboot") || !strings.Contains(site, "wait_for_connection") {
+		t.Errorf("operation play = %s", site)
+	}
+	// Plans are stable: the same servers give the same hash.
+	again, _ := plan.BuildOperation(ctx, g, "reboot-poc", StoreState{S: e.store})
+	if again.Hash != op.Hash {
+		t.Error("the operation plan hash moved")
+	}
+}

@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 
+	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/repo"
@@ -57,11 +60,21 @@ func (e *Engine) Decide(ctx context.Context, d Decision) error {
 		if err != nil {
 			return err
 		}
-		var p plan.Plan
-		if err := json.Unmarshal(c.Plan, &p); err != nil {
-			return err
+		var need Need
+		var op *plan.Operation
+		if strings.HasPrefix(c.Contract, catalog.KindOperation+"/") {
+			op = &plan.Operation{}
+			if err := json.Unmarshal(c.Plan, op); err != nil {
+				return err
+			}
+			need, err = e.operationApproval(ctx, c, g, op)
+		} else {
+			var p plan.Plan
+			if err := json.Unmarshal(c.Plan, &p); err != nil {
+				return err
+			}
+			need, err = e.approval(ctx, c, g, &p)
 		}
-		need, err := e.approval(ctx, c, g, &p)
 		if err != nil {
 			return err
 		}
@@ -95,6 +108,13 @@ func (e *Engine) Decide(ctx context.Context, d Decision) error {
 			c.Status = Rejected
 			e.emit(ctx, g, "change.rejected", c, func(ev *notify.Event) { ev.DecidedBy, ev.Comment = d.Username, d.Comment })
 			return nil
+		}
+		if op != nil {
+			o, ok := g.Catalog.Get(catalog.KindOperation, op.Name)
+			if !ok {
+				return fmt.Errorf("no Operation %s at the change's commit", op.Name)
+			}
+			return e.advanceOperation(ctx, c, g, op, snap, specHash(o))
 		}
 		return e.advance(ctx, c, g)
 	})

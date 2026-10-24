@@ -232,6 +232,37 @@ type PolicySpec struct {
 	// GaiaRoles gives Gaia's roles to teams (design 11.4): operator and
 	// platform-admin; everyone who signs in is a viewer.
 	GaiaRoles map[string][]string `yaml:"gaiaRoles"`
+	// Operations says who approves Operations (design 6.4).
+	Operations *OperationPolicy `yaml:"operations"`
+}
+
+// OperationPolicy: approvals per environment ("default" for the rest)
+// and per action ("default" for the rest), as roles: owner or
+// platform-admin. An Operation touching several owners' contracts needs
+// multiOwner (platform-admin) instead of each owner. requireWindow lists
+// the actions an environment runs only in a window.
+type OperationPolicy struct {
+	Approvals     map[string]map[string][]string `yaml:"approvals"`
+	MultiOwner    string                         `yaml:"multiOwner"`
+	RequireWindow map[string][]string            `yaml:"requireWindow"`
+}
+
+// Approvers returns the roles that approve action in env.
+func (o *OperationPolicy) Approvers(env, action string) []string {
+	if o == nil {
+		return []string{"owner"}
+	}
+	byAction, ok := o.Approvals[env]
+	if !ok {
+		byAction = o.Approvals["default"]
+	}
+	if r, ok := byAction[action]; ok {
+		return r
+	}
+	if r, ok := byAction["default"]; ok {
+		return r
+	}
+	return []string{"owner"}
 }
 
 // GaiaRoles beyond viewer, which everyone has.
@@ -252,6 +283,20 @@ func (s *PolicySpec) validate() []string {
 	for _, name := range sortedKeys(s.Environments) {
 		if a := s.Environments[name].Approval; a != "" && a != "required" && a != "none" {
 			out = append(out, fmt.Sprintf("environments.%s.approval: %q (required or none)", name, a))
+		}
+	}
+	if o := s.Operations; o != nil {
+		for _, env := range sortedKeys(o.Approvals) {
+			for _, action := range sortedKeys(o.Approvals[env]) {
+				for _, role := range o.Approvals[env][action] {
+					if role != "owner" && role != "platform-admin" {
+						out = append(out, fmt.Sprintf("operations.approvals.%s.%s: %q (owner or platform-admin)", env, action, role))
+					}
+				}
+			}
+		}
+		if m := o.MultiOwner; m != "" && m != "platform-admin" {
+			out = append(out, fmt.Sprintf("operations.multiOwner: %q (platform-admin)", m))
 		}
 	}
 	return out
@@ -1047,4 +1092,106 @@ type AgentSpec struct {
 	AnsibleRole string         `yaml:"ansibleRole" gaia:"required"`
 	Params      map[string]any `yaml:"params"`
 	Mandatory   bool           `yaml:"mandatory"`
+}
+
+// OperationSpec is a one-off job on servers (design 6.4): approved like
+// a change, run once, in its window, in batches.
+type OperationSpec struct {
+	Action   string         `yaml:"action" gaia:"required"`
+	Selector string         `yaml:"selector" gaia:"required"`
+	Window   *Window        `yaml:"window"`
+	NotAfter string         `yaml:"notAfter"`
+	Strategy Strategy       `yaml:"strategy"`
+	Options  map[string]any `yaml:"options"`
+	Runbook  string         `yaml:"runbook"`
+	Params   map[string]any `yaml:"params"`
+}
+
+// Window is when an Operation may run.
+type Window struct {
+	Start string `yaml:"start" gaia:"required"`
+	End   string `yaml:"end" gaia:"required"`
+}
+
+// Strategy says how an Operation goes through its servers.
+type Strategy struct {
+	BatchSize           string `yaml:"batchSize"` // a number or a percentage
+	MaxFailures         int    `yaml:"maxFailures"`
+	PauseBetweenBatches string `yaml:"pauseBetweenBatches"`
+}
+
+// OperationActions are what an Operation may do (in this version).
+var OperationActions = []string{"patch", "reboot", "runbook", "snapshot"}
+
+// Times returns the window and notAfter, parsed (zero when not set).
+func (s *OperationSpec) Times() (start, end, notAfter time.Time, err error) {
+	if s.Window != nil {
+		if start, err = time.Parse(time.RFC3339, s.Window.Start); err != nil {
+			return
+		}
+		if end, err = time.Parse(time.RFC3339, s.Window.End); err != nil {
+			return
+		}
+	}
+	if s.NotAfter != "" {
+		notAfter, err = time.Parse(time.RFC3339, s.NotAfter)
+	}
+	return
+}
+
+// Batches splits n servers by the strategy's batch size: a number, or a
+// percentage of n (at least one); all at once when it is empty.
+func (s *OperationSpec) Batches(n int) []int {
+	if n == 0 {
+		return nil
+	}
+	size := n
+	b := strings.TrimSpace(s.Strategy.BatchSize)
+	if pct, ok := strings.CutSuffix(b, "%"); ok {
+		if p, err := strconv.Atoi(pct); err == nil && p > 0 {
+			size = max(1, n*p/100)
+		}
+	} else if v, err := strconv.Atoi(b); err == nil && v > 0 {
+		size = v
+	}
+	var out []int
+	for left := n; left > 0; left -= size {
+		out = append(out, min(size, left))
+	}
+	return out
+}
+
+func (s *OperationSpec) validate() []string {
+	var out []string
+	if !contains(OperationActions, s.Action) {
+		out = append(out, fmt.Sprintf("action: %q (one of %s)", s.Action, strings.Join(OperationActions, ", ")))
+	}
+	if (s.Action == "runbook") != (s.Runbook != "") {
+		out = append(out, "runbook: names the role of a runbook action, and only then")
+	}
+	if len(s.Params) > 0 && s.Action != "runbook" {
+		out = append(out, "params: only for a runbook")
+	}
+	start, end, _, err := s.Times()
+	switch {
+	case err != nil:
+		out = append(out, "window/notAfter: want RFC 3339 times ("+err.Error()+")")
+	case s.Window != nil && !end.After(start):
+		out = append(out, "window: end must be after start")
+	}
+	if b := strings.TrimSpace(s.Strategy.BatchSize); b != "" {
+		v := strings.TrimSuffix(b, "%")
+		if n, err := strconv.Atoi(v); err != nil || n <= 0 || strings.HasSuffix(b, "%") && n > 100 {
+			out = append(out, fmt.Sprintf("strategy.batchSize: %q (a number or a percentage)", b))
+		}
+	}
+	if p := s.Strategy.PauseBetweenBatches; p != "" {
+		if _, err := time.ParseDuration(p); err != nil {
+			out = append(out, "strategy.pauseBetweenBatches: "+err.Error())
+		}
+	}
+	if s.Strategy.MaxFailures < 0 {
+		out = append(out, "strategy.maxFailures: 0 or more")
+	}
+	return out
 }
