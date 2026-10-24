@@ -49,3 +49,10 @@ Uçtan uca senaryo (Faz 3):
 4. İmzalı bir commit push'lanır → webhook → Change. Onay, revert (`gaia revert`; Gaia ssh ile push'lar) → webhook → isteyenin onaylayamadığı yeni Change.
 
 `make dev-mail` bir e-posta yakalayıcı (Mailpit) başlatır: SMTP `127.0.0.1:11025`, gelen kutusu `http://localhost:18025`. `smtp` kanalı `endpoint: "127.0.0.1:11025"` ile buna gönderir. Slack/Teams/webhook kanalları için gelen istekleri bir dosyaya yazan küçük bir HTTP alıcısı yeterlidir: kanalın `url`'i OpenBao'da ona işaret eder.
+
+`make dev-ad` bir Active Directory (Samba AD DC, realm `GAIA.DEV`) başlatır: LDAPS `127.0.0.1:10636`. `ad-seed.sh` şunları kurar:
+- `OU=Teams` altında `SG-Team-Platform`, `SG-Team-Web`, onaycı grupları ve `SG-Team-Web`'in içinde iç içe bir `SG-Web-Contractors`
+- `OU=People` altında ayse, mehmet, can, zeynep ve devre dışı ali
+- Gaia'nın okuma hesabı `gaia-reader`
+
+Parolalar `Dev-<kullanıcı>-Password-1!` biçimindedir. Okuma hesabı ve DC'nin sertifikası OpenBao'ya (`kv/platform/ad/gaia-dev`) yazılır. Sertifika `dc1.gaia.dev` adına olduğundan sırda `server_name` vardır.
