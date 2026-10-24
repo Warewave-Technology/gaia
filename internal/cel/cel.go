@@ -126,6 +126,18 @@ func (p *Program) EvalValue(vars map[string]any) (any, error) {
 	return pb.(*structpb.Value).AsInterface(), nil
 }
 
+// RoleString compiles an AnsibleRoleSource naming expression: it sees role
+// (name, collection, namespace, fqcn, path) and meta (meta/main.yml).
+func RoleString(src string) (*Program, error) {
+	return compile(roleEnv, src, gocel.StringType)
+}
+
+// RoleValue compiles an AnsibleRoleSource map expression; it also sees
+// name, the object's.
+func RoleValue(src string) (*Program, error) {
+	return compile(roleEnv, src, nil)
+}
+
 // GroupRule compiles a TeamSource select expression: it sees group (dn,
 // cn, description, guid) and returns a bool.
 func GroupRule(src string) (*Program, error) {
@@ -139,6 +151,11 @@ func GroupString(src string) (*Program, error) {
 }
 
 var (
+	roleEnv = mustEnv(
+		gocel.Variable("role", gocel.MapType(gocel.StringType, gocel.StringType)),
+		gocel.Variable("meta", gocel.MapType(gocel.StringType, gocel.DynType)),
+		gocel.Variable("name", gocel.StringType),
+	)
 	subnetEnv = mustEnv(
 		gocel.Variable("subnet", gocel.MapType(gocel.StringType, gocel.DynType)),
 		gocel.Variable("name", gocel.StringType),

@@ -143,6 +143,21 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindTeamSource) {
 		r.teamSource(o)
 	}
+	for _, o := range cat.List(KindRoleSource) {
+		s := o.Spec.(*AnsibleRoleSourceSpec)
+		r.ref(o, "spec.provider", KindProvider, s.Provider, "git")
+		if _, err := cel.RoleString(s.Naming); err != nil {
+			r.fail(o, "spec.naming", "%v", err)
+		}
+		for field, src := range map[string]string{"os": s.Map.OS, "labels": s.Map.Labels} {
+			if src == "" {
+				continue
+			}
+			if _, err := cel.RoleValue(src); err != nil {
+				r.fail(o, "spec.map."+field, "%v", err)
+			}
+		}
+	}
 	for _, o := range cat.List(KindNetworkSrc) {
 		s := o.Spec.(*NetworkSourceSpec)
 		r.ref(o, "spec.provider", KindProvider, s.Provider, "ipam")

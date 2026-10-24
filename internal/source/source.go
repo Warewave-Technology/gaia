@@ -79,6 +79,9 @@ func (s *Syncer) Run(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) 
 	for _, o := range g.Catalog.List(catalog.KindNetworkSrc) {
 		run(s.networks(ctx, snap, g, o))
 	}
+	for _, o := range g.Catalog.List(catalog.KindRoleSource) {
+		run(s.roles(ctx, snap, g, o))
+	}
 	return wrote, errors.Join(errs...)
 }
 
