@@ -77,6 +77,38 @@ func (g *Graph) Policy() *Object {
 	return nil
 }
 
+// AuthConfig is the catalog's AuthConfig, or nil when it has none.
+func (g *Graph) AuthConfig() *AuthConfigSpec {
+	if a := g.Catalog.List(KindAuthConfig); len(a) > 0 {
+		return a[0].Spec.(*AuthConfigSpec)
+	}
+	return nil
+}
+
+// RolesOf returns the Gaia roles the Policy gives to any of teams, viewer
+// always among them.
+func (g *Graph) RolesOf(teams []string) []string {
+	roles := []string{"viewer"}
+	pol := g.Policy()
+	if pol == nil {
+		return roles
+	}
+	gr := pol.Spec.(*PolicySpec).GaiaRoles
+	for _, role := range GaiaRoles {
+		for _, t := range gr[role] {
+			if contains(teams, t) && !contains(roles, role) {
+				roles = append(roles, role)
+				break
+			}
+		}
+	}
+	// platform-admin can do everything an operator can (design 11.4).
+	if contains(roles, "platform-admin") && !contains(roles, "operator") {
+		roles = append(roles, "operator")
+	}
+	return roles
+}
+
 // Resolve checks every reference of the catalog and the rules that span
 // objects (provider types, hypervisor-specific fields, templates per site,
 // environments, OS, role conflicts and params). It reports every problem
@@ -162,9 +194,11 @@ func (r *resolver) singletons() {
 			r.fail(o, "", "only one Platform is allowed (also %s)", plats[0].Source)
 		}
 	}
-	if pols := r.g.Catalog.List(KindPolicy); len(pols) > 1 {
-		for _, o := range pols[1:] {
-			r.fail(o, "", "only one Policy is allowed (also %s)", pols[0].Source)
+	for _, kind := range []string{KindPolicy, KindAuthConfig} {
+		if objs := r.g.Catalog.List(kind); len(objs) > 1 {
+			for _, o := range objs[1:] {
+				r.fail(o, "", "only one %s is allowed (also %s)", kind, objs[0].Source)
+			}
 		}
 	}
 }

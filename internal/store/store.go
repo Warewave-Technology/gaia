@@ -239,3 +239,12 @@ func (s *Store) ContractBusy(ctx context.Context, contract string) (bool, error)
 func (s *Store) TxFunc(ctx context.Context, fn func(pgx.Tx) error) error {
 	return pgx.BeginFunc(ctx, s.pool, fn)
 }
+
+// NewUserID returns a new person's ID.
+func NewUserID() string { return "usr-" + newID(10) }
+
+// NewSessionID returns a new session's ID.
+func NewSessionID() string { return "ses-" + newID(10) }
+
+// NewFlowID returns a new sign-in ceremony's ID.
+func NewFlowID() string { return "flw-" + newID(16) }

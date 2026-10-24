@@ -14,6 +14,11 @@ import (
 	"time"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/Warewave-Technology/gaia/internal/auth"
+	"github.com/Warewave-Technology/gaia/internal/queue"
+	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 func (e *env) api() *httptest.Server {
@@ -198,9 +203,114 @@ func TestOpenAPIDescribesEveryRoute(t *testing.T) {
 	for _, rt := range (&Server{}).apiRoutes() {
 		code = append(code, rt.method+" "+rt.path)
 	}
+	// Sign-in's API endpoints are in the same document; its pages are not.
+	for _, rt := range (&auth.Service{}).Routes() {
+		if strings.HasPrefix(rt.Path, "/api/") {
+			code = append(code, rt.Method+" "+rt.Path)
+		}
+	}
 	sort.Strings(spec)
 	sort.Strings(code)
 	if strings.Join(spec, "\n") != strings.Join(code, "\n") {
 		t.Errorf("api/openapi.yaml and the routes differ:\nspec:\n%s\ncode:\n%s", strings.Join(spec, "\n"), strings.Join(code, "\n"))
+	}
+}
+
+// person creates an account in teams and returns an access token for it.
+func (e *env) person(a *auth.Service, name string, teams ...string) string {
+	e.t.Helper()
+	ctx := context.Background()
+	id := store.NewUserID()
+	if err := e.store.Q().InsertUser(ctx, db.InsertUserParams{ID: id, Username: name, Provider: "local"}); err != nil {
+		e.t.Fatal(err)
+	}
+	for _, t := range teams {
+		if err := e.store.Q().AddTeam(ctx, db.AddTeamParams{UserID: id, Team: t, Source: "local"}); err != nil {
+			e.t.Fatal(err)
+		}
+	}
+	tok, err := a.IssueAccessToken(ctx, id, time.Hour, false)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	return tok
+}
+
+func call(t *testing.T, method, url, token string, out any) int {
+	t.Helper()
+	req, _ := http.NewRequest(method, url, nil)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if out != nil {
+		_ = json.NewDecoder(resp.Body).Decode(out)
+	}
+	return resp.StatusCode
+}
+
+func TestTheAPINeedsSignInAndHidesOthersContracts(t *testing.T) {
+	e := setup(t)
+	cat := &CatalogSource{Src: queue.Source{Repo: e.repo, Commit: "HEAD"}}
+	if err := cat.Load(); err != nil {
+		t.Fatal(err)
+	}
+	a := auth.New(e.store, cat.Graph, nil)
+	srv, err := New(Config{Listen: "127.0.0.1:0", Auth: a}, e.store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs := httptest.NewServer(srv.Handler())
+	defer hs.Close()
+
+	run := e.enqueue()
+	// poc-web belongs to team-platform, which the lab's Policy makes
+	// platform-admin; team-web only sees its name.
+	admin := e.person(a, "ayse", "team-platform")
+	viewer := e.person(a, "mehmet", "team-web")
+
+	if code := call(t, "GET", hs.URL+"/api/v1/runs", "", nil); code != 401 {
+		t.Errorf("no token: %d", code)
+	}
+	var runs []Run
+	call(t, "GET", hs.URL+"/api/v1/runs", viewer, &runs)
+	if len(runs) != 1 || !runs[0].Restricted || runs[0].PlanHash != "" || runs[0].RequestedBy != "" {
+		t.Errorf("viewer's runs = %+v", runs)
+	}
+	var adminRuns []Run
+	call(t, "GET", hs.URL+"/api/v1/runs", admin, &adminRuns)
+	if len(adminRuns) != 1 || adminRuns[0].Restricted || adminRuns[0].PlanHash == "" {
+		t.Errorf("admin's runs = %+v", adminRuns)
+	}
+	for _, p := range []string{"/api/v1/runs/" + run, "/api/v1/runs/" + run + "/events", "/api/v1/contracts/poc-web"} {
+		if code := call(t, "GET", hs.URL+p, viewer, nil); code != 403 {
+			t.Errorf("viewer %s: %d", p, code)
+		}
+		if code := call(t, "GET", hs.URL+p, admin, nil); code != 200 {
+			t.Errorf("admin %s: %d", p, code)
+		}
+	}
+	var cs []ContractSummary
+	call(t, "GET", hs.URL+"/api/v1/contracts", viewer, &cs)
+	if len(cs) != 1 || cs[0].Name != "poc-web" || !cs[0].Restricted || cs[0].LastRun != "" {
+		t.Errorf("viewer's contracts = %+v", cs)
+	}
+	if code := call(t, "POST", hs.URL+"/api/v1/runs/"+run+"/cancel", viewer, nil); code != 403 {
+		t.Errorf("viewer cancels: %d", code)
+	}
+	if code := call(t, "POST", hs.URL+"/api/v1/runs/"+run+"/cancel", admin, nil); code != 202 {
+		t.Errorf("admin cancels: %d", code)
+	}
+	// Sign-in's own endpoints are mounted too.
+	if code := call(t, "GET", hs.URL+"/api/v1/auth/config", "", nil); code != 200 {
+		t.Errorf("auth config: %d", code)
+	}
+	var me map[string]any
+	if call(t, "GET", hs.URL+"/api/v1/me", admin, &me); me["username"] != "ayse" {
+		t.Errorf("me = %v", me)
 	}
 }

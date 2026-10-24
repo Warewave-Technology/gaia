@@ -17,6 +17,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
+	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -36,6 +37,9 @@ type Config struct {
 	EventRetention time.Duration
 	Systems        queue.Systems
 	Log            *slog.Logger
+	// Auth signs people in and guards the API. Without it the API is open,
+	// which the CLI allows only on loopback addresses.
+	Auth *auth.Service
 }
 
 // Server is a running gaia server.
@@ -141,7 +145,14 @@ func (s *Server) stopTimeout() time.Duration {
 
 func (s *Server) routes() {
 	for _, rt := range s.apiRoutes() {
-		s.mux.HandleFunc(rt.method+" "+rt.path, rt.h)
+		h := rt.h
+		if s.cfg.Auth != nil {
+			h = s.cfg.Auth.Guard(rt.role, h)
+		}
+		s.mux.HandleFunc(rt.method+" "+rt.path, h)
+	}
+	if s.cfg.Auth != nil {
+		s.cfg.Auth.Mount(s.mux)
 	}
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

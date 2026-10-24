@@ -13,29 +13,51 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Warewave-Technology/gaia/internal/apply"
+	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 // route is one API endpoint; api/openapi.yaml describes each of them.
+// role is the Gaia role it needs; "" is anyone signed in, and what they
+// see of each contract follows the visibility rule (design 11.4).
 type route struct {
-	method, path string
-	h            http.HandlerFunc
+	method, path, role string
+	h                  http.HandlerFunc
 }
 
 func (s *Server) apiRoutes() []route {
 	return []route{
-		{"GET", "/api/v1/runs", s.listRuns},
-		{"GET", "/api/v1/runs/{id}", s.getRun},
-		{"POST", "/api/v1/runs/{id}/cancel", s.cancelRun},
-		{"GET", "/api/v1/runs/{id}/events", s.listEvents},
-		{"GET", "/api/v1/runs/{id}/events/stream", s.streamEvents},
-		{"GET", "/api/v1/runs/{id}/record", s.getRecord},
-		{"GET", "/api/v1/records/verify", s.verifyRecords},
-		{"GET", "/api/v1/contracts", s.listContracts},
-		{"GET", "/api/v1/contracts/{name}", s.getContract},
+		{"GET", "/api/v1/runs", "", s.listRuns},
+		{"GET", "/api/v1/runs/{id}", "", s.getRun},
+		{"POST", "/api/v1/runs/{id}/cancel", "operator", s.cancelRun},
+		{"GET", "/api/v1/runs/{id}/events", "", s.listEvents},
+		{"GET", "/api/v1/runs/{id}/events/stream", "", s.streamEvents},
+		{"GET", "/api/v1/runs/{id}/record", "", s.getRecord},
+		{"GET", "/api/v1/records/verify", "", s.verifyRecords},
+		{"GET", "/api/v1/contracts", "", s.listContracts},
+		{"GET", "/api/v1/contracts/{name}", "", s.getContract},
 	}
+}
+
+// full reports whether the caller sees every contract of the list in full.
+func (s *Server) full(r *http.Request, contracts []string) bool {
+	if s.cfg.Auth == nil {
+		return true
+	}
+	p := auth.From(r.Context())
+	for _, c := range contracts {
+		if s.cfg.Auth.Access(p, c) != auth.Full {
+			return false
+		}
+	}
+	return true
+}
+
+// forbidden answers for a contract whose details the caller may not see.
+func forbidden(w http.ResponseWriter) {
+	writeJSON(w, http.StatusForbidden, Problem{Error: "you may see this contract's name only"})
 }
 
 // Run is a run as the API shows it.
@@ -52,6 +74,9 @@ type Run struct {
 	FinishedAt  *time.Time `json:"finishedAt,omitempty"`
 	Stages      []Stage    `json:"stages,omitempty"`
 	Record      *Record    `json:"record,omitempty"`
+	// Restricted: the caller sees this run's contracts by name only, so its
+	// details are left out.
+	Restricted bool `json:"restricted,omitempty"`
 }
 
 // Stage is one stage of a run for one contract ("" for the whole run).
@@ -92,6 +117,7 @@ type ContractSummary struct {
 	LiveHosts  int32  `json:"liveHosts"`
 	LastRun    string `json:"lastRun,omitempty"`
 	LastStatus string `json:"lastStatus,omitempty"`
+	Restricted bool   `json:"restricted,omitempty"`
 }
 
 // Contract is one contract with its servers and recent runs.
@@ -129,7 +155,11 @@ func (s *Server) listRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]Run, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, runJSON(row))
+		run := runJSON(row)
+		if !s.full(r, row.Contracts) {
+			run = Run{ID: run.ID, Contracts: run.Contracts, Status: run.Status, QueuedAt: run.QueuedAt, Restricted: true}
+		}
+		out = append(out, run)
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -140,6 +170,10 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 	row, err := q.Run(ctx, r.PathValue("id"))
 	if err != nil {
 		s.fail(w, err)
+		return
+	}
+	if !s.full(r, row.Contracts) {
+		forbidden(w)
 		return
 	}
 	run := runJSON(row)
@@ -189,8 +223,7 @@ func (s *Server) listEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("id")
-	if _, err := s.store.Q().Run(r.Context(), id); err != nil {
-		s.fail(w, err)
+	if !s.visibleRun(w, r, id) {
 		return
 	}
 	evs, err := s.events(r.Context(), id, after, limit)
@@ -230,8 +263,7 @@ const keepAlive = 15 * time.Second
 func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := r.PathValue("id")
-	if _, err := s.store.Q().Run(ctx, id); err != nil {
-		s.fail(w, err)
+	if !s.visibleRun(w, r, id) {
 		return
 	}
 	last, err := intParam(r, "after", 0, 0, 1<<31-1)
@@ -328,7 +360,25 @@ func eventName(t string) string {
 	return "ansible"
 }
 
+// visibleRun answers 404 or 403 itself when the run does not exist or the
+// caller may not see it.
+func (s *Server) visibleRun(w http.ResponseWriter, r *http.Request, id string) bool {
+	run, err := s.store.Q().Run(r.Context(), id)
+	if err != nil {
+		s.fail(w, err)
+		return false
+	}
+	if !s.full(r, run.Contracts) {
+		forbidden(w)
+		return false
+	}
+	return true
+}
+
 func (s *Server) getRecord(w http.ResponseWriter, r *http.Request) {
+	if !s.visibleRun(w, r, r.PathValue("id")) {
+		return
+	}
 	rec, err := s.store.Q().RunRecord(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.fail(w, err)
@@ -361,6 +411,10 @@ func (s *Server) listContracts(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]ContractSummary, 0, len(rows))
 	for _, c := range rows {
+		if !s.full(r, []string{c.Name}) {
+			out = append(out, ContractSummary{Name: c.Name, Restricted: true})
+			continue
+		}
 		out = append(out, ContractSummary{Name: c.Name, LiveHosts: c.LiveHosts, LastRun: c.LastRun, LastStatus: c.LastStatus})
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -371,6 +425,10 @@ func (s *Server) getContract(w http.ResponseWriter, r *http.Request) {
 	q := s.store.Q()
 	name := r.PathValue("name")
 	hosts, err := q.LiveHosts(ctx, name)
+	if err == nil && !s.full(r, []string{name}) {
+		forbidden(w)
+		return
+	}
 	if err != nil {
 		s.fail(w, err)
 		return
