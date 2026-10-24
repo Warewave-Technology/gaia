@@ -9,8 +9,8 @@
 |---|---|---|---|
 | 1 | `gaia server`, API, iş kuyruğu | – | **Tamam** |
 | 2 | Kimlik doğrulama ve yetki | 1 | **Tamam** |
-| 3 | Change motoru ve GitHub izleyicisi | 1, 2 | Sürüyor |
-| 4 | Bildirimler | 3 | – |
+| 3 | Change motoru ve GitHub izleyicisi | 1, 2 | **Tamam** (lab oturumu sonda) |
+| 4 | Bildirimler | 3 | **Tamam** (lab oturumu sonda) |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | – |
 | 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | – |
@@ -180,6 +180,12 @@ Tasarım 14.
 
 - `nfpm` ile `.deb` / `.rpm`, systemd unit'i, `gaia.server` Ansible rolü.
 - Container imajı ve Helm chart (13.3).
+
+## Lab oturumu
+
+Gerçek sunucularla yapılacak denemeler tek bir lab oturumunda toplanır: Faz 3–4'ün uygulama ayağı (commit → Change → onay → gerçek VM ve bildirimler) ve lab gerektiren sonraki fazlar.
+
+- 192.168.1.25 artık Proxmox'taki başka bir VM'de (2026-10-25'te görüldü). Platform VM'i lab'e ayrılan aralıktaki boş bir adresle (192.168.1.26) kurulur.
 
 ## Dışarıya bağlı işler
 
