@@ -55,6 +55,8 @@ type Config struct {
 	// Writer writes Gaia's own commits (reverts); nil when Gaia has no
 	// signing key.
 	Writer *repo.Writer
+	// Sources runs the catalog's sources; nil runs none.
+	Sources *Sources
 	// NotifySecrets reads channel credentials for the notification
 	// workers.
 	NotifySecrets notify.Secrets

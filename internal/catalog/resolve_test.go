@@ -541,3 +541,89 @@ func loadOrResolveErrors(t *testing.T, fs []File) []string {
 	}
 	return out
 }
+
+func generatedTeam(t *testing.T) string {
+	t.Helper()
+	b, err := Render(KindTeam, "team-web", nil, &TeamSpec{
+		DisplayName: "Web", ADGroup: &ADGroup{Provider: "corp-ad", DN: "CN=SG-Team-Web,OU=Teams,DC=gaia,DC=dev"},
+		Secrets: &TeamSecrets{Prefix: "bao://kv/apps/team-web/"},
+	}, "TeamSource/corp", "usn-42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+const adProvider = `apiVersion: gaia/v1alpha1
+kind: Provider
+metadata: { name: corp-ad }
+spec: { type: activedirectory, endpoint: "ldaps://dc1:636", credentials: bao://kv/platform/ad }
+`
+
+func TestGeneratedObjectsAndPatches(t *testing.T) {
+	team := generatedTeam(t)
+	patch := `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web, annotations: { gaia/mode: patch } }
+spec:
+  displayName: Web Ekibi
+  notifications:
+    - { provider: slack-web, triggers: [change.failed] }
+`
+	fs := catalogWith(t, "ad.yaml", "", adProvider, "notify.yaml", "", notifyProviders, "generated/teams/team-web.yaml", "", team, "patches/team-web.yaml", "", patch)
+	cat, err := Load("c0ffee", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := Resolve(cat)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	tm := g.Team("team-web")
+	if tm.DisplayName != "Web Ekibi" || len(tm.Notifications) != 1 || tm.ADGroup.DN == "" || tm.Secrets.Prefix != "bao://kv/apps/team-web/" {
+		t.Errorf("merged team = %+v", tm)
+	}
+	o, _ := cat.Get(KindTeam, "team-web")
+	if len(o.Patches) != 1 || o.Patches[0].File != "patches/team-web.yaml" {
+		t.Errorf("patches = %+v", o.Patches)
+	}
+
+	// An edit by hand shows.
+	edited := strings.Replace(team, "displayName: Web", "displayName: Hacked", 1)
+	wantError(t, loadErrors(t, catalogWith(t, "ad.yaml", "", adProvider, "generated/teams/team-web.yaml", "", edited)), "edited by hand")
+
+	// A patch may not touch what the source owns, nor patch what is not
+	// generated.
+	bad := strings.Replace(patch, "  displayName: Web Ekibi\n", "  adGroup: { dn: \"CN=Other\" }\n", 1)
+	wantError(t, loadErrors(t, catalogWith(t, "ad.yaml", "", adProvider, "notify.yaml", "", notifyProviders, "generated/teams/team-web.yaml", "", team, "p.yaml", "", bad)),
+		"spec.adGroup belongs to TeamSource/corp; a patch may set displayName, secrets, notifications")
+	hand := "apiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-web }\nspec: { displayName: Web }\n"
+	wantError(t, loadErrors(t, catalogWith(t, "team.yaml", "", hand, "notify.yaml", "", notifyProviders, "p.yaml", "", patch)), "is written by hand")
+	wantError(t, loadErrors(t, catalogWith(t, "notify.yaml", "", notifyProviders, "p.yaml", "", patch)), "no generated Team/team-web to patch")
+}
+
+func TestTeamSourceChecks(t *testing.T) {
+	src := `apiVersion: gaia/v1alpha1
+kind: TeamSource
+metadata: { name: corp }
+spec:
+  provider: corp-ad
+  select: 'group.dn.endsWith(",OU=Teams,DC=gaia,DC=dev")'
+  naming: 'group.cn.lowerAscii().replace("sg-team-", "team-")'
+  map: { displayName: group.description, approvers: 'group.cn + "-Approvers"', secretsPrefix: '"bao://kv/apps/" + name + "/"' }
+  membership: { recursive: true, sync: { every: 5m } }
+  output: generated/teams
+`
+	cat, err := Load("c0ffee", catalogWith(t, "ad.yaml", "", adProvider, "src.yaml", "", src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Resolve(cat); err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	bad := strings.Replace(strings.Replace(src, "group.cn.lowerAscii()", "group.cn.lowerAscii() + 1", 1), "provider: corp-ad", "provider: bao", 1)
+	lines := resolveErrors(t, catalogWith(t, "ad.yaml", "", adProvider, "src.yaml", "", bad))
+	wantError(t, lines, "TeamSource/corp", "spec.naming: ")
+	wantError(t, lines, "TeamSource/corp", `spec.provider: Provider "bao" has type openbao`)
+	wantError(t, loadErrors(t, catalogWith(t, "src.yaml", "", strings.Replace(src, "every: 5m", "every: 10s", 1))), "at least 1m")
+}

@@ -56,6 +56,9 @@ func Files(repoPath, ref, dir string) ([]catalog.File, string, error) {
 	return out, hash, nil
 }
 
+// ErrNoDirectory: the commit has no such directory.
+var ErrNoDirectory = errors.New("no such directory")
+
 // treeAt returns the tree of dir at ref and the full commit hash.
 func treeAt(repoPath, ref, dir string) (*object.Tree, string, error) {
 	repo, err := Open(repoPath)
@@ -78,7 +81,7 @@ func treeAt(repoPath, ref, dir string) (*object.Tree, string, error) {
 	if dir != "" {
 		tree, err = tree.Tree(dir)
 		if errors.Is(err, object.ErrDirectoryNotFound) {
-			return nil, "", fmt.Errorf("%s: no such directory at %s", dir, hash.String()[:12])
+			return nil, "", fmt.Errorf("%s: %w at %s", dir, ErrNoDirectory, hash.String()[:12])
 		}
 		if err != nil {
 			return nil, "", err

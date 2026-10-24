@@ -5,7 +5,9 @@ package itest
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"os/exec"
@@ -115,16 +117,22 @@ func StartSamba(t testing.TB, seed string) *Samba {
 	docker(t, "cp", seed, name+":/tmp/seed.sh")
 	docker(t, "exec", name, "sh", "/tmp/seed.sh")
 	// Samba writes its TLS certificate when the LDAP server first starts,
-	// which can be after samba-tool answers.
+	// which can be after samba-tool answers. Its serial number is random
+	// and sometimes negative, which Go refuses; Samba then makes another.
 	var ca []byte
 	for {
 		out, err := exec.Command("docker", "exec", name, "cat", "/var/lib/samba/private/tls/ca.pem").Output()
-		if err == nil && bytes.Contains(out, []byte("BEGIN CERTIFICATE")) {
-			ca = out
-			break
+		b, _ := pem.Decode(out)
+		if err == nil && b != nil && b.Type == "CERTIFICATE" {
+			if _, perr := x509.ParseCertificate(b.Bytes); perr == nil {
+				ca = out
+				break
+			}
+			docker(t, "exec", name, "sh", "-c", "rm -f /var/lib/samba/private/tls/*.pem")
+			docker(t, "restart", name)
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("samba wrote no TLS certificate: %v", err)
+			t.Fatalf("samba wrote no usable TLS certificate: %v", err)
 		}
 		time.Sleep(time.Second)
 	}

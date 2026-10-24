@@ -41,6 +41,14 @@ dev-mail:
 dev-ad:
 	docker compose -f deploy/dev/compose.yaml --profile ad up -d samba
 	until docker compose -f deploy/dev/compose.yaml exec -T samba samba-tool user list >/dev/null 2>&1; do sleep 2; done
+	# Samba'nın kendi ürettiği sertifikanın seri numarası bazen negatif çıkıyor; Go bunu
+	# reddeder. Pozitif çıkana kadar yeniden ürettirilir.
+	until docker compose -f deploy/dev/compose.yaml exec -T samba sh -c 'test -s /var/lib/samba/private/tls/ca.pem' 2>/dev/null; do sleep 2; done
+	until docker compose -f deploy/dev/compose.yaml exec -T samba cat /var/lib/samba/private/tls/ca.pem | openssl x509 -noout -serial | grep -q '=[0-7]'; do \
+	  docker compose -f deploy/dev/compose.yaml exec -T samba sh -c 'rm -f /var/lib/samba/private/tls/*.pem'; \
+	  docker compose -f deploy/dev/compose.yaml restart samba; \
+	  until docker compose -f deploy/dev/compose.yaml exec -T samba sh -c 'test -s /var/lib/samba/private/tls/ca.pem' 2>/dev/null; do sleep 2; done; \
+	done
 	docker compose -f deploy/dev/compose.yaml cp deploy/dev/ad-seed.sh samba:/tmp/ad-seed.sh
 	docker compose -f deploy/dev/compose.yaml exec -T samba sh /tmp/ad-seed.sh
 	docker compose -f deploy/dev/compose.yaml exec -T openbao env BAO_TOKEN=dev-root BAO_ADDR=http://127.0.0.1:8200 \
