@@ -93,17 +93,19 @@ func TestHostsAndNames(t *testing.T) {
 		t.Errorf("HostByExternalID = %q, %v", uid, err)
 	}
 
-	// Deleting the host and releasing its name frees both the name and seq.
-	if err := s.Tx(ctx, func(q *db.Queries) error {
-		if err := q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: a.UID, Status: db.HostStatusDeleted}); err != nil {
-			return err
-		}
-		return q.ReleaseNames(ctx, a.UID)
-	}); err != nil {
+	// Deleting the host frees its name, seq and external IDs.
+	if err := s.DeleteHost(ctx, a.UID); err != nil {
 		t.Fatal(err)
 	}
+	if ids, _ := q.ExternalIDs(ctx, a.UID); len(ids) != 0 {
+		t.Errorf("external IDs after delete: %+v", ids)
+	}
+
 	if err := s.CreateHost(ctx, b); err != nil {
 		t.Errorf("name not reusable after release: %v", err)
+	}
+	if err := q.SetExternalID(ctx, db.SetExternalIDParams{Uid: b.UID, Provider: "pve-lab", Kind: "vm", ExternalID: "9402"}); err != nil {
+		t.Errorf("VM ID not reusable after delete: %v", err)
 	}
 	if err := s.CreateHost(ctx, NewHost{UID: NewUID(), Contract: "poc-web", Hostname: "labtpoc02", Site: "lab", Seq: 1}); err != nil {
 		t.Errorf("seq not reusable after delete: %v", err)

@@ -158,3 +158,17 @@ func IsNotFound(err error) bool {
 }
 
 func text(s string) pgtype.Text { return pgtype.Text{String: s, Valid: s != ""} }
+
+// DeleteHost marks a decommissioned host deleted, releases its hostname
+// and forgets its external IDs, in one transaction.
+func (s *Store) DeleteHost(ctx context.Context, uid string) error {
+	return s.Tx(ctx, func(q *db.Queries) error {
+		if err := q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: uid, Status: db.HostStatusDeleted}); err != nil {
+			return err
+		}
+		if err := q.ReleaseNames(ctx, uid); err != nil {
+			return err
+		}
+		return q.DeleteExternalIDs(ctx, uid)
+	})
+}

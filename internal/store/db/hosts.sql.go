@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteExternalIDs = `-- name: DeleteExternalIDs :exec
+delete from host_external_ids where uid = $1
+`
+
+// A deleted host's IDs go: Proxmox and IPAM give them out again. The run
+// record keeps what they were.
+func (q *Queries) DeleteExternalIDs(ctx context.Context, uid string) error {
+	_, err := q.db.Exec(ctx, deleteExternalIDs, uid)
+	return err
+}
+
 const externalIDs = `-- name: ExternalIDs :many
 select uid, provider, kind, external_id from host_external_ids where uid = $1 order by provider, kind
 `

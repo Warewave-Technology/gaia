@@ -52,19 +52,18 @@ type Deps struct {
 // User is the account cloud-init creates on every server for Gaia.
 const User = "gaia"
 
-// Run applies a plan built from g. It refuses plans that delete servers:
-// decommission comes later (PoC M4).
+// Run applies a plan built from g. Contracts that need approval are
+// refused: the PoC has no approval flow.
 func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, error) {
-	var deletes []string
 	for _, c := range p.Contracts {
+		if c.Approval != "required" {
+			continue
+		}
 		for _, s := range c.Servers {
-			if s.Action == plan.Delete {
-				deletes = append(deletes, s.Hostname)
+			if s.Action != plan.Keep {
+				return "", fmt.Errorf("%s: the plan changes servers and needs approval, which the PoC does not have", c.Name)
 			}
 		}
-	}
-	if len(deletes) > 0 {
-		return "", fmt.Errorf("the plan deletes %s: decommission is not supported yet", strings.Join(deletes, ", "))
 	}
 
 	runID := store.NewRunID()
@@ -126,7 +125,7 @@ func (r *runner) all(ctx context.Context, p *plan.Plan) error {
 		return err
 	}
 	for _, c := range p.Contracts {
-		if len(c.Servers) > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
+		if running(c) > 0 && (c.Baseline != nil || len(c.Roles) > 0) {
 			if r.cfg, err = r.configSetup(ctx, privateKey); err != nil {
 				return err
 			}
@@ -224,8 +223,29 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 	siteCreds := map[string]proxmox.Credentials{} // a site has one compute provider
 	creds := map[string]proxmox.Credentials{}
 
+	var gone []doomed
 	for _, s := range c.Servers {
 		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "plan", Action: s.Action})
+		if s.Action == plan.Delete {
+			d, err := r.doom(ctx, s)
+			if err != nil {
+				return err
+			}
+			gone = append(gone, d)
+			if d.compute != "" {
+				cr, err := cached(creds, d.compute, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, d.compute) })
+				if err != nil {
+					return err
+				}
+				// The stack runs even when no server of the site is left:
+				// that is how its VMs are destroyed.
+				if _, ok := bySite[s.Site]; !ok {
+					bySite[s.Site] = nil
+				}
+				siteCreds[s.Site] = cr
+			}
+			continue
+		}
 		if s.Action == plan.Create {
 			s.UID = store.NewUID()
 			if err := r.d.Store.CreateHost(ctx, store.NewHost{
@@ -237,14 +257,9 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			r.changes[len(r.changes)-1].UID = s.UID
 		}
 
-		cr, ok := creds[s.Compute.Provider]
-		if !ok {
-			var err error
-			if cr, err = r.proxmoxCreds(ctx, s.Compute.Provider); err != nil {
-				return err
-			}
-			creds[s.Compute.Provider] = cr
-			r.executedAs[s.Compute.Provider] = cr.TokenID
+		cr, err := cached(creds, s.Compute.Provider, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, s.Compute.Provider) })
+		if err != nil {
+			return err
 		}
 		addr, err := r.address(ctx, s)
 		if err != nil {
@@ -261,6 +276,11 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		bySite[s.Site] = append(bySite[s.Site], r.vm(c, contract, s, addr, vmid, smbios, sshKey))
 		targets = append(targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
 		siteCreds[s.Site] = cr
+	}
+
+	// Monitoring goes first, so that a VM going away raises no alerts.
+	if err := r.unregister(ctx, c, gone); err != nil {
+		return err
 	}
 
 	sites := make([]string, 0, len(bySite))
@@ -294,10 +314,36 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			}
 		}
 	}
+	if err := r.release(ctx, c, gone, creds); err != nil {
+		return err
+	}
 	if err := r.register(ctx, c, contract, targets); err != nil {
 		return err
 	}
 	return r.configure(ctx, c, contract, targets)
+}
+
+// running counts the servers of c that stay.
+func running(c plan.Contract) int {
+	n := 0
+	for _, s := range c.Servers {
+		if s.Action != plan.Delete {
+			n++
+		}
+	}
+	return n
+}
+
+// cached returns m[k], filling it with load the first time.
+func cached[V any](m map[string]V, k string, load func() (V, error)) (V, error) {
+	if v, ok := m[k]; ok {
+		return v, nil
+	}
+	v, err := load()
+	if err == nil {
+		m[k] = v
+	}
+	return v, err
 }
 
 func (r *runner) proxmoxCreds(ctx context.Context, provider string) (proxmox.Credentials, error) {
@@ -311,6 +357,7 @@ func (r *runner) proxmoxCreds(ctx context.Context, provider string) (proxmox.Cre
 	if c.TokenID == "" || c.TokenSecret == "" {
 		return c, fmt.Errorf("%s: token_id and token_secret are required", p.Credentials)
 	}
+	r.executedAs[provider] = c.TokenID
 	return c, nil
 }
 
