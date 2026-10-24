@@ -61,6 +61,9 @@ type Service struct {
 	now     func() time.Time
 	limits  limiters
 	transit Transit
+	secrets SecretReader
+	oidc    oidcCache
+	client  *http.Client // for identity providers; tests set it
 }
 
 // New returns the sign-in service. catalog returns the current catalog.

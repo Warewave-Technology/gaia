@@ -25,4 +25,6 @@ unset GAIA_BAO_TOKEN
 export GAIA_BAO_ADDR=http://127.0.0.1:18200 GAIA_BAO_ROLE_ID=gaia-dev GAIA_BAO_SECRET_ID=gaia-dev-secret-id
 ```
 
+`make dev-oidc` ayrıca Keycloak'ı başlatır (`http://localhost:18081`, admin / dev): realm `gaia-dev`, istemci `gaia` (secret OpenBao'da `kv/platform/gaia/oidc`), kullanıcılar `ayse` / `ayse-dev-password` (team-platform) ve `mehmet` / `mehmet-dev-password` (team-web). AuthConfig'te sağlayıcı adı `dev-sso`, issuer `http://localhost:18081/realms/gaia-dev`.
+
 Portlar, makinedeki başka servislerle çakışmasın diye standart portların 10000 fazlasıdır. Ortam sadece yerel kullanım içindir; sırları sabittir ve bütün portlar `127.0.0.1`'e bağlıdır.

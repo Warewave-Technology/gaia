@@ -86,7 +86,13 @@ func newServerCommand() *cobra.Command {
 				}
 			}
 			mfa := cfg.Auth != nil && cat.Graph().AuthConfig().Require == "mfa"
-			if cfg.Workers > 0 || mfa {
+			oidcSecrets := false
+			if cfg.Auth != nil {
+				for _, p := range cat.Graph().AuthConfig().Providers {
+					oidcSecrets = oidcSecrets || p.Type == "oidc" && p.ClientSecret != ""
+				}
+			}
+			if cfg.Workers > 0 || mfa || oidcSecrets {
 				bao, err := baoLogin(ctx, cfg.Log)
 				if err != nil {
 					return err
@@ -99,6 +105,9 @@ func newServerCommand() *cobra.Command {
 				if mfa {
 					// TOTP seeds are encrypted with the transit key gaia-auth.
 					cfg.Auth.WithTransit(bao(secretsEndpoint(cat.Graph())))
+				}
+				if oidcSecrets {
+					cfg.Auth.WithSecrets(bao(secretsEndpoint(cat.Graph())))
 				}
 			}
 			srv, err := server.New(cfg, s)

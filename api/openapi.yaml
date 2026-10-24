@@ -214,6 +214,24 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/RecoveryCodes" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/auth/oidc/passkey/begin:
+    post:
+      summary: The passkey step of an OIDC sign-in that showed no MFA (public; needs the gaia_pending cookie)
+      description: Answers with an assertion to make, or, for a person's first sign-in, a passkey to register (register true).
+      operationId: oidcPasskeyBegin
+      security: []
+      responses:
+        "200": { description: The ceremony, content: { application/json: { schema: { type: object, properties: { flow: { type: string }, options: { type: object }, register: { type: boolean } } } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/oidc/passkey/finish:
+    post:
+      summary: Finish the passkey step; sets the session cookie (public)
+      operationId: oidcPasskeyFinish
+      security: []
+      requestBody: { $ref: "#/components/requestBodies/Ceremony" }
+      responses:
+        "200": { description: Signed in; recoveryCodes after a first passkey, content: { application/json: { schema: { type: object, properties: { next: { type: string }, recoveryCodes: { type: array, items: { type: string } } } } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/auth/logout:
     post:
       summary: End the current session

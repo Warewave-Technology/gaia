@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build test itest generate lint ee dev-up dev-down
+.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -27,5 +27,8 @@ dev-up:
 	docker compose -f deploy/dev/compose.yaml up -d --wait postgres openbao seaweedfs
 	docker compose -f deploy/dev/compose.yaml run --rm init
 
+dev-oidc:
+	docker compose -f deploy/dev/compose.yaml --profile oidc up -d keycloak
+
 dev-down:
-	docker compose -f deploy/dev/compose.yaml down -v
+	docker compose -f deploy/dev/compose.yaml --profile oidc down -v

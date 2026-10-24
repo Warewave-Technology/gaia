@@ -32,6 +32,19 @@ services:
       - ./s3.json:/etc/seaweedfs/s3.json:ro
     ports: ["127.0.0.1:18333:8333"]
 
+  # OIDC sağlayıcısı (isteğe bağlı: make dev-oidc). Realm gaia-dev, istemci gaia,
+  # kullanıcılar ayse (team-platform) ve mehmet (team-web).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    profiles: [oidc]
+    command: ["start-dev", "--import-realm", "--http-port=18081", "--hostname=http://localhost:18081"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: dev
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports: ["127.0.0.1:18081:18081"]
+
   # Başlangıç ayarları: OpenBao (kv, transit, AppRole) ve S3 bucket'ları.
   init:
     image: docker.io/library/alpine:3.22

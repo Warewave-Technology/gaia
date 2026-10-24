@@ -228,6 +228,24 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 	return err
 }
 
+const peekFlow = `-- name: PeekFlow :one
+select id, kind, user_id, data, expires_at from auth_flows where id = $1 and expires_at > now()
+`
+
+// A flow read without using it up: an OIDC sign-in waiting for a passkey.
+func (q *Queries) PeekFlow(ctx context.Context, id string) (AuthFlow, error) {
+	row := q.db.QueryRow(ctx, peekFlow, id)
+	var i AuthFlow
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.UserID,
+		&i.Data,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const pruneFlows = `-- name: PruneFlows :exec
 delete from auth_flows where expires_at < now()
 `
