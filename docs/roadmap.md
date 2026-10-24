@@ -9,7 +9,7 @@
 |---|---|---|---|
 | 1 | `gaia server`, API, iş kuyruğu | – | **Tamam** |
 | 2 | Kimlik doğrulama ve yetki | 1 | **Tamam** |
-| 3 | Change motoru ve GitHub izleyicisi | 1, 2 | – |
+| 3 | Change motoru ve GitHub izleyicisi | 1, 2 | Sürüyor |
 | 4 | Bildirimler | 3 | – |
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | – |

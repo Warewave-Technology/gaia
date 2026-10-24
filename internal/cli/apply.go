@@ -17,6 +17,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/queue"
+	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -66,11 +67,13 @@ func newApplyCommand() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				repo, err := filepath.Abs(src.repo)
+				// The repository's top: workers read it as a local repository.
+				dir, err := gitsrc.Root(src.repo)
 				if err != nil {
 					return err
 				}
-				runs, err := queue.Enqueue(ctx, s, q, g, queue.Source{Repo: repo, Commit: p.Commit, Paths: src.paths}, p.ContractNames(), requester())
+				snap := repo.Snapshot{Platform: repo.Rev{Name: "platform", URL: dir, Commit: p.Commit, Paths: src.paths}}
+				runs, err := queue.Enqueue(ctx, s, q, g, snap, p.ContractNames(), requester())
 				if err != nil {
 					return err
 				}

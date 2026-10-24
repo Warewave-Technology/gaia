@@ -44,6 +44,9 @@ type Deps struct {
 	Archive func(endpoint, bucket, accessKey, secretKey string) (runrecord.Archive, error)
 	// RunID is a queued run to take; empty starts a new run.
 	RunID string
+	// Config is the config repository pinned for the run; without it the
+	// config provider's ref is read at the start of the run.
+	Config *ConfigRepo
 	// Who asked for the run and where its contracts came from, for the
 	// run record.
 	RequestedBy string

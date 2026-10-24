@@ -16,7 +16,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
-	"github.com/Warewave-Technology/gaia/internal/queue"
+	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -255,8 +255,8 @@ func call(t *testing.T, method, url, token string, out any) int {
 
 func TestTheAPINeedsSignInAndHidesOthersContracts(t *testing.T) {
 	e := setup(t)
-	cat := &CatalogSource{Src: queue.Source{Repo: e.repo, Commit: "HEAD"}}
-	if err := cat.Load(); err != nil {
+	cat := &CatalogSource{Repos: e.repos, Platform: repo.Rev{Name: "platform", URL: e.repo}}
+	if err := cat.Load(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	a := auth.New(e.store, cat.Graph, nil)

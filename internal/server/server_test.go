@@ -22,6 +22,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/gitsrc/gittest"
 	"github.com/Warewave-Technology/gaia/internal/itest"
 	"github.com/Warewave-Technology/gaia/internal/queue"
+	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -50,6 +51,7 @@ type env struct {
 	repo  string
 	queue *river.Client[pgx.Tx]
 	busy  time.Duration
+	repos *repo.Mirrors
 }
 
 // setup migrates a database and commits the lab example, with poc-web at
@@ -81,6 +83,11 @@ func setup(t *testing.T) *env {
 		if rel == filepath.Join("contracts", "poc-web.yaml") {
 			content = strings.Replace(content, "replicas: 1", "replicas: 0", 1)
 		}
+		if rel == filepath.Join("platform", "providers", "config-repo.yaml") {
+			// The config repository is this repository.
+			content = strings.Replace(content, "url: /home/labadm/gaia", "url: "+r.Dir, 1)
+			content = strings.Replace(content, "ref: main", "ref: HEAD", 1)
+		}
 		r.Write(filepath.ToSlash(rel), content)
 		return err
 	})
@@ -92,7 +99,7 @@ func setup(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &env{t: t, store: s, repo: r.Dir, queue: q}
+	return &env{t: t, store: s, repo: r.Dir, queue: q, repos: &repo.Mirrors{Dir: t.TempDir()}}
 }
 
 func (e *env) systems(*catalog.Graph) (apply.Deps, error) {
@@ -108,14 +115,26 @@ func (e *env) systems(*catalog.Graph) (apply.Deps, error) {
 	}, nil
 }
 
-func (e *env) enqueue() string {
+// snapshot is the test repository at its head.
+func (e *env) snapshot() repo.Snapshot {
 	e.t.Helper()
-	src := queue.Source{Repo: e.repo, Commit: "HEAD"}
-	g, err := src.Graph()
+	platform := repo.Rev{Name: "platform", URL: e.repo}
+	commit, err := e.repos.Sync(context.Background(), platform.Repo())
 	if err != nil {
 		e.t.Fatal(err)
 	}
-	runs, err := queue.Enqueue(context.Background(), e.store, e.queue, g, src, []string{"poc-web"}, "ops@test")
+	platform.Commit = commit
+	return repo.Snapshot{Platform: platform}
+}
+
+func (e *env) enqueue() string {
+	e.t.Helper()
+	snap := e.snapshot()
+	g, err := e.repos.Graph(context.Background(), snap)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	runs, err := queue.Enqueue(context.Background(), e.store, e.queue, g, snap, []string{"poc-web"}, "ops@test")
 	if err != nil {
 		e.t.Fatal(err)
 	}
@@ -125,7 +144,7 @@ func (e *env) enqueue() string {
 // start runs a worker server until the test ends.
 func (e *env) start() *Server {
 	e.t.Helper()
-	srv, err := New(Config{Workers: 1, Systems: e.systems, StopTimeout: 5 * time.Second, BusyWait: e.busy}, e.store)
+	srv, err := New(Config{Workers: 1, Repos: e.repos, Systems: e.systems, StopTimeout: 5 * time.Second, BusyWait: e.busy}, e.store)
 	if err != nil {
 		e.t.Fatal(err)
 	}

@@ -25,6 +25,15 @@ type PlatformSpec struct {
 	// RunLogs is an s3 provider for each run's raw output, kept without
 	// a lock (design 10.1: logs are not evidence).
 	RunLogs string `yaml:"runLogs"`
+	// Contracts are the repositories with Server and Operation objects
+	// beside the platform repository itself (design 2, 7.6).
+	Contracts []ContractRepo `yaml:"contracts"`
+}
+
+// ContractRepo is a git provider and the directories of it to read.
+type ContractRepo struct {
+	Provider string   `yaml:"provider" gaia:"required"`
+	Paths    []string `yaml:"paths"`
 }
 
 // Monitoring is where servers are registered. Host groups are CEL

@@ -16,6 +16,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
+	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -27,16 +28,14 @@ const Apply = "apply"
 // DefaultBusyWait is how long a run waits when its contract is busy.
 const DefaultBusyWait = 15 * time.Second
 
-// ApplyArgs is one queued apply: one contract at one commit, with the plan
+// ApplyArgs is one queued apply: one contract of a snapshot, with the plan
 // hash it was queued with.
 type ApplyArgs struct {
-	Run         string   `json:"run"`
-	Repo        string   `json:"repo"`
-	Commit      string   `json:"commit"`
-	Paths       []string `json:"paths,omitempty"`
-	Contract    string   `json:"contract"`
-	PlanHash    string   `json:"plan_hash"`
-	RequestedBy string   `json:"requested_by,omitempty"`
+	Run         string        `json:"run"`
+	Snapshot    repo.Snapshot `json:"snapshot"`
+	Contract    string        `json:"contract"`
+	PlanHash    string        `json:"plan_hash"`
+	RequestedBy string        `json:"requested_by,omitempty"`
 }
 
 func (ApplyArgs) Kind() string { return "gaia.apply" }
@@ -47,30 +46,9 @@ func (ApplyArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: Apply, MaxAttempts: 1}
 }
 
-// Source is where a run reads its objects: a repository, a commit and the
-// directories inside it.
-type Source struct {
-	Repo   string
-	Commit string
-	Paths  []string
-}
-
-// Graph loads and resolves the objects of src.
-func (src Source) Graph() (*catalog.Graph, error) {
-	files, commit, err := gitsrc.Load(src.Repo, src.Commit, src.Paths)
-	if err != nil {
-		return nil, err
-	}
-	cat, err := catalog.Load(commit, files)
-	if err != nil {
-		return nil, err
-	}
-	return catalog.Resolve(cat)
-}
-
 // Enqueue queues one run per contract of the plan, each with that
 // contract's own plan. It returns the run IDs in the plan's order.
-func Enqueue(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *catalog.Graph, src Source, contracts []string, requestedBy string) ([]string, error) {
+func Enqueue(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *catalog.Graph, snap repo.Snapshot, contracts []string, requestedBy string) ([]string, error) {
 	var args []ApplyArgs
 	for _, name := range contracts {
 		p, err := plan.Build(ctx, g, []string{name}, apply.StoreState{S: s})
@@ -78,15 +56,14 @@ func Enqueue(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], g *ca
 			return nil, err
 		}
 		args = append(args, ApplyArgs{
-			Run: store.NewRunID(), Repo: src.Repo, Commit: p.Commit, Paths: src.Paths,
-			Contract: name, PlanHash: p.Hash, RequestedBy: requestedBy,
+			Run: store.NewRunID(), Snapshot: snap, Contract: name, PlanHash: p.Hash, RequestedBy: requestedBy,
 		})
 	}
 	err := s.TxFunc(ctx, func(tx pgx.Tx) error {
 		q := db.New(tx)
 		for _, a := range args {
 			if err := q.QueueRun(ctx, db.QueueRunParams{
-				ID: a.Run, Contracts: []string{a.Contract}, Commit: a.Commit, PlanHash: a.PlanHash, RequestedBy: text(a.RequestedBy),
+				ID: a.Run, Contracts: []string{a.Contract}, Commit: a.Snapshot.Label(), PlanHash: a.PlanHash, RequestedBy: text(a.RequestedBy),
 			}); err != nil {
 				return err
 			}
@@ -144,6 +121,7 @@ type Systems func(g *catalog.Graph) (apply.Deps, error)
 type ApplyWorker struct {
 	river.WorkerDefaults[ApplyArgs]
 	Store   *store.Store
+	Repos   *repo.Mirrors
 	Systems Systems
 	// MaxDuration bounds one run; the Platform's limits come later with
 	// the change engine.
@@ -181,8 +159,7 @@ func (w *ApplyWorker) Work(ctx context.Context, job *river.Job[ApplyArgs]) error
 }
 
 func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) error {
-	src := Source{Repo: a.Repo, Commit: a.Commit, Paths: a.Paths}
-	g, err := src.Graph()
+	g, err := w.Repos.Graph(ctx, a.Snapshot)
 	if err != nil {
 		return w.fail(ctx, a, err)
 	}
@@ -199,9 +176,16 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) error {
 	if err != nil {
 		return w.fail(ctx, a, err)
 	}
-	signed, _ := gitsrc.Signed(a.Repo, a.Commit)
+	pr := a.Snapshot.Platform
+	signed, _ := gitsrc.Signed(w.Repos.Path(pr.Repo()), pr.Commit)
 	deps.RunID, deps.RequestedBy = a.Run, a.RequestedBy
-	deps.Source = runrecord.Source{Repo: a.Repo, Commit: a.Commit, Signed: signed}
+	deps.Source = runrecord.Source{Repo: pr.URL, Commit: pr.Commit, Signed: signed}
+	if c := a.Snapshot.Config; c != nil {
+		if err := w.Repos.Ensure(ctx, c.Repo(), c.Commit); err != nil {
+			return w.fail(ctx, a, err)
+		}
+		deps.Config = &apply.ConfigRepo{Path: w.Repos.Path(c.Repo()), Commit: c.Commit, Paths: c.Paths}
+	}
 	_, err = apply.Run(ctx, g, p, deps)
 	return err
 }

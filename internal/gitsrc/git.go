@@ -58,7 +58,7 @@ func Files(repoPath, ref, dir string) ([]catalog.File, string, error) {
 
 // treeAt returns the tree of dir at ref and the full commit hash.
 func treeAt(repoPath, ref, dir string) (*object.Tree, string, error) {
-	repo, err := git.PlainOpenWithOptions(repoPath, &git.PlainOpenOptions{DetectDotGit: true})
+	repo, err := Open(repoPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("open repository %s: %w", repoPath, err)
 	}
@@ -141,7 +141,7 @@ func Resolve(repoPath, ref, dir string) (string, error) {
 // Signed reports whether the commit carries a signature. It does not
 // verify the signature against a keyring.
 func Signed(repoPath, commit string) (bool, error) {
-	repo, err := git.PlainOpenWithOptions(repoPath, &git.PlainOpenOptions{DetectDotGit: true})
+	repo, err := Open(repoPath)
 	if err != nil {
 		return false, err
 	}
@@ -169,4 +169,26 @@ func Load(repoPath, ref string, paths []string) ([]catalog.File, string, error) 
 		commit = c
 	}
 	return all, commit, nil
+}
+
+// Root returns the top directory of the repository that contains path.
+func Root(path string) (string, error) {
+	repo, err := Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open repository %s: %w", path, err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		return filepath.Abs(path)
+	}
+	return wt.Filesystem.Root(), nil
+}
+
+// Open opens the repository at path: a bare repository (Gaia's mirrors) or
+// the repository a working tree directory is in.
+func Open(path string) (*git.Repository, error) {
+	if r, err := git.PlainOpen(path); err == nil {
+		return r, nil
+	}
+	return git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 }

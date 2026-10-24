@@ -810,7 +810,10 @@ spec:
 
 Model Argo CD'den esinlenir. Git istenen durumun geçmişidir; değişikliğin incelenmesi, onaylanması ve uygulanması Gaia'da olur. Bu bölüm Gaia'nın omurgasıdır: arayüz, onaylar, drift düzeltmesi, Operation'lar ve bildirimler aynı akışı kullanır.
 
-**İzlenen kaynaklar.** Platform reposu, kontrat reposu ve config reposu birer `git` Provider'ıdır. Gaia her birinin izlenen branch'ini (`ref`) takip eder.
+**İzlenen kaynaklar.** Platform reposu, kontrat repoları ve config reposu Gaia'nın takip ettiği repolardır. Gaia her birinin izlenen branch'ini (`ref`) takip eder.
+- Platform reposunu sunucunun kendi ayarı söyler (`gaia server --repo`, `--repo-credentials`). Kontrat repoları `Platform.spec.contracts`'ta, config reposu `engines.configuration.source`'ta birer `git` Provider'ı olarak yazılıdır.
+- Her repo yerel bir aynada (bare clone) tutulur. Kimlik bilgisi OpenBao'dadır: https için token; ssh için anahtar ve `known_hosts`. Host anahtarı bilinmeyen bir sunucuya bağlanılmaz.
+- **Anlık görüntü (snapshot):** İstenen durum, platform reposu ile kontrat repolarının birer commit'idir. Plan, Change ve run bu görüntüye bağlıdır. Config reposunun commit'i de görüntüde sabitlenir, ama planın kimliğine girmez: rol kodu bir sonraki run'da uygulanır (7.3).
 - Yeni commit'i webhook ile hemen, webhook gelmezse periyodik fetch ile (varsayılan 3 dakika) öğrenir.
 - PR, review ve branch koruması ekiplerin tercihidir; Gaia bunlara bakmaz ve onların yerine geçmez. Branch korumasının ve CI'da `gaia validate`'in açık olması önerilir.
 - İzlenen branch'in son commit'i doğrulanmıyorsa o repodan hiçbir Change uygulanmaz; Gaia hatayı gösterir.
@@ -1621,3 +1624,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | OIDC: yetkilendirme kodu + PKCE + nonce; MFA kanıtı sadece `trustIdp` ile ve `acceptAmr`/`acceptAcr` eşleşirse; yoksa Gaia passkey'i istenir (ilk girişte kaydedilir). Kişi `(provider, sub)` ile bulunur; takımlar her girişte `groupsClaim`'den yenilenir (AD senkronu gelene kadar); local hesapla çakışan kullanıcı adına sağlayıcı adı eklenir |
 | 2026-10-24 | CLI girişi: tarayıcıda onay + loopback + PKCE (RFC 8252) ve `--device` (RFC 8628, isteğin IP'si onaydan önce gösterilir); refresh token + kısa access token, OS keychain'de (yoksa 0600 dosya); CLI token'ı CLI veya cihaz girişini onaylayamaz |
 | 2026-10-24 | İmza anahtarları (SSH veya OpenPGP) kişinin profiline kaydedilir; parmak izi tekil; eklemek ve kaldırmak son 10 dakikada passkey ister |
+| 2026-10-24 | İstenen durum bir anlık görüntü: platform ve kontrat repolarının commit'leri; config reposunun commit'i run için sabitlenir ama plan kimliğine girmez. Repolar bare ayna olarak tutulur; ssh'ta `known_hosts` zorunlu |
