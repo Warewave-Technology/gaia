@@ -105,6 +105,9 @@ func Run(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) (string, e
 	if eerr := r.events.close(); eerr != nil {
 		err = errors.Join(err, fmt.Errorf("run events: %w", eerr))
 	}
+	if lerr := r.archiveLogs(ctx); lerr != nil {
+		err = errors.Join(err, fmt.Errorf("run logs: %w (the events are in the database)", lerr))
+	}
 	return runID, err
 }
 

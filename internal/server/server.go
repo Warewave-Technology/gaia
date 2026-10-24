@@ -32,8 +32,10 @@ type Config struct {
 	StopTimeout time.Duration
 	// BusyWait is how long a run waits when its contract is busy.
 	BusyWait time.Duration
-	Systems  queue.Systems
-	Log      *slog.Logger
+	// EventRetention is how long run events stay in the database.
+	EventRetention time.Duration
+	Systems        queue.Systems
+	Log            *slog.Logger
 }
 
 // Server is a running gaia server.
@@ -58,8 +60,15 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 		if err := river.AddWorkerSafely(workers, &queue.ApplyWorker{Store: s, Systems: cfg.Systems, MaxDuration: cfg.RunTimeout, BusyWait: cfg.BusyWait}); err != nil {
 			return nil, err
 		}
+		if err := river.AddWorkerSafely(workers, &queue.PruneEventsWorker{Store: s, Retention: cfg.EventRetention}); err != nil {
+			return nil, err
+		}
 		rc.Workers = workers
-		rc.Queues = map[string]river.QueueConfig{queue.Apply: {MaxWorkers: cfg.Workers}}
+		rc.Queues = map[string]river.QueueConfig{
+			queue.Apply:        {MaxWorkers: cfg.Workers},
+			river.QueueDefault: {MaxWorkers: 1},
+		}
+		rc.PeriodicJobs = []*river.PeriodicJob{queue.PruneEventsDaily()}
 	}
 	c, err := river.NewClient(riverpgxv5.New(s.Pool()), rc)
 	if err != nil {

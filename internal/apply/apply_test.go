@@ -730,12 +730,24 @@ func TestApplyWritesTheRunRecord(t *testing.T) {
 		t.Errorf("changes = %s", got)
 	}
 
-	if e.archive.at != "http://192.168.1.25:8333/gaia-run-records" || len(e.archive.objects) != 1 {
-		t.Fatalf("archive at %s: %v", e.archive.at, e.archive.objects)
+	if len(e.archive.objects) != 2 {
+		t.Fatalf("archive: %v", e.archive.objects)
 	}
 	key := runrecord.Key(rec)
 	if rec.Archived.String != "mem://"+key || time.Until(e.archive.until[key]) < 23*time.Hour {
 		t.Errorf("archived %q until %s", rec.Archived.String, e.archive.until[key])
+	}
+	// The raw events go next to it, unlocked, one JSON line each.
+	var logKey string
+	for k := range e.archive.objects {
+		if strings.HasPrefix(k, "logs/") {
+			logKey = k
+		}
+	}
+	all, _ := q.RunEvents(ctx, run)
+	if !strings.HasSuffix(logKey, "/"+run+".jsonl") || !e.archive.until[logKey].IsZero() ||
+		strings.Count(string(e.archive.objects[logKey]), "\n") != len(all) {
+		t.Errorf("logs at %q (until %s): %d lines for %d events", logKey, e.archive.until[logKey], strings.Count(string(e.archive.objects[logKey]), "\n"), len(all))
 	}
 
 	// A failed run is recorded too, and the chain holds.

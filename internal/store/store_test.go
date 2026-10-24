@@ -3,7 +3,10 @@ package store
 import (
 	"context"
 	"errors"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -168,5 +171,50 @@ func TestRuns(t *testing.T) {
 	r, err := q.Run(ctx, id)
 	if err != nil || r.Status != "succeeded" || !r.FinishedAt.Valid || r.Contracts[0] != "poc-web" {
 		t.Errorf("Run = %+v, %v", r, err)
+	}
+}
+
+func TestAppRoleCannotRewriteRecords(t *testing.T) {
+	itest.Require(t)
+	ctx := context.Background()
+	dsn := itest.StartPostgres(t)
+	owner, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = owner.Close(ctx) }()
+	if _, err := owner.Exec(ctx, "create role gaia_app login password 'app'"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	appDSN := strings.Replace(dsn, "gaia_owner:itest", "gaia_app:app", 1)
+	s, err := Open(ctx, appDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	q := s.Q()
+	if err := q.StartRun(ctx, db.StartRunParams{ID: "run-1", Contracts: []string{"c"}, Commit: "x", PlanHash: "h"}); err != nil {
+		t.Fatalf("the app role cannot write runs: %v", err)
+	}
+	if _, err := q.InsertRunRecord(ctx, db.InsertRunRecordParams{RunID: "run-1", Body: "{}", PrevHash: "", RecordHash: "h1"}); err != nil {
+		t.Fatalf("the app role cannot insert records: %v", err)
+	}
+	if err := q.SetRunRecordArchived(ctx, db.SetRunRecordArchivedParams{RunID: "run-1", Archived: pgtype.Text{String: "s3://b/k", Valid: true}}); err != nil {
+		t.Errorf("the app role cannot note the archive: %v", err)
+	}
+	for _, sql := range []string{
+		"update run_records set body = '{\"x\":1}'",
+		"delete from run_records",
+		"truncate run_records",
+		"alter table run_records disable trigger user",
+		"drop table hosts",
+	} {
+		_, err := s.Pool().Exec(ctx, sql)
+		if err == nil || !strings.Contains(err.Error(), "permission denied") && !strings.Contains(err.Error(), "must be owner") {
+			t.Errorf("%s: %v", sql, err)
+		}
 	}
 }

@@ -67,7 +67,7 @@ func TestLoadLabExamples(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	want := map[string]int{
-		KindPlatform: 1, KindPolicy: 1, KindProvider: 7, KindSite: 1, KindNetwork: 1,
+		KindPlatform: 1, KindPolicy: 1, KindProvider: 8, KindSite: 1, KindNetwork: 1,
 		KindImage: 1, KindSize: 2, KindBaseline: 1, KindServer: 1,
 	}
 	total := 0

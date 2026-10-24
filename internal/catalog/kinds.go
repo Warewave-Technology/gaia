@@ -20,6 +20,9 @@ type PlatformSpec struct {
 	Engines    Engines     `yaml:"engines" gaia:"required"`
 	Monitoring *Monitoring `yaml:"monitoring"`
 	RunArchive string      `yaml:"runArchive"`
+	// RunLogs is an s3 provider for each run's raw output, kept without
+	// a lock (design 10.1: logs are not evidence).
+	RunLogs string `yaml:"runLogs"`
 }
 
 // Monitoring is where servers are registered. Host groups are CEL

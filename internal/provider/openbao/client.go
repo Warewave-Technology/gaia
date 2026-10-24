@@ -12,9 +12,10 @@ import (
 
 // Client reads secrets from OpenBao's KV v2 engine.
 type Client struct {
-	addr  string
-	token string
-	http  *http.Client
+	addr    string
+	token   string
+	tokenFn func() string // a Session's current token, when set
+	http    *http.Client
 }
 
 // New returns a client for OpenBao at addr with token.
@@ -27,7 +28,12 @@ func (c *Client) Addr() string { return c.addr }
 
 // Token is the token the client uses, for tools that talk to OpenBao
 // themselves (Pulumi's secrets provider).
-func (c *Client) Token() string { return c.token }
+func (c *Client) Token() string {
+	if c.tokenFn != nil {
+		return c.tokenFn()
+	}
+	return c.token
+}
 
 // ParseRef splits bao://<mount>/<path> into mount and path.
 func ParseRef(ref string) (mount, path string, err error) {
@@ -52,7 +58,7 @@ func (c *Client) Read(ctx context.Context, ref string) (map[string]string, error
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Vault-Token", c.token)
+	req.Header.Set("X-Vault-Token", c.Token())
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("openbao: %w", err)

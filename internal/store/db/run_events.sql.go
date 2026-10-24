@@ -47,6 +47,19 @@ func (q *Queries) InsertRunEvent(ctx context.Context, arg InsertRunEventParams) 
 	return err
 }
 
+const pruneRunEvents = `-- name: PruneRunEvents :execrows
+delete from run_events where created_at < $1
+`
+
+// Events live 90 days in the database (design 12.4); the archive keeps them.
+func (q *Queries) PruneRunEvents(ctx context.Context, createdAt pgtype.Timestamptz) (int64, error) {
+	result, err := q.db.Exec(ctx, pruneRunEvents, createdAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const runEvents = `-- name: RunEvents :many
 select run_id, seq, stage, host_uid, event, task, changed, failed, stdout, data, created_at from run_events where run_id = $1 order by seq
 `

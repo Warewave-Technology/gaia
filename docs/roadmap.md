@@ -7,7 +7,7 @@
 
 | Faz | İçerik | Bağımlı olduğu | Durum |
 |---|---|---|---|
-| 1 | `gaia server`, API, iş kuyruğu | – | – |
+| 1 | `gaia server`, API, iş kuyruğu | – | **Tamam** |
 | 2 | Kimlik doğrulama ve yetki | 1 | – |
 | 3 | Change motoru ve GitHub izleyicisi | 1, 2 | – |
 | 4 | Bildirimler | 3 | – |
@@ -41,6 +41,19 @@ Gaia şu an bir CLI. Tasarımdaki tek binary'nin sunucu tarafı (13.1).
 - **Yerel geliştirme ortamı:** `deploy/dev/compose.yaml`.
 
 **Bitti sayılır:** Bir kontrat API üzerinden kuyruğa girip worker'da uygulanıyor, canlı olaylar SSE'den akıyor, run iptal edilebiliyor.
+
+**Sonuç (2026-10-24):**
+- `gaia server --role all|api|worker` ve River kuyruğu.
+  - Kontrat başına bir iş. Worker planı yeniden alır; hash değiştiyse uygulamaz. Meşgul kontratta iş bekler.
+  - Run iptali: kuyrukta veya çalışırken.
+- Aşamalar kontrat başına `run_stages`'te. Çıktının her satırı ve her Ansible olayı tek sıralı akışta (`run_events`, COPY ile toplu, `NOTIFY` ile duyurulur).
+- API: `api/openapi.yaml` (testle route'larla eşit). SSE ile canlı izleme, `Last-Event-ID` ile devam. `gaia run list|show|watch|cancel`.
+  - Kimlik doğrulama gelene kadar sunucu sadece loopback'te dinler.
+- Sağlamlaştırma:
+  - Worker'lar OpenBao'ya AppRole ile girer, token'ı yeniler ve gerekince yeniden girer.
+  - `gaia migrate`, `gaia_app` rolüne sadece gerekenleri verir; run kayıtlarını değiştiremez ve silemez.
+  - Ham olaylar `runLogs` bucket'ına (kilitsiz) arşivlenir; veritabanındaki olaylar 90 gün sonra silinir.
+- `gaia apply --queue` CLI'dan kuyruğa iş koyar. Faz 3'te uygulamayı Change motoru başlatacak.
 
 ## Faz 2: Kimlik doğrulama ve yetki
 

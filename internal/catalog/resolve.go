@@ -194,6 +194,9 @@ func (r *resolver) platform(o *Object) {
 			r.fail(o, "spec.runArchive", "Provider %q has no retention; run records are locked for it", s.RunArchive)
 		}
 	}
+	if s.RunLogs != "" {
+		r.ref(o, "spec.runLogs", KindProvider, s.RunLogs, "s3")
+	}
 	if m := s.Monitoring; m != nil {
 		r.ref(o, "spec.monitoring.provider", KindProvider, m.Provider, "zabbix")
 		for i, src := range m.HostGroups {
