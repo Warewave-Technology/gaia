@@ -1623,6 +1623,11 @@ access:
 
 - **Üyelik değişiklikleri** AD'den 5 dakika içinde görülür ve **iki yönde de otomatik** dağıtılır: erişim eklenir veya kaldırılır. Erişimin kendisi zaten Git'te onaylanmıştır; değişen sadece takımda kimin olduğudur.
 - **Hesabı devre dışı bırakılan veya silinen kişi:** Erişimi her yerden kaldırılır ve Gaia oturumları ile CLI token'ları iptal edilir. Bu her ortamda otomatik yapılır, çünkü erişim kaldırmak onay beklememelidir.
+- **Erişim run'ı:** Bir takımın kişileri değiştiğinde (AD senkronu: giren, çıkan, kapanan) ya da biri giriş anahtarı ekleyip sildiğinde, son uygulanan erişiminde o takım bulunan kontratlar için "erişim run'ı" kuyruğa girer.
+  - Run, kontratın **son uygulanan** planını ve görüntüsünü kullanır. Onay bekleyen bir değişiklik bu yoldan dağıtılmaz.
+  - Sunucu açmaz, kapatmaz, baseline ve rolleri çalıştırmaz. Sadece canlı sunucularda erişim play'ini çalıştırır.
+  - `requestedBy` alanı `gaia: access`'tir. Run kaydı yeni `accessSnapshot`'ı yazar.
+  - Kontrat için bekleyen bir erişim run'ı varsa yenisi eklenmez.
 - **Erişim drift'i:** Bu kontroller drift'in "erişim" alanıdır (bkz. 7.5).
 
 ### 14.6 AD'ye yazma

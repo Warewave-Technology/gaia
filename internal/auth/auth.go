@@ -64,6 +64,10 @@ type Service struct {
 	secrets SecretReader
 	oidc    oidcCache
 	client  *http.Client // for identity providers; tests set it
+
+	// OnLoginKeys is told when someone adds or removes a login key: the
+	// servers they have access to get it again.
+	OnLoginKeys func(ctx context.Context, userID string)
 }
 
 // New returns the sign-in service. catalog returns the current catalog.

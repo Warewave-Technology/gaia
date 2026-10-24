@@ -172,6 +172,7 @@ func (a *Service) addLoginKey(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	a.loginKeysChanged(r.Context(), From(r.Context()).UserID)
 	writeJSON(w, http.StatusCreated, LoginKey{Fingerprint: fp, Name: b.Name, PublicKey: stored, CreatedAt: a.now()})
 }
 
@@ -185,5 +186,12 @@ func (a *Service) revokeLoginKey(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusNotFound, "no such key")
 		return
 	}
+	a.loginKeysChanged(r.Context(), From(r.Context()).UserID)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *Service) loginKeysChanged(ctx context.Context, userID string) {
+	if a.OnLoginKeys != nil {
+		a.OnLoginKeys(context.WithoutCancel(ctx), userID)
+	}
 }

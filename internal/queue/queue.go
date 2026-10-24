@@ -4,8 +4,10 @@ package queue
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -38,6 +40,9 @@ type ApplyArgs struct {
 	RequestedBy string        `json:"requested_by,omitempty"`
 	ApprovedBy  []string      `json:"approved_by,omitempty"`
 	ChangeID    string        `json:"change_id,omitempty"`
+	// Access: distribute the access of the plan last applied again, and
+	// nothing else (design 14.5).
+	Access bool `json:"access,omitempty"`
 }
 
 func (ApplyArgs) Kind() string { return "gaia.apply" }
@@ -119,6 +124,87 @@ func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx],
 		return q.SetChangeRun(ctx, db.SetChangeRunParams{ID: changeID, RunID: pgtype.Text{String: a.Run, Valid: true}})
 	})
 	return a.Run, err
+}
+
+// AccessRequester is who access runs are requested by.
+const AccessRequester = "gaia: access"
+
+// ErrNotApplied: the contract has no applied plan to distribute.
+var ErrNotApplied = errors.New("the contract has not been applied")
+
+// EnqueueAccess queues a run that distributes a contract's applied access
+// again, unless one is already waiting. It returns the run, or "" when
+// one was waiting.
+func EnqueueAccess(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], contract string) (string, error) {
+	q := s.Q()
+	st, err := q.ContractState(ctx, contract)
+	if errors.Is(err, pgx.ErrNoRows) || err == nil && len(st.AppliedPlan) == 0 {
+		return "", ErrNotApplied
+	}
+	if err != nil {
+		return "", err
+	}
+	if _, err := q.QueuedRunBy(ctx, db.QueuedRunByParams{Contract: contract, RequestedBy: AccessRequester}); err == nil {
+		return "", nil
+	}
+	var snap repo.Snapshot
+	if err := json.Unmarshal(st.AppliedSnapshot, &snap); err != nil {
+		return "", err
+	}
+	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: st.AppliedPlanHash.String, RequestedBy: AccessRequester, Access: true}
+	err = s.TxFunc(ctx, func(tx pgx.Tx) error {
+		q := db.New(tx)
+		if err := q.QueueRun(ctx, db.QueueRunParams{ID: a.Run, Contracts: []string{contract}, Commit: snap.Label(), PlanHash: a.PlanHash, RequestedBy: text(a.RequestedBy)}); err != nil {
+			return err
+		}
+		res, err := c.InsertTx(ctx, tx, a, nil)
+		if err != nil {
+			return err
+		}
+		return q.SetRunJob(ctx, db.SetRunJobParams{ID: a.Run, JobID: pgtype.Int8{Int64: res.Job.ID, Valid: true}})
+	})
+	return a.Run, err
+}
+
+// Redistribute queues access runs for the contracts whose applied access
+// names any of teams: their people changed (design 14.5). It returns the
+// runs queued.
+func Redistribute(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], teams []string) ([]string, error) {
+	if len(teams) == 0 {
+		return nil, nil
+	}
+	states, err := s.Q().ContractStates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var runs []string
+	var errs []error
+	for _, st := range states {
+		var p plan.Plan
+		if len(st.AppliedPlan) == 0 || json.Unmarshal(st.AppliedPlan, &p) != nil {
+			continue
+		}
+		hit := false
+		for _, ct := range p.Contracts {
+			for _, a := range ct.Access {
+				for _, t := range a.Teams {
+					hit = hit || slices.Contains(teams, t)
+				}
+			}
+		}
+		if !hit {
+			continue
+		}
+		run, err := EnqueueAccess(ctx, s, c, st.Contract)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", st.Contract, err))
+			continue
+		}
+		if run != "" {
+			runs = append(runs, run)
+		}
+	}
+	return runs, errors.Join(errs...)
 }
 
 // ErrFinished: the run has already ended.
@@ -207,6 +293,9 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	if err != nil {
 		return nil, w.fail(ctx, a, err)
 	}
+	if a.Access {
+		return g, w.access(ctx, a, g)
+	}
 	// The plan is taken again: the state may have changed since the run was
 	// queued, and then the queued plan is not the one to apply.
 	p, err := plan.Build(ctx, g, []string{a.Contract}, apply.StoreState{S: w.Store})
@@ -235,6 +324,35 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	}
 	_, err = apply.Run(ctx, g, p, deps)
 	return g, err
+}
+
+// access distributes the contract's applied access again, with the plan
+// applied last (a newer run may have applied one since this was queued).
+func (w *ApplyWorker) access(ctx context.Context, a ApplyArgs, g *catalog.Graph) error {
+	st, err := w.Store.Q().ContractState(ctx, a.Contract)
+	if err != nil {
+		return w.fail(ctx, a, err)
+	}
+	var p plan.Plan
+	if err := json.Unmarshal(st.AppliedPlan, &p); err != nil || len(st.AppliedPlan) == 0 {
+		return w.fail(ctx, a, ErrNotApplied)
+	}
+	deps, err := w.Systems(g)
+	if err != nil {
+		return w.fail(ctx, a, err)
+	}
+	deps.RunID, deps.RequestedBy = a.Run, a.RequestedBy
+	pr := a.Snapshot.Platform
+	signed, _ := gitsrc.Signed(w.Repos.Path(pr.Repo()), pr.Commit)
+	deps.Source = runrecord.Source{Repo: pr.URL, Commit: pr.Commit, Signed: signed}
+	if c := a.Snapshot.Config; c != nil {
+		if err := w.Repos.Ensure(ctx, c.Repo(), c.Commit); err != nil {
+			return w.fail(ctx, a, err)
+		}
+		deps.Config = &apply.ConfigRepo{Path: w.Repos.Path(c.Repo()), Commit: c.Commit, Paths: c.Paths}
+	}
+	_, err = apply.RunAccess(ctx, g, &p, deps)
+	return err
 }
 
 // fail ends a queued run that could not start.

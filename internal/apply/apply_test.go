@@ -821,3 +821,56 @@ func TestApplyDistributesAccess(t *testing.T) {
 		t.Errorf("access snapshot = %+v", body.AccessSnapshot)
 	}
 }
+
+func TestRunAccessOnlyDistributesAccess(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	id := store.NewUserID()
+	_ = q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id, Username: "ayse", Provider: "corp", Subject: pgText("g"), DirectoryName: pgText("ayse"), Enabled: true})
+	_ = q.AddTeam(ctx, db.AddTeamParams{UserID: id, Team: "team-platform", Source: "ad:corp"})
+	g := e.graph(func(c string) string {
+		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { team: team-platform }\n", 1) +
+			"---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+	})
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	applied, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A new member: the access run gives her access and does nothing else.
+	id2 := store.NewUserID()
+	_ = q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id2, Username: "zeynep", Provider: "corp", Subject: pgText("g2"), DirectoryName: pgText("zeynep"), Enabled: true})
+	_ = q.AddTeam(ctx, db.AddTeamParams{UserID: id2, Team: "team-platform", Source: "ad:corp"})
+	run, err := RunAccess(ctx, g, applied, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(e.configure.jobs) != 2 {
+		t.Fatalf("%d configure jobs", len(e.configure.jobs))
+	}
+	site := e.configure.projects[1][".gaia/site.yml"]
+	if strings.Contains(site, "import_playbook") || !strings.Contains(site, `"name": "zeynep"`) || !strings.Contains(site, `"name": "ayse"`) {
+		t.Errorf("access run site.yml = %s", site)
+	}
+	if hosts, _ := q.LiveHosts(ctx, "poc-web"); len(hosts) != 1 {
+		t.Errorf("hosts after the access run = %d", len(hosts))
+	}
+	rec, _ := q.RunRecord(ctx, run)
+	var body runrecord.Record
+	_ = json.Unmarshal([]byte(rec.Body), &body)
+	if len(body.AccessSnapshot) != 1 || strings.Join(body.AccessSnapshot[0].Users, ",") != "ayse,zeynep" || body.Result != "succeeded" {
+		t.Errorf("record = %+v", body)
+	}
+	for _, c := range body.Changes {
+		if c.Stage == "provision" {
+			t.Errorf("the access run provisioned: %+v", c)
+		}
+	}
+}

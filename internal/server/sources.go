@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/riverqueue/river"
+
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/source"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -18,7 +24,10 @@ type Sources struct {
 	Syncer  *source.Syncer
 	Catalog *CatalogSource
 	Store   *store.Store
-	kick    chan struct{}
+	// Queue takes the access runs that membership changes start; nil
+	// starts none.
+	Queue *river.Client[pgx.Tx]
+	kick  chan struct{}
 }
 
 // Kick asks for a run now.
@@ -88,8 +97,16 @@ func (s *Sources) members(ctx context.Context) {
 				}
 			}
 			err := s.Store.WithLock(ctx, "gaia/members", func(ctx context.Context) error {
-				_, err := s.Syncer.Memberships(ctx, g)
-				return err
+				reps, err := s.Syncer.Memberships(ctx, g)
+				if s.Queue == nil {
+					return err
+				}
+				// The people changed: their contracts get their access again.
+				runs, rerr := queue.Redistribute(ctx, s.Store, s.Queue, ChangedTeams(reps))
+				if len(runs) > 0 && s.Syncer.Log != nil {
+					s.Syncer.Log.Info("access runs", "runs", runs)
+				}
+				return errors.Join(err, rerr)
 			})
 			if err != nil && !errors.Is(err, store.ErrLocked) && s.Syncer.Log != nil {
 				s.Syncer.Log.Warn("memberships", "err", err)
@@ -101,6 +118,24 @@ func (s *Sources) members(ctx context.Context) {
 		case <-time.After(every):
 		}
 	}
+}
+
+// ChangedTeams are the teams whose people a membership sync changed.
+func ChangedTeams(reps []source.Membership) []string {
+	set := map[string]bool{}
+	for _, r := range reps {
+		for _, e := range append(append([]string{}, r.Joined...), r.Left...) {
+			if team, _, ok := strings.Cut(e, "/"); ok {
+				set[team] = true
+			}
+		}
+	}
+	out := make([]string, 0, len(set))
+	for t := range set {
+		out = append(out, t)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // SourceReport is what a source did last.
