@@ -1,24 +1,22 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
 
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/spf13/cobra"
 
 	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
-	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
-	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
-	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
-	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -26,7 +24,7 @@ import (
 func newApplyCommand() *cobra.Command {
 	var src source
 	var dsn string
-	var yes bool
+	var yes, queued bool
 	cmd := &cobra.Command{
 		Use:   "apply [contract...]",
 		Short: "Apply contracts at a commit",
@@ -34,17 +32,14 @@ func newApplyCommand() *cobra.Command {
 			"IPAM addresses, VMs through Pulumi, registration in monitoring, the baseline and\n" +
 			"roles through ansible-runner in the execution environment (podman), and the\n" +
 			"records in Gaia's database.\n" +
-			"OpenBao is reached at the Platform's secrets provider with $GAIA_BAO_TOKEN.",
+			"OpenBao is reached at the Platform's secrets provider with $GAIA_BAO_TOKEN.\n" +
+			"With --queue the runs go to gaia server's workers instead.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			out := cmd.OutOrStdout()
 			d, err := resolveDSN(dsn)
 			if err != nil {
 				return err
-			}
-			token := os.Getenv("GAIA_BAO_TOKEN")
-			if token == "" {
-				return errors.New("no OpenBao token: set GAIA_BAO_TOKEN")
 			}
 			g, err := src.graph(out)
 			if err != nil {
@@ -66,28 +61,40 @@ func newApplyCommand() *cobra.Command {
 				_, err := fmt.Fprintln(out, "\nnothing applied: run again with --yes to apply this plan")
 				return err
 			}
+			if queued {
+				q, err := river.NewClient(riverpgxv5.New(s.Pool()), &river.Config{})
+				if err != nil {
+					return err
+				}
+				repo, err := filepath.Abs(src.repo)
+				if err != nil {
+					return err
+				}
+				runs, err := queue.Enqueue(ctx, s, q, g, queue.Source{Repo: repo, Commit: p.Commit, Paths: src.paths}, p.ContractNames(), requester())
+				if err != nil {
+					return err
+				}
+				for i, run := range runs {
+					if _, err := fmt.Fprintf(out, "\nqueued %s (%s)", run, p.ContractNames()[i]); err != nil {
+						return err
+					}
+				}
+				_, err = fmt.Fprintln(out)
+				return err
+			}
 
+			token := os.Getenv("GAIA_BAO_TOKEN")
+			if token == "" {
+				return errors.New("no OpenBao token: set GAIA_BAO_TOKEN")
+			}
 			bao := openbao.New(secretsEndpoint(g), token)
 			origin, err := src.recordSource(p.Commit)
 			if err != nil {
 				return err
 			}
-			run, err := apply.Run(ctx, g, p, apply.Deps{
-				Store:     s,
-				Secrets:   bao,
-				Provision: pulumi.Up,
-				UsedVMIDs: func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error) {
-					return proxmox.New(c).UsedVMIDs(ctx)
-				},
-				Configure: ansible.Podman{},
-				Monitor:   func(endpoint, token string) apply.Monitor { return zabbix.New(endpoint, token) },
-				Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
-					return runrecord.NewS3(endpoint, bucket, ak, sk)
-				},
-				RequestedBy: requester(),
-				Source:      origin,
-				Out:         out,
-			})
+			deps := apply.Systems(s, bao, out)
+			deps.RequestedBy, deps.Source = requester(), origin
+			run, err := apply.Run(ctx, g, p, deps)
 			if err != nil {
 				return fmt.Errorf("run %s: %w", run, err)
 			}
@@ -98,6 +105,7 @@ func newApplyCommand() *cobra.Command {
 	src.flags(cmd)
 	dsnFlag(cmd, &dsn)
 	cmd.Flags().BoolVar(&yes, "yes", false, "apply the plan; without it apply only prints it")
+	cmd.Flags().BoolVar(&queued, "queue", false, "with --yes, queue one run per contract for gaia server's workers instead of running here")
 	return cmd
 }
 

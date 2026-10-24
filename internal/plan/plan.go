@@ -401,3 +401,12 @@ func hash(p *Plan) (string, error) {
 	sum := sha256.Sum256(data)
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
+
+// ContractNames are the plan's contracts, in order.
+func (p *Plan) ContractNames() []string {
+	names := make([]string, 0, len(p.Contracts))
+	for _, c := range p.Contracts {
+		names = append(names, c.Name)
+	}
+	return names
+}

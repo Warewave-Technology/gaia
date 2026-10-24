@@ -17,6 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver for goose
 	"github.com/pressly/goose/v3"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -56,7 +58,24 @@ func Migrate(ctx context.Context, dsn string) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = p.Up(ctx)
+	if _, err := p.Up(ctx); err != nil {
+		return err
+	}
+	return migrateRiver(ctx, dsn)
+}
+
+// migrateRiver creates and updates the job queue's tables (River).
+func migrateRiver(ctx context.Context, dsn string) error {
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	m, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		return err
+	}
+	_, err = m.Migrate(ctx, rivermigrate.DirectionUp, nil)
 	return err
 }
 
@@ -171,4 +190,25 @@ func (s *Store) DeleteHost(ctx context.Context, uid string) error {
 		}
 		return q.DeleteExternalIDs(ctx, uid)
 	})
+}
+
+// Pool is the connection pool, for the job queue.
+func (s *Store) Pool() *pgxpool.Pool { return s.pool }
+
+// ContractBusy reports whether a run holds the contract's lock right now.
+// It is a hint for the queue: a run that finds the lock taken anyway
+// fails with ErrLocked.
+func (s *Store) ContractBusy(ctx context.Context, contract string) (bool, error) {
+	busy := false
+	err := s.WithContractLock(ctx, contract, func(context.Context) error { return nil })
+	if errors.Is(err, ErrLocked) {
+		busy, err = true, nil
+	}
+	return busy, err
+}
+
+// TxFunc runs fn in a transaction, for work that spans Gaia's tables and
+// the job queue's.
+func (s *Store) TxFunc(ctx context.Context, fn func(pgx.Tx) error) error {
+	return pgx.BeginFunc(ctx, s.pool, fn)
 }

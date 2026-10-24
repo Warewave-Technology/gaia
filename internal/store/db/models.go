@@ -116,6 +116,9 @@ type Run struct {
 	FinishedAt   pgtype.Timestamptz
 	ConfigCommit pgtype.Text
 	EeImage      pgtype.Text
+	JobID        pgtype.Int8
+	RequestedBy  pgtype.Text
+	QueuedAt     pgtype.Timestamptz
 }
 
 type RunEvent struct {
@@ -140,4 +143,14 @@ type RunRecord struct {
 	RecordHash string
 	Archived   pgtype.Text
 	CreatedAt  pgtype.Timestamptz
+}
+
+type RunStage struct {
+	RunID      string
+	Contract   string
+	Stage      string
+	Status     string
+	Detail     pgtype.Text
+	StartedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
 }

@@ -151,3 +151,22 @@ func Signed(repoPath, commit string) (bool, error) {
 	}
 	return c.PGPSignature != "", nil
 }
+
+// Load reads the catalog files of several directories at one ref. paths
+// empty reads the whole tree. It returns the commit the ref resolved to.
+func Load(repoPath, ref string, paths []string) ([]catalog.File, string, error) {
+	if len(paths) == 0 {
+		paths = []string{""}
+	}
+	var all []catalog.File
+	var commit string
+	for _, p := range paths {
+		files, c, err := Files(repoPath, ref, p)
+		if err != nil {
+			return nil, "", err
+		}
+		all = append(all, files...)
+		commit = c
+	}
+	return all, commit, nil
+}
