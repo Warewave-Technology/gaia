@@ -164,6 +164,22 @@ type NameLease struct {
 	ReleasedAt pgtype.Timestamptz
 }
 
+type Notification struct {
+	ID        int64
+	EventKey  string
+	Trigger   string
+	Channel   string
+	Recipient string
+	Contract  pgtype.Text
+	ChangeID  pgtype.Text
+	Message   []byte
+	Status    string
+	Attempts  int32
+	LastError pgtype.Text
+	CreatedAt pgtype.Timestamptz
+	SentAt    pgtype.Timestamptz
+}
+
 type PulumiStack struct {
 	Name            string
 	SecretsProvider string
@@ -277,6 +293,12 @@ type User struct {
 	Enabled      bool
 	CreatedAt    pgtype.Timestamptz
 	DisabledAt   pgtype.Timestamptz
+	Email        pgtype.Text
+}
+
+type UserSubscription struct {
+	UserID  string
+	Trigger string
 }
 
 type WebauthnCredential struct {

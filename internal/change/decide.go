@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -88,8 +89,12 @@ func (e *Engine) Decide(ctx context.Context, d Decision) error {
 		}
 		e.log().Info("change decided", "id", c.ID, "by", d.Username, "decision", decision)
 		if !d.Approve {
-			_, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: c.ID, Status: Rejected, FromStatuses: []string{Pending, Approved}})
-			return err
+			if _, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: c.ID, Status: Rejected, FromStatuses: []string{Pending, Approved}}); err != nil {
+				return err
+			}
+			c.Status = Rejected
+			e.emit(ctx, g, "change.rejected", c, func(ev *notify.Event) { ev.DecidedBy, ev.Comment = d.Username, d.Comment })
+			return nil
 		}
 		return e.advance(ctx, c, g)
 	})

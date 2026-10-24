@@ -913,6 +913,18 @@ spec:
   - `smtp`: `endpoint` (host:port) ve `from`
 - **Tetikleyiciler:** `change.pending`, `change.approved`, `change.rejected`, `change.applied`, `change.failed`, `drift.found`, `approval.expiring`.
 - **Kişisel abonelikler** `Platform.spec.notifications.email`'deki smtp kanalından gider.
+- **Kime gider:**
+  - kontratın owner takımının kanalları
+  - onay bekleyen bir Change için ayrıca onaylayabilecek takımların kanalları
+  - tetikleyiciye abone olan ve kontratı tam görebilen kişiler (owner takımı, operator, platform-admin)
+- **Gönderim:**
+  - Her bildirim `notifications` tablosuna bir satır olarak yazılır ve teslimi kuyruğa girer. Bir olay (Change + tetikleyici) her alıcıya bir kez gider; motor aynı Change'i tekrar tekrar değerlendirse de tekrar gönderilmez.
+  - Başarısız teslim yaklaşık bir gün boyunca, aralıklar uzayarak tekrar denenir; tablo son hatayı ve deneme sayısını tutar.
+  - Bildirim bir Change'i bekletmez.
+- **İçerik:** başlık ("poc-web: değişiklik onay bekliyor") ve satırlar (değişiklik, isteyen, plan özeti, onaylayabilecekler, onaylayan, karar ve gerekçe, run, hata, bağlantı).
+  - Teams'e Adaptive Card gider.
+  - `webhook` kanalına olayın kendisi JSON olarak gider (`X-Gaia-Event`; sır varsa `X-Gaia-Signature-256`).
+  - E-posta düz metindir; 465'te baştan TLS, diğer portlarda sunucu destekliyorsa STARTTLS kullanılır. Kimlik bilgisi TLS olmadan gönderilmez.
 - **Team objesi:** TeamSource gelene kadar (Faz 7) elle yazılır. Katalogda Team varsa kontratın `owner`'ı bir Team olmak zorundadır; Team'i olmayan eski kataloglar yüklenmeye devam eder.
 
 ## 8. Keşif ve Adopt (Mevcut Sunucuları İçeri Alma)

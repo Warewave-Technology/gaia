@@ -20,6 +20,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -54,6 +55,9 @@ type Config struct {
 	// Writer writes Gaia's own commits (reverts); nil when Gaia has no
 	// signing key.
 	Writer *repo.Writer
+	// NotifySecrets reads channel credentials for the notification
+	// workers.
+	NotifySecrets notify.Secrets
 	// WebhookSecret checks GitHub's push webhooks; empty turns them off.
 	WebhookSecret []byte
 }
@@ -83,10 +87,13 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 		if err := river.AddWorkerSafely(workers, &queue.PruneEventsWorker{Store: s, Retention: cfg.EventRetention}); err != nil {
 			return nil, err
 		}
+		if err := river.AddWorkerSafely(workers, &notify.SendWorker{Store: s, Secrets: cfg.NotifySecrets}); err != nil {
+			return nil, err
+		}
 		rc.Workers = workers
 		rc.Queues = map[string]river.QueueConfig{
 			queue.Apply:        {MaxWorkers: cfg.Workers},
-			river.QueueDefault: {MaxWorkers: 1},
+			river.QueueDefault: {MaxWorkers: 4},
 		}
 		rc.PeriodicJobs = []*river.PeriodicJob{queue.PruneEventsDaily()}
 	}

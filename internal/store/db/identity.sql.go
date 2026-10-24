@@ -795,7 +795,7 @@ func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64
 }
 
 const user = `-- name: User :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at from users where id = $1
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where id = $1
 `
 
 func (q *Queries) User(ctx context.Context, id string) (User, error) {
@@ -811,12 +811,13 @@ func (q *Queries) User(ctx context.Context, id string) (User, error) {
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.DisabledAt,
+		&i.Email,
 	)
 	return i, err
 }
 
 const userByName = `-- name: UserByName :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at from users where username = $1
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where username = $1
 `
 
 func (q *Queries) UserByName(ctx context.Context, username string) (User, error) {
@@ -832,12 +833,13 @@ func (q *Queries) UserByName(ctx context.Context, username string) (User, error)
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.DisabledAt,
+		&i.Email,
 	)
 	return i, err
 }
 
 const userBySubject = `-- name: UserBySubject :one
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at from users where provider = $1 and subject = $2
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users where provider = $1 and subject = $2
 `
 
 type UserBySubjectParams struct {
@@ -858,6 +860,7 @@ func (q *Queries) UserBySubject(ctx context.Context, arg UserBySubjectParams) (U
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.DisabledAt,
+		&i.Email,
 	)
 	return i, err
 }
@@ -903,7 +906,7 @@ func (q *Queries) UserSessions(ctx context.Context, userID string) ([]Session, e
 }
 
 const users = `-- name: Users :many
-select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at from users order by username
+select id, username, display_name, provider, subject, password_hash, enabled, created_at, disabled_at, email from users order by username
 `
 
 func (q *Queries) Users(ctx context.Context) ([]User, error) {
@@ -925,6 +928,7 @@ func (q *Queries) Users(ctx context.Context) ([]User, error) {
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.DisabledAt,
+			&i.Email,
 		); err != nil {
 			return nil, err
 		}
