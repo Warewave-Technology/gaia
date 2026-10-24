@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/Warewave-Technology/gaia/internal/cel"
 )
 
 // Ref is one reference from a field of an object to another object.
@@ -18,6 +20,24 @@ type Graph struct {
 	Catalog *Catalog
 	out     map[Key][]Ref
 	in      map[Key][]Ref
+	naming  *cel.Program
+	rules   map[string][]*cel.Program // by AnsibleRole name, in spec order
+}
+
+// DefaultNaming is used when there is no Policy or it has no naming.
+const DefaultNaming = `contract + "-" + pad(seq, 2)`
+
+// Hostname evaluates the naming expression for a server of contract o at
+// site with the given sequence number.
+func (g *Graph) Hostname(o *Object, site string, seq int) (string, error) {
+	name, err := g.naming.EvalString(cel.NamingVars(o.Metadata.Name, o.Metadata.Labels, site, seq))
+	if err != nil {
+		return "", fmt.Errorf("naming %s: %w", g.naming, err)
+	}
+	if !hostnameRe.MatchString(name) {
+		return "", fmt.Errorf("naming %s: %q is not a valid hostname (lowercase letters, digits and '-', at most 63)", g.naming, name)
+	}
+	return name, nil
 }
 
 // Refs returns the references an object makes, in field order.
@@ -42,8 +62,9 @@ func (g *Graph) Policy() *Object {
 // environments, OS, role conflicts and params). It reports every problem
 // at once; when the error is non-nil the graph must not be used.
 func Resolve(cat *Catalog) (*Graph, error) {
-	r := &resolver{g: &Graph{Catalog: cat, out: map[Key][]Ref{}, in: map[Key][]Ref{}}}
+	r := &resolver{g: &Graph{Catalog: cat, out: map[Key][]Ref{}, in: map[Key][]Ref{}, rules: map[string][]*cel.Program{}}}
 	r.singletons()
+	r.naming()
 	for _, o := range cat.List(KindPlatform) {
 		r.platform(o)
 	}
@@ -126,6 +147,21 @@ func (r *resolver) singletons() {
 			r.fail(o, "", "only one Policy is allowed (also %s)", pols[0].Source)
 		}
 	}
+}
+
+// naming compiles the Policy's naming expression, or the default.
+func (r *resolver) naming() {
+	src := DefaultNaming
+	pol := r.g.Policy()
+	if pol != nil && pol.Spec.(*PolicySpec).Naming != "" {
+		src = pol.Spec.(*PolicySpec).Naming
+	}
+	p, err := cel.Naming(src)
+	if err != nil {
+		r.fail(pol, "spec.naming", "%v", err)
+		return
+	}
+	r.g.naming = p
 }
 
 func (r *resolver) platform(o *Object) {
@@ -214,6 +250,14 @@ func (r *resolver) ansibleRole(o *Object) {
 	for i, c := range s.Conflicts {
 		r.ref(o, fmt.Sprintf("spec.conflicts[%d]", i), KindAnsibleRole, c)
 	}
+	for i, rule := range s.Rules {
+		p, err := cel.Rule(rule.Rule)
+		if err != nil {
+			r.fail(o, fmt.Sprintf("spec.rules[%d].rule", i), "%v", err)
+			continue
+		}
+		r.g.rules[o.Metadata.Name] = append(r.g.rules[o.Metadata.Name], p)
+	}
 }
 
 func (r *resolver) server(o *Object) {
@@ -249,8 +293,12 @@ func (r *resolver) server(o *Object) {
 		placements = []Placement{{Network: s.Network}}
 		fields = []string{"spec.network"}
 	}
+	var nets []*Object
 	for i, p := range placements {
-		r.placement(o, fields[i], p.Network, env, img)
+		if net := r.placement(o, fields[i], p.Network, env, img); net != nil {
+			nets = append(nets, net)
+			r.hostname(o, fields[i], net)
+		}
 	}
 
 	if s.Baseline != "" {
@@ -276,7 +324,9 @@ func (r *resolver) server(o *Object) {
 		if env != "" && len(rs.AllowedEnvironments) > 0 && !contains(rs.AllowedEnvironments, env) {
 			r.fail(o, field, "AnsibleRole %q is not allowed in environment %q", rr.Name, env)
 		}
-		r.roleParams(o, field, rr, rs)
+		if r.roleParams(o, field, rr, rs) {
+			r.roleRules(o, field, rr, rs, nets)
+		}
 	}
 	reported := map[[2]string]bool{}
 	for _, name := range sortedKeys(roles) {
@@ -292,10 +342,10 @@ func (r *resolver) server(o *Object) {
 
 // placement checks one network of a Server: it exists, admits the
 // environment and its site's hypervisor has a template of the image.
-func (r *resolver) placement(o *Object, field, name, env string, img *Object) {
+func (r *resolver) placement(o *Object, field, name, env string, img *Object) *Object {
 	net := r.ref(o, field, KindNetwork, name)
 	if net == nil {
-		return
+		return nil
 	}
 	ns := net.Spec.(*NetworkSpec)
 	if env != "" && len(ns.AllowedEnvironments) > 0 && !contains(ns.AllowedEnvironments, env) {
@@ -303,24 +353,79 @@ func (r *resolver) placement(o *Object, field, name, env string, img *Object) {
 	}
 	site, ok := r.g.Catalog.Get(KindSite, ns.Site)
 	if !ok || img == nil {
-		return
+		return net
 	}
 	provider, _ := r.computeType(site)
 	for _, t := range img.Spec.(*ImageSpec).Templates {
 		if t.Provider == provider {
-			return
+			return net
 		}
 	}
 	r.fail(o, field, "Image %q has no template for provider %q (Site %q of Network %q)", img.Metadata.Name, provider, ns.Site, name)
+	return net
+}
+
+// hostname checks that naming gives a valid name at the network's site.
+func (r *resolver) hostname(o *Object, field string, net *Object) {
+	if r.g.naming == nil {
+		return
+	}
+	if _, err := r.g.Hostname(o, net.Spec.(*NetworkSpec).Site, 1); err != nil {
+		r.fail(o, field, "%v", err)
+	}
+}
+
+// roleRules evaluates the role's rules for each network of the server.
+func (r *resolver) roleRules(o *Object, field string, rr RoleRef, rs *AnsibleRoleSpec, nets []*Object) {
+	progs := r.g.rules[rr.Name]
+	if len(progs) == 0 {
+		return
+	}
+	s := o.Spec.(*ServerSpec)
+	size, ok1 := r.g.Catalog.Get(KindSize, s.Size)
+	img, ok2 := r.g.Catalog.Get(KindImage, s.Image)
+	if !ok1 || !ok2 {
+		return
+	}
+	sz := size.Spec.(*SizeSpec)
+	labels := map[string]string{}
+	for k, v := range o.Metadata.Labels {
+		labels[k] = v
+	}
+	params := effectiveParams(rs.Params, rr.Params)
+	for _, net := range nets {
+		vars := map[string]any{
+			"params":  params,
+			"size":    map[string]any{"cpu": sz.CPU, "memoryGiB": sz.MemoryGiB, "diskGiB": sz.DiskGiB},
+			"image":   map[string]any{"name": img.Metadata.Name, "os": img.Spec.(*ImageSpec).OS},
+			"network": map[string]any{"name": net.Metadata.Name, "site": net.Spec.(*NetworkSpec).Site},
+			"labels":  labels,
+		}
+		for i, p := range progs {
+			ok, err := p.EvalBool(vars)
+			switch {
+			case err != nil:
+				r.fail(o, field, "AnsibleRole %q rule %d: %v", rr.Name, i, err)
+			case !ok:
+				r.fail(o, field, "AnsibleRole %q: %s", rr.Name, rs.Rules[i].Message)
+			}
+		}
+	}
 }
 
 // roleParams checks that given params exist in the role's schema and that
 // required ones without a default are given. Values are checked later,
 // with the full params schema.
-func (r *resolver) roleParams(o *Object, field string, rr RoleRef, rs *AnsibleRoleSpec) {
+func (r *resolver) roleParams(o *Object, field string, rr RoleRef, rs *AnsibleRoleSpec) bool {
+	before := len(r.errs)
 	for _, name := range sortedKeys(rr.Params) {
-		if _, ok := rs.Params[name]; !ok {
+		p, ok := rs.Params[name]
+		if !ok {
 			r.fail(o, field+".params", "AnsibleRole %q has no param %q%s", rr.Name, name, nearest(name, sortedKeys(rs.Params)))
+			continue
+		}
+		for _, msg := range checkValue(name, p, rr.Params[name]) {
+			r.fail(o, field+".params."+name, "AnsibleRole %q: %s", rr.Name, msg)
 		}
 	}
 	for _, name := range sortedKeys(rs.Params) {
@@ -329,6 +434,7 @@ func (r *resolver) roleParams(o *Object, field string, rr RoleRef, rs *AnsibleRo
 			r.fail(o, field, "AnsibleRole %q requires param %q", rr.Name, name)
 		}
 	}
+	return len(r.errs) == before
 }
 
 func nearest(name string, candidates []string) string {

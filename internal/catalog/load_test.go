@@ -263,3 +263,25 @@ func TestPatchNotSupportedYet(t *testing.T) {
 	p := strings.Replace(network, "  name: lab-poc\n", "  name: lab-poc\n  annotations: { gaia/mode: patch }\n", 1)
 	wantError(t, loadErrors(t, files("p.yaml", p)), "patch objects")
 }
+
+func TestParamSchemaChecks(t *testing.T) {
+	lines := loadErrors(t, files("role.yaml", `apiVersion: gaia/v1alpha1
+kind: AnsibleRole
+metadata: { name: web.nginx }
+spec:
+  source: { provider: repo, role: corp.web.nginx }
+  params:
+    a: { type: str, gaia: { pattern: "([" } }
+    b: { type: str, gaia: { format: uuid } }
+    c: { type: int, gaia: { min: 10, max: 1 } }
+    d: { type: int, default: 5, gaia: { min: 10 } }
+    e: { type: str, gaia: { ref: Gadget } }
+    f: { type: str, default: 3 }
+`))
+	wantError(t, lines, "params.a.gaia.pattern")
+	wantError(t, lines, `params.b.gaia.format: "uuid" is unknown`)
+	wantError(t, lines, "params.c.gaia: min is greater than max")
+	wantError(t, lines, "params.d.default: value 5 is less than 10")
+	wantError(t, lines, `params.e.gaia.ref: unknown kind "Gadget"`)
+	wantError(t, lines, "params.f.default: want a string, got a number")
+}

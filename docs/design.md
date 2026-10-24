@@ -439,7 +439,7 @@ spec:
       type: str
       gaia: { ref: Network }          # katalogda olan bir Network adı olmalı
   rules:
-    - rule: 'params.heapMiB <= size.memoryGiB * 1024 * 0.75'
+    - rule: 'params.heapMiB * 4 <= size.memoryGiB * 1024 * 3'      # %75; CEL aritmetikte int ve double'ı karıştırmaz
       message: "heapMiB, sunucu belleğinin %75'ini aşamaz"
 ```
 
@@ -464,7 +464,7 @@ params:
   tomcat_heap_mib: { min: 512, max: 16384 }
   tomcat_admin_password: { secret: true }
 rules:
-  - rule: 'params.tomcat_heap_mib <= size.memoryGiB * 1024 * 0.75'
+  - rule: 'params.tomcat_heap_mib * 4 <= size.memoryGiB * 1024 * 3'
     message: "Heap, sunucu belleğinin %75'ini aşamaz"
 ```
 
@@ -475,6 +475,8 @@ rules:
 1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog PR'ında `platform-admin` onayı gerektirir.
 2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, kontratın owner'ı olan Team objesindeki yol önekiyle sınırlıdır (`secrets.prefix`, bkz. 14.1); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
 3. **Kurallar CEL ile.** `rules` ifadeleri `params`, `size`, `image`, `labels` ve `network` değerlerini görebilir. Kubernetes'in CRD'lerde CEL ile yaptığı validasyonla aynı yaklaşım.
+   - CEL aritmetikte int ile double'ı karıştırmaz: `size.memoryGiB * 0.75` hata verir. Ya tam sayılarla yazılır (`x * 4 <= y * 3`) ya da `double(...)` ile dönüştürülür. Karşılaştırmalarda karıştırmak serbesttir (`int <= double`).
+   - Kurallar yüklemede derlenir; derlenmeyen bir kural PR'da hata verir. `params` dinamik tipli olduğu için tip uyuşmazlıkları kural çalışırken raporlanır.
 4. **İki aşamalı doğrulama.** Gaia plan sırasında doğrular ve hata PR'da hemen görünür. Ansible çalışırken `argument_specs` ile bir kez daha doğrular. Roller için iki doğrulama aynı kaynaktan geldiği için birbiriyle çelişmez.
 5. **Varsayılanlar planda görünür.** Kontratta yazılmayan parametrelerin varsayılan değerleri planda açıkça gösterilir. Böylece hangi değerle çalışıldığı run kaydında yer alır.
 6. **Uyumluluk.** Bir rolden parametre kaldırılırsa ya da adı değişirse bot PR'ının etki planı o parametreyi kullanan kontratları listeler ve PR geçmez. Kaldırma önce `gaia: { deprecated: "yerine x kullanın" }` ile duyurulur.

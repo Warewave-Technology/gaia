@@ -60,7 +60,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | Adım | İçerik | Bağımlılık | Durum |
 |---|---|---|---|
 | **M0 Ortam** | Lab ağı, pool, Gaia kullanıcısı, şablon, platform VM'i ve servisleri | – | Tamam |
-| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli, yükleyici ve referans grafı hazır |
+| **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Sürüyor: iskelet, obje modeli, yükleyici, referans grafı ve CEL hazır |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | – |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | – |
 | **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | – |
@@ -89,7 +89,12 @@ Proxmox lab'i bu reponun dışında kuruluyor.
      - Rol parametrelerinin adları rolün şemasında olmalı; varsayılanı olmayan zorunlu parametreler verilmeli. Değer kontrolleri CEL adımıyla gelecek.
    - **Tekil objeler:** Tam bir Platform olmalı; en fazla bir Policy olabilir.
    - **`gaia validate`:** Yüklemeden sonra grafı da kontrol eder.
-5. **CEL:** Policy `naming` ve `pad`; ifadeler yüklemede derlenir.
+5. **CEL:** Policy `naming` ve `pad`; ifadeler yüklemede derlenir. **Tamam** (`internal/cel`, cel-go v0.32, modül yolu artık `cel.dev/cel-go`).
+   - **İsimlendirme:** `naming` ifadesi `site`, `env`, `app`, `contract`, `labels` ve `seq` değerlerini görür. Policy'de yoksa varsayılan `contract + "-" + pad(seq, 2)` kullanılır. Grafta her kontrat ve site için örnek bir hostname (`seq` 1) üretilip geçerliliği kontrol edilir; `Graph.Hostname` plan adımında kullanılacak.
+   - **Parametre değerleri:** Tip, liste elemanları, iç içe `options`, `choices`, `min`/`max` (sayı ya da uzunluk), `pattern`, `format` (semver, ipv4, cidr, hostname, fqdn, duration) ve `secret` (sadece `bao://`) kontrol edilir. Şema da yüklemede kontrol edilir: pattern derleniyor mu, format biliniyor mu, `min` ≤ `max` mı, varsayılan değer şemaya uyuyor mu.
+   - **Rol kuralları:** `rules` yüklemede derlenir. Her kontratta varsayılanlar uygulanmış parametrelerle ve her ağ için çalıştırılır; `false` sonuç kuralın mesajıyla raporlanır.
+   - **Ortam ayarları:** Ortak ortamda strings uzantısı (`substring`, `lowerAscii`, `replace`, `format`…) ve sayısal tipler arası karşılaştırma açık; değerlendirme maliyeti sınırlı.
+   - **Hata biçimi:** CEL derleme hataları tek satır ve sütun numarasıyla verilir.
 6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi.
 
 ## Kararlar

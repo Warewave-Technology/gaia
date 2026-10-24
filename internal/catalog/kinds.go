@@ -361,6 +361,9 @@ func validateParam(path string, p Param) []string {
 	if p.Gaia != nil && p.Gaia.Secret && t != "str" {
 		out = append(out, path+": a secret param must be str")
 	}
+	if len(out) == 0 {
+		out = append(out, checkParamSchema(path, p)...)
+	}
 	for _, name := range sortedKeys(p.Options) {
 		out = append(out, validateParam(path+".options."+name, p.Options[name])...)
 	}

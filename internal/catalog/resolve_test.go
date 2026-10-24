@@ -309,3 +309,119 @@ func TestLineFallsBackToTheNearestField(t *testing.T) {
 		}
 	}
 }
+
+func TestNaming(t *testing.T) {
+	fs := catalogWith(t, "policy.yaml", "  requiredLabels:", "  naming: site.name + env.substring(0, 1) + labels.owner.replace(\"team-\", \"\") + pad(seq, 2)\n  requiredLabels:")
+	cat, err := Load("c0ffee", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := Resolve(cat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, _ := cat.Get(KindServer, "web")
+	if got, err := g.Hostname(srv, "lab", 3); err != nil || got != "labtweb03" {
+		t.Errorf("Hostname = %q, %v; want labtweb03", got, err)
+	}
+
+	// Without a naming expression the default applies.
+	g, err = Resolve(mustLoad(t, catalogWith(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, _ = g.Catalog.Get(KindServer, "web")
+	if got, _ := g.Hostname(srv, "lab", 1); got != "web-01" {
+		t.Errorf("default Hostname = %q, want web-01", got)
+	}
+}
+
+func mustLoad(t *testing.T, fs []File) *Catalog {
+	t.Helper()
+	cat, err := Load("c0ffee", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cat
+}
+
+func TestNamingErrors(t *testing.T) {
+	lines := resolveErrors(t, catalogWith(t, "policy.yaml", "  requiredLabels:", "  naming: site.name + nosuch\n  requiredLabels:"))
+	wantError(t, lines, "policy.yaml:5:", "Policy/default", "spec.naming: column 13: undeclared reference to 'nosuch'")
+
+	lines = resolveErrors(t, catalogWith(t, "policy.yaml", "  requiredLabels:", "  naming: labels.owner + \"_\" + pad(seq, 2)\n  requiredLabels:"))
+	wantError(t, lines, "Server/web", `spec.network: naming`, `"team-web_01" is not a valid hostname`)
+}
+
+const tomcat = `apiVersion: gaia/v1alpha1
+kind: AnsibleRole
+metadata: { name: web.tomcat }
+spec:
+  source: { provider: repo, role: corp.web.tomcat }
+  params:
+    heap_mib: { type: int, default: 1024, gaia: { min: 256, max: 16384 } }
+    version: { type: str, required: true, gaia: { format: semver } }
+    admin_password: { type: str, no_log: true, gaia: { secret: true } }
+    connector: { type: str, default: http, choices: [http, ajp] }
+    context: { type: str, default: /, gaia: { pattern: "^/" } }
+    users:
+      type: list
+      elements: dict
+      options:
+        name: { type: str, required: true }
+        roles: { type: list, elements: str }
+  rules:
+    - rule: params.heap_mib * 4 <= size.memoryGiB * 1024 * 3
+      message: heap must stay under 75% of the server's memory
+`
+
+func serverWith(roles string) string {
+	return strings.Replace(base["server.yaml"],
+		"    - name: web.nginx\n      params: { server_name: web.example.com }\n", roles, 1)
+}
+
+func TestParamValues(t *testing.T) {
+	lines := resolveErrors(t, catalogWith(t,
+		"tomcat.yaml", "", tomcat,
+		"server.yaml", "", serverWith(`    - name: web.tomcat
+      params:
+        heap_mib: 100
+        version: "2.x"
+        admin_password: hunter2
+        connector: smtp
+        context: app
+        users:
+          - { name: alice, roles: [admin] }
+          - { roles: [7] }
+`)))
+	wantError(t, lines, "params.heap_mib", "value 100 is less than 256")
+	wantError(t, lines, "params.version", `"2.x" is not a valid semver`)
+	wantError(t, lines, "params.admin_password", "a secret must be a bao:// reference, not a value")
+	wantError(t, lines, "params.connector", "smtp is not one of [http ajp]")
+	wantError(t, lines, "params.context", `"app" does not match ^/`)
+	wantError(t, lines, "params.users", `users[1]: missing required key "name"`)
+	wantError(t, lines, "params.users", "users[1].roles[0]: want a string, got a number")
+}
+
+func TestRolesRulesAndValidValues(t *testing.T) {
+	good := serverWith(`    - name: web.tomcat
+      params: { version: 9.0.1, admin_password: "bao://kv/apps/web/tomcat", heap_mib: 1536 }
+`)
+	if _, err := Resolve(mustLoad(t, catalogWith(t, "tomcat.yaml", "", tomcat, "server.yaml", "", good))); err != nil {
+		t.Fatalf("valid params: %v", err)
+	}
+
+	// small is 2 GiB: 1537 MiB is over 75%.
+	tooBig := strings.Replace(good, "heap_mib: 1536", "heap_mib: 1537", 1)
+	lines := resolveErrors(t, catalogWith(t, "tomcat.yaml", "", tomcat, "server.yaml", "", tooBig))
+	wantError(t, lines, "Server/web", `spec.ansibleRoles[0]: AnsibleRole "web.tomcat": heap must stay under 75% of the server's memory`)
+
+	badRule := strings.Replace(tomcat, "params.heap_mib * 4 <=", "params.heap_mib * nosuch <=", 1)
+	lines = resolveErrors(t, catalogWith(t, "tomcat.yaml", "", badRule, "server.yaml", "", good))
+	wantError(t, lines, "tomcat.yaml:19:", "AnsibleRole/web.tomcat", "spec.rules[0].rule:", "undeclared reference to 'nosuch'")
+
+	// params is dynamic: mixing int and double compiles and fails when run.
+	mixed := strings.Replace(tomcat, "params.heap_mib * 4 <=", "params.heap_mib * 4.0 <=", 1)
+	lines = resolveErrors(t, catalogWith(t, "tomcat.yaml", "", mixed, "server.yaml", "", good))
+	wantError(t, lines, "Server/web", `AnsibleRole "web.tomcat" rule 0: no such overload`)
+}
