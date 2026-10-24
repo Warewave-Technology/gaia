@@ -28,6 +28,7 @@ const (
 	KindTeam        = "Team"
 	KindTeamSource  = "TeamSource"
 	KindGroup       = "Group"
+	KindNetworkSrc  = "NetworkSource"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -46,6 +47,7 @@ var newSpec = map[string]func() any{
 	KindTeam:        func() any { return &TeamSpec{} },
 	KindTeamSource:  func() any { return &TeamSourceSpec{} },
 	KindGroup:       func() any { return &GroupSpec{} },
+	KindNetworkSrc:  func() any { return &NetworkSourceSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.

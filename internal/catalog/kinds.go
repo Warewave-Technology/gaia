@@ -301,18 +301,19 @@ type NetworkSpec struct {
 	Site                string      `yaml:"site" gaia:"required"`
 	Attachment          Attachment  `yaml:"attachment" gaia:"required"`
 	IPAM                NetworkIPAM `yaml:"ipam" gaia:"required"`
-	Gateway             string      `yaml:"gateway"`
-	DNS                 *DNS        `yaml:"dns"`
-	AllowedEnvironments []string    `yaml:"allowedEnvironments"`
+	Gateway             string      `yaml:"gateway,omitempty"`
+	DNS                 *DNS        `yaml:"dns,omitempty"`
+	AllowedEnvironments []string    `yaml:"allowedEnvironments,omitempty"`
+	Description         string      `yaml:"description,omitempty"`
 }
 
 // Attachment is how a VM joins the network: a vSphere portgroup, a
 // Proxmox bridge (with an optional VLAN tag) or a Proxmox SDN VNet.
 type Attachment struct {
-	Portgroup string `yaml:"portgroup"`
-	Bridge    string `yaml:"bridge"`
-	VLAN      int    `yaml:"vlan"`
-	VNet      string `yaml:"vnet"`
+	Portgroup string `yaml:"portgroup,omitempty"`
+	Bridge    string `yaml:"bridge,omitempty"`
+	VLAN      int    `yaml:"vlan,omitempty"`
+	VNet      string `yaml:"vnet,omitempty"`
 }
 
 type NetworkIPAM struct {
@@ -321,10 +322,10 @@ type NetworkIPAM struct {
 }
 
 type DNS struct {
-	Provider string   `yaml:"provider"`
-	Zone     string   `yaml:"zone"`
-	Reverse  bool     `yaml:"reverse"`
-	Servers  []string `yaml:"servers"`
+	Provider string   `yaml:"provider,omitempty"`
+	Zone     string   `yaml:"zone,omitempty"`
+	Reverse  bool     `yaml:"reverse,omitempty"`
+	Servers  []string `yaml:"servers,omitempty"`
 }
 
 func (s *NetworkSpec) validate() []string {
@@ -915,4 +916,49 @@ func (s *GroupSpec) validate() []string {
 		return []string{"teams: a group needs teams or groups"}
 	}
 	return nil
+}
+
+// NetworkSourceSpec makes Network objects from IPAM pools (design 5.2).
+// Expressions are CEL over subnet: cidr, gateway, name, tags, labels and
+// each label at the top (subnet.site); map expressions also see name,
+// the network's, and may return maps and lists. Without a mapping, ipam
+// is the source's provider and the pool's cidr, gateway the pool's.
+type NetworkSourceSpec struct {
+	Provider string     `yaml:"provider" gaia:"required"`
+	Select   string     `yaml:"select" gaia:"required"`
+	Naming   string     `yaml:"naming" gaia:"required"`
+	Map      NetworkMap `yaml:"map"`
+	Output   string     `yaml:"output" gaia:"required"`
+}
+
+// NetworkMap fills a generated Network.
+type NetworkMap struct {
+	Site                string `yaml:"site"`
+	Attachment          string `yaml:"attachment"`
+	Gateway             string `yaml:"gateway"`
+	IPAM                string `yaml:"ipam"`
+	DNS                 string `yaml:"dns"`
+	AllowedEnvironments string `yaml:"allowedEnvironments"`
+	Labels              string `yaml:"labels"`
+	Description         string `yaml:"description"`
+}
+
+// Fields are the map's expressions by the Network field they fill.
+func (m NetworkMap) Fields() map[string]string {
+	return map[string]string{"site": m.Site, "attachment": m.Attachment, "gateway": m.Gateway, "ipam": m.IPAM,
+		"dns": m.DNS, "allowedEnvironments": m.AllowedEnvironments, "labels": m.Labels, "description": m.Description}
+}
+
+func (s *NetworkSourceSpec) validate() []string {
+	var out []string
+	if s.Map.Site == "" {
+		out = append(out, "map.site: required (which Site a network is in)")
+	}
+	if s.Map.Attachment == "" {
+		out = append(out, "map.attachment: required (how a VM joins the network)")
+	}
+	if s.Output != "" && (strings.HasPrefix(s.Output, "/") || strings.Contains(s.Output, "..")) {
+		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
+	}
+	return out
 }

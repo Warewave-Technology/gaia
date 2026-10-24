@@ -80,3 +80,29 @@ func TestRule(t *testing.T) {
 		t.Error("string rule compiled")
 	}
 }
+
+func TestSubnetValues(t *testing.T) {
+	vars := map[string]any{"name": "ank-prod-app", "subnet": map[string]any{
+		"cidr": "10.20.1.0/24", "site": "ank", "vlan": "120", "tags": []string{"gaia-managed"}, "labels": map[string]string{"site": "ank"},
+	}}
+	sel, err := SubnetRule(`subnet.site == "ank" && "gaia-managed" in subnet.tags`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := sel.EvalBool(vars); err != nil || !ok {
+		t.Errorf("select = %v, %v", ok, err)
+	}
+	m, err := SubnetValue(`{"portgroup": "dvPG-VLAN" + subnet.vlan, "vlan": int(subnet.vlan)}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := m.EvalValue(vars)
+	got, _ := v.(map[string]any)
+	if err != nil || got["portgroup"] != "dvPG-VLAN120" || got["vlan"] != float64(120) {
+		t.Errorf("attachment = %#v, %v", v, err)
+	}
+	l, _ := SubnetValue(`[subnet.labels.site, name]`)
+	if v, err := l.EvalValue(vars); err != nil || len(v.([]any)) != 2 || v.([]any)[1] != "ank-prod-app" {
+		t.Errorf("list = %#v, %v", v, err)
+	}
+}

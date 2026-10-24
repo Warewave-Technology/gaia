@@ -119,19 +119,9 @@ func (s *Syncer) directory(ctx context.Context, g *catalog.Graph, name string) (
 		return nil, fmt.Errorf("no Provider %q", name)
 	}
 	ps := p.Spec.(*catalog.ProviderSpec)
-	sec := map[string]string{}
-	if ps.Credentials != "" {
-		if s.Secrets == nil {
-			return nil, fmt.Errorf("%s: no access to OpenBao", name)
-		}
-		addr := ""
-		if b, ok := g.Catalog.Get(catalog.KindProvider, g.Platform().Spec.(*catalog.PlatformSpec).Secrets); ok {
-			addr = b.Spec.(*catalog.ProviderSpec).Endpoint
-		}
-		var err error
-		if sec, err = s.Secrets(ctx, addr, ps.Credentials); err != nil {
-			return nil, err
-		}
+	sec, err := s.secret(ctx, g, ps, name)
+	if err != nil {
+		return nil, err
 	}
 	return ad.Open(ctx, ad.ConfigFrom(ps.Endpoint, ps.BaseDN, sec))
 }

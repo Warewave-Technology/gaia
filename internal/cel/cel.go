@@ -2,12 +2,14 @@ package cel
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	gocel "cel.dev/cel-go/cel"
 	"cel.dev/cel-go/common/types"
 	"cel.dev/cel-go/common/types/ref"
 	"cel.dev/cel-go/ext"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // costLimit bounds the work one evaluation may do; Gaia's expressions are
@@ -92,6 +94,38 @@ func (p *Program) eval(vars map[string]any) (ref.Val, error) {
 	return v, nil
 }
 
+// SubnetRule compiles a NetworkSource select expression: it sees subnet
+// (cidr, gateway, name, tags, labels, and each label at the top too, as
+// subnet.site) and returns a bool.
+func SubnetRule(src string) (*Program, error) {
+	return compile(subnetEnv, src, gocel.BoolType)
+}
+
+// SubnetString compiles a NetworkSource naming expression.
+func SubnetString(src string) (*Program, error) {
+	return compile(subnetEnv, src, gocel.StringType)
+}
+
+// SubnetValue compiles a NetworkSource map expression, which may return
+// a string, a number, a list or a map; it also sees name, the network's.
+func SubnetValue(src string) (*Program, error) {
+	return compile(subnetEnv, src, nil)
+}
+
+// EvalValue evaluates a program to a plain Go value: string, float64,
+// bool, nil, []any or map[string]any.
+func (p *Program) EvalValue(vars map[string]any) (any, error) {
+	v, err := p.eval(vars)
+	if err != nil {
+		return nil, err
+	}
+	pb, err := v.ConvertToNative(reflect.TypeOf(&structpb.Value{}))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", p.src, err)
+	}
+	return pb.(*structpb.Value).AsInterface(), nil
+}
+
 // GroupRule compiles a TeamSource select expression: it sees group (dn,
 // cn, description, guid) and returns a bool.
 func GroupRule(src string) (*Program, error) {
@@ -105,6 +139,10 @@ func GroupString(src string) (*Program, error) {
 }
 
 var (
+	subnetEnv = mustEnv(
+		gocel.Variable("subnet", gocel.MapType(gocel.StringType, gocel.DynType)),
+		gocel.Variable("name", gocel.StringType),
+	)
 	groupEnv = mustEnv(
 		gocel.Variable("group", gocel.MapType(gocel.StringType, gocel.StringType)),
 		gocel.Variable("name", gocel.StringType),
@@ -172,7 +210,7 @@ func compile(env *gocel.Env, src string, want *gocel.Type) (*Program, error) {
 		}
 		return nil, fmt.Errorf("%s", strings.Join(msgs, "; "))
 	}
-	if got := ast.OutputType(); !got.IsExactType(want) && !got.IsExactType(gocel.DynType) {
+	if got := ast.OutputType(); want != nil && !got.IsExactType(want) && !got.IsExactType(gocel.DynType) {
 		return nil, fmt.Errorf("returns %s, want %s", got, want)
 	}
 	prg, err := env.Program(ast, gocel.CostLimit(costLimit))

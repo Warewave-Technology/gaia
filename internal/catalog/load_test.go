@@ -261,7 +261,9 @@ func TestParseError(t *testing.T) {
 
 func TestOnlySomeKindsArePatched(t *testing.T) {
 	p := strings.Replace(network, "  name: lab-poc\n", "  name: lab-poc\n  annotations: { gaia/mode: patch }\n", 1)
-	wantError(t, loadErrors(t, files("p.yaml", p)), "Network objects cannot be patched")
+	wantError(t, loadErrors(t, files("p.yaml", p)), "no generated Network/lab-poc to patch")
+	size := "apiVersion: gaia/v1alpha1\nkind: Size\nmetadata: { name: small, annotations: { gaia/mode: patch } }\nspec: { cpu: 2, memoryGiB: 2, diskGiB: 20 }\n"
+	wantError(t, loadErrors(t, files("s.yaml", size)), "Size objects cannot be patched")
 }
 
 func TestParamSchemaChecks(t *testing.T) {
