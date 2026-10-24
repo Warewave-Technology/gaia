@@ -63,7 +63,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 | **M1 Katalog ve plan** | Repo iskeleti, kind şemaları, YAML yükleyici, referans grafı, CEL, `gaia plan` | – | Tamam |
 | **M2 Provisioning** | IPAM v0, isimlendirme, UID ve isim kiralama, Pulumi + `proxmoxve`, state, credential'lar, `gaia apply` | M0, M1 | **Tamam:** lab'de `gaia apply` ile uçtan uca VM açıldı |
 | **M3 Konfigürasyon** | EE imajı, ansible-runner sarmalayıcısı, baseline rolü, olayların DB'ye yazılması, maskeleme | M2 | **Tamam:** baseline lab'de EE içinde çalıştı |
-| **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | Sürüyor: Zabbix kaydı hazır |
+| **M4 Kayıt ve kapanış** | Zabbix provider'ı, run kaydı ve hash zinciri, `replicas: 0` ile decommission | M2, M3 | **Tamam:** Zabbix kaydı, run kaydı ve decommission lab'de çalıştı |
 | **Ek** | Provisioning drift'i, `gaia reconcile`, `topology` ile ikinci VM, Forgejo/Gitea üzerinden PR ve plan yorumu | M4 | – |
 
 ## M1'in iş kırılımı
@@ -98,7 +98,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 6. **`gaia validate` ve `gaia plan`:** `plan` çözümlemeyi ve yapılacak işleri gösterir, hiçbir sisteme dokunmaz. Sistemleri okumak (IPAM'da boş IP, Proxmox'ta mevcut VM) M2'nin işi. **Tamam** (`internal/plan`).
    - **Kontrat başına plan:** Sunucular hostname, `seq`, site, ağ, compute (provider, tip, şablon, node, pool, storage, ağ bağlantısı) ve IPAM havuzuyla listelenir. Ardından baseline ve roller gelir; rol parametreleri varsayılanları uygulanmış olarak gösterilir, `no_log` olanlar maskelenir. Policy'ye göre onay gerekip gerekmediği de yazılır.
    - **Kontrol:** Kontratlar arasında hostname çakışması plan hatasıdır.
-   - **`decommissioned` kontratlar:** Sunucu planlanmaz. Silme planı M4'te gelecek.
+   - **`decommissioned` kontratlar:** Sunucu planlanmaz. Silme planı M2'de, uygulanması M4.3'te geldi.
    - **Plan hash'i:** Kanonik JSON'un SHA-256'sı. Aynı girdi aynı hash'i, farklı girdi farklı hash'i verir.
    - **Komut:** `gaia plan [kontrat...] --repo --ref --path [--json]`. `--json`'da stdout'a sadece plan yazılır.
    - **M1'de sistem durumu okunmaz:** Her sunucu `create` olarak görünür ve `seq` her site için 1'den başlar. M2'de mevcut sunucular, IP'ler ve isim kiralamaları okunacak.
@@ -132,7 +132,7 @@ Proxmox lab'i bu reponun dışında kuruluyor.
 5. **`gaia apply`:** Bu adımları sırayla çalıştırır; lab'de uçtan uca bir VM açılır, ikinci apply değişiklik yapmaz. **Tamam** (`internal/apply`).
    - **Akış:** Planı yazdırır; `--yes` yoksa durur. Her kontrat kilit altında işlenir. Sırası: sunucu kaydı ve isim kiralaması, IPAM'dan IP, Proxmox'tan boş VMID, SMBIOS UUID, `pulumi up`. Her adımın sonucu `host_external_ids`'e yazılır (`ip`, `vm`, `smbios`).
    - **Doğrulama:** `pulumi up` önce refresh yapar. Apply, VM'in VMID'ini ve guest agent'ın planlanan IP'yi bildirdiğini doğrulamadan sunucuyu `active` yapmaz. Yarım kalan bir klon (cloud-init diski olmadan) bu yüzden başarılı sayılmadı.
-   - **Silme reddedilir:** `delete` içeren plan M4'e kadar uygulanmaz.
+   - **Silme reddedilir:** `delete` içeren plan M4'e kadar uygulanmadı (M4.3).
    - **Pulumi state'i PostgreSQL'de:** SeaweedFS boşalan dizinleri listede 0 baytlık obje olarak döndürüyor ve Pulumi'nin kilit kontrolü `unexpected end of JSON input` ile düşüyor. State Pulumi'nin `postgres://` DIY backend'ine taşındı (`state` provider'ı `type: postgres`, kullanıcı bilgisi `bao://kv/platform/pulumi-state`). SeaweedFS'te sadece run kayıtları kalır.
    - **Stack ayarları:** Automation API her run'da geçici bir çalışma dizini açtığı için şifreli anahtar kayboluyordu. Ayarlar `pulumi_stacks` tablosunda tutulur (migration 0003).
    - **Pulumi CLI sabit:** 3.272.0, SDK ile aynı. Gaia ilk çalıştırmada indirir (kullanıcının cache dizininde `gaia/`; Linux'ta `~/.cache`, macOS'ta `~/Library/Caches`). Eski CLI'lar S3 URL parametrelerini tanımıyordu.
@@ -186,6 +186,19 @@ Proxmox lab'i bu reponun dışında kuruluyor.
      - `gaia record verify`: zinciri baştan sona kontrol eder
      - `gaia record show RUN`: bir run'ın kaydını gösterir
    - **Lab'de doğrulandı:** SeaweedFS COMPLIANCE kilitli bir versiyonun silinmesini reddediyor (`TestS3Lab`).
+   - **Başarı kriteri 5 karşılandı.**
+3. **Decommission.** **Tamam** (`internal/apply/decommission.go`).
+   - **Tetik:** Planın `delete`'leri. Üç kaynağı var: ölçek küçültme (`replicas`), `retire` ve `lifecycle.state: decommissioned`. PoC'de bekleme süresi yok.
+   - **Sıra:** Sunucu `decommissioning` olur. Önce Zabbix host'u geçmişiyle silinir, böylece kapanan VM alarm üretmez. Sonra `pulumi up` sadece kalan VM'lerle çalışır ve silinenleri yok eder; site'ta hiç sunucu kalmasa da stack çalışır. VM'in Proxmox'ta kalmadığı doğrulanır. IP IPAM'a geri verilir (14 gün karantina). En son host `deleted` olur; isim kiralaması biter ve dış sistem ID'leri silinir, çünkü VMID ve IP tekrar dağıtılabilir.
+   - **Kimlikler:** Silinecek sunucunun VM'i, IP'si ve Zabbix host'u kayıtlı ID'lerinden bulunur, isimden ya da katalogdan değil.
+   - **Onay:** Planı sunucu değiştiren ve onay isteyen (`approval: required`) kontratlar reddedilir; PoC'de onay akışı yok.
+   - **Lab sonucu:**
+     - `replicas` 1 → 2: `labtpoc02` açıldı, Zabbix'e kaydedildi, baseline `changed=8`.
+     - 2 → 1: `labtpoc02` silindi: Zabbix host'u, VM 9401, IP 10.50.0.101 ve isim.
+     - 1 → 0: `labtpoc01` aynı yoldan silindi.
+     - Doğrudan kontrol: Proxmox'ta 9400–9499 aralığı boş, Zabbix'te `gaia.uid` tag'li host yok, IPAM'da iki adres karantinada, açık isim kiralaması ve dış ID kalmadı.
+     - Dört run'ın kaydı arşivlendi; `gaia record verify` zinciri sağlam buldu.
+   - **Başarı kriteri 7 karşılandı.**
 
 ## Kararlar
 

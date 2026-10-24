@@ -44,7 +44,17 @@ func (fakeSecrets) Token() string { return "bao-token" }
 // fakeCompute records stacks and answers with the VM IDs it was given.
 type fakeCompute struct {
 	stacks []pulumi.Stack
-	noIP   bool // the guest never reports its address
+	noIP   bool           // the guest never reports its address
+	vms    map[string]int // stack -> VM IDs it holds, as a set key "stack/id"
+}
+
+// used is the cluster's VM IDs: the template and every stack's VMs.
+func (f *fakeCompute) used(context.Context, proxmox.Credentials) (map[int]bool, error) {
+	u := map[int]bool{9300: true}
+	for _, id := range f.vms {
+		u[id] = true
+	}
+	return u, nil
 }
 
 func (f *fakeCompute) provision(_ context.Context, b pulumi.Backend, st pulumi.Stack, _ io.Writer) (map[string]pulumi.Result, pulumi.Changes, error) {
@@ -52,6 +62,17 @@ func (f *fakeCompute) provision(_ context.Context, b pulumi.Backend, st pulumi.S
 		return nil, nil, fmt.Errorf("backend = %+v", b)
 	}
 	f.stacks = append(f.stacks, st)
+	if f.vms == nil {
+		f.vms = map[string]int{}
+	}
+	for k := range f.vms {
+		if strings.HasPrefix(k, st.Name+"/") {
+			delete(f.vms, k)
+		}
+	}
+	for _, v := range st.VMs {
+		f.vms[st.Name+"/"+v.UID] = v.VMID
+	}
 	res := map[string]pulumi.Result{}
 	for _, v := range st.VMs {
 		ip := strings.SplitN(v.Address, "/", 2)[0]
@@ -204,7 +225,7 @@ func setup(t *testing.T) *env {
 	cr.Write("ansible/baseline/linux.yml", "- hosts: all", "ansible/roles/gaia_linux_base/tasks/main.yml", "- ping: {}")
 	cr.Commit("config")
 
-	e := &env{t: t, store: s, ipam: hs.URL, config: cr.Dir, compute: &fakeCompute{}, configure: &fakeConfigurer{},
+	e := &env{t: t, store: s, ipam: hs.URL, config: cr.Dir, compute: &fakeCompute{vms: map[string]int{"not-gaia/vm": 9400}}, configure: &fakeConfigurer{},
 		monitor: &fakeMonitor{hosts: map[string]zabbix.Host{}, ids: map[string]string{}},
 		archive: &memArchive{objects: map[string][]byte{}, until: map[string]time.Time{}}}
 	e.deps = Deps{
@@ -218,9 +239,7 @@ func setup(t *testing.T) *env {
 			"bao://kv/platform/seaweedfs":    {"access_key": "ak", "secret_key": "sk"},
 		},
 		Provision: e.compute.provision,
-		UsedVMIDs: func(context.Context, proxmox.Credentials) (map[int]bool, error) {
-			return map[int]bool{9300: true, 9400: true}, nil
-		},
+		UsedVMIDs: e.compute.used,
 		Configure: e.configure,
 		Monitor: func(endpoint, token string) Monitor {
 			e.monitor.endpoint, e.monitor.token = endpoint, token
@@ -367,12 +386,97 @@ func TestApplyCreatesThenKeeps(t *testing.T) {
 	}
 }
 
-func TestApplyRefusesDeletesForNow(t *testing.T) {
+func TestDecommission(t *testing.T) {
 	e := setup(t)
-	if _, err := e.apply(func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) }); err != nil {
+	ctx := context.Background()
+	q := e.store.Q()
+	replicas := func(n string) func(string) string {
+		return func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: "+n, 1) }
+	}
+	if _, err := e.apply(replicas("2")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.apply(nil); err == nil || !strings.Contains(err.Error(), "the plan deletes labtpoc02: decommission is not supported yet") {
+	hosts, _ := q.LiveHosts(ctx, "poc-web")
+	first, second := hosts[0].Uid, hosts[1].Uid
+
+	// Scaling down deletes the highest seq: its Zabbix host, VM, address
+	// and name.
+	p, err := e.apply(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := p.Contracts[0].Servers; len(s) != 2 || s[1].Action != plan.Delete || s[1].Hostname != "labtpoc02" {
+		t.Fatalf("plan = %+v", s)
+	}
+	if last := e.compute.stacks[len(e.compute.stacks)-1]; len(last.VMs) != 1 || last.VMs[0].UID != first {
+		t.Errorf("stack after scale down: %+v", last.VMs)
+	}
+	if strings.Join(e.monitor.deleted, ",") != second {
+		t.Errorf("zabbix deleted %v", e.monitor.deleted)
+	}
+	gone, _ := q.Host(ctx, second)
+	if gone.Status != db.HostStatusDeleted {
+		t.Errorf("host = %+v", gone)
+	}
+	if ids, _ := q.ExternalIDs(ctx, second); len(ids) != 0 {
+		t.Errorf("external IDs left: %+v", ids)
+	}
+	if holder, err := q.NameHolder(ctx, "labtpoc02"); err == nil {
+		t.Errorf("labtpoc02 still held by %s", holder)
+	}
+	if a, _ := ipamclient.New(e.ipam, "ipam-token").Allocations(ctx, second); len(a) != 0 {
+		t.Errorf("allocations left: %+v", a)
+	}
+
+	// replicas: 0 empties the stack.
+	if _, err := e.apply(replicas("0")); err != nil {
+		t.Fatal(err)
+	}
+	if last := e.compute.stacks[len(e.compute.stacks)-1]; last.Name != "poc-web-lab" || len(last.VMs) != 0 {
+		t.Errorf("stack after replicas 0: %+v", last)
+	}
+	if live, _ := q.LiveHosts(ctx, "poc-web"); len(live) != 0 {
+		t.Errorf("live hosts: %+v", live)
+	}
+
+	// The name and the VM ID come back; the address is in quarantine.
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	live, _ := q.LiveHosts(ctx, "poc-web")
+	if len(live) != 1 || live[0].Hostname != "labtpoc01" || live[0].Uid == first {
+		t.Fatalf("recreated: %+v", live)
+	}
+	vm := e.compute.stacks[len(e.compute.stacks)-1].VMs[0]
+	if vm.VMID != 9401 || vm.Address != "10.50.0.102/24" {
+		t.Errorf("recreated VM %d at %s", vm.VMID, vm.Address)
+	}
+}
+
+func TestDecommissionedContract(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.apply(func(c string) string { return c + "  lifecycle: { state: decommissioned }\n" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := p.Contracts[0].Servers; len(s) != 1 || s[0].Action != plan.Delete {
+		t.Fatalf("plan = %+v", s)
+	}
+	if live, _ := e.store.Q().LiveHosts(ctx, "poc-web"); len(live) != 0 {
+		t.Errorf("live hosts: %+v", live)
+	}
+	if n := len(e.configure.jobs); n != 1 {
+		t.Errorf("%d configure jobs; the decommission ran one", n)
+	}
+}
+
+func TestApprovalIsRefused(t *testing.T) {
+	p := &plan.Plan{Contracts: []plan.Contract{{Name: "prod-web", Approval: "required", Servers: []plan.Server{{Action: plan.Create, Hostname: "x"}}}}}
+	if _, err := Run(context.Background(), nil, p, Deps{}); err == nil || !strings.Contains(err.Error(), "needs approval") {
 		t.Errorf("err = %v", err)
 	}
 }

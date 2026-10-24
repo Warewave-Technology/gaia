@@ -94,7 +94,7 @@ type target struct {
 
 // configure runs the contract's baseline and roles on its servers.
 func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catalog.Object, targets []target) error {
-	if c.Baseline == nil && len(c.Roles) == 0 {
+	if (c.Baseline == nil && len(c.Roles) == 0) || len(targets) == 0 {
 		return nil
 	}
 	if r.cfg == nil {

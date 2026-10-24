@@ -42,3 +42,8 @@ select uid from host_external_ids where provider = $1 and kind = $2 and external
 -- IDs a provider has given out, for live hosts: a VM ID in use by Gaia.
 select e.external_id from host_external_ids e join hosts h on h.uid = e.uid
 where e.provider = $1 and e.kind = $2 and h.status <> 'deleted';
+
+-- name: DeleteExternalIDs :exec
+-- A deleted host's IDs go: Proxmox and IPAM give them out again. The run
+-- record keeps what they were.
+delete from host_external_ids where uid = $1;
