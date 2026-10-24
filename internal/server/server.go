@@ -55,6 +55,8 @@ type Config struct {
 	// Writer writes Gaia's own commits (reverts); nil when Gaia has no
 	// signing key.
 	Writer *repo.Writer
+	// OperationDone closes an Operation's change after it ran.
+	OperationDone queue.OperationDone
 	// Sources runs the catalog's sources; nil runs none.
 	Sources *Sources
 	// NotifySecrets reads channel credentials for the notification
@@ -90,6 +92,9 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 			return nil, err
 		}
 		if err := river.AddWorkerSafely(workers, &notify.SendWorker{Store: s, Secrets: cfg.NotifySecrets}); err != nil {
+			return nil, err
+		}
+		if err := river.AddWorkerSafely(workers, &queue.OperationWorker{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, Done: cfg.OperationDone, BusyWait: cfg.BusyWait}); err != nil {
 			return nil, err
 		}
 		rc.Workers = workers

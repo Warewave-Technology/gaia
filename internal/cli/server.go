@@ -182,6 +182,13 @@ func newServerCommand() *cobra.Command {
 				if closer == nil {
 					closer = &change.Engine{Store: s, Repos: cfg.Repos, Log: cfg.Log}
 				}
+				cfg.OperationDone = func(ctx context.Context, a queue.OperationArgs, status string) error {
+					err := closer.OperationDone(ctx, a, status)
+					if cat != nil {
+						cat.Kick()
+					}
+					return err
+				}
 				cfg.Finished = func(ctx context.Context, a queue.ApplyArgs, g *catalog.Graph) error {
 					err := closer.Finished(ctx, a, g)
 					if cat != nil {

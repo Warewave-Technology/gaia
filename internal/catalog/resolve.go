@@ -211,6 +211,9 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	for _, o := range cat.List(KindServer) {
 		r.server(o)
 	}
+	for _, o := range cat.List(KindOperation) {
+		r.operation(o)
+	}
 	if len(r.errs) > 0 {
 		sortErrors(r.errs)
 		return nil, r.errs
@@ -519,6 +522,50 @@ func (r *resolver) ansibleRole(o *Object) {
 		}
 		r.g.rules[o.Metadata.Name] = append(r.g.rules[o.Metadata.Name], p)
 	}
+}
+
+func (r *resolver) operation(o *Object) {
+	s := o.Spec.(*OperationSpec)
+	if _, err := cel.Selector(s.Selector); err != nil {
+		r.fail(o, "spec.selector", "%v", err)
+	}
+	if s.Runbook == "" {
+		return
+	}
+	role := r.ref(o, "spec.runbook", KindAnsibleRole, s.Runbook)
+	if role == nil {
+		return
+	}
+	rs := role.Spec.(*AnsibleRoleSpec)
+	if !rs.Runbook {
+		r.fail(o, "spec.runbook", "AnsibleRole %q is not a runbook (runbook: true in its meta/gaia.yml)", s.Runbook)
+		return
+	}
+	for _, name := range sortedKeys(s.Params) {
+		p, ok := rs.Params[name]
+		if !ok {
+			r.fail(o, "spec.params", "AnsibleRole %q has no param %q%s", s.Runbook, name, nearest(name, sortedKeys(rs.Params)))
+			continue
+		}
+		for _, msg := range checkValue(name, p, s.Params[name]) {
+			r.fail(o, "spec.params."+name, "%s", msg)
+		}
+		if v, _ := s.Params[name].(string); strings.HasPrefix(v, "bao://") {
+			r.fail(o, "spec.params."+name, "an Operation takes no secrets (yet)")
+		}
+	}
+}
+
+// SpecMap is an object's spec as written, for expressions.
+func (o *Object) SpecMap() map[string]any {
+	var m map[string]any
+	if n := specNode(o.node); n != nil {
+		_ = n.Decode(&m)
+	}
+	if m == nil {
+		m = map[string]any{}
+	}
+	return m
 }
 
 func (r *resolver) app(o *Object) {

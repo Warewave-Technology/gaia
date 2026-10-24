@@ -46,6 +46,7 @@ func (s *Server) apiRoutes() []route {
 		{"POST", "/api/v1/commits/{sha}/revert", "", s.revertCommit},
 		{"GET", "/api/v1/preview", "", s.preview},
 		{"GET", "/api/v1/sources", "", s.listSources},
+		{"GET", "/api/v1/operations", "operator", s.listOperations},
 		{"POST", "/api/v1/sources/sync", "platform-admin", s.syncSources},
 		{"POST", "/api/v1/changes/approve", "", s.strong(s.approveChanges)},
 		{"POST", "/api/v1/changes/{id}/approve", "", s.strong(s.decideChange(true))},

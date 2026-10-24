@@ -130,6 +130,11 @@ func (e *Engine) Evaluate(ctx context.Context, snap repo.Snapshot, g *catalog.Gr
 				errs = append(errs, fmt.Errorf("%s: %w", name, err))
 			}
 		}
+		for _, o := range g.Catalog.List(catalog.KindOperation) {
+			if err := e.operation(ctx, snap, g, keys, o); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", OperationKey(o.Metadata.Name), err))
+			}
+		}
 		return errors.Join(errs...)
 	})
 	if errors.Is(err, store.ErrLocked) && !ran {

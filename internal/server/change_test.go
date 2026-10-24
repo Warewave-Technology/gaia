@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -544,5 +545,85 @@ func TestPeopleChangesStartAccessRuns(t *testing.T) {
 	}
 	if _, err := queue.EnqueueAccess(ctx, e.store, srv.Queue(), "nope"); !errors.Is(err, queue.ErrNotApplied) {
 		t.Errorf("a contract never applied: %v", err)
+	}
+}
+
+// An Operation is a change: approved by the owner, scheduled for its
+// window, and never changed once approved.
+func TestOperationsAreApprovedThenScheduled(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	mehmet := e.signer("mehmet", "team-platform")
+	e.signer("ayse", "team-platform")
+	q := e.store.Q()
+	if err := e.store.CreateHost(ctx, store.NewHost{UID: "uid-1", Contract: "poc-web", Hostname: "labtpoc01", Site: "lab", Network: "lab-poc", Seq: 1}); err != nil {
+		t.Fatal(err)
+	}
+	_ = q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: "uid-1", Status: db.HostStatusActive})
+	start := time.Now().Add(2 * time.Hour).UTC().Truncate(time.Second)
+	op := fmt.Sprintf(`apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: reboot-poc }
+spec:
+  action: reboot
+  selector: 'contract == "poc-web"'
+  window: { start: "%s", end: "%s" }
+  strategy: { batchSize: "1" }
+`, start.Format(time.RFC3339), start.Add(time.Hour).Format(time.RFC3339))
+	e.git.Write("contracts/reboot.yaml", op)
+	e.git.Write("contracts/late.yaml", "apiVersion: gaia/v1alpha1\nkind: Operation\nmetadata: { name: late }\nspec:\n  action: reboot\n  selector: 'true'\n  notAfter: \"2020-01-01T00:00:00Z\"\n")
+	e.edit("platform/policy.yaml", "  gaiaRoles:", "  operations: { requireWindow: { test: [patch] } }\n  gaiaRoles:")
+	e.git.Write("contracts/nowindow.yaml", "apiVersion: gaia/v1alpha1\nkind: Operation\nmetadata: { name: nowindow }\nspec:\n  action: patch\n  selector: 'true'\n")
+	e.git.CommitSigned("operations", mehmet.git)
+	e.evaluate(en)
+
+	c, ok := e.open(change.OperationKey("reboot-poc"))
+	if !ok {
+		t.Fatal("no change for the operation")
+	}
+	rows, _ := q.Gates(ctx, c.ID)
+	var need change.Need
+	for _, r := range rows {
+		if r.Gate == "approval" {
+			_ = json.Unmarshal(r.Detail, &need)
+		}
+	}
+	if len(need.Groups) != 1 || need.Groups[0].Name != "owner" || strings.Join(need.Groups[0].Candidates, ",") != "ayse" {
+		t.Fatalf("need = %+v", need)
+	}
+	for key, want := range map[string]string{"Operation/late": "notAfter has passed", "Operation/nowindow": "patch in test needs a window"} {
+		st, err := q.ContractState(ctx, key)
+		if err != nil || !strings.Contains(st.Error.String, want) {
+			t.Errorf("%s: %+v %v", key, st, err)
+		}
+		if _, ok := e.open(key); ok {
+			t.Errorf("%s has a change", key)
+		}
+	}
+
+	u, _ := q.UserByName(ctx, "ayse")
+	if err := en.Decide(ctx, change.Decision{Change: c.ID, PlanHash: c.PlanHash, UserID: u.ID, Username: "ayse", Approve: true}); err != nil {
+		t.Fatal(err)
+	}
+	row, err := q.Operation(ctx, "reboot-poc")
+	if err != nil || row.Status != "scheduled" {
+		t.Fatalf("operation = %+v, %v", row, err)
+	}
+	if got, _ := q.Change(ctx, c.ID); got.Status != change.Running || !got.RunID.Valid {
+		t.Errorf("change = %+v", got)
+	}
+	var at time.Time
+	if err := e.store.Pool().QueryRow(ctx, "select scheduled_at from river_job where kind = 'gaia.operation'").Scan(&at); err != nil || !at.Equal(start) {
+		t.Errorf("scheduled at %v, want %v (%v)", at, start, err)
+	}
+
+	// Approved: a commit that changes it is refused.
+	e.edit("contracts/reboot.yaml", `batchSize: "1"`, `batchSize: "2"`)
+	e.git.CommitSigned("change the operation", mehmet.git)
+	e.evaluate(en)
+	st, _ := q.ContractState(ctx, change.OperationKey("reboot-poc"))
+	if !strings.Contains(st.Error.String, "it does not change") {
+		t.Errorf("after changing it: %+v", st)
 	}
 }

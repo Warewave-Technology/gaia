@@ -190,6 +190,17 @@ type Notification struct {
 	SentAt    pgtype.Timestamptz
 }
 
+type Operation struct {
+	Name       string
+	Status     string
+	SpecHash   string
+	ChangeID   pgtype.Text
+	RunID      pgtype.Text
+	Results    []byte
+	UpdatedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+}
+
 type PulumiStack struct {
 	Name            string
 	SecretsProvider string

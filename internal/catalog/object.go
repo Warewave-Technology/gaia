@@ -32,6 +32,7 @@ const (
 	KindRoleSource  = "AnsibleRoleSource"
 	KindApp         = "App"
 	KindAgent       = "Agent"
+	KindOperation   = "Operation"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -54,6 +55,7 @@ var newSpec = map[string]func() any{
 	KindRoleSource:  func() any { return &AnsibleRoleSourceSpec{} },
 	KindApp:         func() any { return &AppSpec{} },
 	KindAgent:       func() any { return &AgentSpec{} },
+	KindOperation:   func() any { return &OperationSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.

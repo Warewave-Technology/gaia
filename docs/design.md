@@ -575,6 +575,22 @@ Operation patch-2026-11-prod-w2
   Onay       platform-admin (birden fazla owner var)
 ```
 
+#### Uygulamada
+
+- **Change:** Bir Operation, kontratlarınkiyle aynı akışta `Operation/<ad>` anahtarlı bir Change'tir.
+  - Planı seçilen sunucuları, batch'leri ve adımları sabitler. Onay bu planın hash'ine bağlıdır.
+  - Onaylanınca pencerenin başına kuyruklanır; Change `running` olarak görünür.
+- **Onaylar:** Policy'deki `operations.approvals` ortam ve aksiyona göre bakılır. Yazılmamışsa owner onaylar. Birden fazla owner'a dokunan Operation'da owner onayının yerine `multiOwner` (platform-admin) geçer.
+- **Planlanmayanlar:** Hiç aktif sunucu seçmeyen, `notAfter`'ı veya penceresi geçmiş, ya da Policy'nin istediği pencereyi yazmamış (`requireWindow`) bir Operation için Change açılmaz; sebebi kontrat durumunda görünür.
+- **Kimlik:** Çalışma durumu `operations` tablosunda isimle tutulur. Spec'in hash'i onay anındaki haliyle saklanır; dosyayı değiştiren commit reddedilir.
+- **Çalışma:**
+  - Pencere gelince worker çalıştırır; geç kalmışsa `expired` olur.
+  - Batch'ler sırayla gider; her batch kendi kontratlarının kilidini tutar, meşgul bir kontrat batch'i bekletir.
+  - Onaydan beri aktif olmayan sunucular atlanır (`skipped`). `maxFailures` aşılınca kalan batch'ler çalışmaz (`not run`).
+  - Sonuç `succeeded`, `partial` veya `failed` olur.
+  - Sunucu başına sonuçlar `GET /api/v1/operations`'tadır; run kaydı ve bildirimler de bunları içerir.
+- **Bu sürümdeki aksiyonlar:** `reboot` ve `runbook`; ardından sağlık kontrolü (sunucu yeniden cevap veriyor). `patch`, `snapshot` ve bakım modu bir sonraki adımda; `power`, `revert` ve `replace` sonraki fazlarda.
+
 #### Tekrarlayan işler: OperationSchedule
 
 ```yaml
