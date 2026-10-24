@@ -34,6 +34,18 @@ type Record struct {
 	Result               string            `json:"result"` // succeeded | failed
 	Error                string            `json:"error,omitempty"`
 	Changes              []Change          `json:"changes"`
+	// AccessSnapshot is who the run gave access to and why (design 14.2):
+	// the members of the teams at the time, for each access entry.
+	AccessSnapshot []AccessGrant `json:"accessSnapshot,omitempty"`
+}
+
+// AccessGrant is one access entry of a contract as a run distributed it.
+type AccessGrant struct {
+	Contract string   `json:"contract"`
+	Via      string   `json:"via"` // group/<name> or team/<name>
+	Teams    []string `json:"teams"`
+	Users    []string `json:"users"`
+	Sudo     bool     `json:"sudo,omitempty"`
 }
 
 // Source is where the contracts came from.

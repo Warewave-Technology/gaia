@@ -189,3 +189,21 @@ delete from team_memberships where source = $1 and not (team = any (sqlc.arg(tea
 
 -- name: MembershipUsers :many
 select user_id from team_memberships where team = $1 and source = $2 and role = $3 order by user_id;
+
+-- name: InsertLoginKey :exec
+insert into login_keys (fingerprint, user_id, name, public_key) values ($1, $2, $3, $4);
+
+-- name: LoginKeys :many
+select * from login_keys where user_id = $1 and revoked_at is null order by created_at;
+
+-- name: RevokeLoginKey :execrows
+update login_keys set revoked_at = now() where fingerprint = $1 and user_id = $2 and revoked_at is null;
+
+-- name: TeamLogins :many
+-- Enabled members of teams with their live login keys (none: an empty
+-- key), for distributing access.
+select distinct u.id, u.username, t.team, coalesce(k.public_key, '')::text as public_key
+from team_memberships t join users u on u.id = t.user_id
+left join login_keys k on k.user_id = u.id and k.revoked_at is null
+where t.team = any (sqlc.arg(teams)::text[]) and t.role = 'member' and u.enabled
+order by u.username, t.team, public_key;

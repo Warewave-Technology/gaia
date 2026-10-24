@@ -127,3 +127,63 @@ func (a *Service) revokeSigningKey(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// LoginKey is an SSH key a person logs in to servers with (design 14.4).
+type LoginKey struct {
+	Fingerprint string    `json:"fingerprint"`
+	Name        string    `json:"name"`
+	PublicKey   string    `json:"publicKey"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+func (a *Service) myLoginKeys(w http.ResponseWriter, r *http.Request) {
+	rows, err := a.store.Q().LoginKeys(r.Context(), From(r.Context()).UserID)
+	if err != nil {
+		a.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	out := []LoginKey{}
+	for _, k := range rows {
+		out = append(out, LoginKey{Fingerprint: k.Fingerprint, Name: k.Name, PublicKey: k.PublicKey, CreatedAt: k.CreatedAt.Time})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *Service) addLoginKey(w http.ResponseWriter, r *http.Request) {
+	var b struct{ Name, PublicKey string }
+	if !decode(w, r, &b) {
+		return
+	}
+	kind, fp, stored, err := ParseSigningKey(b.PublicKey)
+	if err != nil || kind != "ssh" {
+		problem(w, http.StatusBadRequest, "want an SSH public key (ssh-ed25519 AAAA…)")
+		return
+	}
+	if b.Name == "" {
+		b.Name = "ssh key"
+	}
+	err = a.store.Q().InsertLoginKey(r.Context(), db.InsertLoginKeyParams{Fingerprint: fp, UserID: From(r.Context()).UserID, Name: trunc(b.Name, 80), PublicKey: stored})
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.Code == "23505" {
+		problem(w, http.StatusConflict, "the key "+fp+" is already registered")
+		return
+	}
+	if err != nil {
+		a.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusCreated, LoginKey{Fingerprint: fp, Name: b.Name, PublicKey: stored, CreatedAt: a.now()})
+}
+
+func (a *Service) revokeLoginKey(w http.ResponseWriter, r *http.Request) {
+	n, err := a.store.Q().RevokeLoginKey(r.Context(), db.RevokeLoginKeyParams{Fingerprint: r.PathValue("fingerprint"), UserID: From(r.Context()).UserID})
+	if err != nil {
+		a.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	if n == 0 {
+		problem(w, http.StatusNotFound, "no such key")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

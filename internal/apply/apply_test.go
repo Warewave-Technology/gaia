@@ -644,7 +644,7 @@ func (a failAll) Run(ctx context.Context, j ansible.Job, on func(ansible.Event) 
 func TestSitePlay(t *testing.T) {
 	c := plan.Contract{Name: "web", Baseline: &plan.Baseline{Playbook: "baseline/linux.yml"},
 		Roles: []plan.Role{{Name: "ansible-nginx", Role: "nginx", Params: map[string]any{"port": 8080}}}}
-	got, err := sitePlay(c)
+	got, err := sitePlay(c, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +654,7 @@ func TestSitePlay(t *testing.T) {
 		}
 	}
 	c.Roles[0].Params["password"] = plan.Masked
-	if _, err := sitePlay(c); err == nil || !strings.Contains(err.Error(), "no_log") {
+	if _, err := sitePlay(c, nil, false); err == nil || !strings.Contains(err.Error(), "no_log") {
 		t.Errorf("err = %v", err)
 	}
 }
@@ -762,5 +762,62 @@ func TestApplyWritesTheRunRecord(t *testing.T) {
 	}
 	if n, err := runrecord.Verify(ctx, q); err != nil || n != 2 {
 		t.Errorf("verify: %d, %v", n, err)
+	}
+}
+
+func TestApplyDistributesAccess(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	person := func(name string, enabled bool, key string) {
+		id := store.NewUserID()
+		if err := q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id, Username: name, Provider: "corp", Subject: pgText("g-" + name), DirectoryName: pgText(name), Enabled: enabled}); err != nil {
+			t.Fatal(err)
+		}
+		if err := q.AddTeam(ctx, db.AddTeamParams{UserID: id, Team: "team-platform", Source: "ad:corp"}); err != nil {
+			t.Fatal(err)
+		}
+		if key != "" {
+			if err := q.InsertLoginKey(ctx, db.InsertLoginKeyParams{Fingerprint: "fp-" + name, UserID: id, Name: "k", PublicKey: key}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	person("ayse", true, "ssh-ed25519 AAAA ayse")
+	person("mehmet", true, "")
+	person("ali", false, "ssh-ed25519 BBBB ali")
+	person("Bad Name", true, "")
+	g := e.graph(func(c string) string {
+		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { team: team-platform, sudo: true }\n", 1) +
+			"---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+	})
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a := p.Contracts[0].Access; len(a) != 1 || a[0].Via != "team/team-platform" || !a[0].Sudo {
+		t.Fatalf("plan access = %+v", a)
+	}
+	run, err := Run(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proj := e.configure.projects[0]
+	if proj[".gaia/roles/gaia_access/tasks/main.yml"] == "" {
+		t.Fatal("the access role is not in the project")
+	}
+	site := proj[".gaia/site.yml"]
+	if !strings.Contains(site, `"role": "gaia_access"`) || !strings.Contains(site, `"name": "ayse"`) || !strings.Contains(site, `"ssh-ed25519 AAAA ayse"`) ||
+		!strings.Contains(site, `"name": "mehmet"`) || strings.Contains(site, "ali") || strings.Contains(site, "Bad Name") {
+		t.Errorf("site.yml = %s", site)
+	}
+	rec, err := q.RunRecord(ctx, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body runrecord.Record
+	_ = json.Unmarshal([]byte(rec.Body), &body)
+	if len(body.AccessSnapshot) != 1 || strings.Join(body.AccessSnapshot[0].Users, ",") != "ayse,mehmet" || !body.AccessSnapshot[0].Sudo {
+		t.Errorf("access snapshot = %+v", body.AccessSnapshot)
 	}
 }

@@ -158,6 +158,15 @@ type HostExternalID struct {
 	ExternalID string
 }
 
+type LoginKey struct {
+	Fingerprint string
+	UserID      string
+	Name        string
+	PublicKey   string
+	CreatedAt   pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
+}
+
 type NameLease struct {
 	Name       string
 	Uid        string
