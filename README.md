@@ -9,7 +9,7 @@ Git doğru kaynaktır: değişiklikler yalnızca Git'ten uygulanır. Arayüz ve 
 
 ## Durum
 
-Proje **PoC aşamasında**. M1 tamamlandı: katalog motoru, CEL ve `gaia plan`. Sırada M2 (provisioning) var. Plan ve adımlar: [docs/poc.md](docs/poc.md).
+PoC tamamlandı: bir kontrattan Proxmox'ta VM açılıyor, Zabbix'e kaydediliyor, baseline uygulanıyor, run kaydı hash zinciriyle tutuluyor ve `replicas: 0` ile her şey temizleniyor ([docs/poc.md](docs/poc.md)). Sıradaki işler: [docs/roadmap.md](docs/roadmap.md).
 
 ```bash
 gaia validate --path examples/lab/platform --path examples/lab/contracts
@@ -35,7 +35,7 @@ internal/
   cli/                 komut ağacı
 ee/                    Ansible execution environment tanımı
 examples/lab/          Proxmox lab'i için platform reposu ve kontrat
-docs/                  tasarım ve PoC planı
+docs/                  tasarım, PoC planı ve yol haritası
 ```
 
 ## Geliştirme
@@ -52,4 +52,5 @@ make ee        # EE imajı (ansible-builder)
 ## Dokümanlar
 
 - [Tasarım dokümanı](docs/design.md): kavramlar, kind listesi, kontrat yapısı, çözümleme ve yürütme, adopt, silme, audit, arayüz/CLI, veritabanı, dağıtım, erişim yönetimi ve karar kaydı.
-- [PoC planı](docs/poc.md): sınanacak varsayımlar, başarı kriterleri, kapsam, lab ve adımlar.
+- [PoC planı](docs/poc.md): sınanacak varsayımlar, başarı kriterleri, kapsam, lab, adımlar ve sonuç.
+- [Yol haritası](docs/roadmap.md): PoC'den sonra ürünün tamamı, fazlar ve sırası.

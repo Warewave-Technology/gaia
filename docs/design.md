@@ -1,6 +1,6 @@
 # Gaia – Tasarım Taslağı
 
-> Durum: **Taslak v0.1** (2026-10-23)
+> Durum: **Taslak v0.2** (2026-10-24: değişiklik akışı, bkz. 7.6)
 > Kapsam: Altyapı bileşenlerinin (Linux, Windows/AD, vCenter/Proxmox ve çevre sistemler) tamamını tek bir kontrat üzerinden yöneten servisin tasarımı.
 
 ## 0. Amaç ve Prensipler
@@ -10,7 +10,7 @@ Teknolojiler çeşitli olsa da hepsini **tek bir YAML kontratı** yönetir.
 - **Kontrat sadece referans içerir.** Endpoint, credential ve altyapı detayı kontratta bulunmaz; bunlar Gaia'nın kendi objelerinde tanımlıdır.
 - **Provisioning Pulumi'de, konfigürasyon Ansible'da.** Diğer sistemlerle (Zabbix, IPAM, AD, Warpgate, Nexus, OpenBao, SeaweedFS) doğrudan API üzerinden konuşulur.
 - **Tüm bileşenler açık kaynak.**
-- **Git, doğru kaynaktır.** Apply sadece Git'ten tetiklenir. Arayüz ve CLI ile okuma ve `plan` yapılabilir, ama değişiklik uygulanamaz.
+- **Git, istenen durumun geçmişidir.** Değişiklik Git'e commit ile girer. İncelenmesi, onaylanması ve uygulanması Gaia'dadır (bkz. 7.6). Arayüz ve CLI istenen durumu değiştiremez.
 - **Her verinin tek bir sahibi vardır.** Gaia veriyi kopyalamaz, sahibine referans verir.
 - **Bir plan tamamen bir commit'ten üretilebilir.** Canlı bir kaynağı okuyarak plan değiştirilemez; kaynaklardan gelen veri önce Git'e yazılır.
 
@@ -23,6 +23,7 @@ Teknolojiler çeşitli olsa da hepsini **tek bir YAML kontratı** yönetir.
 | **Source** | Katalog objelerini asıl kaynağından üreten tanım | Platform ekibi |
 | **Policy** | İsimlendirme, ortam kuralları, zorunlu etiketler | Platform ekibi |
 | **Kontrat** | İstenen durum (`Server`) veya tek seferlik iş (`Operation`) | Uygulama ekipleri |
+| **Change** | Bir commit'in (veya drift'in) bir kontrata etkisi: plan, gereksinimler, onaylar (bkz. 7.6) | Gaia |
 | **Run** | Bir kontratın bir commit'teki uygulaması ve bu uygulamanın değiştirilemez kaydı | Gaia |
 
 Katalog, provider ile kontrat arasındaki katmandır. Kontrat doğrudan provider'a bağlansaydı kullanıcı cluster, datastore ve portgroup gibi detayları bilmek zorunda kalırdı. Katalogla birlikte tek bir isim (ör. `network: ank-prod-app`) birden çok sisteme yayılır: hipervizördeki ağ bağlantısı (vCenter portgroup'u veya Proxmox bridge/VLAN), IPAM havuzu, DNS zone'u ve Zabbix proxy'si aynı isimden çözülür.
@@ -52,7 +53,7 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 
 - **Dosya yolu önemsiz.** Gaia dosyanın nerede olduğuna değil, `kind` ve `metadata.name` alanlarına bakar. Bir dosyada birden fazla doküman (`---`) olabilir.
 - **Kimlik:** Bir objenin kimliği `kind + name` ikilisidir ve global olarak tekildir. Aynı ikiliden iki tane varsa yükleme hata verir. Bunun tek istisnası bölüm 5.5'teki patch objeleri.
-- **Sahiplik:** Kimin hangi dizini onaylayacağı CODEOWNERS ile belirlenir.
+- **Onay:** Kimin neyi onaylayacağını Gaia belirler (bkz. 7.6). CODEOWNERS ve PR review'u ekiplerin tercihidir; Gaia onlara bakmaz.
 
 ## 3. Kind Listesi
 
@@ -96,7 +97,7 @@ spec:
   credentials: bao://kv/platform/vsphere/ank       # secret'a sadece referans verilir
 ```
 
-Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `postgres` (Pulumi state), `git`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
+Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `postgres` (Pulumi state), `git`, ve bildirim kanalları `slack`, `msteams`, `smtp`, `webhook`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
 
 ### 4.2 Platform
 
@@ -254,7 +255,7 @@ Source'ların `map` ve `naming` alanlarında, ayrıca Policy'de ifade dili olara
 
 - **Neden CEL:** Yan etkisi yok, tip kontrolü yapıyor ve Go kütüphanesi olgun. Go `text/template` koşul ve döngü desteklediği için kaynak objelerin içine zamanla mantık yazılmaya başlanır.
 - **Özel fonksiyonlar:** Gaia ihtiyaç duyulan yardımcı fonksiyonları kendisi kaydeder, ör. `pad(n, width)`.
-- **Hatalar:** Bir ifade değerlendirilemezse o obje üretilmez. Hata sync raporunda ve bot PR'ında görünür.
+- **Hatalar:** Bir ifade değerlendirilemezse o obje üretilmez. Hata sync raporunda görünür.
 
 ### 5.2 NetworkSource
 
@@ -304,14 +305,14 @@ spec:
 ```
 
 - **İsimlendirme:** Roller birden çok collection'a dağıldığında aynı isimli roller çıkar. Bu yüzden isim `collection.role` biçiminde.
-- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, `checkMode`, `runbook`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı PR'da birlikte değişir. Parametre formatı 6.2'de.
+- **`meta/gaia.yml`:** Gaia'ya özgü alanlar (`monitoring`, `conflicts`, `checkMode`, `runbook`, parametre uzantıları ve `rules`) rolün yanında tutulur, böylece rol ve metadata'sı aynı commit'te birlikte değişir. Parametre formatı 6.2'de.
 
-### 5.4 Bot PR akışı
+### 5.4 Üretilen objelerin Git'e yazılması
 
 1. Sync bileşeni Source'u değerlendirir ve objeleri `generated/` dizinine yazar.
-2. Fark varsa **bot olarak PR açar.**
-3. Gaia aynı PR'a **etki planını** yazar (bkz. bölüm 7.3).
-4. PR normal onay sürecinden geçer.
+2. Fark varsa Gaia, kendi anahtarıyla **imzalı bir commit** atar ve bunu doğrudan izlenen branch'e yazar.
+3. Commit'in etkisi normal bir Change olarak görünür ve aynı kurallarla onaylanır (bkz. 7.6). Etki planı (bkz. 7.3) Change'te yer alır.
+4. **Gaia doğrulamayan bir commit yazmaz.** Örneğin kullanılan bir ağı silecek bir commit yazılmaz; sorun sync raporunda görünür.
 
 Üretilen her objede şu annotation'lar bulunur:
 
@@ -478,14 +479,14 @@ rules:
 
 #### Kurallar
 
-1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog PR'ında `platform-admin` onayı gerektirir.
+1. **Kısıtlı tipler.** `raw`, `json`, `jsonarg`, `options`'ı olmayan `dict` ve `elements`'ı olmayan `list` reddedilir. Gerçekten serbest yapı gereken bir parametre için `gaia: { freeform: true }` yazılır. Bu, katalog değişikliğinde `platform-admin` onayı gerektirir.
 2. **Secret parametreler.** `secret: true` olan bir parametre sadece `bao://` referansı kabul eder. Referans, kontratın owner'ı olan Team objesindeki yol önekiyle sınırlıdır (`secrets.prefix`, bkz. 14.1); bir takım başka bir takımın secret'ına referans veremez. Değer run sırasında çözülür ve loglarda maskelenir.
 3. **Kurallar CEL ile.** `rules` ifadeleri `params`, `size`, `image`, `labels` ve `network` değerlerini görebilir. Kubernetes'in CRD'lerde CEL ile yaptığı validasyonla aynı yaklaşım.
    - CEL aritmetikte int ile double'ı karıştırmaz: `size.memoryGiB * 0.75` hata verir. Ya tam sayılarla yazılır (`x * 4 <= y * 3`) ya da `double(...)` ile dönüştürülür. Karşılaştırmalarda karıştırmak serbesttir (`int <= double`).
-   - Kurallar yüklemede derlenir; derlenmeyen bir kural PR'da hata verir. `params` dinamik tipli olduğu için tip uyuşmazlıkları kural çalışırken raporlanır.
-4. **İki aşamalı doğrulama.** Gaia plan sırasında doğrular ve hata PR'da hemen görünür. Ansible çalışırken `argument_specs` ile bir kez daha doğrular. Roller için iki doğrulama aynı kaynaktan geldiği için birbiriyle çelişmez.
+   - Kurallar yüklemede derlenir; derlenmeyen bir kural validasyonda hata verir. `params` dinamik tipli olduğu için tip uyuşmazlıkları kural çalışırken raporlanır.
+4. **İki aşamalı doğrulama.** Gaia plan sırasında doğrular ve hata Change'te (ve önizlemede) hemen görünür. Ansible çalışırken `argument_specs` ile bir kez daha doğrular. Roller için iki doğrulama aynı kaynaktan geldiği için birbiriyle çelişmez.
 5. **Varsayılanlar planda görünür.** Kontratta yazılmayan parametrelerin varsayılan değerleri planda açıkça gösterilir. Böylece hangi değerle çalışıldığı run kaydında yer alır.
-6. **Uyumluluk.** Bir rolden parametre kaldırılırsa ya da adı değişirse bot PR'ının etki planı o parametreyi kullanan kontratları listeler ve PR geçmez. Kaldırma önce `gaia: { deprecated: "yerine x kullanın" }` ile duyurulur.
+6. **Uyumluluk.** Bir rolden parametre kaldırılırsa ya da adı değişirse Change'in etki planı o parametreyi kullanan kontratları listeler ve validasyon geçmez. Kaldırma önce `gaia: { deprecated: "yerine x kullanın" }` ile duyurulur.
 
 #### Editör desteği
 
@@ -497,20 +498,20 @@ Gaia belirli bir commit'teki katalogdan kontrat şemasını JSON Schema olarak d
 
 ### 6.4 Operation
 
-`Operation`, istenen durumu değiştirmeyen ama Git'ten onaylanan tek seferlik işler için kullanılır: patch, reboot, snapshot, replace, drift düzeltmesi.
+`Operation`, istenen durumu değiştirmeyen ama Git'e commit ile giren ve Gaia'da onaylanan tek seferlik işler için kullanılır: patch, reboot, snapshot, replace, drift düzeltmesi.
 
 #### Yaşam döngüsü
 
 ```
-PR açılır → Gaia planı PR'a yazar → onay → merge → pending → (pencere gelince) running
-         → succeeded | failed | partial | cancelled | expired
+commit → Change (plan, gereksinimler) → onay → pending → (pencere gelince) running
+       → succeeded | failed | partial | cancelled | expired
 ```
 
-- **Bir kez çalışır.** Çalışma durumu isimle birlikte veritabanında tutulur. Aynı dosya tekrar merge edilse bile yeniden çalışmaz. Tekrar çalıştırmak için yeni isimle yeni bir Operation yazılır.
-- **Değiştirilemez.** `pending` veya daha ileri durumdaki bir Operation dosyasını değiştiren PR'ı CI reddeder.
+- **Bir kez çalışır.** Çalışma durumu isimle birlikte veritabanında tutulur. Aynı dosya tekrar commit'lense bile yeniden çalışmaz. Tekrar çalıştırmak için yeni isimle yeni bir Operation yazılır.
+- **Değiştirilemez.** `pending` veya daha ileri durumdaki bir Operation dosyasını değiştiren commit validasyondan geçmez.
 - **`notAfter`:** Bu zamana kadar çalışmamış bir Operation `expired` olur. Örneğin bakım penceresi kaçırılırsa onaylı bir patch haftalar sonra kendiliğinden çalışmaz.
-- **Temizlik:** Tamamlanmış Operation dosyalarını bot 30 gün sonra bir PR ile siler. Kayıtlar veritabanında ve run kayıtlarında kalır.
-- **Sonuç:** Bot, sonucu sunucu bazında PR'a yorum olarak yazar.
+- **Temizlik:** Tamamlanmış Operation dosyalarını Gaia 30 gün sonra bir commit ile siler. Kayıtlar veritabanında ve run kayıtlarında kalır.
+- **Sonuç:** Sunucu bazında sonuç Change'te görünür ve bildirim olarak gider.
 
 #### Hedef ve strateji
 
@@ -535,7 +536,7 @@ spec:
 - **Standart adımlar:** Her sunucuda Gaia şu adımları kendisi uygular: Zabbix bakım modu, snapshot (istenmişse), load balancer'dan çıkarma, aksiyonun kendisi, sağlık kontrolü, load balancer'a geri alma, bakım modunun kapatılması.
 - **Kilit:** Operation etkilediği kontratların kilidini alır. O sırada bir apply çalışıyorsa Operation kuyrukta bekler.
 
-PR'a yazılan plan:
+Change'te görünen plan:
 
 ```
 Operation patch-2026-11-prod-w2
@@ -556,7 +557,7 @@ spec:
   recurrence: "FREQ=MONTHLY;BYDAY=2SU"      # iCalendar RRULE: her ayın 2. pazarı
   start: "02:00"
   duration: 4h
-  createAhead: 7d                           # Operation PR'ı pencereden 7 gün önce açılır
+  createAhead: 7d                           # Operation commit'i pencereden 7 gün önce yazılır
   approval: perInstance                     # perInstance | once
   template:
     action: patch
@@ -565,7 +566,7 @@ spec:
     options: { scope: security, reboot: auto, snapshot: true }
 ```
 
-- **`perInstance`:** Bot her pencere için bir Operation PR'ı açar; her biri ayrıca onaylanır. Prod için varsayılan budur.
+- **`perInstance`:** Gaia her pencere için bir Operation commit'i yazar; her biri ayrıca onaylanır. Prod için varsayılan budur.
 - **`once`:** Schedule bir kez onaylanır, her pencerenin Operation'ı doğrudan oluşturulup çalışır. Onay gerektirmeyen ortamlar için kullanılır.
 - **Neden RRULE:** "Her ayın ikinci pazarı" gibi kurallar cron ile düzgün ifade edilemiyor.
 
@@ -595,7 +596,7 @@ spec:
 
 #### Onay kuralları
 
-CODEOWNERS sadece dosya yoluna göre onay isteyebilir; aksiyon ve ortam bazında kural koyamaz. Bu yüzden Gaia PR'larda zorunlu bir status check çalıştırır: `gaia/approval`. Bu kontrol, PR'ı onaylayanların gerekli gruplarda olup olmadığına bakar. Prod'da silme için gereken çift onay da aynı mekanizmayla uygulanır (bkz. 9.9).
+Onaylar Gaia'da, Change'in gereksinimi olarak toplanır (bkz. 7.6). Kimin onaylaması gerektiği Policy'den gelir; Git'teki review'lar sayılmaz. Prod'da silme için gereken çift onay da aynı mekanizmayla uygulanır (bkz. 9.9).
 
 ```yaml
 kind: Policy
@@ -613,15 +614,15 @@ spec:
       prod: [patch, reboot, power, revert, replace]
 ```
 
-**Birden fazla takımı etkileyen işler:** Selector birden fazla takımın kontratlarına dokunuyorsa her owner'dan ayrı onay beklenmez. `platform-admin` onayı yeterlidir; owner'lar PR'da etiketlenerek bilgilendirilir.
+**Birden fazla takımı etkileyen işler:** Selector birden fazla takımın kontratlarına dokunuyorsa her owner'dan ayrı onay beklenmez. `platform-admin` onayı yeterlidir; owner'lar bildirim alır.
 
 #### Durdurma ve duraklatma
 
-Yanlış giden bir işi durdurmak için PR açıp merge edilmesini beklemek çok yavaş kalır. Bu yüzden `operator` rolü çalışan bir run'ı arayüzden veya CLI'dan:
+Yanlış giden bir işi durdurmak için yeni bir commit ve onay beklemek çok yavaş kalır. Bu yüzden `operator` rolü çalışan bir run'ı arayüzden veya CLI'dan:
 - **durdurabilir** (cancel),
 - **duraklatabilir** (pause): kalan batch'ler bekletilir.
 
-Bu, arayüzün salt okunur olması kuralının tek istisnasıdır. Durdurmak istenen durumu değiştirmez, sadece yapılan işi azaltır. Kimin durdurduğu run kaydına yazılır. Kaldığı yerden devam ettirmek (resume) PR ile yapılır.
+Durdurmak istenen durumu değiştirmez, sadece yapılan işi azaltır. Kimin durdurduğu run kaydına yazılır. Kaldığı yerden devam ettirmek (resume) bir onaydır: Change'te gereken onaycılardan biri verir.
 
 ### 6.5 Çoklu site: `topology`
 
@@ -680,7 +681,7 @@ Aşama sırası: `validate → ipam → pulumi → register → ansible → veri
 
 ### 7.3 Katalog değişikliğinin etkisi
 
-Katalog PR'larında Gaia, değişikliğin kaç kontratı ve kaç sunucuyu etkilediğini gösteren bir etki planı üretir. Değişikliğin mevcut sunuculara nasıl yayılacağı kind'a göre sabittir:
+Bir katalog commit'inde Gaia, değişikliğin kaç kontratı ve kaç sunucuyu etkilediğini gösteren bir etki planı üretir ve etkilenen kontratların Change'lerini birlikte gösterir. Değişikliğin mevcut sunuculara nasıl yayılacağı kind'a göre sabittir:
 
 | Kind | Mevcut sunuculara etkisi |
 |---|---|
@@ -775,10 +776,10 @@ Davranışı alanın yönetim seviyesi belirler (bkz. 8.1):
 | `report` | Kaydedilir ve bildirim gönderilir |
 | `enforce` | Kaydedilir, bildirim gönderilir ve Policy'ye göre düzeltilir |
 
-Düzeltme de "her değişiklik Git'ten geçer" kuralına uyar. İstenen durum değişmez, zaten onaylı bir commit'te durur. Değişen, gerçek durumdur.
+İstenen durum değişmez, zaten onaylanıp uygulanmış bir commit'te durur. Değişen, gerçek durumdur. Düzeltme bir Change'tir ve kaynağı commit değil drift'tir (bkz. 7.6).
 
-- **`auto`:** Gaia aynı commit'e yeniden yakınsar. Run kaydında `requestedBy: gaia-drift` yazar; onay olarak orijinal commit'in onayına referans verir. Sadece düşük riskli sınıflarda kullanılır.
-- **`pr`:** Gaia'nın botu bir `Operation` (`action: reconcile`) PR'ı açar ve drift raporunu PR açıklamasına yazar. PR merge edilince düzeltme çalışır. Prod ve yüksek riskli sınıflar için kullanılır.
+- **`auto`:** Gaia aynı commit'e yeniden yakınsar; Change'in gereksinimi yoktur. Run kaydında `requestedBy: gaia-drift` yazar; onay olarak orijinal commit'in onayına referans verir. Sadece düşük riskli sınıflarda kullanılır.
+- **`approval`:** Gaia drift raporuyla birlikte bir düzeltme Change'i açar; düzeltme onaylanınca çalışır. Prod ve yüksek riskli sınıflar için kullanılır.
 
 ```yaml
 kind: Policy
@@ -790,20 +791,85 @@ spec:
     configuration: { every: 24h, window: "02:00-05:00", concurrency: 20 }
     remediation:
       registration:  auto                         # her ortamda
-      configuration: { default: auto, prod: pr }
-      provisioning:  pr                           # VM boyutu, disk: hiçbir zaman otomatik değil
+      configuration: { default: auto, prod: approval }
+      provisioning:  approval                     # VM boyutu, disk: hiçbir zaman otomatik değil
 ```
 
-**Drift'i kabul etmek:** Bilinçli bir sapma kontrata `exceptions` kaydı eklenerek kabul edilir. Bu bir PR olduğu için karar Git'te kayıt altında kalır. Arayüzden drift kabul etmenin bir yolu yoktur.
+**Drift'i kabul etmek:** Bilinçli bir sapma kontrata `exceptions` kaydı eklenerek kabul edilir. Bu bir commit olduğu için karar Git'te kayıt altında kalır. Arayüzden drift kabul etmenin bir yolu yoktur.
 
 **Çakışma:** Bir kontrat için apply çalışırken o kontratta drift taraması yapılmaz; kontrat başına alınan kilit bunu sağlar.
 
 #### Kayıt, gösterim ve bildirim
 
 - **Tekilleştirme:** `drift_reports` tablosunda her drift `(host_uid, alan, anahtar)` ile tekilleştirilir; aynı sapma her taramada yeni kayıt oluşturmaz. Kayıtta `first_seen`, `last_seen` ve `resolved_at` alanları vardır. Durum `open`, `resolved`, `accepted` (istisnaya dönüştü) veya `unknown` (check-mode desteklenmiyor) olabilir.
-- **Arayüz:** Genel bakışta alan bazında açık drift sayıları görünür. Kontrat sayfasında sunucu ve alan bazında diff gösterilir (Pulumi diff veya Ansible diff, secret'lar maskeli). İlk görülme zamanı ve varsa düzeltme PR'ının linki de yanında yer alır.
+- **Arayüz:** Genel bakışta alan bazında açık drift sayıları görünür. Kontrat sayfasında sunucu ve alan bazında diff gösterilir (Pulumi diff veya Ansible diff, secret'lar maskeli). İlk görülme zamanı ve varsa düzeltme Change'i de yanında yer alır.
 - **Olası kaynak:** Drift'in ilk görüldüğü zaman aralığında aynı sunucuda bir Warpgate oturumu varsa, arayüz bunu "olası kaynak" olarak gösterir.
-- **Bildirim:** Gaia drift sayılarını Zabbix'e trapper item olarak gönderir, alarmları Zabbix'teki trigger'lar üretir. Ayrı bir bildirim kanalı kurulmaz; müşterinin mevcut eskalasyon düzeni drift için de çalışır.
+- **Bildirim:** Gaia drift sayılarını Zabbix'e trapper item olarak gönderir, alarmları Zabbix'teki trigger'lar üretir; böylece mevcut eskalasyon düzeni drift için de çalışır. Ayrıca bildirim kanallarına (bkz. 7.6) "drift bulundu" olayı gider.
+
+### 7.6 Değişiklik akışı: Git geçmişi tutar, Gaia yönetir
+
+Model Argo CD'den esinlenir. Git istenen durumun geçmişidir; değişikliğin incelenmesi, onaylanması ve uygulanması Gaia'da olur. Bu bölüm Gaia'nın omurgasıdır: arayüz, onaylar, drift düzeltmesi, Operation'lar ve bildirimler aynı akışı kullanır.
+
+**İzlenen kaynaklar.** Platform reposu, kontrat reposu ve config reposu birer `git` Provider'ıdır. Gaia her birinin izlenen branch'ini (`ref`) takip eder.
+- Yeni commit'i webhook ile hemen, webhook gelmezse periyodik fetch ile (varsayılan 3 dakika) öğrenir.
+- PR, review ve branch koruması ekiplerin tercihidir; Gaia bunlara bakmaz ve onların yerine geçmez. Branch korumasının ve CI'da `gaia validate`'in açık olması önerilir.
+- İzlenen branch'in son commit'i doğrulanmıyorsa o repodan hiçbir Change uygulanmaz; Gaia hatayı gösterir.
+
+**Change.** Gaia yeni bir commit'te grafı çözer ve her kontratın planını mevcut durumla karşılaştırır. Planı değişen her kontrat için bir Change açılır.
+- **Birim kontrattır**, Argo CD'deki Application gibi: her kontratın kendi gereksinimleri, onaycıları ve sonucu olur. Aynı commit'ten doğan Change'ler arayüzde birlikte görünür.
+- **İçeriği:** commit aralığı (uygulanan → hedef) ve commit sahipleri, YAML diff'i, plan ve uygulanan plana göre plan diff'i, gereksinimler ve her birinin durumu.
+- **Kontrat başına tek açık Change** olur ve her zaman izlenen branch'in son commit'ini hedefler. Ara commit'ler ayrı ayrı uygulanmaz.
+
+**Gereksinimler (gates).** Hepsi katalogdan hesaplanır; arayüz her biri için kimin ne yapması gerektiğini isimleriyle yazar ("team-portal onaycılarından biri: ayse.k, mehmet.y", "platform-admin", "Cmt 02:00 penceresi").
+
+| Gereksinim | Kaynağı |
+|---|---|
+| Validasyon | Yükleme, referans grafı, `params` ve CEL kuralları |
+| İmza | Commit'ler imzalı, imzalayan Gaia'da kayıtlı |
+| Onay | Policy (`environments`, `operations.approvals`, silme kuralları), Group (`privileged`), çoklu owner kuralı |
+| Pencere | Policy `requireWindow`, Operation `window` |
+| Kilit | Kontratta çalışan başka bir run yok |
+
+**Onay.**
+- Onay Gaia'da verilir: arayüzden ya da `gaia approve` ile. Onay anında passkey veya MFA yeniden istenir (step-up).
+- Onaycıların Git hesabı olması gerekmez. Kimlikleri AD'den gelir (Team'in `approversGroup`'u, Policy'deki `gaiaRoles`).
+- Onay, Change'in o anki **plan hash'ine** bağlıdır. Yeni bir commit kontratın planını değiştirmezse onay geçerli kalır; değiştirirse düşer.
+- **Kendi kendini onaylamak yok.** Commit sahibi kendi Change'ini onaylayamaz. Erişim veren bir değişikliği, o erişimi alacak takımın üyesi onaylayamaz (bkz. 14.3).
+- **Red:** Onaycı gerekçesiyle reddeder. Reddedilen Change, kontratı değiştiren yeni bir commit gelene kadar bekler.
+- **Gruplu onay:** Birden fazla owner'ı etkileyen bir commit'in Change'lerini (ör. bir katalog değişikliği) `platform-admin` tek seferde onaylayabilir.
+
+**Uygulama.** Bütün gereksinimler sağlanınca Gaia uygular; ayrıca bir "uygula" adımı yoktur. Onay gerektirmeyen ortamlarda bu, commit gelir gelmez olur (Argo CD'deki auto-sync).
+- Uygulamadan hemen önce plan yeniden alınır. Hash onaylananla aynı değilse (arada gerçek durum değiştiyse) uygulama durur ve Change yeniden onaya düşer.
+- **Asıl koruma Gaia'dadır.** Git'e yazabilen biri istediği commit'i atabilir; Gaia o commit'i ancak gereksinimler sağlanınca uygular. Uygulamanın kanıtı Git'teki bir merge değil, Gaia'daki onay kaydıdır.
+
+**Yaşam döngüsü:**
+
+```
+pending ──gereksinimler──► approved ──pencere──► running ──► applied | failed
+   │                          │
+   ├─ rejected                └─ expired (zamanında uygulanamadı)
+   └─ superseded (aynı kontrata yeni bir commit geldi ve planı değiştirdi)
+```
+
+**Kontrat durumu.** Argo CD'deki gibi iki eksen:
+- **Sync:** `Synced` (son commit uygulandı), `OutOfSync` (açık bir Change var), `Drifted` (gerçek durum sapmış).
+- **Sağlık:** son run'ın sonucu ve izleme durumu.
+
+**Commit sahibi.** Commit imzası zorunludur.
+- Herkes imza anahtarını (SSH veya GPG) Gaia profiline kaydeder. Gaia imzayı doğrular ve commit'i AD kimliğine bağlar. Bu Git sunucusundan bağımsız çalışır.
+- İmzasız ya da tanınmayan bir anahtarla imzalanmış commit'in Change'i "imza" gereksinimini sağlamaz ve uygulanmaz.
+- Run kaydındaki `requestedBy` buradan gelir.
+
+**Gaia'nın yazdıkları.** Source'ların ürettiği objeler, decommission sonrası kontratın silinmesi, Operation temizliği ve geri almalar Gaia'nın kendi anahtarıyla imzalanmış commit'lerdir ve doğrudan izlenen branch'e yazılır. Etkileri normal bir Change olarak görünür ve aynı kurallarla onaylanır; örneğin katalog değişikliği `platform-admin` ister. Gaia doğrulamayan bir commit yazmaz.
+
+**Geri alma.** Git tek geçmiş olduğu için geri alma da bir commit'tir. Arayüzde "geri al" denince Gaia ilgili commit'in revert'ünü yazar; bu da bir Change olarak onaydan geçer. Gaia hiçbir zaman izlenen branch'in son halinden farklı bir şey uygulamaz.
+
+**Önizleme.** İzlenmeyen bir branch veya PR için plan istenebilir (`gaia plan --ref`, ileride PR yorumu olarak). Önizleme hiçbir şey uygulamaz ve Change açmaz.
+
+**Bildirimler.** argocd-notifications'tan esinlenir.
+- **Tetikleyiciler:** onay bekliyor, onaylandı, reddedildi, uygulandı, başarısız, drift bulundu, onayın süresi doluyor.
+- **Kanallar:** Slack, Microsoft Teams, e-posta (SMTP) ve webhook. Her biri bir Provider'dır (`slack`, `msteams`, `smtp`, `webhook`).
+- **Abonelik:** Team başına (`Team`'e patch ile eklenen `notifications`) ve kişi başına (Gaia profili). Onay bekleyen bir Change, onaylayabilecek takımların kanallarına gider.
 
 ## 8. Keşif ve Adopt (Mevcut Sunucuları İçeri Alma)
 
@@ -811,7 +877,7 @@ spec:
 
 1. **Keşif.** Hipervizörler (vCenter, Proxmox), Zabbix, AD, DNS ve IPAM taranır. Kayıtlar VM UUID'si, hostname ve IP üzerinden eşleştirilir. Çıktı bir rapordur: her yerde kaydı olanlar, eksik kayıtlar, sahipsiz IP'ler. Keşfin kapsamı 8.3'te.
 2. **Taslak kontrat.** Gözlenen değerler kataloğa ters yönde eşlenir (portgroup → `network`, CPU/RAM → `size`). Eşleşmeyenler açıkça işaretlenir.
-3. **İnceleme.** Taslak PR olarak açılır. Keşfin bilemeyeceği alanları (owner, app, ortam) insan tamamlar.
+3. **İnceleme.** Taslak arayüzde hazırlanır. Keşfin bilemeyeceği alanları (owner, app, ortam) insan tamamlar; tamamlanınca Gaia commit'i yazar.
 4. **Import.** Kaynaklar Pulumi stack'ine `import` edilir, IP'ler IPAM'a kaydedilir. Bu adımın planı **sıfır değişiklik** göstermek zorundadır.
 5. **Kademeli sıkılaştırma.** Her alan ayrı ayrı `observe → report → enforce` seviyesine yükseltilir.
 
@@ -916,8 +982,8 @@ spec:
 |---|---|
 | Raporlar (envanter sağlığı, tutarsızlıklar, temizlik bulguları) | Veritabanı ve arayüzdeki Keşif ekranı; Git'e girmez |
 | IPAM'ın ilk kez doldurulması | Arayüzde gözden geçirilir, onaylanınca IPAM'a aktarılır |
-| Katalog taslakları (Site, Image, `TeamSource` seçim kuralı) | Bot PR |
-| Adopt taslakları (Server kontratları) | Bot PR (bkz. 8.1) |
+| Katalog taslakları (Site, Image, `TeamSource` seçim kuralı) | Arayüzde taslak, tamamlanınca Gaia'nın commit'i |
+| Adopt taslakları (Server kontratları) | Arayüzde taslak, tamamlanınca Gaia'nın commit'i (bkz. 8.1) |
 
 İlk iki düzeyin raporları sunuculara dokunmadan, sadece API erişimiyle üretilir. Bu yüzden bir ortama girildiğinde ilk hafta verilebilecek somut bir çıktıdır: envanter sağlığı raporu.
 
@@ -967,7 +1033,7 @@ $ gaia plan portal-web.yaml
 env=prod → onay gerekli (owner + platform-admin)
 ```
 
-Silme tamamlandıktan sonra `retire` satırının bir etkisi kalmaz; bot bunu bir PR ile temizler. Bir sunucuyu `retire` listesine eklemeden sadece `Operation` ile silmek mümkün değildir. Aksi halde kontrat hâlâ aynı sayıda sunucu istediği için bir sonraki apply silinen sunucunun yerine yenisini kurar.
+Silme tamamlandıktan sonra `retire` satırının bir etkisi kalmaz; Gaia bunu bir commit ile temizler. Bir sunucuyu `retire` listesine eklemeden sadece `Operation` ile silmek mümkün değildir. Aksi halde kontrat hâlâ aynı sayıda sunucu istediği için bir sonraki apply silinen sunucunun yerine yenisini kurar.
 
 ### 9.5 Değiştirme (replace)
 
@@ -996,8 +1062,8 @@ spec:
 
 - **Kontrat dosyasını silmek kaynakları silmez.** Yaşayan kaynağı olan bir kontratın dosyası silinirse CI bunu reddeder.
 - **Silme iki adımda yapılır:**
-  1. Kontratta `lifecycle.state: decommissioned` yapılır ve PR merge edilir. Sunucular decommission akışına girer.
-  2. Akış tamamlanınca bot, kontrat dosyasını silen bir PR açar.
+  1. Kontratta `lifecycle.state: decommissioned` yapılır ve commit izlenen branch'e girer. Change onaylanınca sunucular decommission akışına girer.
+  2. Akış tamamlanınca Gaia, kontrat dosyasını silen commit'i yazar.
 - **`deletionPolicy: retain`:** Kaynaklar silinmez, sadece Gaia'nın yönetiminden çıkarılır. Pulumi state'inden düşürülür ve envanterde "yönetilmiyor" olarak işaretlenir. Bir sistemi başka bir ekibe veya araca devrederken kullanılır.
 
 ### 9.7 Adopt edilmiş sunucular
@@ -1024,7 +1090,7 @@ Bu akış provisioning'in tersidir, ama arada bir bekleme süresi vardır. Bekle
 
 ### 9.9 Prod koruması ve Policy
 
-Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu, Gaia'nın `gaia/approval` status check'i ile zorunlu tutulur (bkz. 6.4). Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.
+Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu, Change'in onay gereksinimi olarak zorunlu tutulur (bkz. 7.6). Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.
 
 ```yaml
 apiVersion: gaia/v1alpha1
@@ -1044,7 +1110,7 @@ spec:
 ### 9.10 Katalog objelerinin silinmesi
 
 - **Kullanımda olan bir katalog objesi silinemez.** Silinirse yükleme sırasında bir referans çözülemez hale gelir ve CI etkilenen kontratları listeler.
-- **Üretilen objeler:** IPAM'dan bir subnet kalkarsa bot PR ilgili `Network` objesini siler. Ağ kullanımdaysa aynı kural nedeniyle PR geçmez.
+- **Üretilen objeler:** IPAM'dan bir subnet kalkarsa Gaia ilgili `Network` objesini silen commit'i yazar. Ağ kullanımdaysa aynı kural nedeniyle bu commit yazılmaz; sorun sync raporunda görünür.
 - **Kullanımdan kaldırma:** Objeye `gaia/deprecated: "true"` annotation'ı eklenir. Yeni kontratlar bu objeyi seçemez, mevcut kontratların planında uyarı çıkar.
 
 ## 10. Audit
@@ -1055,8 +1121,8 @@ spec:
 
 ```yaml
 run: run-20261104-0042
-requestedBy: mehmet.y                    # PR yazarı
-approvedBy: [ayse.k]                     # PR onaylayanlar
+requestedBy: mehmet.y                    # commit sahibi (Gaia'da kayıtlı imza anahtarından)
+approvedBy: [ayse.k]                     # Gaia'daki onaylar, plan hash'iyle
 source: { repo: platform/contracts, commit: 3f9c2e1, signed: true }
 catalogCommit: 9a1b0c4
 configCommit: 51e07aa                    # Ansible reposu
@@ -1071,7 +1137,7 @@ result: failed
 changes: [...]
 ```
 
-- **Commit imzası zorunlu, branch'ler korumalı.** "Kim istedi" sorusunun kanıtı imzalı commit'tir.
+- **Commit imzası zorunlu, imzalayan Gaia'da kayıtlı.** "Kim istedi" sorusunun kanıtı imzalı commit'tir; "kim onayladı" sorusununki Gaia'daki onay kaydıdır (bkz. 7.6).
 - **Kayıtlar hash zinciriyle bağlıdır** ve anında SIEM'e gönderilir. Silinen veya değiştirilen bir kayıt zinciri kırar.
 - **Arşiv:** Kayıtların bir kopyası SeaweedFS'te, S3 Object Lock'lu bir bucket'ta tutulur.
   - SeaweedFS S3 Object Lock'u destekler: GOVERNANCE ve COMPLIANCE modları, legal hold. Bu desteğin bulunduğu bir sürüm kullanılmalı; özellik 2025 ortasında eklendi.
@@ -1093,9 +1159,9 @@ Bir servis hesabıyla yapılmış işlem, ancak o hesabı sadece Gaia'nın kulla
 
 ### 11.1 Prensip
 
-Arayüz ve CLI aynı API'nin istemcileridir; ikisinin yetkisi aynıdır. İnsan token'larıyla okuma ve `plan` yapılabilir, apply yapılamaz. Tek istisna, `operator` rolünün çalışan bir run'ı durdurması veya duraklatmasıdır (bkz. 6.4). Git'in tetiklediği apply işleri ayrı bir makine kimliğiyle (CI'ın OIDC token'ı, workload identity) çalışır.
+Arayüz ve CLI aynı API'nin istemcileridir; ikisinin yetkisi aynıdır. İnsanlar okur, plan alır ve Change'leri onaylar veya reddeder; istenen durumu değiştiremez ve uygulamayı kendileri başlatamaz. Uygulamayı Gaia, gereksinimler sağlanınca kendisi başlatır (bkz. 7.6). `operator` rolü ayrıca çalışan bir run'ı durdurabilir veya duraklatabilir (bkz. 6.4).
 
-Arayüzün amacı diyagramları görmek, logları takip etmek ve hataları debug etmektir.
+Arayüzün amacı değişiklikleri incelemek ve onaylamak, diyagramları görmek, logları takip etmek ve hataları debug etmektir.
 
 ### 11.2 Kimlik doğrulama
 
@@ -1164,13 +1230,15 @@ spec:
 
 ### 11.5 Ekranlar
 
-1. **Genel bakış.** Son run'lar, başarısız olanlar, drift sayıları, bekleyen bot PR'ları ve süresi dolmak üzere olan istisnalar.
-2. **Kontratlar.** YAML ve çözümlenmiş hali, ilişki diyagramı (kontrat → katalog objeleri → provider'lar → gerçek kaynaklar), sunucular, yönetim seviyeleri ve drift (sunucu ve alan bazında diff, olası kaynak, düzeltme PR'ı).
-3. **Run'lar.** Aşama zaman çizelgesi, host × task matrisi, canlı log, Pulumi diff ve run kaydı. Hata ilgili provider'a ve onun credential referansına bağlanır.
-4. **Katalog.** Kind'a göre gezinme ve label filtreleri. Her obje için nereden üretildiği, patch'leri ve onu kullanan kontratlar.
-5. **Provider'lar.** Bağlantı durumu, son başarılı çağrı, credential'ın geçerlilik durumu.
-6. **Sync.** Source'ların son sync zamanı, CEL hataları ve açık bot PR'ları.
-7. **Keşif.** Site bazında keşif raporları (envanter sağlığı, tutarsızlıklar, temizlik bulguları), IPAM'ın ilk doldurulması için gözden geçirme ekranı, adopt ve katalog taslakları (bkz. 8.3).
+1. **Genel bakış.** Onay bekleyen Change'ler, son run'lar, başarısız olanlar, drift sayıları ve süresi dolmak üzere olan istisnalar.
+2. **Değişiklikler.** Açık Change'ler ve gereksinimleri, "onayımı bekleyenler", YAML ve plan diff'i, onay ve red; commit'e göre gruplu görünüm (bkz. 7.6).
+3. **Kontratlar.** Sync ve sağlık durumu (uygulanan ve son commit), YAML ve çözümlenmiş hali, ilişki diyagramı (kontrat → katalog objeleri → provider'lar → gerçek kaynaklar), sunucular, yönetim seviyeleri ve drift (sunucu ve alan bazında diff, olası kaynak, düzeltme Change'i).
+4. **Run'lar.** Aşama zaman çizelgesi, host × task matrisi, canlı log, Pulumi diff ve run kaydı. Hata ilgili provider'a ve onun credential referansına bağlanır.
+5. **Katalog.** Kind'a göre gezinme ve label filtreleri. Her obje için nereden üretildiği, patch'leri ve onu kullanan kontratlar.
+6. **Provider'lar.** Bağlantı durumu, son başarılı çağrı, credential'ın geçerlilik durumu.
+7. **Sync.** Source'ların son sync zamanı, CEL hataları ve Gaia'nın yazdığı son commit'ler.
+8. **Keşif.** Site bazında keşif raporları (envanter sağlığı, tutarsızlıklar, temizlik bulguları), IPAM'ın ilk doldurulması için gözden geçirme ekranı, adopt ve katalog taslakları (bkz. 8.3).
+9. **Profil.** İmza anahtarları, oturumlar ve bildirim abonelikleri.
 
 ### 11.6 Loglar
 
@@ -1198,7 +1266,7 @@ spec:
 | Run'lar | Run kaydı (hash zinciri), aşamalar, yapısal olaylar | Kayıtların kopyaları SIEM'de ve SeaweedFS'te; asıl kaynak veritabanı |
 | Planlar | Onaylanan planın içeriği ve hash'i | Plan yeniden alınır |
 | İş kuyruğu | Bekleyen apply'lar, sync işleri, drift taramaları, bekleme süresi dolunca çalışacak silme aşaması | Kritik: bekleme süresi zamanlayıcıları burada |
-| Sync durumu | Source'ların son revizyonu, açık bot PR'ları, CEL hataları | Sonraki sync'te yeniden oluşur |
+| Sync durumu | Source'ların son revizyonu, Gaia'nın yazdığı commit'ler, CEL hataları | Sonraki sync'te yeniden oluşur |
 | Keşif ve drift | Adopt raporları, drift sonuçları | Yeniden taranır |
 | Kimlik doğrulama | Local kullanıcılar, passkey'ler, TOTP, kurtarma kodları, oturumlar, device kodları | Kullanıcılar yeniden kayıt olur, oturumlar düşer |
 | Katalog indeksi | Yüklenen commit'in objeleri ve ters referansları | Git'ten yeniden üretilir (cache) |
@@ -1264,10 +1332,18 @@ run_events    (run_id, seq, ts, stage, host_uid, task, status, data jsonb)   -- 
 run_records   (run_id, body jsonb, prev_hash, record_hash)                    -- sadece insert
 plans         (hash, contract, commit, body bytea, created_at)
 operations   (name, commit, action, status, plan_hash, targets jsonb, window_start, window_end, not_after, cancelled_by, created_at, finished_at)
-operation_schedule_instances (schedule, window_start, operation_name, pr_url)
+operation_schedule_instances (schedule, window_start, operation_name, commit)
+
+-- Değişiklikler (bkz. 7.6)
+repos         (provider, ref, last_seen_commit, applied_commit, fetched_at)
+changes       (id, contract, source, from_commit, to_commit, plan_hash, status, created_at, decided_at, applied_run)
+change_gates  (change_id, gate, status, detail jsonb)
+approvals     (change_id, plan_hash, user_id, decision, comment, webauthn_assertion, created_at)   -- sadece insert
+signing_keys  (user_id, kind, fingerprint, public_key, created_at, revoked_at)
+notifications (id, trigger, change_id, channel, status, sent_at)
 
 -- Sync, keşif, drift
-sync_runs     (source, revision, status, pr_url, errors jsonb, finished_at)
+sync_runs     (source, revision, status, commit, errors jsonb, finished_at)
 discoveries   (id, started_at, findings jsonb)
 drift_reports (contract, host_uid, area, key, status, findings jsonb, first_seen, last_seen, resolved_at)   -- bkz. 7.5
 
@@ -1331,7 +1407,7 @@ Gaia tek bir binary'dir:
 Kişiler ve gruplar AD'de oluşturulur ve yönetilir. Gaia **AD'ye kullanıcı veya grup olarak hiçbir şey yazmaz**; AD'yi okur ve var olan grupların erişimini dağıtır. Model, Network ve AnsibleRole ile aynıdır: kaynak dışarıdadır, Gaia oradan obje üretir.
 
 ```
-AD ──(TeamSource, sync)──► Team objeleri (Git, bot PR)
+AD ──(TeamSource, sync)──► Team objeleri (Git, Gaia'nın commit'i)
                             ▲
 Group objeleri (Git, elle) ─┘  ──► kontrattaki access ──► Warpgate, Linux, Gaia arayüzü, Zabbix/Nexus
 AD üyelikleri ──(5 dk sync)──► Gaia veritabanı ──► aynı tüketicilere dağıtım
@@ -1381,15 +1457,15 @@ spec:
 - **Team, sahiplik birimidir.** Kontratın `labels.owner` alanı bir Team referansıdır; olmayan bir takım yazılırsa yükleme hata verir.
 - **Owner onayı:** Policy'deki `owner` onayı (bkz. 6.4) Team'in `approversGroup` üyelerine çözülür. Onaylayanlar ayrı bir AD grubunda tutulur; `managedBy` attribute'u tek kişi veya tek grup alabildiği için tercih edilmedi.
 - **Secret öneki:** Secret parametrelerinin izin verilen yol öneki Team'den gelir (bkz. 6.2).
-- **CODEOWNERS:** Bot, CODEOWNERS dosyasını Team objelerinden üretir.
+- **Onaycılar:** Change'lerin owner onayı, Team'in `approversGroup` üyelerine çözülür (bkz. 7.6). CODEOWNERS üretilmez.
 - **Alan sahipliği:** `adGroup` ve `approversGroup` kaynağa aittir ve patch'lenemez. `displayName` ve `secrets.prefix` patch ile değiştirilebilir (bkz. 5.5).
 
 ### 14.2 Üyelik Git'te değil, veritabanında
 
-Takımın kendisi Git'e girer; nadiren değişir ve bot PR ile gelir. Takımın **üyeleri** ise Git'e girmez, AD'den Gaia'nın veritabanına senkronlanır:
+Takımın kendisi Git'e girer; nadiren değişir ve Gaia'nın commit'iyle gelir. Takımın **üyeleri** ise Git'e girmez, AD'den Gaia'nın veritabanına senkronlanır:
 
-- **Üyeliğin doğru kaynağı ve audit'i AD'dir.** Bir kişinin takıma eklenmesine AD'nin süreci karar verir. Bunun için Gaia'da PR açmanın anlamı yoktur; PR'ı reddetmek AD'deki gerçeği değiştirmez.
-- **Gürültü:** Üyelikler sık değişir. Her değişiklik bir bot PR'ı olsaydı repo sürekli dolardı.
+- **Üyeliğin doğru kaynağı ve audit'i AD'dir.** Bir kişinin takıma eklenmesine AD'nin süreci karar verir. Bunun için Git'e yazmanın anlamı yoktur; bir Change'i reddetmek AD'deki gerçeği değiştirmez.
+- **Gürültü:** Üyelikler sık değişir. Her değişiklik bir commit olsaydı repo sürekli dolardı.
 - **Kişisel veri:** Kullanıcı adları bile Git'e girmez. Kullanıcılar Gaia'nın veritabanında tutulur: kullanıcı adı, objectGUID, görünen ad ve hesabın etkin olup olmadığı.
 - **Tekrar üretilebilirlik:** Bir run erişimi hangi üye listesine göre dağıttıysa, o listenin bir kopyası run kaydına yazılır (`accessSnapshot`, bkz. 10.1).
 
@@ -1398,7 +1474,7 @@ Takımın kendisi Git'e girer; nadiren değişir ve bot PR ile gelir. Takımın 
 | Değişiklik | Onaylandığı yer |
 |---|---|
 | Kişinin bir takıma girmesi veya takımdan çıkması | AD süreci |
-| Bir takıma veya gruba erişim verilmesi (Group, kontrattaki `access`) | Git PR'ı ve `gaia/approval` |
+| Bir takıma veya gruba erişim verilmesi (Group, kontrattaki `access`) | Git'e commit ve Gaia'da onay (bkz. 7.6) |
 
 ### 14.3 Group
 
@@ -1412,7 +1488,7 @@ metadata:
 spec:
   teams: [team-portal, team-dba]
   groups: []                  # iç içe Group
-  owner: team-portal          # bu Group'u değiştiren PR'ları onaylayan takım
+  owner: team-portal          # bu Group'u değiştiren Change'leri onaylayan takım
   privileged: true            # prod'da sudo verir
 ```
 
@@ -1427,8 +1503,8 @@ access:
 
 **Kurallar**
 
-- **Kendi kendini onaylamak yok.** Bir kişi, kendi üyesi olduğu bir takıma veya gruba erişim veren PR'ı onaylayamaz.
-- **Ayrıcalıklı gruplar:** `privileged: true` olan bir Group'u değiştiren PR, owner onayına ek olarak `platform-admin` onayı gerektirir.
+- **Kendi kendini onaylamak yok.** Bir kişi, kendi üyesi olduğu bir takıma veya gruba erişim veren Change'i onaylayamaz.
+- **Ayrıcalıklı gruplar:** `privileged: true` olan bir Group'u değiştiren Change, owner onayına ek olarak `platform-admin` onayı gerektirir.
 - **AD üzerinden yapılan eklemeler:** Ayrıcalıklı bir Group'un içindeki bir takıma AD'den yeni biri eklenirse Gaia erişimi dağıtır, ama bunu ayrıca bildirir (ör. "prod sudo yetkisi olan gruba AD'den X eklendi"). Kararın yeri AD olduğu için Gaia engellemez, ama görünür kılar.
 
 ### 14.4 Dağıtım
@@ -1470,14 +1546,14 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | `Network` ve `AnsibleRole` üretilir (`NetworkSource`, `AnsibleRoleSource`); diğer kind'lar elle yazılır; elle ekleme ve patch mümkün |
 | 2026-10-23 | Rol kind'larında `Ansible` öneki; kontrat alanı `ansibleRoles` |
 | 2026-10-23 | İfade dili CEL |
-| 2026-10-23 | Üretilen objeler bot PR'ı ile Git'e yazılır |
+| 2026-10-23 | Üretilen objeler bot PR'ı ile Git'e yazılır *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Arayüz sadece görüntüleme ve debug için; OIDC + local; MFA veya passkey zorunlu; CLI tarayıcıda login olup süreli token alır |
 | 2026-10-23 | Yetkisiz kontratlar diyagramlarda adıyla görünür, detayı kapalıdır |
 | 2026-10-23 | Sunucu kimliği hostname değil, değişmez UID. Hostname tekrar kullanılabilir; çakışma kontrolü planda yapılır |
 | 2026-10-23 | Silme her zaman açıkça istenir: `retire`, `lifecycle.state: decommissioned`; kontrat dosyasını silmek kaynak silmez |
 | 2026-10-23 | Decommission'da bekleme süresi: prod 7 gün, test 1 gün; IP karantinası 14 gün; prod'da silme için owner + platform-admin onayı |
 | 2026-10-23 | Zabbix'te geçmiş saklanmaz: host silinince geçmişiyle birlikte silinir |
-| 2026-10-23 | Decommission tamamlanınca kontrat dosyası bot PR ile silinir |
+| 2026-10-23 | Decommission tamamlanınca kontrat dosyası bot PR ile silinir *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Gaia'nın veritabanı PostgreSQL; istenen durum Git'te, işletme durumu veritabanında |
 | 2026-10-23 | PostgreSQL'in yapılandırması veritabanı yöneticisinin kararı; Gaia sadece gereksinimlerini tanımlar (12.2) |
 | 2026-10-23 | IPAM ayrı servis ve ayrı veritabanı (aynı cluster'da olabilir); Zabbix ayrı cluster |
@@ -1493,19 +1569,19 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | Secret parametreler sadece `bao://` referansı; owner'a göre yol önekiyle sınırlı |
 | 2026-10-23 | `gaia schema export` ile kontratlar için JSON Schema (editör desteği) ilk sürümde |
 | 2026-10-23 | Drift alan bazında: kayıtlar 15 dk, versiyon 10 dk, provisioning 1 saat, konfigürasyon günlük gece penceresinde |
-| 2026-10-23 | Drift düzeltme: kayıtlar her yerde otomatik; konfigürasyon prod dışında otomatik, prod'da PR; provisioning her zaman PR (`Operation reconcile`) |
+| 2026-10-23 | Drift düzeltme: kayıtlar her yerde otomatik; konfigürasyon prod dışında otomatik, prod'da PR; provisioning her zaman PR (`Operation reconcile`) *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Roller check-mode uyumlu yazılır; uyumsuzlar `checkMode: unsupported` ile işaretlenir ve drift sonucu "bilinmiyor" olur |
 | 2026-10-23 | Drift bildirimleri Zabbix trapper üzerinden |
-| 2026-10-23 | Operation bir kez çalışır, merge sonrası değiştirilemez; `notAfter` ile süresi dolar; bot 30 gün sonra dosyayı temizler |
+| 2026-10-23 | Operation bir kez çalışır, merge sonrası değiştirilemez; `notAfter` ile süresi dolar; bot 30 gün sonra dosyayı temizler *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Operation hedefi onay anında sabitlenir; batch stratejisi ve hata eşiği; standart adımları (bakım, snapshot, drain, sağlık) Gaia uygular |
 | 2026-10-23 | Tekrarlayan işler için `OperationSchedule` (RRULE); onay `perInstance` veya `once` |
 | 2026-10-23 | Aksiyonlar: patch, reboot, power, snapshot, revert, replace, reconcile, runbook; runbook sadece `runbook: true` işaretli rollerle |
-| 2026-10-23 | Onaylar `gaia/approval` status check'i ile; birden fazla owner'ı etkileyen işlerde `platform-admin` onayı yeterli |
-| 2026-10-23 | `operator` çalışan run'ı arayüzden ve CLI'dan durdurabilir ve duraklatabilir; devam ettirmek PR ile |
+| 2026-10-23 | Onaylar `gaia/approval` status check'i ile; birden fazla owner'ı etkileyen işlerde `platform-admin` onayı yeterli *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
+| 2026-10-23 | `operator` çalışan run'ı arayüzden ve CLI'dan durdurabilir ve duraklatabilir; devam ettirmek PR ile *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Kişi yaşam döngüsü Gaia dışında; kullanıcı ve grup tarafında Gaia AD'ye yazmaz, okur ve var olan grupların erişimini dağıtır |
-| 2026-10-23 | `TeamSource` AD'den `Team` üretir (bot PR); `Group` elle yazılır ve Team'lere referans verir; `ServiceAccount` kind'ı yok |
+| 2026-10-23 | `TeamSource` AD'den `Team` üretir (bot PR); `Group` elle yazılır ve Team'lere referans verir; `ServiceAccount` kind'ı yok *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Takım üyelikleri Git'e girmez, AD'den veritabanına 5 dakikada bir senkronlanır; run kaydında `accessSnapshot` tutulur |
-| 2026-10-23 | Onaylayanlar AD'de ayrı bir grup (`approversGroup`); `labels.owner` bir Team referansı; CODEOWNERS bot tarafından üretilir |
+| 2026-10-23 | Onaylayanlar AD'de ayrı bir grup (`approversGroup`); `labels.owner` bir Team referansı; CODEOWNERS bot tarafından üretilir *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-23 | Üyelik değişiklikleri iki yönde de otomatik dağıtılır; devre dışı hesapların erişimi her ortamda otomatik kaldırılır |
 | 2026-10-23 | Gaia rolleri Team üyeliklerinden gelir; OIDC sadece kimlik doğrulama için; SSH anahtarlarının kaynağı Git |
 | 2026-10-23 | PostgreSQL minimum 16; kural: River'ın test ettiği en eski ana sürüm |
@@ -1516,10 +1592,21 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | Kontrat `topology` ile birden fazla site'a yayılabilir; kontrat ve site başına ayrı Pulumi stack'i; site site ilerleme |
 | 2026-10-23 | İlk compute provider Proxmox; PoC Proxmox üzerinde |
 | 2026-10-23 | Keşif üç düzeyde: hipervizör yapısı ve VM'ler/çevre sistemler API ile kendiliğinden; sunucu içi keşif `Operation discover` ile onaylı |
-| 2026-10-23 | Keşif çıktıları: raporlar veritabanında; IPAM ilk doldurması arayüzde gözden geçirilerek; katalog ve adopt taslakları bot PR ile |
+| 2026-10-23 | Keşif çıktıları: raporlar veritabanında; IPAM ilk doldurması arayüzde gözden geçirilerek; katalog ve adopt taslakları bot PR ile *(PR kısmı 2026-10-24'te değişti, bkz. 7.6)* |
 | 2026-10-24 | Pulumi state'i PostgreSQL'de (DIY backend), ayrı veritabanında; SeaweedFS boşalan dizinleri obje olarak listelediği için state'e uygun değil |
 | 2026-10-24 | Pulumi CLI sürümü Gaia'da sabit (3.272.0, SDK ile aynı); Gaia ilk çalıştırmada kendisi kurar |
 | 2026-10-24 | Her `pulumi up` önce refresh yapar; apply, VM'in planlanan IP'yi guest agent üzerinden bildirdiğini doğrulamadan sunucuyu `active` yapmaz |
 | 2026-10-24 | ansible-runner rootless podman'da `--userns keep-id` ile; çalışma dizini tmpfs'te; EE run'da digest'iyle kullanılır, run sırasında imaj çekilmez |
 | 2026-10-24 | İzleme `Platform.monitoring` ile: host group'ları label'lardan CEL ile, şablonlar Image OS'una ve rollerin `monitoring` adlarına göre; Zabbix host'u `gaia.uid` tag'iyle bulunur, isimle değil |
 | 2026-10-24 | Run kaydı gövdesi hash'lenen metin olarak saklanır (jsonb anahtarları yeniden sıralar); arşiv kopyası gövdeyi baytı baytına taşır; saklama süresi arşiv provider'ında (`retention`) |
+| 2026-10-24 | Değişiklik akışı Argo CD modeli: Git istenen durumun geçmişi; değişiklik Gaia'da Change olarak görünür, gereksinimleri yazılır, onaylanınca Gaia uygular (7.6). PR, CODEOWNERS ve `gaia/approval` status check'i yerine geçer |
+| 2026-10-24 | Change birimi kontrat; aynı commit'in Change'leri gruplu görünür ve çoklu owner'da `platform-admin` tek seferde onaylayabilir |
+| 2026-10-24 | Onay Gaia'da, step-up passkey/MFA ile, plan hash'ine bağlı; onaycıların Git hesabı gerekmez |
+| 2026-10-24 | Commit sahibi, Gaia'ya kayıtlı imza anahtarından (SSH/GPG) bulunur; imzasız veya tanınmayan commit uygulanmaz |
+| 2026-10-24 | Geri alma Git revert'üyle; Gaia revert commit'ini yazabilir; Gaia izlenen branch'in son halinden başkasını uygulamaz |
+| 2026-10-24 | Gaia'nın yazdıkları (üretilen objeler, temizlik, revert) doğrudan izlenen branch'e imzalı commit; bot PR'ı yok; Gaia doğrulamayan commit yazmaz |
+| 2026-10-24 | Drift düzeltmesinde `pr` yerine `approval`: düzeltme Change'i onaya düşer |
+| 2026-10-24 | Bildirimler: Slack, Microsoft Teams, e-posta (SMTP), webhook; Team ve kişi başına abonelik |
+| 2026-10-24 | İlk Git sunucusu GitHub (webhook + fetch); diğerleri aynı arayüze eklenir |
+| 2026-10-24 | API REST + JSON (`/api/v1`), OpenAPI 3.1 şeması repoda; arayüzün istemcisi şemadan üretilir; canlı olaylar SSE ile |
+| 2026-10-24 | Yol haritası `docs/roadmap.md`'de; arayüz ekranları tasarım taslağı onaylanınca yazılır |
