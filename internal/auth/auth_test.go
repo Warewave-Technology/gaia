@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"io/fs"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/descope/virtualwebauthn"
+	"github.com/pquerna/otp/totp"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/itest"
@@ -32,7 +34,10 @@ type env struct {
 	srv   *httptest.Server
 }
 
-func labGraph(t *testing.T) *catalog.Graph {
+func labGraph(t *testing.T) *catalog.Graph { return labGraphWith(t, nil) }
+
+// labGraphWith is the lab example with files changed by edit.
+func labGraphWith(t *testing.T, edit func(path, content string) string) *catalog.Graph {
 	t.Helper()
 	root := filepath.Join("..", "..", "examples", "lab")
 	var files []catalog.File
@@ -42,7 +47,11 @@ func labGraph(t *testing.T) *catalog.Graph {
 		}
 		data, err := os.ReadFile(p)
 		rel, _ := filepath.Rel(root, p)
-		files = append(files, catalog.File{Path: filepath.ToSlash(rel), Data: data})
+		rel = filepath.ToSlash(rel)
+		if edit != nil {
+			data = []byte(edit(rel, string(data)))
+		}
+		files = append(files, catalog.File{Path: rel, Data: data})
 		return err
 	})
 	if err != nil {
@@ -59,7 +68,9 @@ func labGraph(t *testing.T) *catalog.Graph {
 	return g
 }
 
-func setup(t *testing.T) *env {
+func setup(t *testing.T) *env { return setupWith(t, labGraph(t)) }
+
+func setupWith(t *testing.T, g *catalog.Graph) *env {
 	t.Helper()
 	itest.Require(t)
 	ctx := context.Background()
@@ -72,8 +83,7 @@ func setup(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
-	g := labGraph(t)
-	a := New(s, func() *catalog.Graph { return g }, nil)
+	a := New(s, func() *catalog.Graph { return g }, nil).WithTransit(memTransit{})
 	mux := http.NewServeMux()
 	a.Mount(mux)
 	mux.HandleFunc("GET /test/any", a.Guard("", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, From(r.Context())) }))
@@ -393,4 +403,100 @@ func anyStrings(v any) []string {
 		out = append(out, x.(string))
 	}
 	return out
+}
+
+// memTransit "encrypts" by prefixing, enough to see that the store never
+// holds the seed itself.
+type memTransit struct{}
+
+func (memTransit) Encrypt(_ context.Context, key string, p []byte) (string, error) {
+	return "mem:" + key + ":" + base64.StdEncoding.EncodeToString(p), nil
+}
+
+func (memTransit) Decrypt(_ context.Context, key, c string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(strings.TrimPrefix(c, "mem:"+key+":"))
+}
+
+func mfaGraph(t *testing.T) *catalog.Graph {
+	return labGraphWith(t, func(path, c string) string {
+		if path == "platform/auth.yaml" {
+			return strings.Replace(c, "require: passkey", "require: mfa", 1)
+		}
+		return c
+	})
+}
+
+func TestPasswordAndTOTP(t *testing.T) {
+	e := setupWith(t, mfaGraph(t))
+	ctx := context.Background()
+	id, link := e.user("deniz")
+	token := link[strings.Index(link, "#")+1:]
+	b := e.browser(id)
+
+	code, setup := b.do("POST", "/api/v1/auth/enroll/totp/begin", map[string]string{"token": token})
+	if code != 200 || !strings.HasPrefix(setup["uri"].(string), "otpauth://totp/Gaia:deniz") {
+		t.Fatalf("totp begin: %d %v", code, setup)
+	}
+	secret := setup["secret"].(string)
+	row, _ := e.store.Q().TOTP(ctx, id)
+	if strings.Contains(row.Ciphertext, secret) {
+		t.Error("the seed is stored in clear")
+	}
+	now, _ := totp.GenerateCode(secret, time.Now())
+	if code, _ := b.do("POST", "/api/v1/auth/enroll/totp/finish", map[string]string{"token": token, "password": "short", "code": now}); code != 400 {
+		t.Errorf("short password: %d", code)
+	}
+	if code, out := b.do("POST", "/api/v1/auth/enroll/totp/finish", map[string]string{"token": token, "password": "a long enough password", "code": now}); code != 200 || len(out["recoveryCodes"].([]any)) != recoveryCodes {
+		t.Fatalf("totp finish: %d %v", code, out)
+	}
+	u, _ := e.store.Q().UserByName(ctx, "deniz")
+	if !strings.HasPrefix(u.PasswordHash.String, "$argon2id$") {
+		t.Errorf("password hash = %q", u.PasswordHash.String)
+	}
+
+	login := func(password, code string) int {
+		c, _ := e.browser(id).do("POST", "/api/v1/auth/password", map[string]string{"username": "deniz", "password": password, "code": code})
+		return c
+	}
+	// The code that confirmed the seed is used up.
+	if c := login("a long enough password", now); c != 401 {
+		t.Errorf("reused code: %d", c)
+	}
+	later := time.Now().Add(30 * time.Second)
+	e.auth.now = func() time.Time { return later }
+	next, _ := totp.GenerateCode(secret, later)
+	if c := login("wrong password!!", next); c != 401 {
+		t.Errorf("wrong password: %d", c)
+	}
+	if c := login("a long enough password", next); c != 200 {
+		t.Errorf("password and code: %d", c)
+	}
+	if c := login("a long enough password", next); c != 401 {
+		t.Errorf("the same code twice: %d", c)
+	}
+	if c, _ := e.browser(id).do("POST", "/api/v1/auth/password", map[string]string{"username": "nobody", "password": "x", "code": next}); c != 401 {
+		t.Errorf("unknown user: %d", c)
+	}
+}
+
+func TestPasskeyOnlyRefusesPasswords(t *testing.T) {
+	e := setup(t)
+	id, link := e.user("kaan")
+	token := link[strings.Index(link, "#")+1:]
+	if code, _ := e.browser(id).do("POST", "/api/v1/auth/enroll/totp/begin", map[string]string{"token": token}); code != 400 {
+		t.Errorf("totp under require: passkey: %d", code)
+	}
+	if code, _ := e.browser(id).do("POST", "/api/v1/auth/password", map[string]string{"username": "kaan", "password": "x", "code": "1"}); code != 401 {
+		t.Errorf("password under require: passkey: %d", code)
+	}
+}
+
+func TestPasswordHash(t *testing.T) {
+	h := hashPassword("correct horse battery")
+	if !checkPassword(h, "correct horse battery") || checkPassword(h, "correct horse batterY") || checkPassword("garbage", "x") {
+		t.Error("password check")
+	}
+	if a, b := hashPassword("same"), hashPassword("same"); a == b {
+		t.Error("no salt")
+	}
 }

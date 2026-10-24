@@ -187,6 +187,33 @@ paths:
       responses:
         "200": { description: Signed in }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/password:
+    post:
+      summary: Sign in with password and a TOTP code (public; require mfa)
+      operationId: passwordLogin
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [username, password, code], properties: { username: { type: string }, password: { type: string }, code: { type: string } } } } } }
+      responses:
+        "200": { description: Signed in }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/enroll/totp/begin:
+    post:
+      summary: Make a TOTP seed for an enrolling account (public; require mfa)
+      operationId: totpBegin
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses:
+        "200": { description: The seed for an authenticator app, content: { application/json: { schema: { type: object, properties: { secret: { type: string }, uri: { type: string } } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/auth/enroll/totp/finish:
+    post:
+      summary: Set the password, confirm the seed with a code, get recovery codes (public; require mfa)
+      operationId: totpFinish
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [token, password, code], properties: { token: { type: string }, password: { type: string, minLength: 12 }, code: { type: string } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/RecoveryCodes" }
+        "400": { $ref: "#/components/responses/BadRequest" }
   /api/v1/auth/logout:
     post:
       summary: End the current session

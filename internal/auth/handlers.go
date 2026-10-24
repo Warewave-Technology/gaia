@@ -40,6 +40,9 @@ func (a *Service) Routes() []Route {
 		{Method: "POST", Path: "/api/v1/auth/enroll/begin", Public: true, Handler: limited(a.enrollBegin)},
 		{Method: "POST", Path: "/api/v1/auth/enroll/finish", Public: true, Handler: limited(a.enrollFinish)},
 		{Method: "POST", Path: "/api/v1/auth/recovery", Public: true, Handler: limited(a.recovery)},
+		{Method: "POST", Path: "/api/v1/auth/password", Public: true, Handler: limited(a.passwordLogin)},
+		{Method: "POST", Path: "/api/v1/auth/enroll/totp/begin", Public: true, Handler: limited(a.totpBegin)},
+		{Method: "POST", Path: "/api/v1/auth/enroll/totp/finish", Public: true, Handler: limited(a.totpFinish)},
 		{Method: "POST", Path: "/api/v1/auth/logout", Handler: a.logout},
 		{Method: "GET", Path: "/api/v1/me", Handler: a.me},
 		{Method: "GET", Path: "/api/v1/me/sessions", Handler: a.mySessions},
@@ -493,4 +496,42 @@ func (a *Service) reenroll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"enrollUrl": link})
+}
+
+func (a *Service) passwordLogin(w http.ResponseWriter, r *http.Request) {
+	var b struct{ Username, Password, Code string }
+	if !decode(w, r, &b) {
+		return
+	}
+	if err := a.PasswordLogin(r.Context(), w, r, b.Username, b.Password, b.Code); err != nil {
+		a.fail(w, err, http.StatusUnauthorized)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "signed in"})
+}
+
+func (a *Service) totpBegin(w http.ResponseWriter, r *http.Request) {
+	var b struct{ Token string }
+	if !decode(w, r, &b) {
+		return
+	}
+	setup, err := a.BeginTOTP(r.Context(), b.Token)
+	if err != nil {
+		a.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, setup)
+}
+
+func (a *Service) totpFinish(w http.ResponseWriter, r *http.Request) {
+	var b struct{ Token, Password, Code string }
+	if !decode(w, r, &b) {
+		return
+	}
+	codes, err := a.FinishTOTP(r.Context(), w, r, b.Token, b.Password, b.Code)
+	if err != nil {
+		a.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"recoveryCodes": codes})
 }

@@ -65,12 +65,13 @@ func newServerCommand() *cobra.Command {
 				return err
 			}
 			defer s.Close()
+			var cat *server.CatalogSource
 			if repo != "" {
 				abs, err := filepath.Abs(repo)
 				if err != nil {
 					return err
 				}
-				cat := &server.CatalogSource{Src: queue.Source{Repo: abs, Commit: ref, Paths: paths}, Log: cfg.Log}
+				cat = &server.CatalogSource{Src: queue.Source{Repo: abs, Commit: ref, Paths: paths}, Log: cfg.Log}
 				if err := cat.Load(); err != nil {
 					return fmt.Errorf("catalog: %w", err)
 				}
@@ -84,13 +85,20 @@ func newServerCommand() *cobra.Command {
 					return err
 				}
 			}
-			if cfg.Workers > 0 {
-				secrets, err := baoLogin(ctx, cfg.Log)
+			mfa := cfg.Auth != nil && cat.Graph().AuthConfig().Require == "mfa"
+			if cfg.Workers > 0 || mfa {
+				bao, err := baoLogin(ctx, cfg.Log)
 				if err != nil {
 					return err
 				}
-				cfg.Systems = func(g *catalog.Graph) (apply.Deps, error) {
-					return apply.Systems(s, secrets(secretsEndpoint(g)), io.Discard), nil
+				if cfg.Workers > 0 {
+					cfg.Systems = func(g *catalog.Graph) (apply.Deps, error) {
+						return apply.Systems(s, bao(secretsEndpoint(g)), io.Discard), nil
+					}
+				}
+				if mfa {
+					// TOTP seeds are encrypted with the transit key gaia-auth.
+					cfg.Auth.WithTransit(bao(secretsEndpoint(cat.Graph())))
 				}
 			}
 			srv, err := server.New(cfg, s)
@@ -132,10 +140,10 @@ func loopbackOnly(addr string) error {
 
 // baoLogin returns how workers reach OpenBao: an AppRole session kept
 // alive for as long as ctx, or a fixed token for development.
-func baoLogin(ctx context.Context, log *slog.Logger) (func(addr string) apply.Secrets, error) {
+func baoLogin(ctx context.Context, log *slog.Logger) (func(addr string) *openbao.Client, error) {
 	if token := os.Getenv("GAIA_BAO_TOKEN"); token != "" {
 		log.Warn("using $GAIA_BAO_TOKEN; use AppRole outside development")
-		return func(addr string) apply.Secrets { return openbao.New(addr, token) }, nil
+		return func(addr string) *openbao.Client { return openbao.New(addr, token) }, nil
 	}
 	addr, roleID := os.Getenv("GAIA_BAO_ADDR"), os.Getenv("GAIA_BAO_ROLE_ID")
 	if addr == "" || roleID == "" {
@@ -151,7 +159,7 @@ func baoLogin(ctx context.Context, log *slog.Logger) (func(addr string) apply.Se
 	}
 	go sess.Keep(ctx)
 	log.Info("openbao: logged in with approle", "addr", addr)
-	return func(addr string) apply.Secrets { return sess.Client(addr) }, nil
+	return func(addr string) *openbao.Client { return sess.Client(addr) }, nil
 }
 
 // baoSecretID reads the AppRole secret_id: a file, a systemd credential or

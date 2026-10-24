@@ -1617,3 +1617,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-24 | Worker'lar OpenBao'ya AppRole ile girer (`GAIA_BAO_ADDR`, `GAIA_BAO_ROLE_ID`, secret_id dosyası veya systemd credential'ı) |
 | 2026-10-24 | Local hesaplar CLI'dan (`gaia user add`) veya API'den açılır ve tek kullanımlık bir kayıt bağlantısıyla passkey kaydeder; 10 kurtarma kodu bir kez gösterilir. Passkey girişi kullanıcı adı sormaz (discoverable credential, user verification zorunlu) |
 | 2026-10-24 | Oturumlar opak token, sadece hash'i tutulur; tarayıcı çerezi `SameSite=Strict` ve değişiklik isteklerinde `X-Gaia-Request` başlığı; hassas işlemler son 10 dakikada passkey ister; platform-admin, operator'ün yapabildiklerini kapsar |
+| 2026-10-24 | `require: mfa`'da local hesaplar parola (argon2id, en az 12 karakter) + TOTP veya passkey ile girer; TOTP tohumu OpenBao transit anahtarı `gaia-auth` ile şifreli, her kod bir kez geçerli |

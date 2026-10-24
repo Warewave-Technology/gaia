@@ -11,13 +11,14 @@ bao() { curl -sf -H "$H" -X "$1" "$BAO/v1/$2" ${3:+-d "$3"} >/dev/null || true; 
 bao POST sys/mounts/kv '{"type":"kv","options":{"version":"2"}}'
 bao POST sys/mounts/transit '{"type":"transit"}'
 bao POST transit/keys/pulumi '{}'
+bao POST transit/keys/gaia-auth '{}'
 bao POST kv/data/platform/postgres '{"data":{"username":"gaia_owner","password":"dev"}}'
 bao POST kv/data/platform/pulumi-state '{"data":{"username":"gaia_owner","password":"dev"}}'
 bao POST kv/data/platform/seaweedfs '{"data":{"access_key":"gaia-dev","secret_key":"gaia-dev-secret"}}'
 bao POST kv/data/platform/ipam '{"data":{"token":"dev-ipam-token"}}'
 
 # Gaia's AppRole: reads the platform's secrets and uses the Pulumi key.
-bao PUT sys/policies/acl/gaia '{"policy":"path \"kv/data/platform/*\" { capabilities = [\"read\"] }\npath \"transit/encrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/decrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/keys/pulumi\" { capabilities = [\"read\"] }"}'
+bao PUT sys/policies/acl/gaia '{"policy":"path \"kv/data/platform/*\" { capabilities = [\"read\"] }\npath \"transit/encrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/decrypt/pulumi\" { capabilities = [\"update\"] }\npath \"transit/keys/pulumi\" { capabilities = [\"read\"] }\npath \"transit/encrypt/gaia-auth\" { capabilities = [\"update\"] }\npath \"transit/decrypt/gaia-auth\" { capabilities = [\"update\"] }"}'
 bao POST sys/auth/approle '{"type":"approle"}'
 bao POST auth/approle/role/gaia '{"token_policies":["gaia"],"token_ttl":"1h","token_max_ttl":"24h"}'
 bao POST auth/approle/role/gaia/role-id '{"role_id":"gaia-dev"}'

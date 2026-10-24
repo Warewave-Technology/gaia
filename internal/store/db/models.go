@@ -196,6 +196,7 @@ type TotpSecret struct {
 	UserID      string
 	Ciphertext  string
 	ConfirmedAt pgtype.Timestamptz
+	LastStep    int64
 }
 
 type User struct {

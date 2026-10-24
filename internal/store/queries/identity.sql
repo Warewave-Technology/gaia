@@ -105,3 +105,7 @@ delete from auth_flows where id = $1 and kind = $2 and expires_at > now() return
 
 -- name: PruneFlows :exec
 delete from auth_flows where expires_at < now();
+
+-- name: UseTOTPStep :execrows
+-- A code is used once: only a later time step than the last one counts.
+update totp_secrets set last_step = $2 where user_id = $1 and last_step < $2 and confirmed_at is not null;
