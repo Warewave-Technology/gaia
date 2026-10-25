@@ -107,32 +107,30 @@ type target struct {
 	address string // without prefix
 }
 
-// configure runs the contract's baseline and roles on its servers.
-func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catalog.Object, targets []target) error {
-	if !r.configures(ctx, c) || len(targets) == 0 {
-		return nil
-	}
+// configJob is the ansible-runner job that configures a contract's
+// servers, and their hostnames by UID.
+func (r *runner) configJob(ctx context.Context, c plan.Contract, contract *catalog.Object, targets []target) (ansible.Job, map[string]string, error) {
 	if r.cfg == nil {
-		return errors.New("configure: no configuration setup")
+		return ansible.Job{}, nil, errors.New("configure: no configuration setup")
 	}
 	var users []access.User
 	if r.managesAccess(ctx, c) {
 		var err error
 		if users, err = r.accessUsers(ctx, c); err != nil {
-			return err
+			return ansible.Job{}, nil, err
 		}
 		wg, err := r.bastionAccounts(ctx, c)
 		if err != nil {
-			return err
+			return ansible.Job{}, nil, err
 		}
 		users = append(users, wg...)
 	}
 	resolved, secrets, err := r.resolveSecrets(ctx, c)
 	if err != nil {
-		return err
+		return ansible.Job{}, nil, err
 	}
 	if err := r.checkArtifacts(ctx, &resolved); err != nil {
-		return err
+		return ansible.Job{}, nil, err
 	}
 	for _, t := range targets {
 		if j, ok := r.joins[t.s.UID]; ok && j.Password != "" {
@@ -141,7 +139,7 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	}
 	site, err := sitePlay(resolved, users, r.managesAccess(ctx, c), hasDomain(c))
 	if err != nil {
-		return err
+		return ansible.Job{}, nil, err
 	}
 	names := map[string]string{} // UID -> hostname, for output
 	var hosts []ansible.Host
@@ -156,7 +154,7 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	}
 	known, err := r.knownHosts(ctx, addrs)
 	if err != nil {
-		return err
+		return ansible.Job{}, nil, err
 	}
 
 	cfg := r.cfg
@@ -176,6 +174,19 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 			return os.WriteFile(filepath.Join(dir, sitePlaybook), site, 0o600)
 		},
 	}
+	return job, names, nil
+}
+
+// configure runs the contract's baseline and roles on its servers.
+func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catalog.Object, targets []target) error {
+	if !r.configures(ctx, c) || len(targets) == 0 {
+		return nil
+	}
+	job, names, err := r.configJob(ctx, c, contract, targets)
+	if err != nil {
+		return err
+	}
+	hosts := job.Hosts
 	r.printf("  configure %s (%d server(s))\n", c.Name, len(hosts))
 	res, err := r.d.Configure.Run(ctx, job, func(e ansible.Event) error {
 		if e.Failed {

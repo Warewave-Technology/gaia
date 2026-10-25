@@ -783,6 +783,49 @@ func TestRegistrationDrift(t *testing.T) {
 	}
 }
 
+func TestProvisioningAndConfigurationDrift(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	g := e.graph(nil)
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	uid := mustLive(t, e)[0].Uid
+	var previewed []pulumi.VM
+	e.deps.PreviewDrift = func(_ context.Context, _ pulumi.Backend, st pulumi.Stack) (map[string]pulumi.Drift, error) {
+		previewed = st.VMs
+		return map[string]pulumi.Drift{uid: {Op: "update", Diffs: []string{"memory"}}}, nil
+	}
+	fs, err := CheckProvisioning(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fs) != 1 || fs[0].String() != "poc-web labtpoc01 provisioning/vm: want as applied, got update memory" {
+		t.Errorf("provisioning = %v", fs)
+	}
+	if len(previewed) != 1 || !reflect.DeepEqual(previewed[0], e.compute.stacks[0].VMs[0]) {
+		t.Errorf("previewed %+v, applied %+v", previewed, e.compute.stacks[0].VMs[0])
+	}
+
+	// The fake configurer changes one task on every host: in check mode
+	// that is drift.
+	jobs := len(e.configure.jobs)
+	fs, err = CheckConfiguration(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(e.configure.jobs) != jobs+1 || !e.configure.jobs[jobs].Check {
+		t.Fatalf("check job: %d jobs, %+v", len(e.configure.jobs)-jobs, e.configure.jobs[len(e.configure.jobs)-1].Check)
+	}
+	if len(fs) != 1 || fs[0].Area != "configuration" || !strings.HasPrefix(fs[0].Got, "1 task(s) would change: ") {
+		t.Errorf("configuration = %v", fs)
+	}
+}
+
 // onVSphere turns the lab site into a vSphere one.
 func (e *env) onVSphere() {
 	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/vsphere/lab"] = map[string]string{"username": "gaia@vsphere.local", "password": "vc", "insecure": "true"}

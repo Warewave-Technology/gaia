@@ -24,10 +24,11 @@ import (
 // queue's workers both use them.
 func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 	return Deps{
-		Store:     s,
-		Secrets:   secrets,
-		Provision: pulumi.Up,
-		Forget:    pulumi.Forget,
+		Store:        s,
+		Secrets:      secrets,
+		Provision:    pulumi.Up,
+		Forget:       pulumi.Forget,
+		PreviewDrift: pulumi.PreviewDrift,
 		UsedVMIDs: func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error) {
 			return proxmox.New(c).UsedVMIDs(ctx)
 		},

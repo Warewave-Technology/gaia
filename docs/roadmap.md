@@ -217,6 +217,7 @@ Tasarım 14.
 - Tamam: decommission akışı (durdurma, son snapshot, kayıtları devre dışı bırakma, bekleme, geri alma, 15 dakikalık süpürme ile silme, IP karantinası), `deletionPolicy: retain`. Prod koruması (owner + platform-admin) zaten change motorundaydı.
 - Tamam: replace Operation'ı (aynı isim ve adresle yeni UID; Operation'larda `hosts` filtresi).
 - Tamam: drift motoru ve kayıt alanı (IPAM, Zabbix, DNS, AD, Warpgate), `drift_reports`, `drift.found` bildirimi, `drift` / `drift-auto` düzeltme Change'leri, `gaia drift`.
+- Tamam: provisioning drift'i (uygulanan VM tanımlarıyla `pulumi preview --refresh`) ve konfigürasyon drift'i (Ansible `--check --diff`, gece penceresi). Açık: `versionProbe`, `exceptions`, Zabbix trapper, check-mode desteklemeyen roller.
 
 ## Faz 11: Dağıtım
 

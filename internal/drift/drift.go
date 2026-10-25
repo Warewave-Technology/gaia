@@ -33,7 +33,9 @@ type Check func(ctx context.Context, g *catalog.Graph, p *plan.Plan, d apply.Dep
 
 // Checks are the areas Gaia checks, by name.
 var Checks = map[string]Check{
-	"registration": apply.CheckRegistration,
+	"registration":  apply.CheckRegistration,
+	"provisioning":  apply.CheckProvisioning,
+	"configuration": apply.CheckConfiguration,
 }
 
 // Scanner checks the areas when they are due.
@@ -161,6 +163,13 @@ func (s *Scanner) contract(ctx context.Context, area string, check Check, st db.
 	deps, err := s.Systems(g)
 	if err != nil {
 		return err
+	}
+	if cr := snap.Config; cr != nil {
+		// Roles as the run applied them.
+		if err := s.Repos.Ensure(ctx, cr.Repo(), cr.Commit); err != nil {
+			return err
+		}
+		deps.Config = &apply.ConfigRepo{Path: s.Repos.Path(cr.Repo()), Commit: cr.Commit, Paths: cr.Paths}
 	}
 	// A contract a run is changing is not checked (design 7.5).
 	var found []apply.Finding
