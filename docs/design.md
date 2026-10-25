@@ -8,7 +8,7 @@
 Teknolojiler çeşitli olsa da hepsini **tek bir YAML kontratı** yönetir.
 
 - **Kontrat sadece referans içerir.** Endpoint, credential ve altyapı detayı kontratta bulunmaz; bunlar Gaia'nın kendi objelerinde tanımlıdır.
-- **Provisioning Pulumi'de, konfigürasyon Ansible'da.** Diğer sistemlerle (Zabbix, IPAM, AD, Warpgate, Nexus, OpenBao, SeaweedFS) doğrudan API üzerinden konuşulur.
+- **Provisioning Pulumi'de, konfigürasyon Ansible'da.** Diğer sistemlerle (Zabbix, IPAM, AD, Warpgate, Pulp, Zot, OpenBao, SeaweedFS) doğrudan API üzerinden konuşulur.
 - **Tüm bileşenler açık kaynak.**
 - **Git, istenen durumun geçmişidir.** Değişiklik Git'e commit ile girer. İncelenmesi, onaylanması ve uygulanması Gaia'dadır (bkz. 7.6). Arayüz ve CLI istenen durumu değiştiremez.
 - **Her verinin tek bir sahibi vardır.** Gaia veriyi kopyalamaz, sahibine referans verir.
@@ -97,7 +97,19 @@ spec:
   credentials: bao://kv/platform/vsphere/ank       # secret'a sadece referans verilir
 ```
 
-Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `nexus`, `s3` (SeaweedFS), `postgres` (Pulumi state), `git`, ve bildirim kanalları `slack`, `msteams`, `smtp`, `webhook`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
+Tanımlı provider tipleri: `openbao`, `vsphere`, `proxmox`, `ipam`, `activedirectory`, `zabbix`, `warpgate`, `pulp`, `nexus`, `s3` (SeaweedFS), `postgres` (Pulumi state), `git`, ve bildirim kanalları `slack`, `msteams`, `smtp`, `webhook`. Harici bir Ansible runner'ı yoktur (bkz. 7.4).
+
+**Artifact deposu: Pulp 3 ve Zot.**
+
+- **Pulp 3** (GPLv2+). Şunları tutar:
+  - OS paketleri: Gaia'nın kendi `.deb`/`.rpm` reposu (imzalı yayın) ve internete çıkamayan siteler için Rocky/RHEL ve Debian/Ubuntu repolarının aynaları.
+  - Ansible Galaxy collection'ları ve PyPI aynası.
+  - App artifact'ları (file repository). Gaia bunlarla `pulp` provider'ı üzerinden konuşur.
+- **Zot** (Apache-2.0). OCI registry'si:
+  - EE imajları, Gaia'nın imajı ve Helm chart'ı (OCI artifact) burada durur.
+  - Gaia Zot ile API üzerinden konuşmaz; imajlara digest'le referans verir.
+- **Ortak özellikler:** İkisi de OSI lisanslı, EULA istemez ve internetsiz çalışır. Depolama olarak SeaweedFS'i (S3) kullanırlar.
+- **Nexus:** `nexus` provider'ı, Nexus'u zaten olan kurulumlar için kalır. App artifact'ı ikisinde de aynı biçimde tanımlanır (bkz. 6.1).
 
 ### 4.2 Platform
 
@@ -171,7 +183,7 @@ kind: App
 metadata:
   name: portal
 spec:
-  artifact: { provider: nexus, repository: releases, path: portal/portal-${version}.tar.gz }
+  artifact: { provider: pulp, repository: releases, path: portal/portal-${version}.tar.gz }
   playbook: apps/portal.yml
   requires: [web.tomcat]                           # → AnsibleRole/web.tomcat
   params:
@@ -444,10 +456,15 @@ spec:
 **Uygulama sırası:** baseline, ajanlar (önce zorunlular), kontratın rolleri, uygulamalar, erişim.
 - **Zorunlu ajanlar:** `mandatory: true` olan ve `os`'u imajın işletim sistemini kapsayan Agent'lar, kontrat yazmasa da eklenir.
 - **App:** Config reposundaki playbook'u, `requires`'taki rollerin kontratta olmasını ister. Parametreleri ve kuralları rollerle aynı biçimdedir.
-- **App'in artifact'ı:** `artifact.path`'teki `${param}` değerleriyle Nexus adresine çevrilir ve playbook'a `gaia_app.artifact` olarak verilir.
-  - Run, sunuculara dokunmadan önce artifact'ı Nexus'ta arar (search API; bulamazsa dosyanın kendisine HEAD). Yoksa run `configure` aşamasında, hiçbir sunucu yapılandırılmadan durur.
-  - Nexus'un bildirdiği SHA-256 playbook'a `gaia_app.sha256` olarak verilir (playbook indirmeyi bununla doğrulayabilir) ve run kaydına yazılır. Checksum plana girmez: repo run başladığında okunur.
-  - Gaia Nexus'u provider'ın credentials'ı varsa onunla (`username`, `password`), yoksa anonim okur. Sunucunun indirmek için kimlik bilgisine ihtiyacı varsa bu, App'in `bao://` secret parametresi olarak verilir.
+- **App'in artifact'ı:** `artifact.path`'teki `${param}` değerleriyle depodaki adrese çevrilir ve playbook'a `gaia_app.artifact` olarak verilir.
+  - Provider'lar ortak bir arayüzle çözer: `Resolve(repository, path) → {url, sha256}`.
+  - **Pulp:** `repository` bir file distribution'ın adıdır, `path` ise içerikteki `relative_path`.
+    - Gaia içeriği distribution'ın son repository version'ında `relative_path` ile arar ve `sha256`'sını alır.
+    - İndirme adresi distribution'ın `base_url`'i ile `path`'in birleşimidir.
+  - **Nexus:** search API ile çözülür; bulunamazsa dosyanın kendisine HEAD atılır.
+  - Run, sunuculara dokunmadan önce artifact'ı arar. Yoksa run `configure` aşamasında, hiçbir sunucu yapılandırılmadan durur.
+  - Deponun bildirdiği SHA-256 playbook'a `gaia_app.sha256` olarak verilir (playbook indirmeyi bununla doğrulayabilir) ve run kaydına yazılır. Checksum plana girmez: repo run başladığında okunur.
+  - Gaia depoyu provider'ın credentials'ı varsa onunla (`username`, `password`), yoksa anonim okur. Sunucunun indirmek için kimlik bilgisine ihtiyacı varsa bu, App'in `bao://` secret parametresi olarak verilir.
   - Nexus 3.77 ve sonrası Community Edition, API'ye izin vermeden önce EULA kabulü ister. Bu yüzden istemci gerçek bir Nexus'a karşı değil, Nexus 3'ün REST API'sini taklit eden bir sunucuyla test edildi; gerçek Nexus doğrulaması açık.
 
 **Kontratta yazılmayan ama yine de uygulananlar**
@@ -787,7 +804,7 @@ Ansible'ı harici bir runner (AWX, Semaphore) değil, **Gaia kendisi çalıştı
 
 **Envanterde UID:** `inventory_hostname` sunucunun UID'si, `ansible_host` ise IP veya FQDN'idir. Böylece her olay doğrudan UID ile gelir ve hostname tekrar kullanılsa bile loglar karışmaz (bkz. 9.1).
 
-**Execution environment (EE):** Collection'ların ve Python bağımlılıklarının sürümleri sabitlenmiş bir container imajı. `ansible-builder` ile üretilir ve Nexus'ta tutulur.
+**Execution environment (EE):** Collection'ların ve Python bağımlılıklarının sürümleri sabitlenmiş bir container imajı. `ansible-builder` ile üretilir ve Zot'ta tutulur.
 - Şimdilik tek bir varsayılan EE var. Rollerin farklı EE seçmesi gerekirse bir `ExecutionEnvironment` kind'ı eklenir.
 - EE imajının digest'i run kaydına yazılır. Böylece bir run tamamen tekrar üretilebilir: kontrat commit'i, katalog commit'i, config reposu commit'i ve EE digest'i.
 
@@ -798,7 +815,7 @@ spec:
     configuration:
       tool: ansible
       executor: ansible-runner
-      executionEnvironment: nexus.corp.local/gaia/ee-default@sha256:4c1e…
+      executionEnvironment: registry.corp.local/gaia/ee-default@sha256:4c1e…
       source: config-repo
       limits: { concurrentRuns: 10, forks: 25, timeout: 2h }
 ```
@@ -1308,7 +1325,7 @@ approvedBy: [ayse.k]                     # Gaia'daki onaylar, plan hash'iyle
 source: { repo: platform/contracts, commit: 3f9c2e1, signed: true }
 catalogCommit: 9a1b0c4
 configCommit: 51e07aa                    # Ansible reposu
-executionEnvironment: nexus.corp.local/gaia/ee-default@sha256:4c1e…
+executionEnvironment: registry.corp.local/gaia/ee-default@sha256:4c1e…
 contract: portal-web
 planHash: sha256:ab12…                   # onaylanan plan ile uygulanan plan aynı mı
 accessSnapshot: sha256:77d0…             # erişim dağıtılırken kullanılan üye listesi (bkz. 14.2)
@@ -1569,11 +1586,11 @@ Gaia tek bir binary'dir:
 
 ### 13.2 VM
 
-- **Paketleme:** `nfpm` ile `.deb` ve `.rpm` paketleri üretilir ve Nexus'taki apt/yum reposuna konur.
+- **Paketleme:** `nfpm` ile `.deb` ve `.rpm` paketleri üretilir ve Pulp'taki apt/dnf reposuna imzalanarak konur.
 - **Servis:** systemd unit'i ile çalışır. Konfigürasyon `/etc/gaia/` altında durur; servis ayrı bir sistem kullanıcısıyla, systemd'nin hardening seçenekleri açık şekilde çalışır.
 - **OpenBao kimliği:** AppRole. `secret_id` OpenBao Agent ile ya da systemd credentials üzerinden verilir.
 - **Migration:** Güncelleme sırasında `gaia migrate`, `gaia_owner` rolüyle ayrı bir adım olarak çalıştırılır.
-- **Ansible çalıştırma:** Worker sunucularında EE container'ları için `podman` kurulu olmalıdır. EE imajları Nexus'tan çekilir.
+- **Ansible çalıştırma:** Worker sunucularında EE container'ları için `podman` kurulu olmalıdır. EE imajları Zot'tan digest'le çekilir.
 - **Kurulumun kendisi:** Gaia'yı VM'e kuran bir Ansible rolü (`gaia.server`) hazırlanır. Gaia'yı da aynı araçlarla kurmuş oluruz.
 
 **Uygulamada:**
@@ -1594,7 +1611,7 @@ Gaia tek bir binary'dir:
 - **Rol ayrımı:** `values.yaml` ile API ve worker ayrı Deployment olarak açılabilir.
 - **Ansible çalıştırma:** Her Ansible run'ı ayrı bir pod olarak çalışır. Worker'ın ServiceAccount'ı sadece kendi namespace'inde pod oluşturup silebilir.
 - **Veritabanı chart'ın içinde yoktur.** PostgreSQL dışarıda durur ve DSN referansıyla verilir.
-- **Dağıtım:** Container imajı ve chart Nexus'ta tutulur (Docker registry ve Helm hosted repo).
+- **Dağıtım:** Container imajı ve chart Zot'ta tutulur; chart bir OCI artifact'ıdır (`helm install oci://…`).
 
 **Uygulamada:**
 - `make image` imajı üretir: distroless (`base-debian12:nonroot`), `gaia` ve `gaia-ipam`, önceden indirilmiş Pulumi CLI'ı ve plugin'leri (`gaia pulumi prepare`; run'lar bir şey indirmez). Varsayılan komut `gaia server --listen 0.0.0.0:8080 --data-dir /gaia/data`.
@@ -1613,7 +1630,7 @@ Kişiler ve gruplar AD'de oluşturulur ve yönetilir. Gaia **AD'ye kullanıcı v
 ```
 AD ──(TeamSource, sync)──► Team objeleri (Git, Gaia'nın commit'i)
                             ▲
-Group objeleri (Git, elle) ─┘  ──► kontrattaki access ──► Warpgate, Linux, Gaia arayüzü, Zabbix/Nexus
+Group objeleri (Git, elle) ─┘  ──► kontrattaki access ──► Warpgate, Linux, Gaia arayüzü, Zabbix
 AD üyelikleri ──(5 dk sync)──► Gaia veritabanı ──► aynı tüketicilere dağıtım
 ```
 
@@ -1741,7 +1758,7 @@ access:
 | Gaia arayüzü | `viewer` / `operator` / `platform-admin` rolleri Team üyeliklerinden gelir (bkz. 11.4). OIDC sadece kimlik doğrulama için kullanılır |
 | Warpgate | API ile kullanıcıların rol ve hedef atamaları. Hedef tipi imajdan gelir: Linux için SSH, Windows için RDP |
 | Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar |
-| Zabbix, Nexus | Kendi API'leriyle kullanıcı ve grup atamaları |
+| Zabbix | Kendi API'siyle kullanıcı grubu atamaları |
 
 **SSH anahtarları:**
 - Kişiler sunuculara giriş anahtarlarını Gaia profiline kaydeder (`/api/v1/me/login-keys`; eklemek için passkey/MFA yeniden istenir).
@@ -1816,6 +1833,11 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 ## 15. Açık Konular
 
 - [ ] **`proxmoxve` Pulumi provider'ının olgunluğu:** Topluluk provider'ı; PoC'de doğrulanıyor. Klon, cloud-init, SMBIOS UUID ve tag'ler lab'de çalıştı. Bilinen sorun (v8.6.0, Terraform provider v0.112.0): disk `speed` bloğunun varsayılanı sıfırlarla dolu, okumada ise hiç dönmüyor. Bu yüzden her apply'da diske etkisiz bir update gidiyor. Sağlayıcı bu değeri kendi hesapladığı için `ignoreChanges` onu gizleyemiyor (lab'de denendi); provisioning drift'i bu farkı (`disks[N].speed`) gürültü sayıp atlar. Upstream'e bildirilecek.
+
+- [ ] **Pulp ve Zot'a insan erişimi:**
+  - Gaia bu iki sistemde kullanıcı açmaz.
+  - Okuma ve yazma hakları, iki sistemin kendi LDAP/OIDC bağlantılarıyla AD gruplarına verilir.
+  - Hangi grubun hangi repoya yazacağı tanımlanınca, gerekirse Group'tan dağıtıma eklenir (bkz. 14.4).
 
 ## 16. Karar Kaydı
 
@@ -1917,3 +1939,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Zabbix'te erişim takım başına `Gaia/<takım>` kullanıcı grubu, sadece kontratların kendi host grubuna (`Gaia/contract/<ad>`) hak; Gaia Zabbix kullanıcısı açmaz |
 | 2026-10-25 | Secret parametre değeri planda ve kayıtta değil, sadece run'da; referans `bao://<yol>#<alan>`; `no_log` parametreye kontratta düz değer yazılamaz |
 | 2026-10-25 | Host anahtarları ilk temasta Gaia tarafından kaydedilir, sonra Ansible sıkı host key kontrolüyle çalışır (phone_home/konsol yerine) |
+| 2026-10-25 | Artifact deposu Nexus yerine Pulp 3 (OS paketleri ve aynaları, Galaxy, PyPI, App dosyaları) ve Zot (OCI: EE, Gaia imajı, Helm chart). İkisi de OSI lisanslı, EULA'sız; depolama SeaweedFS (S3). `nexus` provider'ı mevcut Nexus'u olanlar için kalır; App artifact'ı provider'dan bağımsız `Resolve → {url, sha256}` ile çözülür |
