@@ -230,6 +230,7 @@ Tasarım 14.
 **Durum:**
 - Tamam: `.deb` / `.rpm` (nfpm, amd64 ve arm64), systemd unit'leri (hardening), `gaia` sistem hesabı, `gaia pulumi prepare`; CI paketleri artifact olarak üretir.
 - Tamam: `gaia.server` Ansible rolü (`deploy/ansible/roles/gaia.server`); `gaia migrate` uygulanan migration sayısını söyler.
+- Tamam: container imajı, Helm chart, OpenBao Kubernetes auth, `GAIA_DSN_FILE`; kind'da denendi.
 
 ## Lab oturumu
 

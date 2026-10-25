@@ -375,8 +375,25 @@ func baoLogin(ctx context.Context, log *slog.Logger) (func(addr string) *openbao
 		return func(addr string) *openbao.Client { return openbao.New(addr, token) }, nil
 	}
 	addr, roleID := os.Getenv("GAIA_BAO_ADDR"), os.Getenv("GAIA_BAO_ROLE_ID")
+	if role := os.Getenv("GAIA_BAO_K8S_ROLE"); role != "" && addr != "" {
+		// In Kubernetes: the pod's service account (design 13.3).
+		mount, file := os.Getenv("GAIA_BAO_K8S_MOUNT"), os.Getenv("GAIA_BAO_K8S_TOKEN_FILE")
+		if mount == "" {
+			mount = "kubernetes"
+		}
+		if file == "" {
+			file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+		}
+		sess, err := openbao.LoginKubernetes(ctx, addr, mount, role, file, log)
+		if err != nil {
+			return nil, err
+		}
+		go sess.Keep(ctx)
+		log.Info("openbao: logged in with kubernetes auth", "addr", addr, "role", role)
+		return func(addr string) *openbao.Client { return sess.Client(addr) }, nil
+	}
 	if addr == "" || roleID == "" {
-		return nil, errors.New("workers need OpenBao: set GAIA_BAO_ADDR and GAIA_BAO_ROLE_ID with a secret_id, or GAIA_BAO_TOKEN")
+		return nil, errors.New("workers need OpenBao: set GAIA_BAO_ADDR with GAIA_BAO_ROLE_ID and a secret_id (AppRole) or GAIA_BAO_K8S_ROLE (Kubernetes), or GAIA_BAO_TOKEN")
 	}
 	secretID, err := baoSecretID()
 	if err != nil {

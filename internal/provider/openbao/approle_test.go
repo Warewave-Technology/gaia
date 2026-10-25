@@ -3,7 +3,11 @@ package openbao
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -86,5 +90,28 @@ func TestTransit(t *testing.T) {
 	}
 	if _, err := c.Decrypt(ctx, "gaia-auth", "vault:v1:bm9wZQ=="); err == nil {
 		t.Error("decrypted garbage")
+	}
+}
+
+func TestKubernetesLogin(t *testing.T) {
+	var got map[string]string
+	var path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path = r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		_, _ = w.Write([]byte(`{"auth":{"client_token":"k8s-token","lease_duration":3600,"renewable":true}}`))
+	}))
+	defer srv.Close()
+	file := filepath.Join(t.TempDir(), "token")
+	_ = os.WriteFile(file, []byte("the-jwt\n"), 0o600)
+	s, err := LoginKubernetes(context.Background(), srv.URL, "k8s-prod", "gaia", file, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != "/v1/auth/k8s-prod/login" || got["role"] != "gaia" || got["jwt"] != "the-jwt" || s.Token() != "k8s-token" {
+		t.Errorf("path %s, body %v, token %s", path, got, s.Token())
+	}
+	if _, err := LoginKubernetes(context.Background(), srv.URL, "k8s-prod", "gaia", filepath.Join(t.TempDir(), "none"), nil); err == nil {
+		t.Error("a login without a service account token")
 	}
 }

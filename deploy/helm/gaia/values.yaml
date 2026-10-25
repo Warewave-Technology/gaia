@@ -1,0 +1,93 @@
+# Gaia on Kubernetes (design 13.3). The database is outside the chart;
+# the chart writes no Secret with a secret in it.
+
+image:
+  repository: nexus.example.com/gaia/gaia
+  tag: ""            # the chart's appVersion when empty
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# One Deployment running everything, or the API and the workers apart.
+split: false
+
+api:
+  replicas: 2
+  resources: {}
+worker:
+  replicas: 1
+  workers: 2         # runs at once per worker pod
+  resources: {}
+  # How long a pod gets to let its runs finish when it stops.
+  terminationGracePeriodSeconds: 330
+
+server:
+  repo: ""           # --repo: the platform repository
+  repoCredentials: "" # --repo-credentials: bao://...
+  args: []           # more flags for every role
+
+# The DSN of the gaia_app role, from a Secret something else manages
+# (external-secrets, a CSI driver), or a file an OpenBao agent writes.
+database:
+  existingSecret: ""
+  key: dsn
+  file: ""           # GAIA_DSN_FILE, e.g. /vault/secrets/dsn
+
+# gaia migrate, as a pre-install / pre-upgrade hook, with the schema owner.
+migrate:
+  enabled: true
+  existingSecret: ""
+  key: dsn
+  file: ""
+
+openbao:
+  addr: ""
+  # Kubernetes auth: the pods log in with their service account.
+  kubernetesRole: gaia
+  mount: kubernetes
+
+podAnnotations: {}   # e.g. OpenBao Agent Injector annotations
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile: { type: RuntimeDefault }
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: [ALL] }
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Each Ansible run is a pod of its own in the release's namespace; the
+# workers' service account may create and delete pods there, nothing else.
+ansible:
+  rbac: true
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  host: gaia.example.com
+  annotations: {}
+  tls: []
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpu: 70
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
