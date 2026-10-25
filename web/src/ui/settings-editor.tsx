@@ -1,101 +1,23 @@
-// Editing Gaia's settings (design 17.3): a modal with a form for the
-// common kinds and the YAML for every kind. Saving proposes a settings
-// change; Gaia checks it first and shows what is wrong and which
-// contracts' plans it changes.
+// Editing Gaia's settings (design 17.3) without YAML: a form made from the
+// kind's schema, then a review of what changes field by field, which
+// contracts' plans it changes, and a summary for the approver. The YAML
+// is there for whoever asks for it.
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { isMap, isSeq, parseDocument, type Document } from "yaml";
+import { parse, stringify } from "yaml";
 import { api, ApiError } from "../api/client";
 import { hasRole, useSession } from "../api/session";
 import { useSettings } from "../api/objects";
+import { useSchema, type Field } from "../api/schema";
 import { checkSettings, propose, type Check, type Edit } from "../api/proposals";
 import { Icon } from "./icons";
-import { Badge, Button, Hint } from "./parts";
+import { Badge, Button, Loading } from "./parts";
 import { Modal } from "./modal";
 import { kindOf, objectPath } from "./kinds";
+import { FieldDiff, fieldDiff, prune, SpecForm } from "./spec";
 
-type Field = {
-  path: string[];
-  label: string;
-  type?: "text" | "number" | "list" | "bool" | "select";
-  options?: string[];
-  hint?: string;
-  placeholder?: string;
-  mono?: boolean;
-};
-
-const s = (...p: string[]) => ["spec", ...p];
-
-// FORMS are the fields a form shows; the rest of an object stays as its
-// YAML says.
-const FORMS: Record<string, { fields: Field[]; note?: string }> = {
-  Size: { fields: [
-    { path: s("cpu"), label: "vCPU", type: "number" },
-    { path: s("memoryGiB"), label: "Bellek (GiB)", type: "number" },
-    { path: s("diskGiB"), label: "Disk (GiB)", type: "number" },
-  ] },
-  Network: { fields: [
-    { path: s("site"), label: "Site" },
-    { path: s("ipam", "provider"), label: "IPAM provider'ı" },
-    { path: s("ipam", "pool"), label: "IPAM havuzu", mono: true, placeholder: "10.50.0.0/24" },
-    { path: s("gateway"), label: "Ağ geçidi", mono: true },
-    { path: s("attachment", "portgroup"), label: "vSphere portgroup", hint: "Bağlantı: portgroup, bridge (VLAN ile) ya da vnet'ten biri." },
-    { path: s("attachment", "bridge"), label: "Proxmox bridge" },
-    { path: s("attachment", "vlan"), label: "VLAN", type: "number" },
-    { path: s("attachment", "vnet"), label: "Proxmox SDN VNet" },
-    { path: s("dns", "servers"), label: "DNS sunucuları", type: "list", mono: true },
-    { path: s("allowedEnvironments"), label: "Ortamlar", type: "list", hint: "Boşsa her ortam kullanabilir." },
-    { path: s("description"), label: "Açıklama" },
-  ] },
-  Site: { fields: [
-    { path: s("compute", "provider"), label: "Compute provider'ı" },
-    { path: s("compute", "datacenter"), label: "Datacenter (vSphere)" },
-    { path: s("compute", "cluster"), label: "Küme" },
-    { path: s("compute", "folder"), label: "Klasör (vSphere)" },
-    { path: s("compute", "nodes"), label: "Node'lar (Proxmox)", type: "list" },
-    { path: s("compute", "pool"), label: "Havuz (Proxmox)" },
-    { path: s("ntp"), label: "NTP sunucuları", type: "list", mono: true },
-    { path: s("zabbixProxy"), label: "Zabbix proxy" },
-  ], note: "Depolama ve VM ID aralığı YAML görünümünde." },
-  Image: { fields: [
-    { path: s("os"), label: "İşletim sistemi", type: "select", options: ["linux", "windows"] },
-    { path: s("connection"), label: "Bağlantı", type: "select", options: ["ssh", "winrm"] },
-  ], note: "Şablonlar YAML görünümünde." },
-  Group: { fields: [
-    { path: s("description"), label: "Açıklama" },
-    { path: s("teams"), label: "Takımlar", type: "list" },
-    { path: s("groups"), label: "Gruplar", type: "list", hint: "İçine aldığı başka erişim grupları." },
-    { path: s("owner"), label: "Sahip takım" },
-    { path: s("privileged"), label: "Ayrıcalıklı", type: "bool", hint: "Ayrıcalıklı gruba verilen sudo platform-admin onayı ister." },
-  ] },
-  Team: { fields: [
-    { path: s("displayName"), label: "Görünen ad" },
-    { path: s("adGroup", "dn"), label: "Dizin grubu (DN)", mono: true },
-    { path: s("approversGroup", "dn"), label: "Onaycıların dizin grubu (DN)", mono: true },
-    { path: s("secrets", "prefix"), label: "Sır öneki", mono: true, placeholder: "kv/teams/web/" },
-  ], note: "Bildirim abonelikleri YAML görünümünde." },
-  Provider: { fields: [
-    { path: s("type"), label: "Tür", type: "select", options: ["activedirectory", "git", "ipam", "msteams", "nexus", "openbao", "postgres", "proxmox", "s3", "slack", "smtp", "vsphere", "warpgate", "webhook", "zabbix"] },
-    { path: s("endpoint"), label: "Adres", mono: true },
-    { path: s("url"), label: "URL (git)", mono: true },
-    { path: s("credentials"), label: "Kimlik bilgisi", mono: true, placeholder: "bao://kv/platform/…", hint: "Sadece OpenBao referansı; sırrın kendisi buraya yazılmaz." },
-  ] },
-};
-
-const NEW_SPEC: Record<string, string> = {
-  Size: "spec:\n  cpu: 2\n  memoryGiB: 4\n  diskGiB: 40\n",
-  Network: "spec:\n  site:\n  attachment: {}\n  ipam:\n    provider:\n    pool:\n",
-  Site: "spec:\n  compute:\n    provider:\n",
-  Image: "spec:\n  os: linux\n  connection: ssh\n  templates: []\n",
-  Group: "spec:\n  teams: []\n  owner:\n",
-  Team: "spec:\n  displayName:\n",
-  Provider: "spec:\n  type:\n",
-};
-
-function template(kind: string): string {
-  return `apiVersion: gaia/v1alpha1\nkind: ${kind}\nmetadata:\n  name:\n${NEW_SPEC[kind] ?? "spec: {}\n"}`;
-}
+type Obj = Record<string, unknown>;
 
 // useCanPropose says whether the person may propose settings changes:
 // operators and platform admins, once the settings store is in use.
@@ -105,73 +27,38 @@ export function useCanPropose(): boolean {
   return !!settings.data?.current && (hasRole(session, "operator") || hasRole(session, "platform-admin"));
 }
 
-function read(doc: Document, path: string[]): unknown {
-  const v = doc.getIn(path, false) as unknown;
-  if (isSeq(v)) return v.toJSON();
-  if (isMap(v)) return v.toJSON();
-  return v;
-}
-
-function FieldInput({ f, doc, set }: { f: Field; doc: Document; set: (v: unknown) => void }) {
-  const v = read(doc, f.path);
-  const label = <span>{f.label}{f.hint && <Hint width={260}>{f.hint}</Hint>}</span>;
-  if (f.type === "bool") {
-    return (
-      <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <input type="checkbox" checked={v === true} onChange={(e) => set(e.target.checked ? true : undefined)} />
-        {label}
-      </label>
-    );
-  }
-  if (f.type === "select") {
-    return (
-      <label className="field">{label}
-        <select className="input" value={typeof v === "string" ? v : ""} onChange={(e) => set(e.target.value || undefined)}>
-          <option value="">–</option>
-          {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </label>
-    );
-  }
-  if (f.type === "list") {
-    const text = Array.isArray(v) ? v.join(", ") : "";
-    return (
-      <label className="field">{label}
-        <input className={f.mono ? "input mono" : "input"} defaultValue={text} placeholder="virgülle ayırın"
-          onBlur={(e) => { const xs = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); set(xs.length ? xs : undefined); }} />
-      </label>
-    );
-  }
-  return (
-    <label className="field">{label}
-      <input className={f.mono ? "input mono" : "input"} type={f.type === "number" ? "number" : "text"} value={v === undefined || v === null ? "" : String(v)} placeholder={f.placeholder}
-        onChange={(e) => { const t = e.target.value; set(t === "" ? undefined : f.type === "number" ? Number(t) : t); }} />
-    </label>
-  );
-}
+const LABELS_FIELD: Field = { key: "labels", type: "map", items: { type: "string" } };
 
 function CheckResult({ c }: { c: Check }) {
+  if (c.errors.length > 0) {
+    return (
+      <div className="notice err" role="alert" style={{ margin: 0 }}>
+        <b>This change cannot be submitted yet.</b>
+        <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>{c.errors.map((e) => <li key={e}>{e}</li>)}</ul>
+      </div>
+    );
+  }
   return (
-    <div className="check" aria-live="polite">
-      {c.errors.length > 0 ? (
-        <div className="notice err" role="alert" style={{ margin: 0 }}>
-          <b>Bu haliyle önerilemez.</b>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>{c.errors.map((e) => <li key={e}>{e}</li>)}</ul>
-        </div>
-      ) : (
-        <div className="notice" style={{ margin: 0 }}>
-          <span className="il"><Icon name="check-circle" size={15} color="var(--green)" />Ayarlar bu değişiklikle yükleniyor.</span>
-          <div style={{ marginTop: 6 }}>
-            {c.impact.length === 0 ? <span className="muted">Hiçbir kontratın planı değişmiyor.</span> : (
-              <>
-                <span className="muted">Planı değişecek kontratlar ({c.impact.length}); uygulanınca her biri için olağan bir Change açılır:</span>
-                <span className="row" style={{ gap: 6, marginTop: 6 }}>{c.impact.map((i) => <Link key={i.contract} to={objectPath("Server", i.contract)} className="badge gray"><Icon name="file" size={12} />{i.contract}</Link>)}</span>
-              </>
-            )}
-          </div>
-          {c.critical && <div style={{ marginTop: 8 }}><Badge tone="orange" icon="shield">platform-admin onayı</Badge> <span className="muted">{c.whyCritical?.join("; ")}</span></div>}
-        </div>
-      )}
+    <div className="review-grid">
+      <div className="review-cell">
+        <span className="label-caps">Validation</span>
+        <span className="il"><Icon name="check-circle" size={15} color="var(--green)" />The settings load with this change.</span>
+      </div>
+      <div className="review-cell">
+        <span className="label-caps">Affected contracts</span>
+        {c.impact.length === 0 ? <span className="muted">No contract's plan changes.</span> : (
+          <>
+            <span className="row" style={{ gap: 6 }}>{c.impact.map((i) => <Link key={i.contract} to={objectPath("Server", i.contract)} className="badge gray"><Icon name="file" size={12} />{i.contract}</Link>)}</span>
+            <span className="faint" style={{ fontSize: 12 }}>Once applied, each gets its own change, approved as usual.</span>
+          </>
+        )}
+      </div>
+      <div className="review-cell">
+        <span className="label-caps">Approval</span>
+        {c.critical
+          ? <span><Badge tone="orange" icon="shield">platform admin</Badge> <span className="muted" style={{ fontSize: 13 }}>{c.whyCritical?.join("; ")}</span></span>
+          : <span className="muted">A settings approver or a platform admin, not you.</span>}
+      </div>
     </div>
   );
 }
@@ -183,37 +70,61 @@ export function SettingsEditor({ kind, name, onClose }: { kind: string; name?: s
     queryFn: () => api<{ yaml: string }>(`/catalog/${encodeURIComponent(kind)}/${encodeURIComponent(name ?? "")}`),
     enabled: !!name,
   });
-  if (name && current.isPending) return null;
-  return <Editor kind={kind} name={name} initial={name ? current.data?.yaml ?? "" : template(kind)} onClose={onClose} />;
+  const schema = useSchema(kind);
+  if ((name && current.isPending) || schema.isPending) return <Modal title={name ? `Edit ${kind} ${name}` : `New ${kind}`} icon={kindOf(kind).icon} onClose={onClose} width={880}><Loading /></Modal>;
+  const initial: Obj = name ? (parse(current.data?.yaml ?? "") as Obj) : { apiVersion: "gaia/v1alpha1", kind, metadata: { name: "" }, spec: {} };
+  return <Editor kind={kind} name={name} initial={initial} schema={schema.data ?? { type: "object" }} onClose={onClose} />;
 }
 
-function Editor({ kind, name, initial, onClose }: { kind: string; name?: string; initial: string; onClose: () => void }) {
-  const form = FORMS[kind];
-  const [view, setView] = useState<"form" | "yaml">(form ? "form" : "yaml");
-  const [text, setText] = useState(initial);
-  const [title, setTitle] = useState("");
+function Editor({ kind, name, initial, schema, onClose }: { kind: string; name?: string; initial: Obj; schema: Field; onClose: () => void }) {
+  const [obj, setObj] = useState<Obj>(initial);
+  const [step, setStep] = useState<"edit" | "review">("edit");
+  const [yaml, setYaml] = useState<string | null>(null);
+  const [yamlError, setYamlError] = useState<string | null>(null);
+  const [summary, setSummary] = useState("");
   const [reason, setReason] = useState("");
   const [check, setCheck] = useState<Check | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
   const nav = useNavigate();
-  const doc = parseDocument(text);
-  const parseError = doc.errors[0]?.message;
-  const objName = String(read(doc, ["metadata", "name"]) ?? "");
-  const set = (path: string[], v: unknown) => {
-    const d = parseDocument(text);
-    if (v === undefined) d.deleteIn(path);
-    else d.setIn(path, v);
-    setText(d.toString());
-    setCheck(null);
+  const meta = (obj.metadata ?? {}) as Obj;
+  const spec = (obj.spec ?? {}) as Obj;
+  const objName = String(meta.name ?? "");
+  const final = (): string => stringify(prune(obj));
+  const edits = (): Edit[] => [{ yaml: final() }];
+
+  const showYAML = (on: boolean) => {
+    if (on) {
+      setYaml(final());
+      return;
+    }
+    try {
+      const v = parse(yaml ?? "");
+      setObj(v as Obj);
+      setYaml(null);
+      setYamlError(null);
+    } catch (e) {
+      setYamlError(e instanceof Error ? e.message : String(e));
+    }
   };
-  const edits = (): Edit[] => [{ yaml: text }];
-  const runCheck = async () => {
+  const review = async () => {
+    let current = obj;
+    if (yaml !== null) {
+      try {
+        current = parse(yaml) as Obj;
+        setObj(current);
+        setYaml(null);
+      } catch (e) {
+        setYamlError(e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
     setBusy(true);
     setError(null);
     try {
-      setCheck(await checkSettings(edits()));
+      setCheck(await checkSettings([{ yaml: stringify(prune(current)) }]));
+      setStep("review");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -222,10 +133,14 @@ function Editor({ kind, name, initial, onClose }: { kind: string; name?: string;
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (step === "edit") {
+      await review();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const p = await propose(title || `${kind}/${objName}: ${name ? "güncelle" : "ekle"}`, reason, edits());
+      const p = await propose(summary.trim() || defaultSummary, reason, edits());
       void qc.invalidateQueries({ queryKey: ["proposals"] });
       onClose();
       nav(`/changes/settings/${encodeURIComponent(p.id)}`);
@@ -237,89 +152,115 @@ function Editor({ kind, name, initial, onClose }: { kind: string; name?: string;
     }
   };
   const k = kindOf(kind);
+  const defaultSummary = `${name ? "Update" : "Add"} ${kind} ${objName || "…"}`;
+  const diff = [...fieldDiff(initial.spec, prune(spec)), ...fieldDiff({ labels: (initial.metadata as Obj | undefined)?.labels }, { labels: meta.labels })];
+  const footer: ReactNode = step === "edit" ? (
+    <>
+      <Button icon="code" onClick={() => showYAML(yaml === null)} title="See or edit this object as YAML">{yaml === null ? "YAML" : "Form"}</Button>
+      <span style={{ flex: 1 }} />
+      <Button onClick={onClose} disabled={busy}>Cancel</Button>
+      <Button type="submit" kind="primary" icon="arrow" disabled={busy || !objName}>{busy ? "Checking…" : "Review"}</Button>
+    </>
+  ) : (
+    <>
+      <Button icon="back" onClick={() => setStep("edit")} disabled={busy}>Back</Button>
+      <span style={{ flex: 1 }} />
+      <Button onClick={onClose} disabled={busy}>Cancel</Button>
+      <Button type="submit" kind="primary" icon="pr" disabled={busy || !check || check.errors.length > 0}>{busy ? "Submitting…" : "Submit for approval"}</Button>
+    </>
+  );
   return (
-    <Modal title={name ? `${kind}/${name} düzenle` : `Yeni ${kind}`} icon={k.icon} onClose={onClose} onSubmit={submit} width={760}
-      footer={<>
-        <Button onClick={onClose} disabled={busy}>Vazgeç</Button>
-        <Button icon="check-circle" onClick={runCheck} disabled={busy || !!parseError}>Kontrol et</Button>
-        <Button type="submit" kind="primary" icon="pr" disabled={busy || !!parseError || !objName}>{busy ? "Bekleniyor…" : "Öner"}</Button>
-      </>}>
-      <p className="muted" style={{ margin: 0 }}>Kaydetmek bir <b className="term">ayar değişikliği</b> önerir: Gaia önce kontrol eder, sonra bir onaycı (siz değil) onaylayınca yeni ayar sürümü olur.</p>
-      <div className="spread">
-        <span className="label-caps">Nesne</span>
-        {form && (
-          <div className="chips" role="tablist" aria-label="Görünüm">
-            <button type="button" role="tab" className="chip" aria-pressed={view === "form"} aria-selected={view === "form"} disabled={!!parseError} onClick={() => setView("form")}><Icon name="plan" size={14} />Form</button>
-            <button type="button" role="tab" className="chip" aria-pressed={view === "yaml"} aria-selected={view === "yaml"} onClick={() => setView("yaml")}><Icon name="code" size={14} />YAML</button>
-          </div>
-        )}
-      </div>
-      {view === "form" && form && !parseError ? (
-        <>
-          <div className="form-grid">
-            <label className="field">
-              <span>Ad</span>
-              <input className="input mono" value={objName} readOnly={!!name} onChange={(e) => set(["metadata", "name"], e.target.value)} required />
-            </label>
-            {form.fields.map((f) => <FieldInput key={f.path.join(".")} f={f} doc={doc} set={(v) => set(f.path, v)} />)}
-          </div>
-          {form.note && <span className="faint" style={{ fontSize: 13 }}>{form.note}</span>}
-        </>
+    <Modal title={step === "edit" ? (name ? `Edit ${kind} ${name}` : `New ${kind}`) : "Review the change"} icon={k.icon} onClose={onClose} onSubmit={submit} width={880} footer={footer}>
+      <ol className="steps" aria-label="Steps">
+        <li className={step === "edit" ? "on" : "done"}><span>1</span>Edit</li>
+        <li className={step === "review" ? "on" : ""}><span>2</span>Review and submit</li>
+      </ol>
+      {step === "edit" ? (
+        yaml !== null ? (
+          <label className="field">
+            <span>YAML <span className="faint">— the same object, as it is stored</span></span>
+            <textarea className="input mono" rows={18} spellCheck={false} value={yaml} onChange={(e) => setYaml(e.target.value)} />
+            {yamlError && <span className="error">{yamlError}</span>}
+          </label>
+        ) : (
+          <>
+            <section className="sf-section" style={{ borderTop: 0, paddingTop: 0 }}>
+              <div className="sf-head"><h3>{kind}</h3><p className="sf-help">{k.text}</p></div>
+              <div className="sf-grid">
+                <div className="sf-field">
+                  <label className="sf-label" htmlFor="obj-name">Name<span className="sf-req">*</span></label>
+                  <input id="obj-name" className="input mono" value={objName} readOnly={!!name} required pattern="[a-z0-9]([a-z0-9.\-]*[a-z0-9])?"
+                    onChange={(e) => setObj({ ...obj, metadata: { ...meta, name: e.target.value } })} />
+                  <p className="sf-help">{name ? "An object keeps its name." : "Lowercase letters, digits, dots and dashes."}</p>
+                </div>
+              </div>
+            </section>
+            <SpecForm kind={kind} schema={schema} spec={spec} onChange={(s) => setObj({ ...obj, spec: s })} />
+            <SpecForm kind={kind} schema={{ type: "object", fields: [LABELS_FIELD] }} spec={meta} onChange={(m) => setObj({ ...obj, metadata: m })} />
+          </>
+        )
       ) : (
-        <label className="field">
-          <span>YAML</span>
-          <textarea className="input mono" rows={16} spellCheck={false} value={text} onChange={(e) => { setText(e.target.value); setCheck(null); }} />
-          {parseError && <span className="error">{parseError}</span>}
-        </label>
+        <>
+          <section className="review-section">
+            <h3>What changes</h3>
+            <div className="card"><FieldDiff rows={diff} /></div>
+          </section>
+          {check && <section className="review-section"><h3>Checks</h3><CheckResult c={check} /></section>}
+          <section className="review-section">
+            <h3>Describe it for the approver</h3>
+            <div className="sf-grid">
+              <div className="sf-field">
+                <label className="sf-label" htmlFor="summary">Summary</label>
+                <input id="summary" className="input" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder={defaultSummary} />
+                <p className="sf-help">One line; it is how the change is listed.</p>
+              </div>
+              <div className="sf-field">
+                <label className="sf-label" htmlFor="reason">Reason</label>
+                <input id="reason" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why this change is needed" />
+                <p className="sf-help">What the approver should know before deciding.</p>
+              </div>
+            </div>
+          </section>
+        </>
       )}
-      <div className="modal-section">
-        <span className="label-caps">Öneri</span>
-        <div className="form-grid two">
-          <label className="field"><span>Başlık</span><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`${kind}/${objName || "…"}: ${name ? "güncelle" : "ekle"}`} /></label>
-          <label className="field"><span>Neden</span><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Onaycının bilmesi gereken" /></label>
-        </div>
-      </div>
-      {check && <CheckResult c={check} />}
       {error && <div className="error" role="alert">{error}</div>}
     </Modal>
   );
 }
 
-// RemoveSetting proposes removing an object.
+// RemoveSetting proposes removing an object, after showing what uses it.
 export function RemoveSetting({ kind, name, onClose }: { kind: string; name: string; onClose: () => void }) {
   const [reason, setReason] = useState("");
-  const [check, setCheck] = useState<Check | null>(null);
+  const edits: Edit[] = [{ kind, name, delete: true }];
+  const check = useQuery({ queryKey: ["check-remove", kind, name], queryFn: () => checkSettings(edits) });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
   const qc = useQueryClient();
-  const edits: Edit[] = [{ kind, name, delete: true }];
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const p = await propose(`${kind}/${name}: kaldır`, reason, edits);
+      const p = await propose(`Remove ${kind} ${name}`, reason, edits);
       void qc.invalidateQueries({ queryKey: ["proposals"] });
       onClose();
       nav(`/changes/settings/${encodeURIComponent(p.id)}`);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 422) setCheck((e.data as { check: Check }).check);
-      else setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   };
   return (
-    <Modal title={`${kind}/${name} kaldır`} icon="x" tone="red" onClose={onClose} onSubmit={submit} width={560}
-      footer={<>
-        <Button onClick={onClose} disabled={busy}>Vazgeç</Button>
-        <Button icon="check-circle" disabled={busy} onClick={async () => setCheck(await checkSettings(edits).catch(() => null))}>Kontrol et</Button>
-        <Button type="submit" kind="solid-danger" icon="pr" disabled={busy}>{busy ? "Bekleniyor…" : "Kaldırmayı öner"}</Button>
-      </>}>
-      <p className="muted" style={{ margin: 0 }}>Kaldırmak da bir ayar değişikliğidir: onaylanınca yeni sürümde bu nesne olmaz. Kullanan bir şey varsa Gaia önermeye izin vermez.</p>
-      <label className="field"><span>Neden</span><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-      {check && <CheckResult c={check} />}
+    <Modal title={`Remove ${kind} ${name}`} icon="x" tone="red" onClose={onClose} onSubmit={submit} width={640}
+      footer={<><Button onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" kind="solid-danger" icon="pr" disabled={busy || !check.data || check.data.errors.length > 0}>{busy ? "Submitting…" : "Submit for approval"}</Button></>}>
+      <p className="muted" style={{ margin: 0 }}>Removing is a settings change too: once approved, the next settings version does not have this object. Gaia does not let you remove what something still uses.</p>
+      {check.isPending ? <Loading /> : check.data && <CheckResult c={check.data} />}
+      <div className="sf-field">
+        <label className="sf-label" htmlFor="remove-reason">Reason</label>
+        <input id="remove-reason" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why it is no longer needed" />
+      </div>
       {error && <div className="error" role="alert">{error}</div>}
     </Modal>
   );
@@ -333,25 +274,25 @@ export function AddButton({ kind, label }: { kind: string; label?: string }) {
   if (!can) return null;
   return (
     <>
-      <Button icon="plus" onClick={() => setOpen(true)}>{label ?? "Ekle"}</Button>
+      <Button icon="plus" onClick={() => setOpen(true)}>{label ?? `Add ${kind}`}</Button>
       {open && <SettingsEditor kind={kind} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-// EditButtons are an object page's edit and remove, for settings kinds.
 // SINGLE are the kinds there is one of: changed, never removed.
 const SINGLE = new Set(["AuthConfig", "Platform", "Policy"]);
 
+// EditButtons are an object's edit and remove, for settings kinds.
 export function EditButtons({ kind, name, generatedBy }: { kind: string; name: string; generatedBy?: string }): ReactNode {
   const can = useCanPropose();
   const [open, setOpen] = useState<"edit" | "remove" | null>(null);
   if (!can) return null;
-  const locked = generatedBy ? `${generatedBy} üretiyor; kaynağında değiştirin` : undefined;
+  const locked = generatedBy ? `${generatedBy} writes this object; change it at its source` : undefined;
   return (
     <span className="row">
-      <Button icon="pencil" onClick={() => setOpen("edit")} disabled={!!locked} title={locked}>Düzenle</Button>
-      {!SINGLE.has(kind) && <Button kind="danger" icon="x" onClick={() => setOpen("remove")} disabled={!!locked} title={locked}>Kaldır</Button>}
+      <Button icon="pencil" onClick={() => setOpen("edit")} disabled={!!locked} title={locked}>Edit</Button>
+      {!SINGLE.has(kind) && <Button kind="danger" icon="x" onClick={() => setOpen("remove")} disabled={!!locked} title={locked}>Remove</Button>}
       {open === "edit" && <SettingsEditor kind={kind} name={name} onClose={() => setOpen(null)} />}
       {open === "remove" && <RemoveSetting kind={kind} name={name} onClose={() => setOpen(null)} />}
     </span>

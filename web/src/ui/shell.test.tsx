@@ -12,14 +12,14 @@ describe("shell", () => {
     });
     renderAt("/runs");
     expect(await screen.findByText("ayse.k")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Run'lar/ })).toHaveClass("active");
-    expect(await screen.findByTitle("Onay bekleyen değişiklik")).toHaveTextContent("1");
+    expect(screen.getByRole("link", { name: /Runs/ })).toHaveClass("active");
+    expect(await screen.findByTitle("Changes awaiting approval")).toHaveTextContent("1");
   });
 
   it("runs without a person on an open server", async () => {
     fakeAPI({ "GET /changes?open=true&limit=500": { body: [] } });
     renderAt("/");
-    expect(await screen.findByText("kimlik doğrulama kapalı")).toBeInTheDocument();
+    expect(await screen.findByText("sign-in off")).toBeInTheDocument();
   });
 
   it("sends a signed-out browser to the sign-in page", async () => {

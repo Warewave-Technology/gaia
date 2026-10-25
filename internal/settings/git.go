@@ -95,7 +95,7 @@ func ImportGit(ctx context.Context, s *Store, m *repo.Mirrors, platform repo.Rev
 	if _, err := m.GraphWithSettings(ctx, snap, as); err != nil {
 		return 0, fmt.Errorf("the settings in Git do not load on their own: %w", err)
 	}
-	reason := fmt.Sprintf("Git'ten içeri alındı: %s@%s", platform.Name, snap.Platform.Commit)
+	reason := fmt.Sprintf("Imported from Git: %s@%s", platform.Name, snap.Platform.Commit)
 	d, err := s.Write(ctx, Write{Changes: changes, Author: "gaia", Reason: reason,
 		Audit: audit.Entry{Action: "settings.import", Detail: map[string]string{"commit": snap.Platform.Commit}}})
 	return d.Version, err

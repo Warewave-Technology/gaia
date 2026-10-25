@@ -20,7 +20,7 @@ export type CatalogList = { commit: string; objects: CatalogObj[] };
 
 export function useObjects(kinds: string[]) {
   const k = kinds.join(",");
-  return useQuery({ queryKey: ["catalog", "spec", k], queryFn: () => api<CatalogList>(`/catalog?kind=${k}&spec=1`) });
+  return useQuery({ queryKey: ["catalog", "spec", k], queryFn: () => api<CatalogList>(`/catalog?kind=${k}&spec=1`), enabled: kinds.length > 0 });
 }
 
 // field reads a dotted path from a spec ("compute.provider").

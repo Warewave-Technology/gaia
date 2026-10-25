@@ -21,28 +21,36 @@ type Notes = { email: string; emailEditable: boolean; triggers: string[]; availa
 // What each trigger is, grouped as the list shows them.
 const TRIGGERS: { group: string; items: Record<string, { label: string; text: string }> }[] = [
   {
-    group: "Değişiklikler",
+    group: "Changes",
     items: {
-      "change.pending": { label: "Onay bekliyor", text: "Onaylayabileceğiniz bir değişiklik açıldı." },
-      "change.approved": { label: "Onaylar tamamlandı", text: "Değişikliğin gereken onayları geldi; uygulanacak." },
-      "change.rejected": { label: "Reddedildi", text: "Bir onaycı değişikliği reddetti." },
-      "change.applied": { label: "Uygulandı", text: "Değişikliğin run'ı başarıyla bitti." },
-      "change.failed": { label: "Başarısız", text: "Değişikliğin run'ı hata verdi ya da iptal edildi." },
-      "approval.expiring": { label: "Onayın süresi doluyor", text: "Onaylanmış bir değişiklik bakım penceresi içinde çalışamayabilir." },
+      "change.pending": { label: "Awaiting approval", text: "A change you may approve was opened." },
+      "change.approved": { label: "Approved", text: "A change has the approvals it needs and will be applied." },
+      "change.rejected": { label: "Rejected", text: "An approver rejected a change." },
+      "change.applied": { label: "Applied", text: "A change's run finished successfully." },
+      "change.failed": { label: "Failed", text: "A change's run failed or was cancelled." },
+      "approval.expiring": { label: "Approval expiring", text: "An approved change may not run within its maintenance window." },
     },
   },
   {
-    group: "Sunucular ve erişim",
+    group: "Settings",
     items: {
-      "drift.found": { label: "Sapma bulundu", text: "Gerçek kaynak Git'teki tanımdan ayrıldı." },
-      "access.privileged": { label: "Ayrıcalıklı gruba ekleme", text: "AD'de biri ayrıcalıklı bir gruptaki takıma eklendi." },
+      "settings.pending": { label: "Settings change awaiting approval", text: "A settings change was proposed." },
+      "settings.applied": { label: "Settings change applied", text: "A settings change became a new settings version." },
+      "settings.rejected": { label: "Settings change rejected", text: "An approver rejected a settings change." },
+    },
+  },
+  {
+    group: "Servers and access",
+    items: {
+      "drift.found": { label: "Drift found", text: "A real resource no longer matches what Git says." },
+      "access.privileged": { label: "Added to a privileged group", text: "The directory added someone to a team in a privileged group." },
     },
   },
 ];
 
 export function message(e: unknown): string {
   if (e instanceof ApiError) return e.message;
-  if (e instanceof Error && e.name === "NotAllowedError") return "Passkey işlemi iptal edildi ya da zaman aşımına uğradı.";
+  if (e instanceof Error && e.name === "NotAllowedError") return "The passkey prompt was cancelled or timed out.";
   return e instanceof Error ? e.message : String(e);
 }
 
@@ -52,15 +60,15 @@ export function Profile() {
   const { me, open } = useSession();
   const strong = useStrong();
   if (open || !me) {
-    return <Page crumbs="Profil"><h1>Profil</h1><div className="notice warn">Bu sunucuda kimlik doğrulama kapalı; profil yok.</div></Page>;
+    return <Page crumbs="Profile"><h1>Profile</h1><div className="notice warn">Sign-in is off on this server; there is no profile.</div></Page>;
   }
   return (
-    <Page crumbs="Profil">
+    <Page crumbs="Profile">
       <div className="title-row">
         <span style={{ color: "var(--fg2)" }}><Icon name="user" size={22} /></span>
         <h1>{me.username}</h1>
         {me.roles.map((r) => <Badge key={r} tone={r === "platform-admin" ? "orange" : r === "operator" ? "yellow" : "gray"}>{r}</Badge>)}
-        <Hint>Roller takım üyeliklerinizden gelir (Policy'deki gaiaRoles). Takımlarınız AD'den eşitlenir.</Hint>
+        <Hint>Your roles come from your teams (the Policy's gaiaRoles). Your teams come from the directory.</Hint>
         <span className="muted">{me.teams.join(", ")}</span>
       </div>
       {strong.prompt}
@@ -102,7 +110,7 @@ function Confirm({ title, children, action, onClose, run }: { title: string; chi
   };
   return (
     <Modal title={title} icon="alert" tone="red" onClose={onClose} onSubmit={submit}
-      footer={<><Button onClick={onClose} disabled={a.busy}>Vazgeç</Button><Button type="submit" kind="solid-danger" icon="x" disabled={a.busy}>{a.busy ? "Bekleniyor…" : action}</Button></>}>
+      footer={<><Button onClick={onClose} disabled={a.busy}>Cancel</Button><Button type="submit" kind="solid-danger" icon="x" disabled={a.busy}>{a.busy ? "Waiting…" : action}</Button></>}>
       <div>{children}</div>
       {a.error && <div className="error" role="alert">{a.error}</div>}
     </Modal>
@@ -114,32 +122,32 @@ function Sessions() {
   const q = useQuery({ queryKey: ["me", "sessions"], queryFn: () => api<SessionRow[]>("/me/sessions") });
   const [closing, setClosing] = useState<SessionRow | null>(null);
   return (
-    <Card title="Oturumlar" icon="key" hint="Açık tarayıcı ve CLI oturumlarınız. Tanımadığınız bir oturumu kapatın; kapanan oturumun token'ı anında geçersiz olur.">
+    <Card title="Sessions" icon="key" hint="Your open browser and CLI sessions. Close one you do not recognise; its token stops working at once.">
       {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : (
         <table className="grid">
-          <thead><tr><th>Tür</th><th>Adres</th><th>Tarayıcı / araç</th><th>Açıldı</th><th>Son görülme</th><th>Bitiş</th><th /></tr></thead>
+          <thead><tr><th>Kind</th><th>Address</th><th>Browser / tool</th><th>Opened</th><th>Last seen</th><th>Expires</th><th /></tr></thead>
           <tbody>
             {q.data.map((s) => (
               <tr key={s.id}>
-                <td><span className="row" style={{ gap: 6 }}><IL icon={s.kind === "ui" ? "grid" : "terminal"} size={14} weight={400}>{s.kind === "ui" ? "Arayüz" : "CLI"}</IL>{s.current && <Badge tone="green">bu oturum</Badge>}</span></td>
+                <td><span className="row" style={{ gap: 6 }}><IL icon={s.kind === "ui" ? "grid" : "terminal"} size={14} weight={400}>{s.kind === "ui" ? "Browser" : "CLI"}</IL>{s.current && <Badge tone="green">this session</Badge>}</span></td>
                 <td className="mono">{s.ip ?? "–"}</td>
                 <td className="muted" style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={s.userAgent}>{s.userAgent ?? "–"}</td>
                 <td className="muted">{stamp(s.createdAt)}</td>
                 <td className="muted">{ago(s.lastSeenAt)}</td>
                 <td className="muted">{stamp(s.expiresAt)}</td>
-                <td style={{ textAlign: "right" }}><Button kind="danger" icon="x" onClick={() => setClosing(s)}>Kapat</Button></td>
+                <td style={{ textAlign: "right" }}><Button kind="danger" icon="x" onClick={() => setClosing(s)}>Close</Button></td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
       {closing && (
-        <Confirm title="Oturumu kapat" action="Oturumu kapat" onClose={() => setClosing(null)} run={async () => {
+        <Confirm title="Close the session" action="Close the session" onClose={() => setClosing(null)} run={async () => {
           await api(`/me/sessions/${encodeURIComponent(closing.id)}`, { method: "DELETE" });
           if (closing.current) window.location.assign("/login");
           await qc.invalidateQueries({ queryKey: ["me", "sessions"] });
         }}>
-          {closing.current ? "Bu, şu an kullandığınız oturum; kapatınca giriş sayfasına dönersiniz." : <>{closing.kind === "ui" ? "Arayüz" : "CLI"} oturumu (<Mono>{closing.ip ?? "adres yok"}</Mono>) hemen geçersiz olur.</>}
+          {closing.current ? "This is the session you are using; closing it takes you to the sign-in page." : <>The {closing.kind === "ui" ? "browser" : "CLI"} session (<Mono>{closing.ip ?? "no address"}</Mono>) stops working at once.</>}
         </Confirm>
       )}
     </Card>
@@ -156,22 +164,22 @@ function Passkeys({ strong }: { strong: Strong }) {
   const [modal, setModal] = useState<"add" | "codes" | null>(null);
   const [removing, setRemoving] = useState<Passkey | null>(null);
   return (
-    <Card title="Passkey'ler" icon="key"
-      hint="Giriş ve onaylar için kullandığınız passkey'ler. Son passkey silinemez. Kurtarma kodları passkey'inize erişemediğinizde bir kez kullanılır."
-      right={<div className="row"><HeadButton icon="rerun" onClick={() => setModal("codes")}>Kurtarma kodları</HeadButton><HeadButton icon="plus" primary onClick={() => setModal("add")}>Passkey ekle</HeadButton></div>}>
+    <Card title="Passkeys" icon="key"
+      hint="The passkeys you sign in and approve with. The last one cannot be removed. Recovery codes get you in once when you cannot reach your passkey."
+      right={<div className="row"><HeadButton icon="rerun" onClick={() => setModal("codes")}>Recovery codes</HeadButton><HeadButton icon="plus" primary onClick={() => setModal("add")}>Add passkey</HeadButton></div>}>
       {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : q.data.length === 0 ? (
-        <div className="empty">Passkey'iniz yok; onaylar için doğrulama uygulamanızın kodu istenir.</div>
+        <div className="empty">You have no passkey; approvals ask for your authenticator app's code.</div>
       ) : (
         <table className="grid">
-          <thead><tr><th>Ad</th><th>Eklendi</th><th>Son kullanım</th><th /></tr></thead>
+          <thead><tr><th>Name</th><th>Added</th><th>Last used</th><th /></tr></thead>
           <tbody>
             {q.data.map((p) => (
               <tr key={p.id}>
-                <td><IL icon="key" size={14}>{p.name || "adsız"}</IL></td>
+                <td><IL icon="key" size={14}>{p.name || "unnamed"}</IL></td>
                 <td className="muted">{stamp(p.createdAt)}</td>
                 <td className="muted">{p.lastUsedAt ? ago(p.lastUsedAt) : "–"}</td>
                 <td style={{ textAlign: "right" }}>
-                  <Button kind="danger" icon="x" onClick={() => setRemoving(p)} disabled={q.data.length < 2} title={q.data.length < 2 ? "Son passkey silinemez" : undefined}>Sil</Button>
+                  <Button kind="danger" icon="x" onClick={() => setRemoving(p)} disabled={q.data.length < 2} title={q.data.length < 2 ? "The last passkey cannot be removed" : undefined}>Remove</Button>
                 </td>
               </tr>
             ))}
@@ -181,11 +189,11 @@ function Passkeys({ strong }: { strong: Strong }) {
       {modal === "add" && <AddPasskey strong={strong} onClose={() => setModal(null)} onDone={() => void qc.invalidateQueries({ queryKey: ["me", "passkeys"] })} />}
       {modal === "codes" && <RecoveryCodes strong={strong} onClose={() => setModal(null)} />}
       {removing && (
-        <Confirm title="Passkey'i sil" action="Sil" onClose={() => setRemoving(null)} run={async () => {
+        <Confirm title="Remove the passkey" action="Remove" onClose={() => setRemoving(null)} run={async () => {
           await strong(() => api(`/me/passkeys/${encodeURIComponent(removing.id)}`, { method: "DELETE" }));
           await qc.invalidateQueries({ queryKey: ["me", "passkeys"] });
         }}>
-          <b>{removing.name || "adsız"}</b> passkey'i silinir; bu cihazla bir daha giriş yapılamaz.
+          The passkey <b>{removing.name || "unnamed"}</b> is removed; this device can no longer sign in.
         </Confirm>
       )}
     </Card>
@@ -208,10 +216,10 @@ function AddPasskey({ strong, onClose, onDone }: { strong: Strong; onClose: () =
     }
   };
   return (
-    <Modal title="Passkey ekle" icon="key" onClose={onClose} onSubmit={submit}
-      footer={<><Button onClick={onClose} disabled={a.busy}>Vazgeç</Button><Button type="submit" kind="primary" icon="plus" disabled={a.busy}>{a.busy ? "Bekleniyor…" : "Oluştur"}</Button></>}>
-      <p className="muted" style={{ margin: 0 }}>Tarayıcınız ya da güvenlik anahtarınız yeni bir passkey oluşturacak. Bu cihazı tanıyacağınız bir ad verin.</p>
-      <label className="field"><span>Ad</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. iş bilgisayarı" /></label>
+    <Modal title="Add a passkey" icon="key" onClose={onClose} onSubmit={submit}
+      footer={<><Button onClick={onClose} disabled={a.busy}>Cancel</Button><Button type="submit" kind="primary" icon="plus" disabled={a.busy}>{a.busy ? "Waiting…" : "Create"}</Button></>}>
+      <p className="muted" style={{ margin: 0 }}>Your browser or security key will create a new passkey. Give it a name you will recognise.</p>
+      <label className="field"><span>Name</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. work laptop" /></label>
       {a.error && <div className="error" role="alert">{a.error}</div>}
     </Modal>
   );
@@ -226,16 +234,16 @@ function RecoveryCodes({ strong, onClose }: { strong: Strong; onClose: () => voi
   };
   if (codes) {
     return (
-      <Modal title="Yeni kurtarma kodları" icon="key" onClose={onClose} footer={<Button kind="primary" icon="check" onClick={onClose}>Kaydettim</Button>}>
-        <div className="notice warn" style={{ margin: 0 }}>Kodlar bir kez gösterilir; her biri bir kez kullanılır. Güvenli bir yere kaydedin.</div>
+      <Modal title="New recovery codes" icon="key" onClose={onClose} footer={<Button kind="primary" icon="check" onClick={onClose}>I saved them</Button>}>
+        <div className="notice warn" style={{ margin: 0 }}>The codes are shown once; each works once. Keep them somewhere safe.</div>
         <pre className="codes">{codes.join("\n")}</pre>
       </Modal>
     );
   }
   return (
-    <Modal title="Yeni kurtarma kodları" icon="rerun" onClose={onClose} onSubmit={submit}
-      footer={<><Button onClick={onClose} disabled={a.busy}>Vazgeç</Button><Button type="submit" kind="primary" icon="rerun" disabled={a.busy}>{a.busy ? "Bekleniyor…" : "Üret"}</Button></>}>
-      <p style={{ margin: 0 }}>Yeni kodlar üretilir ve <b>eskilerin hepsi geçersiz olur</b>.</p>
+    <Modal title="New recovery codes" icon="rerun" onClose={onClose} onSubmit={submit}
+      footer={<><Button onClick={onClose} disabled={a.busy}>Cancel</Button><Button type="submit" kind="primary" icon="rerun" disabled={a.busy}>{a.busy ? "Waiting…" : "Generate"}</Button></>}>
+      <p style={{ margin: 0 }}>New codes are made and <b>all the old ones stop working</b>.</p>
       {a.error && <div className="error" role="alert">{a.error}</div>}
     </Modal>
   );
@@ -247,23 +255,23 @@ function Keys({ strong, kind }: { strong: Strong; kind: "signing" | "login" }) {
   const q = useQuery({ queryKey: ["me", kind], queryFn: () => api<Key[]>(path) });
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Key | null>(null);
-  const title = kind === "signing" ? "İmza anahtarları" : "SSH giriş anahtarları";
+  const title = kind === "signing" ? "Signing keys" : "SSH login keys";
   const hint = kind === "signing"
-    ? "Commit'lerinizi imzaladığınız SSH ya da OpenPGP açık anahtarları. Gaia bir commit'in sahibini bu anahtarlardan bilir; imzasız ya da tanınmayan commit uygulanmaz."
-    : "Erişiminiz olan sunuculara SSH ile girerken kullandığınız açık anahtarlar. Gaia bunları erişim run'larında sunuculara dağıtır.";
+    ? "The SSH or OpenPGP public keys you sign commits with. Gaia knows who wrote a commit by them; an unsigned or unknown commit is not applied."
+    : "The public keys you log in to servers with over SSH. Gaia puts them on the servers you have access to.";
   return (
-    <Card title={title} icon={kind === "signing" ? "key" : "terminal"} hint={hint} right={<HeadButton icon="plus" primary onClick={() => setAdding(true)}>Anahtar ekle</HeadButton>}>
-      {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : q.data.length === 0 ? <div className="empty">Kayıtlı anahtar yok.</div> : (
+    <Card title={title} icon={kind === "signing" ? "key" : "terminal"} hint={hint} right={<HeadButton icon="plus" primary onClick={() => setAdding(true)}>Add key</HeadButton>}>
+      {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : q.data.length === 0 ? <div className="empty">No keys.</div> : (
         <table className="grid">
-          <thead><tr><th>Ad</th>{kind === "signing" && <th>Tür</th>}<th>Parmak izi</th><th>Eklendi</th><th /></tr></thead>
+          <thead><tr><th>Name</th>{kind === "signing" && <th>Kind</th>}<th>Fingerprint</th><th>Added</th><th /></tr></thead>
           <tbody>
             {q.data.map((k) => (
               <tr key={k.fingerprint}>
-                <td>{k.name || "adsız"}</td>
+                <td>{k.name || "unnamed"}</td>
                 {kind === "signing" && <td><Badge tone="gray">{k.kind}</Badge></td>}
                 <td><Mono>{k.fingerprint}</Mono></td>
                 <td className="muted">{stamp(k.createdAt)}</td>
-                <td style={{ textAlign: "right" }}><Button kind="danger" icon="x" onClick={() => setRemoving(k)}>Sil</Button></td>
+                <td style={{ textAlign: "right" }}><Button kind="danger" icon="x" onClick={() => setRemoving(k)}>Remove</Button></td>
               </tr>
             ))}
           </tbody>
@@ -271,12 +279,12 @@ function Keys({ strong, kind }: { strong: Strong; kind: "signing" | "login" }) {
       )}
       {adding && <AddKey kind={kind} path={path} strong={strong} onClose={() => setAdding(false)} onDone={() => void qc.invalidateQueries({ queryKey: ["me", kind] })} />}
       {removing && (
-        <Confirm title="Anahtarı sil" action="Sil" onClose={() => setRemoving(null)} run={async () => {
+        <Confirm title="Remove the key" action="Remove" onClose={() => setRemoving(null)} run={async () => {
           await strong(() => api(`${path}/${encodeURIComponent(removing.fingerprint)}`, { method: "DELETE" }));
           await qc.invalidateQueries({ queryKey: ["me", kind] });
         }}>
-          <b>{removing.name || "adsız"}</b> (<Mono>{removing.fingerprint}</Mono>) silinir.{" "}
-          {kind === "signing" ? "Bu anahtarla imzalanan yeni commit'ler artık uygulanmaz." : "Bir sonraki erişim run'ında sunuculardan da kalkar."}
+          <b>{removing.name || "unnamed"}</b> (<Mono>{removing.fingerprint}</Mono>) is removed.{" "}
+          {kind === "signing" ? "New commits signed with it are no longer applied." : "It leaves the servers at the next access run."}
         </Confirm>
       )}
     </Card>
@@ -296,13 +304,13 @@ function AddKey({ kind, path, strong, onClose, onDone }: { kind: "signing" | "lo
     }
   };
   return (
-    <Modal title={kind === "signing" ? "İmza anahtarı ekle" : "SSH giriş anahtarı ekle"} icon={kind === "signing" ? "key" : "terminal"} onClose={onClose} onSubmit={submit} width={600}
-      footer={<><Button onClick={onClose} disabled={a.busy}>Vazgeç</Button><Button type="submit" kind="primary" icon="plus" disabled={a.busy || !pub.trim()}>{a.busy ? "Bekleniyor…" : "Ekle"}</Button></>}>
-      <label className="field"><span>Ad</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. dizüstü" /></label>
+    <Modal title={kind === "signing" ? "Add a signing key" : "Add an SSH login key"} icon={kind === "signing" ? "key" : "terminal"} onClose={onClose} onSubmit={submit} width={600}
+      footer={<><Button onClick={onClose} disabled={a.busy}>Cancel</Button><Button type="submit" kind="primary" icon="plus" disabled={a.busy || !pub.trim()}>{a.busy ? "Waiting…" : "Add"}</Button></>}>
+      <label className="field"><span>Name</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. laptop" /></label>
       <label className="field">
-        <span>Açık anahtar</span>
+        <span>Public key</span>
         <textarea className="input mono" rows={4} value={pub} onChange={(e) => setPub(e.target.value)} required
-          placeholder={kind === "signing" ? "ssh-ed25519 AAAA… ya da -----BEGIN PGP PUBLIC KEY BLOCK-----" : "ssh-ed25519 AAAA…"} />
+          placeholder={kind === "signing" ? "ssh-ed25519 AAAA… or -----BEGIN PGP PUBLIC KEY BLOCK-----" : "ssh-ed25519 AAAA…"} />
       </label>
       {a.error && <div className="error" role="alert">{a.error}</div>}
     </Modal>
@@ -332,16 +340,16 @@ function Notifications() {
   };
   const right = q.data && (
     <div className="row" style={{ gap: 12 }}>
-      <span className="il muted" style={{ fontWeight: 400 }}><Icon name="bell" size={14} />{q.data.email || "e-posta yok"}</span>
-      {q.data.emailEditable && <Button icon="pencil" onClick={() => setEditing(true)}>E-postayı değiştir</Button>}
+      <span className="il muted" style={{ fontWeight: 400 }}><Icon name="bell" size={14} />{q.data.email || "no email"}</span>
+      {q.data.emailEditable && <Button icon="pencil" onClick={() => setEditing(true)}>Change email</Button>}
     </div>
   );
   return (
-    <Card title="Bildirimler" icon="bell" right={right}
-      hint="Hangi olaylarda size e-posta gelsin. Değişiklik hemen kaydedilir. Takım kanallarına giden bildirimler Team objesinde tanımlıdır; bunlar sadece size gelenlerdir.">
+    <Card title="Notifications" icon="bell" right={right}
+      hint="Which events email you. A switch is saved at once. Notifications to team channels are set on the Team; these are only yours.">
       {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : (
         <>
-          {!q.data.email && <div className="notice warn" style={{ margin: 16 }}>E-posta adresiniz yok; seçtiğiniz olaylar size ulaşmaz.</div>}
+          {!q.data.email && <div className="notice warn" style={{ margin: 16 }}>You have no email address; the events you pick cannot reach you.</div>}
           {TRIGGERS.map((g) => {
             const items = Object.entries(g.items).filter(([k]) => q.data.available.includes(k));
             if (items.length === 0) return null;
@@ -376,9 +384,9 @@ function EditEmail({ current, onClose, save }: { current: string; onClose: () =>
     if (await a.run(() => save(email.trim()))) onClose();
   };
   return (
-    <Modal title="E-posta adresi" icon="bell" onClose={onClose} onSubmit={submit}
-      footer={<><Button onClick={onClose} disabled={a.busy}>Vazgeç</Button><Button type="submit" kind="primary" icon="check" disabled={a.busy}>Kaydet</Button></>}>
-      <label className="field"><span>Bildirimlerin gideceği adres</span><input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+    <Modal title="Email address" icon="bell" onClose={onClose} onSubmit={submit}
+      footer={<><Button onClick={onClose} disabled={a.busy}>Cancel</Button><Button type="submit" kind="primary" icon="check" disabled={a.busy}>Save</Button></>}>
+      <label className="field"><span>Where notifications go</span><input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       {a.error && <div className="error" role="alert">{a.error}</div>}
     </Modal>
   );

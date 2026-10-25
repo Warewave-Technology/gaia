@@ -50,24 +50,24 @@ describe("changes", () => {
   it("lists open changes and marks the ones that wait for me", async () => {
     renderAt("/changes");
     const row = (await screen.findByRole("link", { name: "poc-web" })).closest("tr")!;
-    expect(within(row).getByText("sizi bekliyor")).toBeInTheDocument();
-    expect(screen.getByText("(yetkiniz yok)")).toBeInTheDocument();
+    expect(within(row).getByText("awaiting you")).toBeInTheDocument();
+    expect(screen.getByText("(no access)")).toBeInTheDocument();
   });
 
   it("shows the plan per area and per server", async () => {
     renderAt("/changes/ch1");
     expect(await screen.findByRole("heading", { name: "poc-web" })).toBeInTheDocument();
     expect(screen.getByText("labtpoc02").closest("tr")).toHaveClass("added");
-    expect(screen.getByText(/team-platform üyelerinden biri/)).toBeInTheDocument();
-    expect(screen.getByText(/mehmet.y bu değişikliği onaylayamaz/)).toBeInTheDocument();
+    expect(screen.getByText(/One of team-platform's members/)).toBeInTheDocument();
+    expect(screen.getByText(/mehmet.y may not approve this change/)).toBeInTheDocument();
     const access = screen.getByText("team/team-web-ops").closest("tr")!;
-    expect(access).toHaveTextContent("sınırlı sudo");
+    expect(access).toHaveTextContent("limited sudo");
     expect(access).toHaveTextContent("/usr/bin/systemctl restart nginx");
   });
 
   it("shows the YAML diff since the contract was applied", async () => {
     renderAt("/changes/ch1");
-    fireEvent.click(await screen.findByRole("tab", { name: /YAML diff/ }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Git diff/ }));
     const line = (t: string) => (_: string, el: Element | null) => el?.tagName === "SPAN" && el.textContent === t;
     expect(await screen.findByText(line("-  replicas: 1"))).toHaveStyle({ color: "var(--red)" });
     expect(screen.getByText(line("+  replicas: 2"))).toHaveStyle({ color: "var(--green)" });
@@ -78,8 +78,8 @@ describe("changes", () => {
 
   it("confirms with a passkey, then approves the plan it saw", async () => {
     renderAt("/changes/ch1");
-    fireEvent.click(await screen.findByRole("button", { name: /Onayla/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Passkey ile onayla/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    fireEvent.click(screen.getByRole("button", { name: /Approve with a passkey/ }));
     await vi.waitFor(() => expect(calls.some((c) => c.path === "/changes/ch1/approve")).toBe(true));
     const order = calls.filter((c) => c.method === "POST").map((c) => c.path);
     expect(order).toEqual(["/auth/step-up/begin", "/auth/step-up/finish", "/changes/ch1/approve"]);
@@ -100,14 +100,14 @@ describe("changes", () => {
       "POST /changes/ch1/reject": { body: { ...CHANGE, status: "rejected" } },
     });
     renderAt("/changes/ch1");
-    fireEvent.click(await screen.findByRole("button", { name: /Reddet/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Passkey ile reddet/ }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("gerekçe");
-    fireEvent.change(screen.getByLabelText("Red gerekçesi"), { target: { value: "not now" } });
-    fireEvent.click(screen.getByRole("button", { name: /Passkey ile reddet/ }));
-    const code = await screen.findByLabelText(/kodu girin/);
+    fireEvent.click(await screen.findByRole("button", { name: "Reject" }));
+    fireEvent.click(screen.getByRole("button", { name: /Reject with a passkey/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Say why you reject");
+    fireEvent.change(screen.getByLabelText("Why you reject"), { target: { value: "not now" } });
+    fireEvent.click(screen.getByRole("button", { name: /Reject with a passkey/ }));
+    const code = await screen.findByLabelText(/enter the code/);
     fireEvent.change(code, { target: { value: "123456" } });
-    fireEvent.click(screen.getByRole("button", { name: /Kodla reddet/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Reject with the code/ }));
     await vi.waitFor(() => expect(calls.some((c) => c.path === "/changes/ch1/reject")).toBe(true));
     expect(calls.find((c) => c.path === "/auth/step-up/totp")!.body).toEqual({ code: "123456" });
     expect(calls.find((c) => c.path === "/changes/ch1/reject")!.body).toEqual({ planHash: CHANGE.planHash, comment: "not now" });

@@ -674,6 +674,15 @@ paths:
                           checkMode: { type: string }
                           runbook: { type: boolean }
         "404": { description: No such object, or a contract }
+  /api/v1/schema/{kind}:
+    get:
+      summary: A kind's spec as fields, for forms and tables
+      operationId: getSchema
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The fields, content: { application/json: { schema: { $ref: "#/components/schemas/SchemaField" } } } }
+        "404": { description: No such kind }
   /api/v1/providers:
     get:
       summary: The providers, where they are used and the last discovery's errors (platform-admin)
@@ -1433,6 +1442,16 @@ components:
         contentHash: { type: string }
         createdAt: { type: string, format: date-time }
         objects: { type: integer }
+    SchemaField:
+      type: object
+      properties:
+        key: { type: string }
+        type: { type: string, enum: [string, int, float, bool, object, list, map, any] }
+        required: { type: boolean }
+        enum: { type: array, items: { type: string } }
+        ref: { type: string, description: The kind a string field names an object of }
+        fields: { type: array, items: { $ref: "#/components/schemas/SchemaField" } }
+        items: { $ref: "#/components/schemas/SchemaField" }
     SecondFactor:
       type: object
       properties:

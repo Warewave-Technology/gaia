@@ -2,26 +2,26 @@
 import type { IconName } from "./icons";
 
 export const KINDS: Record<string, { icon: IconName; text: string }> = {
-  Platform: { icon: "grid", text: "Platformun genel ayarları: motorlar, izleme, arşiv." },
-  Provider: { icon: "plug", text: "Gaia'nın konuştuğu bir sistem: vSphere, Proxmox, IPAM, Zabbix, AD, OpenBao…" },
-  Policy: { icon: "lock", text: "Kurallar: onaylar, isimlendirme, zorunlu ajanlar, bakım pencereleri, roller." },
-  Site: { icon: "pin", text: "Veri merkezi: hangi compute ve izleme provider'larının kullanılacağı." },
-  Network: { icon: "network", text: "Sunucuların bağlandığı ağ ve IPAM havuzu." },
-  Image: { icon: "disc", text: "VM'lerin klonlandığı işletim sistemi şablonu." },
-  Size: { icon: "size", text: "VM boyutu: vCPU, bellek, disk." },
-  Baseline: { icon: "layers", text: "Her sunucuya uygulanan temel Ansible rolleri." },
-  AnsibleRole: { icon: "wrench", text: "Kontratların kullanabildiği bir Ansible rolü ve parametre şeması." },
-  App: { icon: "box", text: "Bir uygulamanın artifact'ı ve onu kuran playbook." },
-  Agent: { icon: "activity", text: "Sunuculara kurulan ajan (izleme, güvenlik…); bazıları zorunlu." },
-  AuthConfig: { icon: "key", text: "Giriş ayarları: dizin, ikinci faktör, oturum süreleri." },
-  Team: { icon: "users", text: "Bir takım ve onaycıları; çoğu AD'den üretilir." },
-  Group: { icon: "shield", text: "Erişim grubu: takımların birleşimi, kontratlarda erişim için kullanılır." },
-  Server: { icon: "file", text: "Bir grup sunucunun istenen durumu (kontrat)." },
-  Operation: { icon: "zap", text: "Sunucularda bir kez yapılacak iş: yeniden başlatma, yama, runbook." },
-  OperationSchedule: { icon: "calendar", text: "Belli aralıklarla Operation yazan zamanlama." },
-  TeamSource: { icon: "repeat", text: "Team objelerini AD'den üreten kaynak." },
-  NetworkSource: { icon: "repeat", text: "Network objelerini IPAM'dan üreten kaynak." },
-  AnsibleRoleSource: { icon: "repeat", text: "AnsibleRole objelerini config reposundan üreten kaynak." },
+  Platform: { icon: "grid", text: "The platform's own settings: engines, monitoring, archives." },
+  Provider: { icon: "plug", text: "A system Gaia talks to: vSphere, Proxmox, IPAM, Zabbix, AD, OpenBao…" },
+  Policy: { icon: "lock", text: "The rules: approvals, naming, required labels, environments, roles." },
+  Site: { icon: "pin", text: "A data centre: where its VMs are created and how they are watched." },
+  Network: { icon: "network", text: "A network servers join, and the IPAM pool their addresses come from." },
+  Image: { icon: "disc", text: "The operating system template VMs are cloned from." },
+  Size: { icon: "size", text: "A VM size: vCPUs, memory, disk." },
+  Baseline: { icon: "layers", text: "The base configuration every server gets." },
+  AnsibleRole: { icon: "wrench", text: "An Ansible role contracts can use, with its parameters." },
+  App: { icon: "box", text: "An application: its artifact and the playbook that installs it." },
+  Agent: { icon: "activity", text: "An agent installed on servers (monitoring, security…); some are mandatory." },
+  AuthConfig: { icon: "key", text: "How people sign in: the directory, the second factor, session lifetimes." },
+  Team: { icon: "users", text: "A team and its approvers; usually from the directory." },
+  Group: { icon: "shield", text: "An access group: teams together, given access in contracts." },
+  Server: { icon: "file", text: "The desired state of a group of servers (a contract)." },
+  Operation: { icon: "zap", text: "A one-off job on servers: a reboot, a patch, a runbook." },
+  OperationSchedule: { icon: "calendar", text: "A schedule that writes Operations at set times." },
+  TeamSource: { icon: "repeat", text: "Makes Teams from directory groups." },
+  NetworkSource: { icon: "repeat", text: "Makes Networks from IPAM subnets." },
+  AnsibleRoleSource: { icon: "repeat", text: "Makes AnsibleRoles from the configuration repository." },
 };
 
 export function kindOf(kind: string) {
@@ -30,14 +30,14 @@ export function kindOf(kind: string) {
 
 // Where each kind lives in the menu (design 17.8). Contracts and
 // operations have their own screens; the rest of Gaia's settings are under
-// Ayarlar.
+// Settings.
 export type Section = "catalog" | "infra" | "access" | "settings";
 
 export const SECTIONS: Record<Section, { path: string; label: string }> = {
-  catalog: { path: "/catalog", label: "Katalog" },
-  infra: { path: "/infra", label: "Altyapı" },
-  access: { path: "/access", label: "Erişim" },
-  settings: { path: "/settings", label: "Ayarlar" },
+  catalog: { path: "/catalog", label: "Catalog" },
+  infra: { path: "/infra", label: "Infrastructure" },
+  access: { path: "/access", label: "Access" },
+  settings: { path: "/settings", label: "Settings" },
 };
 
 const SECTION_OF: Record<string, Section> = {
@@ -50,7 +50,7 @@ export function sectionOf(kind: string): Section {
   return SECTION_OF[kind] ?? "settings";
 }
 
-// SETTINGS_TAB is the Ayarlar tab that lists a kind.
+// SETTINGS_TAB is the Settings tab that lists a kind.
 const SETTINGS_TAB: Record<string, string> = {
   Provider: "providers", Platform: "platform", Policy: "policy", AuthConfig: "auth",
   TeamSource: "sources", NetworkSource: "sources", AnsibleRoleSource: "sources",

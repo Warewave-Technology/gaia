@@ -1,6 +1,6 @@
-// Katalog: what can be installed on servers (design 17.8): roles, apps,
+// Catalog: what can be installed on servers (design 17.8): roles, apps,
 // agents and baselines as cards. ObjectPage is any catalog object's page:
-// its YAML, its references and what uses it.
+// its configuration, its references and what uses it.
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -11,6 +11,9 @@ import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono, short, StatusBar } fr
 import { Page } from "../../ui/shell";
 import { kindOf, listPath, objectPath, SECTIONS, sectionOf } from "../../ui/kinds";
 import { EditButtons } from "../../ui/settings-editor";
+import { SpecView } from "../../ui/spec";
+import { YamlButton } from "../../ui/yaml";
+import { useSchema } from "../../api/schema";
 
 type Ref = { kind: string; name: string; field: string };
 type Param = {
@@ -33,37 +36,37 @@ function usage(kind: string, name: string, params: Param[]): string {
   const top = params.filter((p) => !p.name.includes("."));
   const req = top.filter((p) => p.required);
   if (req.length === 0) return kind === "App" ? `${field}:\n  - name: ${name}\n` : `${field}:\n  - ${name}\n`;
-  const lines = req.map((p) => `      ${p.name}: ${p.secret ? "bao://kv/…#alan" : p.choices?.length ? show(p.choices[0]) : p.type === "int" ? "0" : p.type === "bool" ? "true" : "…"}`);
+  const lines = req.map((p) => `      ${p.name}: ${p.secret ? "bao://kv/…#field" : p.choices?.length ? show(p.choices[0]) : p.type === "int" ? "0" : p.type === "bool" ? "true" : "…"}`);
   return `${field}:\n  - name: ${name}\n    params:\n${lines.join("\n")}\n`;
 }
 
 function Constraints({ p }: { p: Param }) {
   const parts: string[] = [];
-  if (p.choices?.length) parts.push(`şunlardan biri: ${p.choices.map(show).join(", ")}`);
-  if (p.pattern) parts.push(`desen: ${p.pattern}`);
-  if (p.format) parts.push(`biçim: ${p.format}`);
+  if (p.choices?.length) parts.push(`one of: ${p.choices.map(show).join(", ")}`);
+  if (p.pattern) parts.push(`pattern: ${p.pattern}`);
+  if (p.format) parts.push(`format: ${p.format}`);
   if (p.min !== undefined && p.max !== undefined) parts.push(`${p.min} – ${p.max}`);
-  else if (p.min !== undefined) parts.push(`en az ${p.min}`);
-  else if (p.max !== undefined) parts.push(`en çok ${p.max}`);
+  else if (p.min !== undefined) parts.push(`at least ${p.min}`);
+  else if (p.max !== undefined) parts.push(`at most ${p.max}`);
   return parts.length ? <span className="mono" style={{ fontSize: 12 }}>{parts.join(" · ")}</span> : <span className="faint">–</span>;
 }
 
 function Params({ kind, params, rules }: { kind: string; params: Param[]; rules: Detail["rules"] }) {
   return (
-    <Card title="Parametreler" icon="plan" hint={<>Kontratta bu {kind === "App" ? "uygulamaya" : "role"} verilebilecek değerler. Gaia bunları plandan önce doğrular; hatalı bir değer Change'i açmadan reddedilir.
-      <Leg icon="check" color="var(--yellow)" name="zorunlu">kontrat vermek zorunda</Leg>
-      <Leg icon="lock" color="var(--purple)" name="gizli">değer düz yazılmaz; bao:// referansı verilir, loglarda maskelenir</Leg></>}>
-      {params.length === 0 ? <div className="empty">Parametre almıyor.</div> : (
+    <Card title="Parameters" icon="plan" hint={<>What a contract may give this {kind === "App" ? "application" : "role"}. Gaia checks them before planning; a wrong value is refused before a change opens.
+      <Leg icon="check" color="var(--yellow)" name="required">a contract must give it</Leg>
+      <Leg icon="lock" color="var(--purple)" name="secret">never written in clear: a bao:// reference, masked in logs</Leg></>}>
+      {params.length === 0 ? <div className="empty">It takes no parameters.</div> : (
         <table className="grid">
-          <thead><tr><th>Ad</th><th>Tip</th><th>Varsayılan</th><th>Kısıtlar</th><th>Açıklama</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Constraints</th><th>Description</th></tr></thead>
           <tbody>
             {params.map((p) => (
               <tr key={p.name}>
                 <td className="nowrap">
                   <span className="mono" style={{ paddingLeft: (p.name.split(".").length - 1) * 16, fontWeight: 600 }}>{p.name.split(".").pop()}</span>
-                  {p.required && <> <Badge tone="yellow">zorunlu</Badge></>}
-                  {p.secret && <> <Badge tone="gray" icon="lock">gizli</Badge></>}
-                  {p.deprecated && <> <Badge tone="orange">eskidi</Badge></>}
+                  {p.required && <> <Badge tone="yellow">required</Badge></>}
+                  {p.secret && <> <Badge tone="gray" icon="lock">secret</Badge></>}
+                  {p.deprecated && <> <Badge tone="orange">deprecated</Badge></>}
                 </td>
                 <td className="mono nowrap">{p.type ?? "str"}{p.elements ? `<${p.elements}>` : ""}</td>
                 <td className="mono">{p.secret ? <span className="faint">–</span> : p.default === undefined || p.default === null ? <span className="faint">–</span> : show(p.default)}</td>
@@ -76,7 +79,7 @@ function Params({ kind, params, rules }: { kind: string; params: Param[]; rules:
       )}
       {rules && rules.length > 0 && (
         <div style={{ padding: "12px 16px", borderTop: "1px solid var(--bg1)" }}>
-          <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}>Kurallar<Hint>Parametreler arasındaki koşullar (CEL). Sağlanmazsa mesajla reddedilir.</Hint></div>
+          <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}>Rules<Hint>Conditions between parameters (CEL). A contract that breaks one is refused with its message.</Hint></div>
           <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
             {rules.map((r) => <li key={r.expression}><span className="mono" style={{ fontSize: 12 }}>{r.expression}</span>{r.message && <span className="muted"> — {r.message}</span>}</li>)}
           </ul>
@@ -90,13 +93,13 @@ function RoleCard({ role }: { role: RoleInfo }) {
   const row = (k: string, v: ReactNode) => <><dt className="faint">{k}</dt><dd style={{ margin: 0 }}>{v}</dd></>;
   const list = (xs?: string[]) => (xs?.length ? <span className="row" style={{ gap: 4 }}>{xs.map((x) => <span key={x} className="badge gray">{x}</span>)}</span> : <span className="faint">–</span>);
   return (
-    <Card title="Rol" icon="wrench" hint="Rolün config reposundaki adı ve nerede kullanılabileceği.">
+    <Card title="Role" icon="wrench" hint="The role's name in the configuration repository, and where it may be used.">
       <dl style={{ margin: 0, padding: 16, display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", gap: "8px 14px" }}>
-        {row("Kaynak", <><span className="mono">{role.role}</span> <span className="faint">· {role.provider}</span></>)}
-        {row("İşletim sistemi", list(role.os))}
-        {row("Ortamlar", role.allowedEnvironments?.length ? list(role.allowedEnvironments) : <span className="muted">hepsi</span>)}
-        {row("İzleme", list(role.monitoring))}
-        {row("Çakışır", list(role.conflicts))}
+        {row("Source", <><span className="mono">{role.role}</span> <span className="faint">· {role.provider}</span></>)}
+        {row("Operating systems", list(role.os))}
+        {row("Environments", role.allowedEnvironments?.length ? list(role.allowedEnvironments) : <span className="muted">all</span>)}
+        {row("Monitoring", list(role.monitoring))}
+        {row("Conflicts with", list(role.conflicts))}
         {row("Check mode", role.checkMode ? <span>{role.checkMode}</span> : <span className="faint">–</span>)}
       </dl>
     </Card>
@@ -119,10 +122,10 @@ export function Labels({ labels }: { labels?: Record<string, string> }) {
 
 // What the catalog offers, in the order a contract adds them.
 const INSTALL: { kind: string; label: string; plural: string }[] = [
-  { kind: "AnsibleRole", label: "Rol", plural: "Roller" },
-  { kind: "App", label: "Uygulama", plural: "Uygulamalar" },
-  { kind: "Agent", label: "Ajan", plural: "Ajanlar" },
-  { kind: "Baseline", label: "Baseline", plural: "Baseline'lar" },
+  { kind: "AnsibleRole", label: "Role", plural: "Roles" },
+  { kind: "App", label: "App", plural: "Apps" },
+  { kind: "Agent", label: "Agent", plural: "Agents" },
+  { kind: "Baseline", label: "Baseline", plural: "Baselines" },
 ];
 const INSTALL_KINDS = INSTALL.map((k) => k.kind);
 
@@ -141,16 +144,16 @@ function Tile({ o }: { o: CatalogObj }) {
         <h3 title={o.name}>{o.name}</h3>
         <span className="badge gray">{INSTALL.find((i) => i.kind === o.kind)?.label ?? o.kind}</span>
       </div>
-      <div className="tile-text">{text || <span className="faint">Açıklama yok.</span>}</div>
+      <div className="tile-text">{text || <span className="faint">No description.</span>}</div>
       <div className="row" style={{ gap: 6, minHeight: 24 }}>
         {o.labels?.category && <span className="badge blue">{o.labels.category}</span>}
-        {os.map((x) => <span key={x} className="badge gray" title="İşletim sistemi"><Icon name="disc" size={12} />{x}</span>)}
-        {field(o.spec, "mandatory") === true && <span className="badge yellow" title="Her sunucuya kurulur">zorunlu</span>}
+        {os.map((x) => <span key={x} className="badge gray" title="Operating system"><Icon name="disc" size={12} />{x}</span>)}
+        {field(o.spec, "mandatory") === true && <span className="badge yellow" title="Installed on every server">mandatory</span>}
       </div>
       <div className="tile-foot">
-        <span className="il" style={{ fontWeight: 500 }} title="Parametre"><Icon name="plan" size={14} />{o.params ?? 0}</span>
-        <span className="il" style={{ fontWeight: 500 }} title="Kullanan kontrat"><Icon name="file" size={14} />{o.contracts}</span>
-        {o.generatedBy && <span className="il push" style={{ fontWeight: 500 }} title={o.generatedBy}><Icon name="repeat" size={14} />üretildi</span>}
+        <span className="il" style={{ fontWeight: 500 }} title="Parameters"><Icon name="plan" size={14} />{o.params ?? 0}</span>
+        <span className="il" style={{ fontWeight: 500 }} title="Contracts using it"><Icon name="file" size={14} />{o.contracts}</span>
+        {o.generatedBy && <span className="il push" style={{ fontWeight: 500 }} title={o.generatedBy}><Icon name="repeat" size={14} />generated</span>}
       </div>
     </Link>
   );
@@ -169,21 +172,21 @@ export function CatalogList() {
   const shown = (all.data?.objects ?? []).filter((o) => (!kind || o.kind === kind) && matches(o, q, [str(field(o.spec, "description")), ...osOf(o)].join(" ")));
   const pick = (k: string) => setParams(k ? { kind: k } : {});
   return (
-    <Page crumbs="Katalog">
+    <Page crumbs="Catalog">
       <div className="title-row">
-        <h1>Katalog</h1>
-        <Hint width={340}>Sunuculara kurulabilecekler: Ansible rolleri, uygulamalar, ajanlar ve baseline'lar. Kontrat bunları adıyla ister; parametrelerini ve örneğini kartın sayfasında görürsün.
-          <Leg icon="plan" color="var(--fg4)" name="parametre">kontratın verebileceği değer sayısı</Leg>
-          <Leg icon="file" color="var(--fg4)" name="kontrat">bunu kullanan kontrat sayısı</Leg>
-          <Leg icon="repeat" color="var(--fg4)" name="üretildi">bir Source config reposundan üretti</Leg>
-          <Leg icon="disc" color="var(--fg4)" name="işletim sistemi">kurulabildiği işletim sistemleri</Leg></Hint>
+        <h1>Catalog</h1>
+        <Hint width={340}>What can be installed on servers: Ansible roles, applications, agents and baselines. A contract asks for them by name; each card's page shows its parameters.
+          <Leg icon="plan" color="var(--fg4)" name="parameters">how many values a contract may give</Leg>
+          <Leg icon="file" color="var(--fg4)" name="contracts">how many contracts use it</Leg>
+          <Leg icon="repeat" color="var(--fg4)" name="generated">a Source made it from the configuration repository</Leg>
+          <Leg icon="disc" color="var(--fg4)" name="operating system">where it can be installed</Leg></Hint>
         {all.data && <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} />platform @ <Mono>{short(all.data.commit)}</Mono></span>}
       </div>
       {all.isPending ? <Loading /> : all.error ? <CatalogError e={all.error} /> : (
         <>
           <div className="spread">
-            <div className="chips" role="group" aria-label="Türler">
-              <button type="button" className="chip" aria-pressed={!kind} onClick={() => pick("")}><Icon name="grid" size={14} />Hepsi<span className="tab-count">{all.data.objects.length}</span></button>
+            <div className="chips" role="group" aria-label="Kinds">
+              <button type="button" className="chip" aria-pressed={!kind} onClick={() => pick("")}><Icon name="grid" size={14} />All<span className="tab-count">{all.data.objects.length}</span></button>
               {INSTALL.map((i) => (
                 <button key={i.kind} type="button" className="chip" aria-pressed={kind === i.kind} title={kindOf(i.kind).text} onClick={() => pick(i.kind)}>
                   <Icon name={kindOf(i.kind).icon} size={14} />{i.plural}<span className="tab-count">{counts.get(i.kind) ?? 0}</span>
@@ -192,12 +195,12 @@ export function CatalogList() {
             </div>
             <label className="search" style={{ width: 340, height: 36 }}>
               <Icon name="filter" size={14} />
-              <span className="sr-only">Filtre</span>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad, açıklama ya da category=web" />
-              <Hint right width={300}>Ada, açıklamaya, işletim sistemine ya da <b className="term">anahtar=değer</b> biçiminde etiketlere göre süzer. Boşlukla ayrılan koşulların hepsi sağlanmalı.</Hint>
+              <span className="sr-only">Filter</span>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, description or category=web" />
+              <Hint right width={300}>Filters by name, description, operating system, or labels as <b className="term">key=value</b>. Every space-separated condition must hold.</Hint>
             </label>
           </div>
-          {shown.length === 0 ? <div className="card empty">Eşleşen bir şey yok.</div> : <div className="tiles">{shown.map((o) => <Tile key={o.kind + "/" + o.name} o={o} />)}</div>}
+          {shown.length === 0 ? <div className="card empty">Nothing matches.</div> : <div className="tiles">{shown.map((o) => <Tile key={o.kind + "/" + o.name} o={o} />)}</div>}
         </>
       )}
     </Page>
@@ -205,8 +208,8 @@ export function CatalogList() {
 }
 
 function CatalogError({ e }: { e: unknown }) {
-  if (e instanceof ApiError && e.status === 503) return <div className="notice warn">Bu sunucu bir repo izlemiyor; katalog yok.</div>;
-  if (e instanceof ApiError && e.status === 404) return <div className="notice warn">Katalogda böyle bir nesne yok.</div>;
+  if (e instanceof ApiError && e.status === 503) return <div className="notice warn">This server follows no repository; there is no catalog.</div>;
+  if (e instanceof ApiError && e.status === 404) return <div className="notice warn">There is no such object.</div>;
   return <ErrorNote error={e} />;
 }
 
@@ -228,6 +231,7 @@ function RefList({ refs, empty }: { refs: Ref[]; empty: string }) {
 export function ObjectPage() {
   const { kind = "", name = "" } = useParams();
   const q = useQuery({ queryKey: ["catalog", kind, name], queryFn: () => api<Detail>(`/catalog/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`) });
+  const schema = useSchema(kind);
   const k = kindOf(kind);
   const sec = SECTIONS[sectionOf(kind)];
   return (
@@ -240,39 +244,43 @@ export function ObjectPage() {
           {k.text && <Hint>{k.text}</Hint>}
           {q.data && <Labels labels={q.data.labels} />}
         </div>
-        {q.data && fromSettings(q.data.source) && <EditButtons kind={kind} name={name} generatedBy={q.data.generatedBy} />}
+        {q.data && (
+          <span className="row">
+            <YamlButton yaml={q.data.yaml} title={`${kind} ${name}`} />
+            {fromSettings(q.data.source) && <EditButtons kind={kind} name={name} generatedBy={q.data.generatedBy} />}
+          </span>
+        )}
       </div>
       {q.isPending ? <Loading /> : q.error ? <CatalogError e={q.error} /> : (
         <>
           <StatusBar items={[
             fromSettings(q.data.source)
-              ? { icon: "history", title: "Nerede", hint: "Bu nesne Gaia'nın ayarıdır: Git'te değil, Gaia'nın ayar deposunda sürümlü durur.", value: <span style={{ fontSize: 15 }}>Ayar deposu</span>, sub: <Mono>{q.data.source.replace(/^settings:/, "").replace(/:\d+$/, "")}</Mono> }
-              : { icon: "file", title: "Dosya", hint: "Nesnenin platform reposundaki yeri.", value: <Mono>{q.data.source}</Mono> },
+              ? { icon: "history", title: "Stored in", hint: "This object is one of Gaia's settings: kept in Gaia's settings store, in versions, not in Git.", value: <span style={{ fontSize: 15 }}>Settings store</span> }
+              : { icon: "file", title: "File", hint: "Where the object is in the platform repository.", value: <Mono>{q.data.source}</Mono> },
             {
-              icon: "repeat", title: "Üreten", hint: "Nesneyi bir Source ürettiyse o Source; elle yazılmışsa boş. Patch'ler üretilen nesneye elle eklenen değişikliklerdir.",
-              value: <span style={{ fontSize: 15 }}>{q.data.generatedBy ?? "elle yazılmış"}</span>,
-              sub: q.data.patchFiles?.length ? `${q.data.patchFiles.length} patch: ${q.data.patchFiles.join(", ")}` : "",
+              icon: "repeat", title: "Written by", hint: "The Source that wrote it, if one did. Patches are hand-made changes on top of a generated object.",
+              value: <span style={{ fontSize: 15 }}>{q.data.generatedBy ?? "by hand"}</span>,
+              sub: q.data.patchFiles?.length ? `${q.data.patchFiles.length} patches` : "",
             },
-            { icon: "arrow", title: "Referansları", hint: "Bu nesnenin adıyla gösterdiği nesneler.", value: q.data.refs.length },
-            { icon: "network", title: "Kullanan", hint: "Bu nesneye referans veren nesneler ve kontratlar.", value: q.data.usedByRefs.length },
+            { icon: "arrow", title: "Refers to", hint: "The objects it names.", value: q.data.refs.length },
+            { icon: "network", title: "Used by", hint: "The objects and contracts that name it.", value: q.data.usedByRefs.length },
           ]} />
           <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
             <div style={{ flex: "2 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+              <Card title="Configuration" icon="plan" hint="The object's settings, field by field.">
+                <SpecView kind={kind} schema={schema.data} spec={q.data.spec} />
+              </Card>
               {q.data.params && <Params kind={kind} params={q.data.params} rules={q.data.rules} />}
-              <section className="card" aria-label="YAML">
-                <div className="card-head"><div className="card-title"><Icon name="code" size={16} /><h2>YAML</h2></div></div>
-                <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)", lineHeight: 1.6 }}>{q.data.yaml}</pre>
-              </section>
             </div>
             <div style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 16 }}>
               {q.data.role && <RoleCard role={q.data.role} />}
               {q.data.params && (
-                <Card title="Kontratta kullanımı" icon="file" hint="Kontratın spec'ine eklenecek kısım; zorunlu parametreler doldurulmalı.">
-                  <pre className="mono" style={{ margin: 0, padding: 16, color: "var(--fg2)", lineHeight: 1.6 }}>{usage(kind, name, q.data.params)}</pre>
+                <Card title="In a contract" icon="file" hint="What to add to a contract's spec to use it; fill in the required parameters.">
+                  <details className="snippet"><summary>Show the contract snippet</summary><pre className="mono">{usage(kind, name, q.data.params)}</pre></details>
                 </Card>
               )}
-              <Card title="Referansları" icon="arrow"><RefList refs={q.data.refs} empty="Başka nesneye referans vermiyor." /></Card>
-              <Card title="Kullananlar" icon="network"><RefList refs={q.data.usedByRefs} empty="Bu nesneyi kullanan yok." /></Card>
+              <Card title="Refers to" icon="arrow"><RefList refs={q.data.refs} empty="It names no other object." /></Card>
+              <Card title="Used by" icon="network"><RefList refs={q.data.usedByRefs} empty="Nothing uses it." /></Card>
             </div>
           </div>
         </>
@@ -280,4 +288,3 @@ export function ObjectPage() {
     </Page>
   );
 }
-

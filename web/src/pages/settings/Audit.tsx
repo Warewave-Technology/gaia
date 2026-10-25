@@ -1,4 +1,4 @@
-// Ayarlar → Denetim kaydı (design 17.4): every administrative action, who
+// Settings → Audit log (design 17.4): every administrative action, who
 // did it from where and how it ended; filtered, paged and exported as
 // JSON lines for a SIEM.
 import { useState, type FormEvent } from "react";
@@ -18,23 +18,23 @@ export type AuditEntry = {
 
 // What each action is, in words.
 const ACTIONS: Record<string, string> = {
-  "auth.login": "Giriş", "auth.logout": "Çıkış", "auth.step-up": "Kimlik doğrulama (step-up)", "auth.totp.enroll": "Doğrulama uygulaması kaydı",
-  "auth.recovery-code": "Kurtarma koduyla giriş", "auth.device.approve": "Cihaz girişini onaylama", "auth.device.deny": "Cihaz girişini reddetme",
-  "session.revoke": "Oturum kapatma", "user.create": "Hesap açma", "user.disable": "Hesabı kapatma", "user.enable": "Hesabı açma", "user.enroll": "Yeniden kayıt bağlantısı",
-  "passkey.add": "Passkey ekleme", "passkey.delete": "Passkey silme", "recovery-codes.renew": "Kurtarma kodlarını yenileme",
-  "signing-key.add": "İmza anahtarı ekleme", "signing-key.revoke": "İmza anahtarı kaldırma", "login-key.add": "Giriş anahtarı ekleme", "login-key.revoke": "Giriş anahtarı kaldırma",
-  "settings.import": "Ayarları Git'ten alma", "settings.write": "Ayar sürümü yazma", "settings.source": "Source'tan ayar sürümü", "settings.propose": "Ayar değişikliği önerme",
-  "settings.approve": "Ayar değişikliğini onaylama", "settings.apply": "Ayar değişikliğini uygulama", "settings.reject": "Ayar değişikliğini reddetme", "settings.withdraw": "Ayar değişikliğini geri çekme",
-  "change.approve": "Change onaylama", "change.reject": "Change reddetme", "change.retry": "Change'i yeniden deneme", "contract.reconcile": "Kontratı düzeltme (reconcile)",
-  "commit.revert": "Commit'i geri alma", "run.cancel": "Run iptali", "discovery.request": "Keşif isteme", "sources.sync": "Eşitleme isteme", "providers.check": "Provider denetimi isteme",
+  "auth.login": "Sign-in", "auth.logout": "Sign-out", "auth.step-up": "Confirmation (step-up)", "auth.totp.enroll": "Authenticator app registered",
+  "auth.recovery-code": "Sign-in with a recovery code", "auth.device.approve": "Device sign-in approved", "auth.device.deny": "Device sign-in denied",
+  "session.revoke": "Session closed", "user.create": "Account opened", "user.disable": "Account closed", "user.enable": "Account opened again", "user.enroll": "Enrollment link made",
+  "passkey.add": "Passkey added", "passkey.delete": "Passkey removed", "recovery-codes.renew": "Recovery codes renewed",
+  "signing-key.add": "Signing key added", "signing-key.revoke": "Signing key removed", "login-key.add": "Login key added", "login-key.revoke": "Login key removed",
+  "settings.import": "Settings imported from Git", "settings.write": "Settings version written", "settings.source": "Settings version from a Source", "settings.propose": "Settings change proposed",
+  "settings.approve": "Settings change approved", "settings.apply": "Settings change applied", "settings.reject": "Settings change rejected", "settings.withdraw": "Settings change withdrawn",
+  "change.approve": "Change approved", "change.reject": "Change rejected", "change.retry": "Change retried", "contract.reconcile": "Contract reapplied",
+  "commit.revert": "Commit reverted", "run.cancel": "Run cancelled", "discovery.request": "Discovery requested", "sources.sync": "Sync requested", "providers.check": "Provider check requested",
 };
 
 const AREAS: { prefix: string; label: string; icon: IconName }[] = [
-  { prefix: "auth.", label: "Girişler", icon: "key" },
-  { prefix: "settings.", label: "Ayarlar", icon: "gear" },
-  { prefix: "change.", label: "Change kararları", icon: "pr" },
-  { prefix: "user.", label: "Hesaplar", icon: "user" },
-  { prefix: "run.", label: "Run'lar", icon: "play" },
+  { prefix: "auth.", label: "Sign-ins", icon: "key" },
+  { prefix: "settings.", label: "Settings", icon: "gear" },
+  { prefix: "change.", label: "Change decisions", icon: "pr" },
+  { prefix: "user.", label: "Accounts", icon: "user" },
+  { prefix: "run.", label: "Runs", icon: "play" },
 ];
 
 function iconOf(action: string): IconName {
@@ -47,9 +47,9 @@ function iconOf(action: string): IconName {
 }
 
 const RESULT: Record<AuditEntry["result"], { tone: Tone; icon: IconName; label: string }> = {
-  ok: { tone: "green", icon: "check", label: "tamam" },
-  denied: { tone: "orange", icon: "x", label: "reddedildi" },
-  failed: { tone: "red", icon: "alert", label: "başarısız" },
+  ok: { tone: "green", icon: "check", label: "ok" },
+  denied: { tone: "orange", icon: "x", label: "denied" },
+  failed: { tone: "red", icon: "alert", label: "failed" },
 };
 
 // ObjectRef links an entry's object to its page.
@@ -96,28 +96,28 @@ export function Audit() {
     setF(next);
     setPages([0]);
   };
-  if (!admin) return <div className="notice warn">Denetim kaydını sadece platform-admin rolü görür.</div>;
+  if (!admin) return <div className="notice warn">The audit log is for platform admins.</div>;
   return (
     <>
-      <TabHead icon="eye" text="Gaia'da yapılan her yönetim işlemi: kim, nereden, ne zaman, neye, nasıl sonuçlandı."
-        hint={<>Kayıt sadece eklenir: Gaia'nın veritabanı rolü onu değiştiremez ve silemez. Dışa aktarma her satırı bir JSON nesnesi olarak verir; bir SIEM'e gönderilebilir.
-          <Leg icon="check" color="var(--green)" name="tamam">işlem yapıldı</Leg>
-          <Leg icon="x" color="var(--orange)" name="reddedildi">yetki ya da doğrulama yüzünden yapılmadı (ör. yanlış parola)</Leg>
-          <Leg icon="alert" color="var(--red)" name="başarısız">bir hata yüzünden yapılmadı</Leg></>}
-        right={<a className="btn" href={`/api/v1/audit?format=jsonl&limit=10000&${query(f)}`} download="gaia-audit.jsonl"><Icon name="arrow" size={14} />JSON satırları</a>} />
-      <div className="chips" role="group" aria-label="Alan">
+      <TabHead icon="eye" text="Every administrative action in Gaia: who, from where, when, on what, and how it ended."
+        hint={<>The log is append-only: Gaia's database role cannot change or delete it. The export gives one JSON object per line, ready for a SIEM.
+          <Leg icon="check" color="var(--green)" name="ok">it was done</Leg>
+          <Leg icon="x" color="var(--orange)" name="denied">not done, for lack of permission or a failed check (a wrong password…)</Leg>
+          <Leg icon="alert" color="var(--red)" name="failed">not done because of an error</Leg></>}
+        right={<a className="btn" href={`/api/v1/audit?format=jsonl&limit=10000&${query(f)}`} download="gaia-audit.jsonl"><Icon name="arrow" size={14} />Export (JSON lines)</a>} />
+      <div className="chips" role="group" aria-label="Area">
         {AREAS.map((a) => <button key={a.prefix} type="button" className="chip" aria-pressed={f.action === a.prefix} onClick={() => area(a.prefix)}><Icon name={a.icon} size={14} />{a.label}</button>)}
       </div>
-      <form className="card audit-filter" onSubmit={apply} aria-label="Süzgeç">
-        <label className="field"><span>Kişi</span><input className="input" value={form.actor} onChange={(e) => set("actor")(e.target.value)} placeholder="kullanıcı adı" /></label>
-        <label className="field"><span>İşlem<Hint width={260}>Bir işlemin adı ya da başı: <b className="term">settings.</b> bütün ayar işlemlerini getirir.</Hint></span><input className="input mono" value={form.action} onChange={(e) => set("action")(e.target.value)} placeholder="change.approve" /></label>
-        <label className="field"><span>Nesne</span><input className="input mono" value={form.object} onChange={(e) => set("object")(e.target.value)} placeholder="chg-…, set-…, run-…" /></label>
-        <label className="field"><span>Başlangıç</span><input className="input" type="datetime-local" value={form.since} onChange={(e) => set("since")(e.target.value)} /></label>
-        <Button type="submit" kind="primary" icon="filter">Süz</Button>
+      <form className="card audit-filter" onSubmit={apply} aria-label="Filter">
+        <label className="field"><span>Person</span><input className="input" value={form.actor} onChange={(e) => set("actor")(e.target.value)} placeholder="username" /></label>
+        <label className="field"><span>Action<Hint width={260}>An action's name or its start: <b className="term">settings.</b> brings every settings action.</Hint></span><input className="input mono" value={form.action} onChange={(e) => set("action")(e.target.value)} placeholder="change.approve" /></label>
+        <label className="field"><span>Object</span><input className="input mono" value={form.object} onChange={(e) => set("object")(e.target.value)} placeholder="chg-…, set-…, run-…" /></label>
+        <label className="field"><span>Since</span><input className="input" type="datetime-local" value={form.since} onChange={(e) => set("since")(e.target.value)} /></label>
+        <Button type="submit" kind="primary" icon="filter">Filter</Button>
       </form>
-      <Card title="Kayıtlar" icon="eye">
+      <Card title="Entries" icon="eye">
         <table className="grid">
-          <thead><tr><th>Zaman</th><th>Kim</th><th>İşlem</th><th>Nesne</th><th>Sonuç</th><th>Ayrıntı</th></tr></thead>
+          <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Object</th><th>Result</th><th>Detail</th></tr></thead>
           {pages.map((before, i) => <Page key={before} f={f} before={before} onMore={i === pages.length - 1 ? (id) => setPages([...pages, id]) : undefined} />)}
         </table>
       </Card>
@@ -132,7 +132,7 @@ function Page({ f, before, onMore }: { f: Filter; before: number; onMore?: (befo
   if (q.error) return <tbody><tr><td colSpan={6}><ErrorNote error={q.error} /></td></tr></tbody>;
   return (
     <tbody>
-      {q.data.length === 0 && before === 0 && <tr><td colSpan={6} className="empty">Kayıt yok.</td></tr>}
+      {q.data.length === 0 && before === 0 && <tr><td colSpan={6} className="empty">No entries.</td></tr>}
       {q.data.map((e) => (
         <tr key={e.id} style={{ verticalAlign: "top" }}>
           <td className="nowrap muted">{stamp(e.at)}</td>
@@ -140,11 +140,11 @@ function Page({ f, before, onMore }: { f: Filter; before: number; onMore?: (befo
           <td><span className="il" style={{ fontWeight: 500 }}><span className="faint"><Icon name={iconOf(e.action)} size={14} /></span>{ACTIONS[e.action] ?? e.action}</span><div className="faint mono" style={{ fontSize: 12 }}>{e.action}</div></td>
           <td><ObjectRef o={e.object} /></td>
           <td><Badge tone={RESULT[e.result]?.tone ?? "gray"} icon={RESULT[e.result]?.icon}>{RESULT[e.result]?.label ?? e.result}</Badge></td>
-          <td>{e.detail ? <details><summary className="muted" style={{ cursor: "pointer" }}>göster</summary><pre className="mono" style={{ margin: "6px 0 0", fontSize: 12, whiteSpace: "pre-wrap" }}>{JSON.stringify(e.detail, null, 2)}</pre></details> : <span className="faint">–</span>}</td>
+          <td>{e.detail ? <details><summary className="muted" style={{ cursor: "pointer" }}>show</summary><pre className="mono" style={{ margin: "6px 0 0", fontSize: 12, whiteSpace: "pre-wrap" }}>{JSON.stringify(e.detail, null, 2)}</pre></details> : <span className="faint">–</span>}</td>
         </tr>
       ))}
       {onMore && q.data.length === PAGE && (
-        <tr><td colSpan={6} style={{ textAlign: "center" }}><Button icon="history" onClick={() => onMore(q.data[q.data.length - 1]!.id)}>Daha eski</Button></td></tr>
+        <tr><td colSpan={6} style={{ textAlign: "center" }}><Button icon="history" onClick={() => onMore(q.data[q.data.length - 1]!.id)}>Older</Button></td></tr>
       )}
     </tbody>
   );

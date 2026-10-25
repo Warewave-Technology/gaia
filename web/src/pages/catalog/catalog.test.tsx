@@ -15,8 +15,14 @@ beforeEach(() => {
     ] } },
     "GET /catalog/Network/lab-poc": { body: {
       kind: "Network", name: "lab-poc", source: "catalog/networks.yaml:1", usedBy: 1, contracts: 1, yaml: "kind: Network\nmetadata: { name: lab-poc }\n",
+      spec: { site: "lab", gateway: "10.0.0.1", ipam: { provider: "ipam", pool: "lab-pool" } },
       refs: [{ kind: "Provider", name: "ipam", field: "spec.ipam.provider" }], usedByRefs: [{ kind: "Server", name: "poc-web", field: "spec.network" }],
     } },
+    "GET /schema/Network": { body: { type: "object", fields: [
+      { key: "site", type: "string", ref: "Site", required: true },
+      { key: "ipam", type: "object", fields: [{ key: "provider", type: "string", ref: "Provider" }, { key: "pool", type: "string" }] },
+      { key: "gateway", type: "string" },
+    ] } },
     "GET /catalog/AnsibleRole/nginx": { body: {
       kind: "AnsibleRole", name: "nginx", source: "generated/ansible-roles/nginx.yaml:1", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 0, contracts: 0, yaml: "kind: AnsibleRole\n",
       refs: [], usedByRefs: [],
@@ -40,22 +46,31 @@ describe("catalog", () => {
     expect(nginx).toHaveAttribute("href", "/catalog/AnsibleRole/nginx");
     expect(nginx).toHaveTextContent("nginx'i kurar");
     expect(nginx).toHaveTextContent("web");
-    expect(within(nginx).getByTitle("Kullanan kontrat")).toHaveTextContent("2");
-    expect(screen.getByRole("link", { name: "Agent zabbix-agent" })).toHaveTextContent("zorunlu");
-    fireEvent.click(screen.getByRole("button", { name: /Baseline'lar/ }));
+    expect(within(nginx).getByTitle("Contracts using it")).toHaveTextContent("2");
+    expect(screen.getByRole("link", { name: "Agent zabbix-agent" })).toHaveTextContent("mandatory");
+    fireEvent.click(screen.getByRole("button", { name: /Baselines/ }));
     expect(screen.queryByRole("link", { name: "AnsibleRole nginx" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Baseline linux-base" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Hepsi/ }));
-    fireEvent.change(screen.getByPlaceholderText(/Ad, açıklama/), { target: { value: "siteyi" } });
+    fireEvent.click(screen.getByRole("button", { name: /All/ }));
+    fireEvent.change(screen.getByPlaceholderText(/Name, description/), { target: { value: "siteyi" } });
     expect(screen.getByRole("link", { name: "AnsibleRole nginx" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "AnsibleRole podman" })).not.toBeInTheDocument();
   });
 
-  it("shows an object's YAML, its references and the contracts that use it", async () => {
+  it("shows an object's configuration, its YAML, its references and the contracts that use it", async () => {
     renderAt("/infra/Network/lab-poc");
-    expect(await screen.findByText(/kind: Network/)).toBeInTheDocument();
-    expect(screen.getByRole("banner")).toHaveTextContent("Altyapı / Network / lab-poc");
-    expect(within(screen.getByRole("navigation", { name: "Ana menü" })).getByRole("link", { name: /Altyapı/ })).toHaveClass("active");
+    const config = await screen.findByRole("region", { name: "Configuration" });
+    const site = await within(config).findByText("Site");
+    expect(site.closest(".spec-row")).toHaveTextContent("Sitelab");
+    expect(within(site.closest(".spec-row") as HTMLElement).getByRole("link", { name: "lab" })).toHaveAttribute("href", "/infra/Site/lab");
+    expect(within(config).getByText("Gateway").closest(".spec-row")).toHaveTextContent("10.0.0.1");
+    expect(within(config).getByText("IPAM").closest(".spec-row")).toHaveTextContent("Provideripam");
+    expect(within(config).getByText("Pool").closest(".spec-row")).toHaveTextContent("lab-pool");
+    expect(screen.queryByText(/kind: Network/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /View YAML/ }));
+    expect(within(screen.getByRole("dialog")).getByText(/kind: Network/)).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveTextContent("Infrastructure / Network / lab-poc");
+    expect(within(screen.getByRole("navigation", { name: "Main menu" })).getByRole("link", { name: /Infrastructure/ })).toHaveClass("active");
     expect(screen.getByRole("link", { name: /Provider\/ipam/ })).toHaveAttribute("href", "/settings/Provider/ipam");
     expect(screen.getByRole("link", { name: /Server\/poc-web/ })).toHaveAttribute("href", "/contracts/poc-web");
   });
@@ -63,10 +78,10 @@ describe("catalog", () => {
   it("shows a role's params, rules and how a contract uses it", async () => {
     renderAt("/catalog/AnsibleRole/nginx");
     const row = (await screen.findByText("server_name")).closest("tr")!;
-    expect(row).toHaveTextContent("zorunlu");
+    expect(row).toHaveTextContent("required");
     expect(row).toHaveTextContent("Sitenin adı");
     expect(screen.getByText("listen_port").closest("tr")).toHaveTextContent("1 – 65535");
-    expect(screen.getByText("key").closest("tr")).toHaveTextContent("gizli");
+    expect(screen.getByText("key").closest("tr")).toHaveTextContent("secret");
     expect(screen.getByText("params.listen_port != 22")).toBeInTheDocument();
     expect(screen.getByText(/ansibleRoles:\s+- name: nginx\s+params:\s+server_name: …/)).toBeInTheDocument();
   });

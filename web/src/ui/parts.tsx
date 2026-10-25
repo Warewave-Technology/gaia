@@ -99,7 +99,7 @@ export function Hint({ children, right, width }: { children: ReactNode; right?: 
   const id = useId();
   return (
     <span className={right ? "tt r" : "tt"}>
-      <span className="tt-ic hq" tabIndex={0} role="img" aria-label="Bu nedir?" aria-describedby={id}><Icon name="help" size={15} /></span>
+      <span className="tt-ic hq" tabIndex={0} role="img" aria-label="What is this?" aria-describedby={id}><Icon name="help" size={15} /></span>
       <span className="tip" role="tooltip" id={id}>
         <span className="tipbox" style={width ? { width } : undefined}>{children}</span>
       </span>
@@ -163,7 +163,7 @@ export type StatusItem = {
 // Argo CD's status panel: side by side, each with its own "?".
 export function StatusBar({ items }: { items: StatusItem[] }) {
   return (
-    <section className="status" aria-label="Durum">
+    <section className="status" aria-label="Status">
       {items.map((it, i) => (
         <div className="status-cell" key={it.title}>
           <div className="status-title">
@@ -194,7 +194,7 @@ export function shortLabel(label: string | null | undefined): string {
 }
 
 export function Loading() {
-  return <div className="empty" role="status">Yükleniyor…</div>;
+  return <div className="empty" role="status">Loading…</div>;
 }
 
 export function ErrorNote({ error }: { error: unknown }) {

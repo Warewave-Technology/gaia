@@ -29,15 +29,15 @@ function TotpPrompt({ ask, onClose }: { ask: Ask; onClose: () => void }) {
     ask.resolve(code);
   };
   const cancel = () => {
-    ask.reject(new Error("Doğrulama iptal edildi."));
+    ask.reject(new Error("Confirmation cancelled."));
     onClose();
   };
   return (
-    <Modal title="Kimliğinizi doğrulayın" icon="key" onClose={cancel} onSubmit={submit} width={440}
-      footer={<><Button onClick={cancel}>Vazgeç</Button><Button type="submit" kind="primary" icon="key">Doğrula</Button></>}>
-      <p className="muted" style={{ margin: 0 }}>Bu işlem yakın zamanda doğrulama istiyor. Passkey'iniz olmadığı için doğrulama uygulamanızdaki kodu girin.</p>
+    <Modal title="Confirm it is you" icon="key" onClose={cancel} onSubmit={submit} width={440}
+      footer={<><Button onClick={cancel}>Cancel</Button><Button type="submit" kind="primary" icon="key">Confirm</Button></>}>
+      <p className="muted" style={{ margin: 0 }}>This needs a recent confirmation. You have no passkey, so enter the code from your authenticator app.</p>
       <label className="field">
-        <span>Kod</span>
+        <span>Code</span>
         <input className="input mono" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} required />
       </label>
     </Modal>

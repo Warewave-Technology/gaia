@@ -1,28 +1,28 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/auth/gaia-auth.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<title>Gaia · Cihaz girişi</title>
+<title>Gaia · Device sign-in</title>
 <script src="/auth/gaia-auth.js" defer></script>
 </head>
 <body>
 <main class="wide">
 <div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="#fabd2f" stroke-width="2"></circle><path d="M5 15c4-1 6-6 16-5" fill="none" stroke="#8ec07c" stroke-width="2"></path></svg>gaia</div>
-<h1>Cihaz girişi</h1>
-<p class="muted">Terminalde gösterilen kodu girin. Kodu siz istemediyseniz onaylamayın.</p>
+<h1>Device sign-in</h1>
+<p class="muted">Enter the code the terminal shows. Do not approve a code you did not ask for.</p>
 <form id="device-form">
-<label>Kod <input name="code" class="code" autocomplete="off" required></label>
-<button type="submit" class="btn block">Devam</button>
+<label>Code <input name="code" class="code" autocomplete="off" required></label>
+<button type="submit" class="btn block">Continue</button>
 </form>
 <section id="device-check" class="box" hidden>
-<p>İstek <strong id="device-ip"></strong> adresinden, <span id="device-time"></span> geldi.</p>
+<p>The request came from <strong id="device-ip"></strong> at <span id="device-time"></span>.</p>
 <p class="muted small" id="device-agent"></p>
 <div class="row">
-<button id="device-approve" type="button" class="btn primary">Onayla</button>
-<button id="device-deny" type="button" class="btn danger">Reddet</button>
+<button id="device-approve" type="button" class="btn primary">Approve</button>
+<button id="device-deny" type="button" class="btn danger">Deny</button>
 </div>
 </section>
 <p id="error" class="error" role="alert"></p>

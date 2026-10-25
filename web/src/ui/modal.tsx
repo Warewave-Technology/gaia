@@ -55,7 +55,7 @@ export function Modal({ title, icon, onClose, onSubmit, children, footer, width 
           {icon && <span style={{ color: accent }}><Icon name={icon} size={18} /></span>}
           <h2 id={id}>{title}</h2>
         </div>
-        <button type="button" className="icon-btn" aria-label="Kapat" onClick={onClose}><Icon name="x" size={18} /></button>
+        <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" size={18} /></button>
       </div>
       <div className="modal-body">{children}</div>
       {footer && <div className="modal-foot">{footer}</div>}

@@ -7,17 +7,17 @@ import (
 )
 
 var titles = map[string]string{
-	"change.pending":    "onay bekliyor",
-	"change.approved":   "onaylandı",
-	"change.rejected":   "reddedildi",
-	"change.applied":    "uygulandı",
-	"change.failed":     "başarısız",
-	"drift.found":       "sapma bulundu",
-	"approval.expiring": "onayın süresi doluyor",
-	"access.privileged": "ayrıcalıklı gruba AD'den yeni üye",
-	"settings.pending":  "onay bekliyor",
-	"settings.applied":  "uygulandı",
-	"settings.rejected": "reddedildi",
+	"change.pending":    "awaits approval",
+	"change.approved":   "approved",
+	"change.rejected":   "rejected",
+	"change.applied":    "applied",
+	"change.failed":     "failed",
+	"drift.found":       "drift found",
+	"approval.expiring": "approval expiring",
+	"access.privileged": "new member of a privileged group from the directory",
+	"settings.pending":  "awaits approval",
+	"settings.applied":  "applied",
+	"settings.rejected": "rejected",
 }
 
 // render is a notification as a title and plain text lines.
@@ -26,43 +26,43 @@ func render(ev Event) (string, string) {
 	if what == "" {
 		what = ev.Trigger
 	}
-	title := fmt.Sprintf("%s: değişiklik %s", ev.Contract, what)
+	title := fmt.Sprintf("%s: change %s", ev.Contract, what)
 	var b strings.Builder
 	if ev.Trigger == "drift.found" {
 		title = fmt.Sprintf("%s: %s", ev.Contract, what)
-		fmt.Fprintf(&b, "Alan: %s\n%s", ev.Status, ev.Comment)
+		fmt.Fprintf(&b, "Area: %s\n%s", ev.Status, ev.Comment)
 		if ev.Change != "" {
-			fmt.Fprintf(&b, "\nDüzeltme: %s", ev.Change)
+			fmt.Fprintf(&b, "\nFix: %s", ev.Change)
 		}
 		if ev.URL != "" {
-			fmt.Fprintf(&b, "\nBağlantı: %s", ev.URL)
+			fmt.Fprintf(&b, "\nLink: %s", ev.URL)
 		}
 		return title, strings.TrimRight(b.String(), "\n")
 	}
 	if strings.HasPrefix(ev.Trigger, "settings.") {
 		// A settings change: Status is its title, Summary its impact.
-		title = fmt.Sprintf("Ayar değişikliği %s: %s", what, ev.Status)
-		fmt.Fprintf(&b, "Öneri: %s\nİsteyen: %s\n", ev.Change, strings.Join(ev.RequestedBy, ", "))
+		title = fmt.Sprintf("Settings change %s: %s", what, ev.Status)
+		fmt.Fprintf(&b, "Proposal: %s\nRequested by: %s\n", ev.Change, strings.Join(ev.RequestedBy, ", "))
 		if ev.Comment != "" && ev.DecidedBy == "" {
-			fmt.Fprintf(&b, "Neden: %s\n", ev.Comment)
+			fmt.Fprintf(&b, "Why: %s\n", ev.Comment)
 		}
 		if ev.Summary.Keep > 0 {
-			fmt.Fprintf(&b, "Planı değişecek kontrat: %d\n", ev.Summary.Keep)
+			fmt.Fprintf(&b, "Contracts whose plan changes: %d\n", ev.Summary.Keep)
 		}
 		if ev.DecidedBy != "" {
-			fmt.Fprintf(&b, "Karar: %s: %s\n", ev.DecidedBy, ev.Comment)
+			fmt.Fprintf(&b, "Decision: %s: %s\n", ev.DecidedBy, ev.Comment)
 		}
 		if ev.Label != "" {
-			fmt.Fprintf(&b, "Ayar sürümü: %s\n", ev.Label)
+			fmt.Fprintf(&b, "Settings version: %s\n", ev.Label)
 		}
 		if ev.URL != "" {
-			fmt.Fprintf(&b, "Bağlantı: %s", ev.URL)
+			fmt.Fprintf(&b, "Link: %s", ev.URL)
 		}
 		return title, strings.TrimRight(b.String(), "\n")
 	}
 	if ev.Trigger == "access.privileged" {
 		title = fmt.Sprintf("%s: %s", ev.Group, what)
-		fmt.Fprintf(&b, "Kişi: %s\nTakım: %s\nGrup: %s\n%s", ev.Person, ev.Team, ev.Group, ev.Comment)
+		fmt.Fprintf(&b, "Person: %s\nTeam: %s\nGroup: %s\n%s", ev.Person, ev.Team, ev.Group, ev.Comment)
 		return title, strings.TrimRight(b.String(), "\n")
 	}
 	line := func(k, v string) {
@@ -70,25 +70,25 @@ func render(ev Event) (string, string) {
 			fmt.Fprintf(&b, "%s: %s\n", k, v)
 		}
 	}
-	line("Değişiklik", ev.Change)
+	line("Change", ev.Change)
 	switch ev.Source {
 	case "revert":
-		line("Kaynak", "geri alma")
+		line("Source", "revert")
 	case "settings":
-		line("Kaynak", "ayar değişikliği")
+		line("Source", "settings change")
 	}
-	line("İsteyen", strings.Join(ev.RequestedBy, ", "))
-	line("Plan", fmt.Sprintf("%d oluşturulacak, %d kalacak, %d silinecek", ev.Summary.Create, ev.Summary.Keep, ev.Summary.Delete))
+	line("Requested by", strings.Join(ev.RequestedBy, ", "))
+	line("Plan", fmt.Sprintf("%d to create, %d to keep, %d to delete", ev.Summary.Create, ev.Summary.Keep, ev.Summary.Delete))
 	for _, a := range ev.Approvers {
-		line("Onaylayabilecekler", fmt.Sprintf("%s (%s): %s", a.Name, a.Why, strings.Join(a.Candidates, ", ")))
+		line("May approve", fmt.Sprintf("%s (%s): %s", a.Name, a.Why, strings.Join(a.Candidates, ", ")))
 	}
-	line("Onaylayan", strings.Join(ev.ApprovedBy, ", "))
+	line("Approved by", strings.Join(ev.ApprovedBy, ", "))
 	if ev.DecidedBy != "" {
-		line("Karar", ev.DecidedBy+": "+ev.Comment)
+		line("Decision", ev.DecidedBy+": "+ev.Comment)
 	}
 	line("Run", ev.Run)
-	line("Hata", ev.Error)
-	line("Bağlantı", ev.URL)
+	line("Error", ev.Error)
+	line("Link", ev.URL)
 	return title, strings.TrimRight(b.String(), "\n")
 }
 
@@ -127,7 +127,7 @@ func teamsBody(ev Event) []byte {
 		},
 	}
 	if ev.URL != "" {
-		card["actions"] = []any{map[string]string{"type": "Action.OpenUrl", "title": "Gaia'da aç", "url": ev.URL}}
+		card["actions"] = []any{map[string]string{"type": "Action.OpenUrl", "title": "Open in Gaia", "url": ev.URL}}
 	}
 	b, _ := json.Marshal(map[string]any{
 		"type":        "message",

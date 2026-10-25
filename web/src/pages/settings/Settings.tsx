@@ -1,50 +1,54 @@
-// Ayarlar: Gaia's own settings, one tab each (design 17.8). Providers,
-// notification channels, sources and discovery, and the platform-wide
-// objects: sign-in, Platform and Policy.
+// Settings: Gaia's own settings, one tab each (design 17.8): providers,
+// sources and discovery, people and sign-in, notification channels, the
+// platform-wide objects, their versions and the audit log.
 import type { ReactNode } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
+import { fromSettings, useObjects, useSettings } from "../../api/objects";
+import { useSchema } from "../../api/schema";
 import { Icon, type IconName } from "../../ui/icons";
-import { Hint, Loading, Mono } from "../../ui/parts";
+import { Hint, Loading } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { TabHead, Tabs } from "../../ui/tabs";
 import { kindOf, objectPath } from "../../ui/kinds";
 import { ObjectsError } from "../../ui/objects";
+import { EditButtons } from "../../ui/settings-editor";
+import { SpecView } from "../../ui/spec";
+import { YamlButton } from "../../ui/yaml";
 import { Providers } from "./Providers";
 import { Sources } from "./Sources";
 import { Discovery } from "./Discovery";
 import { Versions } from "./Versions";
 import { Users } from "./Users";
 import { Audit } from "./Audit";
-import { fromSettings, useObjects, useSettings } from "../../api/objects";
-import { EditButtons } from "../../ui/settings-editor";
 
-// ObjectYAML shows each object of a kind as it is written, for the
-// kinds there are one or two of.
-function ObjectYAML({ kind, text, hint }: { kind: string; text: string; hint: string }) {
+// ObjectSettings shows each object of a kind field by field, for the
+// kinds there is one of.
+function ObjectSettings({ kind, text, hint }: { kind: string; text: string; hint: string }) {
   const list = useObjects([kind]);
+  const schema = useSchema(kind);
   const details = useQueries({
     queries: (list.data?.objects ?? []).map((o) => ({
       queryKey: ["catalog", o.kind, o.name],
-      queryFn: () => api<{ yaml: string; source: string }>(`/catalog/${encodeURIComponent(o.kind)}/${encodeURIComponent(o.name)}`),
+      queryFn: () => api<{ yaml: string; source: string; spec?: Record<string, unknown> }>(`/catalog/${encodeURIComponent(o.kind)}/${encodeURIComponent(o.name)}`),
     })),
   });
   return (
     <>
       <TabHead icon={kindOf(kind).icon} text={text} hint={hint} />
-      {list.isPending ? <Loading /> : list.error ? <ObjectsError error={list.error} /> : list.data.objects.length === 0 ? <div className="card empty">Tanımlı bir {kind} yok.</div> : (
+      {list.isPending ? <Loading /> : list.error ? <ObjectsError error={list.error} /> : list.data.objects.length === 0 ? <div className="card empty">There is no {kind}.</div> : (
         list.data.objects.map((o, i) => (
           <section key={o.name} className="card" aria-label={`${kind} ${o.name}`}>
             <div className="card-head">
-              <div className="card-title"><Icon name={kindOf(kind).icon} size={16} /><h2>{o.name}</h2></div>
-              <span className="row" style={{ gap: 14 }}>
-                <span className="il muted" style={{ fontWeight: 400 }}><Icon name={fromSettings(o.source) ? "history" : "file"} size={14} /><Mono>{o.source.replace(/^settings:/, "")}</Mono></span>
-                <Link to={objectPath(kind, o.name)} className="il">Ayrıntı<Icon name="arrow" size={14} /></Link>
+              <div className="card-title"><Icon name={kindOf(kind).icon} size={16} /><h2><Link to={objectPath(kind, o.name)}>{o.name}</Link></h2>
+                {!fromSettings(o.source) && <span className="badge gray" title={o.source}>in Git</span>}</div>
+              <span className="row">
+                {details[i]?.data && <YamlButton yaml={details[i].data.yaml} title={`${kind} ${o.name}`} />}
                 {fromSettings(o.source) && <EditButtons kind={kind} name={o.name} />}
               </span>
             </div>
-            {details[i]?.data ? <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)", lineHeight: 1.6 }}>{details[i].data.yaml}</pre> : <Loading />}
+            {details[i]?.data ? <SpecView kind={kind} schema={schema.data} spec={details[i].data.spec ?? o.spec} /> : <Loading />}
           </section>
         ))
       )}
@@ -55,22 +59,25 @@ function ObjectYAML({ kind, text, hint }: { kind: string; text: string; hint: st
 type Tab = { tab: string; label: string; icon: IconName; body: () => ReactNode };
 
 const TABS: Tab[] = [
-  { tab: "providers", label: "Provider'lar", icon: "plug", body: () => <Providers /> },
-  { tab: "sources", label: "Kaynaklar", icon: "repeat", body: () => <Sources /> },
-  { tab: "discovery", label: "Keşif", icon: "compass", body: () => <Discovery /> },
-  { tab: "users", label: "Kullanıcılar", icon: "users", body: () => <Users /> },
-  { tab: "auth", label: "Giriş", icon: "key", body: () => <><AuthSummary /><ObjectYAML kind="AuthConfig" text="Giriş ayarlarının kendisi." hint="AuthConfig, kişilerin nasıl girdiğini söyler. Değiştirmek bir ayar değişikliğidir ve platform-admin onayı ister." /></> },
-  { tab: "channels", label: "Bildirimler", icon: "bell", body: () => <Providers channels /> },
+  { tab: "providers", label: "Providers", icon: "plug", body: () => <Providers /> },
+  { tab: "sources", label: "Sources", icon: "repeat", body: () => <Sources /> },
+  { tab: "discovery", label: "Discovery", icon: "compass", body: () => <Discovery /> },
+  { tab: "users", label: "Users", icon: "users", body: () => <Users /> },
+  {
+    tab: "auth", label: "Sign-in", icon: "key",
+    body: () => <><AuthSummary /><ObjectSettings kind="AuthConfig" text="How people sign in, in full." hint="AuthConfig says how people sign in. Changing it is a settings change that a platform admin approves." /></>,
+  },
+  { tab: "channels", label: "Notifications", icon: "bell", body: () => <Providers channels /> },
   {
     tab: "platform", label: "Platform", icon: "grid",
-    body: () => <ObjectYAML kind="Platform" text="Platformun genel ayarları: motorlar, izleme, arşiv, depolar." hint="Platform nesnesi Gaia'nın kendisini nasıl çalıştıracağını söyler: Pulumi ve Ansible sürümleri, run kayıtlarının arşivi, izleme, artifact depoları." />,
+    body: () => <ObjectSettings kind="Platform" text="How Gaia runs itself: engines, monitoring, archives, repositories." hint="The Platform object says how Gaia runs: the Pulumi and Ansible versions, where run records are archived, monitoring, artifact repositories." />,
   },
   {
     tab: "policy", label: "Policy", icon: "lock",
-    body: () => <ObjectYAML kind="Policy" text="Kurallar: onaylar, isimlendirme, zorunlu etiketler, ortamlar, roller." hint="Policy, kontratların uyması gereken kuralları ve onay akışını söyler: hangi ortamda kimin onayı gerekir, sunucular nasıl adlandırılır, hangi etiketler zorunludur, ayar değişikliklerini kim onaylar." />,
+    body: () => <ObjectSettings kind="Policy" text="The rules: approvals, naming, required labels, environments, roles." hint="The Policy holds the rules contracts must follow and who approves what: per environment, server naming, required labels, Gaia's roles and settings approvers." />,
   },
-  { tab: "versions", label: "Sürümler", icon: "history", body: () => <Versions /> },
-  { tab: "audit", label: "Denetim kaydı", icon: "eye", body: () => <Audit /> },
+  { tab: "versions", label: "Versions", icon: "history", body: () => <Versions /> },
+  { tab: "audit", label: "Audit log", icon: "eye", body: () => <Audit /> },
 ];
 
 type AuthSpec = {
@@ -87,32 +94,31 @@ function AuthSummary() {
   const ldap = spec.providers?.filter((p) => p.type === "ldap") ?? [];
   const local = spec.providers?.find((p) => p.type === "local");
   return (
-    <section className="status" aria-label="Giriş">
+    <section className="status" aria-label="Sign-in">
       <div className="status-cell">
-        <div className="status-title"><Icon name="users" size={14} /><span>Giriş</span><Hint>Kişiler dizindeki kullanıcı adı ve parolasıyla girer; Gaia parolayı saklamaz, dizinde doğrular.</Hint></div>
+        <div className="status-title"><Icon name="users" size={14} /><span>Sign-in</span><Hint>People sign in with their directory username and password. Gaia checks the password against the directory and never keeps it.</Hint></div>
         <div className="status-value" style={{ fontSize: 15 }}>
-          {ldap.length ? ldap.map((p) => <span key={p.name} className="il">Dizin · <Link to={objectPath("Provider", p.directory?.provider ?? "")}>{p.directory?.provider}</Link></span>) : "Yerel hesaplar"}
+          {ldap.length ? ldap.map((p) => <span key={p.name} className="il">Directory · <Link to={objectPath("Provider", p.directory?.provider ?? "")}>{p.directory?.provider}</Link></span>) : "Local accounts"}
         </div>
-        <div className="status-sub">{local ? (ldap.length ? "yerel hesaplar sadece break-glass" : "yerel hesaplar") : "yerel hesap yok"}</div>
+        <div className="status-sub">{local ? (ldap.length ? "local accounts are for break-glass only" : "local accounts") : "no local accounts"}</div>
       </div>
       <div className="status-cell">
-        <div className="status-title"><Icon name="key" size={14} /><span>İkinci adım</span><Hint>Paroladan sonra Gaia'nın kendi ikinci adımı istenir; ilk girişte orada kaydedilir.</Hint></div>
-        <div className="status-value" style={{ fontSize: 15 }}>{spec.require === "passkey" ? "Passkey" : "Passkey ya da doğrulama kodu"}</div>
+        <div className="status-title"><Icon name="key" size={14} /><span>Second factor</span><Hint>After the password Gaia asks for its own second factor; a first sign-in registers it.</Hint></div>
+        <div className="status-value" style={{ fontSize: 15 }}>{spec.require === "passkey" ? "Passkey" : "Passkey or authenticator code"}</div>
         <div className="status-sub">require: {spec.require}</div>
       </div>
       <div className="status-cell">
-        <div className="status-title"><Icon name="clock" size={14} /><span>Oturum</span></div>
-        <div className="status-value" style={{ fontSize: 15 }}>{spec.sessions?.ui?.ttl ?? "8h"} · boşta {spec.sessions?.ui?.idle ?? "30m"}</div>
+        <div className="status-title"><Icon name="clock" size={14} /><span>Sessions</span></div>
+        <div className="status-value" style={{ fontSize: 15 }}>{spec.sessions?.ui?.ttl ?? "8h"} · idle {spec.sessions?.ui?.idle ?? "30m"}</div>
         <div className="status-sub">CLI: {spec.sessions?.cli?.accessTtl ?? "1h"} / {spec.sessions?.cli?.refreshTtl ?? "12h"}</div>
       </div>
       <div className="status-cell">
-        <div className="status-title"><Icon name="arrow" size={14} /><span>Adres</span><Hint right>Passkey'ler bu adresin alan adına bağlıdır.</Hint></div>
+        <div className="status-title"><Icon name="arrow" size={14} /><span>Address</span><Hint right>Passkeys are bound to this address's host.</Hint></div>
         <div className="status-value mono" style={{ fontSize: 14 }}>{spec.url}</div>
       </div>
     </section>
   );
 }
-
 
 export function Settings() {
   const { tab = "" } = useParams();
@@ -120,18 +126,18 @@ export function Settings() {
   const t = TABS.find((x) => x.tab === tab);
   if (!t) return <Navigate to="/settings/providers" replace />;
   return (
-    <Page crumbs={<><Link to="/settings">Ayarlar</Link> / {t.label}</>}>
+    <Page crumbs={<><Link to="/settings">Settings</Link> / {t.label}</>}>
       <div className="title-row">
-        <h1>Ayarlar</h1>
-        <Hint>Gaia'nın kendi ayarları: konuştuğu sistemler, kaynaklar, giriş, platform ve kurallar.</Hint>
+        <h1>Settings</h1>
+        <Hint>Gaia's own settings: the systems it talks to, its sources, sign-in, the platform and the rules.</Hint>
         {settings.data?.current && (
-          <Link to={`/settings/versions/${settings.data.current.version}`} className="il muted" style={{ fontWeight: 400 }} title="Gaia'nın şu an kullandığı ayar sürümü">
-            <Icon name="history" size={15} />ayarlar @ v{settings.data.current.version}
+          <Link to={`/settings/versions/${settings.data.current.version}`} className="il muted" style={{ fontWeight: 400 }} title="The settings version Gaia uses now">
+            <Icon name="history" size={15} />settings v{settings.data.current.version}
           </Link>
         )}
-        {settings.data && !settings.data.current && <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} />ayarlar Git'ten okunuyor</span>}
+        {settings.data && !settings.data.current && <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} />settings are read from Git</span>}
       </div>
-      <Tabs label="Ayarlar" items={TABS.map((x) => ({ to: `/settings/${x.tab}`, icon: x.icon, label: x.label }))} />
+      <Tabs label="Settings" items={TABS.map((x) => ({ to: `/settings/${x.tab}`, icon: x.icon, label: x.label }))} />
       {t.body()}
     </Page>
   );

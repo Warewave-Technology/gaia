@@ -19,7 +19,7 @@ describe("infrastructure", () => {
     const lab = (await screen.findByRole("link", { name: "lab" })).closest("tr")!;
     expect(lab).toHaveTextContent("proxmox · gaia · local-lvm");
     expect(lab).toHaveTextContent("pool.ntp.org");
-    expect(screen.getByRole("link", { name: /Ağlar/ })).toHaveTextContent("1");
+    expect(screen.getByRole("link", { name: /Networks/ })).toHaveTextContent("1");
   });
 
   it("lists networks with their attachment and pool", async () => {

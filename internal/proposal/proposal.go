@@ -574,7 +574,7 @@ func (s *Service) moved(ctx context.Context, base, latest int64, ch map[string][
 		return "", nil
 	}
 	sort.Strings(moved)
-	return fmt.Sprintf("v%d'den sonra değişti: %s", base, strings.Join(moved, ", ")), nil
+	return fmt.Sprintf("changed after v%d: %s", base, strings.Join(moved, ", ")), nil
 }
 
 func (s *Service) stale(ctx context.Context, pr db.SettingsProposal, why string) error {

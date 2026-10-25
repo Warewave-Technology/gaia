@@ -1,4 +1,4 @@
-// Genel bakış: what waits for me, the contracts and the last runs.
+// Overview: what waits for me, the contracts and the last runs.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
@@ -32,52 +32,52 @@ export function Overview() {
   const count = <T,>(xs: T[], x: T) => xs.filter((y) => y === x).length;
 
   return (
-    <Page crumbs="Genel bakış">
+    <Page crumbs="Overview">
       <div className="title-row">
-        <h1>Genel bakış</h1>
-        <Hint>Onayınızı bekleyen değişiklikler, kontratların durumu ve son run'lar.</Hint>
+        <h1>Overview</h1>
+        <Hint>Changes waiting for your approval, how the contracts are, and the latest runs.</Hint>
       </div>
 
       <StatusBar items={[
         {
-          icon: "heart", title: "Sağlık", hint: <HealthLegend />,
+          icon: "heart", title: "Health", hint: <HealthLegend />,
           value: <><HealthLabel h="green" size={18}>{count(hs, "green")}</HealthLabel><HealthLabel h="yellow" size={18}>{count(hs, "yellow")}</HealthLabel><HealthLabel h="red" size={18}>{count(hs, "red")}</HealthLabel></>,
-          sub: `${cs.length} kontrat`,
+          sub: `${cs.length} contracts`,
         },
         {
-          icon: "sync", title: "Sync durumu", hint: <SyncLegend />,
+          icon: "sync", title: "Sync", hint: <SyncLegend />,
           value: <><Sync state="synced" size={18}>{count(ss, "synced")}</Sync><Sync state="out-of-sync" size={18}>{count(ss, "out-of-sync")}</Sync><Sync state="drifted" size={18}>{count(ss, "drifted")}</Sync></>,
-          sub: count(ss, "unknown") ? `${count(ss, "unknown")} kontrat değerlendirilemedi` : "",
+          sub: count(ss, "unknown") ? `${count(ss, "unknown")} contracts not evaluated` : "",
         },
         {
-          icon: "pr", title: "Onayınızı bekleyen", hint: "Sizin onaylayabileceğiniz, uygulanmayı bekleyen değişiklikler (Change). Change, kontrat reposuna gelen bir commit'in planıdır.",
+          icon: "pr", title: "Awaiting you", hint: "Changes you may approve that wait to be applied. A change is the plan of a commit to the contract repository, or of a settings change.",
           value: <IL icon="clock" color="var(--blue)" size={18}>{me ? mine.data?.length ?? "…" : "–"}</IL>,
-          sub: <>açık değişiklik {open.data?.length ?? "…"} · <Link to="/changes">incele</Link></>,
+          sub: <>{open.data?.length ?? "…"} open changes · <Link to="/changes">review</Link></>,
         },
         {
-          icon: "play", title: "Başarısız run (24 sa)", hint: "Son 24 saatte başarısız biten run'lar. Run, bir değişikliğin sunuculara uygulanmasıdır.",
+          icon: "play", title: "Failed runs (24h)", hint: "Runs that failed in the last 24 hours. A run applies a change to servers.",
           value: failed.length ? <IL icon="x-circle" color="var(--red)" size={18}>{failed.length}</IL> : <IL icon="check-circle" color="var(--green)" size={18}>0</IL>,
-          sub: lastFailed ? <>son başarısız: <Link to={`/runs/${encodeURIComponent(lastFailed.id)}`} className="mono">{lastFailed.id}</Link> · {ago(lastFailed.finishedAt ?? lastFailed.queuedAt)}</> : "",
+          sub: lastFailed ? <>last failed: <Link to={`/runs/${encodeURIComponent(lastFailed.id)}`} className="mono">{lastFailed.id}</Link> · {ago(lastFailed.finishedAt ?? lastFailed.queuedAt)}</> : "",
         },
       ]} />
 
       {(mine.data ?? []).map((c) => (
-        <section key={c.id} aria-label="Onayınızı bekliyor" className="card row" style={{ borderLeft: "4px solid var(--blue)", gap: 16, padding: "14px 16px" }}>
-          <span className="label-caps row" style={{ gap: 6 }}><Icon name="clock" size={14} />Onayınızı bekliyor</span>
+        <section key={c.id} aria-label="Awaiting your approval" className="card row" style={{ borderLeft: "4px solid var(--blue)", gap: 16, padding: "14px 16px" }}>
+          <span className="label-caps row" style={{ gap: 6 }}><Icon name="clock" size={14} />Awaiting your approval</span>
           <Link to={`/changes/${encodeURIComponent(c.id)}`} className="il" style={{ color: "var(--fg)" }}><span style={{ color: "var(--blue)" }}><Icon name="pr" size={16} /></span>{c.contract}</Link>
           {(c.commits as { commit: string }[] | undefined)?.map((x) => <span key={x.commit} className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} /><Mono>{short(x.commit)}</Mono></span>)}
           <span className="il muted" style={{ fontWeight: 400 }}><Icon name="user" size={15} />{(c.requestedBy ?? []).join(", ")} · {ago(c.createdAt)}</span>
           <span style={{ flex: "1 1 auto" }} />
-          <LinkButton to={`/changes/${encodeURIComponent(c.id)}`} kind="primary" icon="eye">İncele</LinkButton>
+          <LinkButton to={`/changes/${encodeURIComponent(c.id)}`} kind="primary" icon="eye">Review</LinkButton>
         </section>
       ))}
 
       {contracts.isPending ? <Loading /> : contracts.error ? <ErrorNote error={contracts.error} /> : <ContractGrid contracts={contracts.data} drift={drift.data} />}
 
-      <Card title="Son run'lar" icon="play" hint="Run, bir değişikliğin sunuculara uygulanmasıdır: IP ayırma, VM, izleme kaydı ve Ansible, sırayla." right={<Link to="/runs">Tümü</Link>}>
-        {runs.isPending ? <Loading /> : runs.error ? <ErrorNote error={runs.error} /> : runs.data.length === 0 ? <div className="empty">Run yok.</div> : (
+      <Card title="Latest runs" icon="play" hint="A run applies a change to servers: addresses, VMs, monitoring and Ansible, in that order." right={<Link to="/runs">All</Link>}>
+        {runs.isPending ? <Loading /> : runs.error ? <ErrorNote error={runs.error} /> : runs.data.length === 0 ? <div className="empty">No runs.</div> : (
           <table className="grid">
-            <thead><tr><th>Run</th><th>Kontrat</th><th><span className="th-hint">Sonuç<Hint><RecordLegend /></Hint></span></th><th>Süre</th><th>Zaman</th></tr></thead>
+            <thead><tr><th>Run</th><th>Contract</th><th><span className="th-hint">Result<Hint><RecordLegend /></Hint></span></th><th>Duration</th><th>When</th></tr></thead>
             <tbody>
               {runs.data.slice(0, 8).map((r) => (
                 <tr key={r.id}>

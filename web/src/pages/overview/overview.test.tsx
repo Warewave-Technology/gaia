@@ -21,9 +21,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe("overview", () => {
   it("puts what waits for me first, then contracts and runs", async () => {
     renderAt("/");
-    expect(await screen.findByRole("region", { name: "Onayınızı bekliyor" })).toHaveTextContent("poc-web");
+    expect(await screen.findByRole("region", { name: "Awaiting your approval" })).toHaveTextContent("poc-web");
     expect(await screen.findAllByRole("link", { name: "run-f" })).toHaveLength(2);
-    expect(screen.getByText("son başarısız:", { exact: false })).toBeInTheDocument();
-    expect(await screen.findByText("2 kontrat")).toBeInTheDocument();
+    expect(screen.getByText("last failed:", { exact: false })).toBeInTheDocument();
+    expect(await screen.findByText("2 contracts")).toBeInTheDocument();
   });
 });

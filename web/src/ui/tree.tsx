@@ -71,9 +71,9 @@ export function ResourceTree({ nodes, edges }: { nodes: TreeNode[]; edges: TreeE
     id: e.id, source: e.source, target: e.target, type: "smoothstep",
     style: { stroke: e.dashed ? "var(--yellow)" : "var(--bg4)", strokeWidth: 2, strokeDasharray: e.dashed ? "6 6" : undefined },
   }));
-  if (!laid) return <div className="empty">Ağaç çiziliyor…</div>;
+  if (!laid) return <div className="empty">Drawing the tree…</div>;
   return (
-    <div style={{ height: Math.min(Math.max(laid.height + 48, 160), 720) }} aria-label="Kaynak ağacı" role="img">
+    <div style={{ height: Math.min(Math.max(laid.height + 48, 160), 720) }} aria-label="Resource tree" role="img">
       <ReactFlow nodes={laid.nodes} edges={flowEdges} nodeTypes={nodeTypes} colorMode="dark" fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }}
         nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll={false} preventScrolling={false}
         style={{ background: "transparent" }} minZoom={0.3} maxZoom={1.5}>

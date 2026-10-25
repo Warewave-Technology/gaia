@@ -53,8 +53,8 @@ func (s *Syncer) Memberships(ctx context.Context, g *catalog.Graph) ([]Membershi
 			errs = append(errs, fmt.Errorf("%s: %w", p, err))
 		}
 		out = append(out, m)
-		if serr := s.save(ctx, Report{Source: "Directory/" + p, Status: status(err), Error: errText(err),
-			Added: m.Joined, Removed: m.Left, Changed: append(append([]string{}, m.Disabled...), m.Enabled...)}); serr != nil {
+		mm := m
+		if serr := s.save(ctx, Report{Source: "Directory/" + p, Status: status(err), Error: errText(err), Membership: &mm}); serr != nil {
 			errs = append(errs, serr)
 		}
 	}
@@ -259,7 +259,7 @@ func (s *Syncer) privileged(ctx context.Context, g *catalog.Graph, team, person,
 		ev := notify.Event{
 			Trigger: "access.privileged", Key: fmt.Sprintf("access/%s/%s/%s/%s", o.Metadata.Name, team, userID, time.Now().UTC().Format(time.RFC3339)),
 			Teams: append([]string{gs.Owner}, admins...), Group: o.Metadata.Name, Team: team, Person: person,
-			Comment: "AD'de " + team + " takımına eklendi; Gaia erişimi dağıtıyor.",
+			Comment: "The directory added them to " + team + "; Gaia is handing out their access.",
 		}
 		if err := s.Notify.Emit(ctx, g, ev); err != nil {
 			s.log().Warn("notification", "group", o.Metadata.Name, "err", err)

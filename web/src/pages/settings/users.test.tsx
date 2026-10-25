@@ -28,19 +28,19 @@ describe("users", () => {
     });
     renderAt("/settings/users");
     const can = (await screen.findByText("can")).closest("tr")!;
-    expect(can).toHaveTextContent("dizin · lab-ad");
-    expect(can).toHaveTextContent("açık");
+    expect(can).toHaveTextContent("directory · lab-ad");
+    expect(can).toHaveTextContent("open");
     expect(within(can).queryByRole("switch")).not.toBeInTheDocument();
-    expect(screen.getByText("ali").closest("tr")).toHaveTextContent("dizinde kapalı");
+    expect(screen.getByText("ali").closest("tr")).toHaveTextContent("closed in the directory");
     const bg = screen.getByText("breakglass").closest("tr")!;
     expect(bg).toHaveTextContent("break-glass");
     expect(within(bg).getByRole("switch")).toBeInTheDocument();
-    expect(within(bg).getByRole("button", { name: /Yeniden kayıt/ })).toBeInTheDocument();
+    expect(within(bg).getByRole("button", { name: /Re-enroll/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Break-glass hesabı/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Add break-glass account/ }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByLabelText("Kullanıcı adı"), { target: { value: "emergency" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: /Aç/ }));
+    fireEvent.change(within(dialog).getByLabelText("Username"), { target: { value: "emergency" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open" }));
     expect(await screen.findByText("http://localhost:8080/enroll#tok")).toBeInTheDocument();
     expect(calls.find((c) => c.path === "/users" && c.method === "POST")!.body).toEqual({ username: "emergency", displayName: "", teams: ["team-platform"], breakGlass: true });
   });

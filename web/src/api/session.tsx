@@ -24,8 +24,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     window.location.assign(loginURL());
     return null;
   }
-  if (q.isPending) return <div className="empty" role="status">Yükleniyor…</div>;
-  if (q.error) return <div className="page"><div className="notice err" role="alert">Gaia'ya ulaşılamadı: {q.error.message}</div></div>;
+  if (q.isPending) return <div className="empty" role="status">Loading…</div>;
+  if (q.error) return <div className="page"><div className="notice err" role="alert">Gaia cannot be reached: {q.error.message}</div></div>;
   return <Ctx.Provider value={q.data}>{children}</Ctx.Provider>;
 }
 

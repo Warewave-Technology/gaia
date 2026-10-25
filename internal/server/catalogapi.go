@@ -251,6 +251,10 @@ func (s *Server) getCatalogObject(w http.ResponseWriter, r *http.Request) {
 		CatalogObject: catalogObject(g, o), Annotations: o.Metadata.Annotations, YAML: string(y),
 		Refs: refs(g.Refs(o.Key()), true), UsedByRefs: refs(g.UsedBy(o.Key()), false),
 	}
+	if err := withSpec(&d.CatalogObject, o); err != nil {
+		s.fail(w, err)
+		return
+	}
 	for _, p := range o.Patches {
 		d.PatchFiles = append(d.PatchFiles, p.String())
 	}
@@ -263,6 +267,16 @@ func (s *Server) getCatalogObject(w http.ResponseWriter, r *http.Request) {
 		d.Params, d.Rules = paramInfos(sp.Params, ""), ruleInfos(sp.Rules)
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// getSchema is a kind's spec as fields, for forms and tables.
+func (s *Server) getSchema(w http.ResponseWriter, r *http.Request) {
+	f := catalog.Schema(r.PathValue("kind"))
+	if f == nil {
+		writeJSON(w, http.StatusNotFound, Problem{Error: "no such kind: " + r.PathValue("kind")})
+		return
+	}
+	writeJSON(w, http.StatusOK, f)
 }
 
 // ProviderInfo is a provider and how it is used (design 11.5).

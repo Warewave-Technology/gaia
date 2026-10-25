@@ -458,6 +458,15 @@ Yapılanlar:
 - **Geçiş:** Lab'deki Gaia yeni yapıya geçer; ayarlar Git'ten içeri alınır.
 - **Uçtan uca deneme:** Altyapı'dan bir ağ ayarı değişikliği → onay → etkilenen kontratın Change'i. LDAP ile giriş ve ikinci faktör. Denetim kaydında bunların görünmesi.
 
+### Faz 19: İngilizce arayüz, formlar ve tablolar — Tamam (2026-10-26)
+Yapılanlar:
+- **Dil:** Arayüzün tamamı, giriş sayfaları ve bildirim metinleri İngilizce. Belgeler Türkçe kalır.
+- **YAML yok:** Ayarlar ve katalog nesneleri şemadan çizilen alan/değer tablolarıyla görünür (`GET /api/v1/schema/{kind}`). YAML yalnızca "View YAML" düğmesiyle açılır.
+- **Formlar:** Ekle/Düzenle iki adımlı bir pencere: önce alanlar (her alanın açıklaması altında), sonra "Review and submit" (alan alan farklar, kontrol sonucu, özet ve neden). İsteyen YAML olarak da düzenleyebilir.
+- **Farklar:** Ayar değişikliği ve ayar sürümü sayfaları farkları alan alan gösterir; satır satır YAML farkı bir düğmenin arkasında.
+- **Sources:** Tablo her Source için ne ürettiğini, nereden okuduğunu, nereye yazdığını ve son çalışmasını gösterir. Dizin eşitlemesi ayrı bir kartta, provider'ına bağlı. Git'te kalan eski ayar dosyaları açıklamalı, katlanmış bir uyarıda.
+- **Sınır:** Şeması serbest alanlar (Policy'nin remediation'ı, rol parametreleri gibi) formda küçük bir YAML kutusu olarak kalır.
+
 ## Lab oturumu
 
 Gerçek sunucularla yapılacak denemeler tek bir lab oturumunda toplanır: Faz 3–4'ün uygulama ayağı (commit → Change → onay → gerçek VM ve bildirimler) ve lab gerektiren sonraki fazlar.

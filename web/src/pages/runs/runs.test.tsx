@@ -55,7 +55,7 @@ describe("runs", () => {
     renderAt("/runs/run-s62");
     expect(await screen.findByRole("heading", { name: "run-s62" })).toBeInTheDocument();
     expect(FakeES.last?.url).toBe("/api/v1/runs/run-s62/events/stream");
-    expect(screen.getByRole("link", { name: /Change/ })).toHaveAttribute("href", "/changes/ch1");
+    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/changes/ch1");
     FakeES.last!.emit("ansible", { seq: 1, stage: "configure", type: "playbook_on_task_start", task: "gaia_linux_base : Saat dilimi", createdAt: RUN.startedAt });
     FakeES.last!.emit("ansible", { seq: 2, stage: "configure", type: "runner_on_ok", host: "u2", task: "gaia_linux_base : Saat dilimi", changed: true, createdAt: RUN.startedAt });
     FakeES.last!.emit("ansible", { seq: 2, stage: "configure", type: "runner_on_ok", host: "u2", task: "gaia_linux_base : Saat dilimi", changed: true, createdAt: RUN.startedAt });
@@ -63,7 +63,7 @@ describe("runs", () => {
     expect(screen.getAllByText("changed: [labtpoc02]")).toHaveLength(1);
     expect(screen.getByTitle("gaia_linux_base : Saat dilimi: changed")).toBeInTheDocument();
     expect(screen.getByText("labtpoc02", { selector: "td" })).toBeInTheDocument();
-    expect(await screen.findByText("1 sunucu")).toBeInTheDocument();
+    expect(await screen.findByText(/^1 servers?$/)).toBeInTheDocument();
     expect(screen.getByText("ayse.k")).toBeInTheDocument();
     FakeES.last!.emit("end", { status: "succeeded" });
     expect(FakeES.last!.readyState).toBe(2);
@@ -72,10 +72,10 @@ describe("runs", () => {
   it("lists runs with the record's shield on finished ones", async () => {
     renderAt("/runs");
     expect(await screen.findByRole("link", { name: "run-s62" })).toBeInTheDocument();
-    expect(screen.getAllByRole("img", { name: "Run kaydı" })).toHaveLength(1);
-    expect(screen.getByText("(yetkiniz yok)")).toBeInTheDocument();
-    fireEvent.mouseEnter(screen.getByRole("img", { name: "Run kaydı" }).parentElement!.parentElement!);
+    expect(screen.getAllByRole("img", { name: "Run record" })).toHaveLength(1);
+    expect(screen.getByText("(no access)")).toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByRole("img", { name: "Run record" }).parentElement!.parentElement!);
     // The tooltip reads the run only when it opens.
-    expect(await screen.findByText("zincir #4")).toBeInTheDocument();
+    expect(await screen.findByText("chain #4")).toBeInTheDocument();
   });
 });

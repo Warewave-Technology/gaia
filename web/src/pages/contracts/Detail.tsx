@@ -20,14 +20,14 @@ import { ResourceTree } from "../../ui/tree";
 export function ContractDetail() {
   const { name = "" } = useParams();
   const q = useQuery({ queryKey: ["contract", name], queryFn: () => api<Contract>(`/contracts/${encodeURIComponent(name)}`), refetchInterval: 30_000 });
-  const crumbs = <><Link to="/contracts">Kontratlar</Link> / {name}</>;
+  const crumbs = <><Link to="/contracts">Contracts</Link> / {name}</>;
   if (q.isPending) return <Page crumbs={crumbs}><Loading /></Page>;
   if (q.error) {
     const e = q.error;
     return (
       <Page crumbs={crumbs}>
-        {e instanceof ApiError && e.status === 403 ? <div className="notice warn">Bu kontratın sadece adını görebilirsiniz; ayrıntıları kapalı.</div>
-          : e instanceof ApiError && e.status === 404 ? <div className="notice warn">Gaia'nın bu adla uyguladığı bir kontrat yok.</div>
+        {e instanceof ApiError && e.status === 403 ? <div className="notice warn">You may see this contract's name only; its details are closed to you.</div>
+          : e instanceof ApiError && e.status === 404 ? <div className="notice warn">Gaia has applied no contract by this name.</div>
           : <ErrorNote error={e} />}
       </Page>
     );
@@ -76,47 +76,47 @@ function Body({ c, crumbs }: { c: Contract; crumbs: ReactNode }) {
 
       <div className="spread">
         <div className="row">
-          {c.openChange && <LinkButton to={`/changes/${encodeURIComponent(c.openChange)}`} icon="pr" title="Git'teki ile uygulanan arasındaki değişiklik">Açık değişiklik</LinkButton>}
-          <LinkButton to={`/runs?contract=${encodeURIComponent(c.name)}`} icon="play">Run'lar</LinkButton>
-          <a className="btn" href="#history"><Icon name="history" size={15} />Geçmiş</a>
+          {c.openChange && <LinkButton to={`/changes/${encodeURIComponent(c.openChange)}`} icon="pr" title="The change between Git and what is applied">Open change</LinkButton>}
+          <LinkButton to={`/runs?contract=${encodeURIComponent(c.name)}`} icon="play">Runs</LinkButton>
+          <a className="btn" href="#history"><Icon name="history" size={15} />History</a>
         </div>
         <div className="row">
           {hasRole(session, "operator") && c.state?.appliedPlanHash && !c.openChange && (
-            <Button icon="rerun" onClick={reconcile} title="Uygulanan planı yeniden uygulayan bir Change aç (sapmaları düzeltir)">Yeniden uygula</Button>
+            <Button icon="rerun" onClick={reconcile} title="Open a change that applies the applied plan again (puts drift right)">Reapply</Button>
           )}
-          <Button icon="sync" onClick={() => void qc.invalidateQueries({ queryKey: ["contract", c.name] })} title="Ekrandaki bilgileri yenile">Yenile</Button>
+          <Button icon="sync" onClick={() => void qc.invalidateQueries({ queryKey: ["contract", c.name] })} title="Reload what this page shows">Refresh</Button>
         </div>
       </div>
 
       <StatusBar items={[
-        { icon: "heart", title: "Sağlık", hint: <HealthLegend />, value: <HealthLabel h={h} size={20} />, sub: `${c.hosts.filter((x) => x.status === "active").length}/${c.hosts.length} sunucu active` },
+        { icon: "heart", title: "Health", hint: <HealthLegend />, value: <HealthLabel h={h} size={20} />, sub: `${c.hosts.filter((x) => x.status === "active").length}/${c.hosts.length} servers active` },
         {
-          icon: "sync", title: "Sync durumu", hint: <SyncLegend />, value: <Sync state={s} size={20} />,
-          sub: c.openChange ? <Link to={`/changes/${encodeURIComponent(c.openChange)}`}>Git'te uygulanmamış bir değişiklik var</Link>
-            : c.state?.evaluatedAt ? `son değerlendirme ${ago(c.state.evaluatedAt)}` : "",
+          icon: "sync", title: "Sync", hint: <SyncLegend />, value: <Sync state={s} size={20} />,
+          sub: c.openChange ? <Link to={`/changes/${encodeURIComponent(c.openChange)}`}>Git has a change not applied yet</Link>
+            : c.state?.evaluatedAt ? `evaluated ${ago(c.state.evaluatedAt)}` : "",
         },
         {
-          icon: "history", title: "Son uygulama", hint: <>Kontratı en son başarıyla uygulayan run.<span className="leg"><Icon name="check-circle" size={15} color="var(--green)" /><span>yanındaki kalkanın üstüne gelince run kaydı açılır</span></span></>,
-          value: lastApplied ? <span className="row" style={{ gap: 8 }}><IL icon="check-circle" color="var(--green)" size={20}>Uygulandı</IL><LazyRecordTip id={lastApplied.id} /></span> : <span className="muted" style={{ fontSize: 15 }}>henüz yok</span>,
+          icon: "history", title: "Last applied", hint: <>The run that last applied the contract successfully.<span className="leg"><Icon name="check-circle" size={15} color="var(--green)" /><span>hover the shield next to it for the run record</span></span></>,
+          value: lastApplied ? <span className="row" style={{ gap: 8 }}><IL icon="check-circle" color="var(--green)" size={20}>Applied</IL><LazyRecordTip id={lastApplied.id} /></span> : <span className="muted" style={{ fontSize: 15 }}>not yet</span>,
           sub: <>{c.state?.appliedLabel && <Mono>{shortLabel(c.state.appliedLabel)}</Mono>}{c.state?.appliedAt && ` · ${ago(c.state.appliedAt)}`}{lastApplied && <> · <Link to={`/runs/${encodeURIComponent(lastApplied.id)}`}>{lastApplied.id}</Link></>}</>,
         },
         {
-          icon: "scan", title: "Drift", hint: <>Gerçek kaynakların Git'teki tanımdan sapıp sapmadığı.
-            <Leg icon="check-circle" color="var(--fg)" name="Yok">sapma bulunmadı</Leg>
-            <Leg icon="scan" color="var(--orange)" name="Var">sapma bulundu; yönetim seviyesine göre bildirilir ya da düzeltilir</Leg></>,
-          value: drifts.length ? <IL icon="scan" color="var(--orange)" size={20}>{drifts.length} sapma</IL> : <IL icon="check-circle" color="var(--fg)" size={20}>Yok</IL>,
-          sub: drifts.length ? `ilk görülme ${ago(drifts[0]?.firstSeen)}` : "",
+          icon: "scan", title: "Drift", hint: <>Whether the real resources differ from what Git says.
+            <Leg icon="check-circle" color="var(--fg)" name="None">no drift found</Leg>
+            <Leg icon="scan" color="var(--orange)" name="Found">drift found; reported or put right, by the management level</Leg></>,
+          value: drifts.length ? <IL icon="scan" color="var(--orange)" size={20}>{drifts.length} found</IL> : <IL icon="check-circle" color="var(--fg)" size={20}>None</IL>,
+          sub: drifts.length ? `first seen ${ago(drifts[0]?.firstSeen)}` : "",
         },
       ]} />
 
-      {c.state?.error && <div className="notice warn" role="status">Gaia bu kontratı değerlendiremedi: {c.state.error}</div>}
+      {c.state?.error && <div className="notice warn" role="status">Gaia could not evaluate this contract: {c.state.error}</div>}
 
-      <Card title="Kaynak ağacı" icon="network"
-        hint={<>Kontratın Gaia'nın yönettiği gerçek kaynakları: kontrat → sunucular → her sunucunun VM'i, IP'si, izleme kaydı ve diğer sistemlerdeki karşılıkları.
-          <Leg icon="heart" color="var(--green)" name="active" fill="var(--green)">sunucu çalışıyor</Leg>
-          <Leg icon="check" color="var(--green)" name="kayıtlı">kaynak o sistemde var</Leg>
-          <Leg icon="clock" color="var(--yellow)" name="eksik">Git'te var, henüz oluşturulmadı (kesik çizgi)</Leg></>}
-        right={<span className="row faint" style={{ gap: 6, fontSize: 12 }}><svg width="22" height="4" aria-hidden="true"><path d="M1 2h20" stroke="var(--yellow)" strokeWidth="2" strokeDasharray="4 3" /></svg>Git'te var, henüz yok</span>}>
+      <Card title="Resource tree" icon="network"
+        hint={<>The real resources Gaia manages for the contract: contract → servers → each server's VM, address, monitoring entry and its records in other systems.
+          <Leg icon="heart" color="var(--green)" name="active" fill="var(--green)">the server runs</Leg>
+          <Leg icon="check" color="var(--green)" name="registered">the resource exists in that system</Leg>
+          <Leg icon="clock" color="var(--yellow)" name="missing">in Git, not created yet (dashed)</Leg></>}
+        right={<span className="row faint" style={{ gap: 6, fontSize: 12 }}><svg width="22" height="4" aria-hidden="true"><path d="M1 2h20" stroke="var(--yellow)" strokeWidth="2" strokeDasharray="4 3" /></svg>in Git, not yet created</span>}>
         {plan && <CatalogChips p={plan} />}
         <div style={{ padding: "8px 16px 16px" }}><ResourceTree nodes={tree.nodes} edges={tree.edges} /></div>
       </Card>
@@ -151,14 +151,14 @@ function CatalogChips({ p }: { p: PlanContract }) {
   const ipam = (net: string) => uniq(servers.filter((s) => s.network === net).map((s) => s.ipam?.provider ?? "")).filter(Boolean).join(", ");
   return (
     <div className="row" style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg1)" }}>
-      <span className="label-caps row" style={{ gap: 6, marginRight: 4 }}><Icon name="book" size={14} />Kullandığı katalog
-        <Hint>Kontratın referans verdiği katalog nesneleri ve arkalarındaki provider'lar. Katalog platform reposunda durur; kontrat sadece adlarını yazar.</Hint></span>
-      {sites.map((x) => <Chip key={"s" + x} icon="pin" kind="Site" name={x} to={[compute(x), p.monitoring?.provider].filter(Boolean).join(", ")} hint="Site: veri merkezi. Hangi compute ve izleme provider'larının kullanılacağını söyler." />)}
-      {nets.map((x) => <Chip key={"n" + x} icon="network" kind="Network" name={x} to={ipam(x)} hint="Network: sunucuların bağlanacağı ağ. IP'ler bu ağın IPAM havuzundan ayrılır." />)}
-      {p.image && <Chip icon="disc" kind="Image" name={p.image} hint="Image: VM'in klonlandığı işletim sistemi şablonu." />}
-      {p.size && <Chip icon="size" kind="Size" name={p.size.name} hint={`Size: VM boyutu (${p.size.cpu ?? "?"} vCPU, ${p.size.memoryGiB ?? "?"} GiB bellek, ${p.size.diskGiB ?? "?"} GiB disk).`} />}
-      {baselineName(p) && <Chip icon="layers" kind="Baseline" name={baselineName(p)} hint="Baseline: her sunucuya uygulanan temel Ansible rolleri (saat, SSH, paketler)." />}
-      {(p.roles ?? []).map((r) => <Chip key={"r" + r.name} icon="wrench" kind="AnsibleRole" name={r.name} to={r.provider} hint="AnsibleRole: kontratın sunuculara uyguladığı Ansible rolü." />)}
+      <span className="label-caps row" style={{ gap: 6, marginRight: 4 }}><Icon name="book" size={14} />What it uses
+        <Hint>The objects the contract refers to, and the providers behind them. The contract names them only.</Hint></span>
+      {sites.map((x) => <Chip key={"s" + x} icon="pin" kind="Site" name={x} to={[compute(x), p.monitoring?.provider].filter(Boolean).join(", ")} hint="Site: a data centre; where VMs are created and how they are watched." />)}
+      {nets.map((x) => <Chip key={"n" + x} icon="network" kind="Network" name={x} to={ipam(x)} hint="Network: what servers join. Addresses come from its IPAM pool." />)}
+      {p.image && <Chip icon="disc" kind="Image" name={p.image} hint="Image: the operating system template VMs are cloned from." />}
+      {p.size && <Chip icon="size" kind="Size" name={p.size.name} hint={`Size: ${p.size.cpu ?? "?"} vCPUs, ${p.size.memoryGiB ?? "?"} GiB memory, ${p.size.diskGiB ?? "?"} GiB disk.`} />}
+      {baselineName(p) && <Chip icon="layers" kind="Baseline" name={baselineName(p)} hint="Baseline: the base configuration every server gets (time, SSH, packages)." />}
+      {(p.roles ?? []).map((r) => <Chip key={"r" + r.name} icon="wrench" kind="AnsibleRole" name={r.name} to={r.provider} hint="AnsibleRole: a role the contract applies to its servers." />)}
     </div>
   );
 }
@@ -170,15 +170,15 @@ function ip(ids: Record<string, string>, kind: string): [string, string] | undef
 
 function Servers({ c, drifts }: { c: Contract; drifts: Drift[] }) {
   return (
-    <Card title="Sunucular" icon="server">
-      {c.hosts.length === 0 ? <div className="empty">Bu kontratın canlı sunucusu yok.</div> : (
+    <Card title="Servers" icon="server">
+      {c.hosts.length === 0 ? <div className="empty">This contract has no live servers.</div> : (
         <table className="grid">
           <thead>
             <tr>
               <th>Hostname</th>
-              <th><span className="th-hint">UID<Hint>Sunucunun Gaia'daki kalıcı kimliği. Hostname yeniden kullanılsa da değişmez; loglar ve run kayıtları bununla tutulur.</Hint></span></th>
-              <th>Durum</th><th>IP</th><th>VM</th><th>İzleme</th>
-              <th><span className="th-hint">Drift<Hint right>Bu sunucuda Git'teki tanımdan sapma var mı.</Hint></span></th>
+              <th><span className="th-hint">UID<Hint>The server's lasting identity in Gaia. It stays when a hostname is reused; logs and run records are kept by it.</Hint></span></th>
+              <th>Status</th><th>IP</th><th>VM</th><th>Monitoring</th>
+              <th><span className="th-hint">Drift<Hint right>Whether this server differs from what Git says.</Hint></span></th>
             </tr>
           </thead>
           <tbody>
@@ -194,7 +194,7 @@ function Servers({ c, drifts }: { c: Contract; drifts: Drift[] }) {
                   <td className="mono">{ip(x.externalIds, "ip")?.[1] ?? "–"}</td>
                   <td>{vm ? `${vm[0]} ${vm[1]}` : "–"}</td>
                   <td>{mon ? <IL icon="activity" size={14} weight={400}>{mon[0]} {mon[1]}</IL> : "–"}</td>
-                  <td>{d ? <IL icon="scan" color="var(--orange)" size={14}>{d}</IL> : <span className="muted">yok</span>}</td>
+                  <td>{d ? <IL icon="scan" color="var(--orange)" size={14}>{d}</IL> : <span className="muted">none</span>}</td>
                 </tr>
               );
             })}
@@ -205,13 +205,13 @@ function Servers({ c, drifts }: { c: Contract; drifts: Drift[] }) {
   );
 }
 
-const AREA: Record<string, string> = { registration: "Kayıt", provisioning: "Provisioning", configuration: "Konfigürasyon" };
+const AREA: Record<string, string> = { registration: "Registration", provisioning: "Provisioning", configuration: "Configuration" };
 
 function DriftCard({ drifts }: { drifts: Drift[] }) {
   return (
-    <Card title="Sapmalar" icon="scan" hint="Gerçek kaynağın Git'teki tanımdan farkı: alan, istenen ve bulunan değer.">
+    <Card title="Drift" icon="scan" hint="How the real resource differs from what Git says: the area, the wanted and the found value.">
       <table className="grid">
-        <thead><tr><th>Sunucu</th><th>Alan</th><th>Anahtar</th><th>İstenen</th><th>Bulunan</th><th>Görülme</th><th>Düzeltme</th></tr></thead>
+        <thead><tr><th>Server</th><th>Area</th><th>Key</th><th>Wanted</th><th>Found</th><th>Seen</th><th>Fix</th></tr></thead>
         <tbody>
           {drifts.map((d, i) => (
             <tr key={i}>
@@ -234,8 +234,8 @@ function History({ changes, runs }: { changes: Change[] | undefined; runs: Run[]
   const runStatus = new Map(runs.map((r) => [r.id, r.status]));
   return (
     <section id="history">
-      <Card title="Geçmiş" icon="history" hint={<SourceLegend />}>
-        {!changes ? <Loading /> : changes.length === 0 ? <div className="empty">Bu kontrat için değişiklik yok.</div> : (
+      <Card title="History" icon="history" hint={<SourceLegend />}>
+        {!changes ? <Loading /> : changes.length === 0 ? <div className="empty">No changes for this contract.</div> : (
           <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {changes.map((x, i) => {
               const commits = (x.commits ?? []) as { commit: string }[];

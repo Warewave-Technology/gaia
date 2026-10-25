@@ -1,4 +1,4 @@
-// Altyapı: where servers go and what they are made of (design 17.8):
+// Infrastructure: where servers go and what they are made of (design 17.8):
 // sites, networks, images and sizes, one tab each.
 import { type ReactNode } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
@@ -40,37 +40,37 @@ function templates(o: CatalogObj): ReactNode {
 
 const TABS: { kind: string; label: string; hint: string; cols: Col[]; sort?: (a: CatalogObj, b: CatalogObj) => number }[] = [
   {
-    kind: "Site", label: "Site'lar", hint: "Veri merkezleri. Her site'ın VM'leri hangi compute provider'ında, hangi küme ve depolamada açacağını söyler.",
+    kind: "Site", label: "Sites", hint: "Data centres: for each, the compute provider its VMs are created on, and the cluster and storage they use.",
     cols: [
-      { title: "Compute", hint: "VM'lerin açıldığı provider.", cell: (o) => <Ref kind="Provider" name={str(field(o.spec, "compute.provider"))} /> },
-      { title: "Yerleşim", hint: "Datacenter, küme, node'lar, havuz ve varsayılan depolama; provider'ın türüne göre.", cell: (o) => placement(o) || dash },
+      { title: "Compute", hint: "The provider VMs are created on.", cell: (o) => <Ref kind="Provider" name={str(field(o.spec, "compute.provider"))} /> },
+      { title: "Placement", hint: "Datacenter, cluster, nodes, pool and default storage, depending on the provider.", cell: (o) => placement(o) || dash },
       { title: "NTP", cell: (o) => <List xs={strs(field(o.spec, "ntp"))} mono /> },
       { title: "Zabbix proxy", cell: (o) => str(field(o.spec, "zabbixProxy")) || dash },
     ],
   },
   {
-    kind: "Network", label: "Ağlar", hint: "Sunucuların bağlandığı ağlar: hangi site'ta, VM'e nasıl bağlandığı ve adreslerin hangi IPAM havuzundan geldiği.",
+    kind: "Network", label: "Networks", hint: "Networks servers join: their site, how a VM attaches, and the IPAM pool addresses come from.",
     cols: [
       { title: "Site", cell: (o) => <Ref kind="Site" name={str(field(o.spec, "site"))} /> },
-      { title: "Bağlantı", hint: "VM'in ağa nasıl bağlandığı: vSphere portgroup, Proxmox bridge (VLAN ile) ya da SDN VNet.", cell: attachment },
-      { title: "IPAM havuzu", cell: (o) => <span><Mono>{str(field(o.spec, "ipam.pool"))}</Mono> <span className="faint">· {str(field(o.spec, "ipam.provider"))}</span></span>, nowrap: true },
-      { title: "Ağ geçidi", cell: (o) => str(field(o.spec, "gateway")) ? <Mono>{str(field(o.spec, "gateway"))}</Mono> : dash },
-      { title: "Ortamlar", hint: "Bu ağı kullanabilecek ortamlar (env etiketi); boşsa hepsi.", cell: (o) => strs(field(o.spec, "allowedEnvironments")).length ? <List xs={strs(field(o.spec, "allowedEnvironments"))} /> : <span className="muted">hepsi</span> },
+      { title: "Attachment", hint: "How a VM joins: a vSphere portgroup, a Proxmox bridge (with a VLAN) or an SDN VNet.", cell: attachment },
+      { title: "IPAM pool", cell: (o) => <span><Mono>{str(field(o.spec, "ipam.pool"))}</Mono> <span className="faint">· {str(field(o.spec, "ipam.provider"))}</span></span>, nowrap: true },
+      { title: "Gateway", cell: (o) => str(field(o.spec, "gateway")) ? <Mono>{str(field(o.spec, "gateway"))}</Mono> : dash },
+      { title: "Environments", hint: "Environments (the env label) that may use it; empty means all.", cell: (o) => strs(field(o.spec, "allowedEnvironments")).length ? <List xs={strs(field(o.spec, "allowedEnvironments"))} /> : <span className="muted">all</span> },
     ],
   },
   {
-    kind: "Image", label: "İmajlar", hint: "VM'lerin klonlandığı şablonlar: işletim sistemi, Gaia'nın bağlanma yolu ve her provider'daki şablon.",
+    kind: "Image", label: "Images", hint: "The templates VMs are cloned from: the operating system, how Gaia connects, and the template on each provider.",
     cols: [
-      { title: "İşletim sistemi", cell: (o) => str(field(o.spec, "os")) || dash },
-      { title: "Bağlantı", hint: "Gaia'nın sunucuya bağlandığı yol: ssh ya da winrm.", cell: (o) => str(field(o.spec, "connection")) || dash },
-      { title: "Şablonlar", hint: "Her compute provider'ındaki şablon ve ilk açılış yöntemi.", cell: templates },
+      { title: "Operating system", cell: (o) => str(field(o.spec, "os")) || dash },
+      { title: "Connection", hint: "How Gaia reaches the server: ssh or winrm.", cell: (o) => str(field(o.spec, "connection")) || dash },
+      { title: "Templates", hint: "The template on each compute provider, and how the first boot is configured.", cell: templates },
     ],
   },
   {
-    kind: "Size", label: "Boyutlar", hint: "VM boyutları: vCPU, bellek ve disk. Kontrat boyutu adıyla ister.",
+    kind: "Size", label: "Sizes", hint: "VM sizes: vCPUs, memory and disk. A contract asks for a size by name.",
     cols: [
-      { title: "vCPU", cell: (o) => str(field(o.spec, "cpu")) },
-      { title: "Bellek", cell: (o) => `${str(field(o.spec, "memoryGiB"))} GiB` },
+      { title: "vCPUs", cell: (o) => str(field(o.spec, "cpu")) },
+      { title: "Memory", cell: (o) => `${str(field(o.spec, "memoryGiB"))} GiB` },
       { title: "Disk", cell: (o) => `${str(field(o.spec, "diskGiB"))} GiB` },
     ],
     sort: (a, b) => Number(field(a.spec, "cpu")) - Number(field(b.spec, "cpu")) || Number(field(a.spec, "memoryGiB")) - Number(field(b.spec, "memoryGiB")),
@@ -86,14 +86,14 @@ export function Infra() {
   const objs = (q.data?.objects ?? []).filter((o) => o.kind === kind).sort(tab.sort ?? ((a, b) => a.name.localeCompare(b.name)));
   const count = (k: string) => q.data?.objects.filter((o) => o.kind === k).length;
   return (
-    <Page crumbs={<><Link to="/infra">Altyapı</Link> / {tab.label}</>}>
+    <Page crumbs={<><Link to="/infra">Infrastructure</Link> / {tab.label}</>}>
       <div className="title-row">
-        <h1>Altyapı</h1>
-        <Hint>Sunucuların nereye ve neyle açılacağı: site, ağ, imaj ve boyut. Kontratlar bunlara adıyla referans verir.</Hint>
+        <h1>Infrastructure</h1>
+        <Hint>Where servers are created and what they are made of: sites, networks, images and sizes. Contracts name them.</Hint>
       </div>
-      <Tabs label="Altyapı" items={TABS.map((t) => ({ to: `/infra/${t.kind}`, icon: kindOf(t.kind).icon, label: t.label, count: count(t.kind) }))} />
+      <Tabs label="Infrastructure" items={TABS.map((t) => ({ to: `/infra/${t.kind}`, icon: kindOf(t.kind).icon, label: t.label, count: count(t.kind) }))} />
       {q.isPending ? <Loading /> : q.error ? <ObjectsError error={q.error} /> : (
-        <ObjectTable kind={kind} title={tab.label} hint={tab.hint} cols={tab.cols} objs={objs} right={<AddButton kind={kind} label={`${kind} ekle`} />} />
+        <ObjectTable kind={kind} title={tab.label} hint={tab.hint} cols={tab.cols} objs={objs} right={<AddButton kind={kind} label={`Add ${kind}`} />} />
       )}
     </Page>
   );
