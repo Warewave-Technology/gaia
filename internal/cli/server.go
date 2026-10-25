@@ -25,6 +25,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/drift"
+	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/queue"
@@ -37,6 +38,8 @@ import (
 
 func newServerCommand() *cobra.Command {
 	var dsn, listen, role string
+	var ansibleExecutor, ansibleNamespace string
+	var ansibleAllowTags bool
 	var workers int
 	var unsafeNoAuth bool
 	var repoURL, ref, repoCreds, dataDir, webhookSecret, signingKey, author string
@@ -151,12 +154,34 @@ func newServerCommand() *cobra.Command {
 					}
 					return c.Read(ctx, ref)
 				}
+				var pods *ansible.Kubernetes
+				switch ansibleExecutor {
+				case "podman":
+				case "pod":
+					// Each Ansible run a pod of its own (design 13.3).
+					ns := ansibleNamespace
+					if ns == "" {
+						ns = os.Getenv("GAIA_POD_NAMESPACE")
+					}
+					k, err := ansible.NewKubernetes(ns)
+					if err != nil {
+						return fmt.Errorf("--ansible-executor pod: %w", err)
+					}
+					k.AllowTags = ansibleAllowTags
+					pods = &k
+				default:
+					return errors.New("--ansible-executor: podman or pod")
+				}
 				cfg.Systems = func(g *catalog.Graph) (apply.Deps, error) {
 					c, err := bao.client(ctx, secretsEndpoint(g))
 					if err != nil {
 						return apply.Deps{}, err
 					}
-					return apply.Systems(s, c, io.Discard), nil
+					d := apply.Systems(s, c, io.Discard)
+					if pods != nil {
+						d.Configure = *pods
+					}
+					return d, nil
 				}
 			}
 			if cfg.Auth != nil {
@@ -252,6 +277,9 @@ func newServerCommand() *cobra.Command {
 	dsnFlag(cmd, &dsn)
 	cmd.Flags().StringVar(&listen, "listen", "127.0.0.1:8080", "API address")
 	cmd.Flags().StringVar(&role, "role", "all", "all, api or worker")
+	cmd.Flags().StringVar(&ansibleExecutor, "ansible-executor", "podman", "how workers run Ansible: podman, or pod (a Kubernetes pod per run)")
+	cmd.Flags().StringVar(&ansibleNamespace, "ansible-namespace", "", "namespace of the Ansible pods (default $GAIA_POD_NAMESPACE)")
+	cmd.Flags().BoolVar(&ansibleAllowTags, "ansible-allow-tags", false, "let the pod executor run execution environments named by tag, not digest (development)")
 	cmd.Flags().IntVar(&workers, "workers", 2, "runs at once on this server")
 	cmd.Flags().DurationVar(&runTimeout, "run-timeout", 2*time.Hour, "longest a run may take")
 	cmd.Flags().DurationVar(&eventRetention, "event-retention", 90*24*time.Hour, "how long run events stay in the database; the run log archive keeps them")

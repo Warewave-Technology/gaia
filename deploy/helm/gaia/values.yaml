@@ -66,6 +66,8 @@ serviceAccount:
 # workers' service account may create and delete pods there, nothing else.
 ansible:
   rbac: true
+  # Execution environments by tag, not digest: for development only.
+  allowTags: false
 
 service:
   type: ClusterIP
