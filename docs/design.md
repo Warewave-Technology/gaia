@@ -1070,6 +1070,14 @@ spec:
 - **İstisnalar süreli ve onaylıdır.** Süresi dolan bir istisna planda uyarı olarak çıkar.
 - **Önce kayıtlar.** `registration: enforce` en az riskli seviye; ilk gün uygulanabilir ve envanteri hemen düzeltir.
 
+**Uygulamada (ilk sürüm):**
+- Adopt edilen kontrat `hosts: [{ name, vm: <provider>:<id>, ip }]` ile yazılır; `replicas`, `topology` ve `retire` ile birlikte kullanılamaz. `image` bir Image adıdır (OS ve bağlantı için; şablon gerekmez), `size` bir Size'dır. `image: { os }` ve `size: custom` henüz yok.
+- `management` varsayılanları: `provisioning: observe`, `configuration: report`, `registration: enforce`. `provisioning: enforce` VM'lerin Pulumi'ye import edilmesini ister ve bu sürümde reddedilir; bu yüzden adopt edilen VM'ler hiçbir stack'e girmez.
+- Plan listedeki her yeni sunucuyu `adopt` eder: Gaia host'u verilen adla açar, VM'i ve adresi dış kimlik olarak kaydeder, IPAM verilen adresi bu sunucuya ayırır (aralığın dışında olabilir, havuzun dışında ya da başkasının olamaz). Daha önce adopt edilenler adlarıyla `keep` edilir.
+- `registration: enforce` ise kayıtlar (DNS, Zabbix, AD hesabı, Warpgate) Gaia'nın sunucularındaki gibi yazılır; sunucunun mevcut AD hesabı Gaia'nın olur. `configuration: enforce` ise yapılandırılır; `report`'ta sadece check-mode drift'i raporlanır, `observe`'ta sadece kaydedilir. Drift düzeltme Change'leri yalnızca `enforce` alanlarda açılır.
+- Adopt edilen VM hiçbir zaman silinmez: listeden çıkan ya da `decommissioned` olan sunucu `unmanaged` olur ve kayıtları kalır. Adopt edilmiş sunucusu olan bir kontrat `hosts` olmadan planlanmaz.
+- Gaia sunuculara kendi anahtarıyla `gaia` kullanıcısı olarak girer; adopt edilen sunucuya bu kullanıcı ve anahtar önceden konmalıdır. Host anahtarı ilk temasta kaydedilir. Aynı adla mevcut bir Zabbix host'u varsa kayıt hata verir; önce o host kaldırılmalı ya da yeniden adlandırılmalıdır.
+
 ### 8.3 Keşif
 
 Bir Provider ve Site tanımlandıktan sonra Gaia ortamı keşfeder. Keşif her zaman salt okumadır ve erişim düzeyine göre üçe ayrılır. İlk iki düzey sadece API okur ve site eklenir eklenmez kendiliğinden çalışabilir. Üçüncü düzey sunuculara oturum açtığı için onay gerektirir.

@@ -872,6 +872,88 @@ func TestDiscover(t *testing.T) {
 	}
 }
 
+func TestAdoption(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	legacy := `apiVersion: gaia/v1alpha1
+kind: Server
+metadata:
+  name: legacy-web
+  labels: { app: legacy, env: test, owner: team-platform }
+spec:
+  hosts:
+    - { name: legacyweb01, vm: "pve-lab:120", ip: 10.50.0.20 }
+  management: { configuration: report }
+  image: rocky9
+  size: small
+  network: lab-poc
+  baseline: linux-base
+`
+	e.platform = map[string]func(string) string{"contracts/legacy.yaml": func(string) string { return legacy }}
+	none := func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 0", 1) }
+	stacks, jobs := len(e.compute.stacks), len(e.configure.jobs)
+	p, err := e.apply(none)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lc plan.Contract
+	for _, c := range p.Contracts {
+		if c.Name == "legacy-web" {
+			lc = c
+		}
+	}
+	if len(lc.Servers) != 1 || lc.Servers[0].Action != plan.Adopt {
+		t.Fatalf("plan = %+v", lc.Servers)
+	}
+	hosts, _ := q.LiveHosts(ctx, "legacy-web")
+	if len(hosts) != 1 || hosts[0].Hostname != "legacyweb01" || hosts[0].Status != db.HostStatusActive {
+		t.Fatalf("hosts = %+v", hosts)
+	}
+	uid := hosts[0].Uid
+	ids := map[string]string{}
+	for _, x := range must(q.ExternalIDs(ctx, uid)) {
+		ids[x.Provider+"/"+x.Kind] = x.ExternalID
+	}
+	if ids["pve-lab/vm"] != "120" || ids["ipam/ip"] != "10.50.0.20" || ids["zabbix/host"] == "" {
+		t.Errorf("external IDs = %v", ids)
+	}
+	// Nothing provisioned for it; configuration only reported.
+	for _, st := range e.compute.stacks[stacks:] {
+		for _, v := range st.VMs {
+			t.Errorf("a VM in a stack: %+v", v)
+		}
+	}
+	if len(e.configure.jobs) != jobs {
+		t.Errorf("%d configure jobs for a report-only contract", len(e.configure.jobs)-jobs)
+	}
+	if h, ok := e.monitor.hosts[uid]; !ok || h.IP != "10.50.0.20" {
+		t.Errorf("monitoring = %+v", e.monitor.hosts)
+	}
+	// Again: kept, not adopted twice.
+	if p, err := e.apply(none); err != nil {
+		t.Fatal(err)
+	} else {
+		for _, c := range p.Contracts {
+			if c.Name == "legacy-web" && (len(c.Servers) != 1 || c.Servers[0].Action != plan.Keep) {
+				t.Errorf("second plan = %+v", c.Servers)
+			}
+		}
+	}
+	// Decommissioned: let go, nothing deleted. Also when the contract no
+	// longer lists it at all.
+	e.platform["contracts/legacy.yaml"] = func(string) string { return legacy + "  lifecycle: { state: decommissioned }\n" }
+	if _, err := e.apply(none); err != nil {
+		t.Fatal(err)
+	}
+	if h, _ := q.Host(ctx, uid); h.Status != db.HostStatusUnmanaged {
+		t.Errorf("host = %s", h.Status)
+	}
+	if len(e.monitor.deleted) != 0 {
+		t.Errorf("zabbix deleted %v", e.monitor.deleted)
+	}
+}
+
 // onVSphere turns the lab site into a vSphere one.
 func (e *env) onVSphere() {
 	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/vsphere/lab"] = map[string]string{"username": "gaia@vsphere.local", "password": "vc", "insecure": "true"}

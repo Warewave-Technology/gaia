@@ -44,6 +44,14 @@ func (c *Client) Allocate(ctx context.Context, pool, owner, hostname string) (ip
 	return a, err
 }
 
+// Adopt gives owner the address ip, which a server Gaia adopts has
+// already (design 8.1).
+func (c *Client) Adopt(ctx context.Context, pool, owner, hostname, ip string) (ipam.Allocation, error) {
+	var a ipam.Allocation
+	err := c.do(ctx, http.MethodPost, "/v1/allocations", ipam.AllocateRequest{Pool: pool, Owner: owner, Hostname: hostname, IP: ip}, &a)
+	return a, err
+}
+
 // Allocations returns owner's live addresses.
 func (c *Client) Allocations(ctx context.Context, owner string) ([]ipam.Allocation, error) {
 	var a []ipam.Allocation

@@ -15,6 +15,8 @@ type Host struct {
 	Network  string
 	Seq      int
 	Status   string
+	// Adopted: Gaia did not create it (design 8.1).
+	Adopted bool
 }
 
 // State is what a plan reads about the servers that already exist.

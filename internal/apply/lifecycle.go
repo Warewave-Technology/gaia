@@ -372,6 +372,14 @@ func pgTime(t time.Time) pgtype.Timestamptz { return pgtype.Timestamptz{Time: t,
 // retain go from Gaia's management (design 9.6): its VM leaves the stack
 // before the stack runs, so that Pulumi does not delete it.
 func (r *runner) retain(ctx context.Context, s plan.Server, w *work) error {
+	if r.adoptedVM(ctx, s.UID) {
+		// An adopted server was never in a stack: it just goes.
+		if err := r.d.Store.Q().SetHostStatus(ctx, db.SetHostStatusParams{Uid: s.UID, Status: db.HostStatusUnmanaged}); err != nil {
+			return err
+		}
+		r.printf("  %s: retained; no longer managed by Gaia\n", s.Hostname)
+		return nil
+	}
 	provider, err := r.vmProvider(ctx, s.UID)
 	if err != nil {
 		return err
@@ -526,4 +534,49 @@ func (r *runner) replaceOne(ctx context.Context, contract, uid string) error {
 		return err
 	}
 	return r.contract(ctx, c, backend, sshKey)
+}
+
+// adoptedVM reports whether a server came in by adoption: Gaia recorded
+// no VM spec for it, since no run created it.
+func (r *runner) adoptedVM(ctx context.Context, uid string) bool {
+	h, err := r.d.Store.Q().Host(ctx, uid)
+	return err == nil && len(h.VmSpec) == 0 && h.CreatedRun.Valid && strings.HasPrefix(h.CreatedRun.String, "adopt:")
+}
+
+// adopt brings an existing server under Gaia's management (design 8.1):
+// a host with the name it has, its VM and address recorded as its IDs.
+// Nothing is provisioned: its VM is the hypervisor's as it is.
+func (r *runner) adopt(ctx context.Context, c plan.Contract, s *plan.Server, w *work) error {
+	q := r.d.Store.Q()
+	if s.Action == plan.Adopt {
+		s.UID = store.NewUID()
+		if err := r.d.Store.CreateHost(ctx, store.NewHost{
+			UID: s.UID, Contract: c.Name, Hostname: s.Hostname, Site: s.Site, Network: s.Network, Seq: s.Seq, Run: "adopt:" + r.run,
+		}); err != nil {
+			return fmt.Errorf("%s: %w", s.Hostname, err)
+		}
+		provider, id, _ := strings.Cut(s.Adopted.VM, ":")
+		if err := q.SetExternalID(ctx, db.SetExternalIDParams{Uid: s.UID, Provider: provider, Kind: "vm", ExternalID: id}); err != nil {
+			return fmt.Errorf("%s: VM %s: %w", s.Hostname, s.Adopted.VM, err)
+		}
+		p := r.provider(s.IPAM.Provider)
+		f, err := r.d.Secrets.Read(ctx, p.Credentials)
+		if err != nil {
+			return err
+		}
+		if _, err := ipamclient.New(p.Endpoint, f["token"]).Adopt(ctx, s.IPAM.Pool, s.UID, s.Hostname, s.Adopted.IP); err != nil {
+			return fmt.Errorf("%s: %s: %w", s.Hostname, s.Adopted.IP, err)
+		}
+		if err := q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: s.UID, Status: db.HostStatusActive}); err != nil {
+			return err
+		}
+		r.changes[len(r.changes)-1].UID = s.UID
+		r.printf("  %s: adopted as uid %s (VM %s)\n", s.Hostname, s.UID, s.Adopted.VM)
+	}
+	addr, err := r.address(ctx, *s)
+	if err != nil {
+		return err
+	}
+	w.targets = append(w.targets, target{s: *s, address: strings.SplitN(addr, "/", 2)[0]})
+	return nil
 }

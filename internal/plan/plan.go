@@ -55,6 +55,21 @@ type Contract struct {
 	// Retain: the contract is decommissioned with deletionPolicy retain;
 	// its servers leave Gaia's management and are not deleted (9.6).
 	Retain bool `json:"retain,omitempty"`
+	// Management is how far Gaia goes per area with adopted servers
+	// (design 8.1); empty for the servers Gaia creates, which it manages
+	// fully.
+	Management map[string]string `json:"management,omitempty"`
+}
+
+// Adopts reports whether the contract's servers are adopted ones.
+func (c Contract) Adopts() bool { return len(c.Management) > 0 }
+
+// Level is how far Gaia goes in area: observe, report or enforce.
+func (c Contract) Level(area string) string {
+	if v := c.Management[area]; v != "" {
+		return v
+	}
+	return "enforce"
 }
 
 // Decommission is the environment's decommission policy, in seconds.
@@ -161,6 +176,9 @@ const (
 	// Replace: a new server takes the place of a kept one, with its name
 	// and address (design 9.5). Only a replace Operation plans it.
 	Replace = "replace"
+	// Adopt: an existing server Gaia did not create comes under its
+	// management (design 8.1).
+	Adopt = "adopt"
 )
 
 // Server is one server of a contract.
@@ -180,6 +198,14 @@ type Server struct {
 	DNS *DNS `json:"dns,omitempty"`
 	// Domain is the directory the server joins, when it does.
 	Domain *Domain `json:"domain,omitempty"`
+	// Adopted is the VM and address of a server Gaia adopts.
+	Adopted *Adopted `json:"adopted,omitempty"`
+}
+
+// Adopted is an existing server's VM (provider:id) and address.
+type Adopted struct {
+	VM string `json:"vm"`
+	IP string `json:"ip"`
 }
 
 // Domain is where a server's computer account is.
@@ -318,6 +344,13 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 	}
 
 	decommissioned := s.Lifecycle != nil && s.Lifecycle.State == "decommissioned"
+	if !s.Adopted() && !decommissioned {
+		for _, h := range live {
+			if h.Adopted {
+				return Contract{}, fmt.Errorf("%s: %s is an adopted server; list it in hosts, or decommission the contract to let it go", c.Name, h.Hostname)
+			}
+		}
+	}
 	for _, pl := range placements(s) {
 		if decommissioned {
 			break
@@ -352,6 +385,36 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 				srv.Domain = &Domain{Provider: d.Provider, OU: d.OU}
 			}
 			return srv
+		}
+
+		if s.Adopted() {
+			// Listed servers: kept by name, adopted when new (design 8.2).
+			byName := map[string]Host{}
+			for _, h := range live {
+				byName[h.Hostname] = h
+			}
+			next := 1
+			for seq := range used[ns.Site] {
+				next = max(next, seq+1)
+			}
+			for _, ah := range s.Hosts {
+				if h, ok := byName[ah.Name]; ok {
+					srv := desired(Keep)
+					srv.UID, srv.Status, srv.Hostname, srv.Seq = h.UID, h.Status, h.Hostname, h.Seq
+					c.Servers = append(c.Servers, srv)
+					continue
+				}
+				if holder, err := st.NameHolder(ctx, ah.Name); err != nil {
+					return Contract{}, err
+				} else if holder != "" {
+					return Contract{}, fmt.Errorf("%s: %s is the name of another server of Gaia's (%s)", c.Name, ah.Name, holder)
+				}
+				srv := desired(Adopt)
+				srv.Hostname, srv.Seq, srv.Adopted = ah.Name, next, &Adopted{VM: ah.VM, IP: ah.IP}
+				next++
+				c.Servers = append(c.Servers, srv)
+			}
+			continue
 		}
 
 		// Existing servers of this network: retired ones go, then the
@@ -419,7 +482,13 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 		}
 		break
 	}
-	c.Retain = decommissioned && s.Lifecycle.DeletionPolicy == "retain"
+	c.Retain = decommissioned && s.Lifecycle.DeletionPolicy == "retain" || s.Adopted()
+	if s.Adopted() {
+		c.Management = map[string]string{}
+		for _, a := range catalog.DriftAreas {
+			c.Management[a] = s.Level(a)
+		}
+	}
 
 	if s.Baseline != "" {
 		b := mustGet(g, catalog.KindBaseline, s.Baseline).Spec.(*catalog.BaselineSpec)

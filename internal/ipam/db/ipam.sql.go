@@ -102,6 +102,30 @@ func (q *Queries) LiveAllocationOf(ctx context.Context, arg LiveAllocationOfPara
 	return i, err
 }
 
+const liveIPs = `-- name: LiveIPs :many
+select ip from allocations where pool = $1 and released_at is null
+`
+
+func (q *Queries) LiveIPs(ctx context.Context, pool netip.Prefix) ([]netip.Addr, error) {
+	rows, err := q.db.Query(ctx, liveIPs, pool)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []netip.Addr
+	for rows.Next() {
+		var ip netip.Addr
+		if err := rows.Scan(&ip); err != nil {
+			return nil, err
+		}
+		items = append(items, ip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockPool = `-- name: LockPool :one
 select cidr, gateway, range_start, range_end, name, labels, tags from pools where cidr = $1 for update
 `

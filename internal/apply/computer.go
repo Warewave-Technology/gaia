@@ -79,6 +79,15 @@ func (r *runner) account(ctx context.Context, c plan.Contract, dir Directory, pr
 	switch {
 	case guid == "":
 		other, err := dir.Computer(t.s.Hostname)
+		if err == nil && c.Adopts() {
+			// An adopted server brings its own account (design 8.1).
+			if err := r.d.Store.Q().SetExternalID(ctx, db.SetExternalIDParams{Uid: t.s.UID, Provider: provider, Kind: "computer", ExternalID: other.GUID}); err != nil {
+				return err
+			}
+			comp, action = other, "adopted"
+			otp = ""
+			break
+		}
 		if err == nil {
 			return fmt.Errorf("%s: computer account %s exists and is not the server's", t.s.Hostname, other.DN)
 		}

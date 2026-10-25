@@ -39,3 +39,6 @@ select * from allocations where owner = @owner and released_at is null order by 
 update allocations set owner = @to_owner
 where owner = @from_owner and released_at is null
 returning *;
+
+-- name: LiveIPs :many
+select ip from allocations where pool = @pool and released_at is null;

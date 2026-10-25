@@ -409,7 +409,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		// A replacement configures the new servers alone.
 		w.targets = slices.DeleteFunc(w.targets, func(t target) bool { return !slices.Contains(w.only, t.s.UID) })
 	}
-	if (c.Monitoring != nil || hasDNS(w.targets) || hasDomain(c)) && len(w.targets) > 0 {
+	if (c.Monitoring != nil || hasDNS(w.targets) || hasDomain(c)) && len(w.targets) > 0 && c.Level("registration") == "enforce" {
 		err := r.stage(ctx, c.Name, "register", func() error {
 			if err := r.prestage(ctx, c, w.targets); err != nil {
 				return err
@@ -423,7 +423,7 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 	}
-	if r.configures(ctx, c) && len(w.targets) > 0 {
+	if r.configures(ctx, c) && len(w.targets) > 0 && c.Level("configuration") == "enforce" {
 		if err := r.stage(ctx, c.Name, "configure", func() error { return r.configure(ctx, c, contract, w.targets) }); err != nil {
 			return err
 		}
@@ -461,7 +461,9 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 	q := r.d.Store.Q()
 	for _, s := range c.Servers {
 		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "plan", Action: s.Action})
-		if s.Action == plan.Delete && c.Retain {
+		if s.Action == plan.Delete && (c.Retain || r.adoptedVM(ctx, s.UID)) {
+			// An adopted VM is never Gaia's to delete (design 9.7), even
+			// when its contract stops listing it.
 			if err := r.retain(ctx, s, w); err != nil {
 				return err
 			}
@@ -489,6 +491,12 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 				if err := r.siteHypervisor(ctx, w, s.Site, d.compute); err != nil {
 					return err
 				}
+			}
+			continue
+		}
+		if c.Adopts() {
+			if err := r.adopt(ctx, c, &s, w); err != nil {
+				return err
 			}
 			continue
 		}

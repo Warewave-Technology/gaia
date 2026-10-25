@@ -4,6 +4,7 @@ package apply
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -23,7 +24,8 @@ func (s StoreState) LiveHosts(ctx context.Context, contract string) ([]plan.Host
 	}
 	out := make([]plan.Host, len(rows))
 	for i, h := range rows {
-		out[i] = plan.Host{UID: h.Uid, Hostname: h.Hostname, Site: h.Site, Network: h.Network, Seq: int(h.Seq), Status: string(h.Status)}
+		out[i] = plan.Host{UID: h.Uid, Hostname: h.Hostname, Site: h.Site, Network: h.Network, Seq: int(h.Seq), Status: string(h.Status),
+			Adopted: strings.HasPrefix(h.CreatedRun.String, "adopt:")}
 	}
 	return out, nil
 }
