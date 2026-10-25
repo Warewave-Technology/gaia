@@ -4,7 +4,7 @@ metadata:
   name: run-records
 spec:
   type: s3
-  endpoint: http://192.168.1.25:8333
+  endpoint: http://192.168.1.26:8333
   bucket: gaia-run-records          # Object Lock (COMPLIANCE)
   retention: 1d                     # lab; kayıtlar bu süre silinemez
   credentials: bao://kv/platform/seaweedfs
@@ -15,6 +15,6 @@ metadata:
   name: run-logs
 spec:
   type: s3
-  endpoint: http://192.168.1.25:8333
+  endpoint: http://192.168.1.26:8333
   bucket: gaia-run-logs             # kilitsiz; ham Ansible ve Pulumi çıktısı
   credentials: bao://kv/platform/seaweedfs

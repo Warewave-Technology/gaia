@@ -4,5 +4,5 @@ metadata:
   name: zabbix
 spec:
   type: zabbix
-  endpoint: http://192.168.1.25:8080/api_jsonrpc.php
+  endpoint: http://192.168.1.26:8080/api_jsonrpc.php
   credentials: bao://kv/platform/zabbix

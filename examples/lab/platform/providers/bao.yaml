@@ -4,4 +4,4 @@ metadata:
   name: bao
 spec:
   type: openbao
-  endpoint: http://192.168.1.25:8200
+  endpoint: http://192.168.1.26:8200

@@ -5,7 +5,7 @@ metadata:
 spec:
   # Passkey'ler güvenli bir bağlam ister (https veya localhost). Lab'de
   # Gaia'ya SSH tüneliyle localhost üzerinden girilir:
-  #   ssh -L 8080:127.0.0.1:8080 labadm@192.168.1.25
+  #   ssh -L 8080:127.0.0.1:8080 labadm@192.168.1.26
   url: http://localhost:8080
   require: passkey
   providers:

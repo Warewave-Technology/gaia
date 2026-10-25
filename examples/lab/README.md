@@ -1,6 +1,6 @@
 # Lab örneği
 
-Gaia PoC'sinin Proxmox lab'i için platform reposu ve kontrat örneği. Adresler lab'e ait: platform VM'i 192.168.1.25, lab ağı 10.50.0.0/24. Lab'in kendisi bu reponun dışında kuruluyor.
+Gaia PoC'sinin Proxmox lab'i için platform reposu ve kontrat örneği. Adresler lab'e ait: platform VM'i 192.168.1.26, lab ağı 10.50.0.0/24. Lab'in kendisi bu reponun dışında kuruluyor.
 
 ```
 platform/             platform reposu: Platform, Provider'lar, katalog, Policy
