@@ -1121,7 +1121,7 @@ type Strategy struct {
 }
 
 // OperationActions are what an Operation may do (in this version).
-var OperationActions = []string{"patch", "reboot", "runbook", "snapshot"}
+var OperationActions = []string{"patch", "power", "reboot", "revert", "runbook", "snapshot"}
 
 // Times returns the window and notAfter, parsed (zero when not set).
 func (s *OperationSpec) Times() (start, end, notAfter time.Time, err error) {
@@ -1171,6 +1171,12 @@ func (s *OperationSpec) validate() []string {
 	}
 	if len(s.Params) > 0 && s.Action != "runbook" {
 		out = append(out, "params: only for a runbook")
+	}
+	if st, _ := s.Options["state"].(string); s.Action == "power" && st != "on" && st != "off" && st != "restart" {
+		out = append(out, "options.state: on, off or restart, for a power action")
+	}
+	if sn, _ := s.Options["snapshot"].(string); s.Action == "revert" && sn == "" {
+		out = append(out, "options.snapshot: the snapshot to go back to, for a revert")
 	}
 	start, end, _, err := s.Times()
 	switch {

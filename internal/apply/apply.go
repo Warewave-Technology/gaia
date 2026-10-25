@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
@@ -42,8 +43,9 @@ type Deps struct {
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
 	// ScanHostKey reads the SSH host key a server offers (ScanHostKey).
 	ScanHostKey func(ctx context.Context, addr, algorithm string) (ssh.PublicKey, error)
-	// Snapshot takes a VM snapshot, for Operations.
-	Snapshot  func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error
+	// Compute is a hypervisor's day-2 API (power, snapshots), for
+	// Operations: kind is the provider's type, secret its credentials.
+	Compute   func(kind, endpoint string, secret map[string]string) (compute.Compute, error)
 	Configure Configurer
 	Monitor   func(endpoint, token string) Monitor
 	// Archive opens the run record archive (Platform.runArchive).

@@ -695,9 +695,11 @@ func TestOperationChecks(t *testing.T) {
 		t.Errorf("batches of 12 by 5 = %s", got)
 	}
 	for spec, want := range map[string]string{
-		"  action: power\n  selector: 'true'\n":                                                                                `action: "power"`,
-		"  action: runbook\n  selector: 'true'\n":                                                                              "runbook: names the role",
-		"  action: reboot\n  selector: 'true'\n  strategy: { batchSize: 150% }\n":                                              "strategy.batchSize",
+		"  action: dance\n  selector: 'true'\n":                                   `action: "dance"`,
+		"  action: power\n  selector: 'true'\n":                                   "options.state: on, off or restart",
+		"  action: revert\n  selector: 'true'\n":                                  "options.snapshot",
+		"  action: runbook\n  selector: 'true'\n":                                 "runbook: names the role",
+		"  action: reboot\n  selector: 'true'\n  strategy: { batchSize: 150% }\n": "strategy.batchSize",
 		"  action: reboot\n  selector: 'true'\n  window: { start: \"2026-11-09T06:00:00Z\", end: \"2026-11-09T02:00:00Z\" }\n": "window: end must be after start",
 		"  action: reboot\n  selector: 'true'\n  notAfter: tomorrow\n":                                                         "RFC 3339",
 	} {

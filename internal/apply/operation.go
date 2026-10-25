@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -216,11 +216,18 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 			}
 		}
 	}
-	if op.Action == "snapshot" {
+	if op.Action == "power" || op.Action == "revert" {
+		for _, h := range append([]ansible.Host(nil), hosts...) {
+			if err := r.hypervisor(ctx, op, h.Name, byUID[h.Name].Hostname); err != nil {
+				fail(h.Name, op.Action+": "+err.Error())
+			}
+		}
+	}
+	if op.Action == "snapshot" || op.Action == "power" && op.Options["state"] == "off" {
 		for _, h := range hosts {
 			i := names[h.Name]
-			res[i].Result, res[i].Detail = "ok", "snapshot taken"
-			r.change(runrecord.Change{Contract: res[i].Contract, UID: h.Name, Hostname: res[i].Hostname, Stage: "operation", Action: "snapshot", Detail: "ok"})
+			res[i].Result, res[i].Detail = "ok", op.Action+" done"
+			r.change(runrecord.Change{Contract: res[i].Contract, UID: h.Name, Hostname: res[i].Hostname, Stage: "operation", Action: op.Action, Detail: "ok"})
 		}
 		return res, nil
 	}
@@ -316,32 +323,65 @@ func (r *runner) maintenance(ctx context.Context, op *plan.Operation, n int, hos
 	return ends, nil
 }
 
-// snapshot takes a snapshot of a server's VM, named after the Operation.
-func (r *runner) snapshot(ctx context.Context, op *plan.Operation, uid, hostname string) error {
+// dayTwo returns the day-2 API of a server's VM and the VM's ID there.
+func (r *runner) dayTwo(ctx context.Context, uid string) (compute.Compute, string, error) {
 	ids, err := r.d.Store.Q().ExternalIDs(ctx, uid)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	for _, e := range ids {
 		if e.Kind != "vm" {
 			continue
 		}
-		vmid, err := strconv.Atoi(e.ExternalID)
+		p := r.provider(e.Provider)
+		sec, err := r.d.Secrets.Read(ctx, p.Credentials)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		creds, err := r.proxmoxCreds(ctx, e.Provider)
+		if r.d.Compute == nil {
+			return nil, "", errors.New("no day-2 API")
+		}
+		c, err := r.d.Compute(p.Type, p.Endpoint, sec)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		name := proxmox.SnapshotName("gaia_" + op.Name + "_" + time.Now().UTC().Format("20060102T1504"))
-		if err := r.d.Snapshot(ctx, creds, vmid, name, "Gaia: Operation "+op.Name+" ("+r.run+")"); err != nil {
-			return err
-		}
-		r.printf("  %s snapshot %s\n", hostname, name)
-		return nil
+		r.executedAs[e.Provider] = sec["token_id"] + sec["username"]
+		return c, e.ExternalID, nil
 	}
-	return errors.New("no VM recorded for it")
+	return nil, "", errors.New("no VM recorded for it")
+}
+
+// snapshot takes a snapshot of a server's VM, named after the Operation.
+func (r *runner) snapshot(ctx context.Context, op *plan.Operation, uid, hostname string) error {
+	c, id, err := r.dayTwo(ctx, uid)
+	if err != nil {
+		return err
+	}
+	name := proxmox.SnapshotName("gaia_" + op.Name + "_" + time.Now().UTC().Format("20060102T1504"))
+	if err := c.Snapshot(ctx, id, name, "Gaia: Operation "+op.Name+" ("+r.run+")"); err != nil {
+		return err
+	}
+	r.printf("  %s snapshot %s\n", hostname, name)
+	return nil
+}
+
+// hypervisor runs a power or revert action on a server's VM.
+func (r *runner) hypervisor(ctx context.Context, op *plan.Operation, uid, hostname string) error {
+	c, id, err := r.dayTwo(ctx, uid)
+	if err != nil {
+		return err
+	}
+	switch op.Action {
+	case "power":
+		state, _ := op.Options["state"].(string)
+		r.printf("  %s power %s\n", hostname, state)
+		return c.Power(ctx, id, state)
+	case "revert":
+		name, _ := op.Options["snapshot"].(string)
+		r.printf("  %s revert to %s\n", hostname, name)
+		return c.Revert(ctx, id, name)
+	}
+	return fmt.Errorf("%s is not a hypervisor action", op.Action)
 }
 
 // operationPlay is the playbook of an Operation's action, followed by a
@@ -354,6 +394,8 @@ func operationPlay(op *plan.Operation) ([]byte, error) {
 			"tasks": []any{map[string]any{"name": "Reboot", "ansible.builtin.reboot": map[string]any{"reboot_timeout": 900}}}})
 	case "patch":
 		plays = append(plays, patchPlay(op.Options))
+	case "power", "revert":
+		// Done through the hypervisor; the server is checked below.
 	case "runbook":
 		if op.Runbook == nil {
 			return nil, errors.New("a runbook operation without its role")
