@@ -191,6 +191,9 @@ Gaia'nın omurgası (tasarım 7.6).
 - Tamam: Sync ve Keşif.
   - **Sync:** her Source'un son çalışması (sonuç, commit, eklenen/değişen/silinen dosyalar, sorunlar). platform-admin'e "şimdi eşitle".
   - **Keşif** (operator): VM'ler türlerine göre (yönetiliyor, yönetilmiyor, sahipsiz, şablon), kayıp sunucular, provider hataları ve "şimdi keşfet".
+- Tamam: giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`) arayüzün temasında.
+  - Ortak bir stil dosyası var. Sayfalarda satır içi stil kalmadı; CSP `style-src 'self'`.
+  - Sunucunun ayrı onay sayfası kalktı. Bildirimler ve `gaia change` artık `/changes/{id}` bağlantısı veriyor; eski `/approve/{id}` bağlantıları oraya yönlenir.
 - Açık: provider'lar için sürekli bağlantı denetimi. Şimdilik durum, son keşfin cevabından geliyor.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 

@@ -1,0 +1,39 @@
+/* Gaia's sign-in pages, in the UI's gruvbox colours. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.45; background: #282828; color: #ebdbb2; }
+main { max-width: 400px; margin: 12vh auto; padding: 28px 32px; background: #32302f; border: 1px solid #504945; border-top: 3px solid #fabd2f; border-radius: 6px; }
+main.wide { max-width: 440px; }
+.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
+h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+p { margin: 0 0 16px; }
+.muted { color: #a89984; }
+.small { font-size: 13px; }
+a { color: #83a598; }
+a:hover { color: #8ec07c; }
+code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; }
+label { display: block; margin: 10px 0; color: #a89984; font-size: 13px; }
+input, textarea { display: block; width: 100%; height: 38px; margin-top: 6px; padding: 0 10px; background: #282828; color: #ebdbb2; border: 1px solid #665c54; border-radius: 4px; font: inherit; font-size: 14px; }
+input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid #fabd2f; outline-offset: 1px; }
+input.code { text-transform: uppercase; font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.1em; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid #504945; border-radius: 4px; background: #3c3836; color: #d5c4a1; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: #7c6f64; color: #ebdbb2; }
+.btn.primary { background: #d79921; border-color: #d79921; color: #1d2021; }
+.btn.primary:hover { background: #fabd2f; }
+.btn.danger { border-color: #cc241d; color: #fb4934; background: transparent; }
+.btn.block { display: flex; width: 100%; margin-bottom: 10px; }
+.btn.alt { display: flex; width: 100%; background: transparent; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.providers { display: grid; gap: 8px; margin-bottom: 10px; }
+.or { display: flex; align-items: center; gap: 10px; color: #928374; font-size: 12px; margin: 16px 0 8px; }
+.or::before, .or::after { content: ""; flex: 1; border-top: 1px solid #504945; }
+.error { color: #fb4934; min-height: 1.5em; margin: 12px 0 0; }
+.done { color: #b8bb26; }
+details { margin-top: 16px; border-top: 1px solid #3c3836; padding-top: 12px; }
+summary { cursor: pointer; color: #a89984; }
+section.box { margin-top: 20px; border-top: 1px solid #3c3836; padding-top: 16px; }
+pre.codes { background: #1d2021; border: 1px solid #3c3836; padding: 12px; border-radius: 6px; font-size: 15px; columns: 2; }
+.secret { display: block; word-break: break-all; background: #1d2021; padding: 8px 10px; border-radius: 4px; margin: 6px 0; }
+.gap { margin-top: 12px; }

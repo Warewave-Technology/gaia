@@ -3,33 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/auth/gaia-auth.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>Gaia · Hesabı etkinleştir</title>
 <script src="/auth/gaia-auth.js" defer></script>
 </head>
-<body style="margin:0;font-family:system-ui,sans-serif;background:#F6F7F9;color:#14171C">
-<main style="max-width:420px;margin:12vh auto;padding:32px;background:#fff;border:1px solid #E1E5EB;border-radius:8px">
-<h1 style="margin:0 0 4px;font-size:24px">Hesabı etkinleştir</h1>
-<p style="margin:0 0 24px;color:#566070">Bu cihazda bir passkey oluşturun. Gaia'ya bundan sonra onunla girersiniz.</p>
-<label style="display:block;margin-bottom:12px">Passkey adı <input id="name" placeholder="ör. iş dizüstü" style="width:100%;height:36px;box-sizing:border-box"></label>
-<button id="enroll" type="button" style="width:100%;height:44px;border:0;border-radius:6px;background:#1F4FC8;color:#fff;font:inherit;font-weight:600;cursor:pointer">Passkey oluştur</button>
-<section id="totp" hidden style="margin-top:24px;border-top:1px solid #E1E5EB;padding-top:16px">
-<h2 style="font-size:16px;margin:0 0 8px">veya parola ve doğrulama uygulaması</h2>
-<button id="totp-begin" type="button" style="height:40px">Doğrulama anahtarı oluştur</button>
-<form id="totp-form" hidden style="margin-top:12px">
-<p style="margin:0;color:#566070">Bu anahtarı doğrulama uygulamanıza ekleyin:</p>
-<code id="totp-secret" style="font-size:15px;word-break:break-all"></code>
+<body>
+<main class="wide">
+<div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="#fabd2f" stroke-width="2"></circle><path d="M5 15c4-1 6-6 16-5" fill="none" stroke="#8ec07c" stroke-width="2"></path></svg>gaia</div>
+<h1>Hesabı etkinleştir</h1>
+<p class="muted">Bu cihazda bir passkey oluşturun. Gaia'ya bundan sonra onunla girersiniz.</p>
+<label>Passkey adı <input id="name" placeholder="ör. iş dizüstü"></label>
+<button id="enroll" type="button" class="btn primary block">Passkey oluştur</button>
+<section id="totp" class="box" hidden>
+<h2>veya parola ve doğrulama uygulaması</h2>
+<button id="totp-begin" type="button" class="btn">Doğrulama anahtarı oluştur</button>
+<form id="totp-form" hidden>
+<p class="muted small gap">Bu anahtarı doğrulama uygulamanıza ekleyin:</p>
+<code id="totp-secret" class="secret"></code>
 <a id="totp-uri" href="#">Uygulamada aç</a>
-<label style="display:block;margin:8px 0">Parola (en az 12 karakter) <input name="password" type="password" autocomplete="new-password" minlength="12" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<label style="display:block;margin:8px 0">Uygulamadaki kod <input name="code" inputmode="numeric" autocomplete="one-time-code" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<button type="submit" style="height:40px">Kaydet</button>
+<label>Parola (en az 12 karakter) <input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+<label>Uygulamadaki kod <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+<button type="submit" class="btn primary block">Kaydet</button>
 </form>
 </section>
-<p id="error" role="alert" style="color:#B3261E;min-height:1.5em"></p>
-<section id="codes" hidden>
-<h2 style="font-size:18px">Kurtarma kodları</h2>
-<p style="color:#566070">Her biri bir kez kullanılır. Güvenli bir yere kaydedin; bir daha gösterilmeyecek.</p>
-<pre id="codelist" style="background:#F6F7F9;padding:12px;border-radius:6px;font-size:15px"></pre>
-<a href="/">Devam et</a>
+<p id="error" class="error" role="alert"></p>
+<section id="codes" class="box" hidden>
+<h2>Kurtarma kodları</h2>
+<p class="muted">Her biri bir kez kullanılır. Güvenli bir yere kaydedin; bir daha gösterilmeyecek.</p>
+<pre id="codelist" class="codes"></pre>
+<a href="/" class="btn primary">Devam et</a>
 </section>
 </main>
 </body>

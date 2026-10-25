@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +36,7 @@ func (a *Service) Routes() []Route {
 		{Method: "GET", Path: "/login", Public: true, Handler: a.page("pages/login.html")},
 		{Method: "GET", Path: "/enroll", Public: true, Handler: a.page("pages/enroll.html")},
 		{Method: "GET", Path: "/auth/gaia-auth.js", Public: true, Handler: a.page("pages/gaia-auth.js")},
+		{Method: "GET", Path: "/auth/gaia-auth.css", Public: true, Handler: a.page("pages/gaia-auth.css")},
 		{Method: "GET", Path: "/api/v1/auth/config", Public: true, Handler: a.authConfig},
 		{Method: "POST", Path: "/api/v1/auth/passkey/begin", Public: true, Handler: limited(a.passkeyBegin)},
 		{Method: "POST", Path: "/api/v1/auth/passkey/finish", Public: true, Handler: limited(a.passkeyFinish)},
@@ -70,7 +73,10 @@ func (a *Service) Routes() []Route {
 		{Method: "POST", Path: "/api/v1/auth/step-up/begin", Handler: a.stepUpBegin},
 		{Method: "POST", Path: "/api/v1/auth/step-up/finish", Handler: a.stepUpFinish},
 		{Method: "POST", Path: "/api/v1/auth/step-up/totp", Handler: limited(a.stepUpTOTP)},
-		{Method: "GET", Path: "/approve/{id}", Public: true, Handler: a.page("pages/approve.html")},
+		// Links in notifications sent before the UI came: the change's page.
+		{Method: "GET", Path: "/approve/{id}", Public: true, Handler: func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/changes/"+url.PathEscape(r.PathValue("id")), http.StatusFound)
+		}},
 		{Method: "GET", Path: "/api/v1/me/signing-keys", Handler: a.mySigningKeys},
 		{Method: "GET", Path: "/api/v1/me/login-keys", Handler: a.myLoginKeys},
 		{Method: "POST", Path: "/api/v1/me/login-keys", Handler: a.strong(a.addLoginKey)},
@@ -105,12 +111,15 @@ func (a *Service) page(name string) http.HandlerFunc {
 			return
 		}
 		ct := "text/html; charset=utf-8"
-		if len(name) > 3 && name[len(name)-3:] == ".js" {
+		switch {
+		case strings.HasSuffix(name, ".js"):
 			ct = "text/javascript; charset=utf-8"
+		case strings.HasSuffix(name, ".css"):
+			ct = "text/css; charset=utf-8"
 		}
 		h := w.Header()
 		h.Set("Content-Type", ct)
-		h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; form-action 'none'; frame-ancestors 'none'")
+		h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		_, _ = w.Write(b)
