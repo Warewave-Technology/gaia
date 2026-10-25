@@ -239,6 +239,17 @@ Gerçek sunucularla yapılacak denemeler tek bir lab oturumunda toplanır: Faz 3
 
 - 192.168.1.25 artık Proxmox'taki başka bir VM'de (2026-10-25'te görüldü). Platform VM'i lab'e ayrılan aralıktaki boş bir adresle (192.168.1.26) kurulur.
 
+**2026-10-25 oturumu** (platform VM 192.168.1.26, Proxmox 8.4, gerçek Pulumi state'i, OpenBao, Zabbix 7.0, SeaweedFS):
+- `gaia apply`: VM açıldı, Zabbix'e kaydedildi, host key ilk temasta kaydedildi, yapılandırıldı, run kaydı Object Lock'la arşivlendi.
+- Keşif: Proxmox'taki bütün VM'ler (managed / template / unmanaged) salt okuma yetkisiyle listelendi.
+- Drift: kayıt, provisioning ve konfigürasyon temiz; Gaia dışından değiştirilen bellek `memory.dedicated` olarak yakalandı, apply geri getirdi.
+- Operation'lar: snapshot, kapatma, açma (sağlık kontrolüyle), revert.
+- Patch: snapshot alındı, güvenlik güncellemeleri kuruldu, sunucu yeniden başlatıldı; ancak VM (9401) açılışta GRUB'da ("Welcome to GRUB!" sonrası) takıldı ve Gaia bunu 15 dakikalık beklemeden sonra hata olarak raporladı. Patch öncesi snapshot'a revert de açılmadı; ondan bir dakika önceki snapshot açılıyor. Aynı şablondan elle klonlanan VM'de aynı güncellemeler, snapshot ve disk büyütme sonrası yeniden başlatmalar sorunsuz. Kök neden bulunamadı: VM'in grafik konsolu yok (GRUB çıktısı seriye düşmüyor), Proxmox host'una erişim yok. 9401 incelenmek üzere kapalı bırakıldı. **Açık konu.**
+- Decommission: durdurma (izleme kapandı, son snapshot, graceful kapanış, kapalı VM tanımı stack'te), bekleme sırasında dokunulmadı, geri alma (açıldı, kayıtlar açıldı), süre dolunca silme (Pulumi state'inden `Forget`, Proxmox'ta purge, Zabbix ve IPAM).
+- Replace: eski kayıtlar ve VM silindi, yeni UID aynı ad ve adresle (10.50.0.101) kuruldu; sonrasında drift temiz.
+- Lab'de bulunan ve düzeltilen hatalar: Proxmox'un `WARNINGS: n` ile biten başarılı görevleri hata sayılıyordu; patch play'i `exclude: null` gönderiyordu; `proxmoxve`'nin disk `speed` gürültüsü provisioning drift'inde sürekli bulgu üretiyordu (`ignoreChanges` işe yaramadığı için drift'te filtreleniyor). Lab playbook'u `/etc/gaia`'yı oluşturmuyordu.
+- Lab'de denenmeyenler: change akışının sunucuda (webhook, onay, bildirim) lab'le uçtan uca çalıştırılması (yerelde gerçek River worker'ı ve Gitea ile denendi), vSphere, AD, Warpgate (yerelde gerçek Samba/Warpgate ile denendi).
+
 ## Dışarıya bağlı işler
 
 - `proxmoxve` disk `speed` sorununun upstream'e bildirilmesi (dışarıya açık bir iş; ayrıca onay gerekir).

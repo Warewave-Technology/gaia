@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -361,6 +363,12 @@ type Drift struct {
 	Diffs []string
 }
 
+// providerNoise are differences a provider reports on every refresh
+// without anything having changed: proxmoxve v8.6.0's disk speed block
+// defaults to zeros in the plan and reads back empty, and the provider
+// computes it itself, so ignoreChanges cannot hide it.
+var providerNoise = regexp.MustCompile(`^disks\[\d+\]\.speed(\.|$)`)
+
 // PreviewDrift refreshes a stack's VMs from the hypervisor and previews
 // the program against them, without writing anything: what it would do
 // to each VM, by UID, for the VMs it would change. A VM in the state but
@@ -385,7 +393,21 @@ func PreviewDrift(ctx context.Context, b Backend, st Stack) (map[string]Drift, e
 			if !ok || m.Op == apitype.OpSame || m.Op == apitype.OpRead || m.Op == apitype.OpRefresh {
 				continue
 			}
-			out[name] = Drift{Op: string(m.Op), Diffs: append([]string(nil), m.Diffs...)}
+			// The detailed diff names the properties exactly (disks[0].size);
+			// the top-level keys are the fallback.
+			d := Drift{Op: string(m.Op)}
+			for k := range m.DetailedDiff {
+				d.Diffs = append(d.Diffs, k)
+			}
+			if len(d.Diffs) == 0 {
+				d.Diffs = append(d.Diffs, m.Diffs...)
+			}
+			d.Diffs = slices.DeleteFunc(d.Diffs, func(k string) bool { return providerNoise.MatchString(k) })
+			if len(d.Diffs) == 0 && m.Op == apitype.OpUpdate {
+				continue // only the provider's own noise
+			}
+			sort.Strings(d.Diffs)
+			out[name] = d
 		}
 	}()
 	_, err = s.Preview(ctx, optpreview.Refresh(), optpreview.EventStreams(ch), optpreview.SuppressProgress())

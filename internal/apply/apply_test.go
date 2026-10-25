@@ -2360,3 +2360,16 @@ spec: { action: revert, selector: 'true', options: { snapshot: before } }
 		t.Error("no health check after the revert")
 	}
 }
+
+func TestPatchPlayNeverPassesANullExclude(t *testing.T) {
+	// The dnf module refuses exclude: null (found in the lab).
+	for _, opts := range []map[string]any{nil, {"exclude": []any{"kernel*"}}} {
+		data, err := json.Marshal(patchPlay(opts))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(data), `"exclude":null`) {
+			t.Errorf("options %v: %s", opts, data)
+		}
+	}
+}
