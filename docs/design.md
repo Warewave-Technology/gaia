@@ -223,7 +223,7 @@ Bu alanların içeriği provider tipine göre değişir ve validasyon da buna g�
 | Graceful shutdown | VMware Tools | QEMU guest agent | Şablonlarda kurulu olmalı |
 | Tag | Kategori + tag | Kategorisiz, sınırlı karakter seti | Proxmox'ta `env.prod` gibi kodlanır |
 | `gaia.uid` işareti | Custom attribute | Custom attribute yok | Proxmox'ta tag'e veya VM notlarındaki yapısal bir bloğa yazılır |
-| VM kimliği | instance UUID | VMID tekrar kullanılabilir | Proxmox'ta dış kimlik olarak SMBIOS UUID tutulur (bkz. 9.1) |
+| VM kimliği | BIOS UUID (`config.uuid`) | VMID tekrar kullanılabilir | Proxmox'ta dış kimlik olarak SMBIOS UUID tutulur (bkz. 9.1) |
 | Snapshot | Her datastore'da | Depolamaya bağlı (ZFS, Ceph, qcow2, LVM-thin) | Snapshot alınamayan depolama Site'ta işaretlenir; `snapshot: true` isteyen plan reddedilir |
 | Olay kaydı | `LogUserEvent` | Kullanıcı olayı API'si yok | Run kaydı yeterlidir |
 
@@ -243,7 +243,7 @@ type Compute interface {
 
 Operation aksiyonları (`power`, `snapshot`, `revert`) her hipervizörde aynı arayüzden geçer ve hipervizör farkı tek bir yerde kalır.
 
-- **Uygulamada:** `internal/compute.Compute`. VM, Gaia'nın kaydettiği kimlikle anılır: Proxmox'ta VMID, vSphere'de instance UUID.
+- **Uygulamada:** `internal/compute.Compute`. VM, Gaia'nın kaydettiği kimlikle anılır: Proxmox'ta VMID, vSphere'de BIOS UUID.
 - **Proxmox:**
   - güç: start; shutdown ve reboot guest agent üzerinden, 5 dakika zaman aşımıyla
   - snapshot belleksiz alınır
@@ -251,6 +251,16 @@ Operation aksiyonları (`power`, `snapshot`, `revert`) her hipervizörde aynı a
   - snapshot silme
   - keşif: cluster kaynakları (güç durumu, tag'ler, şablonlar)
   - her iş görev bitene kadar beklenir
+- **vSphere:**
+  - credentials: `username`, `password`, `insecure` (kendinden imzalı sertifika); endpoint `https://vcenter`
+  - VM, Image'daki adlı şablondan klonlanır: Site'ın datacenter, cluster (kaynak havuzu), folder ve varsayılan datastore'u; Network'ün portgroup'u; diskler thin
+  - ilk yapılandırma: `customization: cloud-init` ise ağ, kullanıcı ve Gaia'nın anahtarı `guestinfo` ile cloud-init'in VMware datasource'una verilir. Diğer durumda Linux guest customization (ad, adres, gateway, DNS) kullanılır; bu SSH anahtarı kuramaz, şablonda Gaia'nın anahtarı olmalıdır
+  - `gaia.uid` ve kontrat VM notlarına (annotation) yazılır
+  - VM kimliği Pulumi'nin bildirdiği BIOS UUID'dir; dış kimlik olarak kaydedilir, VMID ayrılmaz
+  - güç: power on; shutdown ve reboot VMware Tools üzerinden, kapanış 5 dakika beklenir
+  - snapshot belleksiz alınır, revert sonrası VM kapalıysa açılır, snapshot silme konsolidasyonla yapılır
+  - keşif: container view ile tüm VM'ler (güç durumu, şablonlar)
+  - govmomi'nin `vcsim` simülatörüyle test edilir
 - **Operation aksiyonları:**
   - `power` (`options.state: on|off|restart`); `off` sonrası sağlık kontrolü yapılmaz
   - `revert` (`options.snapshot`), sonrasında sağlık kontrolü

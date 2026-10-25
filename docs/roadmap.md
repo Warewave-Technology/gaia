@@ -197,6 +197,10 @@ Tasarım 14.
 - Ortak `Compute` arayüzü ile day-2: power, snapshot.
 - AD (bilgisayar hesapları), DNS (A/PTR), Warpgate (SSH/RDP hedefleri), Nexus.
 
+**Durum:**
+- Tamam: ortak `Compute` arayüzü (Proxmox ve vSphere), `power` ve `revert` aksiyonları.
+- Tamam: vSphere provisioning (klon, cloud-init `guestinfo` veya guest customization) ve day-2; `vcsim` ile test. Gerçek vCenter doğrulaması ortam bulununca yapılır.
+
 ## Faz 10: Yaşam döngüsü
 
 - Drift kontrolü ve düzeltme Change'leri (7.5).

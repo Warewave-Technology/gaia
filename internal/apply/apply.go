@@ -45,7 +45,7 @@ type Deps struct {
 	ScanHostKey func(ctx context.Context, addr, algorithm string) (ssh.PublicKey, error)
 	// Compute is a hypervisor's day-2 API (power, snapshots), for
 	// Operations: kind is the provider's type, secret its credentials.
-	Compute   func(kind, endpoint string, secret map[string]string) (compute.Compute, error)
+	Compute   func(ctx context.Context, kind, endpoint string, secret map[string]string) (compute.Compute, error)
 	Configure Configurer
 	Monitor   func(endpoint, token string) Monitor
 	// Archive opens the run record archive (Platform.runArchive).
@@ -336,6 +336,8 @@ type work struct {
 	bySite    map[string][]pulumi.VM
 	siteCreds map[string]proxmox.Credentials // a site has one compute provider
 	creds     map[string]proxmox.Credentials
+	siteVS    map[string]*pulumi.VSphereCredentials // vSphere sites
+	vsCreds   map[string]*pulumi.VSphereCredentials
 	targets   []target
 	gone      []doomed
 }
@@ -345,7 +347,8 @@ type work struct {
 // went, registering, configuring.
 func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.Backend, sshKey string) error {
 	contract, _ := r.g.Catalog.Get(catalog.KindServer, c.Name)
-	w := &work{bySite: map[string][]pulumi.VM{}, siteCreds: map[string]proxmox.Credentials{}, creds: map[string]proxmox.Credentials{}}
+	w := &work{bySite: map[string][]pulumi.VM{}, siteCreds: map[string]proxmox.Credentials{}, creds: map[string]proxmox.Credentials{},
+		siteVS: map[string]*pulumi.VSphereCredentials{}, vsCreds: map[string]*pulumi.VSphereCredentials{}}
 	if err := r.stage(ctx, c.Name, "ipam", func() error { return r.prepare(ctx, c, contract, w, sshKey) }); err != nil {
 		return err
 	}
@@ -392,16 +395,14 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 			}
 			w.gone = append(w.gone, d)
 			if d.compute != "" {
-				cr, err := cached(w.creds, d.compute, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, d.compute) })
-				if err != nil {
-					return err
-				}
 				// The stack runs even when no server of the site is left:
 				// that is how its VMs are destroyed.
 				if _, ok := w.bySite[s.Site]; !ok {
 					w.bySite[s.Site] = nil
 				}
-				w.siteCreds[s.Site] = cr
+				if err := r.siteHypervisor(ctx, w, s.Site, d.compute); err != nil {
+					return err
+				}
 			}
 			continue
 		}
@@ -416,14 +417,20 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 			r.changes[len(r.changes)-1].UID = s.UID
 		}
 
-		cr, err := cached(w.creds, s.Compute.Provider, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, s.Compute.Provider) })
-		if err != nil {
+		if err := r.siteHypervisor(ctx, w, s.Site, s.Compute.Provider); err != nil {
 			return err
 		}
 		addr, err := r.address(ctx, s)
 		if err != nil {
 			return err
 		}
+		if w.siteVS[s.Site] != nil {
+			// vSphere names its VMs by UUID, recorded once the VM exists.
+			w.bySite[s.Site] = append(w.bySite[s.Site], r.vsphereVM(c, s, addr, sshKey))
+			w.targets = append(w.targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
+			continue
+		}
+		cr := w.siteCreds[s.Site]
 		vmid, err := r.vmid(ctx, s, cr)
 		if err != nil {
 			return err
@@ -434,9 +441,84 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 		}
 		w.bySite[s.Site] = append(w.bySite[s.Site], r.vm(c, contract, s, addr, vmid, smbios, sshKey))
 		w.targets = append(w.targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
-		w.siteCreds[s.Site] = cr
 	}
 	return nil
+}
+
+// siteProvider is a site's compute provider.
+func (r *runner) siteProvider(site string) string {
+	o, _ := r.g.Catalog.Get(catalog.KindSite, site)
+	return o.Spec.(*catalog.SiteSpec).Compute.Provider
+}
+
+// siteHypervisor records the credentials of a site's compute provider for
+// its stack: Proxmox or vSphere.
+func (r *runner) siteHypervisor(ctx context.Context, w *work, site, provider string) error {
+	if r.provider(provider).Type == "vsphere" {
+		vc, err := cached(w.vsCreds, provider, func() (*pulumi.VSphereCredentials, error) { return r.vsphereCreds(ctx, provider) })
+		if err != nil {
+			return err
+		}
+		w.siteVS[site] = vc
+		return nil
+	}
+	cr, err := cached(w.creds, provider, func() (proxmox.Credentials, error) { return r.proxmoxCreds(ctx, provider) })
+	if err != nil {
+		return err
+	}
+	w.siteCreds[site] = cr
+	return nil
+}
+
+// vsphereCreds reads a vsphere provider's credentials: username, password
+// and insecure (a self-signed certificate).
+func (r *runner) vsphereCreds(ctx context.Context, provider string) (*pulumi.VSphereCredentials, error) {
+	p := r.provider(provider)
+	f, err := r.d.Secrets.Read(ctx, p.Credentials)
+	if err != nil {
+		return nil, err
+	}
+	if f["username"] == "" || f["password"] == "" {
+		return nil, fmt.Errorf("%s: username and password are required", p.Credentials)
+	}
+	u, err := url.Parse(p.Endpoint)
+	if err != nil || u.Hostname() == "" {
+		return nil, fmt.Errorf("%s: endpoint %q: want https://vcenter", provider, p.Endpoint)
+	}
+	insecure, _ := strconv.ParseBool(f["insecure"])
+	r.executedAs[provider] = f["username"]
+	return &pulumi.VSphereCredentials{Server: u.Hostname(), Username: f["username"], Password: f["password"], Insecure: insecure}, nil
+}
+
+// vsphereVM is a server as the vSphere program takes it.
+func (r *runner) vsphereVM(c plan.Contract, s plan.Server, addr, sshKey string) pulumi.VM {
+	site, _ := r.g.Catalog.Get(catalog.KindSite, s.Site)
+	sc := site.Spec.(*catalog.SiteSpec).Compute
+	net, _ := r.g.Catalog.Get(catalog.KindNetwork, s.Network)
+	ns := net.Spec.(*catalog.NetworkSpec)
+	img, _ := r.g.Catalog.Get(catalog.KindImage, c.Image)
+	vm := pulumi.VM{
+		UID: s.UID, Hostname: s.Hostname, CPU: c.Size.CPU, MemoryMiB: c.Size.MemoryGiB * 1024, DiskGiB: c.Size.DiskGiB,
+		Address: addr, Gateway: s.IPAM.Gateway, Datacenter: sc.Datacenter, Cluster: sc.Cluster, Folder: sc.Folder,
+		Portgroup: ns.Attachment.Portgroup, User: User, SSHKeys: []string{sshKey},
+		CloudInit:   s.Compute.Customization == "cloud-init",
+		Description: fmt.Sprintf("Managed by Gaia.\ngaia.uid=%s\ncontract=%s\n", s.UID, c.Name),
+	}
+	if sc.Storage != nil {
+		vm.Datastore = sc.Storage.Default
+	}
+	for _, t := range img.Spec.(*catalog.ImageSpec).Templates {
+		if t.Provider == s.Compute.Provider {
+			vm.TemplateName = t.Template.Name
+		}
+	}
+	for _, d := range c.Disks {
+		vm.ExtraDisks = append(vm.ExtraDisks, d.SizeGiB)
+	}
+	if ns.DNS != nil {
+		vm.DNS, vm.Domain = ns.DNS.Servers, ns.DNS.Zone
+	}
+	return vm
 }
 
 // provision runs one Pulumi stack per site and checks every VM: its ID
@@ -450,7 +532,7 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 	sort.Strings(sites)
 	for _, site := range sites {
 		vms := w.bySite[site]
-		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VMs: vms}
+		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VSphere: w.siteVS[site], VMs: vms}
 		r.printf("  pulumi up %s (%d VM)\n", stack.Name, len(vms))
 		got, changes, err := r.d.Provision(ctx, backend, stack, r.out())
 		if err != nil {
@@ -460,7 +542,14 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 		r.change(runrecord.Change{Contract: c.Name, Stage: "provision", Action: "pulumi up", Detail: stack.Name + ": " + changes.String()})
 		for _, v := range vms {
 			res := got[v.UID]
-			if res.VMID != v.VMID {
+			if stack.VSphere != nil {
+				if res.UUID == "" {
+					return fmt.Errorf("%s: vSphere reports no UUID", v.Hostname)
+				}
+				if err := q.SetExternalID(ctx, db.SetExternalIDParams{Uid: v.UID, Provider: r.siteProvider(site), Kind: "vm", ExternalID: res.UUID}); err != nil {
+					return err
+				}
+			} else if res.VMID != v.VMID {
 				return fmt.Errorf("%s: Proxmox reports VM ID %d, Gaia recorded %d", v.Hostname, res.VMID, v.VMID)
 			}
 			// A VM is active only when it answers with its address: Pulumi

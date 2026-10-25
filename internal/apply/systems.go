@@ -10,6 +10,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
+	"github.com/Warewave-Technology/gaia/internal/provider/vsphere"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -38,11 +39,17 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 }
 
 // Compute opens a hypervisor's day-2 API.
-func Compute(kind, endpoint string, secret map[string]string) (compute.Compute, error) {
+func Compute(ctx context.Context, kind, endpoint string, secret map[string]string) (compute.Compute, error) {
+	insecure, _ := strconv.ParseBool(secret["insecure"])
 	switch kind {
 	case "proxmox":
-		insecure, _ := strconv.ParseBool(secret["insecure"])
 		return proxmox.Compute{C: proxmox.New(proxmox.Credentials{Endpoint: endpoint, TokenID: secret["token_id"], TokenSecret: secret["token_secret"], Insecure: insecure})}, nil
+	case "vsphere":
+		c, err := vsphere.Connect(ctx, vsphere.Credentials{Endpoint: endpoint, Username: secret["username"], Password: secret["password"], Insecure: insecure})
+		if err != nil {
+			return nil, err
+		}
+		return vsphere.Compute{C: c}, nil
 	}
 	return nil, fmt.Errorf("no day-2 API for %s", kind)
 }

@@ -86,6 +86,9 @@ func (f *fakeCompute) provision(_ context.Context, b pulumi.Backend, st pulumi.S
 			ip = ""
 		}
 		res[v.UID] = pulumi.Result{VMID: v.VMID, IPv4: []string{"127.0.0.1", ip}}
+		if st.VSphere != nil {
+			res[v.UID] = pulumi.Result{UUID: "4200-" + v.Hostname, IPv4: []string{ip}}
+		}
 	}
 	return res, pulumi.Changes{"create": len(st.VMs)}, nil
 }
@@ -221,6 +224,7 @@ type env struct {
 	monitor   *fakeMonitor
 	archive   *memArchive
 	deps      Deps
+	platform  map[string]func(string) string // edits of other example files
 }
 
 func setup(t *testing.T) *env {
@@ -321,6 +325,9 @@ func (e *env) files(edit func(string) string) []catalog.File {
 			if edit != nil {
 				content = edit(content)
 			}
+		}
+		if f := e.platform[rel]; f != nil {
+			content = f(content)
 		}
 		files = append(files, catalog.File{Path: rel, Data: []byte(content)})
 		return err
@@ -439,6 +446,74 @@ func TestApplyCreatesThenKeeps(t *testing.T) {
 	last := e.compute.stacks[len(e.compute.stacks)-1].VMs
 	if len(last) != 2 || last[1].Hostname != "labtpoc02" || last[1].Address != "10.50.0.101/24" || last[1].VMID != 9402 {
 		t.Errorf("scaled up: %+v", last)
+	}
+}
+
+// onVSphere turns the lab site into a vSphere one.
+func (e *env) onVSphere() {
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/vsphere/lab"] = map[string]string{"username": "gaia@vsphere.local", "password": "vc", "insecure": "true"}
+	e.platform = map[string]func(string) string{
+		"platform/providers/pve-lab.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: pve-lab }\nspec: { type: vsphere, endpoint: https://vc.lab.test, credentials: bao://kv/platform/vsphere/lab }\n"
+		},
+		"platform/catalog/site.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Site\nmetadata: { name: lab }\nspec:\n  compute: { provider: pve-lab, datacenter: DC0, cluster: C0, folder: gaia, storage: { default: ds1 } }\n"
+		},
+		"platform/catalog/network.yaml": func(c string) string {
+			c = strings.Replace(c, "attachment: { vnet: gaiapoc }", "attachment: { portgroup: VM Network }", 1)
+			return strings.Replace(c, "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1], zone: lab.test }", 1)
+		},
+		"platform/catalog/image.yaml": func(c string) string {
+			return strings.Replace(c, "template: { vmid: 9300 }", "template: rocky9-tpl", 1)
+		},
+	}
+}
+
+func TestApplyOnVSphere(t *testing.T) {
+	e := setup(t)
+	e.onVSphere()
+	ctx := context.Background()
+	q := e.store.Q()
+
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	hosts, _ := q.LiveHosts(ctx, "poc-web")
+	if len(hosts) != 1 || hosts[0].Status != db.HostStatusActive {
+		t.Fatalf("hosts = %+v", hosts)
+	}
+	uid := hosts[0].Uid
+	ids := map[string]string{}
+	got, _ := q.ExternalIDs(ctx, uid)
+	for _, x := range got {
+		ids[x.Provider+"/"+x.Kind] = x.ExternalID
+	}
+	if ids["pve-lab/vm"] != "4200-labtpoc01" || ids["pve-lab/smbios"] != "" {
+		t.Errorf("external IDs = %v", ids)
+	}
+	st := e.compute.stacks[0]
+	if st.VSphere == nil || *st.VSphere != (pulumi.VSphereCredentials{Server: "vc.lab.test", Username: "gaia@vsphere.local", Password: "vc", Insecure: true}) {
+		t.Errorf("credentials = %+v", st.VSphere)
+	}
+	want := pulumi.VM{
+		UID: uid, Hostname: "labtpoc01", CPU: 2, MemoryMiB: 2048, DiskGiB: 20, Address: "10.50.0.100/24", Gateway: "10.50.0.1",
+		DNS: []string{"1.1.1.1"}, Domain: "lab.test", User: "gaia", SSHKeys: []string{"ssh-ed25519 AAAA gaia@lab"},
+		Datacenter: "DC0", Cluster: "C0", Folder: "gaia", Datastore: "ds1", Portgroup: "VM Network", TemplateName: "rocky9-tpl",
+		CloudInit: true, Description: "Managed by Gaia.\ngaia.uid=" + uid + "\ncontract=poc-web\n",
+	}
+	if !reflect.DeepEqual(st.VMs[0], want) {
+		t.Errorf("VM\n got %+v\nwant %+v", st.VMs[0], want)
+	}
+
+	// Decommissioning destroys it; there is no VM ID to wait for.
+	if _, err := e.apply(func(c string) string { return c + "  lifecycle: { state: decommissioned }\n" }); err != nil {
+		t.Fatal(err)
+	}
+	if last := e.compute.stacks[len(e.compute.stacks)-1]; last.VSphere == nil || len(last.VMs) != 0 {
+		t.Errorf("last stack = %+v", last)
+	}
+	if hosts, _ := q.LiveHosts(ctx, "poc-web"); len(hosts) != 0 {
+		t.Errorf("hosts = %+v", hosts)
 	}
 }
 
@@ -1096,7 +1171,7 @@ func TestPatchOperationWithSnapshotAndMaintenance(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
 	fc := &fakeDayTwo{}
-	e.deps.Compute = func(string, string, map[string]string) (compute.Compute, error) { return fc, nil }
+	e.deps.Compute = func(context.Context, string, string, map[string]string) (compute.Compute, error) { return fc, nil }
 	op := `---
 apiVersion: gaia/v1alpha1
 kind: Operation
@@ -1184,7 +1259,7 @@ func TestPowerAndRevertOperations(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
 	fc := &fakeDayTwo{}
-	e.deps.Compute = func(kind, _ string, sec map[string]string) (compute.Compute, error) {
+	e.deps.Compute = func(_ context.Context, kind, _ string, sec map[string]string) (compute.Compute, error) {
 		if kind != "proxmox" || sec["token_id"] == "" {
 			return nil, fmt.Errorf("compute %s %v", kind, sec)
 		}

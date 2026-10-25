@@ -341,7 +341,7 @@ func (r *runner) dayTwo(ctx context.Context, uid string) (compute.Compute, strin
 		if r.d.Compute == nil {
 			return nil, "", errors.New("no day-2 API")
 		}
-		c, err := r.d.Compute(p.Type, p.Endpoint, sec)
+		c, err := r.d.Compute(ctx, p.Type, p.Endpoint, sec)
 		if err != nil {
 			return nil, "", err
 		}
