@@ -131,6 +131,9 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	if err != nil {
 		return err
 	}
+	if err := r.checkArtifacts(ctx, &resolved); err != nil {
+		return err
+	}
 	for _, t := range targets {
 		if j, ok := r.joins[t.s.UID]; ok && j.Password != "" {
 			secrets = append(secrets, j.Password)
@@ -201,6 +204,45 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	if res.RC != 0 {
 		return fmt.Errorf("configure: ansible-runner exited %d", res.RC)
 	}
+	return nil
+}
+
+// checkArtifacts finds each App's artifact in its repository before any
+// server is touched, and keeps its checksum for the playbook. Nexus is
+// read with the provider's credentials when it has them (username,
+// password), anonymously when not.
+func (r *runner) checkArtifacts(ctx context.Context, c *plan.Contract) error {
+	if r.d.Artifact == nil {
+		return nil
+	}
+	apps := append([]plan.App(nil), c.Apps...)
+	for i, a := range apps {
+		src := a.Source
+		if src == nil {
+			continue
+		}
+		p := r.provider(src.Provider)
+		var f map[string]string
+		if p.Credentials != "" {
+			var err error
+			if f, err = r.d.Secrets.Read(ctx, p.Credentials); err != nil {
+				return err
+			}
+			r.executedAs[src.Provider] = f["username"]
+		}
+		asset, err := r.d.Artifact(ctx, p.Endpoint, f["username"], f["password"], src.Repository, src.Path)
+		if err != nil {
+			return fmt.Errorf("app %s: %w", a.Name, err)
+		}
+		apps[i].SHA256 = asset.SHA256
+		sum := asset.SHA256
+		if sum == "" {
+			sum = "no checksum"
+		}
+		r.printf("  app %s: %s/%s (%s)\n", a.Name, src.Repository, src.Path, sum)
+		r.change(runrecord.Change{Contract: c.Name, Stage: "configure", Action: "artifact", Detail: fmt.Sprintf("%s %s %s/%s sha256 %s", a.Name, src.Provider, src.Repository, src.Path, sum)})
+	}
+	c.Apps = apps
 	return nil
 }
 
@@ -401,7 +443,7 @@ func sitePlay(c plan.Contract, users []access.User, manageAccess, joins bool) ([
 	}
 	for _, a := range c.Apps {
 		vars := given(a.Params)
-		vars["gaia_app"] = map[string]any{"name": a.Name, "artifact": a.Artifact}
+		vars["gaia_app"] = map[string]any{"name": a.Name, "artifact": a.Artifact, "sha256": a.SHA256}
 		plays = append(plays, map[string]any{"import_playbook": "../" + a.Playbook, "vars": vars})
 	}
 	if manageAccess {

@@ -33,6 +33,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/itest"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
+	"github.com/Warewave-Technology/gaia/internal/provider/nexus"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/warpgate"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
@@ -1512,12 +1513,60 @@ spec:
     dbPassword: { type: str, no_log: true, gaia: { secret: true } }
 `
 
+func TestAppArtifactIsChecked(t *testing.T) {
+	e := setup(t)
+	var asked []string
+	e.deps.Artifact = func(_ context.Context, endpoint, user, pw, repo, path string) (nexus.Asset, error) {
+		asked = append(asked, endpoint+" "+user+":"+pw+" "+repo+"/"+path)
+		if path != "portal/portal-2.4.1.tar.gz" {
+			return nexus.Asset{}, fmt.Errorf("%w: %s in %s", nexus.ErrNoArtifact, path, repo)
+		}
+		return nexus.Asset{URL: endpoint + "/repository/" + repo + "/" + path, SHA256: "d730d8f9"}, nil
+	}
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/nexus"] = map[string]string{"username": "gaia", "password": "pw"}
+	e.deps.Secrets.(fakeSecrets)["bao://kv/apps/team-platform/portal"] = map[string]string{"db_password": "x"}
+	e.platform = map[string]func(string) string{
+		"platform/providers/nexus.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: nexus }\nspec: { type: nexus, endpoint: \"https://nexus.lab.test\", credentials: bao://kv/platform/nexus }\n"
+		},
+	}
+	withApp := func(version string) func(string) string {
+		return func(c string) string {
+			apps := strings.Replace(agentsAndApps, "  playbook: apps/portal.yml\n", "  playbook: apps/portal.yml\n  artifact: { provider: nexus, repository: releases, path: \"portal/portal-${version}.tar.gz\" }\n", 1)
+			return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  ansibleRoles: [web.tomcat]\n  apps:\n    - name: portal\n      params: { version: "+version+", dbPassword: \"bao://kv/apps/team-platform/portal#db_password\" }\n", 1) + apps
+		}
+	}
+	p, err := e.apply(withApp("2.4.1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := p.Contracts[0].Apps[0].Source; s == nil || *s != (plan.ArtifactSource{Provider: "nexus", Repository: "releases", Path: "portal/portal-2.4.1.tar.gz"}) {
+		t.Errorf("source = %+v", s)
+	}
+	if len(asked) != 1 || asked[0] != "https://nexus.lab.test gaia:pw releases/portal/portal-2.4.1.tar.gz" {
+		t.Errorf("asked = %v", asked)
+	}
+	site := e.configure.projects[0][".gaia/site.yml"]
+	if !strings.Contains(site, `"artifact": "https://nexus.lab.test/repository/releases/portal/portal-2.4.1.tar.gz"`) || !strings.Contains(site, `"sha256": "d730d8f9"`) {
+		t.Errorf("site.yml = %s", site)
+	}
+
+	// A version that is not in Nexus touches no server.
+	jobs := len(e.configure.jobs)
+	if _, err := e.apply(withApp("2.5.0")); err == nil || !strings.Contains(err.Error(), "app portal: nexus: no such artifact: portal/portal-2.5.0.tar.gz in releases") {
+		t.Fatalf("missing artifact: %v", err)
+	}
+	if len(e.configure.jobs) != jobs {
+		t.Error("a server was configured without its artifact")
+	}
+}
+
 func TestApplyRunsAgentsAndAppsWithSecrets(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
 	e.deps.Secrets.(fakeSecrets)["bao://kv/apps/team-platform/portal"] = map[string]string{"db_password": "s3cret-db"}
 	g := e.graph(func(c string) string {
-		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  ansibleRoles: [web.tomcat]\n  agents: [bigfix]\n  apps:\n    - name: portal\n      params: { version: 2.4.1, dbPassword: \"bao://kv/apps/team-platform/portal#db_password\" }\n", 1) + agentsAndApps
+		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  ansibleRoles: [web.tomcat]\n  agents: [bigfix]\n  apps:\n    - name: portal\n      params: { version: 2.4.1, dbPassword: \"bao://kv/apps/team-platform/portal#db_password\" }\n  access:\n    - { team: team-platform }\n", 1) + agentsAndApps
 	})
 	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
 	if err != nil {
@@ -1546,6 +1595,18 @@ func TestApplyRunsAgentsAndAppsWithSecrets(t *testing.T) {
 	}
 	if strings.Contains(fmt.Sprint(p), "s3cret-db") {
 		t.Error("the secret is in the plan")
+	}
+
+	// An access run deploys no agents or apps.
+	applied, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := RunAccess(ctx, g, applied, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	if site := e.configure.projects[1][".gaia/site.yml"]; strings.Contains(site, "apps/portal.yml") || strings.Contains(site, "corp.agents") || !strings.Contains(site, "gaia_access") {
+		t.Errorf("access run site.yml = %s", site)
 	}
 
 	// Another team's secret, or a value in Git, does not plan.

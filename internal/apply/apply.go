@@ -22,6 +22,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
+	"github.com/Warewave-Technology/gaia/internal/provider/nexus"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -51,6 +52,9 @@ type Deps struct {
 	Monitor   func(endpoint, token string) Monitor
 	// Directory opens Active Directory to write DNS records.
 	Directory func(ctx context.Context, c ad.Config) (Directory, error)
+	// Artifact finds an App's artifact in Nexus (nexus.Client.Asset); nil
+	// skips the check.
+	Artifact func(ctx context.Context, endpoint, username, password, repository, path string) (nexus.Asset, error)
 	// Bastion opens Warpgate's admin API.
 	Bastion func(endpoint, token string, insecure bool, ca []byte) (Bastion, error)
 	// Archive opens the run record archive (Platform.runArchive).
@@ -252,8 +256,9 @@ func (r *runner) accessOnly(ctx context.Context, p *plan.Plan) error {
 			}
 			targets = append(targets, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
 		}
+		// The access play alone: no baseline, agents, roles or apps.
 		only := c
-		only.Baseline, only.Roles = nil, nil
+		only.Baseline, only.Roles, only.Agents, only.Apps = nil, nil, nil, nil
 		err := r.d.Store.WithContractLock(ctx, c.Name, func(ctx context.Context) error {
 			return r.stage(ctx, c.Name, "access", func() error {
 				if err := r.configure(ctx, only, contract, targets); err != nil {

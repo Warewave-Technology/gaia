@@ -86,6 +86,18 @@ type App struct {
 	Playbook string         `json:"playbook"`
 	Params   map[string]any `json:"params,omitempty"`
 	Artifact string         `json:"artifact,omitempty"` // URL
+	// Source is where Artifact is, for checking it before a run.
+	Source *ArtifactSource `json:"source,omitempty"`
+	// SHA256 is the artifact's checksum as the run found it: not part of
+	// the plan, since the repository is read when the run starts.
+	SHA256 string `json:"-"`
+}
+
+// ArtifactSource is a file in a nexus provider's repository.
+type ArtifactSource struct {
+	Provider   string `json:"provider"`
+	Repository string `json:"repository"`
+	Path       string `json:"path"`
 }
 
 // Access is one access entry of a contract.
@@ -401,7 +413,9 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 		app := App{Name: ar.Name, Playbook: as.Playbook, Params: mask(as.Params, params)}
 		if a := as.Artifact; a != nil {
 			ps := mustGet(g, catalog.KindProvider, a.Provider).Spec.(*catalog.ProviderSpec)
-			app.Artifact = strings.TrimRight(ps.Endpoint, "/") + "/repository/" + a.Repository + "/" + strings.TrimLeft(expand(a.Path, params), "/")
+			path := strings.TrimLeft(expand(a.Path, params), "/")
+			app.Artifact = strings.TrimRight(ps.Endpoint, "/") + "/repository/" + a.Repository + "/" + path
+			app.Source = &ArtifactSource{Provider: a.Provider, Repository: a.Repository, Path: path}
 		}
 		c.Apps = append(c.Apps, app)
 	}
