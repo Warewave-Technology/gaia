@@ -438,6 +438,22 @@ paths:
                     credentials: { type: string, description: "A reference (bao://…), never the secret" }
                     usedBy: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
                     error: { type: string, description: What the last discovery got from it, if it failed }
+                    check:
+                      type: object
+                      description: Gaia's last check (every five minutes); absent before the first
+                      properties:
+                        status: { type: string, enum: [ok, failed, skipped] }
+                        detail: { type: string, description: "What it answered: a version, a count; for skipped, why" }
+                        error: { type: string }
+                        latencyMs: { type: integer }
+                        checkedAt: { type: string, format: date-time }
+                        lastOkAt: { type: string, format: date-time }
+  /api/v1/providers/check:
+    post:
+      summary: Check every provider now (platform-admin)
+      operationId: checkProviders
+      responses:
+        "202": { description: Queued; at most one check a minute }
   /api/v1/sources/sync:
     post:
       summary: Run the sources now (platform-admin)

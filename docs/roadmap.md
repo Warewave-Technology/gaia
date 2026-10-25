@@ -204,7 +204,15 @@ Gaia'nın omurgası (tasarım 7.6).
     - Run sayfasında aşamalar, run kaydındaki kişiler ve SSE log'u göründü; zincir doğrulandı.
   - Passkey töreninin kendisi arayüz testlerinde (taklit edilmiş tarayıcı API'si) ve sunucunun sanal authenticator'lı Go testlerinde sınanıyor. Tarayıcı panelinde bir authenticator olmadığından elle denenmedi.
   - Denemede bulunan hata düzeltildi: passkey'i olmayan bir kişinin step-up isteği, AuthConfig `url`'i WebAuthn'ın kabul etmediği bir adres olduğunda (IP) 500 dönüyordu. Artık önce passkey olup olmadığına bakılıyor ve TOTP'ye geçiliyor.
-- Açık: provider'lar için sürekli bağlantı denetimi. Şimdilik durum, son keşfin cevabından geliyor.
+- Tamam: provider'lar için bağlantı denetimi.
+  - **Ne zaman:** Worker'lar her 5 dakikada bir (ve sunucu açılırken) her provider'a kendi kimlik bilgisiyle zararsız tek bir çağrı yapar. platform-admin "şimdi denetle" diyebilir.
+  - **Çağrılar:**
+    - Proxmox: sürüm; vSphere: oturum açma; IPAM: havuz listesi.
+    - Zabbix: sürüm ve host sayısı; Warpgate: roller.
+    - AD: LDAP bind; Nexus: durum; S3: bucket.
+    - OpenBao: sağlık (sealed değil mi); PostgreSQL: sürüm; SMTP: EHLO.
+  - **Denetlenmeyenler:** Mesaj göndermeden denetlenemeyen kanallar (Slack, Teams, webhook) ve git (repolar her fetch'te zaten denetleniyor).
+  - **Sonuç:** `provider_checks` tablosunda tutulur: durum, cevap, süre, son başarılı bağlantı. Provider'lar ekranında gösterilir.
 - Tamam: YAML diff.
   - Değişiklik ekranında, kontratın son uygulandığı commit'ten değişikliğin commit'ine Git'te değişenler gösterilir: kontrat, referans verdiği bütün katalog nesneleri, Policy ve Platform.
   - Her nesne ayrı bir unified diff olarak gelir.

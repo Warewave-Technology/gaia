@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -541,4 +542,38 @@ func (c *Client) Maintenance(ctx context.Context, name string, hostIDs []string,
 // EndMaintenance deletes a maintenance.
 func (c *Client) EndMaintenance(ctx context.Context, id string) error {
 	return c.call(ctx, "maintenance.delete", []string{id}, nil)
+}
+
+// Check reads the API's version, which Zabbix answers without a token,
+// and counts the hosts the token may see: the endpoint and the token
+// both work.
+func (c *Client) Check(ctx context.Context) (version string, hosts int, err error) {
+	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "method": "apiinfo.version", "params": map[string]any{}, "id": c.id.Add(1)})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", 0, err
+	}
+	req.Header.Set("Content-Type", "application/json-rpc")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("zabbix: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var v struct {
+		Result string `json:"result"`
+		Error  *Error `json:"error"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&v); err != nil {
+		return "", 0, fmt.Errorf("zabbix apiinfo.version: %w", err)
+	}
+	if v.Error != nil {
+		v.Error.Method = "apiinfo.version"
+		return "", 0, v.Error
+	}
+	var n string
+	if err := c.call(ctx, "host.get", map[string]any{"countOutput": true}, &n); err != nil {
+		return v.Result, 0, err
+	}
+	hosts, _ = strconv.Atoi(n)
+	return v.Result, hosts, nil
 }

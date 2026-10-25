@@ -15,7 +15,13 @@ beforeEach(() => {
       kind: "Network", name: "lab-poc", source: "catalog/networks.yaml:1", usedBy: 1, yaml: "kind: Network\nmetadata: { name: lab-poc }\n",
       refs: [{ kind: "Provider", name: "ipam", field: "spec.ipam.provider" }], usedByRefs: [{ kind: "Server", name: "poc-web", field: "spec.network" }],
     } },
-    "GET /providers": { body: [{ name: "pve-lab", type: "proxmox", endpoint: "https://pve:8006", credentials: "bao://kv/platform/pve", usedBy: [{ kind: "Site", name: "lab", field: "spec.compute" }], error: "connection refused" }] },
+    "GET /providers": { body: [
+      { name: "pve-lab", type: "proxmox", endpoint: "https://pve:8006", credentials: "bao://kv/platform/pve", usedBy: [{ kind: "Site", name: "lab", field: "spec.compute" }],
+        check: { status: "failed", error: "dial tcp: connection refused", latencyMs: 3, checkedAt: "2026-10-25T08:00:00Z", lastOkAt: "2026-10-25T07:00:00Z" } },
+      { name: "zabbix", type: "zabbix", endpoint: "http://zbx/api_jsonrpc.php", usedBy: [], check: { status: "ok", detail: "Zabbix 7.0.32 · 12 host", latencyMs: 41, checkedAt: "2026-10-25T08:00:00Z" } },
+      { name: "team-slack", type: "slack", usedBy: [], check: { status: "skipped", detail: "denetim bir mesaj göndermek olurdu", latencyMs: 0, checkedAt: "2026-10-25T08:00:00Z" } },
+    ] },
+    "POST /providers/check": { status: 202, body: { status: "checking" } },
   });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -39,10 +45,15 @@ describe("catalog", () => {
     expect(screen.getByRole("link", { name: /Server\/poc-web/ })).toHaveAttribute("href", "/contracts/poc-web");
   });
 
-  it("lists providers with their last discovery's error", async () => {
+  it("lists providers with their connection check", async () => {
     renderAt("/providers");
-    expect(await screen.findByRole("link", { name: "pve-lab" })).toBeInTheDocument();
-    expect(screen.getByText("bao://kv/platform/pve")).toBeInTheDocument();
-    expect(screen.getByText("connection refused")).toBeInTheDocument();
+    const pve = (await screen.findByRole("link", { name: "pve-lab" })).closest("tr")!;
+    expect(pve).toHaveTextContent("bao://kv/platform/pve");
+    expect(pve).toHaveTextContent("Ulaşılamıyor");
+    expect(screen.getByText("dial tcp: connection refused")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "zabbix" }).closest("tr")).toHaveTextContent("Zabbix 7.0.32 · 12 host · 41 ms");
+    expect(screen.getByRole("link", { name: "team-slack" }).closest("tr")).toHaveTextContent("Denetlenmiyor");
+    fireEvent.click(screen.getByRole("button", { name: /Şimdi denetle/ }));
+    expect(await screen.findByText(/Denetim başladı/)).toBeInTheDocument();
   });
 });

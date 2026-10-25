@@ -239,6 +239,17 @@ type Operation struct {
 	FinishedAt pgtype.Timestamptz
 }
 
+type ProviderCheck struct {
+	Provider  string
+	Type      string
+	Status    string
+	Detail    pgtype.Text
+	Error     pgtype.Text
+	LatencyMs int32
+	CheckedAt pgtype.Timestamptz
+	LastOkAt  pgtype.Timestamptz
+}
+
 type PulumiStack struct {
 	Name            string
 	SecretsProvider string

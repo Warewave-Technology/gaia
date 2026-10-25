@@ -55,6 +55,7 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/catalog", "", s.listCatalog},
 		{"GET", "/api/v1/catalog/{kind}/{name}", "", s.getCatalogObject},
 		{"GET", "/api/v1/providers", "platform-admin", s.listProviders},
+		{"POST", "/api/v1/providers/check", "platform-admin", s.checkProviders},
 		{"GET", "/api/v1/operations", "operator", s.listOperations},
 		{"POST", "/api/v1/sources/sync", "platform-admin", s.syncSources},
 		{"POST", "/api/v1/changes/approve", "", s.strong(s.approveChanges)},

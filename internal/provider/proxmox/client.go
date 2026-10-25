@@ -318,3 +318,18 @@ func (p Compute) Discover(ctx context.Context) ([]compute.ObservedVM, error) {
 	}
 	return vms, nil
 }
+
+// Version is the Proxmox VE version, read with the token: a cheap call
+// that shows the endpoint and the token both work.
+func (c *Client) Version(ctx context.Context) (string, error) {
+	var out struct {
+		Data struct {
+			Version string `json:"version"`
+			Release string `json:"release"`
+		} `json:"data"`
+	}
+	if err := c.get(ctx, "/version", &out); err != nil {
+		return "", err
+	}
+	return out.Data.Version, nil
+}

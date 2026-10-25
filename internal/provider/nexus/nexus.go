@@ -106,3 +106,20 @@ func (c *Client) Asset(ctx context.Context, repository, path string) (Asset, err
 	}
 	return Asset{}, fmt.Errorf("nexus: %s: HTTP %d", u, resp.StatusCode)
 }
+
+// Status reports whether Nexus answers and can serve reads.
+func (c *Client) Status(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.endpoint, "/")+"/service/rest/v1/status", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("nexus: %w", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("nexus status: HTTP %d", resp.StatusCode)
+	}
+	return nil
+}
