@@ -181,6 +181,7 @@ Gaia'nın omurgası (tasarım 7.6).
     - Türe göre gezinme; ada ya da `anahtar=değer` biçiminde etikete göre süzme.
     - Her nesnenin YAML'ı, dosyası, onu üreten Source ve patch'leri, referans verdikleri ve onu kullananlar. Kontratlar ad ile gösterilir.
   - **Provider'lar** (platform-admin): tür, adres, kimlik bilgisi referansı, kullananlar ve son keşfin hatası.
+  - **AnsibleRole ve App sayfaları:** parametre tablosu (tip, zorunlu, varsayılan, kısıtlar, açıklama; gizli değerlerin varsayılanı gösterilmez), CEL kuralları, rolün kaynağı, işletim sistemleri ve kontratta kullanım örneği.
   - **API:** `GET /api/v1/catalog`, `GET /api/v1/catalog/{kind}/{name}`, `GET /api/v1/providers`.
 - Tamam: Profil.
   - Oturumlar: görme ve kapatma.

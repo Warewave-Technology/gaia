@@ -15,6 +15,18 @@ beforeEach(() => {
       kind: "Network", name: "lab-poc", source: "catalog/networks.yaml:1", usedBy: 1, yaml: "kind: Network\nmetadata: { name: lab-poc }\n",
       refs: [{ kind: "Provider", name: "ipam", field: "spec.ipam.provider" }], usedByRefs: [{ kind: "Server", name: "poc-web", field: "spec.network" }],
     } },
+    "GET /catalog/AnsibleRole/nginx": { body: {
+      kind: "AnsibleRole", name: "nginx", source: "generated/ansible-roles/nginx.yaml:1", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 0, yaml: "kind: AnsibleRole\n",
+      refs: [], usedByRefs: [],
+      role: { provider: "config-repo", role: "nginx", os: ["el"] },
+      params: [
+        { name: "listen_port", type: "int", default: 80, min: 1, max: 65535 },
+        { name: "server_name", type: "str", required: true, description: "Sitenin adı" },
+        { name: "tls", type: "dict" },
+        { name: "tls.key", type: "str", secret: true },
+      ],
+      rules: [{ expression: "params.listen_port != 22", message: "22 SSH'ın" }],
+    } },
     "GET /providers": { body: [
       { name: "pve-lab", type: "proxmox", endpoint: "https://pve:8006", credentials: "bao://kv/platform/pve", usedBy: [{ kind: "Site", name: "lab", field: "spec.compute" }],
         check: { status: "failed", error: "dial tcp: connection refused", latencyMs: 3, checkedAt: "2026-10-25T08:00:00Z", lastOkAt: "2026-10-25T07:00:00Z" } },
@@ -43,6 +55,17 @@ describe("catalog", () => {
     expect(await screen.findByText(/kind: Network/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Provider\/ipam/ })).toHaveAttribute("href", "/catalog/Provider/ipam");
     expect(screen.getByRole("link", { name: /Server\/poc-web/ })).toHaveAttribute("href", "/contracts/poc-web");
+  });
+
+  it("shows a role's params, rules and how a contract uses it", async () => {
+    renderAt("/catalog/AnsibleRole/nginx");
+    const row = (await screen.findByText("server_name")).closest("tr")!;
+    expect(row).toHaveTextContent("zorunlu");
+    expect(row).toHaveTextContent("Sitenin adı");
+    expect(screen.getByText("listen_port").closest("tr")).toHaveTextContent("1 – 65535");
+    expect(screen.getByText("key").closest("tr")).toHaveTextContent("gizli");
+    expect(screen.getByText("params.listen_port != 22")).toBeInTheDocument();
+    expect(screen.getByText(/ansibleRoles:\s+- name: nginx\s+params:\s+server_name: …/)).toBeInTheDocument();
   });
 
   it("lists providers with their connection check", async () => {

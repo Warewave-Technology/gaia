@@ -1,17 +1,105 @@
 // Katalog: the desired catalog by kind, with label filters; one object's
 // YAML, its references and what uses it.
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import { Icon } from "../../ui/icons";
-import { Card, ErrorNote, Hint, Loading, Mono, short, StatusBar } from "../../ui/parts";
+import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono, short, StatusBar } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { kindOf } from "../../ui/kinds";
 
 type Obj = { kind: string; name: string; labels?: Record<string, string>; source: string; generatedBy?: string; patches?: number; usedBy: number };
 type Ref = { kind: string; name: string; field: string };
-type Detail = Obj & { annotations?: Record<string, string>; patchFiles?: string[]; yaml: string; refs: Ref[]; usedByRefs: Ref[] };
+type Param = {
+  name: string; type?: string; elements?: string; required?: boolean; default?: unknown; choices?: unknown[]; description?: string;
+  secret?: boolean; pattern?: string; format?: string; min?: number; max?: number; deprecated?: string;
+};
+type RoleInfo = { provider: string; role: string; os?: string[]; monitoring?: string[]; conflicts?: string[]; allowedEnvironments?: string[]; checkMode?: string; runbook?: boolean };
+type Detail = Obj & {
+  annotations?: Record<string, string>; patchFiles?: string[]; yaml: string; refs: Ref[]; usedByRefs: Ref[];
+  params?: Param[]; rules?: { expression: string; message?: string }[]; role?: RoleInfo;
+};
+
+function show(v: unknown): string {
+  return typeof v === "string" ? v : JSON.stringify(v);
+}
+
+// usage is how a contract names the role or app, with its required params.
+function usage(kind: string, name: string, params: Param[]): string {
+  const field = kind === "App" ? "apps" : "ansibleRoles";
+  const top = params.filter((p) => !p.name.includes("."));
+  const req = top.filter((p) => p.required);
+  if (req.length === 0) return kind === "App" ? `${field}:\n  - name: ${name}\n` : `${field}:\n  - ${name}\n`;
+  const lines = req.map((p) => `      ${p.name}: ${p.secret ? "bao://kv/…#alan" : p.choices?.length ? show(p.choices[0]) : p.type === "int" ? "0" : p.type === "bool" ? "true" : "…"}`);
+  return `${field}:\n  - name: ${name}\n    params:\n${lines.join("\n")}\n`;
+}
+
+function Constraints({ p }: { p: Param }) {
+  const parts: string[] = [];
+  if (p.choices?.length) parts.push(`şunlardan biri: ${p.choices.map(show).join(", ")}`);
+  if (p.pattern) parts.push(`desen: ${p.pattern}`);
+  if (p.format) parts.push(`biçim: ${p.format}`);
+  if (p.min !== undefined && p.max !== undefined) parts.push(`${p.min} – ${p.max}`);
+  else if (p.min !== undefined) parts.push(`en az ${p.min}`);
+  else if (p.max !== undefined) parts.push(`en çok ${p.max}`);
+  return parts.length ? <span className="mono" style={{ fontSize: 12 }}>{parts.join(" · ")}</span> : <span className="faint">–</span>;
+}
+
+function Params({ kind, params, rules }: { kind: string; params: Param[]; rules: Detail["rules"] }) {
+  return (
+    <Card title="Parametreler" icon="plan" hint={<>Kontratta bu {kind === "App" ? "uygulamaya" : "role"} verilebilecek değerler. Gaia bunları plandan önce doğrular; hatalı bir değer Change'i açmadan reddedilir.
+      <Leg icon="check" color="var(--yellow)" name="zorunlu">kontrat vermek zorunda</Leg>
+      <Leg icon="lock" color="var(--purple)" name="gizli">değer düz yazılmaz; bao:// referansı verilir, loglarda maskelenir</Leg></>}>
+      {params.length === 0 ? <div className="empty">Parametre almıyor.</div> : (
+        <table className="grid">
+          <thead><tr><th>Ad</th><th>Tip</th><th>Varsayılan</th><th>Kısıtlar</th><th>Açıklama</th></tr></thead>
+          <tbody>
+            {params.map((p) => (
+              <tr key={p.name}>
+                <td className="nowrap">
+                  <span className="mono" style={{ paddingLeft: (p.name.split(".").length - 1) * 16, fontWeight: 600 }}>{p.name.split(".").pop()}</span>
+                  {p.required && <> <Badge tone="yellow">zorunlu</Badge></>}
+                  {p.secret && <> <Badge tone="gray" icon="lock">gizli</Badge></>}
+                  {p.deprecated && <> <Badge tone="orange">eskidi</Badge></>}
+                </td>
+                <td className="mono nowrap">{p.type ?? "str"}{p.elements ? `<${p.elements}>` : ""}</td>
+                <td className="mono">{p.secret ? <span className="faint">–</span> : p.default === undefined || p.default === null ? <span className="faint">–</span> : show(p.default)}</td>
+                <td><Constraints p={p} /></td>
+                <td className="muted">{p.description}{p.deprecated && <div style={{ color: "var(--orange)" }}>{p.deprecated}</div>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {rules && rules.length > 0 && (
+        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--bg1)" }}>
+          <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}>Kurallar<Hint>Parametreler arasındaki koşullar (CEL). Sağlanmazsa mesajla reddedilir.</Hint></div>
+          <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+            {rules.map((r) => <li key={r.expression}><span className="mono" style={{ fontSize: 12 }}>{r.expression}</span>{r.message && <span className="muted"> — {r.message}</span>}</li>)}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function RoleCard({ role }: { role: RoleInfo }) {
+  const row = (k: string, v: ReactNode) => <><dt className="faint">{k}</dt><dd style={{ margin: 0 }}>{v}</dd></>;
+  const list = (xs?: string[]) => (xs?.length ? <span className="row" style={{ gap: 4 }}>{xs.map((x) => <span key={x} className="badge gray">{x}</span>)}</span> : <span className="faint">–</span>);
+  return (
+    <Card title="Rol" icon="wrench" hint="Rolün config reposundaki adı ve nerede kullanılabileceği.">
+      <dl style={{ margin: 0, padding: 16, display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", gap: "8px 14px" }}>
+        {row("Kaynak", <><span className="mono">{role.role}</span> <span className="faint">· {role.provider}</span></>)}
+        {row("İşletim sistemi", list(role.os))}
+        {row("Ortamlar", role.allowedEnvironments?.length ? list(role.allowedEnvironments) : <span className="muted">hepsi</span>)}
+        {row("İzleme", list(role.monitoring))}
+        {row("Çakışır", list(role.conflicts))}
+        {row("Check mode", role.checkMode ? <span>{role.checkMode}</span> : <span className="faint">–</span>)}
+      </dl>
+    </Card>
+  );
+}
 
 const CONTRACT_KINDS = new Set(["Server", "Operation", "OperationSchedule"]);
 
@@ -152,11 +240,20 @@ export function CatalogObject() {
             { icon: "network", title: "Kullanan", hint: "Bu nesneye referans veren nesneler ve kontratlar.", value: q.data.usedByRefs.length },
           ]} />
           <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
-            <section className="card" style={{ flex: "2 1 520px", minWidth: 0 }} aria-label="YAML">
-              <div className="card-head"><div className="card-title"><Icon name="code" size={16} /><h2>YAML</h2></div></div>
-              <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)", lineHeight: 1.6 }}>{q.data.yaml}</pre>
-            </section>
+            <div style={{ flex: "2 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+              {q.data.params && <Params kind={kind} params={q.data.params} rules={q.data.rules} />}
+              <section className="card" aria-label="YAML">
+                <div className="card-head"><div className="card-title"><Icon name="code" size={16} /><h2>YAML</h2></div></div>
+                <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)", lineHeight: 1.6 }}>{q.data.yaml}</pre>
+              </section>
+            </div>
             <div style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 16 }}>
+              {q.data.role && <RoleCard role={q.data.role} />}
+              {q.data.params && (
+                <Card title="Kontratta kullanımı" icon="file" hint="Kontratın spec'ine eklenecek kısım; zorunlu parametreler doldurulmalı.">
+                  <pre className="mono" style={{ margin: 0, padding: 16, color: "var(--fg2)", lineHeight: 1.6 }}>{usage(kind, name, q.data.params)}</pre>
+                </Card>
+              )}
               <Card title="Referansları" icon="arrow"><RefList refs={q.data.refs} empty="Başka nesneye referans vermiyor." /></Card>
               <Card title="Kullananlar" icon="network"><RefList refs={q.data.usedByRefs} empty="Bu nesneyi kullanan yok." /></Card>
             </div>
