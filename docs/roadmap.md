@@ -182,6 +182,12 @@ Gaia'nın omurgası (tasarım 7.6).
     - Her nesnenin YAML'ı, dosyası, onu üreten Source ve patch'leri, referans verdikleri ve onu kullananlar. Kontratlar ad ile gösterilir.
   - **Provider'lar** (platform-admin): tür, adres, kimlik bilgisi referansı, kullananlar ve son keşfin hatası.
   - **API:** `GET /api/v1/catalog`, `GET /api/v1/catalog/{kind}/{name}`, `GET /api/v1/providers`.
+- Tamam: Profil.
+  - Oturumlar: görme ve kapatma.
+  - Passkey'ler: ekleme, silme (son passkey silinemez) ve yeni kurtarma kodları.
+  - İmza anahtarları ve SSH giriş anahtarları.
+  - Bildirim abonelikleri.
+  - Güçlü doğrulama isteyen işlemlerde Gaia isterse passkey sorulur; passkey'i olmayana TOTP kodu sorulur.
 - Açık: provider'lar için sürekli bağlantı denetimi. Şimdilik durum, son keşfin cevabından geliyor.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 
