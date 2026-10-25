@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/netip"
+	"slices"
 	"strings"
 	"time"
 
@@ -45,6 +46,10 @@ type AllocateRequest struct {
 	Pool     string `json:"pool"`
 	Owner    string `json:"owner"` // the host's UID
 	Hostname string `json:"hostname"`
+	// IP asks for this address: a server Gaia adopts keeps the one it has
+	// (design 8.1). It may be outside the pool's range, not outside the
+	// pool, and not anyone else's.
+	IP string `json:"ip,omitempty"`
 }
 
 // Allocation is an address given to a host.
@@ -60,6 +65,7 @@ type Allocation struct {
 var (
 	errUnknownPool = errors.New("unknown pool")
 	errExhausted   = errors.New("pool exhausted")
+	errTaken       = errors.New("the address is someone else's")
 )
 
 // Migrate brings the IPAM schema up to date.
@@ -172,13 +178,29 @@ func (s *Server) Allocate(ctx context.Context, r AllocateRequest) (Allocation, e
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		used, err := q.UnavailableIPs(ctx, cidr)
-		if err != nil {
-			return err
-		}
-		ip, ok := nextFree(pool, used)
-		if !ok {
-			return errExhausted
+		var ip netip.Addr
+		if r.IP != "" {
+			want, err := netip.ParseAddr(r.IP)
+			if err != nil || !cidr.Contains(want) {
+				return badRequest("ip %s must be inside %s", r.IP, r.Pool)
+			}
+			live, err := q.LiveIPs(ctx, cidr)
+			if err != nil {
+				return err
+			}
+			if slices.Contains(live, want) {
+				return errTaken
+			}
+			ip = want
+		} else {
+			used, err := q.UnavailableIPs(ctx, cidr)
+			if err != nil {
+				return err
+			}
+			var ok bool
+			if ip, ok = nextFree(pool, used); !ok {
+				return errExhausted
+			}
 		}
 		a, err := q.InsertAllocation(ctx, db.InsertAllocationParams{Pool: cidr, Ip: ip, Owner: r.Owner, Hostname: r.Hostname})
 		if err != nil {
@@ -422,7 +444,7 @@ func writeErr(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": re.msg})
 	case errors.Is(err, errUnknownPool):
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-	case errors.Is(err, errExhausted):
+	case errors.Is(err, errExhausted), errors.Is(err, errTaken):
 		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 	default:
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})

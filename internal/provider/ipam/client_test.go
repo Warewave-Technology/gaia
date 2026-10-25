@@ -78,6 +78,17 @@ func TestAllocateReleaseQuarantine(t *testing.T) {
 	if e, err := c0.Allocate(ctx, "10.50.0.0/24", "uid-e", "labtpoc04"); err != nil || e.IP != "10.50.0.101" {
 		t.Errorf("after release without quarantine: %+v, %v", e, err)
 	}
+	// An adopted server keeps its address, even outside the range; not one
+	// someone else has.
+	if a, err := c0.Adopt(ctx, "10.50.0.0/24", "uid-old", "legacy", "10.50.0.20"); err != nil || a.IP != "10.50.0.20" {
+		t.Errorf("adopt = %+v %v", a, err)
+	}
+	if _, err := c0.Adopt(ctx, "10.50.0.0/24", "uid-other", "x", "10.50.0.20"); err == nil {
+		t.Error("adopted an address someone has")
+	}
+	if _, err := c0.Adopt(ctx, "10.50.0.0/24", "uid-other", "x", "10.60.0.20"); err == nil {
+		t.Error("adopted an address outside the pool")
+	}
 	// A replaced server's address goes to the one replacing it.
 	if a, err := c0.Reassign(ctx, "uid-e", "uid-e2"); err != nil || len(a) != 1 || a[0].IP != "10.50.0.101" || a[0].Owner != "uid-e2" {
 		t.Errorf("reassign = %+v %v", a, err)

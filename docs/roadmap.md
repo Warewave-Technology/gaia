@@ -220,6 +220,7 @@ Tasarım 14.
 - Tamam: provisioning drift'i (uygulanan VM tanımlarıyla `pulumi preview --refresh`) ve konfigürasyon drift'i (Ansible `--check --diff`, gece penceresi). Açık: `versionProbe`, `exceptions`, Zabbix trapper, check-mode desteklemeyen roller.
 - Tamam: decommission bitince kontrat dosyasının Gaia commit'iyle silinmesi (9.6 adım 2), `gaia reconcile`.
 - Tamam: keşif raporu, ilk sürüm (hipervizör VM'leri: managed/orphan/unmanaged/template, missing; Zabbix'te sahipsiz host'lar), `gaia discover`.
+- Tamam: adopt, ilk sürüm (`hosts`, `management` seviyeleri, IPAM'da verilen adres, kayıt ve konfigürasyon seviyeleri, adopt edilen VM'in hiç silinmemesi). Açık: Pulumi import (`provisioning: enforce`), taslak kontrat üretimi, `image: { os }` / `size: custom`, mevcut Zabbix host'unu sahiplenme.
 
 ## Faz 11: Dağıtım
 

@@ -265,6 +265,14 @@ func (s *Scanner) contract(ctx context.Context, area string, check Check, st db.
 	if len(found)+len(resolved) > 0 {
 		s.log().Info("drift", "contract", st.Contract, "area", area, "open", open, "new", len(fresh), "resolved", len(resolved))
 	}
+	// How far Gaia goes (design 8.1): observe records, report also tells,
+	// enforce puts it right.
+	level := "enforce"
+	for _, c := range p.Contracts {
+		if c.Name == st.Contract {
+			level = c.Level(area)
+		}
+	}
 	if open == 0 {
 		// Gone by itself: its change has nothing left to put right.
 		done := map[string]bool{}
@@ -287,7 +295,7 @@ func (s *Scanner) contract(ctx context.Context, area string, check Check, st db.
 		pol = o.Spec.(*catalog.PolicySpec)
 	}
 	change := ""
-	if s.Open != nil {
+	if s.Open != nil && level == "enforce" {
 		auto := pol.DriftRemediation(area, env) == "auto"
 		if change, err = s.Open(ctx, st.Contract, auto); err != nil {
 			return err
@@ -298,7 +306,7 @@ func (s *Scanner) contract(ctx context.Context, area string, check Check, st db.
 			}
 		}
 	}
-	if len(fresh) > 0 && s.Notify != nil {
+	if len(fresh) > 0 && s.Notify != nil && level != "observe" {
 		var lines []string
 		for _, f := range fresh {
 			lines = append(lines, fmt.Sprintf("%s %s: %s yerine %s", f.Hostname, f.Key, f.Want, f.Got))

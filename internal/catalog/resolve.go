@@ -661,9 +661,26 @@ func (r *resolver) server(o *Object) {
 	}
 	var nets []*Object
 	for i, p := range placements {
-		if net := r.placement(o, fields[i], p.Network, env, img); net != nil {
+		tpl := img
+		if s.Adopted() {
+			tpl = nil // adopted VMs are not cloned: no template needed
+		}
+		if net := r.placement(o, fields[i], p.Network, env, tpl); net != nil {
 			nets = append(nets, net)
-			r.hostname(o, fields[i], net)
+			if !s.Adopted() {
+				r.hostname(o, fields[i], net)
+			}
+		}
+	}
+	if s.Adopted() && len(nets) == 1 {
+		site, _ := r.g.Catalog.Get(KindSite, nets[0].Spec.(*NetworkSpec).Site)
+		if site != nil {
+			provider, _ := r.computeType(site)
+			for i, h := range s.Hosts {
+				if p, _ := h.VMRef(); p != "" && p != provider {
+					r.fail(o, fmt.Sprintf("spec.hosts[%d].vm", i), "the VM is on %q; Network %q is on %q", p, s.Network, provider)
+				}
+			}
 		}
 	}
 

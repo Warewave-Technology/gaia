@@ -349,3 +349,80 @@ func TestPlanSaysHowServersGo(t *testing.T) {
 		t.Errorf("a grace period that is not a duration: %v", err)
 	}
 }
+
+const legacy = `apiVersion: gaia/v1alpha1
+kind: Server
+metadata:
+  name: legacy-web
+  labels: { app: legacy, env: test, owner: team-platform }
+spec:
+  hosts:
+    - { name: legacyweb01, vm: "pve-lab:120", ip: 10.50.0.20 }
+    - { name: legacyweb02, vm: "pve-lab:121", ip: 10.50.0.21 }
+  management: { configuration: report }
+  image: rocky9
+  size: small
+  network: lab-poc
+  baseline: linux-base
+`
+
+func TestPlanAdoption(t *testing.T) {
+	p := build(t, []string{"legacy-web"}, "contracts/legacy.yaml", legacy)
+	c := p.Contracts[0]
+	if !c.Adopts() || c.Level("provisioning") != "observe" || c.Level("configuration") != "report" || c.Level("registration") != "enforce" || !c.Retain {
+		t.Fatalf("contract = %+v", c)
+	}
+	if len(c.Servers) != 2 || c.Servers[0].Action != Adopt || c.Servers[0].Hostname != "legacyweb01" || *c.Servers[0].Adopted != (Adopted{VM: "pve-lab:120", IP: "10.50.0.20"}) || c.Servers[1].Seq != 2 {
+		t.Errorf("servers = %+v", c.Servers)
+	}
+	var b bytes.Buffer
+	_ = WriteText(&b, p)
+	if !strings.Contains(b.String(), "+ legacyweb01    lab / lab-poc · adopt pve-lab:120 at 10.50.0.20") {
+		t.Errorf("output:\n%s", b.String())
+	}
+
+	// Adopted already: kept by name; dropped from the list: let go.
+	h := host(1)
+	h.UID, h.Hostname = "u1", "legacyweb01"
+	h2 := host(2)
+	h2.UID, h2.Hostname = "u2", "legacyweb02"
+	st := fakeState{hosts: map[string][]Host{"legacy-web": {h, h2}}}
+	one := strings.Replace(legacy, "    - { name: legacyweb02, vm: \"pve-lab:121\", ip: 10.50.0.21 }\n", "", 1)
+	p = buildWith(t, st, []string{"legacy-web"}, "contracts/legacy.yaml", one)
+	if s := p.Contracts[0].Servers; len(s) != 2 || s[0].Action != Keep || s[0].UID != "u1" || s[1].Action != Delete || s[1].UID != "u2" {
+		t.Errorf("servers = %+v", s)
+	}
+	b.Reset()
+	_ = WriteText(&b, p)
+	if !strings.Contains(b.String(), "retained") {
+		t.Errorf("output:\n%s", b.String())
+	}
+
+	// A name another of Gaia's servers holds stops the plan.
+	held := fakeState{held: map[string]string{"legacyweb01": "someone"}}
+	if _, err := tryBuildWith(t, held, []string{"legacy-web"}, "contracts/legacy.yaml", legacy); err == nil || !strings.Contains(err.Error(), "legacyweb01 is the name of another server") {
+		t.Errorf("held name: %v", err)
+	}
+}
+
+func TestAdoptionRules(t *testing.T) {
+	for bad, want := range map[string]string{
+		strings.Replace(legacy, "  hosts:\n", "  replicas: 2\n  hosts:\n", 1):                                                          "replicas, topology and retire do not go with hosts",
+		strings.Replace(legacy, "configuration: report", "provisioning: enforce", 1):                                                   "needs the VMs imported into Pulumi",
+		strings.Replace(legacy, `vm: "pve-lab:120"`, `vm: "120"`, 1):                                                                   "want provider:id",
+		legacy + "  lifecycle: { state: decommissioned, deletionPolicy: delete }\n":                                                    "adopted servers are retained",
+		strings.Replace(readLab(t, "contracts/poc-web.yaml"), "  baseline:", "  management: { registration: report }\n  baseline:", 1): "management: only for adopted servers",
+	} {
+		_, err := catalog.Load("c0ffee", labFiles(t, "contracts/legacy.yaml", bad))
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("want %q, got %v", want, err)
+		}
+	}
+	cat, err := catalog.Load("c0ffee", labFiles(t, "contracts/legacy.yaml", strings.Replace(legacy, "pve-lab:120", "vc:120", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := catalog.Resolve(cat); err == nil || !strings.Contains(err.Error(), `the VM is on "vc"`) {
+		t.Errorf("another hypervisor: %v", err)
+	}
+}

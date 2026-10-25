@@ -311,6 +311,9 @@ func CheckProvisioning(ctx context.Context, g *catalog.Graph, p *plan.Plan, d De
 	}
 	var out []Finding
 	for _, c := range p.Contracts {
+		if c.Adopts() {
+			continue // adopted VMs are not in a stack
+		}
 		w := &work{bySite: map[string][]pulumi.VM{}, siteCreds: map[string]proxmox.Credentials{}, creds: map[string]proxmox.Credentials{},
 			siteVS: map[string]*pulumi.VSphereCredentials{}, vsCreds: map[string]*pulumi.VSphereCredentials{}}
 		names := map[string]string{}

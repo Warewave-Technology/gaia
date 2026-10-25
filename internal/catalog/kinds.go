@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/mail"
+	"net/netip"
 	"net/url"
 	"path"
 	"sort"
@@ -891,6 +892,64 @@ type ServerSpec struct {
 	// params; Agents the agents installed besides the mandatory ones.
 	Apps   []AppRef `yaml:"apps"`
 	Agents []string `yaml:"agents"`
+	// Hosts are servers Gaia did not create and adopts (design 8.2): named
+	// one by one, instead of replicas.
+	Hosts []AdoptedHost `yaml:"hosts"`
+	// Management is how far Gaia goes per area with adopted servers.
+	Management *Management `yaml:"management"`
+}
+
+// AdoptedHost is an existing server: its name, its VM (provider:id) and
+// its address.
+type AdoptedHost struct {
+	Name string `yaml:"name" gaia:"required"`
+	VM   string `yaml:"vm" gaia:"required"`
+	IP   string `yaml:"ip" gaia:"required"`
+}
+
+// VMRef splits vm into its provider and the VM's ID there.
+func (h AdoptedHost) VMRef() (provider, id string) {
+	provider, id, _ = strings.Cut(h.VM, ":")
+	return provider, id
+}
+
+// Management levels (design 8.1): observe records drift, report also
+// tells the owners, enforce puts it right.
+type Management struct {
+	Provisioning  string `yaml:"provisioning"`
+	Configuration string `yaml:"configuration"`
+	Registration  string `yaml:"registration"`
+}
+
+// ManagementLevels are what a management area may be.
+var ManagementLevels = []string{"observe", "report", "enforce"}
+
+// Adopted reports whether the contract's servers are adopted ones.
+func (s *ServerSpec) Adopted() bool { return len(s.Hosts) > 0 }
+
+// Level is how far Gaia goes in an area: enforce for the servers it
+// creates; for adopted ones what the contract says, else observe for
+// provisioning, report for configuration and enforce for registration
+// (design 8.2).
+func (s *ServerSpec) Level(area string) string {
+	if !s.Adopted() {
+		return "enforce"
+	}
+	m := Management{}
+	if s.Management != nil {
+		m = *s.Management
+	}
+	v, def := m.Registration, "enforce"
+	switch area {
+	case "provisioning":
+		v, def = m.Provisioning, "observe"
+	case "configuration":
+		v, def = m.Configuration, "report"
+	}
+	if v == "" {
+		return def
+	}
+	return v
 }
 
 // AppRef is an App on a contract's servers and the params it gets.
@@ -995,6 +1054,48 @@ func (s *ServerSpec) validateRest() []string {
 		if l.DeletionPolicy != "" && l.DeletionPolicy != "delete" && l.DeletionPolicy != "retain" {
 			out = append(out, fmt.Sprintf("lifecycle.deletionPolicy: %q (delete or retain)", l.DeletionPolicy))
 		}
+	}
+	return append(out, s.validateAdoption()...)
+}
+
+func (s *ServerSpec) validateAdoption() []string {
+	var out []string
+	if !s.Adopted() {
+		if s.Management != nil {
+			out = append(out, "management: only for adopted servers (hosts)")
+		}
+		return out
+	}
+	if s.Replicas != nil || len(s.Topology) > 0 || len(s.Retire) > 0 {
+		out = append(out, "hosts: adopted servers are listed; replicas, topology and retire do not go with hosts")
+	}
+	seen := map[string]bool{}
+	for i, h := range s.Hosts {
+		at := fmt.Sprintf("hosts[%d]", i)
+		if seen[h.Name] {
+			out = append(out, at+".name: "+h.Name+" is listed twice")
+		}
+		seen[h.Name] = true
+		if p, id := h.VMRef(); p == "" || id == "" {
+			out = append(out, fmt.Sprintf("%s.vm: %q: want provider:id (pve-lab:120)", at, h.VM))
+		}
+		if _, err := netip.ParseAddr(h.IP); err != nil {
+			out = append(out, fmt.Sprintf("%s.ip: %q is not an address", at, h.IP))
+		}
+	}
+	if m := s.Management; m != nil {
+		for _, a := range []struct{ name, v string }{{"provisioning", m.Provisioning}, {"configuration", m.Configuration}, {"registration", m.Registration}} {
+			if a.v != "" && !contains(ManagementLevels, a.v) {
+				out = append(out, fmt.Sprintf("management.%s: %q (%s)", a.name, a.v, strings.Join(ManagementLevels, ", ")))
+			}
+		}
+	}
+	if s.Level("provisioning") == "enforce" {
+		out = append(out, "management.provisioning: enforce needs the VMs imported into Pulumi, which this version does not do yet")
+	}
+	if l := s.Lifecycle; l != nil && l.State == "decommissioned" && l.DeletionPolicy == "delete" {
+		// design 9.7: a VM Gaia did not make is not Gaia's to delete
+		out = append(out, "lifecycle.deletionPolicy: adopted servers are retained, not deleted, unless provisioning is enforced")
 	}
 	return out
 }

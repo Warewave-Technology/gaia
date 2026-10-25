@@ -28,7 +28,7 @@ func WriteText(w io.Writer, p *Plan) error {
 			m[k] = &counts{}
 		}
 		switch action {
-		case Create:
+		case Create, Adopt, Replace:
 			m[k].create++
 		case Keep:
 			m[k].keep++
@@ -69,6 +69,9 @@ func WriteText(w io.Writer, p *Plan) error {
 				changed = true
 			case Keep:
 				pr.f("  = %-14s %s / %s · uid %s (%s)\n", s.Hostname, s.Site, s.Network, s.UID, s.Status)
+			case Adopt:
+				pr.f("  + %-14s %s / %s · adopt %s at %s\n", s.Hostname, s.Site, s.Network, s.Adopted.VM, s.Adopted.IP)
+				changed = true
 			case Replace:
 				pr.f("  ~ %-14s %s / %s · uid %s replaced by a new server, same name and address\n", s.Hostname, s.Site, s.Network, s.UID)
 				changed = true
@@ -76,7 +79,9 @@ func WriteText(w io.Writer, p *Plan) error {
 			pr.f("    %-14s %s: %d vCPU, %d GiB, %s · IP from %s (%s)\n",
 				"", c.Size.Name, c.Size.CPU, c.Size.MemoryGiB, disk, s.IPAM.Pool, s.IPAM.Provider)
 			bump(addrs, s.IPAM.Provider, s.Action)
-			bump(vms, s.Compute.Provider, s.Action)
+			if !c.Adopts() {
+				bump(vms, s.Compute.Provider, s.Action)
+			}
 			if c.Monitoring != nil {
 				bump(monitors, c.Monitoring.Provider, s.Action)
 			}
@@ -123,8 +128,12 @@ func WriteText(w io.Writer, p *Plan) error {
 			}
 		}
 		if running > 0 && (c.Baseline != nil || len(c.Roles) > 0 || len(c.Agents) > 0 || len(c.Apps) > 0) {
-			configure += running
-			pr.f("  configure\n")
+			if lv := c.Level("configuration"); lv != "enforce" {
+				pr.f("  configure (%s: checked for drift, not applied)\n", lv)
+			} else {
+				configure += running
+				pr.f("  configure\n")
+			}
 			if c.Baseline != nil {
 				pr.f("    baseline %s (%s)\n", c.Baseline.Name, c.Baseline.Playbook)
 			}
@@ -240,6 +249,8 @@ func goes(c Contract, s Server) string {
 	switch {
 	case c.Retain:
 		return "retained: leaves Gaia, nothing deleted"
+	case c.Adopts():
+		return "retained: adopted, not Gaia's to delete"
 	case c.Decommission.Grace() <= 0:
 		return "deleted now"
 	case s.Status == "stopped":
