@@ -17,6 +17,7 @@ import { Infra } from "./pages/infra/Infra";
 import { Operations } from "./pages/operations/Operations";
 import { Access } from "./pages/access/Access";
 import { Settings } from "./pages/settings/Settings";
+import { VersionPage } from "./pages/settings/Versions";
 
 export function makeClient() {
   return new QueryClient({
@@ -52,6 +53,7 @@ export function AppRoutes() {
         <Route path="access/:kind/:name" element={<ObjectPage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="settings/:tab" element={<Settings />} />
+        <Route path="settings/versions/:version" element={<VersionPage />} />
         <Route path="settings/:kind/:name" element={<ObjectPage />} />
         <Route path="providers" element={<Navigate to="/settings/providers" replace />} />
         <Route path="sync" element={<Navigate to="/settings/sources" replace />} />

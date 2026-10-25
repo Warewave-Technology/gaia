@@ -80,6 +80,18 @@ type validator interface{ validate() []string }
 // problem at once; when the returned error is non-nil the catalog must
 // not be used to apply anything.
 func Load(commit string, files []File) (*Catalog, error) {
+	return load(commit, files, false)
+}
+
+// LoadSplit loads a catalog whose settings (design 17.1) come from the
+// settings store: files whose path starts with SettingsPrefix. Objects
+// of the settings kinds found anywhere else are left out and listed in
+// Ignored; the settings store holds nothing but settings kinds.
+func LoadSplit(commit string, files []File) (*Catalog, error) {
+	return load(commit, files, true)
+}
+
+func load(commit string, files []File, split bool) (*Catalog, error) {
 	cat := newCatalog(commit)
 	var errs Errors
 	var patches []*Object
@@ -105,10 +117,25 @@ func Load(commit string, files []File) (*Catalog, error) {
 			if root == nil {
 				continue
 			}
+			if split && !FromSettings(f.Path) && IsSetting(nodeKind(root)) {
+				// Not validated either: the settings store's copy counts.
+				if obj, _ := decodeObject(f.Path, root); obj != nil {
+					cat.Ignored = append(cat.Ignored, Ignored{Key: obj.Key(), Source: obj.Source})
+				} else {
+					cat.Ignored = append(cat.Ignored, Ignored{Key: Key{Kind: nodeKind(root), Name: nodeName(root)}, Source: Source{File: f.Path, Line: root.Line}})
+				}
+				continue
+			}
 			obj, objErrs := decodeObject(f.Path, root)
 			errs = append(errs, objErrs...)
 			if obj == nil {
 				continue
+			}
+			if split {
+				if FromSettings(f.Path) && !IsSetting(obj.Kind) {
+					errs = append(errs, Error{File: f.Path, Line: obj.Source.Line, Object: obj.Key().String(), Msg: obj.Kind + " is not a setting; it belongs in Git"})
+					continue
+				}
 			}
 			if obj.Metadata.Annotations[AnnotationMode] == "patch" {
 				patches = append(patches, obj)
@@ -129,6 +156,34 @@ func Load(commit string, files []File) (*Catalog, error) {
 		return cat, errs
 	}
 	return cat, nil
+}
+
+// nodeKind and nodeName read an object's kind and name before it is
+// decoded.
+func nodeKind(root *yaml.Node) string { return scalarAt(root, "kind") }
+
+func nodeName(root *yaml.Node) string {
+	if root.Kind != yaml.MappingNode {
+		return ""
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value == "metadata" {
+			return scalarAt(root.Content[i+1], "name")
+		}
+	}
+	return ""
+}
+
+func scalarAt(n *yaml.Node, key string) string {
+	if n.Kind != yaml.MappingNode {
+		return ""
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key && n.Content[i+1].Kind == yaml.ScalarNode {
+			return n.Content[i+1].Value
+		}
+	}
+	return ""
 }
 
 func isCatalogFile(p string) bool {

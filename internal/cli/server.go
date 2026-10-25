@@ -31,6 +31,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/server"
+	"github.com/Warewave-Technology/gaia/internal/settings"
 	"github.com/Warewave-Technology/gaia/internal/signature"
 	gsource "github.com/Warewave-Technology/gaia/internal/source"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -80,7 +81,8 @@ func newServerCommand() *cobra.Command {
 			}
 			defer s.Close()
 			bao := &baoAccess{log: cfg.Log}
-			cfg.Repos = &repo.Mirrors{Dir: dataDir, Secrets: bao}
+			cfg.Settings = &settings.Store{DB: s}
+			cfg.Repos = &repo.Mirrors{Dir: dataDir, Secrets: bao, Settings: cfg.Settings}
 			var cat *server.CatalogSource
 			var engine *change.Engine
 			if repoURL != "" {
@@ -89,6 +91,15 @@ func newServerCommand() *cobra.Command {
 					if platform.URL, err = filepath.Abs(repoURL); err != nil {
 						return err
 					}
+				}
+				// The first start with a settings store takes the settings
+				// out of Git (design 17.7).
+				switch v, err := settings.ImportGit(ctx, cfg.Settings, cfg.Repos, platform); {
+				case errors.Is(err, settings.ErrStale):
+				case err != nil:
+					return fmt.Errorf("settings: %w", err)
+				case v > 0:
+					cfg.Log.Info("settings imported from Git", "version", v)
 				}
 				cat = &server.CatalogSource{Repos: cfg.Repos, Platform: platform, Log: cfg.Log}
 				engine = &change.Engine{Store: s, Repos: cfg.Repos, Log: cfg.Log, Keys: func(ctx context.Context) ([]signature.Key, error) {
@@ -107,7 +118,7 @@ func newServerCommand() *cobra.Command {
 				}
 				cfg.Changes, cfg.Catalog = engine, cat
 				cfg.Sources = &server.Sources{Catalog: cat, Store: s, Syncer: &gsource.Syncer{
-					Store: s, Repos: cfg.Repos, Log: cfg.Log,
+					Store: s, Repos: cfg.Repos, Log: cfg.Log, Settings: cfg.Settings,
 					Secrets: func(ctx context.Context, addr, ref string) (map[string]string, error) {
 						c, err := bao.client(ctx, addr)
 						if err != nil {

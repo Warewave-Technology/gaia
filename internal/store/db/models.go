@@ -83,6 +83,19 @@ type Approval struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type AuditLog struct {
+	ID        int64
+	At        pgtype.Timestamptz
+	Actor     string
+	ActorID   pgtype.Text
+	SessionID pgtype.Text
+	Address   pgtype.Text
+	Action    string
+	Object    pgtype.Text
+	Result    string
+	Detail    []byte
+}
+
 type AuthFlow struct {
 	ID        string
 	Kind      string
@@ -327,6 +340,21 @@ type Session struct {
 	UserAgent    pgtype.Text
 	CreatedAt    pgtype.Timestamptz
 	RevokedAt    pgtype.Timestamptz
+}
+
+type SettingsObject struct {
+	Version int64
+	Path    string
+	Data    string
+}
+
+type SettingsVersion struct {
+	Version     int64
+	Author      string
+	Reason      string
+	Proposal    pgtype.Text
+	ContentHash string
+	CreatedAt   pgtype.Timestamptz
 }
 
 type SigningKey struct {

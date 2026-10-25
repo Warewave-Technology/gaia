@@ -48,6 +48,9 @@ func (r Repo) Local() bool { return filepath.IsAbs(r.URL) }
 type Mirrors struct {
 	Dir     string
 	Secrets SecretReader
+	// Settings is Gaia's settings store (design 17.2). Without it, or
+	// before its first version, settings are read from Git as before.
+	Settings SettingsReader
 
 	mu    sync.Mutex
 	locks map[string]*sync.Mutex

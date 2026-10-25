@@ -339,5 +339,8 @@ func (s *Server) checkProviders(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
+	if !s.audit(w, r, auditEntry(r, "providers.check", "")) {
+		return
+	}
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "checking"})
 }

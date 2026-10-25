@@ -20,7 +20,7 @@
 | 11 | Dağıtım: paketler, Ansible rolü, Helm | 1 | – |
 | 12 | Yeni yapılanma: tasarım (design.md §17) | – | **Tamam** |
 | 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | **Tamam** |
-| 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | – |
+| 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | **Tamam** |
 | 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | – |
 | 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | – |
 | 17 | Denetim kaydının tamamı ve ekranı | 14–16 | – |
@@ -339,7 +339,23 @@ Sadece arayüz; veri modeli değişmez. Okuma için eklenen API'ler: katalog lis
 - **Erişim:** Group'lar, takımlar, kontrat başına kimin hangi sudo ile eriştiği.
 - **Ayarlar:** sekmeli sayfa. Bu fazda Provider'lar, Kaynaklar (Source ve Sync) ve Keşif buraya taşınır.
 
-### Faz 14: Ayar deposu, denetim kaydının temeli, geçiş
+### Faz 14: Ayar deposu, denetim kaydının temeli, geçiş — Tamam
+Yapılanlar:
+- **Veritabanı:** `settings_versions`, `settings_objects`, `audit_log` tabloları. Üçü de sadece ekleme: tetikleyiciler sahibi de durdurur, `gaia_app` güncelleyemez ve silemez.
+- **Yükleme:** Snapshot ayar sürümünü taşır (`settings@N` etikette). Platform ve provider'lar ayar deposundan okunur.
+- **İlk açılış:** Ayar deposu boşsa ayarlar Git'ten içeri alınır; bu, denetim kaydında `settings.import` olarak görünür.
+- **Source çıktıları:** Faz 16'dan buraya alındı. Geçişten sonra Git'e yazılan ağ ve takımlar yok sayılacağı için NetworkSource ve TeamSource artık ayar deposuna yeni sürüm yazar (`settings.source`). AnsibleRoleSource Git'e yazmaya devam eder.
+- **CLI:**
+  - `gaia settings export | import | versions`
+  - `gaia validate|plan --settings DIR`: CI'da dışa aktarılmış ayarlarla doğrulama yapar; Git'teki kopyalar yok sayılır.
+- **API:** `GET /settings`, `/settings/versions`, `/settings/versions/{v}`, `/audit` (platform-admin, `?format=jsonl`).
+- **Denetim kaydı:** Sync, keşif ve provider denetimi tetiklemeleri yazılıyor.
+- **Arayüz:**
+  - Ayarlar'da ayar sürümü göstergesi ve Sürümler sekmesi
+  - Kaynaklar'da "Git'te kalan ayarlar" uyarısı
+  - Nesne sayfasında "Ayar deposu" bilgisi
+
+İlk plan:
 - **Veritabanı:** ayar nesneleri, ayar sürümleri (sürüm başına tam içerik), denetim kaydı (sadece ekleme).
 - **İstenen durum:** Git nesneleri ile ayar sürümü birlikte yüklenir. Anlık görüntü ayar sürümünü taşır; plan hash'i, run kaydı ve Change'ler de.
 - **Geçiş:** Ayar deposu boşsa Git'teki ayar türleri ilk sürüm olarak içeri alınır. Sonra Git'teki bu türler yok sayılır ve Sync ekranında uyarı olur.

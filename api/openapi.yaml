@@ -409,6 +409,75 @@ paths:
                     sudo: { type: boolean, description: Every command }
                     commands: { type: array, items: { type: string }, description: Only these commands }
         "503": { description: The server does not follow a repository }
+  /api/v1/settings:
+    get:
+      summary: The settings version the desired state is loaded with, and what Git still has of the settings kinds (design 17.2)
+      operationId: getSettings
+      responses:
+        "200":
+          description: The current version; Ignored is left out of the desired state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  store: { type: boolean, description: False when this Gaia keeps its settings in Git }
+                  current: { $ref: "#/components/schemas/SettingsVersion" }
+                  ignored:
+                    type: array
+                    items: { type: object, properties: { kind: { type: string }, name: { type: string }, source: { type: string } } }
+  /api/v1/settings/versions:
+    get:
+      summary: The settings versions, newest first
+      operationId: listSettingsVersions
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+      responses:
+        "200":
+          description: Versions
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/SettingsVersion" } }
+  /api/v1/settings/versions/{version}:
+    get:
+      summary: One settings version with its objects as written
+      operationId: getSettingsVersion
+      parameters:
+        - { name: version, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: The version and its files
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SettingsVersion"
+                  - type: object
+                    properties:
+                      files:
+                        type: array
+                        items: { type: object, properties: { path: { type: string }, kind: { type: string }, yaml: { type: string } } }
+        "404": { description: No such version }
+  /api/v1/audit:
+    get:
+      summary: The audit log, newest first (platform-admin; design 17.4)
+      operationId: listAudit
+      parameters:
+        - { name: actor, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string }, description: "A prefix: settings. matches every settings action" }
+        - { name: object, in: query, schema: { type: string } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: before, in: query, schema: { type: integer }, description: Entries older than this ID, for paging }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 10000, default: 200 } }
+        - { name: format, in: query, schema: { type: string, enum: [jsonl] }, description: One JSON object per line, for a SIEM }
+      responses:
+        "200":
+          description: Entries
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AuditEntry" } }
+            application/x-ndjson:
+              schema: { type: string }
   /api/v1/sources:
     get:
       summary: What each Source (TeamSource...) did last, the sync report (design 5.4)
@@ -1179,6 +1248,29 @@ components:
         contracts: { type: integer, description: How many of those are contracts }
         spec: { type: object, description: "With ?spec=1: the spec without params" }
         params: { type: integer, description: "With ?spec=1: how many params it takes" }
+    SettingsVersion:
+      type: object
+      properties:
+        version: { type: integer }
+        author: { type: string, description: "A username, gaia, or source/<name>" }
+        reason: { type: string }
+        proposal: { type: string }
+        contentHash: { type: string }
+        createdAt: { type: string, format: date-time }
+        objects: { type: integer }
+    AuditEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        actorId: { type: string }
+        sessionId: { type: string }
+        address: { type: string }
+        action: { type: string }
+        object: { type: string }
+        result: { type: string, enum: [ok, denied, failed] }
+        detail: { type: object }
     CatalogRef:
       type: object
       properties:

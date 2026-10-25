@@ -54,3 +54,16 @@ export function matches(o: { name: string; labels?: Record<string, string> }, q:
     return o.name.toLowerCase().includes(part) || text.toLowerCase().includes(part) || Object.entries(o.labels ?? {}).some(([a, b]) => `${a}=${b}`.toLowerCase().includes(part));
   });
 }
+
+export type SettingsVersion = { version: number; author: string; reason: string; proposal?: string; contentHash: string; createdAt: string; objects?: number };
+export type SettingsState = { store: boolean; current?: SettingsVersion; ignored: { kind: string; name: string; source: string }[] };
+
+// useSettings is the settings version the desired state is loaded with.
+export function useSettings() {
+  return useQuery({ queryKey: ["settings"], queryFn: () => api<SettingsState>("/settings") });
+}
+
+// fromSettings reports whether a source (file:line) is the settings store's.
+export function fromSettings(source: string): boolean {
+  return source.startsWith("settings:");
+}
