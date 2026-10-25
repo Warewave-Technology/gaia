@@ -1228,6 +1228,16 @@ Bu akış provisioning'in tersidir, ama arada bir bekleme süresi vardır. Bekle
 - **Aşama 4'te sunucuya müdahale edilmez.** Domain'den çıkarma veya ajan kaldırma gibi işler yapılmaz, kayıtlar dışarıdan devre dışı bırakılır. Bu sayede geri dönüşte sunucuyu yeniden yapılandırmak gerekmez. Kalıcı temizlik aşama 6'da, sunucuya bağlanmadan, doğrudan API'lerle yapılır.
 - **Kesintiler:** Her adım idempotent ve run devam ettirilebilir. Akış yarıda kalırsa sunucu `decommissioning` durumunda görünür ve sonraki apply kaldığı yerden devam eder.
 
+**Uygulamada:**
+- Policy `decommission: { gracePeriod, finalSnapshot: { enabled }, ipQuarantine }`; ortamlar (`environments.<env>.decommission`) alan alan üzerine yazar. Bekleme süresi yoksa sunucu aynı run'da silinir.
+- **Durdurma (aynı run):** izleme kapatılır (Zabbix host'u devre dışı; geçmiş kalır), Policy istiyorsa son snapshot alınır, sunucu graceful kapatılır, AD bilgisayar hesabı devre dışı bırakılır, Warpgate hedeflerinin rolleri alınır. Host `stopped` olur ve `delete_after` yazılır. Ayrı bir bakım penceresi açılmaz: devre dışı host alarm üretmez.
+- **Bekleme:** VM, son başarılı run'ın uyguladığı tanımla (`hosts.vm_spec`) stack'te kalır, kapalı olarak (`started` ve `on_boot` kapalı). Böylece Pulumi ona dokunmaz ve geri dönüşte VM aynen kalır.
+- **Geri alma:** Sunucuyu silen commit geri alınırsa (ya da `replicas` eski haline gelirse) plan onu `keep` eder; run sunucuyu açar, SSH'ın gelmesini bekler, izlemeyi ve hesabı açar. Warpgate rolleri erişim aşamasında geri gelir.
+- **Silme:** Her 15 dakikada bir, süresi dolan sunucusu olan kontratlar için bir "decommission run"ı kuyruğa girer (`requestedBy: gaia: decommission`). Run kontratın son uygulanan planını kullanır, onaylanmış Change'in devamıdır ve kontratın diğer sunucularına dokunmaz: kayıtlar silinir, VM Pulumi state'inden düşürülür (Pulumi çalıştırılmaz) ve hipervizörün API'siyle silinir (Proxmox: durdur, `purge`; vSphere: kapat, Destroy), adres Policy'nin `ipQuarantine`'iyle karantinaya girer. Run bitince kontratın uygulanan planı güncellenir, yeni Change açılmaz.
+- Son snapshot VM'le birlikte silinir: bekleme süresince geri dönüş noktasıdır, silmeden sonra saklanmaz. Silme sonrası saklama yedekleme ister.
+- `deletionPolicy: retain`: VM'ler stack çalışmadan önce state'ten düşürülür, hiçbir kayıt silinmez. Host `unmanaged` olur; adını ve adresini tutar, böylece Gaia ikisini başka sunucuya vermez.
+- vSphere'de kapalı VM'in Pulumi tarafından açılmadığı gerçek vCenter'da doğrulanmalıdır (vcsim ile test edilemiyor).
+
 ### 9.9 Prod koruması ve Policy
 
 Prod'da silme iki onay gerektirir: kontratın owner'ı ve `platform-admin`. Bu, Change'in onay gereksinimi olarak zorunlu tutulur (bkz. 7.6). Onaylanan plan ile uygulanan planın hash'i aynı olmalıdır.

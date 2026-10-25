@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 )
@@ -49,6 +50,35 @@ type Contract struct {
 	// Bastion is how the access reaches the servers, when the Platform
 	// has a bastion and the contract has access.
 	Bastion *Bastion `json:"bastion,omitempty"`
+	// Decommission is how its servers go, when some do (design 9.8).
+	Decommission *Decommission `json:"decommission,omitempty"`
+	// Retain: the contract is decommissioned with deletionPolicy retain;
+	// its servers leave Gaia's management and are not deleted (9.6).
+	Retain bool `json:"retain,omitempty"`
+}
+
+// Decommission is the environment's decommission policy, in seconds.
+type Decommission struct {
+	GraceSeconds  int64 `json:"graceSeconds"`
+	FinalSnapshot bool  `json:"finalSnapshot,omitempty"`
+	IPQuarantine  int64 `json:"ipQuarantineSeconds,omitempty"`
+}
+
+// IPQuarantineSeconds is the Policy's quarantine of released addresses;
+// zero leaves it to IPAM.
+func (d *Decommission) IPQuarantineSeconds() int64 {
+	if d == nil {
+		return 0
+	}
+	return d.IPQuarantine
+}
+
+// Grace is how long a stopped server waits before it is deleted.
+func (d *Decommission) Grace() time.Duration {
+	if d == nil {
+		return 0
+	}
+	return time.Duration(d.GraceSeconds) * time.Second
 }
 
 // Bastion is a contract's servers in Warpgate: one target each, SSH or,
@@ -375,6 +405,18 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			Seq: h.Seq, Site: h.Site, Network: h.Network,
 		})
 	}
+
+	for _, srv := range c.Servers {
+		if srv.Action != Delete {
+			continue
+		}
+		if pol := g.Policy(); pol != nil {
+			d := pol.Spec.(*catalog.PolicySpec).DecommissionIn(c.Env)
+			c.Decommission = &Decommission{GraceSeconds: int64(d.Grace.Seconds()), FinalSnapshot: d.FinalSnapshot, IPQuarantine: int64(d.IPQuarantine.Seconds())}
+		}
+		break
+	}
+	c.Retain = decommissioned && s.Lifecycle.DeletionPolicy == "retain"
 
 	if s.Baseline != "" {
 		b := mustGet(g, catalog.KindBaseline, s.Baseline).Spec.(*catalog.BaselineSpec)

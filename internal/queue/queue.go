@@ -43,6 +43,9 @@ type ApplyArgs struct {
 	// Access: distribute the access of the plan last applied again, and
 	// nothing else (design 14.5).
 	Access bool `json:"access,omitempty"`
+	// Decommission: delete the servers of the plan last applied whose
+	// grace period is over, and nothing else (design 9.8).
+	Decommission bool `json:"decommission,omitempty"`
 }
 
 func (ApplyArgs) Kind() string { return "gaia.apply" }
@@ -129,6 +132,12 @@ func EnqueueChange(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx],
 // AccessRequester is who access runs are requested by.
 const AccessRequester = "gaia: access"
 
+// EnqueueDecommission queues a run that ends the grace periods that are
+// over in a contract, unless one is already waiting.
+func EnqueueDecommission(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], contract string) (string, error) {
+	return enqueueApplied(ctx, s, c, contract, apply.DecommissionRequester, func(a *ApplyArgs) { a.Decommission = true })
+}
+
 // ErrNotApplied: the contract has no applied plan to distribute.
 var ErrNotApplied = errors.New("the contract has not been applied")
 
@@ -136,6 +145,12 @@ var ErrNotApplied = errors.New("the contract has not been applied")
 // again, unless one is already waiting. It returns the run, or "" when
 // one was waiting.
 func EnqueueAccess(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], contract string) (string, error) {
+	return enqueueApplied(ctx, s, c, contract, AccessRequester, func(a *ApplyArgs) { a.Access = true })
+}
+
+// enqueueApplied queues a run of the contract's applied plan, requested by
+// requester, unless one is waiting.
+func enqueueApplied(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx], contract, requester string, kind func(*ApplyArgs)) (string, error) {
 	q := s.Q()
 	st, err := q.ContractState(ctx, contract)
 	if errors.Is(err, pgx.ErrNoRows) || err == nil && len(st.AppliedPlan) == 0 {
@@ -144,14 +159,15 @@ func EnqueueAccess(ctx context.Context, s *store.Store, c *river.Client[pgx.Tx],
 	if err != nil {
 		return "", err
 	}
-	if _, err := q.QueuedRunBy(ctx, db.QueuedRunByParams{Contract: contract, RequestedBy: AccessRequester}); err == nil {
+	if _, err := q.QueuedRunBy(ctx, db.QueuedRunByParams{Contract: contract, RequestedBy: requester}); err == nil {
 		return "", nil
 	}
 	var snap repo.Snapshot
 	if err := json.Unmarshal(st.AppliedSnapshot, &snap); err != nil {
 		return "", err
 	}
-	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: st.AppliedPlanHash.String, RequestedBy: AccessRequester, Access: true}
+	a := ApplyArgs{Run: store.NewRunID(), Snapshot: snap, Contract: contract, PlanHash: st.AppliedPlanHash.String, RequestedBy: requester}
+	kind(&a)
 	err = s.TxFunc(ctx, func(tx pgx.Tx) error {
 		q := db.New(tx)
 		if err := q.QueueRun(ctx, db.QueueRunParams{ID: a.Run, Contracts: []string{contract}, Commit: snap.Label(), PlanHash: a.PlanHash, RequestedBy: text(a.RequestedBy)}); err != nil {
@@ -293,8 +309,8 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	if err != nil {
 		return nil, w.fail(ctx, a, err)
 	}
-	if a.Access {
-		return g, w.access(ctx, a, g)
+	if a.Access || a.Decommission {
+		return g, w.applied(ctx, a, g)
 	}
 	// The plan is taken again: the state may have changed since the run was
 	// queued, and then the queued plan is not the one to apply.
@@ -326,9 +342,10 @@ func (w *ApplyWorker) work(ctx context.Context, a ApplyArgs) (*catalog.Graph, er
 	return g, err
 }
 
-// access distributes the contract's applied access again, with the plan
-// applied last (a newer run may have applied one since this was queued).
-func (w *ApplyWorker) access(ctx context.Context, a ApplyArgs, g *catalog.Graph) error {
+// applied runs the contract's applied plan again: its access, or the end
+// of its grace periods. The plan is the one applied last (a newer run may
+// have applied one since this was queued).
+func (w *ApplyWorker) applied(ctx context.Context, a ApplyArgs, g *catalog.Graph) error {
 	st, err := w.Store.Q().ContractState(ctx, a.Contract)
 	if err != nil {
 		return w.fail(ctx, a, err)
@@ -350,6 +367,10 @@ func (w *ApplyWorker) access(ctx context.Context, a ApplyArgs, g *catalog.Graph)
 			return w.fail(ctx, a, err)
 		}
 		deps.Config = &apply.ConfigRepo{Path: w.Repos.Path(c.Repo()), Commit: c.Commit, Paths: c.Paths}
+	}
+	if a.Decommission {
+		_, err = apply.RunDecommission(ctx, g, &p, deps)
+		return err
 	}
 	_, err = apply.RunAccess(ctx, g, &p, deps)
 	return err

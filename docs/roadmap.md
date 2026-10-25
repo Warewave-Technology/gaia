@@ -213,6 +213,9 @@ Tasarım 14.
 - Keşif (8.3), adopt (8.1–8.2), `gaia reconcile`.
 - Tam decommission akışı: bekleme süreleri, bakım modu, önce kapatma sonra silme (9.8); prod koruması (9.9); replace (9.5).
 
+**Durum:**
+- Tamam: decommission akışı (durdurma, son snapshot, kayıtları devre dışı bırakma, bekleme, geri alma, 15 dakikalık süpürme ile silme, IP karantinası), `deletionPolicy: retain`. Prod koruması (owner + platform-admin) zaten change motorundaydı.
+
 ## Faz 11: Dağıtım
 
 - `nfpm` ile `.deb` / `.rpm`, systemd unit'i, `gaia.server` Ansible rolü.

@@ -55,6 +55,11 @@ type Deps struct {
 	// Artifact finds an App's artifact in Nexus (nexus.Client.Asset); nil
 	// skips the check.
 	Artifact func(ctx context.Context, endpoint, username, password, repository, path string) (nexus.Asset, error)
+	// Forget drops VMs from a stack's state without deleting them
+	// (pulumi.Forget).
+	Forget func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, uids []string) ([]string, error)
+	// Now is the clock; nil is the system's.
+	Now func() time.Time
 	// Bastion opens Warpgate's admin API.
 	Bastion func(endpoint, token string, insecure bool, ca []byte) (Bastion, error)
 	// Archive opens the run record archive (Platform.runArchive).
@@ -352,6 +357,9 @@ type work struct {
 	vsCreds   map[string]*pulumi.VSphereCredentials
 	targets   []target
 	gone      []doomed
+	stopping  []stopper                // servers starting their grace period
+	restoring []target                 // stopped servers wanted again
+	retained  map[string][]plan.Server // per site: servers leaving Gaia's management
 }
 
 // contract runs one contract's stages in the order of design 7.2:
@@ -363,6 +371,16 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		siteVS: map[string]*pulumi.VSphereCredentials{}, vsCreds: map[string]*pulumi.VSphereCredentials{}}
 	if err := r.stage(ctx, c.Name, "ipam", func() error { return r.prepare(ctx, c, contract, w, sshKey) }); err != nil {
 		return err
+	}
+	if len(w.restoring) > 0 {
+		if err := r.stage(ctx, c.Name, "restore", func() error { return r.restoreServers(ctx, c, w.restoring) }); err != nil {
+			return err
+		}
+	}
+	if len(w.stopping) > 0 {
+		if err := r.stage(ctx, c.Name, "decommission", func() error { return r.stopServers(ctx, c, w.stopping) }); err != nil {
+			return err
+		}
 	}
 	if len(w.gone) > 0 {
 		// Monitoring goes first, so that a VM going away raises no alerts.
@@ -430,7 +448,20 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 	q := r.d.Store.Q()
 	for _, s := range c.Servers {
 		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "plan", Action: s.Action})
+		if s.Action == plan.Delete && c.Retain {
+			if err := r.retain(ctx, s, w); err != nil {
+				return err
+			}
+			continue
+		}
 		if s.Action == plan.Delete {
+			stays, err := r.stays(ctx, c, s, w)
+			if err != nil {
+				return err
+			}
+			if stays {
+				continue
+			}
 			d, err := r.doom(ctx, s)
 			if err != nil {
 				return err
@@ -465,6 +496,9 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 		addr, err := r.address(ctx, s)
 		if err != nil {
 			return err
+		}
+		if s.Action == plan.Keep && s.Status == string(db.HostStatusStopped) {
+			w.restoring = append(w.restoring, target{s: s, address: strings.SplitN(addr, "/", 2)[0]})
 		}
 		if w.siteVS[s.Site] != nil {
 			// vSphere names its VMs by UUID, recorded once the VM exists.
@@ -575,6 +609,11 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 	for _, site := range sites {
 		vms := w.bySite[site]
 		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VSphere: w.siteVS[site], VMs: vms}
+		if kept := w.retained[site]; len(kept) > 0 {
+			if err := r.letGo(ctx, c, stack, backend, kept); err != nil {
+				return err
+			}
+		}
 		r.printf("  pulumi up %s (%d VM)\n", stack.Name, len(vms))
 		got, changes, err := r.d.Provision(ctx, backend, stack, r.out())
 		if err != nil {
@@ -583,6 +622,9 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 		r.printf("  %s: %s\n", stack.Name, changes)
 		r.change(runrecord.Change{Contract: c.Name, Stage: "provision", Action: "pulumi up", Detail: stack.Name + ": " + changes.String()})
 		for _, v := range vms {
+			if v.Stopped {
+				continue // waiting out its grace period, off
+			}
 			res := got[v.UID]
 			if stack.VSphere != nil {
 				if res.UUID == "" {
@@ -601,6 +643,9 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 				return fmt.Errorf("%s: the guest agent reports %v, not %s; the VM is not configured", v.Hostname, res.IPv4, want)
 			}
 			if err := q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: v.UID, Status: db.HostStatusActive}); err != nil {
+				return err
+			}
+			if err := r.recordVM(ctx, v); err != nil {
 				return err
 			}
 		}

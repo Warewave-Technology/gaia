@@ -157,6 +157,15 @@ type fakeMonitor struct {
 	deleted         []string
 	userGroups      map[string]userGroup
 	maintenances    []string // "start name ids" and "end id"
+	disabled        map[string]bool
+}
+
+func (f *fakeMonitor) SetEnabled(_ context.Context, hostID string, enabled bool) error {
+	if f.disabled == nil {
+		f.disabled = map[string]bool{}
+	}
+	f.disabled[hostID] = !enabled
+	return nil
 }
 
 func (f *fakeMonitor) Maintenance(_ context.Context, name string, ids []string, _ time.Time) (string, error) {
@@ -547,6 +556,13 @@ func (f *fakeDirectory) ResetComputer(dn, password string) error {
 	return nil
 }
 
+func (f *fakeDirectory) SetComputerEnabled(dn string, enabled bool) error {
+	if c, ok := f.computers[dn]; ok {
+		c.Disabled = !enabled
+	}
+	return nil
+}
+
 func (f *fakeDirectory) DeleteComputer(dn string) error {
 	delete(f.computers, dn)
 	return nil
@@ -774,6 +790,175 @@ func TestApplyOnVSphere(t *testing.T) {
 	if hosts, _ := q.LiveHosts(ctx, "poc-web"); len(hosts) != 0 {
 		t.Errorf("hosts = %+v", hosts)
 	}
+}
+
+func TestDecommissionWithAGracePeriod(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	now := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	e.deps.Now = func() time.Time { return now }
+	day2 := &fakeDayTwo{onDelete: func(vm string) {
+		for k, id := range e.compute.vms {
+			if fmt.Sprint(id) == vm {
+				delete(e.compute.vms, k)
+			}
+		}
+	}}
+	e.deps.Compute = func(context.Context, string, string, map[string]string) (compute.Compute, error) { return day2, nil }
+	var forgot []string
+	e.deps.Forget = func(_ context.Context, _ pulumi.Backend, st pulumi.Stack, uids []string) ([]string, error) {
+		forgot = append(forgot, st.Name+" "+strings.Join(uids, ","))
+		return uids, nil
+	}
+	e.platform = map[string]func(string) string{
+		"platform/policy.yaml": func(c string) string {
+			return strings.Replace(c, "  environments:\n", "  decommission: { gracePeriod: 7d, finalSnapshot: { enabled: true }, ipQuarantine: 14d }\n  environments:\n", 1)
+		},
+	}
+	gone := func(c string) string { return c + "  lifecycle: { state: decommissioned }\n" }
+
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	uid := mustLive(t, e)[0].Uid
+	applied := e.compute.stacks[0].VMs[0]
+
+	// Decommissioned: stopped, not deleted.
+	p, err := e.apply(gone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := p.Contracts[0].Decommission; d == nil || *d != (plan.Decommission{GraceSeconds: 7 * 86400, FinalSnapshot: true, IPQuarantine: 14 * 86400}) {
+		t.Errorf("plan decommission = %+v", d)
+	}
+	h, _ := q.Host(ctx, uid)
+	if h.Status != db.HostStatusStopped || !h.DeleteAfter.Time.Equal(now.Add(7*24*time.Hour)) {
+		t.Fatalf("host = %s until %v", h.Status, h.DeleteAfter.Time)
+	}
+	if got := strings.Join(day2.calls, "|"); got != "9401 snapshot gaia_final_20261102T1000|9401 power off" {
+		t.Errorf("hypervisor calls = %s", got)
+	}
+	if !e.monitor.disabled["10000"] || len(e.monitor.deleted) != 0 {
+		t.Errorf("monitoring: disabled %v, deleted %v", e.monitor.disabled, e.monitor.deleted)
+	}
+	stopped := applied
+	stopped.Stopped = true
+	if last := e.compute.stacks[len(e.compute.stacks)-1].VMs; len(last) != 1 || !reflect.DeepEqual(last[0], stopped) {
+		t.Errorf("the stack while it waits:\n got %+v\nwant %+v", last, stopped)
+	}
+
+	// Still waiting: nothing happens to it.
+	day2.calls = nil
+	now = now.Add(24 * time.Hour)
+	if _, err := e.apply(gone); err != nil {
+		t.Fatal(err)
+	}
+	if len(day2.calls) != 0 {
+		t.Errorf("calls while waiting: %v", day2.calls)
+	}
+
+	// Wanted again: started, monitored, as it was.
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	if h, _ := q.Host(ctx, uid); h.Status != db.HostStatusActive || h.DeleteAfter.Valid {
+		t.Errorf("restored host = %s %v", h.Status, h.DeleteAfter)
+	}
+	if got := strings.Join(day2.calls, "|"); got != "9401 power on" || e.monitor.disabled["10000"] {
+		t.Errorf("restore: calls %s, disabled %v", got, e.monitor.disabled)
+	}
+	if last := e.compute.stacks[len(e.compute.stacks)-1].VMs; !reflect.DeepEqual(last[0], applied) {
+		t.Errorf("restored VM = %+v", last[0])
+	}
+
+	// Gone again, and the grace period ends: the decommission run deletes
+	// it without touching the stack.
+	day2.calls = nil
+	g := e.graph(gone)
+	p, err = plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	stacks := len(e.compute.stacks)
+	now = now.Add(8 * 24 * time.Hour)
+	appliedPlan, _ := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if _, err := RunDecommission(ctx, g, appliedPlan, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	if len(e.compute.stacks) != stacks {
+		t.Error("the decommission run ran Pulumi")
+	}
+	if strings.Join(forgot, ";") != "poc-web-lab "+uid {
+		t.Errorf("forgot = %v", forgot)
+	}
+	if got := strings.Join(day2.calls, "|"); !strings.HasSuffix(got, "9401 delete VM") {
+		t.Errorf("calls = %s", got)
+	}
+	if h, _ := q.Host(ctx, uid); h.Status != db.HostStatusDeleted {
+		t.Errorf("host = %s", h.Status)
+	}
+	if strings.Join(e.monitor.deleted, ",") != uid {
+		t.Errorf("zabbix deleted %v", e.monitor.deleted)
+	}
+	// The address is in quarantine.
+	if a, err := ipamclient.New(e.ipam, "ipam-token").Allocate(ctx, "10.50.0.0/24", "next", "x"); err != nil || a.IP == "10.50.0.100" {
+		t.Errorf("next allocation = %+v %v", a, err)
+	}
+}
+
+func TestRetainLetsServersGo(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	var forgot []string
+	e.deps.Forget = func(_ context.Context, _ pulumi.Backend, st pulumi.Stack, uids []string) ([]string, error) {
+		forgot = append(forgot, st.Name+" "+strings.Join(uids, ","))
+		return uids, nil
+	}
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	uid := mustLive(t, e)[0].Uid
+	retain := func(c string) string { return c + "  lifecycle: { state: decommissioned, deletionPolicy: retain }\n" }
+	p, err := e.apply(retain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.Contracts[0].Retain {
+		t.Error("the plan does not retain")
+	}
+	if strings.Join(forgot, ";") != "poc-web-lab "+uid {
+		t.Errorf("forgot = %v", forgot)
+	}
+	if h, _ := q.Host(ctx, uid); h.Status != db.HostStatusUnmanaged {
+		t.Errorf("host = %s", h.Status)
+	}
+	if len(e.monitor.deleted) != 0 {
+		t.Errorf("zabbix deleted %v", e.monitor.deleted)
+	}
+	if a, _ := ipamclient.New(e.ipam, "ipam-token").Allocations(ctx, uid); len(a) != 1 {
+		t.Errorf("allocations = %+v", a)
+	}
+	if holder, err := q.NameHolder(ctx, "labtpoc01"); err != nil || holder != uid {
+		t.Errorf("name held by %q %v", holder, err)
+	}
+	// Gone from Gaia: the next plan has nothing to do.
+	if p, err := e.apply(retain); err != nil || len(p.Contracts[0].Servers) != 0 {
+		t.Errorf("next plan = %+v %v", p.Contracts[0].Servers, err)
+	}
+}
+
+func mustLive(t *testing.T, e *env) []db.Host {
+	t.Helper()
+	hosts, err := e.store.Q().LiveHosts(context.Background(), "poc-web")
+	if err != nil || len(hosts) == 0 {
+		t.Fatalf("live hosts = %+v %v", hosts, err)
+	}
+	return hosts
 }
 
 func TestDecommission(t *testing.T) {
@@ -1736,8 +1921,17 @@ func testHostKey(addr string) ssh.PublicKey {
 
 // fakeDayTwo records day-2 calls.
 type fakeDayTwo struct {
-	calls []string
-	err   error
+	calls    []string
+	err      error
+	onDelete func(vm string)
+}
+
+func (f *fakeDayTwo) Delete(_ context.Context, vm string) error {
+	f.calls = append(f.calls, vm+" delete VM")
+	if f.onDelete != nil {
+		f.onDelete(vm)
+	}
+	return f.err
 }
 
 func (f *fakeDayTwo) Power(_ context.Context, vm, action string) error {

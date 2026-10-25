@@ -55,7 +55,7 @@ func WriteText(w io.Writer, p *Plan) error {
 		for _, s := range c.Servers {
 			switch s.Action {
 			case Delete:
-				pr.f("  - %-14s %s / %s · uid %s (%s)\n", s.Hostname, s.Site, s.Network, s.UID, s.Status)
+				pr.f("  - %-14s %s / %s · uid %s (%s) · %s\n", s.Hostname, s.Site, s.Network, s.UID, s.Status, goes(c, s))
 				bump(vms, "", Delete)
 				bump(addrs, "", Delete)
 				if c.Monitoring != nil {
@@ -230,4 +230,21 @@ func keys[V any](m map[string]V) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// goes says how a server goes (design 9.8).
+func goes(c Contract, s Server) string {
+	switch {
+	case c.Retain:
+		return "retained: leaves Gaia, nothing deleted"
+	case c.Decommission.Grace() <= 0:
+		return "deleted now"
+	case s.Status == "stopped":
+		return "stopped, deleted when its grace period ends"
+	}
+	how := "stopped"
+	if c.Decommission.FinalSnapshot {
+		how = "last snapshot, stopped"
+	}
+	return fmt.Sprintf("%s, deleted after %s", how, c.Decommission.Grace())
 }

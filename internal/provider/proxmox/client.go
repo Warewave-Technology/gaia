@@ -121,7 +121,7 @@ func (c *Client) node(ctx context.Context, vmid int) (string, error) {
 			return r.Node, nil
 		}
 	}
-	return "", fmt.Errorf("proxmox: no VM %d", vmid)
+	return "", fmt.Errorf("proxmox: VM %d: %w", vmid, compute.ErrNoVM)
 }
 
 // SnapshotName makes a Proxmox snapshot name: a letter first, then
@@ -257,6 +257,32 @@ func (p Compute) Revert(ctx context.Context, vm, name string) error {
 // DeleteSnapshot removes a snapshot.
 func (p Compute) DeleteSnapshot(ctx context.Context, vm, name string) error {
 	return p.task(ctx, http.MethodDelete, vm, "/snapshot/"+url.PathEscape(name), nil)
+}
+
+// Delete stops a VM at once and deletes it, its disks and its jobs.
+func (p Compute) Delete(ctx context.Context, vm string) error {
+	id, err := vmid(vm)
+	if err != nil {
+		return err
+	}
+	node, err := p.C.node(ctx, id)
+	if err != nil {
+		return err
+	}
+	var st struct {
+		Data struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := p.C.get(ctx, fmt.Sprintf("/nodes/%s/qemu/%d/status/current", node, id), &st); err != nil {
+		return err
+	}
+	if st.Data.Status == "running" {
+		if err := p.task(ctx, http.MethodPost, vm, "/status/stop", url.Values{}); err != nil {
+			return err
+		}
+	}
+	return p.task(ctx, http.MethodDelete, vm, "?purge=1&destroy-unreferenced-disks=1", nil)
 }
 
 // Discover lists the cluster's VMs and templates.

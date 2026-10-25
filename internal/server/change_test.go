@@ -12,11 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/notify"
+	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/signature"
@@ -686,5 +689,70 @@ spec:
 		if r.Gate == "approval" && (r.Status != "ok" || !strings.Contains(string(r.Detail), `"via": "OperationSchedule/nightly"`)) {
 			t.Errorf("approval gate = %s %s", r.Status, r.Detail)
 		}
+	}
+}
+
+// A server whose grace period is over is deleted by a decommission run,
+// queued by the periodic sweep; the contract stays synced.
+func TestGracePeriodsEndInADecommissionRun(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	e.finished = en.Finished
+	srv := e.start()
+	// A server the last applied change stopped, a day ago.
+	q := e.store.Q()
+	if err := e.store.CreateHost(ctx, store.NewHost{UID: "u-old", Contract: "poc-web", Hostname: "labtpoc01", Site: "lab", Network: "lab-poc", Seq: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.StopHost(ctx, db.StopHostParams{Uid: "u-old", DeleteAfter: pgtype.Timestamptz{Time: time.Now().Add(-time.Hour), Valid: true}}); err != nil {
+		t.Fatal(err)
+	}
+	snap := e.snapshot()
+	g, err := e.repos.Graph(ctx, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := plan.Build(ctx, g, nil, apply.StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(p)
+	snapJSON, _ := json.Marshal(snap)
+	if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: "poc-web", AppliedSnapshot: snapJSON, AppliedPlanHash: pgtype.Text{String: p.Hash, Valid: true}, AppliedPlan: data}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := srv.Queue().Insert(ctx, queue.EndGraceArgs{}, nil); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		h, _ := q.Host(ctx, "u-old")
+		if h.Status == db.HostStatusDeleted {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("host is %s", h.Status)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	// The applied plan is the one after the run: nothing to change.
+	deadline = time.Now().Add(10 * time.Second)
+	for {
+		st, _ := q.ContractState(ctx, "poc-web")
+		var applied plan.Plan
+		_ = json.Unmarshal(st.AppliedPlan, &applied)
+		if len(applied.Contracts) == 1 && len(applied.Contracts[0].Servers) == 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("applied plan = %s", st.AppliedPlan)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	e.evaluate(en)
+	if c, ok := e.open("poc-web"); ok {
+		t.Errorf("a change opened after the decommission run: %+v", c)
 	}
 }

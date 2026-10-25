@@ -58,7 +58,7 @@ func TestAllocateReleaseQuarantine(t *testing.T) {
 	if live, _ := c.Allocations(ctx, "uid-a"); len(live) != 1 || live[0].IP != a.IP {
 		t.Errorf("Allocations(a) = %+v", live)
 	}
-	rel, err := c.Release(ctx, "uid-a")
+	rel, err := c.Release(ctx, "uid-a", 0)
 	if err != nil || len(rel) != 1 || rel[0].IP != a.IP {
 		t.Fatalf("Release = %+v, %v", rel, err)
 	}
@@ -72,11 +72,18 @@ func TestAllocateReleaseQuarantine(t *testing.T) {
 
 	// Without quarantine the released address is given out again.
 	c0 := serve(t, dsn, 0)
-	if _, err := c0.Release(ctx, "uid-b"); err != nil {
+	if _, err := c0.Release(ctx, "uid-b", 0); err != nil {
 		t.Fatal(err)
 	}
 	if e, err := c0.Allocate(ctx, "10.50.0.0/24", "uid-e", "labtpoc04"); err != nil || e.IP != "10.50.0.101" {
 		t.Errorf("after release without quarantine: %+v, %v", e, err)
+	}
+	// A quarantine given with the release holds the address back.
+	if _, err := c0.Release(ctx, "uid-e", 48*time.Hour); err != nil {
+		t.Fatal(err)
+	}
+	if e, err := c0.Allocate(ctx, "10.50.0.0/24", "uid-f", "labtpoc05"); err == nil && e.IP == "10.50.0.101" {
+		t.Errorf("the released address was given out during its quarantine: %+v", e)
 	}
 }
 

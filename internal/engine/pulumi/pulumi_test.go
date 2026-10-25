@@ -2,6 +2,7 @@ package pulumi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"sync"
 	"testing"
@@ -207,5 +208,22 @@ func TestGuestinfo(t *testing.T) {
 	}
 	if !strings.HasPrefix(string(u), "#cloud-config\n") || !strings.Contains(string(u), `"ssh_authorized_keys":["ssh-ed25519 K"]`) {
 		t.Errorf("userdata = %s", u)
+	}
+}
+
+func TestForget(t *testing.T) {
+	dep := json.RawMessage(`{"manifest":{"time":"x"},"resources":[
+		{"urn":"urn:pulumi:poc-web-lab::gaia::pulumi:pulumi:Stack::gaia-poc-web-lab","type":"pulumi:pulumi:Stack"},
+		{"urn":"urn:pulumi:poc-web-lab::gaia::proxmoxve:index/vmLegacy:VmLegacy::vm-u1","type":"proxmoxve:index/vmLegacy:VmLegacy","id":"9401"},
+		{"urn":"urn:pulumi:poc-web-lab::gaia::proxmoxve:index/vmLegacy:VmLegacy::vm-u2","type":"proxmoxve:index/vmLegacy:VmLegacy","id":"9402"}]}`)
+	out, found, err := forget(dep, []string{"u1", "u9"})
+	if err != nil || len(found) != 1 || found[0] != "u1" {
+		t.Fatalf("found = %v %v", found, err)
+	}
+	if s := string(out); strings.Contains(s, "vm-u1") || !strings.Contains(s, "vm-u2") || !strings.Contains(s, `"manifest"`) {
+		t.Errorf("deployment = %s", s)
+	}
+	if same, found, _ := forget(dep, []string{"u9"}); len(found) != 0 || string(same) != string(dep) {
+		t.Error("nothing to forget changed the deployment")
 	}
 }

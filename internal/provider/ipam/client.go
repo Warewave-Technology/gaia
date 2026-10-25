@@ -52,9 +52,13 @@ func (c *Client) Allocations(ctx context.Context, owner string) ([]ipam.Allocati
 }
 
 // Release frees owner's addresses.
-func (c *Client) Release(ctx context.Context, owner string) ([]ipam.Allocation, error) {
+func (c *Client) Release(ctx context.Context, owner string, quarantine time.Duration) ([]ipam.Allocation, error) {
 	var a []ipam.Allocation
-	err := c.do(ctx, http.MethodDelete, "/v1/allocations?owner="+url.QueryEscape(owner), nil, &a)
+	path := "/v1/allocations?owner=" + url.QueryEscape(owner)
+	if quarantine > 0 {
+		path += "&quarantine=" + quarantine.String()
+	}
+	err := c.do(ctx, http.MethodDelete, path, nil, &a)
 	return a, err
 }
 

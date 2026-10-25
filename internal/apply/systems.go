@@ -27,6 +27,7 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		Store:     s,
 		Secrets:   secrets,
 		Provision: pulumi.Up,
+		Forget:    pulumi.Forget,
 		UsedVMIDs: func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error) {
 			return proxmox.New(c).UsedVMIDs(ctx)
 		},

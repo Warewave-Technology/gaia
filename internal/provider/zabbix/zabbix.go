@@ -202,6 +202,17 @@ func (c *Client) Delete(ctx context.Context, uid, hostID string) (bool, error) {
 	return true, c.call(ctx, "host.delete", []string{cur.HostID}, nil)
 }
 
+// SetEnabled switches a host's monitoring on or off: a stopped server
+// waiting to be deleted is not monitored, and keeps its history
+// (design 9.8).
+func (c *Client) SetEnabled(ctx context.Context, hostID string, enabled bool) error {
+	status := "1"
+	if enabled {
+		status = "0"
+	}
+	return c.call(ctx, "host.update", map[string]any{"hostid": hostID, "status": status}, nil)
+}
+
 func (c *Client) find(ctx context.Context, uid, hostID string) (*hostRecord, error) {
 	params := map[string]any{
 		"output": []string{"hostid", "host", "monitored_by", "proxyid"}, "selectHostGroups": []string{"groupid"},

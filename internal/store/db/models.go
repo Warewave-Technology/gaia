@@ -20,6 +20,7 @@ const (
 	HostStatusStopped         HostStatus = "stopped"
 	HostStatusDecommissioning HostStatus = "decommissioning"
 	HostStatusDeleted         HostStatus = "deleted"
+	HostStatusUnmanaged       HostStatus = "unmanaged"
 )
 
 func (e *HostStatus) Scan(src interface{}) error {
@@ -64,7 +65,8 @@ func (e HostStatus) Valid() bool {
 		HostStatusDraining,
 		HostStatusStopped,
 		HostStatusDecommissioning,
-		HostStatusDeleted:
+		HostStatusDeleted,
+		HostStatusUnmanaged:
 		return true
 	}
 	return false
@@ -138,17 +140,19 @@ type DeviceCode struct {
 }
 
 type Host struct {
-	Uid        string
-	Contract   string
-	Hostname   string
-	Site       string
-	Seq        int32
-	Status     HostStatus
-	CreatedRun pgtype.Text
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
-	DeletedAt  pgtype.Timestamptz
-	Network    string
+	Uid         string
+	Contract    string
+	Hostname    string
+	Site        string
+	Seq         int32
+	Status      HostStatus
+	CreatedRun  pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+	DeletedAt   pgtype.Timestamptz
+	Network     string
+	VmSpec      []byte
+	DeleteAfter pgtype.Timestamptz
 }
 
 type HostExternalID struct {

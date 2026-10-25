@@ -72,6 +72,14 @@ func TestComputerAccounts(t *testing.T) {
 	if _, err := open("gaia-reader").CreateComputer(ou, "labtpoc02", "", otp); err == nil {
 		t.Error("the reader created an account")
 	}
+	for _, on := range []bool{false, false, true} {
+		if err := d.SetComputerEnabled(c.DN, on); err != nil {
+			t.Fatal(err)
+		}
+		if got, _ := d.ComputerByGUID(c.GUID); got.Disabled == on {
+			t.Errorf("enabled %v: %+v", on, got)
+		}
+	}
 	if err := d.DeleteComputer(c.DN); err != nil {
 		t.Fatal(err)
 	}
