@@ -15,6 +15,8 @@ import { ObjectsError } from "../../ui/objects";
 import { Providers } from "./Providers";
 import { Sources } from "./Sources";
 import { Discovery } from "./Discovery";
+import { Versions } from "./Versions";
+import { useSettings } from "../../api/objects";
 
 // ObjectYAML shows each object of a kind as it is written, for the
 // kinds there are one or two of.
@@ -62,6 +64,7 @@ const TABS: Tab[] = [
     tab: "platform", label: "Platform", icon: "grid",
     body: () => <ObjectYAML kind="Platform" text="Platformun genel ayarları: motorlar, izleme, arşiv, depolar." hint="Platform nesnesi Gaia'nın kendisini nasıl çalıştıracağını söyler: Pulumi ve Ansible sürümleri, run kayıtlarının arşivi, izleme, artifact depoları." />,
   },
+  { tab: "versions", label: "Sürümler", icon: "history", body: () => <Versions /> },
   {
     tab: "policy", label: "Policy", icon: "lock",
     body: () => <ObjectYAML kind="Policy" text="Kurallar: onaylar, isimlendirme, zorunlu etiketler, ortamlar, roller." hint="Policy, kontratların uyması gereken kuralları ve onay akışını söyler: hangi ortamda kimin onayı gerekir, sunucular nasıl adlandırılır, hangi etiketler zorunludur." />,
@@ -70,6 +73,7 @@ const TABS: Tab[] = [
 
 export function Settings() {
   const { tab = "" } = useParams();
+  const settings = useSettings();
   const t = TABS.find((x) => x.tab === tab);
   if (!t) return <Navigate to="/settings/providers" replace />;
   return (
@@ -77,6 +81,12 @@ export function Settings() {
       <div className="title-row">
         <h1>Ayarlar</h1>
         <Hint>Gaia'nın kendi ayarları: konuştuğu sistemler, kaynaklar, giriş, platform ve kurallar.</Hint>
+        {settings.data?.current && (
+          <Link to={`/settings/versions/${settings.data.current.version}`} className="il muted" style={{ fontWeight: 400 }} title="Gaia'nın şu an kullandığı ayar sürümü">
+            <Icon name="history" size={15} />ayarlar @ v{settings.data.current.version}
+          </Link>
+        )}
+        {settings.data && !settings.data.current && <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} />ayarlar Git'ten okunuyor</span>}
       </div>
       <Tabs label="Ayarlar" items={TABS.map((x) => ({ to: `/settings/${x.tab}`, icon: x.icon, label: x.label }))} />
       {t.body()}

@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -16,12 +19,33 @@ import (
 type source struct {
 	repo, ref string
 	paths     []string
+	settings  string
 }
 
 func (s *source) flags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&s.repo, "repo", ".", "repository (any directory inside it)")
 	cmd.Flags().StringVar(&s.ref, "ref", "HEAD", "commit, branch or tag to read")
 	cmd.Flags().StringSliceVar(&s.paths, "path", nil, "directory inside the repository; repeatable (default: the whole tree)")
+	cmd.Flags().StringVar(&s.settings, "settings", "", "Gaia's settings, as gaia settings export wrote them; Git's copies of the settings kinds are then left out")
+}
+
+// settingsFiles reads an exported settings directory as the settings
+// store's files.
+func settingsFiles(dir string) ([]catalog.File, error) {
+	var out []catalog.File
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || (filepath.Ext(p) != ".yaml" && filepath.Ext(p) != ".yml") {
+			return err
+		}
+		data, err := os.ReadFile(p) //nolint:gosec // the operator's directory
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(dir, p)
+		out = append(out, catalog.File{Path: catalog.SettingsPrefix + filepath.ToSlash(rel), Data: data})
+		return nil
+	})
+	return out, err
 }
 
 // graph loads and resolves the objects. It prints which commit was read
@@ -34,7 +58,18 @@ func (s *source) graph(out io.Writer) (*catalog.Graph, error) {
 	if _, err := fmt.Fprintf(out, "commit %s (%s), %d files\n", commit[:12], s.ref, len(all)); err != nil {
 		return nil, err
 	}
-	cat, err := catalog.Load(commit, all)
+	load := catalog.Load
+	if s.settings != "" {
+		files, err := settingsFiles(s.settings)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := fmt.Fprintf(out, "settings %s, %d files\n", s.settings, len(files)); err != nil {
+			return nil, err
+		}
+		all, load = append(all, files...), catalog.LoadSplit
+	}
+	cat, err := load(commit, all)
 	if err != nil {
 		return nil, report(out, err)
 	}

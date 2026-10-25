@@ -23,14 +23,17 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
+	"github.com/Warewave-Technology/gaia/internal/settings"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/web"
 )
 
 // Config is how one server process runs.
 type Config struct {
-	Listen  string // API address; empty runs no API
-	Workers int    // concurrent runs; 0 runs no worker
+	// Settings is Gaia's settings store (design 17.2), when there is one.
+	Settings *settings.Store
+	Listen   string // API address; empty runs no API
+	Workers  int    // concurrent runs; 0 runs no worker
 	// RunTimeout bounds one run.
 	RunTimeout time.Duration
 	// StopTimeout is how long running jobs get to finish on shutdown

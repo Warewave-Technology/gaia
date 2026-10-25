@@ -5,7 +5,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
-import { field, matches, str, strs, useObjects, type CatalogObj } from "../../api/objects";
+import { field, fromSettings, matches, str, strs, useObjects, type CatalogObj } from "../../api/objects";
 import { Icon } from "../../ui/icons";
 import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono, short, StatusBar } from "../../ui/parts";
 import { Page } from "../../ui/shell";
@@ -241,7 +241,9 @@ export function ObjectPage() {
       {q.isPending ? <Loading /> : q.error ? <CatalogError e={q.error} /> : (
         <>
           <StatusBar items={[
-            { icon: "file", title: "Dosya", hint: "Nesnenin platform reposundaki yeri.", value: <Mono>{q.data.source}</Mono> },
+            fromSettings(q.data.source)
+              ? { icon: "history", title: "Nerede", hint: "Bu nesne Gaia'nın ayarıdır: Git'te değil, Gaia'nın ayar deposunda sürümlü durur.", value: <span style={{ fontSize: 15 }}>Ayar deposu</span>, sub: <Mono>{q.data.source.replace(/^settings:/, "").replace(/:\d+$/, "")}</Mono> }
+              : { icon: "file", title: "Dosya", hint: "Nesnenin platform reposundaki yeri.", value: <Mono>{q.data.source}</Mono> },
             {
               icon: "repeat", title: "Üreten", hint: "Nesneyi bir Source ürettiyse o Source; elle yazılmışsa boş. Patch'ler üretilen nesneye elle eklenen değişikliklerdir.",
               value: <span style={{ fontSize: 15 }}>{q.data.generatedBy ?? "elle yazılmış"}</span>,

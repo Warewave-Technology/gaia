@@ -95,4 +95,44 @@ describe("settings", () => {
     expect(await screen.findByText(/approvals: \{\}/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ayrıntı/ })).toHaveAttribute("href", "/settings/Policy/default");
   });
+
+  it("lists the settings versions and shows one", async () => {
+    fakeAPI({
+      "GET /me": ADMIN,
+      "GET /changes?open=true&limit=500": { body: [] },
+      "GET /settings": { body: { store: true, current: { version: 2, author: "source/ipam-lab", reason: "r", contentHash: "sha256:ab", createdAt: "2026-10-25T08:00:00Z" }, ignored: [] } },
+      "GET /settings/versions": { body: [
+        { version: 2, author: "source/ipam-lab", reason: "NetworkSource/ipam-lab: 1 added, 0 changed, 0 removed", contentHash: "sha256:ab", createdAt: "2026-10-25T08:00:00Z", objects: 21 },
+        { version: 1, author: "gaia", reason: "Git'ten içeri alındı: platform@66fdf74", contentHash: "sha256:cd", createdAt: "2026-10-25T07:00:00Z", objects: 20 },
+      ] },
+      "GET /settings/versions/1": { body: { version: 1, author: "gaia", reason: "Git'ten içeri alındı", contentHash: "sha256:cd", createdAt: "2026-10-25T07:00:00Z",
+        files: [{ path: "settings:Size/small.yaml", kind: "Size", yaml: "kind: Size\nmetadata: { name: small }\n" }] } },
+    });
+    renderAt("/settings/versions");
+    expect(await screen.findByRole("link", { name: /ayarlar @ v2/ })).toHaveAttribute("href", "/settings/versions/2");
+    const v2 = (await screen.findByRole("link", { name: "v2" })).closest("tr")!;
+    expect(v2).toHaveTextContent("güncel");
+    expect(v2).toHaveTextContent("ipam-lab");
+    expect(screen.getByRole("link", { name: "v1" }).closest("tr")).toHaveTextContent("Gaia");
+    fireEvent.click(screen.getByRole("link", { name: "v1" }));
+    expect(await screen.findByText(/metadata: \{ name: small \}/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ayarlar v1" })).toBeInTheDocument();
+  });
+
+  it("warns about the settings Git still has", async () => {
+    fakeAPI({
+      "GET /me": ADMIN,
+      "GET /changes?open=true&limit=500": { body: [] },
+      "GET /sources": { body: [{ source: "NetworkSource/ipam-lab", status: "stored", detail: { added: ["settings:Network/x.yaml"], version: 2 }, ranAt: "2026-10-25T08:00:00Z" }] },
+      "GET /settings": { body: { store: true, current: { version: 2, author: "gaia", reason: "r", contentHash: "h", createdAt: "2026-10-25T08:00:00Z" }, ignored: [
+        { kind: "Size", name: "small", source: "platform/catalog/sizes.yaml:1" }, { kind: "Size", name: "medium", source: "platform/catalog/sizes.yaml:8" },
+      ] } },
+    });
+    renderAt("/settings/sources");
+    expect(await screen.findByText("2 nesne yok sayılıyor")).toBeInTheDocument();
+    expect(screen.getByText("platform/catalog/sizes.yaml").closest("tr")).toHaveTextContent("Size/smallSize/medium");
+    const row = screen.getByRole("link", { name: /NetworkSource\/ipam-lab/ }).closest("tr")!;
+    expect(row).toHaveTextContent("Ayar sürümü yazıldı");
+    expect(screen.getByRole("link", { name: "v2" })).toHaveAttribute("href", "/settings/versions/2");
+  });
 });

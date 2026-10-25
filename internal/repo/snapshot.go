@@ -32,10 +32,21 @@ type Snapshot struct {
 	Platform  Rev   `json:"platform"`
 	Contracts []Rev `json:"contracts,omitempty"`
 	Config    *Rev  `json:"config,omitempty"`
+	// Settings is the settings version (design 17.2); 0 reads the
+	// settings from Git, as snapshots taken before the store did.
+	Settings int64 `json:"settings,omitempty"`
+}
+
+// SettingsReader reads the settings store: its latest version, and a
+// version's files (catalog.SettingsPath). A version never changes.
+type SettingsReader interface {
+	Latest(ctx context.Context) (int64, error)
+	Files(ctx context.Context, version int64) ([]catalog.File, error)
 }
 
 // Label identifies the desired state in plans and runs: the platform
-// commit, and each contract repository's commit when it is another one.
+// commit, each contract repository's commit when it is another one, and
+// the settings version.
 func (s Snapshot) Label() string {
 	parts := []string{s.Platform.Commit}
 	for _, c := range s.Contracts {
@@ -43,7 +54,18 @@ func (s Snapshot) Label() string {
 			parts = append(parts, c.Name+"@"+c.Commit)
 		}
 	}
+	if s.Settings > 0 {
+		parts = append(parts, fmt.Sprintf("settings@%d", s.Settings))
+	}
 	return strings.Join(parts, "+")
+}
+
+// settingsFiles is a version's files.
+func (m *Mirrors) settingsFiles(ctx context.Context, version int64) ([]catalog.File, error) {
+	if m.Settings == nil {
+		return nil, fmt.Errorf("settings version %d: this Gaia has no settings store", version)
+	}
+	return m.Settings.Files(ctx, version)
 }
 
 // files reads the catalog files of a revision. Files of a contract
@@ -73,6 +95,29 @@ func (m *Mirrors) Graph(ctx context.Context, s Snapshot) (*catalog.Graph, error)
 // (nil removes one): the catalog a commit Gaia is about to write would
 // give, so that Gaia never writes one that does not load.
 func (m *Mirrors) GraphWith(ctx context.Context, s Snapshot, overlay map[string][]byte) (*catalog.Graph, error) {
+	var settings []catalog.File
+	if s.Settings > 0 {
+		var err error
+		if settings, err = m.settingsFiles(ctx, s.Settings); err != nil {
+			return nil, err
+		}
+	}
+	return m.graph(ctx, s, overlay, settings)
+}
+
+// GraphWithSettings is Graph with the settings store's files replaced by
+// these: the desired state a settings version would give, so that no
+// version is written that does not load.
+func (m *Mirrors) GraphWithSettings(ctx context.Context, s Snapshot, settings []catalog.File) (*catalog.Graph, error) {
+	if settings == nil {
+		settings = []catalog.File{}
+	}
+	return m.graph(ctx, s, nil, settings)
+}
+
+// graph loads a snapshot: Git's files, with the overlay, and the settings
+// store's when there are any (nil reads the settings from Git).
+func (m *Mirrors) graph(ctx context.Context, s Snapshot, overlay map[string][]byte, settings []catalog.File) (*catalog.Graph, error) {
 	files, err := m.files(ctx, s.Platform, false)
 	if err != nil {
 		return nil, err
@@ -98,7 +143,12 @@ func (m *Mirrors) GraphWith(ctx context.Context, s Snapshot, overlay map[string]
 		}
 		files = append(files, fs...)
 	}
-	cat, err := catalog.Load(s.Label(), files)
+	load := catalog.Load
+	if settings != nil {
+		files = append(files, settings...)
+		load = catalog.LoadSplit
+	}
+	cat, err := load(s.Label(), files)
 	if err != nil {
 		return nil, err
 	}
@@ -131,22 +181,44 @@ func (m *Mirrors) Head(ctx context.Context, platform Rev) (Snapshot, error) {
 }
 
 // At returns the snapshot of a platform repository at its commit, with
-// the contract and config repositories its Platform names at their heads.
+// the latest settings version and the contract and config repositories
+// its Platform names at their heads.
 func (m *Mirrors) At(ctx context.Context, platform Rev) (Snapshot, error) {
 	s := Snapshot{Platform: platform}
+	if m.Settings != nil {
+		v, err := m.Settings.Latest(ctx)
+		if err != nil {
+			return s, err
+		}
+		s.Settings = v
+	}
 	files, err := m.files(ctx, platform, false)
 	if err != nil {
 		return s, err
 	}
 	// The Platform alone says where the rest is; the catalog is resolved
-	// once everything is read.
-	cat, err := catalog.Load(platform.Commit, files)
+	// once everything is read. With a settings version, the Platform and
+	// the providers are settings.
+	load := catalog.Load
+	if s.Settings > 0 {
+		settings, err := m.settingsFiles(ctx, s.Settings)
+		if err != nil {
+			return s, err
+		}
+		files = append(files, settings...)
+		load = catalog.LoadSplit
+	}
+	cat, err := load(platform.Commit, files)
 	if err != nil {
 		return s, err
 	}
 	plats := cat.List(catalog.KindPlatform)
 	if len(plats) != 1 {
-		return s, fmt.Errorf("%s: want one Platform, found %d", platform.Name, len(plats))
+		where := platform.Name
+		if s.Settings > 0 {
+			where = fmt.Sprintf("settings@%d", s.Settings)
+		}
+		return s, fmt.Errorf("%s: want one Platform, found %d", where, len(plats))
 	}
 	ps := plats[0].Spec.(*catalog.PlatformSpec)
 	provider := func(name string) (*catalog.ProviderSpec, error) {
@@ -182,4 +254,10 @@ func (m *Mirrors) At(ctx context.Context, platform Rev) (Snapshot, error) {
 		s.Config = &rev
 	}
 	return s, nil
+}
+
+// PlatformFiles is the platform repository's catalog files at the
+// snapshot, as Git has them.
+func (m *Mirrors) PlatformFiles(ctx context.Context, s Snapshot) ([]catalog.File, error) {
+	return m.files(ctx, s.Platform, false)
 }

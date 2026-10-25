@@ -205,10 +205,21 @@ func TestAppRoleCannotRewriteRecords(t *testing.T) {
 	if err := q.SetRunRecordArchived(ctx, db.SetRunRecordArchivedParams{RunID: "run-1", Archived: pgtype.Text{String: "s3://b/k", Valid: true}}); err != nil {
 		t.Errorf("the app role cannot note the archive: %v", err)
 	}
+	if _, err := q.InsertAudit(ctx, db.InsertAuditParams{Actor: "ayse", Action: "settings.write", Result: "ok"}); err != nil {
+		t.Errorf("the app role cannot write the audit log: %v", err)
+	}
+	if err := q.InsertSettingsVersion(ctx, db.InsertSettingsVersionParams{Version: 1, Author: "gaia", Reason: "r", ContentHash: "h"}); err != nil {
+		t.Errorf("the app role cannot write a settings version: %v", err)
+	}
 	for _, sql := range []string{
 		"update run_records set body = '{\"x\":1}'",
 		"delete from run_records",
 		"truncate run_records",
+		"update audit_log set actor = 'x'",
+		"delete from audit_log",
+		"truncate audit_log",
+		"update settings_versions set author = 'x'",
+		"delete from settings_objects",
 		"alter table run_records disable trigger user",
 		"drop table hosts",
 	} {

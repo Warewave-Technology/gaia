@@ -159,6 +159,9 @@ func (o *Object) Key() Key { return Key{Kind: o.Kind, Name: o.Metadata.Name} }
 type Catalog struct {
 	Commit  string
 	objects map[Key]*Object
+	// Ignored is what Git still has of the settings kinds, left out
+	// because the settings store holds them (LoadSplit).
+	Ignored []Ignored
 }
 
 func newCatalog(commit string) *Catalog {

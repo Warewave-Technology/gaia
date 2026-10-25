@@ -168,9 +168,12 @@ func (s *Server) listSources(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-func (s *Server) syncSources(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) syncSources(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.Sources == nil {
 		writeJSON(w, http.StatusServiceUnavailable, Problem{Error: "this server runs no sources"})
+		return
+	}
+	if !s.audit(w, r, auditEntry(r, "sources.sync", "")) {
 		return
 	}
 	s.cfg.Sources.Kick()

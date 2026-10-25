@@ -95,6 +95,7 @@ begin
   revoke update, delete, truncate on run_records from gaia_app;
   grant update (archived) on run_records to gaia_app;
   revoke update, delete, truncate on approvals from gaia_app;
+  revoke update, delete, truncate on settings_versions, settings_objects, audit_log from gaia_app;
   revoke all on goose_db_version from gaia_app;
   grant select on goose_db_version to gaia_app;
 end
