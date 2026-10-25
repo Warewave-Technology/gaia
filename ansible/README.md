@@ -21,3 +21,4 @@ Her sunucu envanterde UID'siyle durur (`inventory_hostname`); `ansible_host` IP 
 | `gaia_labels` | `{app: poc, env: test, owner: team-platform}` |
 | `gaia_ntp` | Site'ın NTP sunucuları |
 | `gaia_dns` | Network'ün DNS sunucuları |
+| `gaia_domain_join` | Network'te `domain` varsa: `{domain: corp.local, password: <tek kullanımlık>}`. Gaia'nın `gaia_domain_join` rolü baseline'dan önce bununla domain'e katılır; parola run olaylarında maskelenir |

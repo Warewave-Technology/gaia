@@ -113,6 +113,14 @@ type Server struct {
 	HostGroups []string `json:"hostGroups,omitempty"`
 	// DNS is where Gaia writes the server's records, when it does.
 	DNS *DNS `json:"dns,omitempty"`
+	// Domain is the directory the server joins, when it does.
+	Domain *Domain `json:"domain,omitempty"`
+}
+
+// Domain is where a server's computer account is.
+type Domain struct {
+	Provider string `json:"provider"`
+	OU       string `json:"ou"`
 }
 
 // DNS is a server's A record in Zone and, with Reverse, its PTR record.
@@ -186,6 +194,9 @@ func Build(ctx context.Context, g *catalog.Graph, names []string, st State) (*Pl
 		for _, s := range c.Servers {
 			if s.Action == Delete {
 				continue
+			}
+			if s.Domain != nil && len(s.Hostname) > 15 {
+				return nil, fmt.Errorf("%s: hostname %s is longer than 15 characters and cannot name a computer account in %s", c.Name, s.Hostname, s.Domain.Provider)
 			}
 			if other, dup := owners[s.Hostname]; dup {
 				return nil, fmt.Errorf("hostname %s is planned for %s and %s", s.Hostname, other, c.Name)
@@ -271,6 +282,9 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 				if srv.DNS.TTL == 0 {
 					srv.DNS.TTL = 3600
 				}
+			}
+			if d := ns.Domain; d != nil {
+				srv.Domain = &Domain{Provider: d.Provider, OU: d.OU}
 			}
 			return srv
 		}

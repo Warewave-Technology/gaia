@@ -726,3 +726,13 @@ func TestNetworkDNS(t *testing.T) {
 		t.Errorf("Resolve: %v", err)
 	}
 }
+
+func TestNetworkDomain(t *testing.T) {
+	ipam := "  ipam: { provider: ipam, pool: 10.0.0.0/24 }\n  allowedEnvironments: [test]\n---"
+	with := func(provider, domain string) []File {
+		return catalogWith(t, "ad.yaml", "", provider, "networks.yaml", ipam, ipam[:len(ipam)-4]+"\n  domain: "+domain+"\n---")
+	}
+	wantError(t, loadErrors(t, with(adProvider, "{ provider: corp-ad, ou: Servers }")), `domain.ou: "Servers": want a DN`)
+	wantError(t, resolveErrors(t, with(adProvider, "{ provider: corp-ad, ou: \"OU=Servers,DC=gaia,DC=dev\" }")), "Network/lab-app",
+		`spec.domain.provider: Provider "corp-ad" has no writeCredentials`)
+}

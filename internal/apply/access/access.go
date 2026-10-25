@@ -1,5 +1,6 @@
-// Package access holds Gaia's own Ansible role for distributing access
-// (design 14.4); runs add it to the project they hand ansible-runner.
+// Package access holds Gaia's own Ansible roles: distributing access
+// (design 14.4) and joining the domain (design 14.6). Runs add them to the
+// project they hand ansible-runner.
 package access
 
 import (
@@ -15,8 +16,11 @@ var roles embed.FS
 // Group is the group of the accounts Gaia manages on a server.
 const Group = "gaia-users"
 
-// Role is the role's name in a playbook.
+// Role is the access role's name in a playbook.
 const Role = "gaia_access"
+
+// JoinRole joins a server to Active Directory with a one-time password.
+const JoinRole = "gaia_domain_join"
 
 // User is one account to give access.
 type User struct {

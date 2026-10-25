@@ -352,6 +352,7 @@ type NetworkSpec struct {
 	IPAM                NetworkIPAM `yaml:"ipam" gaia:"required"`
 	Gateway             string      `yaml:"gateway,omitempty"`
 	DNS                 *DNS        `yaml:"dns,omitempty"`
+	Domain              *Domain     `yaml:"domain,omitempty"`
 	AllowedEnvironments []string    `yaml:"allowedEnvironments,omitempty"`
 	Description         string      `yaml:"description,omitempty"`
 }
@@ -380,6 +381,13 @@ type DNS struct {
 	Servers  []string `yaml:"servers,omitempty"`
 }
 
+// Domain puts a network's servers in Active Directory: Gaia creates each
+// one's computer account in OU, and the server joins with it.
+type Domain struct {
+	Provider string `yaml:"provider" gaia:"required"`
+	OU       string `yaml:"ou" gaia:"required"`
+}
+
 func (s *NetworkSpec) validate() []string {
 	a := s.Attachment
 	set := 0
@@ -405,6 +413,9 @@ func (s *NetworkSpec) validate() []string {
 		if d.TTL < 0 {
 			out = append(out, "dns.ttl: seconds, not negative")
 		}
+	}
+	if d := s.Domain; d != nil && !strings.HasPrefix(strings.ToUpper(d.OU), "OU=") && !strings.HasPrefix(strings.ToUpper(d.OU), "CN=") {
+		out = append(out, fmt.Sprintf("domain.ou: %q: want a DN (OU=Servers,DC=corp,DC=local)", d.OU))
 	}
 	return out
 }

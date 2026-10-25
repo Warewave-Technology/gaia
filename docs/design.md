@@ -1727,6 +1727,14 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
   - Yazılan isimler sunucunun dış kimlikleri olarak tutulur (`dns-a`, `dns-ptr`). Gaia'ya ait bir ismin kaydı değişmişse düzeltilir. İsim başka bir adresle başkasına aitse run durur (bkz. 9.2).
   - Kayıtlar `register` aşamasında, izlemeden önce yazılır. Decommission'da izlemeyle birlikte, VM silinmeden önce kaldırılır.
   - Samba AD ile test edilir: kayıtlar DC'nin kendi DNS sunucusundan `dig` ile doğrulanır.
+- **Bilgisayar hesapları:**
+  - Network'te `domain: { provider: corp-ad, ou: "OU=Servers,DC=corp,DC=local" }` varsa Gaia her sunucunun bilgisayar hesabını sunucu yapılandırılmadan önce (`register` aşaması) bu OU'da açar. Hesabın `info` alanına `gaia.uid` ve kontrat yazılır; objectGUID dış kimlik (`computer`) olarak tutulur. Plan hesabı sunucu satırında ve özette (`computers +N =M`) gösterir.
+  - Hesap tek kullanımlık, rastgele bir parolayla açılır. Sunucu, `configure` aşamasında baseline'dan önce Gaia'nın `gaia_domain_join` rolüyle bu parolayla katılır (`realm join --one-time-password`). Katılırken hesabın parolası değişir, yani parola bir kez işe yarar. Gaia'nın hesabı domain'e katılma yetkisi gerekmez; OU'da bilgisayar nesnesi açma, silme ve parola atama yetkisi yeterlidir.
+  - Katılım, hostun hesaba yazdığı `dNSHostName`'den anlaşılır (Gaia bu alanı yazmaz). Henüz kimsenin katılmadığı hesaba her run'da yeni parola verilir, çünkü önceki parola saklanmaz. Katılınmış bir hesaba parola verilmez; sunucu domain'de değilse rol hata verir.
+  - Host adı NetBIOS sınırı yüzünden en çok 15 karakter olabilir; daha uzun isim plan aşamasında reddedilir. Aynı isimde, sunucunun olmayan bir hesap varsa run durur (bkz. 9.2).
+  - Decommission'da hesap GUID'iyle bulunur ve altındaki nesnelerle birlikte silinir (tree delete). Kapatma aşamasında devre dışı bırakma (9.8) Faz 10 ile gelir.
+  - Windows sunucular için hesap aynı şekilde açılır; parolayla katılma (unsecured join) Windows yapılandırma desteğiyle gelir.
+  - Samba AD ve systemd'li bir Rocky 9 container'ında doğrulandı: rol katıldı, keytab yazıldı, AD kullanıcıları sssd ile çözüldü, ikinci çalıştırma değişiklik yapmadı.
 
 ## 15. Açık Konular
 

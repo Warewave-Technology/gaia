@@ -201,6 +201,7 @@ Tasarım 14.
 - Tamam: ortak `Compute` arayüzü (Proxmox ve vSphere), `power` ve `revert` aksiyonları.
 - Tamam: vSphere provisioning (klon, cloud-init `guestinfo` veya guest customization) ve day-2; `vcsim` ile test. Gerçek vCenter doğrulaması ortam bulununca yapılır.
 - Tamam: DNS A/PTR kayıtları (AD-integrated zone'lar, LDAP), ayrı yazma hesabı; Samba AD ile test.
+- Tamam: AD bilgisayar hesapları (OU'da önceden açma, tek kullanımlık parola, `gaia_domain_join` rolü, decommission'da silme); Linux katılımı Samba AD ile doğrulandı.
 
 ## Faz 10: Yaşam döngüsü
 

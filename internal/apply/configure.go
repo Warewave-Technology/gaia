@@ -126,7 +126,12 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 	if err != nil {
 		return err
 	}
-	site, err := sitePlay(resolved, users, r.managesAccess(ctx, c))
+	for _, t := range targets {
+		if j, ok := r.joins[t.s.UID]; ok && j.Password != "" {
+			secrets = append(secrets, j.Password)
+		}
+	}
+	site, err := sitePlay(resolved, users, r.managesAccess(ctx, c), hasDomain(c))
 	if err != nil {
 		return err
 	}
@@ -210,13 +215,17 @@ func (r *runner) hostVars(c plan.Contract, contract *catalog.Object, s plan.Serv
 			v["gaia_dns"] = dns.Servers
 		}
 	}
+	if j, ok := r.joins[s.UID]; ok {
+		v["gaia_domain_join"] = j
+	}
 	return v
 }
 
 // configures reports whether a contract's servers are configured: a
-// baseline, agents, roles, apps, or access to distribute or take back.
+// baseline, agents, roles, apps, a domain to join, or access to
+// distribute or take back.
 func (r *runner) configures(ctx context.Context, c plan.Contract) bool {
-	return c.Baseline != nil || len(c.Roles) > 0 || len(c.Agents) > 0 || len(c.Apps) > 0 || r.managesAccess(ctx, c)
+	return c.Baseline != nil || len(c.Roles) > 0 || len(c.Agents) > 0 || len(c.Apps) > 0 || hasDomain(c) || r.managesAccess(ctx, c)
 }
 
 // given are the params passed to Ansible: those masked in the plan (a
@@ -359,10 +368,15 @@ func (r *runner) accessUsers(ctx context.Context, c plan.Contract) ([]access.Use
 	return out, nil
 }
 
-// sitePlay is the playbook of a contract: its baseline, its roles with
-// their params, then the access Gaia manages. JSON is YAML.
-func sitePlay(c plan.Contract, users []access.User, manageAccess bool) ([]byte, error) {
+// sitePlay is the playbook of a contract: joining the domain, its
+// baseline, its roles with their params, then the access Gaia manages.
+// JSON is YAML.
+func sitePlay(c plan.Contract, users []access.User, manageAccess, joins bool) ([]byte, error) {
 	var plays []any
+	if joins {
+		plays = append(plays, map[string]any{"name": "Domain of " + c.Name, "hosts": "all", "become": true,
+			"roles": []any{map[string]any{"role": access.JoinRole, "when": "gaia_domain_join is defined"}}})
+	}
 	if c.Baseline != nil {
 		plays = append(plays, map[string]any{"import_playbook": "../" + c.Baseline.Playbook})
 	}

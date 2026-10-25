@@ -1,0 +1,39 @@
+# Joins the server to Active Directory with the one-time password of the
+# computer account Gaia created for it (design 14.6). Joining changes the
+# account's password, so the password only works once.
+#
+#   gaia_domain_join:
+#     domain: corp.local
+#     password: the one-time password; empty when a host has already
+#               joined with the account
+- name: Packages for joining the domain
+  ansible.builtin.package:
+    name: "{{ gaia_domain_packages[ansible_os_family] | default(gaia_domain_packages.RedHat) }}"
+    state: present
+  vars:
+    gaia_domain_packages:
+      RedHat: [realmd, sssd, adcli, oddjob, oddjob-mkhomedir, samba-common-tools, krb5-workstation]
+      Debian: [realmd, sssd, sssd-tools, libnss-sss, libpam-sss, adcli, samba-common-bin, oddjob, oddjob-mkhomedir, packagekit]
+
+- name: Domains the server is in
+  ansible.builtin.command: realm list --name-only
+  register: gaia_realms
+  changed_when: false
+
+- name: Join the domain with the one-time password
+  ansible.builtin.command:
+    argv: [realm, join, "--one-time-password={{ gaia_domain_join.password }}", "{{ gaia_domain_join.domain }}"]
+  no_log: true
+  when:
+    - gaia_domain_join.domain not in gaia_realms.stdout_lines
+    - gaia_domain_join.password != ''
+
+- name: A server out of the domain whose account was used
+  ansible.builtin.fail:
+    msg: >-
+      {{ gaia_hostname }} is not in {{ gaia_domain_join.domain }}, but a host
+      has already joined with its computer account. Gaia gives the account a
+      new one-time password only while no host has joined with it.
+  when:
+    - gaia_domain_join.domain not in gaia_realms.stdout_lines
+    - gaia_domain_join.password == ''
