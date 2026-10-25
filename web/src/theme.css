@@ -150,3 +150,25 @@ table.grid td.nowrap { white-space: nowrap; }
 .kindrow span:nth-child(2) { flex: 1 1 auto; }
 .kindrow:hover { background: var(--bg1); color: var(--fg); }
 .kindrow[aria-pressed="true"] { border-left-color: var(--yellow); color: var(--yellow); background: var(--bg1); }
+
+/* modals */
+.modal-back { position: fixed; inset: 0; z-index: 100; background: rgba(13, 14, 15, 0.72); display: flex; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px; overflow-y: auto; }
+.modal { max-width: 100%; background: var(--bg0s); border: 1px solid var(--bg2); border-top: 3px solid var(--yellow); border-radius: 6px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--bg1); }
+.modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--bg1); background: var(--bg0); border-radius: 0 0 6px 6px; }
+.codes { margin: 0; padding: 12px 16px; background: var(--bg0h); border: 1px solid var(--bg1); border-radius: 6px; font-family: var(--mono); font-size: 14px; line-height: 1.9; columns: 2; }
+
+/* on/off switches */
+.switch { position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 0; border: 1px solid var(--bg3); border-radius: 10px; background: var(--bg1); cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.switch .switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--fg4); transition: left 0.15s, background 0.15s; }
+.switch.on { background: var(--dgreen); border-color: var(--dgreen); }
+.switch.on .switch-knob { left: 18px; background: var(--white); }
+.switch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* settings rows: one per line, aligned */
+.setting { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--bg1); }
+.setting:first-child { border-top: 0; }
+.setting .what { display: flex; flex-direction: column; gap: 2px; }
+.setting .what small { color: var(--fg4); font-size: 12px; }
+.setting .code { font-family: var(--mono); font-size: 12px; color: var(--gray); }

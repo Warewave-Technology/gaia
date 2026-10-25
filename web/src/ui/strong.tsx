@@ -4,6 +4,7 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { decide, stepUp, stepUpTOTP } from "../lib/stepup";
 import { Button } from "./parts";
+import { Modal } from "./modal";
 
 type Ask = { resolve: (code: string) => void; reject: (e: Error) => void };
 
@@ -27,14 +28,18 @@ function TotpPrompt({ ask, onClose }: { ask: Ask; onClose: () => void }) {
     e.preventDefault();
     ask.resolve(code);
   };
+  const cancel = () => {
+    ask.reject(new Error("Doğrulama iptal edildi."));
+    onClose();
+  };
   return (
-    <form onSubmit={submit} className="card" style={{ borderLeft: "4px solid var(--yellow)", padding: "16px 20px", display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}>
-      <label className="field" style={{ flex: "1 1 260px" }}>
-        <span>Bu işlem için kimliğinizi doğrulayın: doğrulama uygulamanızdaki kod</span>
-        <input className="input mono" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} autoFocus required />
+    <Modal title="Kimliğinizi doğrulayın" icon="key" onClose={cancel} onSubmit={submit} width={440}
+      footer={<><Button onClick={cancel}>Vazgeç</Button><Button type="submit" kind="primary" icon="key">Doğrula</Button></>}>
+      <p className="muted" style={{ margin: 0 }}>Bu işlem yakın zamanda doğrulama istiyor. Passkey'iniz olmadığı için doğrulama uygulamanızdaki kodu girin.</p>
+      <label className="field">
+        <span>Kod</span>
+        <input className="input mono" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} required />
       </label>
-      <Button onClick={() => { ask.reject(new Error("Doğrulama iptal edildi.")); onClose(); }}>Vazgeç</Button>
-      <Button type="submit" kind="primary" icon="key">Doğrula</Button>
-    </form>
+    </Modal>
   );
 }
