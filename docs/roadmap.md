@@ -154,6 +154,15 @@ Gaia'nın omurgası (tasarım 7.6).
   - **Detay:** durum paneli, gerekenler (validasyon, imza, onaycı grupları ve onaylayamayanlar), alan alan ve sunucu sunucu plan, commit'ler, ham plan ve akış.
   - **Onay ve red:** her karar önce passkey ile doğrulanır; passkey'i olmayan TOTP kodu girer. Karar, görülen planın hash'iyle gönderilir.
   - **API:** `awaitingMe` alanı ve `GET /changes?awaiting=me`.
+- Tamam: Run'lar ekranı.
+  - **Liste:** kaydı olan run'larda kalkan ikonu var; tooltip, açılınca run'ı okur.
+  - **Detay:**
+    - durum paneli: sonuç ve run kaydı, kontrat, kişiler, değişenler
+    - aşamalar, birbirine bağlı bir akış olarak
+    - sunucu × task matrisi
+    - SSE ile canlı log: hostname'li satırlar ve kopmadan devam
+    - operatöre durdurma, zincir doğrulama
+  - **API:** run'da `configCommit`, `eeImage`, `change` ve `hosts` (UID → hostname) alanları.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 
 ## Faz 6: Erişim yönetimi

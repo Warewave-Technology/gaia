@@ -70,6 +70,17 @@ func (q *Queries) Change(ctx context.Context, id string) (Change, error) {
 	return i, err
 }
 
+const changeOfRun = `-- name: ChangeOfRun :one
+select id from changes where run_id = $1 order by created_at desc limit 1
+`
+
+func (q *Queries) ChangeOfRun(ctx context.Context, runID pgtype.Text) (string, error) {
+	row := q.db.QueryRow(ctx, changeOfRun, runID)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const changes = `-- name: Changes :many
 select id, contract, source, snapshot, label, plan_hash, plan, status, requested_by, commits, run_id, created_at, updated_at, finished_at from changes
 where ($1::text = '' or contract = $1::text)

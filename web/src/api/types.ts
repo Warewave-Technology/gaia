@@ -18,7 +18,7 @@ export type Stage = {
   contract: string;
   stage: string;
   status: "running" | "succeeded" | "failed" | "cancelled";
-  detail?: unknown;
+  detail?: string;
   startedAt: string;
   finishedAt?: string;
 };
@@ -34,9 +34,26 @@ export type Run = {
   queuedAt: string;
   startedAt?: string;
   finishedAt?: string;
+  configCommit?: string;
+  eeImage?: string;
   stages?: Stage[];
   record?: { seq: number; recordHash: string; prevHash: string; archived?: string };
+  change?: string;
+  hosts?: Record<string, string>;
   restricted?: boolean;
+};
+
+export type RunEvent = {
+  seq: number;
+  stage: string;
+  type: string;
+  host?: string;
+  task?: string;
+  changed?: boolean;
+  failed?: boolean;
+  stdout?: string;
+  data?: Record<string, unknown>;
+  createdAt: string;
 };
 
 export type ChangeStatus = "pending" | "approved" | "running" | "applied" | "failed" | "cancelled" | "rejected" | "superseded" | "expired";

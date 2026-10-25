@@ -92,8 +92,16 @@ type Run struct {
 	QueuedAt    time.Time  `json:"queuedAt"`
 	StartedAt   *time.Time `json:"startedAt,omitempty"`
 	FinishedAt  *time.Time `json:"finishedAt,omitempty"`
-	Stages      []Stage    `json:"stages,omitempty"`
-	Record      *Record    `json:"record,omitempty"`
+	// ConfigCommit is the Ansible repository's commit the run used, and
+	// EEImage its execution environment.
+	ConfigCommit string  `json:"configCommit,omitempty"`
+	EEImage      string  `json:"eeImage,omitempty"`
+	Stages       []Stage `json:"stages,omitempty"`
+	Record       *Record `json:"record,omitempty"`
+	// Change is the change the run applies, and Hosts the hostnames of the
+	// servers its events name by UID (detail only).
+	Change string            `json:"change,omitempty"`
+	Hosts  map[string]string `json:"hosts,omitempty"`
 	// Restricted: the caller sees this run's contracts by name only, so its
 	// details are left out.
 	Restricted bool `json:"restricted,omitempty"`
@@ -211,10 +219,39 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 			StartedAt: st.StartedAt.Time, FinishedAt: timePtr(st.FinishedAt),
 		})
 	}
+	run.Hosts = map[string]string{}
+	for _, c := range row.Contracts {
+		hosts, err := q.LiveHosts(ctx, c)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		for _, h := range hosts {
+			run.Hosts[h.Uid] = h.Hostname
+		}
+	}
 	rec, err := q.RunRecord(ctx, row.ID)
 	switch {
 	case err == nil:
 		run.Record = &Record{Seq: rec.Seq, RecordHash: rec.RecordHash, PrevHash: rec.PrevHash, Archived: rec.Archived.String}
+		// Servers gone since the run are still named in its record.
+		var body struct {
+			Changes []struct{ UID, Hostname string } `json:"changes"`
+		}
+		if json.Unmarshal([]byte(rec.Body), &body) == nil {
+			for _, c := range body.Changes {
+				if _, ok := run.Hosts[c.UID]; !ok && c.UID != "" && c.Hostname != "" {
+					run.Hosts[c.UID] = c.Hostname
+				}
+			}
+		}
+	case !errors.Is(err, pgx.ErrNoRows):
+		s.fail(w, err)
+		return
+	}
+	switch id, err := q.ChangeOfRun(ctx, pgtype.Text{String: row.ID, Valid: true}); {
+	case err == nil:
+		run.Change = id
 	case !errors.Is(err, pgx.ErrNoRows):
 		s.fail(w, err)
 		return
@@ -500,6 +537,7 @@ func runJSON(r db.Run) Run {
 		ID: r.ID, Contracts: r.Contracts, Commit: r.Commit, PlanHash: r.PlanHash, Status: r.Status,
 		Error: r.Error.String, RequestedBy: r.RequestedBy.String, QueuedAt: r.QueuedAt.Time,
 		StartedAt: timePtr(r.StartedAt), FinishedAt: timePtr(r.FinishedAt),
+		ConfigCommit: r.ConfigCommit.String, EEImage: r.EeImage.String,
 	}
 }
 

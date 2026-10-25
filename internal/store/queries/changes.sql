@@ -69,3 +69,6 @@ where t.team = any (sqlc.arg(teams)::text[]) and t.role = sqlc.arg(role)::text a
 
 -- name: OpenChanges :many
 select * from changes where status in ('pending', 'approved', 'running') order by contract;
+
+-- name: ChangeOfRun :one
+select id from changes where run_id = $1 order by created_at desc limit 1;
