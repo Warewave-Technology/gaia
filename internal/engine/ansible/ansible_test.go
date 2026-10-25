@@ -184,3 +184,28 @@ func TestTimeoutStopsTheJob(t *testing.T) {
 		t.Errorf("took %s", time.Since(start))
 	}
 }
+
+func TestKnownHostsTurnOnHostKeyChecking(t *testing.T) {
+	recap := map[string]any{"event": "playbook_on_stats", "event_data": map[string]any{"ok": map[string]int{"uid1": 1}, "changed": map[string]int{}, "failures": map[string]int{}, "dark": map[string]int{}}}
+	p, cp := setup(t, events(recap))
+	j := job()
+	if _, err := p.Run(context.Background(), j, func(Event) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	env, _ := os.ReadFile(filepath.Join(cp, "env", "envvars"))
+	if !strings.Contains(string(env), `"ANSIBLE_HOST_KEY_CHECKING":"False"`) {
+		t.Errorf("without known hosts: %s", env)
+	}
+
+	p, cp = setup(t, events(recap))
+	j.KnownHosts = "10.0.0.5 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA==\n"
+	if _, err := p.Run(context.Background(), j, func(Event) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	env, _ = os.ReadFile(filepath.Join(cp, "env", "envvars"))
+	kh, _ := os.ReadFile(filepath.Join(cp, "known_hosts"))
+	if !strings.Contains(string(env), `"ANSIBLE_HOST_KEY_CHECKING":"True"`) || !strings.Contains(string(env), "UserKnownHostsFile=/runner/known_hosts") ||
+		!strings.Contains(string(env), "StrictHostKeyChecking=yes") || string(kh) != j.KnownHosts {
+		t.Errorf("with known hosts: env %s, known_hosts %q", env, kh)
+	}
+}

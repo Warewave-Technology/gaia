@@ -158,6 +158,13 @@ type HostExternalID struct {
 	ExternalID string
 }
 
+type HostKey struct {
+	Uid        string
+	KeyType    string
+	PublicKey  string
+	RecordedAt pgtype.Timestamptz
+}
+
 type LoginKey struct {
 	Fingerprint string
 	UserID      string

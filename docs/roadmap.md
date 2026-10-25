@@ -14,7 +14,7 @@
 | 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | **Tamam** (lab oturumu sonda) |
 | 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | **Tamam** |
-| 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | – |
+| 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | **Tamam** |
 | 9 | Provider'lar: vSphere, AD, DNS, Warpgate, Nexus | 1 | – |
 | 10 | Yaşam döngüsü: drift, keşif, adopt, reconcile | 3, 8, 9 | – |
 | 11 | Dağıtım: paketler, Ansible rolü, Helm | 1 | – |
@@ -188,7 +188,7 @@ Tasarım 14.
   - App ve Agent, zorunlu ajanlar, secret parametreler
   - Operation: patch, reboot, snapshot, runbook; batch, pencere, `notAfter`, bakım modu, temizlik
   - OperationSchedule (RRULE, `perInstance` ve `once`)
-- Kalan: host key yönetimi.
+- Tamam: host key yönetimi (ilk temasta kayıt, sonra sıkı kontrol).
 - Sonraki fazlara: `power`/`revert` (Faz 9, ortak Compute arayüzü), `replace` (Faz 10), load balancer adımı (LB provider'ı), duraklatma.
 
 ## Faz 9: Provider'lar

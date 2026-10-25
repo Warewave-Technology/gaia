@@ -38,6 +38,9 @@ type Job struct {
 	// Secrets are values that must not appear in events. The SSH key is
 	// always one.
 	Secrets []string
+	// KnownHosts are the servers' host keys (known_hosts lines). With
+	// them, host keys are checked; without them, they are not.
+	KnownHosts string
 }
 
 // Event is one event of ansible-runner's JSON stream, masked.
@@ -191,13 +194,19 @@ func writeDataDir(dir string, j Job) error {
 	if err != nil {
 		return err
 	}
-	// New servers have new host keys; Gaia does not know them yet (PoC).
-	envvars, _ := json.Marshal(map[string]string{"ANSIBLE_HOST_KEY_CHECKING": "False", "ANSIBLE_NOCOLOR": "True"})
+	env := map[string]string{"ANSIBLE_HOST_KEY_CHECKING": "False", "ANSIBLE_NOCOLOR": "True"}
 	files := map[string][]byte{
 		"inventory/hosts.json": inv,
-		"env/envvars":          envvars,
 		"env/ssh_key":          []byte(strings.TrimRight(j.SSHKey, "\n") + "\n"),
 	}
+	if j.KnownHosts != "" {
+		// Only the keys Gaia recorded are trusted (design 9.x).
+		env["ANSIBLE_HOST_KEY_CHECKING"] = "True"
+		env["ANSIBLE_SSH_ARGS"] = "-o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/runner/known_hosts -o StrictHostKeyChecking=yes"
+		files["known_hosts"] = []byte(j.KnownHosts)
+	}
+	envvars, _ := json.Marshal(env)
+	files["env/envvars"] = envvars
 	if j.Forks > 0 {
 		files["env/cmdline"] = []byte("--forks " + strconv.Itoa(j.Forks))
 	}

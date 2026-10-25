@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ssh"
+
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -38,6 +40,8 @@ type Deps struct {
 	Secrets   Secrets
 	Provision func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, w io.Writer) (map[string]pulumi.Result, pulumi.Changes, error)
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
+	// ScanHostKey reads the SSH host key a server offers (ScanHostKey).
+	ScanHostKey func(ctx context.Context, addr, algorithm string) (ssh.PublicKey, error)
 	// Snapshot takes a VM snapshot, for Operations.
 	Snapshot  func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error
 	Configure Configurer

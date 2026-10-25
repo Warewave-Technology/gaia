@@ -231,10 +231,18 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 	if err != nil {
 		return nil, err
 	}
+	addrs := map[string]string{}
+	for _, h := range hosts {
+		addrs[h.Name] = h.Address
+	}
+	known, err := r.knownHosts(ctx, addrs)
+	if err != nil {
+		return nil, err
+	}
 	cfg := r.cfg
 	job := ansible.Job{
 		Name: fmt.Sprintf("gaia-%s-%s-%d", r.run, op.Name, n), Image: cfg.image, Playbook: sitePlaybook,
-		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout,
+		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout, KnownHosts: known,
 		Project: func(dir string) error {
 			if _, err := gitsrc.Export(cfg.repo, cfg.commit, cfg.dir, dir); err != nil {
 				return err

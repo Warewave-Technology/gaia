@@ -57,3 +57,13 @@ select c.name::text as name,
        coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
 from (select contract as name from hosts union select unnest(contracts) from runs union select contract from contract_states) c
 order by c.name;
+
+-- name: HostKeys :many
+select * from host_keys where uid = $1 order by key_type;
+
+-- name: SetHostKey :exec
+insert into host_keys (uid, key_type, public_key) values ($1, $2, $3)
+on conflict (uid, key_type) do update set public_key = excluded.public_key, recorded_at = now();
+
+-- name: DeleteHostKeys :exec
+delete from host_keys where uid = $1;
