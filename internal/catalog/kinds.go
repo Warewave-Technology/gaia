@@ -1195,3 +1195,87 @@ func (s *OperationSpec) validate() []string {
 	}
 	return out
 }
+
+// OperationScheduleSpec writes an Operation for every window of a
+// recurrence (design 6.4): createAhead before the window, into output,
+// from template. approval: perInstance (each Operation is approved) or
+// once (approving the schedule approves its Operations).
+type OperationScheduleSpec struct {
+	Recurrence  string            `yaml:"recurrence" gaia:"required"` // iCalendar RRULE
+	Start       string            `yaml:"start" gaia:"required"`      // HH:MM
+	Timezone    string            `yaml:"timezone"`                   // IANA; UTC by default
+	Duration    string            `yaml:"duration" gaia:"required"`
+	CreateAhead string            `yaml:"createAhead"`
+	Approval    string            `yaml:"approval"`
+	Output      string            `yaml:"output" gaia:"required"`
+	Template    OperationTemplate `yaml:"template" gaia:"required"`
+}
+
+// OperationTemplate is an Operation without its window.
+type OperationTemplate struct {
+	Action   string         `yaml:"action" gaia:"required"`
+	Selector string         `yaml:"selector" gaia:"required"`
+	Strategy Strategy       `yaml:"strategy"`
+	Options  map[string]any `yaml:"options"`
+	Runbook  string         `yaml:"runbook"`
+	Params   map[string]any `yaml:"params"`
+}
+
+// Location is the schedule's time zone.
+func (s *OperationScheduleSpec) Location() (*time.Location, error) {
+	if s.Timezone == "" {
+		return time.UTC, nil
+	}
+	return time.LoadLocation(s.Timezone)
+}
+
+// Ahead is how long before a window its Operation is written (7 days by
+// default; "7d" or a duration).
+func (s *OperationScheduleSpec) Ahead() time.Duration {
+	if d, err := ParseDays(s.CreateAhead); err == nil && d > 0 {
+		return d
+	}
+	return 7 * 24 * time.Hour
+}
+
+// ParseDays reads "7d" or a Go duration.
+func ParseDays(v string) (time.Duration, error) {
+	if n, ok := strings.CutSuffix(v, "d"); ok {
+		days, err := strconv.Atoi(n)
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(days) * 24 * time.Hour, nil
+	}
+	return time.ParseDuration(v)
+}
+
+func (s *OperationScheduleSpec) validate() []string {
+	var out []string
+	if _, err := time.Parse("15:04", s.Start); err != nil {
+		out = append(out, fmt.Sprintf("start: %q (HH:MM)", s.Start))
+	}
+	if _, err := s.Location(); err != nil {
+		out = append(out, fmt.Sprintf("timezone: %v", err))
+	}
+	if d, err := time.ParseDuration(s.Duration); err != nil || d <= 0 {
+		out = append(out, fmt.Sprintf("duration: %q (such as 4h)", s.Duration))
+	}
+	if s.CreateAhead != "" {
+		if d, err := ParseDays(s.CreateAhead); err != nil || d <= 0 {
+			out = append(out, fmt.Sprintf("createAhead: %q (such as 7d)", s.CreateAhead))
+		}
+	}
+	if a := s.Approval; a != "" && a != "perInstance" && a != "once" {
+		out = append(out, fmt.Sprintf("approval: %q (perInstance or once)", a))
+	}
+	if s.Output != "" && (strings.HasPrefix(s.Output, "/") || strings.Contains(s.Output, "..")) {
+		out = append(out, fmt.Sprintf("output: %q: a directory inside the platform repository", s.Output))
+	}
+	op := OperationSpec{Action: s.Template.Action, Selector: s.Template.Selector, Strategy: s.Template.Strategy,
+		Options: s.Template.Options, Runbook: s.Template.Runbook, Params: s.Template.Params}
+	for _, m := range op.validate() {
+		out = append(out, "template."+m)
+	}
+	return out
+}

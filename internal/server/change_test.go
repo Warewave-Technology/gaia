@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/queue"
@@ -625,5 +626,65 @@ spec:
 	st, _ := q.ContractState(ctx, change.OperationKey("reboot-poc"))
 	if !strings.Contains(st.Error.String, "it does not change") {
 		t.Errorf("after changing it: %+v", st)
+	}
+}
+
+// A schedule approved once approves the Operations it writes.
+func TestAScheduleApprovedOnceApprovesItsOperations(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	mehmet := e.signer("mehmet", "team-platform")
+	e.signer("ayse", "team-platform")
+	q := e.store.Q()
+	if err := e.store.CreateHost(ctx, store.NewHost{UID: "uid-1", Contract: "poc-web", Hostname: "labtpoc01", Site: "lab", Network: "lab-poc", Seq: 1}); err != nil {
+		t.Fatal(err)
+	}
+	_ = q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: "uid-1", Status: db.HostStatusActive})
+	e.git.Write("platform/schedule.yaml", `apiVersion: gaia/v1alpha1
+kind: OperationSchedule
+metadata: { name: nightly }
+spec:
+  recurrence: "FREQ=DAILY"
+  start: "03:00"
+  duration: 1h
+  approval: once
+  output: contracts/operations
+  template: { action: reboot, selector: 'contract == "poc-web"' }
+`)
+	start := time.Now().Add(3 * time.Hour).UTC().Truncate(time.Second)
+	gen, err := catalog.Render(catalog.KindOperation, "nightly-1", nil, &catalog.OperationSpec{Action: "reboot", Selector: `contract == "poc-web"`,
+		Window: &catalog.Window{Start: start.Format(time.RFC3339), End: start.Add(time.Hour).Format(time.RFC3339)}}, "OperationSchedule/nightly", "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.git.Write("contracts/operations/nightly-1.yaml", string(gen))
+	e.git.CommitSigned("nightly reboots", mehmet.git)
+
+	e.evaluate(en)
+	sc, ok := e.open(change.ScheduleKey("nightly"))
+	if !ok {
+		t.Fatal("no change for the schedule")
+	}
+	oc, ok := e.open(change.OperationKey("nightly-1"))
+	if !ok || oc.Status != change.Pending {
+		t.Fatalf("the operation before the schedule is approved: %+v", oc)
+	}
+	u, _ := q.UserByName(ctx, "ayse")
+	if err := en.Decide(ctx, change.Decision{Change: sc.ID, PlanHash: sc.PlanHash, UserID: u.ID, Username: "ayse", Approve: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := q.Change(ctx, sc.ID); got.Status != change.Applied {
+		t.Fatalf("schedule change = %s", got.Status)
+	}
+	e.evaluate(en)
+	if row, err := q.Operation(ctx, "nightly-1"); err != nil || row.Status != "scheduled" {
+		t.Fatalf("operation = %+v, %v", row, err)
+	}
+	rows, _ := q.Gates(ctx, oc.ID)
+	for _, r := range rows {
+		if r.Gate == "approval" && (r.Status != "ok" || !strings.Contains(string(r.Detail), `"via": "OperationSchedule/nightly"`)) {
+			t.Errorf("approval gate = %s %s", r.Status, r.Detail)
+		}
 	}
 }

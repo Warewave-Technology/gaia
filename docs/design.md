@@ -622,6 +622,11 @@ spec:
 - **`perInstance`:** Gaia her pencere için bir Operation commit'i yazar; her biri ayrıca onaylanır. Prod için varsayılan budur.
 - **`once`:** Schedule bir kez onaylanır, her pencerenin Operation'ı doğrudan oluşturulup çalışır. Onay gerektirmeyen ortamlar için kullanılır.
 - **Neden RRULE:** "Her ayın ikinci pazarı" gibi kurallar cron ile düzgün ifade edilemiyor.
+- **Uygulamada:**
+  - Gaia, kaynak senkronunda, başlangıcı `createAhead` (varsayılan 7 gün) içine düşen her pencere için `<schedule>-<tarih>t<saat>` adlı bir Operation üretir. Penceresi ve `notAfter`'ı pencereye göre yazılır. Dosya `output` dizinine Gaia'nın imzalı commit'iyle girer.
+  - `start` saati schedule'ın `timezone`'undadır (IANA; varsayılan UTC).
+  - Daha önce üretilenlere dokunulmaz; çalışmış ve dosyası temizlenmiş bir pencere tekrar üretilmez.
+  - **`once`:** Schedule kendisi bir Change'tir (`OperationSchedule/<ad>`). Onaycılar şablonun aksiyonu ve selector'ın şu anda dokunduğu owner ve ortamlardan hesaplanır. Onaylanınca hiçbir şey çalışmaz; schedule bu haliyle onaylı sayılır. Bu haliyle üretilen Operation'ların onay gereksinimi "schedule ile onaylı" olarak geçer. Schedule değişirse yeniden onay gerekir.
 
 #### Aksiyonlar
 

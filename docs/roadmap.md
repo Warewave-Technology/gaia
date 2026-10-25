@@ -183,6 +183,14 @@ Tasarım 14.
 - `no_log` / secret parametreler (`bao://` değerleri run sırasında çözülür ve maskelenir).
 - Host key yönetimi: cloud-init'in ürettiği host anahtarları Gaia'ya kaydedilir, host key kontrolü açılır.
 
+**Durum:**
+- Tamam:
+  - App ve Agent, zorunlu ajanlar, secret parametreler
+  - Operation: patch, reboot, snapshot, runbook; batch, pencere, `notAfter`, bakım modu, temizlik
+  - OperationSchedule (RRULE, `perInstance` ve `once`)
+- Kalan: host key yönetimi.
+- Sonraki fazlara: `power`/`revert` (Faz 9, ortak Compute arayüzü), `replace` (Faz 10), load balancer adımı (LB provider'ı), duraklatma.
+
 ## Faz 9: Provider'lar
 
 - vSphere compute provider'ı (`vsphere` Pulumi provider'ı, govmomi; `vcsim` ile test).

@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/teambition/rrule-go"
+
 	"github.com/Warewave-Technology/gaia/internal/cel"
 )
 
@@ -213,6 +215,20 @@ func Resolve(cat *Catalog) (*Graph, error) {
 	}
 	for _, o := range cat.List(KindOperation) {
 		r.operation(o)
+	}
+	for _, o := range cat.List(KindSchedule) {
+		s := o.Spec.(*OperationScheduleSpec)
+		if _, err := rrule.StrToRRule(s.Recurrence); err != nil {
+			r.fail(o, "spec.recurrence", "%v", err)
+		}
+		if _, err := cel.Selector(s.Template.Selector); err != nil {
+			r.fail(o, "spec.template.selector", "%v", err)
+		}
+		if s.Template.Runbook != "" {
+			if role := r.ref(o, "spec.template.runbook", KindAnsibleRole, s.Template.Runbook); role != nil && !role.Spec.(*AnsibleRoleSpec).Runbook {
+				r.fail(o, "spec.template.runbook", "AnsibleRole %q is not a runbook", s.Template.Runbook)
+			}
+		}
 	}
 	if len(r.errs) > 0 {
 		sortErrors(r.errs)

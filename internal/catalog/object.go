@@ -33,6 +33,7 @@ const (
 	KindApp         = "App"
 	KindAgent       = "Agent"
 	KindOperation   = "Operation"
+	KindSchedule    = "OperationSchedule"
 )
 
 // newSpec returns an empty spec for each known kind.
@@ -56,6 +57,7 @@ var newSpec = map[string]func() any{
 	KindApp:         func() any { return &AppSpec{} },
 	KindAgent:       func() any { return &AgentSpec{} },
 	KindOperation:   func() any { return &OperationSpec{} },
+	KindSchedule:    func() any { return &OperationScheduleSpec{} },
 }
 
 // Kinds lists the known kinds in a stable order.
