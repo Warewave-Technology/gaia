@@ -185,3 +185,12 @@ func (c *Catalog) List(kind string) []*Object {
 
 // Len is the number of objects.
 func (c *Catalog) Len() int { return len(c.objects) }
+
+// YAML is the object as it was written: its document in Git, or, for an
+// object built in memory, its fields.
+func (o *Object) YAML() ([]byte, error) {
+	if o.node != nil {
+		return yaml.Marshal(o.node)
+	}
+	return yaml.Marshal(map[string]any{"apiVersion": o.APIVersion, "kind": o.Kind, "metadata": o.Metadata, "spec": o.Spec})
+}

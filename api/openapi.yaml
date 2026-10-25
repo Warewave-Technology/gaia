@@ -349,6 +349,66 @@ paths:
                     detail: { type: object, description: "added, changed and removed files; problems: what was left out and why" }
                     error: { type: string }
                     ranAt: { type: string, format: date-time }
+  /api/v1/catalog:
+    get:
+      summary: The desired catalog's objects, contracts left out (design 11.5)
+      operationId: listCatalog
+      parameters:
+        - { name: kind, in: query, schema: { type: string }, description: Only objects of this kind }
+      responses:
+        "200":
+          description: The catalog's commit and its objects by kind and name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commit: { type: string }
+                  objects: { type: array, items: { $ref: "#/components/schemas/CatalogObject" } }
+        "503": { description: The server does not follow a repository }
+  /api/v1/catalog/{kind}/{name}:
+    get:
+      summary: One catalog object, its YAML, its references and what refers to it
+      operationId: getCatalogObject
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The object
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/CatalogObject"
+                  - type: object
+                    properties:
+                      annotations: { type: object, additionalProperties: { type: string } }
+                      patchFiles: { type: array, items: { type: string } }
+                      yaml: { type: string }
+                      refs: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
+                      usedByRefs: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
+        "404": { description: No such object, or a contract }
+  /api/v1/providers:
+    get:
+      summary: The providers, where they are used and the last discovery's errors (platform-admin)
+      operationId: listProviders
+      responses:
+        "200":
+          description: Providers by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    type: { type: string }
+                    endpoint: { type: string }
+                    credentials: { type: string, description: "A reference (bao://…), never the secret" }
+                    usedBy: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
+                    error: { type: string, description: What the last discovery got from it, if it failed }
   /api/v1/sources/sync:
     post:
       summary: Run the sources now (platform-admin)
@@ -974,6 +1034,23 @@ components:
         stdout: { type: string, description: Secrets masked }
         data: { type: object, description: ansible-runner event_data, secrets masked }
         createdAt: { type: string, format: date-time }
+    CatalogObject:
+      type: object
+      required: [kind, name, source, usedBy]
+      properties:
+        kind: { type: string }
+        name: { type: string }
+        labels: { type: object, additionalProperties: { type: string } }
+        source: { type: string, description: "file:line in the platform repository" }
+        generatedBy: { type: string, description: The Source that wrote it }
+        patches: { type: integer }
+        usedBy: { type: integer, description: How many objects refer to it }
+    CatalogRef:
+      type: object
+      properties:
+        kind: { type: string }
+        name: { type: string }
+        field: { type: string }
     ContractSummary:
       type: object
       required: [name, liveHosts]

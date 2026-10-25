@@ -11,6 +11,8 @@ import { RunDetail } from "./pages/runs/Detail";
 import { ContractList } from "./pages/contracts/List";
 import { ContractDetail } from "./pages/contracts/Detail";
 import { Overview } from "./pages/overview/Overview";
+import { CatalogList, CatalogObject } from "./pages/catalog/Catalog";
+import { Providers } from "./pages/providers/Providers";
 
 export function makeClient() {
   return new QueryClient({
@@ -35,8 +37,9 @@ export function AppRoutes() {
         <Route path="contracts/:name" element={<ContractDetail />} />
         <Route path="runs" element={<RunList />} />
         <Route path="runs/:id" element={<RunDetail />} />
-        <Route path="catalog/*" element={<Soon title="Katalog" />} />
-        <Route path="providers" element={<Soon title="Provider'lar" />} />
+        <Route path="catalog" element={<CatalogList />} />
+        <Route path="catalog/:kind/:name" element={<CatalogObject />} />
+        <Route path="providers" element={<Providers />} />
         <Route path="sync" element={<Soon title="Sync" />} />
         <Route path="discovery" element={<Soon title="Keşif" />} />
         <Route path="profile" element={<Soon title="Profil" />} />
