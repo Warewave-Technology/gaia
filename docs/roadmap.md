@@ -215,6 +215,7 @@ Tasarım 14.
 
 **Durum:**
 - Tamam: decommission akışı (durdurma, son snapshot, kayıtları devre dışı bırakma, bekleme, geri alma, 15 dakikalık süpürme ile silme, IP karantinası), `deletionPolicy: retain`. Prod koruması (owner + platform-admin) zaten change motorundaydı.
+- Tamam: replace Operation'ı (aynı isim ve adresle yeni UID; Operation'larda `hosts` filtresi).
 
 ## Faz 11: Dağıtım
 

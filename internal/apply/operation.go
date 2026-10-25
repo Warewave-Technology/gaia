@@ -189,6 +189,19 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 	if len(hosts) == 0 {
 		return res, nil
 	}
+	if op.Action == "replace" {
+		for _, h := range hosts {
+			x := &res[names[h.Name]]
+			if err := r.replaceOne(ctx, x.Contract, h.Name); err != nil {
+				x.Result, x.Detail = "failed", err.Error()
+			} else {
+				x.Result, x.Detail = "ok", "replaced"
+			}
+			r.printf("  %s %s %s\n", x.Hostname, x.Result, x.Detail)
+			r.change(runrecord.Change{Contract: x.Contract, UID: h.Name, Hostname: x.Hostname, Stage: "operation", Action: op.Action, Detail: x.Result + " " + x.Detail})
+		}
+		return res, nil
+	}
 	fail := func(uid, detail string) {
 		i := names[uid]
 		res[i].Result, res[i].Detail = "failed", detail

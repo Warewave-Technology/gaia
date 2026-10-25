@@ -237,6 +237,35 @@ func (s *Store) DeleteHost(ctx context.Context, uid string) error {
 	})
 }
 
+// ReplaceHost gives a server's place to a new one (design 9.5): the old
+// host is deleted, with its name and IDs, and the new one takes the same
+// name and sequence number, at once. The old IDs are the caller's to keep
+// for removing what they name.
+func (s *Store) ReplaceHost(ctx context.Context, old, uid, run string) error {
+	return s.Tx(ctx, func(q *db.Queries) error {
+		h, err := q.Host(ctx, old)
+		if err != nil {
+			return err
+		}
+		if err := q.SetHostStatus(ctx, db.SetHostStatusParams{Uid: old, Status: db.HostStatusDeleted}); err != nil {
+			return err
+		}
+		if err := q.ReleaseNames(ctx, old); err != nil {
+			return err
+		}
+		if err := q.DeleteExternalIDs(ctx, old); err != nil {
+			return err
+		}
+		if err := q.InsertHost(ctx, db.InsertHostParams{
+			Uid: uid, Contract: h.Contract, Hostname: h.Hostname, Site: h.Site, Network: h.Network,
+			Seq: h.Seq, Status: db.HostStatusProvisioning, CreatedRun: text(run),
+		}); err != nil {
+			return err
+		}
+		return q.HoldName(ctx, db.HoldNameParams{Name: h.Hostname, Uid: uid})
+	})
+}
+
 // Pool is the connection pool, for the job queue.
 func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 

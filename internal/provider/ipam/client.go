@@ -51,6 +51,13 @@ func (c *Client) Allocations(ctx context.Context, owner string) ([]ipam.Allocati
 	return a, err
 }
 
+// Reassign gives from's addresses to to.
+func (c *Client) Reassign(ctx context.Context, from, to string) ([]ipam.Allocation, error) {
+	var a []ipam.Allocation
+	err := c.do(ctx, http.MethodPost, "/v1/allocations/reassign", map[string]string{"from": from, "to": to}, &a)
+	return a, err
+}
+
 // Release frees owner's addresses.
 func (c *Client) Release(ctx context.Context, owner string, quarantine time.Duration) ([]ipam.Allocation, error) {
 	var a []ipam.Allocation

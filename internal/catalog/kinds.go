@@ -1235,6 +1235,9 @@ type OperationSpec struct {
 	Options  map[string]any `yaml:"options"`
 	Runbook  string         `yaml:"runbook"`
 	Params   map[string]any `yaml:"params"`
+	// Hosts narrows the selected contracts' servers to these names; a
+	// replace names its servers (design 9.5).
+	Hosts []string `yaml:"hosts"`
 }
 
 // Window is when an Operation may run.
@@ -1251,7 +1254,7 @@ type Strategy struct {
 }
 
 // OperationActions are what an Operation may do (in this version).
-var OperationActions = []string{"patch", "power", "reboot", "revert", "runbook", "snapshot"}
+var OperationActions = []string{"patch", "power", "reboot", "replace", "revert", "runbook", "snapshot"}
 
 // Times returns the window and notAfter, parsed (zero when not set).
 func (s *OperationSpec) Times() (start, end, notAfter time.Time, err error) {
@@ -1307,6 +1310,9 @@ func (s *OperationSpec) validate() []string {
 	}
 	if sn, _ := s.Options["snapshot"].(string); s.Action == "revert" && sn == "" {
 		out = append(out, "options.snapshot: the snapshot to go back to, for a revert")
+	}
+	if s.Action == "replace" && len(s.Hosts) == 0 {
+		out = append(out, "hosts: a replace names the servers it replaces")
 	}
 	start, end, _, err := s.Times()
 	switch {

@@ -78,6 +78,16 @@ func TestAllocateReleaseQuarantine(t *testing.T) {
 	if e, err := c0.Allocate(ctx, "10.50.0.0/24", "uid-e", "labtpoc04"); err != nil || e.IP != "10.50.0.101" {
 		t.Errorf("after release without quarantine: %+v, %v", e, err)
 	}
+	// A replaced server's address goes to the one replacing it.
+	if a, err := c0.Reassign(ctx, "uid-e", "uid-e2"); err != nil || len(a) != 1 || a[0].IP != "10.50.0.101" || a[0].Owner != "uid-e2" {
+		t.Errorf("reassign = %+v %v", a, err)
+	}
+	if a, _ := c0.Allocations(ctx, "uid-e"); len(a) != 0 {
+		t.Errorf("the old owner still has %+v", a)
+	}
+	if _, err := c0.Reassign(ctx, "uid-e2", "uid-e"); err != nil {
+		t.Fatal(err)
+	}
 	// A quarantine given with the release holds the address back.
 	if _, err := c0.Release(ctx, "uid-e", 48*time.Hour); err != nil {
 		t.Fatal(err)

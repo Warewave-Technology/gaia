@@ -31,6 +31,8 @@ type doomed struct {
 	computers map[string]string
 	// bastion are its Warpgate targets: provider -> kind -> target ID.
 	bastion map[string]map[string]string
+	// replacedBy is the server that takes its place (design 9.5).
+	replacedBy string
 }
 
 func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
@@ -153,10 +155,14 @@ func (r *runner) release(ctx context.Context, c plan.Contract, gone []doomed, cr
 			}
 			done = append(done, "ip "+d.ip+" released")
 		}
-		if err := r.d.Store.DeleteHost(ctx, d.s.UID); err != nil {
-			return err
+		if d.replacedBy != "" {
+			done = append(done, "name and address to "+d.replacedBy)
+		} else {
+			if err := r.d.Store.DeleteHost(ctx, d.s.UID); err != nil {
+				return err
+			}
+			done = append(done, "name "+d.s.Hostname+" released")
 		}
-		done = append(done, "name "+d.s.Hostname+" released")
 		detail := strings.Join(done, ", ")
 		r.printf("  - %s: deleted (%s)\n", d.s.Hostname, detail)
 		r.change(runrecord.Change{Contract: c.Name, UID: d.s.UID, Hostname: d.s.Hostname, Stage: "decommission", Action: "delete", Detail: detail})

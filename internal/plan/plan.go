@@ -158,6 +158,9 @@ const (
 	Create = "create"
 	Keep   = "keep"
 	Delete = "delete"
+	// Replace: a new server takes the place of a kept one, with its name
+	// and address (design 9.5). Only a replace Operation plans it.
+	Replace = "replace"
 )
 
 // Server is one server of a contract.
