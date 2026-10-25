@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http/httptest"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -20,6 +21,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/Warewave-Technology/gaia/internal/ad"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
@@ -335,6 +337,12 @@ func (e *env) files(edit func(string) string) []catalog.File {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Edits of files the example lacks add them.
+	for rel, f := range e.platform {
+		if !slices.ContainsFunc(files, func(x catalog.File) bool { return x.Path == rel }) {
+			files = append(files, catalog.File{Path: rel, Data: []byte(f(""))})
+		}
+	}
 	return files
 }
 
@@ -446,6 +454,119 @@ func TestApplyCreatesThenKeeps(t *testing.T) {
 	last := e.compute.stacks[len(e.compute.stacks)-1].VMs
 	if len(last) != 2 || last[1].Hostname != "labtpoc02" || last[1].Address != "10.50.0.101/24" || last[1].VMID != 9402 {
 		t.Errorf("scaled up: %+v", last)
+	}
+}
+
+// fakeDirectory is AD-integrated DNS: zone -> name -> records.
+type fakeDirectory struct {
+	zones map[string]map[string][]ad.Record
+	cfg   ad.Config
+}
+
+func (f *fakeDirectory) SetRecord(zone, name string, rec ad.Record, owned bool) (bool, error) {
+	z, ok := f.zones[zone]
+	if !ok {
+		return false, ad.ErrNoZone
+	}
+	for _, r := range z[name] {
+		if r.Type == rec.Type && r.Data == rec.Data {
+			return false, nil
+		}
+		if r.Type == rec.Type && !owned {
+			return false, fmt.Errorf("%w: %s.%s has %s", ad.ErrTaken, name, zone, r.Data)
+		}
+	}
+	z[name] = []ad.Record{rec}
+	return true, nil
+}
+
+func (f *fakeDirectory) DeleteRecord(zone, name string, rec ad.Record) (bool, error) {
+	for _, r := range f.zones[zone][name] {
+		if r.Type == rec.Type && r.Data == rec.Data {
+			delete(f.zones[zone], name)
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (f *fakeDirectory) ReverseZone(ip netip.Addr) (string, string, error) {
+	o := ip.As4()
+	z := fmt.Sprintf("%d.%d.%d.in-addr.arpa", o[2], o[1], o[0])
+	if _, ok := f.zones[z]; !ok {
+		return "", "", ad.ErrNoZone
+	}
+	return z, fmt.Sprint(o[3]), nil
+}
+
+func (f *fakeDirectory) Close() error { return nil }
+
+func TestApplyWritesDNS(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	dir := &fakeDirectory{zones: map[string]map[string][]ad.Record{"lab.test": {"taken": {{Type: ad.TypeA, Data: "10.9.9.9"}}}, "0.50.10.in-addr.arpa": {}}}
+	e.deps.Directory = func(_ context.Context, c ad.Config) (Directory, error) {
+		dir.cfg = c
+		return dir, nil
+	}
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/ad/writer"] = map[string]string{"username": "gaia-writer@lab.test", "password": "w"}
+	e.platform = map[string]func(string) string{
+		"platform/providers/corp-ad.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: corp-ad }\nspec: { type: activedirectory, endpoint: ldaps://dc1.lab.test, credentials: bao://kv/platform/ad/reader, writeCredentials: bao://kv/platform/ad/writer }\n"
+		},
+		"platform/catalog/network.yaml": func(c string) string {
+			return strings.Replace(c, "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1], provider: corp-ad, zone: lab.test, reverse: true, ttl: 600 }", 1)
+		},
+	}
+
+	p, err := e.apply(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := p.Contracts[0].Servers[0].DNS; d == nil || *d != (plan.DNS{Provider: "corp-ad", Zone: "lab.test", Reverse: true, TTL: 600}) {
+		t.Errorf("plan DNS = %+v", d)
+	}
+	if dir.cfg.Endpoint != "ldaps://dc1.lab.test" || dir.cfg.Username != "gaia-writer@lab.test" {
+		t.Errorf("directory config = %+v", dir.cfg)
+	}
+	a := dir.zones["lab.test"]["labtpoc01"]
+	ptr := dir.zones["0.50.10.in-addr.arpa"]["100"]
+	if len(a) != 1 || a[0] != (ad.Record{Type: ad.TypeA, TTL: 600, Data: "10.50.0.100"}) {
+		t.Errorf("A = %+v", a)
+	}
+	if len(ptr) != 1 || ptr[0] != (ad.Record{Type: ad.TypePTR, TTL: 600, Data: "labtpoc01.lab.test"}) {
+		t.Errorf("PTR = %+v", ptr)
+	}
+	hosts, _ := e.store.Q().LiveHosts(ctx, "poc-web")
+	uid := hosts[0].Uid
+	ids := map[string]string{}
+	got, _ := e.store.Q().ExternalIDs(ctx, uid)
+	for _, x := range got {
+		ids[x.Provider+"/"+x.Kind] = x.ExternalID
+	}
+	if ids["corp-ad/dns-a"] != "labtpoc01.lab.test" || ids["corp-ad/dns-ptr"] != "100.0.50.10.in-addr.arpa" {
+		t.Errorf("external IDs = %v", ids)
+	}
+
+	// Gaia's own record with another address is put right; someone else's
+	// name stops the run.
+	dir.zones["lab.test"]["labtpoc01"] = []ad.Record{{Type: ad.TypeA, Data: "10.50.0.250"}}
+	dir.zones["lab.test"]["labtpoc02"] = []ad.Record{{Type: ad.TypeA, Data: "10.50.0.250"}}
+	if _, err := e.apply(func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) }); err == nil ||
+		!strings.Contains(err.Error(), "labtpoc02: ad: the name has another record: labtpoc02.lab.test has 10.50.0.250") {
+		t.Fatalf("taken name: %v", err)
+	}
+	if a := dir.zones["lab.test"]["labtpoc01"]; a[0].Data != "10.50.0.100" {
+		t.Errorf("own record = %+v", a)
+	}
+
+	// Decommissioning removes both records.
+	delete(dir.zones["lab.test"], "labtpoc02")
+	if _, err := e.apply(func(c string) string { return c + "  lifecycle: { state: decommissioned }\n" }); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(dir.zones["lab.test"]) + len(dir.zones["0.50.10.in-addr.arpa"]); n != 1 { // "taken" stays
+		t.Errorf("zones after decommission = %+v", dir.zones)
 	}
 }
 

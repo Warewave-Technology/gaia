@@ -710,3 +710,19 @@ func TestOperationChecks(t *testing.T) {
 	wantError(t, lines, "Operation/op", "spec.selector:")
 	wantError(t, lines, "Operation/op", `AnsibleRole "web.restart" is not a runbook`)
 }
+
+func TestNetworkDNS(t *testing.T) {
+	ipam := "  ipam: { provider: ipam, pool: 10.0.0.0/24 }\n  allowedEnvironments: [test]\n---"
+	wantError(t, loadErrors(t, catalogWith(t, "ad.yaml", "", adProvider, "networks.yaml", ipam, ipam[:len(ipam)-4]+"\n  dns: { provider: corp-ad, reverse: true }\n---")),
+		"dns.zone: required with dns.provider")
+	lines := resolveErrors(t, catalogWith(t, "ad.yaml", "", adProvider, "networks.yaml", ipam, ipam[:len(ipam)-4]+"\n  dns: { provider: corp-ad, zone: lab.test }\n---"))
+	wantError(t, lines, "Network/lab-app", `spec.dns.provider: Provider "corp-ad" has no writeCredentials`)
+	writer := strings.Replace(adProvider, "credentials: bao://kv/platform/ad }", "credentials: bao://kv/platform/ad, writeCredentials: bao://kv/platform/ad-writer }", 1)
+	cat, err := Load("c0ffee", catalogWith(t, "ad.yaml", "", writer, "networks.yaml", ipam, ipam[:len(ipam)-4]+"\n  dns: { provider: corp-ad, zone: lab.test }\n---"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Resolve(cat); err != nil {
+		t.Errorf("Resolve: %v", err)
+	}
+}

@@ -265,3 +265,21 @@ func toJSON(v any) string {
 	}
 	return string(data)
 }
+
+func TestPlanDNS(t *testing.T) {
+	ad := "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: corp-ad }\nspec: { type: activedirectory, endpoint: ldaps://dc1, credentials: bao://kv/ad, writeCredentials: bao://kv/ad-w }\n"
+	net := strings.Replace(readLab(t, "platform/catalog/network.yaml"), "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1], provider: corp-ad, zone: lab.test, reverse: true }", 1)
+	p := build(t, nil, "platform/providers/corp-ad.yaml", ad, "platform/catalog/network.yaml", net)
+	if d := p.Contracts[0].Servers[0].DNS; d == nil || *d != (DNS{Provider: "corp-ad", Zone: "lab.test", Reverse: true, TTL: 3600}) {
+		t.Errorf("DNS = %+v", d)
+	}
+	var b bytes.Buffer
+	if err := WriteText(&b, p); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"dns labtpoc01.lab.test A and PTR (corp-ad)", "dns        +1 =0 (corp-ad)"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("output lacks %q:\n%s", want, b.String())
+		}
+	}
+}

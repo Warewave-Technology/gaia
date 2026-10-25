@@ -45,6 +45,7 @@ func ConfigFrom(endpoint, baseDN string, secret map[string]string) Config {
 type Directory struct {
 	conn   *ldap.Conn
 	BaseDN string
+	root   string // the domain: where the DNS partitions are
 }
 
 // Open connects over TLS (ldaps, or ldap with StartTLS: Gaia never sends
@@ -102,15 +103,15 @@ func Open(ctx context.Context, c Config) (*Directory, error) {
 		_ = conn.Close()
 		return nil, fmt.Errorf("ad: bind as %s: %w", c.Username, err)
 	}
-	dir := &Directory{conn: conn, BaseDN: c.BaseDN}
+	res, err := conn.Search(ldap.NewSearchRequest("", ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
+		"(objectClass=*)", []string{"defaultNamingContext"}, nil))
+	if err != nil || len(res.Entries) == 0 {
+		_ = conn.Close()
+		return nil, fmt.Errorf("ad: no defaultNamingContext: %v", err)
+	}
+	dir := &Directory{conn: conn, BaseDN: c.BaseDN, root: res.Entries[0].GetAttributeValue("defaultNamingContext")}
 	if dir.BaseDN == "" {
-		res, err := conn.Search(ldap.NewSearchRequest("", ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
-			"(objectClass=*)", []string{"defaultNamingContext"}, nil))
-		if err != nil || len(res.Entries) == 0 {
-			_ = conn.Close()
-			return nil, fmt.Errorf("ad: no base DN and no defaultNamingContext: %v", err)
-		}
-		dir.BaseDN = res.Entries[0].GetAttributeValue("defaultNamingContext")
+		dir.BaseDN = dir.root
 	}
 	return dir, nil
 }
