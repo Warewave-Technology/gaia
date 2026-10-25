@@ -312,6 +312,7 @@ func (s *Server) cancelRun(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.fail(w, err)
 	default:
+		s.record(r, auditEntry(r, "run.cancel", r.PathValue("id")))
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "cancelling"})
 	}
 }

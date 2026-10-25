@@ -83,5 +83,8 @@ func (s *Server) revertCommit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.cfg.Log.Info("revert", "repo", b.Repo, "commit", sha, "revert", h, "by", by)
 	s.cfg.Catalog.Kick()
+	e := auditEntry(r, "commit.revert", sha)
+	e.Detail = map[string]string{"commit": h}
+	s.record(r, e)
 	writeJSON(w, http.StatusCreated, map[string]string{"commit": h, "reverts": sha})
 }

@@ -247,6 +247,9 @@ func (s *Server) retryChange(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.fail(w, err)
 	default:
+		e := auditEntry(r, "change.retry", c.ID)
+		e.Detail = map[string]string{"contract": c.Contract, "change": id}
+		s.record(r, e)
 		writeJSON(w, http.StatusAccepted, map[string]string{"change": id})
 	}
 }
@@ -339,6 +342,18 @@ func (s *Server) decideChange(approve bool) http.HandlerFunc {
 		err = s.cfg.Changes.Decide(r.Context(), change.Decision{
 			Change: c.ID, PlanHash: b.PlanHash, UserID: p.UserID, Username: p.Username, Approve: approve, Comment: strings.TrimSpace(b.Comment),
 		})
+		e := auditEntry(r, "change.reject", c.ID)
+		if approve {
+			e.Action = "change.approve"
+		}
+		e.Detail = map[string]string{"contract": c.Contract, "planHash": b.PlanHash, "comment": strings.TrimSpace(b.Comment)}
+		switch {
+		case err == nil:
+			s.record(r, e)
+		case decisionError(err):
+			e.Result, e.Detail = "denied", map[string]string{"contract": c.Contract, "why": err.Error()}
+			s.record(r, e)
+		}
 		switch {
 		case errors.Is(err, change.ErrNotApprover):
 			writeJSON(w, http.StatusForbidden, Problem{Error: err.Error()})
@@ -395,15 +410,19 @@ func (s *Server) approveChanges(w http.ResponseWriter, r *http.Request) {
 			err = s.cfg.Changes.Decide(r.Context(), change.Decision{
 				Change: c.ID, PlanHash: ch.PlanHash, UserID: p.UserID, Username: p.Username, Approve: true, Comment: strings.TrimSpace(b.Comment),
 			})
+			e := auditEntry(r, "change.approve", c.ID)
+			e.Detail = map[string]string{"contract": c.Contract, "planHash": ch.PlanHash, "comment": strings.TrimSpace(b.Comment), "batch": "true"}
 			if err != nil {
 				if !decisionError(err) {
 					s.fail(w, err)
 					return
 				}
 				res.Error = err.Error()
+				e.Result, e.Detail = "denied", map[string]string{"contract": c.Contract, "why": err.Error()}
 			} else if c, err = s.store.Q().Change(r.Context(), c.ID); err == nil {
 				res.Status = c.Status
 			}
+			s.record(r, e)
 		}
 		out = append(out, res)
 	}

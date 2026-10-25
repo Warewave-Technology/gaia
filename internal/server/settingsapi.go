@@ -211,6 +211,14 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request, e audit.Entry) bo
 	return true
 }
 
+// record writes an entry for something that has happened; a failure to
+// write it is logged, the answer stands.
+func (s *Server) record(r *http.Request, e audit.Entry) {
+	if err := audit.Write(r.Context(), s.store.Q(), e); err != nil {
+		s.cfg.Log.Error("audit", "action", e.Action, "object", e.Object, "err", err)
+	}
+}
+
 // auditEntry is an audit entry for the request's caller.
 func auditEntry(r *http.Request, action, object string) audit.Entry {
 	e := audit.Entry{Action: action, Object: object, Actor: "anonymous", Address: clientAddress(r)}
