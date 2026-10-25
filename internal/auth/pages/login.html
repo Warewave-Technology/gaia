@@ -3,37 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/auth/gaia-auth.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>Gaia · Giriş</title>
 <script src="/auth/gaia-auth.js" defer></script>
 </head>
-<body style="margin:0;font-family:system-ui,sans-serif;background:#F6F7F9;color:#14171C">
-<main style="max-width:380px;margin:12vh auto;padding:32px;background:#fff;border:1px solid #E1E5EB;border-radius:8px">
-<h1 style="margin:0 0 4px;font-size:24px">gaia</h1>
-<p id="intro" style="margin:0 0 24px;color:#566070">Passkey'inizle giriş yapın.</p>
-<div id="providers" style="display:grid;gap:8px;margin-bottom:12px"></div>
-<button id="step" type="button" hidden style="width:100%;height:44px;border:0;border-radius:6px;background:#1F4FC8;color:#fff;font:inherit;font-weight:600;cursor:pointer;margin-bottom:12px">Gaia passkey'inizle onaylayın</button>
-<button id="passkey" type="button" style="width:100%;height:44px;border:0;border-radius:6px;background:#1F4FC8;color:#fff;font:inherit;font-weight:600;cursor:pointer">Passkey ile giriş</button>
-<form id="password" hidden style="margin-top:16px">
-<p style="margin:0;color:#566070">veya parola ve doğrulama kodu ile:</p>
-<label style="display:block;margin:8px 0">Kullanıcı adı <input name="username" autocomplete="username" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<label style="display:block;margin:8px 0">Parola <input name="password" type="password" autocomplete="current-password" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<label style="display:block;margin:8px 0">Doğrulama kodu <input name="code" inputmode="numeric" autocomplete="one-time-code" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<button type="submit" style="height:40px">Giriş</button>
+<body>
+<main>
+<div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="#fabd2f" stroke-width="2"></circle><path d="M5 15c4-1 6-6 16-5" fill="none" stroke="#8ec07c" stroke-width="2"></path></svg>gaia</div>
+<h1>Giriş</h1>
+<p id="intro" class="muted">Passkey'inizle ya da kurumunuzun hesabıyla giriş yapın.</p>
+<div id="providers" class="providers"></div>
+<button id="step" type="button" class="btn primary block" hidden>Gaia passkey'inizle onaylayın</button>
+<button id="passkey" type="button" class="btn primary block">Passkey ile giriş</button>
+<form id="password" hidden>
+<div class="or">veya parola ve doğrulama kodu</div>
+<label>Kullanıcı adı <input name="username" autocomplete="username" required></label>
+<label>Parola <input name="password" type="password" autocomplete="current-password" required></label>
+<label>Doğrulama kodu <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+<button type="submit" class="btn block">Giriş</button>
 </form>
-<p id="error" role="alert" style="color:#B3261E;min-height:1.5em"></p>
-<details style="margin-top:16px">
-<summary style="cursor:pointer;color:#566070">Kurtarma kodu ile giriş</summary>
-<form id="recovery" style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
-<label style="display:block;margin:8px 0">Kullanıcı adı <input name="username" autocomplete="username" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<label style="display:block;margin:8px 0">Kurtarma kodu <input name="code" autocomplete="one-time-code" required style="width:100%;height:36px;box-sizing:border-box"></label>
-<button type="submit" style="height:40px">Giriş</button>
+<p id="error" class="error" role="alert"></p>
+<details>
+<summary>Kurtarma kodu ile giriş</summary>
+<form id="recovery">
+<label>Kullanıcı adı <input name="username" autocomplete="username" required></label>
+<label>Kurtarma kodu <input name="code" autocomplete="one-time-code" required></label>
+<button type="submit" class="btn block">Giriş</button>
 </form>
 </details>
-<section id="codes" hidden>
-<h2 style="font-size:18px">Kurtarma kodları</h2>
-<p style="color:#566070">Her biri bir kez kullanılır. Güvenli bir yere kaydedin; bir daha gösterilmeyecek.</p>
-<pre id="codelist" style="background:#F6F7F9;padding:12px;border-radius:6px;font-size:15px"></pre>
-<a id="codes-next" href="/">Devam et</a>
+<section id="codes" class="box" hidden>
+<h2>Kurtarma kodları</h2>
+<p class="muted">Her biri bir kez kullanılır. Güvenli bir yere kaydedin; bir daha gösterilmeyecek.</p>
+<pre id="codelist" class="codes"></pre>
+<a id="codes-next" href="/" class="btn primary">Devam et</a>
 </section>
 </main>
 </body>

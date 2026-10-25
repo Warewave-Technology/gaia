@@ -292,7 +292,7 @@ func TestNotificationsReachSubscribersOnce(t *testing.T) {
 		t.Errorf("webhook signature %q", sig)
 	}
 	var got Event
-	if err := json.Unmarshal([]byte(body), &got); err != nil || got.Change != "chg-1" || got.URL != "http://localhost:8080/approve/chg-1" {
+	if err := json.Unmarshal([]byte(body), &got); err != nil || got.Change != "chg-1" || got.URL != "http://localhost:8080/changes/chg-1" {
 		t.Errorf("webhook body = %s (%v)", body, err)
 	}
 	// Teams failed once and was tried again.

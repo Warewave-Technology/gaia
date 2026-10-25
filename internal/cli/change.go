@@ -111,7 +111,7 @@ func newChangeCommand() *cobra.Command {
 			if err := c.Get(cmd.Context(), "/api/v1/changes/"+url.PathEscape(args[0]), &ch); err != nil {
 				return hint(err)
 			}
-			page := c.Base + "/approve/" + url.PathEscape(ch.ID)
+			page := c.Base + "/changes/" + url.PathEscape(ch.ID)
 			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is %s: %s\n", ch.ID, ch.Status, page)
 			if noBrowser {
 				return nil

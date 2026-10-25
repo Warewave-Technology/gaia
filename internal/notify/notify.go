@@ -116,7 +116,7 @@ func (n *Notifier) Emit(ctx context.Context, g *catalog.Graph, ev Event) error {
 		ev.At = time.Now().UTC()
 	}
 	if a := g.AuthConfig(); a != nil && ev.URL == "" && ev.Change != "" {
-		ev.URL = a.URL + "/approve/" + ev.Change
+		ev.URL = a.URL + "/changes/" + ev.Change
 	}
 	key := ev.Change + "/" + ev.Trigger
 	if ev.Key != "" {
