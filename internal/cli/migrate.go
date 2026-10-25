@@ -37,8 +37,13 @@ func newMigrateCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := store.Migrate(cmd.Context(), d); err != nil {
+			n, err := store.MigrateCount(cmd.Context(), d)
+			if err != nil {
 				return fmt.Errorf("migrate: %w", err)
+			}
+			if n > 0 {
+				_, err = fmt.Fprintf(cmd.OutOrStdout(), "%d migration(s) applied; schema up to date\n", n)
+				return err
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "schema up to date")
 			return err

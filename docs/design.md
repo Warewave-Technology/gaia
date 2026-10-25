@@ -1583,6 +1583,7 @@ Gaia tek bir binary'dir:
 - `gaia-ipam.service` tam hardening'le çalışır (`systemd-analyze security`: 2.1).
 - AppRole `secret_id`'si `GAIA_BAO_SECRET_ID_FILE` ile bir dosyadan ya da systemd credential'ı (`LoadCredential=bao-secret-id:...`, `CREDENTIALS_DIRECTORY`) olarak verilir; env dosyasında düz metin secret yoktur.
 - `gaia pulumi prepare` sabitlenmiş Pulumi CLI'ını ve provider plugin'lerini indirir; internete çıkamayan sunucularda ya da imaj üretiminde run'ların indirme yapmaması için `gaia` kullanıcısıyla (aynı `HOME`, `XDG_CACHE_HOME`, `PULUMI_HOME` ile) bir kez çalıştırılır.
+- `gaia.server` rolü (`deploy/ansible/roles/gaia.server`) paketi (dosyadan ya da repodan), `/etc/gaia`'yı, secret dosyalarını, migration'ı, `gaia pulumi prepare`'i ve servisleri kurar; Rocky 9'da iki kez çalıştırıldı, ikincisi bir şey değiştirmedi.
 - Rocky 9'da (systemd'li container) kuruldu: servisler hardening altında gerçek PostgreSQL'le çalıştı, `gaia pulumi prepare` servis kullanıcısıyla çalıştı. Debian 12'de kurulum ve kaldırma denendi.
 
 ### 13.3 Kubernetes (Helm)

@@ -44,28 +44,36 @@ func (e *NameTakenError) Error() string {
 
 // Migrate brings the schema up to date. It needs a role that owns the
 // schema (gaia_owner, design 12.2).
-func Migrate(ctx context.Context, dsn string) (err error) {
+func Migrate(ctx context.Context, dsn string) error {
+	_, err := MigrateCount(ctx, dsn)
+	return err
+}
+
+// MigrateCount is Migrate, and says how many of Gaia's migrations it
+// applied.
+func MigrateCount(ctx context.Context, dsn string) (n int, err error) {
 	sqlDB, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer func() { err = errors.Join(err, sqlDB.Close()) }()
 	sub, err := fs.Sub(migrations, "migrations")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, sub)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if _, err := p.Up(ctx); err != nil {
-		return err
+	done, err := p.Up(ctx)
+	if err != nil {
+		return 0, err
 	}
 	if err := migrateRiver(ctx, dsn); err != nil {
-		return err
+		return 0, err
 	}
 	_, err = sqlDB.ExecContext(ctx, appGrants)
-	return err
+	return len(done), err
 }
 
 // AppRole is the role Gaia runs as (design 12.2). The database

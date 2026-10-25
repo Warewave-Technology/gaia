@@ -1,0 +1,13 @@
+- name: Restart gaia
+  ansible.builtin.systemd:
+    name: gaia
+    state: restarted
+    daemon_reload: true
+  when: gaia_service
+
+- name: Restart gaia-ipam
+  ansible.builtin.systemd:
+    name: gaia-ipam
+    state: restarted
+    daemon_reload: true
+  when: gaia_ipam
