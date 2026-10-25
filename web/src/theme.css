@@ -126,6 +126,10 @@ table.grid tr.added td { background: var(--tint-green); }
 .leg .icon { margin-top: 2px; }
 .term { color: var(--yellow); font-weight: 600; }
 
+.icon-btn { display: inline-flex; align-items: center; background: none; border: 0; padding: 4px; border-radius: 4px; color: var(--fg4); cursor: pointer; }
+.icon-btn:hover { color: var(--fg); background: var(--bg0s); }
+table.grid td.nowrap { white-space: nowrap; }
+
 /* forms */
 .input { width: 100%; background: var(--bg0); border: 1px solid var(--bg3); border-radius: 4px; padding: 9px 10px; color: var(--fg); }
 .field { display: flex; flex-direction: column; gap: 6px; }

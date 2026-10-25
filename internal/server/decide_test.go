@@ -89,6 +89,18 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 		t.Errorf("without a recent passkey: %d %v", code, out)
 	}
 	ayse := e.token(a, "ayse", true)
+	// The change waits for ayse, not for its signer.
+	var mine []Change
+	if code := send(t, "GET", hs.URL+"/api/v1/changes?awaiting=me", ayse, nil, &mine); code != 200 || len(mine) != 1 || mine[0].ID != c.ID || !mine[0].AwaitingMe {
+		t.Errorf("awaiting ayse: %d %+v", code, mine)
+	}
+	if code := send(t, "GET", hs.URL+"/api/v1/changes?awaiting=me", e.token(a, "mehmet", false), nil, &mine); code != 200 || len(mine) != 0 {
+		t.Errorf("awaiting the signer: %d %+v", code, mine)
+	}
+	var one Change
+	if code := send(t, "GET", url, ayse, nil, &one); code != 200 || !one.AwaitingMe || len(one.Gates) == 0 {
+		t.Errorf("detail for ayse: %d %+v", code, one)
+	}
 	if code := send(t, "POST", url+"/approve", ayse, map[string]string{"planHash": "sha256:another"}, &out); code != 409 {
 		t.Errorf("another plan: %d %v", code, out)
 	}
@@ -106,6 +118,10 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 	}
 	if code := send(t, "POST", url+"/approve", ayse, body, &out); code != 409 {
 		t.Errorf("approve twice: %d %v", code, out)
+	}
+	one = Change{}
+	if code := send(t, "GET", url, ayse, nil, &one); code != 200 || one.AwaitingMe {
+		t.Errorf("after approving: %d awaitingMe=%v", code, one.AwaitingMe)
 	}
 	c = e.waitChange(c.ID, change.Applied, change.Failed)
 	if c.Status != change.Applied {

@@ -136,6 +136,7 @@ paths:
         - { name: contract, in: query, schema: { type: string } }
         - { name: open, in: query, schema: { type: boolean }, description: Only pending, approved and running ones }
         - { name: commit, in: query, schema: { type: string }, description: Only changes that bring this commit (one commit's changes across contracts) }
+        - { name: awaiting, in: query, schema: { type: string, enum: [me] }, description: Only open changes that wait for an approval the caller may give }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       responses:
         "200": { description: Changes, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Change" } } } } }
@@ -857,8 +858,8 @@ components:
       properties:
         id: { type: string }
         contract: { type: string }
-        source: { type: string, enum: [commit, retry, revert, drift] }
-        status: { type: string, enum: [pending, approved, running, applied, failed, cancelled, rejected, superseded] }
+        source: { type: string, enum: [commit, retry, revert, drift, drift-auto, operation, schedule] }
+        status: { type: string, enum: [pending, approved, running, applied, failed, cancelled, rejected, superseded, expired] }
         label: { type: string, description: The snapshot's commits }
         planHash: { type: string }
         requestedBy: { type: array, items: { type: string }, description: Who signed the commits it brings }
@@ -870,7 +871,7 @@ components:
           items:
             type: object
             properties:
-              gate: { type: string, enum: [validation, signature, approval, lock] }
+              gate: { type: string, enum: [validation, signature, approval, window] }
               status: { type: string, enum: [ok, waiting, failed] }
               detail: { type: object, description: "approval: groups with candidates and approvedBy, and the excluded signers" }
         approvals:
@@ -882,6 +883,7 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         finishedAt: { type: string, format: date-time }
+        awaitingMe: { type: boolean, description: The caller may give an approval the change still waits for }
         restricted: { type: boolean }
     Principal:
       type: object

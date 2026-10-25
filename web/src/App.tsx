@@ -4,6 +4,8 @@ import { ApiError } from "./api/client";
 import { SessionProvider } from "./api/session";
 import { Shell } from "./ui/shell";
 import { NotFound, Soon } from "./pages/Soon";
+import { ChangeList } from "./pages/changes/List";
+import { ChangeDetail } from "./pages/changes/Detail";
 
 export function makeClient() {
   return new QueryClient({
@@ -22,7 +24,8 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Soon title="Genel bakış" />} />
-        <Route path="changes/*" element={<Soon title="Değişiklikler" />} />
+        <Route path="changes" element={<ChangeList />} />
+        <Route path="changes/:id" element={<ChangeDetail />} />
         <Route path="contracts/*" element={<Soon title="Kontratlar" />} />
         <Route path="runs/*" element={<Soon title="Run'lar" />} />
         <Route path="catalog/*" element={<Soon title="Katalog" />} />
