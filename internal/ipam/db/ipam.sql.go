@@ -153,6 +153,48 @@ func (q *Queries) Pools(ctx context.Context) ([]Pool, error) {
 	return items, nil
 }
 
+const reassignOwner = `-- name: ReassignOwner :many
+update allocations set owner = $1
+where owner = $2 and released_at is null
+returning id, pool, ip, owner, hostname, allocated_at, released_at, quarantine_until
+`
+
+type ReassignOwnerParams struct {
+	ToOwner   string
+	FromOwner string
+}
+
+// A replaced server's addresses go to the server that replaces it
+// (design 9.5): same address, new owner.
+func (q *Queries) ReassignOwner(ctx context.Context, arg ReassignOwnerParams) ([]Allocation, error) {
+	rows, err := q.db.Query(ctx, reassignOwner, arg.ToOwner, arg.FromOwner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Allocation
+	for rows.Next() {
+		var i Allocation
+		if err := rows.Scan(
+			&i.ID,
+			&i.Pool,
+			&i.Ip,
+			&i.Owner,
+			&i.Hostname,
+			&i.AllocatedAt,
+			&i.ReleasedAt,
+			&i.QuarantineUntil,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const releaseOwner = `-- name: ReleaseOwner :many
 update allocations
 set released_at = now(), quarantine_until = now() + make_interval(secs => $1::float8)

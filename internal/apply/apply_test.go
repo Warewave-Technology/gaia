@@ -1859,6 +1859,114 @@ func TestRunOperationInBatches(t *testing.T) {
 	}
 }
 
+const replaceOp = `---
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: replace-poc02 }
+spec:
+  action: replace
+  selector: 'contract == "poc-web"'
+  hosts: [labtpoc02]
+`
+
+func TestReplaceOperation(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	day2 := &fakeDayTwo{}
+	e.deps.Compute = func(context.Context, string, string, map[string]string) (compute.Compute, error) { return day2, nil }
+	var forgot []string
+	e.deps.Forget = func(_ context.Context, _ pulumi.Backend, st pulumi.Stack, uids []string) ([]string, error) {
+		forgot = append(forgot, st.Name+" "+strings.Join(uids, ","))
+		for _, uid := range uids {
+			delete(e.compute.vms, st.Name+"/"+uid)
+		}
+		return uids, nil
+	}
+	day2.onDelete = func(string) {}
+	edit := func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) + replaceOp }
+	g := e.graph(edit)
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	op, err := plan.BuildOperation(ctx, g, "replace-poc02", StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Not applied yet as far as the change flow knows: refused.
+	if _, out, _ := RunOperation(ctx, g, op, e.deps); out.Results[0].Result != "failed" || !strings.Contains(out.Results[0].Detail, "has not been applied") {
+		t.Fatalf("before it is applied: %+v", out)
+	}
+	applied, _ := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	data, _ := json.Marshal(applied)
+	if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: "poc-web", AppliedPlanHash: pgText(applied.Hash), AppliedPlan: data}); err != nil {
+		t.Fatal(err)
+	}
+	hosts := mustLive(t, e)
+	keep, old := hosts[0], hosts[1]
+	oldVMID := ""
+	for _, x := range must(q.ExternalIDs(ctx, old.Uid)) {
+		if x.Kind == "vm" {
+			oldVMID = x.ExternalID
+		}
+	}
+	jobs := len(e.configure.jobs)
+
+	_, out, err := RunOperation(ctx, g, op, e.deps)
+	if err != nil || out.Status != "succeeded" {
+		t.Fatalf("outcome = %+v %v", out, err)
+	}
+	hosts = mustLive(t, e)
+	if len(hosts) != 2 || hosts[0].Uid != keep.Uid || hosts[1].Hostname != "labtpoc02" || hosts[1].Uid == old.Uid || hosts[1].Seq != 2 {
+		t.Fatalf("hosts after = %+v", hosts)
+	}
+	fresh := hosts[1].Uid
+	if h, _ := q.Host(ctx, old.Uid); h.Status != db.HostStatusDeleted {
+		t.Errorf("old host = %s", h.Status)
+	}
+	ips := map[string]string{}
+	for _, uid := range []string{old.Uid, fresh} {
+		for _, x := range must(q.ExternalIDs(ctx, uid)) {
+			if x.Kind == "ip" {
+				ips[uid] = x.ExternalID
+			}
+		}
+	}
+	if ips[fresh] != "10.50.0.101" || ips[old.Uid] != "" {
+		t.Errorf("addresses = %v", ips)
+	}
+	if a, _ := ipamclient.New(e.ipam, "ipam-token").Allocations(ctx, fresh); len(a) != 1 || a[0].IP != "10.50.0.101" {
+		t.Errorf("IPAM = %+v", a)
+	}
+	if strings.Join(forgot, ";") != "poc-web-lab "+old.Uid || strings.Join(day2.calls, "|") != oldVMID+" delete VM" {
+		t.Errorf("forgot %v, calls %v", forgot, day2.calls)
+	}
+	if strings.Join(e.monitor.deleted, ",") != old.Uid {
+		t.Errorf("zabbix deleted %v", e.monitor.deleted)
+	}
+	// Only the new server was configured.
+	if n := len(e.configure.jobs) - jobs; n != 1 {
+		t.Fatalf("%d configure jobs", n)
+	}
+	if h := e.configure.jobs[len(e.configure.jobs)-1].Hosts; len(h) != 1 || h[0].Name != fresh {
+		t.Errorf("configured %+v", h)
+	}
+	if last := e.compute.stacks[len(e.compute.stacks)-1].VMs; len(last) != 2 || last[1].UID != fresh || last[1].Address != "10.50.0.101/24" {
+		t.Errorf("stack = %+v", last)
+	}
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func TestPatchOperationWithSnapshotAndMaintenance(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()

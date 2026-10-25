@@ -206,6 +206,19 @@ func (s *Server) Release(ctx context.Context, owner string, quarantine time.Dura
 	return s.withPools(ctx, rows)
 }
 
+// Reassign gives from's live addresses to to: a server replaced by
+// another keeps its address for it.
+func (s *Server) Reassign(ctx context.Context, from, to string) ([]Allocation, error) {
+	if from == "" || to == "" {
+		return nil, badRequest("from and to are required")
+	}
+	rows, err := db.New(s.pool).ReassignOwner(ctx, db.ReassignOwnerParams{FromOwner: from, ToOwner: to})
+	if err != nil {
+		return nil, err
+	}
+	return s.withPools(ctx, rows)
+}
+
 // Allocations returns the live addresses of owner.
 func (s *Server) Allocations(ctx context.Context, owner string) ([]Allocation, error) {
 	rows, err := db.New(s.pool).AllocationsOf(ctx, owner)
@@ -288,6 +301,7 @@ func badRequest(format string, a ...any) error { return &requestError{fmt.Sprint
 //	GET    /v1/allocations?owner=    an owner's live addresses
 //	DELETE /v1/allocations?owner=[&quarantine=336h]
 //	                                 release an owner's addresses
+//	POST   /v1/allocations/reassign  {from, to}: an owner's addresses to another
 //	GET    /healthz                  no token needed
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -332,6 +346,21 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		a, err := s.Allocate(r.Context(), req)
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, a)
+	}))
+	mux.HandleFunc("POST /v1/allocations/reassign", s.auth(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		}
+		if !decode(w, r, &req) {
+			return
+		}
+		a, err := s.Reassign(r.Context(), req.From, req.To)
 		if err != nil {
 			writeErr(w, err)
 			return

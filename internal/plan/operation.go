@@ -97,10 +97,15 @@ func BuildOperation(ctx context.Context, g *catalog.Graph, name string, st State
 			return nil, err
 		}
 		for _, h := range hosts {
-			if h.Status != "active" {
+			if h.Status != "active" || len(s.Hosts) > 0 && !slices.Contains(s.Hosts, h.Hostname) {
 				continue
 			}
 			op.Targets = append(op.Targets, Target{UID: h.UID, Hostname: h.Hostname, Contract: c.Metadata.Name, Owner: labels["owner"], Env: labels["env"]})
+		}
+	}
+	for _, h := range s.Hosts {
+		if !slices.ContainsFunc(op.Targets, func(t Target) bool { return t.Hostname == h }) {
+			return nil, fmt.Errorf("%s: host %s is not an active server of the selected contracts", name, h)
 		}
 	}
 	sort.Slice(op.Targets, func(i, j int) bool { return op.Targets[i].Hostname < op.Targets[j].Hostname })
@@ -158,6 +163,10 @@ func operationSteps(s *catalog.OperationSpec) []string {
 		steps = append(steps, fmt.Sprintf("power %v", s.Options["state"]))
 	case "revert":
 		steps = append(steps, fmt.Sprintf("revert to %v", s.Options["snapshot"]))
+	case "replace":
+		// The new server is checked as any new one: its address, then
+		// its configuration.
+		return []string{"remove the old server's records and VM", "a new server, same name and address", "configure"}
 	}
 	if off := s.Action == "power" && s.Options["state"] == "off"; s.Action != "snapshot" && !off {
 		steps = append(steps, "health")

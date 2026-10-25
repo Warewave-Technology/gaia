@@ -360,6 +360,8 @@ type work struct {
 	stopping  []stopper                // servers starting their grace period
 	restoring []target                 // stopped servers wanted again
 	retained  map[string][]plan.Server // per site: servers leaving Gaia's management
+	replaced  map[string][]doomed      // per site: servers being replaced
+	only      []string                 // with replacements: the new servers, the only ones configured
 }
 
 // contract runs one contract's stages in the order of design 7.2:
@@ -395,6 +397,10 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		if err := r.stage(ctx, c.Name, "release", func() error { return r.release(ctx, c, w.gone, w.creds) }); err != nil {
 			return err
 		}
+	}
+	if len(w.only) > 0 {
+		// A replacement configures the new servers alone.
+		w.targets = slices.DeleteFunc(w.targets, func(t target) bool { return !slices.Contains(w.only, t.s.UID) })
 	}
 	if (c.Monitoring != nil || hasDNS(w.targets) || hasDomain(c)) && len(w.targets) > 0 {
 		err := r.stage(ctx, c.Name, "register", func() error {
@@ -478,6 +484,12 @@ func (r *runner) prepare(ctx context.Context, c plan.Contract, contract *catalog
 				}
 			}
 			continue
+		}
+		if s.Action == plan.Replace {
+			if err := r.replace(ctx, &s, w); err != nil {
+				return err
+			}
+			r.changes[len(r.changes)-1].UID = s.UID
 		}
 		if s.Action == plan.Create {
 			s.UID = store.NewUID()
@@ -611,6 +623,11 @@ func (r *runner) provision(ctx context.Context, c plan.Contract, backend pulumi.
 		stack := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VSphere: w.siteVS[site], VMs: vms}
 		if kept := w.retained[site]; len(kept) > 0 {
 			if err := r.letGo(ctx, c, stack, backend, kept); err != nil {
+				return err
+			}
+		}
+		if old := w.replaced[site]; len(old) > 0 {
+			if err := r.removeReplaced(ctx, stack, backend, old); err != nil {
 				return err
 			}
 		}

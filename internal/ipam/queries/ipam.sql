@@ -32,3 +32,10 @@ returning *;
 
 -- name: AllocationsOf :many
 select * from allocations where owner = @owner and released_at is null order by pool;
+
+-- name: ReassignOwner :many
+-- A replaced server's addresses go to the server that replaces it
+-- (design 9.5): same address, new owner.
+update allocations set owner = @to_owner
+where owner = @from_owner and released_at is null
+returning *;

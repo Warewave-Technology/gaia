@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,8 +18,10 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
+	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
+	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
@@ -407,4 +410,120 @@ func (r *runner) letGo(ctx context.Context, c plan.Contract, st pulumi.Stack, ba
 		r.change(runrecord.Change{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Stage: "provision", Action: "retain", Detail: "left the stack " + st.Name + "; records kept"})
 	}
 	return nil
+}
+
+// replace gives a kept server's place to a new one (design 9.5): the old
+// one's records are removed by its IDs, its VM is deleted before the new
+// one is created, and the new one takes its name, sequence number and
+// address. No grace period: the name and address go on.
+func (r *runner) replace(ctx context.Context, s *plan.Server, w *work) error {
+	d, err := r.doom(ctx, *s)
+	if err != nil {
+		return err
+	}
+	old := s.UID
+	s.UID = store.NewUID()
+	if err := r.d.Store.ReplaceHost(ctx, old, s.UID, r.run); err != nil {
+		return fmt.Errorf("%s: %w", s.Hostname, err)
+	}
+	if d.ipam != "" {
+		p := r.provider(d.ipam)
+		f, err := r.d.Secrets.Read(ctx, p.Credentials)
+		if err != nil {
+			return err
+		}
+		if _, err := ipamclient.New(p.Endpoint, f["token"]).Reassign(ctx, old, s.UID); err != nil {
+			return fmt.Errorf("%s: %w", s.Hostname, err)
+		}
+		d.ipam = "" // the address goes on: nothing to release
+	}
+	d.replacedBy = s.UID
+	w.gone = append(w.gone, d)
+	if d.compute != "" {
+		if w.replaced == nil {
+			w.replaced = map[string][]doomed{}
+		}
+		w.replaced[s.Site] = append(w.replaced[s.Site], d)
+	}
+	w.only = append(w.only, s.UID)
+	r.printf("  %s: uid %s replaces %s\n", s.Hostname, s.UID, old)
+	return nil
+}
+
+// removeReplaced deletes the VMs of replaced servers before their stack
+// runs, so that the new VMs never meet them on the network: they leave
+// the stack, then the hypervisor's API deletes them, stopped at once (a
+// server is often replaced because it hangs).
+func (r *runner) removeReplaced(ctx context.Context, st pulumi.Stack, backend pulumi.Backend, old []doomed) error {
+	uids := make([]string, 0, len(old))
+	for _, d := range old {
+		uids = append(uids, d.s.UID)
+	}
+	if _, err := r.d.Forget(ctx, backend, st, uids); err != nil {
+		return err
+	}
+	for _, d := range old {
+		comp, err := r.computeOf(ctx, d.compute)
+		if err != nil {
+			return err
+		}
+		vm := d.uuid
+		if vm == "" {
+			vm = strconv.Itoa(d.vmid)
+		}
+		if err := comp.Delete(ctx, vm); err != nil && !errors.Is(err, compute.ErrNoVM) {
+			return fmt.Errorf("%s: delete VM %s: %w", d.s.Hostname, vm, err)
+		}
+		r.printf("  %s: old VM %s deleted\n", d.s.Hostname, vm)
+	}
+	return nil
+}
+
+// computeOf opens a compute provider's day-2 API.
+func (r *runner) computeOf(ctx context.Context, provider string) (compute.Compute, error) {
+	p := r.provider(provider)
+	sec, err := r.d.Secrets.Read(ctx, p.Credentials)
+	if err != nil {
+		return nil, err
+	}
+	if r.d.Compute == nil {
+		return nil, errors.New("no day-2 API")
+	}
+	return r.d.Compute(ctx, p.Type, p.Endpoint, sec)
+}
+
+// replaceOne replaces one server of an Operation (design 9.5), holding its
+// contract's lock. The contract must be as it was last applied: a
+// replacement applies nothing else.
+func (r *runner) replaceOne(ctx context.Context, contract, uid string) error {
+	p, err := plan.Build(ctx, r.g, []string{contract}, StoreState{S: r.d.Store})
+	if err != nil {
+		return err
+	}
+	st, err := r.d.Store.Q().ContractState(ctx, contract)
+	if err != nil || !st.AppliedPlanHash.Valid {
+		return fmt.Errorf("%s has not been applied", contract)
+	}
+	if p.Hash != st.AppliedPlanHash.String {
+		return fmt.Errorf("%s has changes that are not applied; apply them first", contract)
+	}
+	c := p.Contracts[0]
+	found := false
+	for i, s := range c.Servers {
+		if s.UID == uid && s.Action == plan.Keep {
+			c.Servers[i].Action, found = plan.Replace, true
+		}
+	}
+	if !found {
+		return errors.New("not a server the contract keeps")
+	}
+	backend, err := r.backend(ctx)
+	if err != nil {
+		return err
+	}
+	sshKey, _, err := r.sshKeys(ctx)
+	if err != nil {
+		return err
+	}
+	return r.contract(ctx, c, backend, sshKey)
 }

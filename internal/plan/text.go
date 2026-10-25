@@ -69,6 +69,9 @@ func WriteText(w io.Writer, p *Plan) error {
 				changed = true
 			case Keep:
 				pr.f("  = %-14s %s / %s · uid %s (%s)\n", s.Hostname, s.Site, s.Network, s.UID, s.Status)
+			case Replace:
+				pr.f("  ~ %-14s %s / %s · uid %s replaced by a new server, same name and address\n", s.Hostname, s.Site, s.Network, s.UID)
+				changed = true
 			}
 			pr.f("    %-14s %s: %d vCPU, %d GiB, %s · IP from %s (%s)\n",
 				"", c.Size.Name, c.Size.CPU, c.Size.MemoryGiB, disk, s.IPAM.Pool, s.IPAM.Provider)

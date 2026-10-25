@@ -1189,7 +1189,13 @@ spec:
   target: { contract: portal-web, host: ankppor02 }
 ```
 
-Replace işleminde bekleme süresi uygulanmaz, çünkü isim ve IP yeni sunucuya geçer. Güvenlik için eski sunucunun son snapshot'ı alınır.
+Replace işleminde bekleme süresi uygulanmaz, çünkü isim ve IP yeni sunucuya geçer.
+
+**Uygulamada:**
+- Operation `action: replace` ile `selector` ve değiştirilecek sunucuların adlarını veren `hosts` alanı kullanılır (`hosts` diğer aksiyonlarda da seçilen kontratların sunucularını daraltır; replace'te zorunludur).
+- Kontrat son uygulandığı gibi olmalıdır: uygulanmamış bir değişikliği varsa replace reddedilir, çünkü replace başka bir şey uygulamaz.
+- Tek run'da: eski sunucunun kayıtları (DNS, AD hesabı, Warpgate hedefi, Zabbix host'u) kaydedilen ID'leriyle silinir; yeni UID eski hostun yerini, adını ve sıra numarasını aynı anda alır; IPAM adresi yeni UID'ye devreder (`reassign`). Eski VM, yeni VM ağa çıkmadan önce stack'ten düşürülür ve hipervizör API'siyle hemen durdurulup silinir (çoğu zaman sunucu asılı kaldığı için değiştirilir). Sonra yeni VM kurulur, kayıtları yazılır ve sadece yeni sunucu yapılandırılır.
+- Eski VM aynı run'da silindiği için son snapshot alınmaz; geri dönüş noktası gerekiyorsa replace'ten önce `snapshot` Operation'ı çalıştırılır.
 
 ### 9.6 Kontratın kaldırılması
 
