@@ -67,6 +67,7 @@ export type Change = {
   updatedAt: string;
   finishedAt?: string;
   restricted?: boolean;
+  awaitingMe?: boolean;
 };
 
 export type ContractSummary = {

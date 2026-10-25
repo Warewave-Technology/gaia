@@ -34,6 +34,9 @@ type Change struct {
 	UpdatedAt   time.Time       `json:"updatedAt"`
 	FinishedAt  *time.Time      `json:"finishedAt,omitempty"`
 	Restricted  bool            `json:"restricted,omitempty"`
+	// AwaitingMe: the caller is one of those who may give an approval
+	// the change still waits for.
+	AwaitingMe bool `json:"awaitingMe,omitempty"`
 }
 
 // Approval is one decision on a change.
@@ -59,8 +62,15 @@ func (s *Server) listChanges(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
+	// ?awaiting=me: only the changes the caller may approve now.
+	mine := r.URL.Query().Get("awaiting") == "me"
+	p := auth.From(r.Context())
+	if mine && p == nil {
+		writeJSON(w, http.StatusOK, []Change{})
+		return
+	}
 	rows, err := s.store.Q().Changes(r.Context(), db.ChangesParams{
-		Contract: r.URL.Query().Get("contract"), OpenOnly: r.URL.Query().Get("open") == "true", CommitSha: r.URL.Query().Get("commit"), MaxRows: int32(limit), //nolint:gosec // bounded above
+		Contract: r.URL.Query().Get("contract"), OpenOnly: mine || r.URL.Query().Get("open") == "true", CommitSha: r.URL.Query().Get("commit"), MaxRows: int32(limit), //nolint:gosec // bounded above
 	})
 	if err != nil {
 		s.fail(w, err)
@@ -71,10 +81,70 @@ func (s *Server) listChanges(w http.ResponseWriter, r *http.Request) {
 		ch := changeJSON(c)
 		if !s.full(r, []string{c.Contract}) {
 			ch = Change{ID: c.ID, Contract: c.Contract, Status: c.Status, CreatedAt: ch.CreatedAt, UpdatedAt: ch.UpdatedAt, Restricted: true}
+		} else if ch.AwaitingMe, err = s.awaits(r, c); err != nil {
+			s.fail(w, err)
+			return
+		}
+		if mine && !ch.AwaitingMe {
+			continue
 		}
 		out = append(out, ch)
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// awaits reports whether the change waits for an approval the caller may
+// give: it is pending, its approval gate waits, the caller is a candidate
+// of a group nobody approved yet, and the caller has not decided on it.
+func (s *Server) awaits(r *http.Request, c db.Change) (bool, error) {
+	p := auth.From(r.Context())
+	if p == nil || c.Status != "pending" {
+		return false, nil
+	}
+	ctx := r.Context()
+	gates, err := s.store.Q().Gates(ctx, c.ID)
+	if err != nil {
+		return false, err
+	}
+	for _, g := range gates {
+		if g.Gate != "approval" || g.Status != "waiting" {
+			continue
+		}
+		var need change.Need
+		if err := json.Unmarshal(g.Detail, &need); err != nil {
+			return false, nil
+		}
+		for _, x := range need.Excluded {
+			if x == p.Username {
+				return false, nil
+			}
+		}
+		open := false
+		for _, gr := range need.Groups {
+			if gr.ApprovedBy != "" {
+				continue
+			}
+			for _, cand := range gr.Candidates {
+				if cand == p.Username {
+					open = true
+				}
+			}
+		}
+		if !open {
+			return false, nil
+		}
+		decided, err := s.store.Q().Approvals(ctx, c.ID)
+		if err != nil {
+			return false, err
+		}
+		for _, a := range decided {
+			if a.Username == p.Username && a.PlanHash == c.PlanHash {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 // Drift is a live drift report (design 7.5).
@@ -144,6 +214,10 @@ func (s *Server) getChange(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, a := range approvals {
 		out.Approvals = append(out.Approvals, Approval{Username: a.Username, Decision: a.Decision, PlanHash: a.PlanHash, Comment: a.Comment.String, CreatedAt: a.CreatedAt.Time})
+	}
+	if out.AwaitingMe, err = s.awaits(r, c); err != nil {
+		s.fail(w, err)
+		return
 	}
 	writeJSON(w, http.StatusOK, out)
 }

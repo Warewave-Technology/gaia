@@ -149,6 +149,12 @@ Gaia'nın omurgası (tasarım 7.6).
   - Sunucu, başka bir route'un almadığı her yolu uygulamaya verir. API yolları uygulamaya düşmez.
   - `make build`, `make package`, imaj ve CI arayüzü de derler.
   - Giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`, `/approve/{id}`) sunucuda kalır. Oturum yoksa uygulama `/login?next=` adresine gider.
+- Tamam: Değişiklikler ekranı.
+  - **Liste:** onayımı bekleyenler, açık ve tümü olarak filtrelenir.
+  - **Detay:** durum paneli, gerekenler (validasyon, imza, onaycı grupları ve onaylayamayanlar), alan alan ve sunucu sunucu plan, commit'ler, ham plan ve akış.
+  - **Onay ve red:** her karar önce passkey ile doğrulanır; passkey'i olmayan TOTP kodu girer. Karar, görülen planın hash'iyle gönderilir.
+  - **API:** `awaitingMe` alanı ve `GET /changes?awaiting=me`.
+- Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 
 ## Faz 6: Erişim yönetimi
 

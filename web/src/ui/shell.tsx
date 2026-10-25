@@ -20,7 +20,7 @@ const MENU: { to: string; icon: IconName; label: string; end?: boolean }[] = [
 
 function PendingCount() {
   const q = useQuery({
-    queryKey: ["changes", "open"],
+    queryKey: ["changes", "pending-count"],
     queryFn: () => api<Change[]>("/changes?open=true&limit=500"),
     refetchInterval: 30_000,
   });
@@ -87,7 +87,7 @@ export function Page({ crumbs, children }: { crumbs: ReactNode; children: ReactN
           {me && (
             <>
               <NavLink to="/profile" className="il" style={{ color: "var(--fg2)" }}><Icon name="user" size={18} />{me.username}</NavLink>
-              <button type="button" className="tt-ic" title="Çıkış" onClick={logout} style={{ color: "var(--fg4)", cursor: "pointer" }}><Icon name="logout" size={18} /></button>
+              <button type="button" className="icon-btn" title="Çıkış" aria-label="Çıkış" onClick={logout}><Icon name="logout" size={18} /></button>
             </>
           )}
           {open && <span className="badge yellow" title="Bu sunucuda AuthConfig yok; API herkese açık.">kimlik doğrulama kapalı</span>}
