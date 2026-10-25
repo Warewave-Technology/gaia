@@ -589,7 +589,15 @@ Operation patch-2026-11-prod-w2
   - Onaydan beri aktif olmayan sunucular atlanır (`skipped`). `maxFailures` aşılınca kalan batch'ler çalışmaz (`not run`).
   - Sonuç `succeeded`, `partial` veya `failed` olur.
   - Sunucu başına sonuçlar `GET /api/v1/operations`'tadır; run kaydı ve bildirimler de bunları içerir.
-- **Bu sürümdeki aksiyonlar:** `reboot` ve `runbook`; ardından sağlık kontrolü (sunucu yeniden cevap veriyor). `patch`, `snapshot` ve bakım modu bir sonraki adımda; `power`, `revert` ve `replace` sonraki fazlarda.
+- **Bu sürümdeki aksiyonlar:**
+  - `patch`, `reboot`, `snapshot`, `runbook`; `power`, `revert` ve `replace` sonraki fazlarda.
+  - `patch` Red Hat ailesinde dnf ile çalışır (`scope: security` varsayılan veya `all`, `exclude`); yeniden başlatma gereğine `needs-restarting -r` ile bakılır. Debian ailesinde apt ile çalışır ve `/var/run/reboot-required`'a bakılır. `reboot: auto|always|never`.
+  - `snapshot` (ya da `options.snapshot: true`), VM'in Proxmox snapshot'ını belleksiz alır; adı `gaia_<operation>_<zaman>`'dır. Snapshot'ı alınamayan sunucu başarısız sayılır ve üzerinde işlem yapılmaz.
+- **Batch akışı:**
+  - Batch'in sunucuları izleme sisteminde bakım moduna alınır; bakım pencerenin sonuna kadar (pencere yoksa iki saat) sürer ve batch bitince kapatılır.
+  - Aksiyondan sonra sağlık kontrolü yapılır: sunucu yeniden cevap veriyor mu.
+  - Load balancer adımı LB provider'ı gelince eklenecek.
+- **Temizlik:** Bitmiş Operation dosyaları 30 gün sonra Gaia'nın imzalı commit'iyle silinir (kaynak senkronunun yanında); kayıtlar veritabanında ve run kayıtlarında kalır.
 
 #### Tekrarlayan işler: OperationSchedule
 

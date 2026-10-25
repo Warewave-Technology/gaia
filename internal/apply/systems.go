@@ -23,6 +23,9 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		UsedVMIDs: func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error) {
 			return proxmox.New(c).UsedVMIDs(ctx)
 		},
+		Snapshot: func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error {
+			return proxmox.New(c).Snapshot(ctx, vmid, name, description)
+		},
 		Configure: ansible.Podman{},
 		Monitor:   func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
 		Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {

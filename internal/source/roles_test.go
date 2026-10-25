@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/signature"
 	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 func TestAnsibleRoleSourceWritesRoles(t *testing.T) {
@@ -102,5 +104,56 @@ spec:
 	}
 	if status, _ := run(); status != "unchanged" {
 		t.Errorf("second run: %s", status)
+	}
+}
+
+func TestFinishedOperationsAreRemoved(t *testing.T) {
+	itest.Require(t)
+	ctx := context.Background()
+	dsn := itest.StartPostgres(t)
+	if err := store.Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(st.Close)
+	op := "apiVersion: gaia/v1alpha1\nkind: Operation\nmetadata: { name: %s }\nspec: { action: reboot, selector: 'true' }\n"
+	platform := labRepo(t, map[string]string{
+		"contracts/old.yaml": strings.Replace(op, "%s", "old", 1),
+		"contracts/new.yaml": strings.Replace(op, "%s", "new", 1),
+	})
+	for _, n := range []string{"old", "new"} {
+		if err := st.Q().InsertOperation(ctx, db.InsertOperationParams{Name: n, Status: "scheduled", SpecHash: "x"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := st.Q().SetOperationStatus(ctx, db.SetOperationStatusParams{Name: n, Status: "succeeded", FromStatuses: []string{"scheduled"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, priv, _ := ed25519.GenerateKey(rand.Reader)
+	key, _ := ssh.NewSignerFromKey(priv)
+	m := &repo.Mirrors{Dir: t.TempDir()}
+	s := &Syncer{Store: st, Repos: m, Writer: &repo.Writer{Mirrors: m, Signer: signature.SSHSigner{Key: key}, Name: "Gaia", Email: "gaia@example.com"}}
+	snap, _ := m.Head(ctx, platform)
+	g, err := m.Graph(ctx, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// "old" finished 31 days ago, by the clock the cleanup is given.
+	if _, err := st.Pool().Exec(ctx, "update operations set finished_at = now() - interval '31 days' where name = 'old'"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CleanOperations(ctx, snap, g, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	snap, _ = m.Head(ctx, platform)
+	g, _ = m.Graph(ctx, snap)
+	if _, ok := g.Catalog.Get(catalog.KindOperation, "old"); ok {
+		t.Error("the old Operation is still there")
+	}
+	if _, ok := g.Catalog.Get(catalog.KindOperation, "new"); !ok {
+		t.Error("the new Operation was removed")
 	}
 }

@@ -423,3 +423,36 @@ func (c *Client) UserGroup(ctx context.Context, name string, rights map[string]i
 	params["usrgrpid"] = existing[0].ID
 	return missing, c.call(ctx, "usergroup.update", params, nil)
 }
+
+// Maintenance puts hosts in a maintenance (with data collection) until
+// until, for an Operation (design 6.4); it returns the maintenance's ID.
+func (c *Client) Maintenance(ctx context.Context, name string, hostIDs []string, until time.Time) (string, error) {
+	now := time.Now().Unix()
+	end := until.Unix()
+	if end <= now {
+		end = now + 3600
+	}
+	hosts := []map[string]string{}
+	for _, id := range hostIDs {
+		hosts = append(hosts, map[string]string{"hostid": id})
+	}
+	var out struct {
+		IDs []string `json:"maintenanceids"`
+	}
+	err := c.call(ctx, "maintenance.create", map[string]any{
+		"name": name, "active_since": now, "active_till": end, "maintenance_type": 0, "hosts": hosts,
+		"timeperiods": []map[string]any{{"timeperiod_type": 0, "start_date": now, "period": end - now}},
+	}, &out)
+	if err != nil {
+		return "", err
+	}
+	if len(out.IDs) == 0 {
+		return "", errors.New("zabbix: maintenance.create returned no ID")
+	}
+	return out.IDs[0], nil
+}
+
+// EndMaintenance deletes a maintenance.
+func (c *Client) EndMaintenance(ctx context.Context, id string) error {
+	return c.call(ctx, "maintenance.delete", []string{id}, nil)
+}

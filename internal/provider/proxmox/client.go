@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -67,9 +68,20 @@ func FreeVMID(used, taken map[int]bool, start, end int) (int, error) {
 }
 
 func (c *Client) get(ctx context.Context, path string, out any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.creds.Endpoint, "/")+"/api2/json"+path, nil)
+	return c.do(ctx, http.MethodGet, path, nil, out)
+}
+
+func (c *Client) do(ctx context.Context, method, path string, form url.Values, out any) error {
+	var body io.Reader
+	if form != nil {
+		body = strings.NewReader(form.Encode())
+	}
+	req, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(c.creds.Endpoint, "/")+"/api2/json"+path, body)
 	if err != nil {
 		return err
+	}
+	if form != nil {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 	req.Header.Set("Authorization", "PVEAPIToken="+c.creds.APIToken())
 	resp, err := c.http.Do(req)
@@ -77,12 +89,99 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 		return fmt.Errorf("proxmox: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("proxmox GET %s: %d %s", path, resp.StatusCode, strings.TrimSpace(string(body)))
+		return fmt.Errorf("proxmox %s %s: %d %s", method, path, resp.StatusCode, strings.TrimSpace(string(data)))
 	}
-	return json.Unmarshal(body, out)
+	if out == nil {
+		return nil
+	}
+	return json.Unmarshal(data, out)
+}
+
+// node returns the node a VM runs on.
+func (c *Client) node(ctx context.Context, vmid int) (string, error) {
+	var out struct {
+		Data []struct {
+			VMID int    `json:"vmid"`
+			Node string `json:"node"`
+		} `json:"data"`
+	}
+	if err := c.get(ctx, "/cluster/resources?type=vm", &out); err != nil {
+		return "", err
+	}
+	for _, r := range out.Data {
+		if r.VMID == vmid {
+			return r.Node, nil
+		}
+	}
+	return "", fmt.Errorf("proxmox: no VM %d", vmid)
+}
+
+// SnapshotName makes a Proxmox snapshot name: a letter first, then
+// letters, digits and _, at most 40 characters.
+func SnapshotName(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('_')
+		}
+	}
+	name := b.String()
+	if name == "" || (name[0] < 'a' || name[0] > 'z') && (name[0] < 'A' || name[0] > 'Z') {
+		name = "g" + name
+	}
+	if len(name) > 40 {
+		name = name[:40]
+	}
+	return name
+}
+
+// Snapshot takes a snapshot of a VM (without its memory) and waits for
+// the task to end.
+func (c *Client) Snapshot(ctx context.Context, vmid int, name, description string) error {
+	node, err := c.node(ctx, vmid)
+	if err != nil {
+		return err
+	}
+	var started struct {
+		Data string `json:"data"` // the task's UPID
+	}
+	form := url.Values{"snapname": {name}, "description": {description}, "vmstate": {"0"}}
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/nodes/%s/qemu/%d/snapshot", node, vmid), form, &started); err != nil {
+		return err
+	}
+	return c.wait(ctx, node, started.Data)
+}
+
+// wait waits for a task to stop and returns its error.
+func (c *Client) wait(ctx context.Context, node, upid string) error {
+	for {
+		var st struct {
+			Data struct {
+				Status     string `json:"status"`
+				ExitStatus string `json:"exitstatus"`
+			} `json:"data"`
+		}
+		if err := c.get(ctx, fmt.Sprintf("/nodes/%s/tasks/%s/status", node, url.PathEscape(upid)), &st); err != nil {
+			return err
+		}
+		if st.Data.Status == "stopped" {
+			if st.Data.ExitStatus != "OK" {
+				return fmt.Errorf("proxmox task %s: %s", upid, st.Data.ExitStatus)
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
