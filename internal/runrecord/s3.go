@@ -72,3 +72,15 @@ func (s *S3) Retention(ctx context.Context, key string) (string, time.Time, erro
 	}
 	return m, t, nil
 }
+
+// Check reports whether the bucket is there for these keys.
+func (s *S3) Check(ctx context.Context) error {
+	ok, err := s.client.BucketExists(ctx, s.bucket)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("no bucket %s", s.bucket)
+	}
+	return nil
+}

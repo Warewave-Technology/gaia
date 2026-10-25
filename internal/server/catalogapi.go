@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/queue"
 )
 
 // contractKinds are the contract repository's kinds: the catalog API
@@ -136,6 +138,19 @@ type ProviderInfo struct {
 	UsedBy      []CatalogRef `json:"usedBy"`
 	// Error is what the last discovery run got from it, if it failed.
 	Error string `json:"error,omitempty"`
+	// Check is Gaia's last check of the provider; none before the first.
+	Check *ProviderCheck `json:"check,omitempty"`
+}
+
+// ProviderCheck is whether Gaia reached the provider with its
+// credentials, and when it last did.
+type ProviderCheck struct {
+	Status    string     `json:"status"` // ok | failed | skipped
+	Detail    string     `json:"detail,omitempty"`
+	Error     string     `json:"error,omitempty"`
+	LatencyMs int32      `json:"latencyMs"`
+	CheckedAt time.Time  `json:"checkedAt"`
+	LastOKAt  *time.Time `json:"lastOkAt,omitempty"`
 }
 
 // listProviders is the catalog's providers with where they are used and
@@ -154,6 +169,15 @@ func (s *Server) listProviders(w http.ResponseWriter, r *http.Request) {
 			errs = body.Errors
 		}
 	}
+	checks := map[string]*ProviderCheck{}
+	rows, err := s.store.Q().ProviderChecks(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	for _, c := range rows {
+		checks[c.Provider] = &ProviderCheck{Status: c.Status, Detail: c.Detail.String, Error: c.Error.String, LatencyMs: c.LatencyMs, CheckedAt: c.CheckedAt.Time, LastOKAt: timePtr(c.LastOkAt)}
+	}
 	out := []ProviderInfo{}
 	for _, o := range g.Catalog.List(catalog.KindProvider) {
 		sp := o.Spec.(*catalog.ProviderSpec)
@@ -163,8 +187,21 @@ func (s *Server) listProviders(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, ProviderInfo{
 			Name: o.Metadata.Name, Type: sp.Type, Endpoint: endpoint, Credentials: sp.Credentials,
-			UsedBy: refs(g.UsedBy(o.Key()), false), Error: errs[o.Metadata.Name],
+			UsedBy: refs(g.UsedBy(o.Key()), false), Error: errs[o.Metadata.Name], Check: checks[o.Metadata.Name],
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// checkProviders asks for a provider check now (platform-admin).
+func (s *Server) checkProviders(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.Catalog == nil {
+		writeJSON(w, http.StatusServiceUnavailable, Problem{Error: "this server does not follow a repository"})
+		return
+	}
+	if _, err := s.queue.Insert(r.Context(), queue.CheckProvidersArgs{}, nil); err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "checking"})
 }

@@ -101,12 +101,19 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 		if err := river.AddWorkerSafely(workers, &queue.OperationWorker{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, Done: cfg.OperationDone, BusyWait: cfg.BusyWait}); err != nil {
 			return nil, err
 		}
+		periodic := []*river.PeriodicJob{queue.PruneEventsDaily(), queue.EndGraceEvery()}
+		if cfg.Systems != nil && cfg.Catalog != nil {
+			if err := river.AddWorkerSafely(workers, &queue.CheckProvidersWorker{Store: s, Graph: cfg.Catalog.Graph, Systems: cfg.Systems}); err != nil {
+				return nil, err
+			}
+			periodic = append(periodic, queue.CheckProvidersEvery())
+		}
 		rc.Workers = workers
 		rc.Queues = map[string]river.QueueConfig{
 			queue.Apply:        {MaxWorkers: cfg.Workers},
 			river.QueueDefault: {MaxWorkers: 4},
 		}
-		rc.PeriodicJobs = []*river.PeriodicJob{queue.PruneEventsDaily(), queue.EndGraceEvery()}
+		rc.PeriodicJobs = periodic
 	}
 	c, err := river.NewClient(riverpgxv5.New(s.Pool()), rc)
 	if err != nil {
