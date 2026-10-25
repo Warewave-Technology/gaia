@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/proposal"
 	"github.com/Warewave-Technology/gaia/internal/repo"
@@ -196,5 +198,56 @@ spec:
 	}
 	if actions["settings.propose"] != 8 || actions["settings.approve"] != 5 || actions["settings.apply"] != 5 || actions["settings.reject"] != 1 || actions["settings.withdraw"] != 1 {
 		t.Errorf("audit = %v", actions)
+	}
+}
+
+// A settings change that alone changes a contract's plan opens a change
+// of source settings, asked for by who proposed it.
+func TestASettingsChangeOpensItsContractsChanges(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	e.edit("contracts/poc-web.yaml", "replicas: 0", "replicas: 1")
+	e.git.Commit("one server")
+	e.signer("mehmet", "team-ops")
+	e.signer("ayse", "team-platform")
+	sets := &settings.Store{DB: e.store}
+	e.repos.Settings = sets
+	platform := repo.Rev{Name: "platform", URL: e.repo}
+	if _, err := settings.ImportGit(ctx, sets, e.repos, platform); err != nil {
+		t.Fatal(err)
+	}
+	en := e.engine()
+	e.evaluate(en)
+	c, ok := e.open("poc-web")
+	if !ok || c.Source != "commit" {
+		t.Fatalf("first change = %+v", c)
+	}
+	// As if it ran.
+	if err := e.store.Q().SetApplied(ctx, db.SetAppliedParams{Contract: "poc-web", AppliedSnapshot: c.Snapshot, AppliedLabel: pgtype.Text{String: c.Label, Valid: true},
+		AppliedPlanHash: pgtype.Text{String: c.PlanHash, Valid: true}, AppliedPlan: c.Plan}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.store.Q().SetChangeStatus(ctx, db.SetChangeStatusParams{ID: c.ID, Status: "applied", FromStatuses: []string{c.Status}}); err != nil {
+		t.Fatal(err)
+	}
+
+	cat := &CatalogSource{Repos: e.repos, Platform: platform}
+	if err := cat.Load(ctx); err != nil {
+		t.Fatal(err)
+	}
+	props := &proposal.Service{Store: e.store, Settings: sets, Repos: e.repos, Desired: cat}
+	mehmet := proposal.Person{UserID: "u-mehmet", Username: "mehmet", Roles: []string{"viewer", "operator"}}
+	ayse := proposal.Person{UserID: "u-ayse", Username: "ayse", Roles: []string{"viewer", "platform-admin"}}
+	pr, chk, err := props.Propose(ctx, mehmet, "small: 3 vCPU", "", []proposal.Edit{sizeEdit("small", "3")})
+	if err != nil {
+		t.Fatalf("propose: %v %+v", err, chk)
+	}
+	if _, err := props.Decide(ctx, ayse, proposal.Decision{ID: pr.ID, ContentHash: pr.ContentHash, Approve: true}); err != nil {
+		t.Fatal(err)
+	}
+	e.evaluate(en)
+	c, ok = e.open("poc-web")
+	if !ok || c.Source != "settings" || strings.Join(c.RequestedBy, ",") != "mehmet" || !strings.HasSuffix(c.Label, "+settings@2") {
+		t.Errorf("change = %+v", c)
 	}
 }

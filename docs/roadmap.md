@@ -24,7 +24,7 @@
 | 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | **Tamam** |
 | 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | **Tamam** |
 | 17 | Denetim kaydının tamamı ve ekranı | 14–16 | **Tamam** |
-| 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | – |
+| 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | **Tamam** |
 
 Arayüzün ekranları tasarım taslağı onaylanınca yazılır. Taslak beklerken arka uç fazları ilerler.
 
@@ -439,7 +439,21 @@ Yapılanlar:
 - **Kapsam:** Bütün yönetim işlemleri: ayar önerileri ve kararları, kontrat Change kararları, kullanıcı ve oturum işlemleri, girişler (başarılı ve başarısız), step-up, run iptali, keşif ve sync tetikleme, anahtarlar.
 - **Ekran:** Ayarlar → Denetim kaydı; kişi, işlem, nesne ve zamana göre süzme; JSON satırları olarak dışa aktarma.
 
-### Faz 18: Lab
+### Faz 18: Lab — Tamam (2026-10-25)
+Yapılanlar:
+- **Geçiş:** Lab'deki Gaia güncellendi; ilk açılışta 17 ayar nesnesi Git'ten içeri alındı (v1). poc-web `synced` kaldı, yeni Change açılmadı.
+- **Dizin:** `lab/ad.yml` platform VM'inde Samba AD (`gaia.lab`) kurar. LDAPS sadece 127.0.0.1:636'da dinler. Dizinde kişiler (`yigit.basalma`, `mehmet.yilmaz`, `ayse.kaya`, `can.demir`, `zeynep.ak`, kapalı `ali.veli`), takım ve onaycı grupları ve bir okuma hesabı var.
+- **Ayar değişikliği:** AD provider'ı, TeamSource ve LDAP girişi tek bir ayar değişikliğiyle eklendi. lab-yazar önerdi, lab-onayci onayladı; AuthConfig içerdiği için platform-admin onayı istendi.
+- **Takımlar:** TeamSource `team-platform` ve `team-web` takımlarını ayar deposuna yazdı (v3). Üyelik eşitlemesi dizin hesaplarını getirdi; ali.veli kapalı geldi.
+- **Giriş:** Dizin girişi denendi: yanlış parola 401, kapalı hesap 403. mehmet.yilmaz ilk girişte TOTP kaydedip girdi ve platform-admin oldu.
+- **Uçtan uca:** mehmet.yilmaz lab-poc'un ağ geçidini değiştirmeyi önerdi; etki listesinde poc-web çıktı ve kendi önerisini onaylayamadı. lab-onayci onaylayınca v6 oldu ve poc-web için onay bekleyen bir Change açıldı. Ayar geri alınınca (v7) Change kendiliğinden kapandı (`superseded`). Hepsi denetim kaydında.
+- **Bulunan ve düzeltilenler:**
+  - Ayarın tek başına değiştirdiği plan için açılan Change'in kaynağı artık `settings`. İsteyen, o ayarları önerendir; öneren bu Change'i de onaylayamaz.
+  - İçe alınan YAML 2 boşluk girintiyle yazılıyor.
+  - Kontrol cevabında boş hata listesi `[]` dönüyor.
+- **Not:** Ağın `dns.servers` alanı plana girmiyor; değiştirmek kontratlarda Change açmaz. Kontratlara yansıtmak ayrı bir iş.
+
+İlk plan:
 - **Kurulum:** Lab'de Samba AD (platform VM'inde container). Örnek kullanıcılar ve takım grupları; TeamSource ve LDAP girişi.
 - **Geçiş:** Lab'deki Gaia yeni yapıya geçer; ayarlar Git'ten içeri alınır.
 - **Uçtan uca deneme:** Altyapı'dan bir ağ ayarı değişikliği → onay → etkilenen kontratın Change'i. LDAP ile giriş ve ikinci faktör. Denetim kaydında bunların görünmesi.

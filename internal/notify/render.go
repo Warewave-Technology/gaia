@@ -71,8 +71,11 @@ func render(ev Event) (string, string) {
 		}
 	}
 	line("Değişiklik", ev.Change)
-	if ev.Source == "revert" {
+	switch ev.Source {
+	case "revert":
 		line("Kaynak", "geri alma")
+	case "settings":
+		line("Kaynak", "ayar değişikliği")
 	}
 	line("İsteyen", strings.Join(ev.RequestedBy, ", "))
 	line("Plan", fmt.Sprintf("%d oluşturulacak, %d kalacak, %d silinecek", ev.Summary.Create, ev.Summary.Keep, ev.Summary.Delete))

@@ -44,6 +44,7 @@ export const SOURCE: Record<string, { icon: IconName; label: string; text: strin
   "drift-auto": { icon: "scan", label: "drift (otomatik)", text: "enforce seviyesinde sapma kendiliğinden düzeltiliyor" },
   operation: { icon: "zap", label: "operation", text: "bir Operation (ör. yeniden başlatma, yama) çalışıyor" },
   schedule: { icon: "calendar", label: "schedule", text: "zamanlanmış bir Operation onaylanıyor" },
+  settings: { icon: "gear", label: "ayar", text: "bir ayar değişikliği (site, ağ, takım…) kontratın planını değiştirdi" },
 };
 
 export function SourceLabel({ source, children }: { source: string; children?: ReactNode }) {

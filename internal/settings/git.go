@@ -50,11 +50,15 @@ func Split(files []catalog.File) (map[string][]byte, error) {
 			for i := 2; out[p] != nil; i++ {
 				p = strings.TrimSuffix(catalog.SettingsPath(head.Kind, head.Metadata.Name, patch), ".yaml") + fmt.Sprintf("-%d.yaml", i)
 			}
-			data, err := yaml.Marshal(&doc)
-			if err != nil {
+			// Two spaces, as people write YAML by hand.
+			var buf bytes.Buffer
+			enc := yaml.NewEncoder(&buf)
+			enc.SetIndent(2)
+			if err := enc.Encode(&doc); err != nil {
 				return nil, err
 			}
-			out[p] = data
+			_ = enc.Close()
+			out[p] = buf.Bytes()
 		}
 	}
 	return out, nil
