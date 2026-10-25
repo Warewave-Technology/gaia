@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -849,5 +851,29 @@ func TestDriftOpensAChange(t *testing.T) {
 	}
 	if c, _ := e.store.Q().Change(ctx, open.ID); c.Status != change.Superseded {
 		t.Errorf("its change = %s", c.Status)
+	}
+}
+
+// gaia reconcile opens a change that applies the applied plan again; its
+// owner approves it.
+func TestReconcileOpensADriftChange(t *testing.T) {
+	e := setup(t)
+	en := e.engine()
+	srv, err := New(Config{Listen: "127.0.0.1:0", Changes: en}, e.store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs := httptest.NewServer(srv.Handler())
+	defer hs.Close()
+	if code := post(t, hs.URL+"/api/v1/contracts/poc-web/reconcile"); code != http.StatusConflict {
+		t.Errorf("before it was applied: %d", code)
+	}
+	e.applied("poc-web")
+	if code := post(t, hs.URL+"/api/v1/contracts/poc-web/reconcile"); code != http.StatusAccepted {
+		t.Fatalf("reconcile: %d", code)
+	}
+	c, ok := e.open("poc-web")
+	if !ok || c.Source != change.Drift || c.Status != change.Pending {
+		t.Errorf("change = %+v", c)
 	}
 }

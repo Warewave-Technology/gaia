@@ -78,6 +78,9 @@ func (s *Sources) once(ctx context.Context) {
 		if cerr := s.Syncer.CleanOperations(ctx, snap, g, time.Now()); cerr != nil {
 			err = errors.Join(err, fmt.Errorf("operation cleanup: %w", cerr))
 		}
+		if cerr := s.Syncer.RemoveDecommissioned(ctx, snap, g); cerr != nil {
+			err = errors.Join(err, fmt.Errorf("decommissioned contracts: %w", cerr))
+		}
 		return err
 	})
 	if err != nil && !errors.Is(err, store.ErrLocked) && s.Syncer.Log != nil {

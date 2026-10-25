@@ -49,3 +49,24 @@ func str(v any) string {
 	}
 	return fmt.Sprint(v)
 }
+
+func newReconcileCommand() *cobra.Command {
+	var addr string
+	cmd := &cobra.Command{
+		Use:   "reconcile CONTRACT",
+		Short: "Apply a contract's applied plan again, putting drift right; its owner approves (operator)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var out struct {
+				Change string `json:"change"`
+			}
+			if err := apiClient(addr).Post(cmd.Context(), "/api/v1/contracts/"+url.PathEscape(args[0])+"/reconcile", nil, &out); err != nil {
+				return hint(err)
+			}
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "change %s\n", out.Change)
+			return nil
+		},
+	}
+	serverFlag(cmd, &addr)
+	return cmd
+}

@@ -889,6 +889,7 @@ spec:
 - Bulgular `drift_reports`'ta `(sunucu, alan, anahtar)` ile tekilleşir; görülmeyen bulgu `resolved` olur. Yeni bulgular `drift.found` bildirimini tetikler.
 - Düzeltme bir Change'tir ve uygulanan planı tekrar uygular: `remediation: auto` için `drift-auto` (onay istemez; onay olarak uygulanan planı gösterir), `approval` için `drift` (owner onayı ister, ortamın onay ayarından bağımsız). Değerlendirme bu Change'i "Git uygulanana döndü" diye kapatmaz. Kontratta açık bir Change varsa yenisi açılmaz; başarısız olan drift Change'i aynı planla kendiliğinden tekrar açılmaz. Drift kendiliğinden geçerse bekleyen düzeltme Change'i `superseded` olur.
 - `GET /api/v1/drift[?contract=]` ve `gaia drift [kontrat]` açık bulguları gösterir.
+- `gaia reconcile KONTRAT` (`POST /api/v1/contracts/{name}/reconcile`, operator) taramayı beklemeden, uygulanan planı yeniden uygulayan bir `drift` Change'i açar; owner onaylar.
 - **Provisioning:** Her stack, son başarılı run'ın uyguladığı VM tanımlarıyla (`hosts.vm_spec`, bekleyen sunucular kapalı olarak) hipervizörden yenilenip önizlenir (`pulumi preview --refresh`, state'e yazmaz). Pulumi'nin değiştireceği her VM bir bulgudur (işlem ve farklı alanlar); programda olmayıp state'te olan VM de görünür.
 - **Konfigürasyon:** Kontratın play'i aktif sunucularda `--check --diff` ile, run'ın config commit'iyle çalıştırılır. Değişiklik yapacak task'lar bulgudur; check'in bitmediği sunucu `unknown` olur. Varsayılan pencere 02:00-05:00'tir (sunucunun saati).
 - Varsayılanlar: kayıt 15 dakikada bir ve `auto`; provisioning saatte bir ve konfigürasyon günde bir, ikisi de `approval`. Düzeltme Change'i uygulanan planı yeniden uygular: Pulumi VM'i plana döndürür, Ansible yapılandırmayı.
@@ -1221,6 +1222,7 @@ spec:
 - **Silme iki adımda yapılır:**
   1. Kontratta `lifecycle.state: decommissioned` yapılır ve commit izlenen branch'e girer. Change onaylanınca sunucular decommission akışına girer.
   2. Akış tamamlanınca Gaia, kontrat dosyasını silen commit'i yazar.
+- **Uygulamada (adım 2):** Kaynak senkronunun her turunda Gaia, `decommissioned` olan, uygulanmış (`synced`) ve hiç sunucusu kalmamış (bekleyenler dahil) kontratların dosyalarını tek bir imzalı commit'le siler. Dosyada başka objeler de varsa silmez ve loglar. Dizin, son dosyası silinse de boş bir `.gaia-keep` ile Git'te kalır: izlenen bir yolun kaybolması kataloğun yüklenmesini durdururdu (Operation temizliğinde de aynı).
 - **`deletionPolicy: retain`:** Kaynaklar silinmez, sadece Gaia'nın yönetiminden çıkarılır. Pulumi state'inden düşürülür ve envanterde "yönetilmiyor" olarak işaretlenir. Bir sistemi başka bir ekibe veya araca devrederken kullanılır.
 
 ### 9.7 Adopt edilmiş sunucular

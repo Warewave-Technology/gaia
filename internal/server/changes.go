@@ -177,6 +177,30 @@ func (s *Server) retryChange(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// reconcileContract opens a change that applies a contract's applied
+// plan again, putting back whatever drifted (design 7.5); its owner
+// approves it.
+func (s *Server) reconcileContract(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.Changes == nil {
+		writeJSON(w, http.StatusServiceUnavailable, Problem{Error: "this server does not follow a repository"})
+		return
+	}
+	name := r.PathValue("name")
+	if !s.full(r, []string{name}) {
+		forbidden(w)
+		return
+	}
+	id, err := s.cfg.Changes.OpenDrift(r.Context(), name, false)
+	switch {
+	case err != nil:
+		s.fail(w, err)
+	case id == "":
+		writeJSON(w, http.StatusConflict, Problem{Error: name + " has no applied plan to go back to, or is about to change"})
+	default:
+		writeJSON(w, http.StatusAccepted, map[string]string{"change": id})
+	}
+}
+
 // strong asks for a recent passkey or MFA, when sign-in is on.
 func (s *Server) strong(h http.HandlerFunc) http.HandlerFunc {
 	if s.cfg.Auth == nil {
