@@ -1698,6 +1698,17 @@ access:
 - Linux hesap adına uymayan kullanıcı adları atlanır ve run çıktısında görünür.
 - Run kaydının `accessSnapshot`'ı her erişim girdisi için o anki takımları ve kişileri yazar.
 
+**Warpgate'te dağıtım:**
+- Platform'da `bastion: { provider: <warpgate> }` varsa, erişimi olan her kontratın sunucuları Warpgate'e hedef olarak eklenir. Erişimi olmayan kontratın hedefi olmaz; erişim kaldırılınca hedefler silinir.
+- Linux sunucuda hedef SSH'tır: Warpgate sunucuya kendi istemci anahtarıyla `gaia-wg` hesabı olarak girer. Erişimde sudo varsa ikinci bir hedef (`<host>-sudo`) sudo yetkili `gaia-wg-sudo` hesabıyla girer. Bu iki hesabı `gaia_access` rolü açar; `authorized_keys` Warpgate'in anahtarlarıdır. Kimin girdiği Warpgate'in oturum kaydındadır.
+- Windows sunucuda hedef RDP'dir ve sunucunun kendi oturum açma ekranını gösterir (`interactive_logon`): kişi kendi dizin hesabıyla girer, Warpgate parola tutmaz.
+- Hedefler `register` değil `access` aşamasında, sunucu yapılandırıldıktan sonra yazılır: o anda sunucunun host anahtarı kayıtlıdır ve Warpgate'in gireceği hesaplar açılmıştır. Gaia'nın kaydettiği host anahtarı Warpgate'in known-hosts listesine yazılır, aynı adresin başka anahtarları silinir. Warpgate bilinmeyen anahtarı reddedecek şekilde (`auto-reject`) çalışmalıdır.
+- Hedefler sunucunun açıklamasında `gaia.uid` taşır ve kaydedilen ID'leriyle bulunur. Aynı adla başkasına ait bir hedef run'ı durdurur.
+- Roller `gaia/<kontrat>` ve `gaia/<kontrat>/sudo`'dur. Rollerin üyeleri erişimin takımlarındaki etkin kişilerdir (sudo rolü sudo'lu erişimdekiler). Gaia Warpgate kullanıcısı açmaz (kullanıcılar Warpgate'in SSO'sundan ya da LDAP'ından gelir); kullanıcısı olmayanlar run çıktısında görünür. Gaia sadece `gaia/` önekli rollere dokunur.
+- Hedefler ve onay: erişim Gaia'da onaylandığı için Gaia'nın hedeflerinde ticket ve oturum onayı kapalıdır.
+- Decommission'da hedefler ve adresin known-hosts kayıtları silinir.
+- Warpgate 0.29.2 ile doğrulandı: istemci gerçek bir Warpgate'e karşı test edilir; Warpgate üzerinden `gaia-wg` hesabına SSH çalıştı, yanlış host anahtarında bağlantı reddedildi.
+
 **Zabbix'te dağıtım:**
 - Gaia, izlenen her sunucuyu Platform'un host grupları dışında kontratın kendi grubuna da koyar: `Gaia/contract/<kontrat>`. Bu grupta başka kontratın sunucusu olmaz.
 - Erişimi olan her takım için `Gaia/<takım>` adında bir kullanıcı grubu vardır. Hakları, takımın erişebildiği bütün kontratların kendi gruplarıdır: sudo varsa okuma-yazma, yoksa okuma. Ortam ve site gibi ortak gruplara hak verilmez.
@@ -1795,6 +1806,7 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-23 | PostgreSQL minimum 16; kural: River'ın test ettiği en eski ana sürüm |
 | 2026-10-23 | Run kayıtlarının arşivi SeaweedFS'te COMPLIANCE modunda Object Lock'lu bucket; ham loglar ayrı bucket'ta |
 | 2026-10-23 | Warpgate RDP'yi v0.27.0'dan beri destekliyor; Windows sunucular Warpgate'e RDP hedefi olarak eklenir |
+| 2026-10-25 | Warpgate SSH hedefleri kişi başına hesap değil, paylaşılan `gaia-wg` / `gaia-wg-sudo` hesaplarıyla girer; kim girdiğini Warpgate'in oturum kaydı tutar. RDP hedefleri sunucunun kendi oturum açma ekranını kullanır |
 | 2026-10-23 | Proxmox VE desteklenir; kontrat hipervizörden bağımsız (`Site.compute`, `Network.attachment`, `Image.templates`) |
 | 2026-10-23 | Güç ve snapshot gibi day-2 işler Ansible yerine provider'ların Go API'si ile (ortak `Compute` arayüzü) |
 | 2026-10-23 | Kontrat `topology` ile birden fazla site'a yayılabilir; kontrat ve site başına ayrı Pulumi stack'i; site site ilerleme |

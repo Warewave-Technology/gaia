@@ -332,6 +332,9 @@ func (r *resolver) platform(o *Object) {
 	if n := s.Notifications; n != nil && n.Email != "" {
 		r.ref(o, "spec.notifications.email", KindProvider, n.Email, "smtp")
 	}
+	if b := s.Bastion; b != nil {
+		r.ref(o, "spec.bastion.provider", KindProvider, b.Provider, "warpgate")
+	}
 	if m := s.Monitoring; m != nil {
 		r.ref(o, "spec.monitoring.provider", KindProvider, m.Provider, "zabbix")
 		for i, src := range m.HostGroups {

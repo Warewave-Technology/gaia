@@ -12,6 +12,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/vsphere"
+	"github.com/Warewave-Technology/gaia/internal/provider/warpgate"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -34,6 +35,9 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		Monitor:     func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
 		Directory: func(ctx context.Context, c ad.Config) (Directory, error) {
 			return ad.Open(ctx, c)
+		},
+		Bastion: func(endpoint, token string, insecure bool, ca []byte) (Bastion, error) {
+			return warpgate.New(endpoint, token, insecure, ca)
 		},
 		Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
 			return runrecord.NewS3(endpoint, bucket, ak, sk)

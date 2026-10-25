@@ -67,3 +67,7 @@ on conflict (uid, key_type) do update set public_key = excluded.public_key, reco
 
 -- name: DeleteHostKeys :exec
 delete from host_keys where uid = $1;
+
+-- name: DeleteExternalID :exec
+-- One ID goes when Gaia removed what it named (a bastion target).
+delete from host_external_ids where uid = $1 and provider = $2 and kind = $3;

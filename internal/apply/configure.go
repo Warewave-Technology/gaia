@@ -121,6 +121,11 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 		if users, err = r.accessUsers(ctx, c); err != nil {
 			return err
 		}
+		wg, err := r.bastionAccounts(ctx, c)
+		if err != nil {
+			return err
+		}
+		users = append(users, wg...)
 	}
 	resolved, secrets, err := r.resolveSecrets(ctx, c)
 	if err != nil {
