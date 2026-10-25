@@ -27,6 +27,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/drift"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/notify"
+	"github.com/Warewave-Technology/gaia/internal/proposal"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
@@ -102,6 +103,7 @@ func newServerCommand() *cobra.Command {
 					cfg.Log.Info("settings imported from Git", "version", v)
 				}
 				cat = &server.CatalogSource{Repos: cfg.Repos, Platform: platform, Log: cfg.Log}
+				cfg.Proposals = &proposal.Service{Store: s, Settings: cfg.Settings, Repos: cfg.Repos, Desired: cat, Log: cfg.Log}
 				engine = &change.Engine{Store: s, Repos: cfg.Repos, Log: cfg.Log, Keys: func(ctx context.Context) ([]signature.Key, error) {
 					return signingKeys(ctx, auth.New(s, cat.Graph, cfg.Log))
 				}}
@@ -239,6 +241,9 @@ func newServerCommand() *cobra.Command {
 				return err
 			}
 			notifier := &notify.Notifier{Store: s, Queue: srv.Queue(), Log: cfg.Log}
+			if cfg.Proposals != nil {
+				cfg.Proposals.Notify = notifier
+			}
 			if closer != nil {
 				closer.Notify = notifier
 			}

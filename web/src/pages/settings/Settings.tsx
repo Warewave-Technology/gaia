@@ -16,7 +16,8 @@ import { Providers } from "./Providers";
 import { Sources } from "./Sources";
 import { Discovery } from "./Discovery";
 import { Versions } from "./Versions";
-import { useSettings } from "../../api/objects";
+import { fromSettings, useSettings } from "../../api/objects";
+import { EditButtons } from "../../ui/settings-editor";
 
 // ObjectYAML shows each object of a kind as it is written, for the
 // kinds there are one or two of.
@@ -37,8 +38,9 @@ function ObjectYAML({ kind, text, hint }: { kind: string; text: string; hint: st
             <div className="card-head">
               <div className="card-title"><Icon name={kindOf(kind).icon} size={16} /><h2>{o.name}</h2></div>
               <span className="row" style={{ gap: 14 }}>
-                <span className="il muted" style={{ fontWeight: 400 }}><Icon name="file" size={14} /><Mono>{o.source}</Mono></span>
+                <span className="il muted" style={{ fontWeight: 400 }}><Icon name={fromSettings(o.source) ? "history" : "file"} size={14} /><Mono>{o.source.replace(/^settings:/, "")}</Mono></span>
                 <Link to={objectPath(kind, o.name)} className="il">Ayrıntı<Icon name="arrow" size={14} /></Link>
+                {fromSettings(o.source) && <EditButtons kind={kind} name={o.name} />}
               </span>
             </div>
             {details[i]?.data ? <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)", lineHeight: 1.6 }}>{details[i].data.yaml}</pre> : <Loading />}

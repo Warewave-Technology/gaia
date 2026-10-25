@@ -8,6 +8,7 @@ import { Page } from "../../ui/shell";
 import { Tabs } from "../../ui/tabs";
 import { kindOf } from "../../ui/kinds";
 import { dash, List, ObjectTable, ObjectsError, Ref, type Col } from "../../ui/objects";
+import { AddButton } from "../../ui/settings-editor";
 
 function attachment(o: CatalogObj): ReactNode {
   const a = (field(o.spec, "attachment") ?? {}) as Record<string, unknown>;
@@ -92,7 +93,7 @@ export function Infra() {
       </div>
       <Tabs label="Altyapı" items={TABS.map((t) => ({ to: `/infra/${t.kind}`, icon: kindOf(t.kind).icon, label: t.label, count: count(t.kind) }))} />
       {q.isPending ? <Loading /> : q.error ? <ObjectsError error={q.error} /> : (
-        <ObjectTable kind={kind} title={tab.label} hint={tab.hint} cols={tab.cols} objs={objs} />
+        <ObjectTable kind={kind} title={tab.label} hint={tab.hint} cols={tab.cols} objs={objs} right={<AddButton kind={kind} label={`${kind} ekle`} />} />
       )}
     </Page>
   );

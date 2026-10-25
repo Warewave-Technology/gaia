@@ -11,6 +11,7 @@ import { kindOf, objectPath } from "../../ui/kinds";
 import { field, str, useObjects, useSettings } from "../../api/objects";
 import { ObjectTable, Ref, type Col } from "../../ui/objects";
 import { TabHead } from "../../ui/tabs";
+import { AddButton } from "../../ui/settings-editor";
 
 const SOURCE_COLS: Col[] = [
   { title: "Tür", cell: (o) => <span className="il" style={{ fontWeight: 500 }}><Icon name={kindOf(o.kind).icon} size={14} />{o.kind}</span> },
@@ -113,7 +114,8 @@ export function Sources() {
         )}
       </Card>
       {settings.data && settings.data.ignored.length > 0 && <IgnoredCard ignored={settings.data.ignored} />}
-      {defs.data && <ObjectTable kind="Source" title="Source tanımları" hint="Kaynakların kendisi: neyi okuyup nereye yazdıkları." cols={SOURCE_COLS} objs={defs.data.objects} />}
+      {defs.data && <ObjectTable kind="Source" title="Source tanımları" hint="Kaynakların kendisi: neyi okuyup nereye yazdıkları." cols={SOURCE_COLS} objs={defs.data.objects}
+        right={<span className="row"><AddButton kind="NetworkSource" label="NetworkSource" /><AddButton kind="TeamSource" label="TeamSource" /><AddButton kind="AnsibleRoleSource" label="AnsibleRoleSource" /></span>} />}
     </>
   );
 }

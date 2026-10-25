@@ -21,7 +21,7 @@ export function Modal({ title, icon, onClose, onSubmit, children, footer, width 
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;
-    const first = box.current?.querySelector<HTMLElement>("input, textarea, select") ?? box.current?.querySelector<HTMLElement>(FOCUSABLE);
+    const first = box.current?.querySelector<HTMLElement>("input:not([readonly]):not([type=checkbox]), textarea, select") ?? box.current?.querySelector<HTMLElement>(FOCUSABLE);
     first?.focus();
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {

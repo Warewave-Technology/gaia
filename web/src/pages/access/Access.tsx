@@ -9,6 +9,7 @@ import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono } from "../../ui/parts
 import { Page } from "../../ui/shell";
 import { Tabs } from "../../ui/tabs";
 import { dash, ObjectTable, ObjectsError, Ref, type Col } from "../../ui/objects";
+import { AddButton } from "../../ui/settings-editor";
 
 type Entry = { contract: string; group?: string; team?: string; sudo?: boolean; commands?: string[] };
 
@@ -101,8 +102,8 @@ export function Access() {
         : q.isPending ? <Loading />
         : q.error ? <ErrorNote error={q.error} />
         : tab === "Group"
-          ? <ObjectTable kind="Group" title="Group'lar" hint="Erişim grupları: takımların (ve başka grupların) birleşimi. Kontratlar erişimi bunlara verir." cols={GROUP_COLS} objs={objs("Group")} />
-          : <ObjectTable kind="Team" title="Takımlar" hint="Takımlar ve onaycıları. Bir TeamSource varsa dizindeki gruplardan üretilir." cols={TEAM_COLS} objs={objs("Team")} />}
+          ? <ObjectTable kind="Group" title="Group'lar" hint="Erişim grupları: takımların (ve başka grupların) birleşimi. Kontratlar erişimi bunlara verir." cols={GROUP_COLS} objs={objs("Group")} right={<AddButton kind="Group" label="Group ekle" />} />
+          : <ObjectTable kind="Team" title="Takımlar" hint="Takımlar ve onaycıları. Bir TeamSource varsa dizindeki gruplardan üretilir." cols={TEAM_COLS} objs={objs("Team")} right={<AddButton kind="Team" label="Takım ekle" />} />}
     </Page>
   );
 }

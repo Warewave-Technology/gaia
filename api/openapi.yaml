@@ -458,6 +458,107 @@ paths:
                         type: array
                         items: { type: object, properties: { path: { type: string }, kind: { type: string }, yaml: { type: string } } }
         "404": { description: No such version }
+  /api/v1/settings/check:
+    post:
+      summary: What a settings change would do, without keeping it (operator, platform-admin; design 17.3)
+      operationId: checkSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { changes: { type: array, items: { $ref: "#/components/schemas/SettingsEdit" } } } }
+      responses:
+        "200":
+          description: Errors, what it does to each object, and the contracts whose plan changes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SettingsCheck" }
+        "403": { description: Not an operator or platform admin }
+  /api/v1/settings/proposals:
+    post:
+      summary: Propose a settings change; one that does not check out is not kept (operator, platform-admin)
+      operationId: proposeSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, changes]
+              properties:
+                title: { type: string }
+                reason: { type: string }
+                changes: { type: array, items: { $ref: "#/components/schemas/SettingsEdit" } }
+      responses:
+        "201":
+          description: The proposal
+          content: { application/json: { schema: { $ref: "#/components/schemas/SettingsProposal" } } }
+        "422":
+          description: It does not check out
+          content: { application/json: { schema: { type: object, properties: { error: { type: string }, check: { $ref: "#/components/schemas/SettingsCheck" } } } } }
+    get:
+      summary: Settings changes, newest first
+      operationId: listSettingsProposals
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, applied, rejected, stale, withdrawn] } }
+        - { name: awaiting, in: query, schema: { type: string, enum: [me] }, description: The pending ones the caller may decide }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+      responses:
+        "200":
+          description: Proposals
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SettingsProposal" } } } }
+  /api/v1/settings/proposals/{id}:
+    get:
+      summary: One settings change, with each object before and after
+      operationId: getSettingsProposal
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The proposal
+          content: { application/json: { schema: { $ref: "#/components/schemas/SettingsProposal" } } }
+        "404": { description: No such proposal }
+  /api/v1/settings/proposals/{id}/approve:
+    post:
+      summary: Approve a settings change for the content seen; it becomes a new settings version (step-up)
+      operationId: approveSettingsProposal
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [contentHash], properties: { contentHash: { type: string }, comment: { type: string } } }
+      responses:
+        "200": { description: Applied, content: { application/json: { schema: { $ref: "#/components/schemas/SettingsProposal" } } } }
+        "403": { description: "The proposer, someone who may not decide, or no recent step-up" }
+        "409": { description: "Not pending, another content, or the settings it changes changed (stale)" }
+  /api/v1/settings/proposals/{id}/reject:
+    post:
+      summary: Reject a settings change, saying why (step-up)
+      operationId: rejectSettingsProposal
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [contentHash, comment], properties: { contentHash: { type: string }, comment: { type: string } } }
+      responses:
+        "200": { description: Rejected, content: { application/json: { schema: { $ref: "#/components/schemas/SettingsProposal" } } } }
+        "400": { description: No reason }
+        "403": { description: May not decide }
+        "409": { description: Not pending, or another content }
+  /api/v1/settings/proposals/{id}/withdraw:
+    post:
+      summary: Take back one's own pending settings change
+      operationId: withdrawSettingsProposal
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Withdrawn, content: { application/json: { schema: { $ref: "#/components/schemas/SettingsProposal" } } } }
+        "403": { description: Not the proposer }
+        "409": { description: Not pending }
   /api/v1/audit:
     get:
       summary: The audit log, newest first (platform-admin; design 17.4)
@@ -1258,6 +1359,56 @@ components:
         contentHash: { type: string }
         createdAt: { type: string, format: date-time }
         objects: { type: integer }
+    SettingsEdit:
+      type: object
+      description: "An object to add or change (yaml), or to remove (kind, name, delete)"
+      properties:
+        yaml: { type: string }
+        kind: { type: string }
+        name: { type: string }
+        delete: { type: boolean }
+    SettingsObjectChange:
+      type: object
+      properties:
+        kind: { type: string }
+        name: { type: string }
+        path: { type: string }
+        op: { type: string, enum: [add, change, remove] }
+        before: { type: string }
+        after: { type: string }
+    SettingsCheck:
+      type: object
+      properties:
+        base: { type: integer, description: The settings version it was checked against }
+        contentHash: { type: string }
+        objects: { type: array, items: { $ref: "#/components/schemas/SettingsObjectChange" } }
+        errors: { type: array, items: { type: string } }
+        impact: { type: array, items: { type: object, properties: { contract: { type: string }, error: { type: string } } } }
+        critical: { type: boolean, description: Only a platform admin decides }
+        whyCritical: { type: array, items: { type: string } }
+    SettingsProposal:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        reason: { type: string }
+        status: { type: string, enum: [pending, applied, rejected, stale, withdrawn] }
+        baseVersion: { type: integer }
+        contentHash: { type: string }
+        requestedBy: { type: string }
+        critical: { type: boolean }
+        whyCritical: { type: array, items: { type: string } }
+        impact: { type: array, items: { type: object, properties: { contract: { type: string }, error: { type: string } } } }
+        paths: { type: array, items: { type: string } }
+        decidedBy: { type: string }
+        comment: { type: string }
+        appliedVersion: { type: integer }
+        staleReason: { type: string }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time }
+        mayDecide: { type: boolean }
+        why: { type: string, description: Why the caller may not decide }
+        objects: { type: array, items: { $ref: "#/components/schemas/SettingsObjectChange" } }
     AuditEntry:
       type: object
       properties:

@@ -18,6 +18,7 @@ import { Operations } from "./pages/operations/Operations";
 import { Access } from "./pages/access/Access";
 import { Settings } from "./pages/settings/Settings";
 import { VersionPage } from "./pages/settings/Versions";
+import { ProposalPage } from "./pages/settings/Proposal";
 
 export function makeClient() {
   return new QueryClient({
@@ -38,6 +39,7 @@ export function AppRoutes() {
         <Route index element={<Overview />} />
         <Route path="changes" element={<ChangeList />} />
         <Route path="changes/:id" element={<ChangeDetail />} />
+        <Route path="changes/settings/:id" element={<ProposalPage />} />
         <Route path="contracts" element={<ContractList />} />
         <Route path="contracts/:name" element={<ContractDetail />} />
         <Route path="runs" element={<RunList />} />
@@ -54,6 +56,7 @@ export function AppRoutes() {
         <Route path="settings" element={<Settings />} />
         <Route path="settings/:tab" element={<Settings />} />
         <Route path="settings/versions/:version" element={<VersionPage />} />
+
         <Route path="settings/:kind/:name" element={<ObjectPage />} />
         <Route path="providers" element={<Navigate to="/settings/providers" replace />} />
         <Route path="sync" element={<Navigate to="/settings/sources" replace />} />

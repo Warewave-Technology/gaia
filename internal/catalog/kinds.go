@@ -264,6 +264,38 @@ type PolicySpec struct {
 	// Drift is how often each area is checked and how it is put right
 	// (design 7.5).
 	Drift *DriftPolicy `yaml:"drift"`
+	// Settings says who approves settings changes (design 17.3).
+	Settings *SettingsPolicy `yaml:"settings,omitempty"`
+}
+
+// SettingsPolicy is who approves changes to Gaia's settings besides the
+// platform admins. Policy, AuthConfig, Platform, Group and changes that
+// touch privileged access always need a platform admin.
+type SettingsPolicy struct {
+	Approvers []string `yaml:"approvers"` // teams
+}
+
+// CriticalSettings are the kinds whose changes only a platform admin
+// approves (design 17.3).
+var CriticalSettings = []string{KindPolicy, KindAuthConfig, KindPlatform, KindGroup}
+
+// SettingsApprovers is the teams that approve ordinary settings changes,
+// besides the platform admins.
+func (g *Graph) SettingsApprovers() []string {
+	if p := g.Policy(); p != nil {
+		if s := p.Spec.(*PolicySpec).Settings; s != nil {
+			return s.Approvers
+		}
+	}
+	return nil
+}
+
+// TeamsWithRole is the teams the Policy gives a Gaia role.
+func (g *Graph) TeamsWithRole(role string) []string {
+	if p := g.Policy(); p != nil {
+		return p.Spec.(*PolicySpec).GaiaRoles[role]
+	}
+	return nil
 }
 
 // DriftAreas are the areas drift is checked in.
@@ -1362,6 +1394,9 @@ var Triggers = []string{
 	"drift.found",       // the real state differs from the applied one
 	"approval.expiring", // an approved change may not run in time
 	"access.privileged", // AD added someone to a team in a privileged group
+	"settings.pending",  // a settings change waits for approval
+	"settings.applied",  // a settings change is a new settings version
+	"settings.rejected", //
 }
 
 func (s *TeamSpec) validate() []string {

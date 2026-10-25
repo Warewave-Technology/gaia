@@ -348,6 +348,28 @@ type SettingsObject struct {
 	Data    string
 }
 
+type SettingsProposal struct {
+	ID             string
+	BaseVersion    int64
+	Changes        []byte
+	ContentHash    string
+	Title          string
+	Reason         string
+	RequestedBy    string
+	RequestedByID  pgtype.Text
+	Status         string
+	Critical       bool
+	WhyCritical    []string
+	Impact         []byte
+	DecidedBy      pgtype.Text
+	DecidedByID    pgtype.Text
+	Comment        pgtype.Text
+	AppliedVersion pgtype.Int8
+	StaleReason    pgtype.Text
+	CreatedAt      pgtype.Timestamptz
+	DecidedAt      pgtype.Timestamptz
+}
+
 type SettingsVersion struct {
 	Version     int64
 	Author      string
