@@ -5,16 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc"
 	"github.com/Warewave-Technology/gaia/internal/plan"
+	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -186,6 +189,44 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 	if len(hosts) == 0 {
 		return res, nil
 	}
+	fail := func(uid, detail string) {
+		i := names[uid]
+		res[i].Result, res[i].Detail = "failed", detail
+		hosts = slices.DeleteFunc(hosts, func(h ansible.Host) bool { return h.Name == uid })
+		r.printf("  %s failed: %s\n", res[i].Hostname, detail)
+		r.change(runrecord.Change{Contract: res[i].Contract, UID: uid, Hostname: res[i].Hostname, Stage: "operation", Action: op.Action, Detail: "failed " + detail})
+	}
+	// Maintenance in monitoring for the batch, ended whatever happens.
+	ends, err := r.maintenance(ctx, op, n, hosts)
+	if err != nil {
+		for _, h := range append([]ansible.Host(nil), hosts...) {
+			fail(h.Name, "maintenance: "+err.Error())
+		}
+		return res, nil
+	}
+	defer func() {
+		for _, end := range ends {
+			end()
+		}
+	}()
+	if slices.Contains(op.Steps, "snapshot") {
+		for _, h := range append([]ansible.Host(nil), hosts...) {
+			if err := r.snapshot(ctx, op, h.Name, byUID[h.Name].Hostname); err != nil {
+				fail(h.Name, "snapshot: "+err.Error())
+			}
+		}
+	}
+	if op.Action == "snapshot" {
+		for _, h := range hosts {
+			i := names[h.Name]
+			res[i].Result, res[i].Detail = "ok", "snapshot taken"
+			r.change(runrecord.Change{Contract: res[i].Contract, UID: h.Name, Hostname: res[i].Hostname, Stage: "operation", Action: "snapshot", Detail: "ok"})
+		}
+		return res, nil
+	}
+	if len(hosts) == 0 {
+		return res, nil
+	}
 	play, err := operationPlay(op)
 	if err != nil {
 		return nil, err
@@ -213,7 +254,8 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 		return nil, fmt.Errorf("batch %d: %w", n, err)
 	}
 	st := result.Stats
-	for uid, i := range names {
+	for _, h := range hosts {
+		uid, i := h.Name, names[h.Name]
 		x := &res[i]
 		x.Detail = fmt.Sprintf("ok=%d changed=%d failed=%d unreachable=%d", st.OK[uid], st.Changed[uid], st.Failures[uid], st.Unreachable[uid])
 		x.Result = "ok"
@@ -226,6 +268,74 @@ func (r *runner) batchLocked(ctx context.Context, op *plan.Operation, n int, uid
 	return res, nil
 }
 
+// maintenance puts the batch's servers in maintenance in their
+// monitoring, for the rest of the window (two hours without one), and
+// returns how to end it.
+func (r *runner) maintenance(ctx context.Context, op *plan.Operation, n int, hosts []ansible.Host) ([]func(), error) {
+	byProvider := map[string][]string{}
+	for _, h := range hosts {
+		ids, err := r.d.Store.Q().ExternalIDs(ctx, h.Name)
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range ids {
+			if e.Kind == "host" {
+				byProvider[e.Provider] = append(byProvider[e.Provider], e.ExternalID)
+			}
+		}
+	}
+	until := time.Now().Add(2 * time.Hour)
+	if op.Window != nil {
+		until = op.Window.End
+	}
+	var ends []func()
+	for _, p := range slices.Sorted(maps.Keys(byProvider)) {
+		m, err := r.monitor(ctx, p)
+		if err != nil {
+			return ends, err
+		}
+		id, err := m.Maintenance(ctx, fmt.Sprintf("Gaia: %s, batch %d", op.Name, n), byProvider[p], until)
+		if err != nil {
+			return ends, err
+		}
+		r.printf("  maintenance %s (%d server(s))\n", p, len(byProvider[p]))
+		ends = append(ends, func() {
+			if err := m.EndMaintenance(context.WithoutCancel(ctx), id); err != nil {
+				r.printf("  ending maintenance %s: %v\n", id, err)
+			}
+		})
+	}
+	return ends, nil
+}
+
+// snapshot takes a snapshot of a server's VM, named after the Operation.
+func (r *runner) snapshot(ctx context.Context, op *plan.Operation, uid, hostname string) error {
+	ids, err := r.d.Store.Q().ExternalIDs(ctx, uid)
+	if err != nil {
+		return err
+	}
+	for _, e := range ids {
+		if e.Kind != "vm" {
+			continue
+		}
+		vmid, err := strconv.Atoi(e.ExternalID)
+		if err != nil {
+			return err
+		}
+		creds, err := r.proxmoxCreds(ctx, e.Provider)
+		if err != nil {
+			return err
+		}
+		name := proxmox.SnapshotName("gaia_" + op.Name + "_" + time.Now().UTC().Format("20060102T1504"))
+		if err := r.d.Snapshot(ctx, creds, vmid, name, "Gaia: Operation "+op.Name+" ("+r.run+")"); err != nil {
+			return err
+		}
+		r.printf("  %s snapshot %s\n", hostname, name)
+		return nil
+	}
+	return errors.New("no VM recorded for it")
+}
+
 // operationPlay is the playbook of an Operation's action, followed by a
 // health check: the server answers again.
 func operationPlay(op *plan.Operation) ([]byte, error) {
@@ -234,6 +344,8 @@ func operationPlay(op *plan.Operation) ([]byte, error) {
 	case "reboot":
 		plays = append(plays, map[string]any{"name": "Reboot", "hosts": "all", "become": true, "gather_facts": false,
 			"tasks": []any{map[string]any{"name": "Reboot", "ansible.builtin.reboot": map[string]any{"reboot_timeout": 900}}}})
+	case "patch":
+		plays = append(plays, patchPlay(op.Options))
 	case "runbook":
 		if op.Runbook == nil {
 			return nil, errors.New("a runbook operation without its role")
@@ -248,4 +360,46 @@ func operationPlay(op *plan.Operation) ([]byte, error) {
 		map[string]any{"name": "Ping", "ansible.builtin.ping": map[string]any{}},
 	}})
 	return json.MarshalIndent(plays, "", "  ")
+}
+
+// patchPlay updates the operating system (design 6.4): on the Red Hat
+// family with dnf (scope security, the default, or all; exclude lists
+// packages to leave alone) and needs-restarting to tell whether a reboot
+// is needed; on Debian with apt (scope all) and /var/run/reboot-required.
+// reboot: auto (the default) reboots when needed, always or never.
+func patchPlay(options map[string]any) map[string]any {
+	scope, _ := options["scope"].(string)
+	if scope == "" {
+		scope = "security"
+	}
+	reboot, _ := options["reboot"].(string)
+	if reboot == "" {
+		reboot = "auto"
+	}
+	var exclude []string
+	if list, ok := options["exclude"].([]any); ok {
+		for _, x := range list {
+			exclude = append(exclude, fmt.Sprint(x))
+		}
+	}
+	rh := `ansible_facts.os_family == "RedHat"`
+	deb := `ansible_facts.os_family == "Debian"`
+	tasks := []any{
+		map[string]any{"name": "Update (dnf)", "when": rh, "ansible.builtin.dnf": map[string]any{
+			"name": "*", "state": "latest", "security": scope == "security", "exclude": exclude, "update_only": true}},
+		map[string]any{"name": "Is a reboot needed (dnf)", "when": rh, "register": "gaia_needs_restarting", "changed_when": false,
+			"failed_when":             "gaia_needs_restarting.rc not in [0, 1]",
+			"ansible.builtin.command": map[string]any{"cmd": "needs-restarting -r"}},
+		map[string]any{"name": "Update (apt)", "when": deb, "ansible.builtin.apt": map[string]any{"update_cache": true, "upgrade": "safe"}},
+		map[string]any{"name": "Is a reboot needed (apt)", "when": deb, "register": "gaia_reboot_required",
+			"ansible.builtin.stat": map[string]any{"path": "/var/run/reboot-required"}},
+	}
+	switch reboot {
+	case "always":
+		tasks = append(tasks, map[string]any{"name": "Reboot", "ansible.builtin.reboot": map[string]any{"reboot_timeout": 900}})
+	case "auto":
+		tasks = append(tasks, map[string]any{"name": "Reboot when needed", "ansible.builtin.reboot": map[string]any{"reboot_timeout": 900},
+			"when": "(gaia_needs_restarting.rc | default(0)) == 1 or (gaia_reboot_required.stat.exists | default(false))"})
+	}
+	return map[string]any{"name": "Patch", "hosts": "all", "become": true, "gather_facts": true, "tasks": tasks}
 }

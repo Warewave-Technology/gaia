@@ -142,6 +142,18 @@ type fakeMonitor struct {
 	ids             map[string]string
 	deleted         []string
 	userGroups      map[string]userGroup
+	maintenances    []string // "start name ids" and "end id"
+}
+
+func (f *fakeMonitor) Maintenance(_ context.Context, name string, ids []string, _ time.Time) (string, error) {
+	id := fmt.Sprintf("m%d", len(f.maintenances))
+	f.maintenances = append(f.maintenances, "start "+name+" "+strings.Join(ids, ","))
+	return id, nil
+}
+
+func (f *fakeMonitor) EndMaintenance(_ context.Context, id string) error {
+	f.maintenances = append(f.maintenances, "end "+id)
+	return nil
 }
 
 type userGroup struct {
@@ -1060,5 +1072,63 @@ func TestRunOperationInBatches(t *testing.T) {
 	again, _ := plan.BuildOperation(ctx, g, "reboot-poc", StoreState{S: e.store})
 	if again.Hash != op.Hash {
 		t.Error("the operation plan hash moved")
+	}
+}
+
+func TestPatchOperationWithSnapshotAndMaintenance(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	var snaps []string
+	e.deps.Snapshot = func(_ context.Context, _ proxmox.Credentials, vmid int, name, _ string) error {
+		snaps = append(snaps, fmt.Sprintf("%d:%s", vmid, name))
+		return nil
+	}
+	op := `---
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: patch-poc }
+spec:
+  action: patch
+  selector: 'contract == "poc-web"'
+  options: { scope: security, reboot: auto, snapshot: true }
+`
+	g := e.graph(func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) + op })
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	o, err := plan.BuildOperation(ctx, g, "patch-poc", StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(o.Steps, ","); got != "maintenance,snapshot,patch,reboot (if needed),health,end maintenance" {
+		t.Errorf("steps = %s", got)
+	}
+	_, out, err := RunOperation(ctx, g, o, e.deps)
+	if err != nil || out.Status != "succeeded" || len(out.Results) != 2 {
+		t.Fatalf("outcome = %+v, %v", out, err)
+	}
+	if len(snaps) != 2 || !strings.Contains(snaps[0], ":gaia_patch_poc_") {
+		t.Errorf("snapshots = %v", snaps)
+	}
+	if len(e.monitor.maintenances) != 2 || !strings.HasPrefix(e.monitor.maintenances[0], "start Gaia: patch-poc, batch 1 ") || e.monitor.maintenances[1] != "end m0" {
+		t.Errorf("maintenance = %v", e.monitor.maintenances)
+	}
+	site := e.configure.projects[len(e.configure.projects)-1][".gaia/site.yml"]
+	if !strings.Contains(site, `"security": true`) || !strings.Contains(site, "needs-restarting -r") {
+		t.Errorf("patch play = %s", site)
+	}
+
+	// A snapshot that fails fails its server, which then is not patched.
+	e.deps.Snapshot = func(context.Context, proxmox.Credentials, int, string, string) error {
+		return fmt.Errorf("storage full")
+	}
+	jobs := len(e.configure.jobs)
+	_, out, _ = RunOperation(ctx, g, o, e.deps)
+	if out.Status != "failed" || !strings.Contains(out.Results[0].Detail, "storage full") || len(e.configure.jobs) != jobs {
+		t.Errorf("after a failed snapshot: %+v, %d jobs", out, len(e.configure.jobs)-jobs)
 	}
 }

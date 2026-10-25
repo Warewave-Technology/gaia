@@ -38,6 +38,8 @@ type Deps struct {
 	Secrets   Secrets
 	Provision func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, w io.Writer) (map[string]pulumi.Result, pulumi.Changes, error)
 	UsedVMIDs func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error)
+	// Snapshot takes a VM snapshot, for Operations.
+	Snapshot  func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error
 	Configure Configurer
 	Monitor   func(endpoint, token string) Monitor
 	// Archive opens the run record archive (Platform.runArchive).

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/plan"
@@ -20,6 +21,8 @@ type Monitor interface {
 	Register(ctx context.Context, h zabbix.Host, hostID string) (zabbix.Result, error)
 	Delete(ctx context.Context, uid, hostID string) (bool, error)
 	UserGroup(ctx context.Context, name string, rights map[string]int, usernames []string) ([]string, error)
+	Maintenance(ctx context.Context, name string, hostIDs []string, until time.Time) (string, error)
+	EndMaintenance(ctx context.Context, id string) error
 }
 
 // monitor returns the client of the contract's monitoring provider.

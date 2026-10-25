@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // fake is the part of the Zabbix API the client uses, in memory.
@@ -357,5 +358,36 @@ func TestLabUserGroups(t *testing.T) {
 	_ = c.call(ctx, "usergroup.get", map[string]any{"output": "extend", "selectHostGroupRights": "extend", "selectUsers": []string{"username"}, "filter": map[string]any{"name": []string{name}}}, &got)
 	if len(got) != 1 || len(got[0].Rights) != 0 || len(got[0].Users) != 0 {
 		t.Errorf("emptied group = %+v", got)
+	}
+}
+
+func TestLabMaintenance(t *testing.T) {
+	url, tok := os.Getenv("GAIA_ZABBIX_URL"), os.Getenv("GAIA_ZABBIX_TOKEN")
+	if url == "" || tok == "" {
+		t.Skip("GAIA_ZABBIX_URL and GAIA_ZABBIX_TOKEN not set")
+	}
+	c := New(url, tok)
+	ctx := context.Background()
+	h := host()
+	h.UID, h.Hostname, h.Groups = "gaia-maint-uid", "gaia-maint-test", []string{"Gaia/test"}
+	r, err := c.Register(ctx, h, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = c.Delete(ctx, h.UID, r.HostID) })
+	id, err := c.Maintenance(ctx, "Gaia: test", []string{r.HostID}, time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []struct {
+		Hosts []struct {
+			ID string `json:"hostid"`
+		} `json:"hosts"`
+	}
+	if err := c.call(ctx, "maintenance.get", map[string]any{"maintenanceids": []string{id}, "selectHosts": []string{"hostid"}}, &got); err != nil || len(got) != 1 || got[0].Hosts[0].ID != r.HostID {
+		t.Fatalf("maintenance = %+v, %v", got, err)
+	}
+	if err := c.EndMaintenance(ctx, id); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -74,6 +75,9 @@ func (s *Sources) once(ctx context.Context) {
 	err = s.Store.WithLock(ctx, "gaia/sources", func(ctx context.Context) error {
 		var err error
 		wrote, err = s.Syncer.Run(ctx, snap, g)
+		if cerr := s.Syncer.CleanOperations(ctx, snap, g, time.Now()); cerr != nil {
+			err = errors.Join(err, fmt.Errorf("operation cleanup: %w", cerr))
+		}
 		return err
 	})
 	if err != nil && !errors.Is(err, store.ErrLocked) && s.Syncer.Log != nil {
