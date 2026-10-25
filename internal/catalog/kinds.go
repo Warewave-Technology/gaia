@@ -803,26 +803,26 @@ type RoleSource struct {
 // Param follows Ansible's argument_specs, with Gaia's extensions under
 // gaia (design 6.2).
 type Param struct {
-	Type        string           `yaml:"type"`
-	Required    bool             `yaml:"required"`
-	Default     any              `yaml:"default"`
-	Choices     []any            `yaml:"choices"`
-	Elements    string           `yaml:"elements"`
-	Options     map[string]Param `yaml:"options"`
-	NoLog       bool             `yaml:"no_log"`
-	Description any              `yaml:"description"`
-	Gaia        *ParamExt        `yaml:"gaia"`
+	Type        string           `yaml:"type,omitempty"`
+	Required    bool             `yaml:"required,omitempty"`
+	Default     any              `yaml:"default,omitempty"` // only a nil default is left out, not false or 0
+	Choices     []any            `yaml:"choices,omitempty"`
+	Elements    string           `yaml:"elements,omitempty"`
+	Options     map[string]Param `yaml:"options,omitempty"`
+	NoLog       bool             `yaml:"no_log,omitempty"`
+	Description any              `yaml:"description,omitempty"`
+	Gaia        *ParamExt        `yaml:"gaia,omitempty"`
 }
 
 type ParamExt struct {
-	Min        *float64 `yaml:"min"`
-	Max        *float64 `yaml:"max"`
-	Pattern    string   `yaml:"pattern"`
-	Format     string   `yaml:"format"`
-	Secret     bool     `yaml:"secret"`
-	Ref        string   `yaml:"ref"`
-	Deprecated string   `yaml:"deprecated"`
-	Freeform   bool     `yaml:"freeform"`
+	Min        *float64 `yaml:"min,omitempty"`
+	Max        *float64 `yaml:"max,omitempty"`
+	Pattern    string   `yaml:"pattern,omitempty"`
+	Format     string   `yaml:"format,omitempty"`
+	Secret     bool     `yaml:"secret,omitempty"`
+	Ref        string   `yaml:"ref,omitempty"`
+	Deprecated string   `yaml:"deprecated,omitempty"`
+	Freeform   bool     `yaml:"freeform,omitempty"`
 }
 
 // Rule is a CEL expression over params and the resolved contract.

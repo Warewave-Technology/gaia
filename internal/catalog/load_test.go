@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 func files(kv ...string) []File {
@@ -286,4 +288,22 @@ spec:
 	wantError(t, lines, "params.d.default: value 5 is less than 10")
 	wantError(t, lines, `params.e.gaia.ref: unknown kind "Gadget"`)
 	wantError(t, lines, "params.f.default: want a string, got a number")
+}
+
+// Params are written without their empty fields, but a false or zero
+// default stays: it is a value.
+func TestParamYAMLLeavesOutEmptyFields(t *testing.T) {
+	min := 1.0
+	b, err := yaml.Marshal(map[string]Param{
+		"port":    {Type: "int", Default: 80, Gaia: &ParamExt{Min: &min}},
+		"enabled": {Type: "bool", Default: false},
+		"name":    {Type: "str", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "enabled:\n    type: bool\n    default: false\nname:\n    type: str\n    required: true\nport:\n    type: int\n    default: 80\n    gaia:\n        min: 1\n"
+	if string(b) != want {
+		t.Errorf("got\n%s\nwant\n%s", b, want)
+	}
 }
