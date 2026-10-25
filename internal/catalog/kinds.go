@@ -326,10 +326,15 @@ func (s *PolicySpec) DriftEvery(area string) time.Duration {
 	return DriftDefaults[area].Every
 }
 
-// DriftWindow is when configuration drift may be checked ("" any time).
+// DriftWindow is when an area may be checked ("" any time):
+// configuration logs in to every server, so at night (02:00-05:00, the
+// server's time) unless the Policy says otherwise.
 func (s *PolicySpec) DriftWindow(area string) string {
-	if a := s.driftArea(area); a != nil {
+	if a := s.driftArea(area); a != nil && a.Window != "" {
 		return a.Window
+	}
+	if area == "configuration" {
+		return "02:00-05:00"
 	}
 	return ""
 }

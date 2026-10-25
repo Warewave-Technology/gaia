@@ -58,6 +58,9 @@ type Deps struct {
 	// Forget drops VMs from a stack's state without deleting them
 	// (pulumi.Forget).
 	Forget func(ctx context.Context, b pulumi.Backend, st pulumi.Stack, uids []string) ([]string, error)
+	// PreviewDrift previews a stack against its refreshed VMs
+	// (pulumi.PreviewDrift).
+	PreviewDrift func(ctx context.Context, b pulumi.Backend, st pulumi.Stack) (map[string]pulumi.Drift, error)
 	// Now is the clock; nil is the system's.
 	Now func() time.Time
 	// Bastion opens Warpgate's admin API.
@@ -191,6 +194,10 @@ func (r *runner) printf(format string, a ...any) {
 
 // out is where a run's output goes: its events, and Deps.Out when set.
 func (r *runner) out() io.Writer {
+	if r.events == nil {
+		// A check, not a run: there are no events to record.
+		return r.d.Out
+	}
 	if r.d.Out == nil {
 		return r.events
 	}

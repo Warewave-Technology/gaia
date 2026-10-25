@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/netip"
 	"slices"
 	"strings"
 
 	"github.com/Warewave-Technology/gaia/internal/ad"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
+	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
+	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/warpgate"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -35,10 +39,7 @@ type Finding struct {
 // IPAM, the host in monitoring, the DNS records, the computer account and
 // the bastion targets. Nothing is changed.
 func CheckRegistration(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) ([]Finding, error) {
-	if d.Out == nil {
-		d.Out = io.Discard
-	}
-	r := &runner{g: g, d: d, monitors: map[string]Monitor{}, executedAs: map[string]string{}}
+	r := checker(g, d)
 	var out []Finding
 	for _, c := range p.Contracts {
 		for _, s := range c.Servers {
@@ -285,4 +286,162 @@ func (f Finding) String() string {
 		s += " (unknown)"
 	}
 	return s
+}
+
+// checker is a runner that only reads, for drift.
+func checker(g *catalog.Graph, d Deps) *runner {
+	if d.Out == nil {
+		d.Out = io.Discard
+	}
+	return &runner{g: g, d: d, monitors: map[string]Monitor{}, executedAs: map[string]string{}, used: map[string]map[int]bool{}}
+}
+
+// CheckProvisioning refreshes each stack's VMs from the hypervisor and
+// previews the VMs as the last run applied them (hosts.vm_spec) against
+// them: whatever Pulumi would change was changed outside Gaia (design
+// 7.5). Nothing is written.
+func CheckProvisioning(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) ([]Finding, error) {
+	if d.PreviewDrift == nil {
+		return nil, errors.New("no Pulumi preview")
+	}
+	r := checker(g, d)
+	backend, err := r.backend(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []Finding
+	for _, c := range p.Contracts {
+		w := &work{bySite: map[string][]pulumi.VM{}, siteCreds: map[string]proxmox.Credentials{}, creds: map[string]proxmox.Credentials{},
+			siteVS: map[string]*pulumi.VSphereCredentials{}, vsCreds: map[string]*pulumi.VSphereCredentials{}}
+		names := map[string]string{}
+		for _, s := range c.Servers {
+			if s.UID == "" {
+				continue
+			}
+			h, err := d.Store.Q().Host(ctx, s.UID)
+			if err != nil || h.Status != db.HostStatusActive && h.Status != db.HostStatusStopped {
+				continue
+			}
+			names[s.UID] = s.Hostname
+			vm, err := storedVM(h)
+			if err != nil {
+				out = append(out, Finding{Contract: c.Name, UID: s.UID, Hostname: s.Hostname, Area: "provisioning", Key: "provisioning/vm", Want: "as applied", Got: err.Error(), Unknown: true})
+				continue
+			}
+			vm.Stopped = h.Status == db.HostStatusStopped
+			provider, _ := r.vmProvider(ctx, s.UID)
+			if provider == "" {
+				provider = r.siteProvider(h.Site)
+			}
+			if err := r.siteHypervisor(ctx, w, h.Site, provider); err != nil {
+				return out, err
+			}
+			w.bySite[h.Site] = append(w.bySite[h.Site], vm)
+		}
+		for _, site := range slices.Sorted(maps.Keys(w.bySite)) {
+			st := pulumi.Stack{Name: c.Name + "-" + site, Proxmox: w.siteCreds[site], VSphere: w.siteVS[site], VMs: w.bySite[site]}
+			drift, err := d.PreviewDrift(ctx, backend, st)
+			if err != nil {
+				for _, v := range st.VMs {
+					out = append(out, Finding{Contract: c.Name, UID: v.UID, Hostname: v.Hostname, Area: "provisioning", Key: "provisioning/vm", Want: "as applied", Got: err.Error(), Unknown: true})
+				}
+				continue
+			}
+			for _, uid := range slices.Sorted(maps.Keys(drift)) {
+				dr := drift[uid]
+				got := dr.Op
+				if len(dr.Diffs) > 0 {
+					got += " " + strings.Join(dr.Diffs, ",")
+				}
+				host := names[uid]
+				if host == "" {
+					host = "vm-" + uid // in the stack, not a server of the plan
+				}
+				out = append(out, Finding{Contract: c.Name, UID: uid, Hostname: host, Area: "provisioning", Key: "provisioning/vm", Want: "as applied", Got: got})
+			}
+		}
+	}
+	return out, nil
+}
+
+// CheckConfiguration runs each contract's play in check mode on its
+// active servers: the tasks that would change something show what was
+// changed outside Gaia (design 7.5). A server the check cannot finish on
+// is unknown.
+func CheckConfiguration(ctx context.Context, g *catalog.Graph, p *plan.Plan, d Deps) ([]Finding, error) {
+	r := checker(g, d)
+	r.run = "drift"
+	_, privateKey, err := r.sshKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []Finding
+	for _, c := range p.Contracts {
+		if !r.configures(ctx, c) {
+			continue
+		}
+		if r.cfg == nil {
+			if r.cfg, err = r.configSetup(ctx, privateKey); err != nil {
+				return nil, err
+			}
+		}
+		contract, ok := g.Catalog.Get(catalog.KindServer, c.Name)
+		if !ok {
+			continue
+		}
+		var targets []target
+		for _, s := range c.Servers {
+			if s.Action == plan.Delete || s.UID == "" {
+				continue
+			}
+			if h, err := d.Store.Q().Host(ctx, s.UID); err != nil || h.Status != db.HostStatusActive {
+				continue
+			}
+			ip, err := r.externalID(ctx, s.UID, s.IPAM.Provider, "ip")
+			if err != nil || ip == "" {
+				continue
+			}
+			targets = append(targets, target{s: s, address: ip})
+		}
+		if len(targets) == 0 {
+			continue
+		}
+		job, names, err := r.configJob(ctx, c, contract, targets)
+		if err != nil {
+			return out, err
+		}
+		job.Check, job.Name = true, "gaia-drift-"+c.Name
+		changed := map[string][]string{}
+		res, err := d.Configure.Run(ctx, job, func(e ansible.Event) error {
+			if e.Changed && e.Host != "" && !slices.Contains(changed[e.Host], e.Task) {
+				changed[e.Host] = append(changed[e.Host], e.Task)
+			}
+			return nil
+		})
+		if err != nil {
+			return out, fmt.Errorf("%s: check: %w", c.Name, err)
+		}
+		failed := res.Failed()
+		for _, h := range job.Hosts {
+			f := Finding{Contract: c.Name, UID: h.Name, Hostname: names[h.Name], Area: "configuration", Key: "configuration", Want: "no changes"}
+			switch {
+			case slices.Contains(failed, h.Name):
+				f.Got, f.Unknown = "the check did not finish", true
+			case len(changed[h.Name]) > 0:
+				tasks := changed[h.Name]
+				f.Got = fmt.Sprintf("%d task(s) would change: %s", len(tasks), strings.Join(firstN(tasks, 5), "; "))
+			default:
+				continue
+			}
+			out = append(out, f)
+		}
+	}
+	return out, nil
+}
+
+func firstN(v []string, n int) []string {
+	if len(v) <= n {
+		return v
+	}
+	return append(slices.Clone(v[:n]), fmt.Sprintf("and %d more", len(v)-n))
 }

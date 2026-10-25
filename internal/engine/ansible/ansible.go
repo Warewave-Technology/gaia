@@ -41,6 +41,9 @@ type Job struct {
 	// KnownHosts are the servers' host keys (known_hosts lines). With
 	// them, host keys are checked; without them, they are not.
 	KnownHosts string
+	// Check runs in check mode with diffs: nothing is changed, the tasks
+	// that would change something say so (design 7.5).
+	Check bool
 }
 
 // Event is one event of ansible-runner's JSON stream, masked.
@@ -207,8 +210,15 @@ func writeDataDir(dir string, j Job) error {
 	}
 	envvars, _ := json.Marshal(env)
 	files["env/envvars"] = envvars
+	var cmdline []string
 	if j.Forks > 0 {
-		files["env/cmdline"] = []byte("--forks " + strconv.Itoa(j.Forks))
+		cmdline = append(cmdline, "--forks "+strconv.Itoa(j.Forks))
+	}
+	if j.Check {
+		cmdline = append(cmdline, "--check --diff")
+	}
+	if len(cmdline) > 0 {
+		files["env/cmdline"] = []byte(strings.Join(cmdline, " "))
 	}
 	for name, data := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {

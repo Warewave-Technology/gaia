@@ -209,3 +209,16 @@ func TestKnownHostsTurnOnHostKeyChecking(t *testing.T) {
 		t.Errorf("with known hosts: env %s, known_hosts %q", env, kh)
 	}
 }
+
+func TestCheckMode(t *testing.T) {
+	recap := map[string]any{"event": "playbook_on_stats", "event_data": map[string]any{"ok": map[string]int{"uid1": 1}, "changed": map[string]int{"uid1": 1}, "failures": map[string]int{}, "dark": map[string]int{}}}
+	p, cp := setup(t, events(recap))
+	j := job()
+	j.Check = true
+	if _, err := p.Run(context.Background(), j, func(Event) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := os.ReadFile(filepath.Join(cp, "env", "cmdline")); string(c) != "--forks 5 --check --diff" {
+		t.Errorf("cmdline = %q", c)
+	}
+}

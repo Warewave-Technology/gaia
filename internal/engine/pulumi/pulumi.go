@@ -10,14 +10,17 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 
 	"github.com/muhlba91/pulumi-proxmoxve/sdk/v8/go/proxmoxve"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/debug"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto/events"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optpreview"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optup"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/apitype"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/workspace"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -324,6 +327,53 @@ func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]Resul
 		}
 	}
 	return vms, changes, nil
+}
+
+// Drift is what a refreshed preview would do to one VM: an operation
+// other than same, and the properties that differ.
+type Drift struct {
+	Op    string
+	Diffs []string
+}
+
+// PreviewDrift refreshes a stack's VMs from the hypervisor and previews
+// the program against them, without writing anything: what it would do
+// to each VM, by UID, for the VMs it would change. A VM in the state but
+// not in the program shows as a delete.
+func PreviewDrift(ctx context.Context, b Backend, st Stack) (map[string]Drift, error) {
+	s, err := stack(ctx, b, st)
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan events.EngineEvent)
+	out := map[string]Drift{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for ev := range ch {
+			pre := ev.ResourcePreEvent
+			if pre == nil {
+				continue
+			}
+			m := pre.Metadata
+			_, name, ok := strings.Cut(m.URN, "::vm-")
+			if !ok || m.Op == apitype.OpSame || m.Op == apitype.OpRead || m.Op == apitype.OpRefresh {
+				continue
+			}
+			out[name] = Drift{Op: string(m.Op), Diffs: append([]string(nil), m.Diffs...)}
+		}
+	}()
+	_, err = s.Preview(ctx, optpreview.Refresh(), optpreview.EventStreams(ch), optpreview.SuppressProgress())
+	// The stream is closed when the engine is done with it; a preview
+	// that failed early may never have opened it.
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+	}
+	if err != nil {
+		return nil, fmt.Errorf("pulumi preview %s: %w", st.Name, err)
+	}
+	return out, nil
 }
 
 // Forget drops VMs from a stack's state without deleting them: the VMs of
