@@ -40,9 +40,12 @@ beforeEach(() => {
   fakeAPI({
     "GET /me": { body: ME },
     "GET /changes?open=true&limit=500": { body: [] },
-    "GET /runs/run-s62": { body: RUN },
+    "GET /runs/run-s62": { body: { ...RUN, record: { seq: 4, recordHash: "sha256:c844a409", prevHash: "sha256:b2e3faf6" } } },
     "GET /runs?limit=200": { body: [{ ...RUN, status: "succeeded", finishedAt: "2026-10-25T19:22:12Z" }, { id: "run-x", contracts: ["billing-db"], status: "failed", queuedAt: RUN.queuedAt, restricted: true }] },
-    "GET /runs/run-s62/record": { status: 404, body: { error: "not found" } },
+    "GET /runs/run-s62/record": { body: { seq: 4, body: { approvedBy: ["ayse.k"], changes: [
+      { contract: "poc-web", uid: "u2", hostname: "labtpoc02", stage: "plan", action: "create" },
+      { contract: "poc-web", stage: "provision", action: "pulumi up", detail: "poc-web-lab: create 3" },
+    ] } } },
   });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -60,6 +63,8 @@ describe("runs", () => {
     expect(screen.getAllByText("changed: [labtpoc02]")).toHaveLength(1);
     expect(screen.getByTitle("gaia_linux_base : Saat dilimi: changed")).toBeInTheDocument();
     expect(screen.getByText("labtpoc02", { selector: "td" })).toBeInTheDocument();
+    expect(await screen.findByText("1 sunucu")).toBeInTheDocument();
+    expect(screen.getByText("ayse.k")).toBeInTheDocument();
     FakeES.last!.emit("end", { status: "succeeded" });
     expect(FakeES.last!.readyState).toBe(2);
   });
@@ -71,6 +76,6 @@ describe("runs", () => {
     expect(screen.getByText("(yetkiniz yok)")).toBeInTheDocument();
     fireEvent.mouseEnter(screen.getByRole("img", { name: "Run kaydı" }).parentElement!.parentElement!);
     // The tooltip reads the run only when it opens.
-    expect(await screen.findByText("Bu run'ın kaydı henüz yazılmadı.")).toBeInTheDocument();
+    expect(await screen.findByText("zincir #4")).toBeInTheDocument();
   });
 });
