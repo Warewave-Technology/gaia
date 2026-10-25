@@ -15,7 +15,7 @@
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | **Tamam** (lab oturumu sonda) |
 | 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | **Tamam** |
 | 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | **Tamam** |
-| 9 | Provider'lar: vSphere, AD, DNS, Warpgate, Nexus | 1 | – |
+| 9 | Provider'lar: vSphere, AD, DNS, Warpgate, artifact deposu (Pulp, Nexus) | 1 | Pulp provider'ı açık |
 | 10 | Yaşam döngüsü: drift, keşif, adopt, reconcile | 3, 8, 9 | – |
 | 11 | Dağıtım: paketler, Ansible rolü, Helm | 1 | – |
 
@@ -195,7 +195,7 @@ Tasarım 14.
 
 - vSphere compute provider'ı (`vsphere` Pulumi provider'ı, govmomi; `vcsim` ile test).
 - Ortak `Compute` arayüzü ile day-2: power, snapshot.
-- AD (bilgisayar hesapları), DNS (A/PTR), Warpgate (SSH/RDP hedefleri), Nexus.
+- AD (bilgisayar hesapları), DNS (A/PTR), Warpgate (SSH/RDP hedefleri), artifact deposu (Pulp; mevcut kurulumlar için Nexus).
 
 **Durum:**
 - Tamam: ortak `Compute` arayüzü (Proxmox ve vSphere), `power` ve `revert` aksiyonları.
@@ -204,8 +204,13 @@ Tasarım 14.
 - Tamam: AD bilgisayar hesapları (OU'da önceden açma, tek kullanımlık parola, `gaia_domain_join` rolü, decommission'da silme); Linux katılımı Samba AD ile doğrulandı.
 - Tamam: Warpgate (Platform `bastion`): SSH/RDP hedefleri, `gaia/<kontrat>` rolleri ve üyeleri, host anahtarları; Warpgate 0.29.2 ile doğrulandı. Geliştirme ortamında `make dev-warpgate`.
 - Tamam: Nexus: App artifact'ı run öncesi aranır, SHA-256'sı playbook'a ve run kaydına gider. Gerçek Nexus ile doğrulama açık (Nexus CE EULA kabulü gerektiriyor).
+- Karar (2026-10-25): artifact deposu Pulp 3 ve Zot.
+- Açık: `pulp` provider'ı.
+  - Nexus istemcisi ortak `Resolve(repository, path) → {url, sha256}` arayüzünün arkasına alınır.
+  - Pulp file distribution'ında `relative_path` ile sha256 aranır; indirme adresi `base_url` ile birleştirilerek kurulur.
+  - Geliştirme ortamına Pulp ve Zot eklenir. Gaia paketleri, imajı ve chart'ı oraya yayınlanır.
 - Düzeltme: erişim run'ları ajanları ve App'leri de çalıştırıyordu; artık sadece erişim play'ini çalıştırır.
-- Açık soru: tasarımdaki "Nexus'ta kullanıcı ve grup atamaları" (14.4) hangi yetkiyi kime vereceği tanımlı olmadığı için yapılmadı.
+- Açık soru: depoya insan erişimi (eski adıyla "Nexus'ta kullanıcı ve grup atamaları", 14.4). Pulp ve Zot'ta bu erişim AD gruplarıyla verilir; Gaia'nın burada bir rolü olup olmayacağı açık (design.md §15).
 
 ## Faz 10: Yaşam döngüsü
 
