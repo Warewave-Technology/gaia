@@ -255,6 +255,28 @@ func (c *Client) State(ctx context.Context, uid, hostID string) (*HostState, err
 	return st, nil
 }
 
+// GaiaHosts are the hosts that carry a gaia.uid tag, by UID, with their
+// names: for discovery, to find the ones whose server is gone.
+func (c *Client) GaiaHosts(ctx context.Context) (map[string]string, error) {
+	var hosts []struct {
+		Host string `json:"host"`
+		Tags []Tag  `json:"tags"`
+	}
+	if err := c.call(ctx, "host.get", map[string]any{"output": []string{"host"}, "selectTags": "extend",
+		"tags": []map[string]any{{"tag": UIDTag, "operator": 4}}}, &hosts); err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, h := range hosts {
+		for _, t := range h.Tags {
+			if t.Tag == UIDTag {
+				out[t.Value] = h.Host
+			}
+		}
+	}
+	return out, nil
+}
+
 // SetEnabled switches a host's monitoring on or off: a stopped server
 // waiting to be deleted is not monitored, and keeps its history
 // (design 9.8).

@@ -292,6 +292,31 @@ func (q *Queries) InsertHost(ctx context.Context, arg InsertHostParams) error {
 	return err
 }
 
+const knownUIDs = `-- name: KnownUIDs :many
+select uid from hosts where status not in ('deleted', 'unmanaged')
+`
+
+// UIDs of servers Gaia still manages.
+func (q *Queries) KnownUIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, knownUIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var uid string
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		items = append(items, uid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const liveHosts = `-- name: LiveHosts :many
 select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network, vm_spec, delete_after from hosts
 where contract = $1 and status not in ('deleted', 'unmanaged')
@@ -321,6 +346,48 @@ func (q *Queries) LiveHosts(ctx context.Context, contract string) ([]Host, error
 			&i.Network,
 			&i.VmSpec,
 			&i.DeleteAfter,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const liveVMs = `-- name: LiveVMs :many
+select h.uid, h.hostname, h.contract, e.provider, e.external_id
+from hosts h join host_external_ids e on e.uid = h.uid
+where e.kind = 'vm' and h.status not in ('deleted', 'unmanaged')
+order by h.contract, h.hostname
+`
+
+type LiveVMsRow struct {
+	Uid        string
+	Hostname   string
+	Contract   string
+	Provider   string
+	ExternalID string
+}
+
+// Every live server's VM, for discovery (design 8.3).
+func (q *Queries) LiveVMs(ctx context.Context) ([]LiveVMsRow, error) {
+	rows, err := q.db.Query(ctx, liveVMs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LiveVMsRow
+	for rows.Next() {
+		var i LiveVMsRow
+		if err := rows.Scan(
+			&i.Uid,
+			&i.Hostname,
+			&i.Contract,
+			&i.Provider,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}

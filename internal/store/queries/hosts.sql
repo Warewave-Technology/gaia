@@ -89,3 +89,14 @@ update hosts set status = 'active', delete_after = null, updated_at = now() wher
 select distinct contract from hosts
 where status = 'stopped' and delete_after <= sqlc.arg(now)::timestamptz
 order by contract;
+
+-- name: LiveVMs :many
+-- Every live server's VM, for discovery (design 8.3).
+select h.uid, h.hostname, h.contract, e.provider, e.external_id
+from hosts h join host_external_ids e on e.uid = h.uid
+where e.kind = 'vm' and h.status not in ('deleted', 'unmanaged')
+order by h.contract, h.hostname;
+
+-- name: KnownUIDs :many
+-- UIDs of servers Gaia still manages.
+select uid from hosts where status not in ('deleted', 'unmanaged');

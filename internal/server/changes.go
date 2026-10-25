@@ -177,6 +177,26 @@ func (s *Server) retryChange(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDiscovery is the latest discovery report (design 8.3).
+func (s *Server) getDiscovery(w http.ResponseWriter, r *http.Request) {
+	d, err := s.store.Q().LatestDiscovery(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(d.Report)
+}
+
+// requestDiscovery has the next scan tick write a discovery report.
+func (s *Server) requestDiscovery(w http.ResponseWriter, r *http.Request) {
+	if err := s.store.Q().ForgetDriftScan(r.Context(), "discovery"); err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "requested"})
+}
+
 // reconcileContract opens a change that applies a contract's applied
 // plan again, putting back whatever drifted (design 7.5); its owner
 // approves it.

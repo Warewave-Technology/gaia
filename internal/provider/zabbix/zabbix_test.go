@@ -280,6 +280,9 @@ func TestLab(t *testing.T) {
 	if err != nil || st == nil || st.Name != h.Hostname || !st.Enabled || st.IP != h.IP || !slices.Contains(st.Groups, "Gaia/test") {
 		t.Errorf("state = %+v, %v", st, err)
 	}
+	if all, err := c.GaiaHosts(ctx); err != nil || all[h.UID] != h.Hostname {
+		t.Errorf("gaia hosts = %v %v", all, err)
+	}
 	if err := c.SetEnabled(ctx, r.HostID, false); err != nil {
 		t.Fatal(err)
 	}

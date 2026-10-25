@@ -168,6 +168,14 @@ func (f *fakeMonitor) State(_ context.Context, uid, hostID string) (*zabbix.Host
 	return &zabbix.HostState{HostID: hostID, Name: h.Hostname, Enabled: !f.disabled[hostID], IP: h.IP, Groups: h.Groups, Templates: h.Templates}, nil
 }
 
+func (f *fakeMonitor) GaiaHosts(context.Context) (map[string]string, error) {
+	out := map[string]string{}
+	for uid, h := range f.hosts {
+		out[uid] = h.Hostname
+	}
+	return out, nil
+}
+
 func (f *fakeMonitor) SetEnabled(_ context.Context, hostID string, enabled bool) error {
 	if f.disabled == nil {
 		f.disabled = map[string]bool{}
@@ -823,6 +831,44 @@ func TestProvisioningAndConfigurationDrift(t *testing.T) {
 	}
 	if len(fs) != 1 || fs[0].Area != "configuration" || !strings.HasPrefix(fs[0].Got, "1 task(s) would change: ") {
 		t.Errorf("configuration = %v", fs)
+	}
+}
+
+func TestDiscover(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	if _, err := e.apply(func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) }); err != nil {
+		t.Fatal(err)
+	}
+	hosts := mustLive(t, e)
+	day2 := &fakeDayTwo{vms: []compute.ObservedVM{
+		{ID: "9401", Name: "labtpoc01", PowerState: "on"},
+		{ID: "9300", Name: "tpl", PowerState: "off", Template: true},
+		{ID: "9450", Name: "old", PowerState: "off", Tags: []string{"gaia", "gaia-uid_gone1"}},
+		{ID: "120", Name: "legacy-db", PowerState: "on"},
+	}}
+	e.deps.Compute = func(context.Context, string, string, map[string]string) (compute.Compute, error) { return day2, nil }
+	e.monitor.hosts["gone2"] = zabbix.Host{Hostname: "oldmon"}
+	rep, err := Discover(ctx, e.graph(nil), e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, v := range rep.VMs {
+		got = append(got, v.Category+":"+v.Name+":"+v.UID)
+	}
+	want := "managed:labtpoc01:" + hosts[0].Uid + ",orphan:old:gone1,template:tpl:,unmanaged:legacy-db:"
+	if strings.Join(got, ",") != want {
+		t.Errorf("vms\n got %v\nwant %s", got, want)
+	}
+	if len(rep.Missing) != 1 || rep.Missing[0].Hostname != "labtpoc02" || rep.Missing[0].ID != "9402" {
+		t.Errorf("missing = %+v", rep.Missing)
+	}
+	if len(rep.Hosts) != 1 || rep.Hosts[0].Name != "oldmon" || rep.Counts["monitoring orphan"] != 1 {
+		t.Errorf("monitoring = %+v", rep.Hosts)
+	}
+	if len(rep.Errors) != 0 {
+		t.Errorf("errors = %v", rep.Errors)
 	}
 }
 
@@ -2154,6 +2200,7 @@ type fakeDayTwo struct {
 	calls    []string
 	err      error
 	onDelete func(vm string)
+	vms      []compute.ObservedVM
 }
 
 func (f *fakeDayTwo) Delete(_ context.Context, vm string) error {
@@ -2184,7 +2231,7 @@ func (f *fakeDayTwo) DeleteSnapshot(_ context.Context, vm, name string) error {
 	return f.err
 }
 
-func (f *fakeDayTwo) Discover(context.Context) ([]compute.ObservedVM, error) { return nil, f.err }
+func (f *fakeDayTwo) Discover(context.Context) ([]compute.ObservedVM, error) { return f.vms, f.err }
 
 func TestPowerAndRevertOperations(t *testing.T) {
 	e := setup(t)
