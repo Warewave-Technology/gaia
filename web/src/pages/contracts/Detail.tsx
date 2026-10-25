@@ -11,7 +11,7 @@ import { baselineName, isServerPlan, type PlanContract, type PlanServer } from "
 import { buildTree, type Tone } from "../../lib/tree";
 import { ago } from "../../lib/time";
 import { Icon, type IconName } from "../../ui/icons";
-import { Badge, Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, StatusBar } from "../../ui/parts";
+import { Badge, Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, shortLabel, StatusBar } from "../../ui/parts";
 import { LazyRecordTip } from "../../ui/record";
 import { Page } from "../../ui/shell";
 import { ChangeBadge, HealthLabel, HealthLegend, SourceLabel, SourceLegend, SYNC, Sync, SyncLegend } from "../../ui/status";
@@ -98,7 +98,7 @@ function Body({ c, crumbs }: { c: Contract; crumbs: ReactNode }) {
         {
           icon: "history", title: "Son uygulama", hint: <>Kontratı en son başarıyla uygulayan run.<span className="leg"><Icon name="check-circle" size={15} color="var(--green)" /><span>yanındaki kalkanın üstüne gelince run kaydı açılır</span></span></>,
           value: lastApplied ? <span className="row" style={{ gap: 8 }}><IL icon="check-circle" color="var(--green)" size={20}>Uygulandı</IL><LazyRecordTip id={lastApplied.id} /></span> : <span className="muted" style={{ fontSize: 15 }}>henüz yok</span>,
-          sub: <>{c.state?.appliedLabel && <Mono>{short(c.state.appliedLabel)}</Mono>}{c.state?.appliedAt && ` · ${ago(c.state.appliedAt)}`}{lastApplied && <> · <Link to={`/runs/${encodeURIComponent(lastApplied.id)}`}>{lastApplied.id}</Link></>}</>,
+          sub: <>{c.state?.appliedLabel && <Mono>{shortLabel(c.state.appliedLabel)}</Mono>}{c.state?.appliedAt && ` · ${ago(c.state.appliedAt)}`}{lastApplied && <> · <Link to={`/runs/${encodeURIComponent(lastApplied.id)}`}>{lastApplied.id}</Link></>}</>,
         },
         {
           icon: "scan", title: "Drift", hint: <>Gerçek kaynakların Git'teki tanımdan sapıp sapmadığı.

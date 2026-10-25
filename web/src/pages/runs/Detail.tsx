@@ -183,7 +183,7 @@ function Body({ run, crumbs }: { run: Run; crumbs: React.ReactNode }) {
       ]} />
 
       <Stages run={run} />
-      <MatrixCard m={m} hosts={hosts} />
+      <MatrixCard m={m} hosts={hosts} live={live} />
       <Log events={events} hosts={hosts} live={live} broken={broken} />
     </Page>
   );
@@ -228,7 +228,7 @@ const MARK: Record<Mark, { tint: string; color: string; icon: IconName; label: s
   skipped: { tint: "transparent", color: "var(--gray)", icon: "minus", label: "skipped" },
 };
 
-function MatrixCard({ m, hosts }: { m: ReturnType<typeof matrix>; hosts: Record<string, string> }) {
+function MatrixCard({ m, hosts, live }: { m: ReturnType<typeof matrix>; hosts: Record<string, string>; live: boolean }) {
   const legend = (["ok", "changed", "failed"] as Mark[]).map((k) => (
     <span key={k} className="row" style={{ gap: 6 }}>
       <span style={{ display: "inline-flex", width: 20, height: 18, alignItems: "center", justifyContent: "center", background: MARK[k].tint, color: MARK[k].color, borderRadius: 3 }}><Icon name={MARK[k].icon} size={12} width={2.6} /></span>{k}
@@ -241,7 +241,7 @@ function MatrixCard({ m, hosts }: { m: ReturnType<typeof matrix>; hosts: Record<
         <Leg icon="pencil" color="var(--yellow)" name="changed">değiştirildi</Leg>
         <Leg icon="x" color="var(--red)" name="failed">hata verdi</Leg>
         <Leg icon="minus" color="var(--gray)" name="skipped">bu sunucuda çalışmadı</Leg></>}>
-      {m.hosts.length === 0 ? <div className="empty">Ansible henüz çalışmadı.</div> : (
+      {m.hosts.length === 0 ? <div className="empty">{live ? "Ansible henüz çalışmadı." : "Bu run'da Ansible çalışmadı."}</div> : (
         <div style={{ overflowX: "auto", padding: "8px 16px 16px" }}>
           <table style={{ borderCollapse: "separate", borderSpacing: 4, fontSize: 13 }}>
             <thead>

@@ -300,11 +300,8 @@ func (a *Service) stepUpBegin(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusForbidden, "confirm in the browser")
 		return
 	}
-	rp, err := a.relyingParty()
-	if err != nil {
-		a.fail(w, err, http.StatusInternalServerError)
-		return
-	}
+	// Someone without a passkey confirms with TOTP, even where passkeys
+	// cannot work (an AuthConfig url WebAuthn refuses).
 	u, err := a.webauthnUser(ctx, p.UserID)
 	if err != nil {
 		a.fail(w, err, http.StatusInternalServerError)
@@ -312,6 +309,11 @@ func (a *Service) stepUpBegin(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(u.creds) == 0 {
 		problem(w, http.StatusConflict, "register a passkey first")
+		return
+	}
+	rp, err := a.relyingParty()
+	if err != nil {
+		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	opts, sd, err := rp.BeginLogin(u)

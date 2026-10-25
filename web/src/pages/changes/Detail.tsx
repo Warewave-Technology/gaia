@@ -6,7 +6,7 @@ import { api, ApiError } from "../../api/client";
 import { useSession } from "../../api/session";
 import type { ApprovalGroup, Change, Commit, Gate } from "../../api/types";
 import { Icon, type IconName } from "../../ui/icons";
-import { Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, StatusBar, type StatusItem } from "../../ui/parts";
+import { Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, shortLabel, StatusBar, type StatusItem } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { ChangeBadge, ChangeStatusLegend, PLAN_ACTION, PlanLegend, Sync, SyncLegend } from "../../ui/status";
 import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan } from "../../lib/plan";
@@ -53,7 +53,7 @@ function Body({ c, crumbs }: { c: Change; crumbs: ReactNode }) {
         <h1>{c.contract}</h1>
         <ChangeBadge status={c.status} />
         <Hint><ChangeStatusLegend /></Hint>
-        {c.label && <span className="muted">{c.label}</span>}
+        {c.label && <span className="muted mono">{shortLabel(c.label)}</span>}
       </div>
 
       <div className="spread">
@@ -131,7 +131,7 @@ function statusItems(c: Change, plan: Plan | null): StatusItem[] {
     {
       icon: "sync", title: "Sync durumu", hint: <SyncLegend />,
       value: open ? <Sync state="out-of-sync" size={20} /> : c.status === "applied" ? <Sync state="synced" size={20} /> : <ChangeBadge status={c.status} />,
-      sub: <>{c.label ?? ""}{c.commits ? ` · ${(c.commits as Commit[]).length} commit` : ""}</>,
+      sub: <>{shortLabel(c.label)}{c.commits ? ` · ${(c.commits as Commit[]).length} commit` : ""}</>,
     },
     {
       icon: "user", title: "Onay",

@@ -11,7 +11,7 @@
 | 2 | Kimlik doğrulama ve yetki | 1 | **Tamam** |
 | 3 | Change motoru ve GitHub izleyicisi | 1, 2 | **Tamam** (lab oturumu sonda) |
 | 4 | Bildirimler | 3 | **Tamam** (lab oturumu sonda) |
-| 5 | Arayüz | 1–4; tasarım taslağının onayı | – |
+| 5 | Arayüz | 1–4; tasarım taslağının onayı | **Tamam** |
 | 6 | Erişim yönetimi: Team, Group, AD | 2, 3 | **Tamam** (lab oturumu sonda) |
 | 7 | Source'lar: NetworkSource, AnsibleRoleSource | 3 | **Tamam** |
 | 8 | Kontrat genişlemeleri: App, Agent, Operation | 3 | **Tamam** |
@@ -148,7 +148,7 @@ Gaia'nın omurgası (tasarım 7.6).
   - `make web`, uygulamayı `internal/web/dist`'e derler; binary onu `go:embed` ile taşır.
   - Sunucu, başka bir route'un almadığı her yolu uygulamaya verir. API yolları uygulamaya düşmez.
   - `make build`, `make package`, imaj ve CI arayüzü de derler.
-  - Giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`, `/approve/{id}`) sunucuda kalır. Oturum yoksa uygulama `/login?next=` adresine gider.
+  - Giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`) sunucuda kalır. Oturum yoksa uygulama `/login?next=` adresine gider.
 - Tamam: Değişiklikler ekranı.
   - **Liste:** onayımı bekleyenler, açık ve tümü olarak filtrelenir.
   - **Detay:** durum paneli, gerekenler (validasyon, imza, onaycı grupları ve onaylayamayanlar), alan alan ve sunucu sunucu plan, commit'ler, ham plan ve akış.
@@ -194,6 +194,16 @@ Gaia'nın omurgası (tasarım 7.6).
 - Tamam: giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`) arayüzün temasında.
   - Ortak bir stil dosyası var. Sayfalarda satır içi stil kalmadı; CSP `style-src 'self'`.
   - Sunucunun ayrı onay sayfası kalktı. Bildirimler ve `gaia change` artık `/changes/{id}` bağlantısı veriyor; eski `/approve/{id}` bağlantıları oraya yönlenir.
+- Tamam: "Bitti sayılır" senaryosu `make ui-demo` ile gerçek bir sunucuya karşı tarayıcıda denendi (2026-10-25).
+  - Ortam: lab kataloğu, imzalı commit'ler, PostgreSQL. Run'lar sahte sistemlerde çalıştı.
+  - Akış:
+    - Bir kullanıcı TOTP ile kaydoldu.
+    - Onayını bekleyen değişikliği genel bakışta ve listede gördü, detayını açtı.
+    - Passkey'i olmadığı için TOTP koduyla doğrulayıp onayladı.
+    - Değişiklik uygulandı ve Synced oldu.
+    - Run sayfasında aşamalar, run kaydındaki kişiler ve SSE log'u göründü; zincir doğrulandı.
+  - Passkey töreninin kendisi arayüz testlerinde (taklit edilmiş tarayıcı API'si) ve sunucunun sanal authenticator'lı Go testlerinde sınanıyor. Tarayıcı panelinde bir authenticator olmadığından elle denenmedi.
+  - Denemede bulunan hata düzeltildi: passkey'i olmayan bir kişinin step-up isteği, AuthConfig `url`'i WebAuthn'ın kabul etmediği bir adres olduğunda (IP) 500 dönüyordu. Artık önce passkey olup olmadığına bakılıyor ve TOTP'ye geçiliyor.
 - Açık: provider'lar için sürekli bağlantı denetimi. Şimdilik durum, son keşfin cevabından geliyor.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 

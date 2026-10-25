@@ -500,3 +500,27 @@ func TestPasswordHash(t *testing.T) {
 		t.Error("no salt")
 	}
 }
+
+// Someone with only TOTP is sent to it for step-up, even where the
+// AuthConfig url is one WebAuthn refuses (an IP address).
+func TestStepUpWithoutAPasskeyUsesTOTP(t *testing.T) {
+	g := labGraphWith(t, func(path, c string) string {
+		if path == "platform/auth.yaml" {
+			c = strings.Replace(c, "require: passkey", "require: mfa", 1)
+			return strings.Replace(c, "url: http://localhost:8080", "url: http://127.0.0.1:8080", 1)
+		}
+		return c
+	})
+	e := setupWith(t, g)
+	id, link := e.user("deniz")
+	token := link[strings.Index(link, "#")+1:]
+	b := e.browser(id)
+	_, setup := b.do("POST", "/api/v1/auth/enroll/totp/begin", map[string]string{"token": token})
+	now, _ := totp.GenerateCode(setup["secret"].(string), time.Now())
+	if code, out := b.do("POST", "/api/v1/auth/enroll/totp/finish", map[string]string{"token": token, "password": "a long enough password", "code": now}); code != 200 {
+		t.Fatalf("totp finish: %d %v", code, out)
+	}
+	if code, out := b.do("POST", "/api/v1/auth/step-up/begin", nil); code != 409 || out["error"] != "register a passkey first" {
+		t.Errorf("step-up without a passkey: %d %v", code, out)
+	}
+}
