@@ -1,0 +1,39 @@
+# gaia.server: installs Gaia on a VM (design 13.2).
+
+# The package: a file on the controller (gaia_package_file), or the
+# package name from a repository the host already has (Nexus apt/yum).
+gaia_package_file: ""
+gaia_package_name: gaia
+
+# /etc/gaia/gaia.env: GAIA_* variables (see `gaia server --help`).
+# Secrets do not go here: they are the files below.
+gaia_env:
+  GAIA_DSN: ""
+  GAIA_SERVER_ARGS: --listen 0.0.0.0:8080
+gaia_service: true
+
+# OpenBao AppRole secret_id, written to /etc/gaia/bao-secret-id; the env
+# then names it with GAIA_BAO_SECRET_ID_FILE.
+gaia_bao_secret_id: ""
+
+# gaia migrate runs with the schema owner, once per play, before the
+# services start; empty skips it.
+gaia_migrate_dsn: ""
+
+# Workers run Ansible in rootless podman.
+gaia_podman: true
+
+# The pinned Pulumi CLI and plugins, installed ahead of runs.
+gaia_pulumi_prepare: true
+
+# The IPAM service, on the same host.
+gaia_ipam: false
+gaia_ipam_env:
+  GAIA_DSN: ""
+  GAIA_IPAM_ARGS: --listen 0.0.0.0:8090 --token-file /etc/gaia/ipam-token
+gaia_ipam_token: ""
+gaia_ipam_migrate_dsn: ""
+
+# Where the services answer, for the health check after they start.
+gaia_health_url: http://127.0.0.1:8080/healthz
+gaia_ipam_health_url: http://127.0.0.1:8090/healthz

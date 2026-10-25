@@ -1,0 +1,150 @@
+- name: Podman for the workers' Ansible runs
+  ansible.builtin.package:
+    name: podman
+    state: present
+  when: gaia_podman
+
+- name: The package, from the controller
+  when: gaia_package_file != ""
+  block:
+    - name: Copy the package
+      ansible.builtin.copy:
+        src: "{{ gaia_package_file }}"
+        dest: "/var/tmp/{{ gaia_package_file | basename }}"
+        mode: "0644"
+      register: gaia_copied
+
+    - name: Install the package (dnf)
+      ansible.builtin.dnf:
+        name: "/var/tmp/{{ gaia_package_file | basename }}"
+        state: present
+        disable_gpg_check: true
+      when: ansible_pkg_mgr in ['dnf', 'dnf5', 'yum']
+      notify: [Restart gaia, Restart gaia-ipam]
+
+    - name: Install the package (apt)
+      ansible.builtin.apt:
+        deb: "/var/tmp/{{ gaia_package_file | basename }}"
+      when: ansible_pkg_mgr == 'apt'
+      notify: [Restart gaia, Restart gaia-ipam]
+
+- name: The package, from the host's repositories
+  ansible.builtin.package:
+    name: "{{ gaia_package_name }}"
+    state: present
+  when: gaia_package_file == ""
+  notify: [Restart gaia, Restart gaia-ipam]
+
+- name: OpenBao's secret_id
+  ansible.builtin.copy:
+    content: "{{ gaia_bao_secret_id }}\n"
+    dest: /etc/gaia/bao-secret-id
+    owner: root
+    group: gaia
+    mode: "0640"
+  no_log: true
+  when: gaia_bao_secret_id != ""
+  notify: Restart gaia
+
+- name: gaia.env
+  ansible.builtin.template:
+    src: env.j2
+    dest: /etc/gaia/gaia.env
+    owner: root
+    group: gaia
+    mode: "0640"
+  vars:
+    env: "{{ gaia_env | combine({'GAIA_BAO_SECRET_ID_FILE': '/etc/gaia/bao-secret-id'} if gaia_bao_secret_id != '' else {}) }}"
+  notify: Restart gaia
+
+- name: The IPAM's token and env
+  when: gaia_ipam
+  block:
+    - name: ipam-token
+      ansible.builtin.copy:
+        content: "{{ gaia_ipam_token }}\n"
+        dest: /etc/gaia/ipam-token
+        owner: root
+        group: gaia
+        mode: "0640"
+      no_log: true
+      notify: Restart gaia-ipam
+
+    - name: gaia-ipam.env
+      ansible.builtin.template:
+        src: env.j2
+        dest: /etc/gaia/gaia-ipam.env
+        owner: root
+        group: gaia
+        mode: "0640"
+      vars:
+        env: "{{ gaia_ipam_env }}"
+      notify: Restart gaia-ipam
+
+- name: Migrate Gaia's schema
+  ansible.builtin.command: gaia migrate
+  environment:
+    GAIA_DSN: "{{ gaia_migrate_dsn }}"
+  register: gaia_migrated
+  changed_when: "'applied' in gaia_migrated.stdout"
+  run_once: true
+  no_log: true
+  when: gaia_migrate_dsn != ""
+
+- name: Migrate the IPAM's schema
+  ansible.builtin.command: gaia-ipam migrate
+  environment:
+    GAIA_DSN: "{{ gaia_ipam_migrate_dsn }}"
+  changed_when: false
+  run_once: true
+  no_log: true
+  when: gaia_ipam and gaia_ipam_migrate_dsn != ""
+
+- name: Directories the service writes, before its first start
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: gaia
+    group: gaia
+    mode: "0750"
+  loop: [/var/lib/gaia, /var/cache/gaia]
+
+# As the service runs it: the account has no shell, so runuser rather
+# than become.
+- name: Pulumi's CLI and plugins
+  ansible.builtin.command:
+    argv: [runuser, -u, gaia, --, env, HOME=/var/lib/gaia, XDG_CACHE_HOME=/var/cache, PULUMI_HOME=/var/lib/gaia/pulumi, gaia, pulumi, prepare]
+    creates: /var/lib/gaia/pulumi/plugins/resource-vsphere-v4.18.1
+  when: gaia_pulumi_prepare
+
+- name: Flush handlers before the services start
+  ansible.builtin.meta: flush_handlers
+
+- name: The services run
+  ansible.builtin.systemd:
+    name: "{{ item.name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  loop:
+    - { name: gaia, wanted: "{{ gaia_service }}" }
+    - { name: gaia-ipam, wanted: "{{ gaia_ipam }}" }
+  when: item.wanted | bool
+
+- name: Gaia answers
+  ansible.builtin.uri:
+    url: "{{ gaia_health_url }}"
+  register: gaia_health
+  until: gaia_health.status == 200
+  retries: 30
+  delay: 2
+  when: gaia_service
+
+- name: The IPAM answers
+  ansible.builtin.uri:
+    url: "{{ gaia_ipam_health_url }}"
+  register: gaia_ipam_health
+  until: gaia_ipam_health.status == 200
+  retries: 30
+  delay: 2
+  when: gaia_ipam
