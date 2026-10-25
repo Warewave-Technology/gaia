@@ -70,7 +70,7 @@ func (f *fakeCompute) used(context.Context, proxmox.Credentials) (map[int]bool, 
 }
 
 func (f *fakeCompute) provision(_ context.Context, b pulumi.Backend, st pulumi.Stack, _ io.Writer) (map[string]pulumi.Result, pulumi.Changes, error) {
-	if b.URL != "postgres://gaia_owner:pw@192.168.1.25:5432/pulumi?sslmode=disable" || b.Env["VAULT_TOKEN"] != "bao-token" {
+	if b.URL != "postgres://gaia_owner:pw@192.168.1.26:5432/pulumi?sslmode=disable" || b.Env["VAULT_TOKEN"] != "bao-token" {
 		return nil, nil, fmt.Errorf("backend = %+v", b)
 	}
 	f.stacks = append(f.stacks, st)
@@ -1487,7 +1487,7 @@ func TestApplyRegistersServersInMonitoring(t *testing.T) {
 	if got := e.monitor.hosts[uid]; !reflect.DeepEqual(got, want) {
 		t.Errorf("host\n got %+v\nwant %+v", got, want)
 	}
-	if e.monitor.endpoint != "http://192.168.1.25:8080/api_jsonrpc.php" || e.monitor.token != "zbx" {
+	if e.monitor.endpoint != "http://192.168.1.26:8080/api_jsonrpc.php" || e.monitor.token != "zbx" {
 		t.Errorf("monitor at %s with %s", e.monitor.endpoint, e.monitor.token)
 	}
 	id, _ := (&runner{d: e.deps}).externalID(ctx, uid, "zabbix", "host")

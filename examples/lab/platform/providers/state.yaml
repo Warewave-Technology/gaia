@@ -4,5 +4,5 @@ metadata:
   name: state
 spec:
   type: postgres                    # Pulumi state; ayrı veritabanı
-  endpoint: postgres://192.168.1.25:5432/pulumi?sslmode=disable
+  endpoint: postgres://192.168.1.26:5432/pulumi?sslmode=disable
   credentials: bao://kv/platform/pulumi-state   # username, password

@@ -229,7 +229,7 @@ func TestNotificationsReachSubscribersOnce(t *testing.T) {
 	g := graph(t, hs.URL, mailAddr)
 
 	secrets := func(_ context.Context, addr, ref string) (map[string]string, error) {
-		if addr != "http://192.168.1.25:8200" { // the Platform's OpenBao
+		if addr != "http://192.168.1.26:8200" { // the Platform's OpenBao
 			t.Errorf("secrets addr %q", addr)
 		}
 		switch ref {
