@@ -984,12 +984,28 @@ components:
         lastStatus: { type: string }
         sync: { type: string, enum: [synced, out-of-sync, unknown] }
         openChange: { type: string }
+        labels: { type: object, additionalProperties: { type: string }, description: The Server object's labels in Git }
+        appliedLabel: { type: string, description: The commits it was last applied at }
+        appliedAt: { type: string, format: date-time }
         restricted: { type: boolean }
     Contract:
       type: object
       required: [name, hosts, runs]
       properties:
         name: { type: string }
+        labels: { type: object, additionalProperties: { type: string } }
+        state:
+          type: object
+          description: How Gaia last found it against Git, and what was last applied
+          properties:
+            sync: { type: string, enum: [synced, out-of-sync, unknown] }
+            error: { type: string, description: Why the sync is unknown }
+            evaluatedAt: { type: string, format: date-time }
+            appliedLabel: { type: string }
+            appliedPlanHash: { type: string }
+            appliedAt: { type: string, format: date-time }
+            appliedPlan: { type: object, description: The plan last applied }
+        openChange: { type: string }
         hosts: { type: array, items: { $ref: "#/components/schemas/Host" } }
         runs: { type: array, items: { $ref: "#/components/schemas/Run" } }
     Host:

@@ -163,6 +163,16 @@ Gaia'nın omurgası (tasarım 7.6).
     - SSE ile canlı log: hostname'li satırlar ve kopmadan devam
     - operatöre durdurma, zincir doğrulama
   - **API:** run'da `configCommit`, `eeImage`, `change` ve `hosts` (UID → hostname) alanları.
+- Tamam: Kontratlar ekranı.
+  - **Liste:** Argo CD'deki gibi kartlar. Her kartta sağlık, sync, sahip, ortam, uygulanan commit, açık Change ve son uygulama var.
+  - **Detay:**
+    - durum paneli: sağlık, sync, son uygulama ve run kaydı, drift
+    - React Flow + ELK ile kaynak ağacı: kontrat → sunucular → her sunucunun VM, IP, izleme, AD, DNS ve bastion kaynakları. Git'te olup henüz oluşmamış sunucular kesik çizgiyle gösterilir.
+    - kullandığı katalog nesneleri ve provider'ları
+    - sunucular, sapmalar ve geçmiş
+    - operatöre "yeniden uygula"
+  - **Sağlık:** Gaia'nın bildiklerinden çıkarılır: son run, sunucu durumları ve açık drift. Canlı izleme verisi değildir.
+  - **API:** kontrat listesine etiketler ve son uygulama eklendi. Detay artık `state` (sync, hata, uygulanan commit'ler, plan hash'i ve plan), etiketler ve açık Change'i de veriyor.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 
 ## Faz 6: Erişim yönetimi

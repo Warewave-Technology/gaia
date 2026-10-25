@@ -8,6 +8,8 @@ import { ChangeList } from "./pages/changes/List";
 import { ChangeDetail } from "./pages/changes/Detail";
 import { RunList } from "./pages/runs/List";
 import { RunDetail } from "./pages/runs/Detail";
+import { ContractList } from "./pages/contracts/List";
+import { ContractDetail } from "./pages/contracts/Detail";
 
 export function makeClient() {
   return new QueryClient({
@@ -28,7 +30,8 @@ export function AppRoutes() {
         <Route index element={<Soon title="Genel bakış" />} />
         <Route path="changes" element={<ChangeList />} />
         <Route path="changes/:id" element={<ChangeDetail />} />
-        <Route path="contracts/*" element={<Soon title="Kontratlar" />} />
+        <Route path="contracts" element={<ContractList />} />
+        <Route path="contracts/:name" element={<ContractDetail />} />
         <Route path="runs" element={<RunList />} />
         <Route path="runs/:id" element={<RunDetail />} />
         <Route path="catalog/*" element={<Soon title="Katalog" />} />

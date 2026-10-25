@@ -9,7 +9,7 @@ import { Icon, type IconName } from "../../ui/icons";
 import { Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, StatusBar, type StatusItem } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { ChangeBadge, ChangeStatusLegend, PLAN_ACTION, PlanLegend, Sync, SyncLegend } from "../../ui/status";
-import { areas, isServerPlan, servers, total, type Counts, type Plan } from "../../lib/plan";
+import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan } from "../../lib/plan";
 import { decide, stepUp, stepUpTOTP } from "../../lib/stepup";
 import { clock } from "../../lib/time";
 
@@ -288,7 +288,7 @@ function PlanView({ plan }: { plan: Plan }) {
       {contract && (
         <div className="row muted" style={{ gap: "6px 16px" }}>
           {contract.monitoring && <span className="il" style={{ fontWeight: 400 }}><Icon name="activity" size={14} />İzleme: {contract.monitoring.provider}{contract.monitoring.templates?.length ? ` · ${contract.monitoring.templates.join(", ")}` : ""}</span>}
-          {contract.baseline && <span className="il" style={{ fontWeight: 400 }}><Icon name="layers" size={14} />Konfigürasyon: baseline {contract.baseline}{contract.roles?.length ? ` + ${contract.roles.map((r) => r.name).join(", ")}` : ""}</span>}
+          {contract.baseline && <span className="il" style={{ fontWeight: 400 }}><Icon name="layers" size={14} />Konfigürasyon: baseline {baselineName(contract)}{contract.roles?.length ? ` + ${contract.roles.map((r) => r.name).join(", ")}` : ""}</span>}
         </div>
       )}
     </div>

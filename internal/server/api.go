@@ -14,6 +14,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/auth"
+	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -148,14 +149,36 @@ type ContractSummary struct {
 	// Sync is synced, out-of-sync or unknown (design 7.6).
 	Sync       string `json:"sync,omitempty"`
 	OpenChange string `json:"openChange,omitempty"`
-	Restricted bool   `json:"restricted,omitempty"`
+	// Labels are the Server object's labels in Git (owner, env, app…).
+	Labels map[string]string `json:"labels,omitempty"`
+	// AppliedLabel is the commits it was last applied at, and AppliedAt
+	// when.
+	AppliedLabel string     `json:"appliedLabel,omitempty"`
+	AppliedAt    *time.Time `json:"appliedAt,omitempty"`
+	Restricted   bool       `json:"restricted,omitempty"`
 }
 
 // Contract is one contract with its servers and recent runs.
 type Contract struct {
-	Name  string `json:"name"`
-	Hosts []Host `json:"hosts"`
-	Runs  []Run  `json:"runs"`
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// State is how Gaia last found it against Git (design 7.6).
+	State      *ContractState `json:"state,omitempty"`
+	OpenChange string         `json:"openChange,omitempty"`
+	Hosts      []Host         `json:"hosts"`
+	Runs       []Run          `json:"runs"`
+}
+
+// ContractState is a contract's sync and what was last applied: the
+// commits, the plan's hash and the plan itself.
+type ContractState struct {
+	Sync            string          `json:"sync"`
+	Error           string          `json:"error,omitempty"`
+	EvaluatedAt     *time.Time      `json:"evaluatedAt,omitempty"`
+	AppliedLabel    string          `json:"appliedLabel,omitempty"`
+	AppliedPlanHash string          `json:"appliedPlanHash,omitempty"`
+	AppliedAt       *time.Time      `json:"appliedAt,omitempty"`
+	AppliedPlan     json.RawMessage `json:"appliedPlan,omitempty"`
 }
 
 // Host is a live server of a contract and its IDs in other systems.
@@ -479,9 +502,9 @@ func (s *Server) listContracts(w http.ResponseWriter, r *http.Request) {
 			out = append(out, ContractSummary{Name: c.Name, Restricted: true})
 			continue
 		}
-		cs := ContractSummary{Name: c.Name, LiveHosts: c.LiveHosts, LastRun: c.LastRun, LastStatus: c.LastStatus}
+		cs := ContractSummary{Name: c.Name, LiveHosts: c.LiveHosts, LastRun: c.LastRun, LastStatus: c.LastStatus, Labels: s.labels(c.Name)}
 		if st, err := s.store.Q().ContractState(r.Context(), c.Name); err == nil {
-			cs.Sync = st.Sync
+			cs.Sync, cs.AppliedLabel, cs.AppliedAt = st.Sync, st.AppliedLabel.String, timePtr(st.AppliedAt)
 		}
 		if oc, err := s.store.Q().OpenChange(r.Context(), c.Name); err == nil {
 			cs.OpenChange = oc.ID
@@ -513,7 +536,27 @@ func (s *Server) getContract(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, Problem{Error: "no such contract: " + name})
 		return
 	}
-	c := Contract{Name: name, Hosts: []Host{}, Runs: []Run{}}
+	c := Contract{Name: name, Labels: s.labels(name), Hosts: []Host{}, Runs: []Run{}}
+	switch st, err := q.ContractState(ctx, name); {
+	case err == nil:
+		c.State = &ContractState{
+			Sync: st.Sync, Error: st.Error.String, EvaluatedAt: timePtr(st.EvaluatedAt),
+			AppliedLabel: st.AppliedLabel.String, AppliedPlanHash: st.AppliedPlanHash.String, AppliedAt: timePtr(st.AppliedAt),
+		}
+		if len(st.AppliedPlan) > 0 {
+			c.State.AppliedPlan = json.RawMessage(st.AppliedPlan)
+		}
+	case !errors.Is(err, pgx.ErrNoRows):
+		s.fail(w, err)
+		return
+	}
+	switch oc, err := q.OpenChange(ctx, name); {
+	case err == nil:
+		c.OpenChange = oc.ID
+	case !errors.Is(err, pgx.ErrNoRows):
+		s.fail(w, err)
+		return
+	}
 	for _, h := range hosts {
 		ids, err := q.ExternalIDs(ctx, h.Uid)
 		if err != nil {
@@ -530,6 +573,22 @@ func (s *Server) getContract(w http.ResponseWriter, r *http.Request) {
 		c.Runs = append(c.Runs, runJSON(row))
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+// labels are a contract's labels in the desired state, when the server
+// follows a repository and the contract is a Server object there.
+func (s *Server) labels(name string) map[string]string {
+	if s.cfg.Catalog == nil {
+		return nil
+	}
+	g := s.cfg.Catalog.Graph()
+	if g == nil {
+		return nil
+	}
+	if o, ok := g.Catalog.Get(catalog.KindServer, name); ok {
+		return o.Metadata.Labels
+	}
+	return nil
 }
 
 func runJSON(r db.Run) Run {
