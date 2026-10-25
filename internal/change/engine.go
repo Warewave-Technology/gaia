@@ -192,6 +192,10 @@ func (e *Engine) contract(ctx context.Context, snap repo.Snapshot, g *catalog.Gr
 		if err := q.SetContractSync(ctx, db.SetContractSyncParams{Contract: name, Sync: "synced"}); err != nil {
 			return err
 		}
+		if hasOpen && isDrift(open.Source) {
+			// A change that puts drift right keeps the applied plan.
+			return e.advance(ctx, open, g)
+		}
 		if hasOpen && open.Status != Running {
 			// Git came back to what is applied: nothing to do any more.
 			_, err := q.SetChangeStatus(ctx, db.SetChangeStatusParams{ID: open.ID, Status: Superseded, FromStatuses: []string{Pending, Approved}})
@@ -433,6 +437,11 @@ func (e *Engine) start(ctx context.Context, c db.Change, g *catalog.Graph, appro
 	if len(c.RequestedBy) > 0 {
 		by = c.RequestedBy[0]
 	}
+	if c.Source == DriftAuto && len(approvedBy) == 0 {
+		// Converging again to an applied plan: its approval stands
+		// (design 7.5).
+		approvedBy = []string{"gaia: drift (applied plan " + short(c.PlanHash) + ")"}
+	}
 	runs, err := queue.EnqueueChange(ctx, e.Store, e.Queue, g, snap, c.Contract, c.PlanHash, c.ID, by, approvedBy)
 	if errors.Is(err, queue.ErrPlanChanged) {
 		e.log().Info("change waits: the plan changed", "id", c.ID)
@@ -587,4 +596,75 @@ func (e *Engine) Retry(ctx context.Context, id string, snap repo.Snapshot, g *ca
 		return last.ID, lerr
 	}
 	return open.ID, nil
+}
+
+// Sources of the changes that put drift right (design 7.5): approved by
+// the owner, or run at once.
+const (
+	Drift     = "drift"
+	DriftAuto = "drift-auto"
+)
+
+// DriftRequester is who drift changes are requested by.
+const DriftRequester = "gaia: drift"
+
+func isDrift(source string) bool { return source == Drift || source == DriftAuto }
+
+func short(h string) string {
+	if len(h) > 19 {
+		return h[:19]
+	}
+	return h
+}
+
+// OpenDrift opens a change that converges a contract to its applied plan
+// again, unless one is open already or the last one like it failed (a
+// retry decides then). auto runs it without approval. It returns the
+// change, or "".
+func (e *Engine) OpenDrift(ctx context.Context, contract string, auto bool) (string, error) {
+	q := e.Store.Q()
+	if open, err := q.OpenChange(ctx, contract); err == nil {
+		return open.ID, nil
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
+	st, err := q.ContractState(ctx, contract)
+	if err != nil || len(st.AppliedPlan) == 0 {
+		return "", err
+	}
+	var snap repo.Snapshot
+	if err := json.Unmarshal(st.AppliedSnapshot, &snap); err != nil {
+		return "", err
+	}
+	g, err := e.Repos.Graph(ctx, snap)
+	if err != nil {
+		return "", err
+	}
+	p, err := plan.Build(ctx, g, []string{contract}, apply.StoreState{S: e.Store})
+	if err != nil {
+		return "", err
+	}
+	if p.Hash != st.AppliedPlanHash.String {
+		// The contract is about to change anyway.
+		return "", nil
+	}
+	if last, err := q.LastChange(ctx, contract); err == nil && isDrift(last.Source) && last.PlanHash == p.Hash && last.Status == Failed {
+		return "", nil
+	}
+	source := Drift
+	if auto {
+		source = DriftAuto
+	}
+	c := db.Change{
+		ID: store.NewChangeID(), Contract: contract, Source: source, Snapshot: mustJSON(snap), Label: snap.Label(),
+		PlanHash: p.Hash, Plan: mustJSON(p), Status: Pending, RequestedBy: []string{DriftRequester}, Commits: mustJSON([]Commit{}),
+	}
+	if err := q.InsertChange(ctx, db.InsertChangeParams{
+		ID: c.ID, Contract: c.Contract, Source: c.Source, Snapshot: c.Snapshot, Label: c.Label,
+		PlanHash: c.PlanHash, Plan: c.Plan, Status: c.Status, RequestedBy: c.RequestedBy, Commits: c.Commits,
+	}); err != nil {
+		return "", err
+	}
+	e.log().Info("drift change", "id", c.ID, "contract", contract, "auto", auto)
+	return c.ID, e.advance(ctx, c, g)
 }

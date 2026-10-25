@@ -25,6 +25,17 @@ func render(ev Event) (string, string) {
 	}
 	title := fmt.Sprintf("%s: değişiklik %s", ev.Contract, what)
 	var b strings.Builder
+	if ev.Trigger == "drift.found" {
+		title = fmt.Sprintf("%s: %s", ev.Contract, what)
+		fmt.Fprintf(&b, "Alan: %s\n%s", ev.Status, ev.Comment)
+		if ev.Change != "" {
+			fmt.Fprintf(&b, "\nDüzeltme: %s", ev.Change)
+		}
+		if ev.URL != "" {
+			fmt.Fprintf(&b, "\nBağlantı: %s", ev.URL)
+		}
+		return title, strings.TrimRight(b.String(), "\n")
+	}
 	if ev.Trigger == "access.privileged" {
 		title = fmt.Sprintf("%s: %s", ev.Group, what)
 		fmt.Fprintf(&b, "Kişi: %s\nTakım: %s\nGrup: %s\n%s", ev.Person, ev.Team, ev.Group, ev.Comment)

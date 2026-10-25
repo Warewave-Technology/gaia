@@ -160,6 +160,14 @@ type fakeMonitor struct {
 	disabled        map[string]bool
 }
 
+func (f *fakeMonitor) State(_ context.Context, uid, hostID string) (*zabbix.HostState, error) {
+	h, ok := f.hosts[uid]
+	if !ok || f.ids[uid] != hostID {
+		return nil, nil
+	}
+	return &zabbix.HostState{HostID: hostID, Name: h.Hostname, Enabled: !f.disabled[hostID], IP: h.IP, Groups: h.Groups, Templates: h.Templates}, nil
+}
+
 func (f *fakeMonitor) SetEnabled(_ context.Context, hostID string, enabled bool) error {
 	if f.disabled == nil {
 		f.disabled = map[string]bool{}
@@ -520,6 +528,13 @@ func (f *fakeDirectory) ReverseZone(ip netip.Addr) (string, string, error) {
 
 func (f *fakeDirectory) Close() error { return nil }
 
+func (f *fakeDirectory) Records(zone, name string) ([]ad.Record, error) {
+	if _, ok := f.zones[zone]; !ok {
+		return nil, ad.ErrNoZone
+	}
+	return f.zones[zone][name], nil
+}
+
 func (f *fakeDirectory) Domain() string { return "lab.test" }
 
 func (f *fakeDirectory) Computer(name string) (ad.Computer, error) {
@@ -722,6 +737,50 @@ func (e *env) externalIDOf(uid, provider, kind string) (string, error) {
 		}
 	}
 	return "", err
+}
+
+func TestRegistrationDrift(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	dir := newFakeDirectory()
+	dir.zones = map[string]map[string][]ad.Record{"lab.test": {}, "0.50.10.in-addr.arpa": {}}
+	e.deps.Directory = func(context.Context, ad.Config) (Directory, error) { return dir, nil }
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/ad/writer"] = map[string]string{"username": "w", "password": "w"}
+	e.platform = map[string]func(string) string{
+		"platform/providers/corp-ad.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: corp-ad }\nspec: { type: activedirectory, endpoint: ldaps://dc1, credentials: bao://kv/platform/ad/reader, writeCredentials: bao://kv/platform/ad/writer }\n"
+		},
+		"platform/catalog/network.yaml": func(c string) string {
+			return strings.Replace(c, "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1], provider: corp-ad, zone: lab.test, reverse: true }", 1)
+		},
+	}
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	g := e.graph(nil)
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fs, err := CheckRegistration(ctx, g, p, e.deps); err != nil || len(fs) != 0 {
+		t.Fatalf("clean: %v %v", fs, err)
+	}
+
+	// Someone switched monitoring off and pointed the name elsewhere.
+	_ = e.monitor.SetEnabled(ctx, "10000", false)
+	dir.zones["lab.test"]["labtpoc01"] = []ad.Record{{Type: ad.TypeA, Data: "10.50.0.250"}}
+	fs, err := CheckRegistration(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, f := range fs {
+		got = append(got, f.String())
+	}
+	want := []string{"poc-web labtpoc01 monitoring/enabled: want enabled, got disabled", "poc-web labtpoc01 dns/a: want 10.50.0.100, got 10.50.0.250"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("findings\n got %v\nwant %v", got, want)
+	}
 }
 
 // onVSphere turns the lab site into a vSphere one.
@@ -1453,6 +1512,26 @@ func (f *fakeBastion) EnsureTarget(_ context.Context, t warpgate.Target, id, mar
 	}
 	f.targets[id] = t
 	return warpgate.Result{ID: id, Action: "update"}, nil
+}
+
+func (f *fakeBastion) Target(_ context.Context, id string) (warpgate.Target, error) {
+	t, ok := f.targets[id]
+	if !ok {
+		return warpgate.Target{}, warpgate.ErrNotFound
+	}
+	return t, nil
+}
+
+func (f *fakeBastion) TargetRoles(_ context.Context, id string) ([]string, error) {
+	var out []string
+	for _, rid := range f.targetRoles[id] {
+		for name, x := range f.roles {
+			if x == rid {
+				out = append(out, name)
+			}
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeBastion) DeleteTarget(_ context.Context, id string) (bool, error) {

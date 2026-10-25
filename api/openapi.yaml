@@ -139,6 +139,14 @@ paths:
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       responses:
         "200": { description: Changes, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Change" } } } } }
+  /api/v1/drift:
+    get:
+      summary: Live drift, where the systems are not what was applied (design 7.5)
+      operationId: listDrift
+      parameters:
+        - { name: contract, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Drift reports, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Drift" } } } } }
   /api/v1/changes/{id}:
     get:
       summary: A change with its plan, requirements, commits and approvals
@@ -785,6 +793,22 @@ components:
       type: object
       required: [error]
       properties: { error: { type: string } }
+    Drift:
+      type: object
+      description: A live drift report; the details only for those who see the contract in full.
+      properties:
+        contract: { type: string }
+        uid: { type: string }
+        hostname: { type: string }
+        area: { type: string, enum: [registration, provisioning, configuration] }
+        key: { type: string, description: "What differs: monitoring/enabled, dns/a..." }
+        want: { type: string }
+        got: { type: string }
+        status: { type: string, enum: [open, unknown] }
+        firstSeen: { type: string, format: date-time }
+        lastSeen: { type: string, format: date-time }
+        change: { type: string, description: The change that puts it right }
+        restricted: { type: boolean }
     Change:
       type: object
       required: [id, contract, source, status, createdAt, updatedAt]
