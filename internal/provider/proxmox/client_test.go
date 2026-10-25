@@ -132,3 +132,26 @@ func TestComputeDayTwo(t *testing.T) {
 		t.Errorf("discover = %+v, %v", vms, err)
 	}
 }
+
+func TestTasksWithWarningsSucceed(t *testing.T) {
+	status := `{"data":{"status":"stopped","exitstatus":"WARNINGS: 1"}}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api2/json/cluster/resources":
+			_, _ = w.Write([]byte(`{"data":[{"vmid":9401,"node":"pve2"}]}`))
+		case strings.HasPrefix(r.URL.Path, "/api2/json/nodes/pve2/tasks/"):
+			_, _ = w.Write([]byte(status))
+		default:
+			_, _ = w.Write([]byte(`{"data":"UPID:pve2:x"}`))
+		}
+	}))
+	defer srv.Close()
+	c := Compute{C: New(Credentials{Endpoint: srv.URL, TokenID: "t", TokenSecret: "s"})}
+	if err := c.Power(context.Background(), "9401", "on"); err != nil {
+		t.Errorf("a start with warnings: %v", err)
+	}
+	status = `{"data":{"status":"stopped","exitstatus":"can't lock file"}}`
+	if err := c.Power(context.Background(), "9401", "on"); err == nil {
+		t.Error("a failed task succeeded")
+	}
+}

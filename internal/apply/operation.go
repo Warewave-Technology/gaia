@@ -439,7 +439,7 @@ func patchPlay(options map[string]any) map[string]any {
 	if reboot == "" {
 		reboot = "auto"
 	}
-	var exclude []string
+	exclude := []string{} // never null: the dnf module refuses None
 	if list, ok := options["exclude"].([]any); ok {
 		for _, x := range list {
 			exclude = append(exclude, fmt.Sprint(x))

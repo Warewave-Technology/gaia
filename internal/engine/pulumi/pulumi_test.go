@@ -227,3 +227,11 @@ func TestForget(t *testing.T) {
 		t.Error("nothing to forget changed the deployment")
 	}
 }
+
+func TestProviderNoise(t *testing.T) {
+	for k, noise := range map[string]bool{"disks[0].speed": true, "disks[1].speed.read": true, "disks[0].size": false, "memory.dedicated": false} {
+		if providerNoise.MatchString(k) != noise {
+			t.Errorf("%s: noise %v", k, !noise)
+		}
+	}
+}

@@ -176,7 +176,9 @@ func (c *Client) wait(ctx context.Context, node, upid string) error {
 			return err
 		}
 		if st.Data.Status == "stopped" {
-			if st.Data.ExitStatus != "OK" {
+			// A task that worked ends OK, or "WARNINGS: n" when it logged
+			// warnings (a start on a busy node, for one).
+			if st.Data.ExitStatus != "OK" && !strings.HasPrefix(st.Data.ExitStatus, "WARNINGS:") {
 				return fmt.Errorf("proxmox task %s: %s", upid, st.Data.ExitStatus)
 			}
 			return nil
