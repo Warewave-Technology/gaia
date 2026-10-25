@@ -19,7 +19,8 @@ import (
 type doomed struct {
 	s       plan.Server
 	compute string // compute provider; "" when no VM was recorded
-	vmid    int
+	vmid    int    // Proxmox
+	uuid    string // vSphere
 	ipam    string // IPAM provider; "" when no address was recorded
 	ip      string
 	monitor map[string]string // monitoring provider -> host ID
@@ -35,6 +36,10 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 		switch e.Kind {
 		case "vm":
 			d.compute = e.Provider
+			if r.provider(e.Provider).Type == "vsphere" {
+				d.uuid = e.ExternalID
+				continue
+			}
 			if d.vmid, err = strconv.Atoi(e.ExternalID); err != nil {
 				return d, fmt.Errorf("%s: VM ID %q", s.Hostname, e.ExternalID)
 			}
@@ -82,7 +87,10 @@ func (r *runner) release(ctx context.Context, c plan.Contract, gone []doomed, cr
 	used := map[string]map[int]bool{}
 	for _, d := range gone {
 		var done []string
-		if d.compute != "" {
+		if d.uuid != "" {
+			// Pulumi destroyed it; vSphere UUIDs are not used again.
+			done = append(done, "vm "+d.uuid+" destroyed")
+		} else if d.compute != "" {
 			u, err := cached(used, d.compute, func() (map[int]bool, error) { return r.d.UsedVMIDs(ctx, creds[d.compute]) })
 			if err != nil {
 				return err

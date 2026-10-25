@@ -1,6 +1,8 @@
 package pulumi
 
 import (
+	"encoding/base64"
+	"strings"
 	"sync"
 	"testing"
 
@@ -121,4 +123,89 @@ func keys(m map[string]resource.PropertyMap) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// vcMocks answer vSphere's lookups as a vCenter would.
+type vcMocks struct{ mocks }
+
+func (m *vcMocks) Call(args pulumi.MockCallArgs) (resource.PropertyMap, error) {
+	out := args.Args.Copy()
+	switch args.Token {
+	case "vsphere:index/getDatacenter:getDatacenter":
+		out["id"] = resource.NewStringProperty("datacenter-1")
+	case "vsphere:index/getDatastore:getDatastore":
+		out["id"] = resource.NewStringProperty("datastore-12")
+	case "vsphere:index/getComputeCluster:getComputeCluster":
+		out["id"] = resource.NewStringProperty("domain-c7")
+		out["resourcePoolId"] = resource.NewStringProperty("resgroup-8")
+	case "vsphere:index/getNetwork:getNetwork":
+		out["id"] = resource.NewStringProperty("dvportgroup-20")
+	case "vsphere:index/getVirtualMachine:getVirtualMachine":
+		out["id"] = resource.NewStringProperty("tpl-uuid")
+		out["guestId"] = resource.NewStringProperty("rhel9_64Guest")
+		out["networkInterfaceTypes"] = resource.NewArrayProperty([]resource.PropertyValue{resource.NewStringProperty("vmxnet3")})
+	}
+	return out, nil
+}
+
+func TestVSphereProgram(t *testing.T) {
+	st := Stack{
+		Name:    "portal-web-ank",
+		VSphere: &VSphereCredentials{Server: "vcenter.corp.local", Username: "gaia@vsphere.local", Password: "s3cret"},
+		VMs: []VM{{
+			UID: "abcdefgh23456789", Hostname: "ankpweb01", CPU: 4, MemoryMiB: 8192, DiskGiB: 80, ExtraDisks: []int{100},
+			Address: "10.20.1.15/24", Gateway: "10.20.1.1", DNS: []string{"10.0.0.53"}, Description: "Managed by Gaia.",
+			Datacenter: "DC-ANK", Cluster: "CL-PROD", Datastore: "DS-PROD-01", Folder: "Gaia/portal", Portgroup: "dvPG-VLAN120",
+			TemplateName: "tpl-rhel9-latest", Domain: "corp.local",
+		}},
+	}
+	m := &vcMocks{mocks{inputs: map[string]resource.PropertyMap{}}}
+	if err := pulumi.RunErr(Program(st), pulumi.WithMocks(Project, st.Name, m)); err != nil {
+		t.Fatal(err)
+	}
+	vm := m.inputs["vsphere:index/virtualMachine:VirtualMachine::vm-abcdefgh23456789"]
+	if vm == nil {
+		t.Fatalf("no VM: %v", m.inputs)
+	}
+	if vm["name"].StringValue() != "ankpweb01" || vm["resourcePoolId"].StringValue() != "resgroup-8" || vm["datastoreId"].StringValue() != "datastore-12" ||
+		vm["folder"].StringValue() != "Gaia/portal" || vm["guestId"].StringValue() != "rhel9_64Guest" || vm["numCpus"].NumberValue() != 4 {
+		t.Errorf("vm = %v", vm)
+	}
+	clone := vm["clone"].ObjectValue()
+	cust := clone["customize"].ObjectValue()
+	nic := cust["networkInterfaces"].ArrayValue()[0].ObjectValue()
+	if clone["templateUuid"].StringValue() != "tpl-uuid" || nic["ipv4Address"].StringValue() != "10.20.1.15" || nic["ipv4Netmask"].NumberValue() != 24 ||
+		cust["ipv4Gateway"].StringValue() != "10.20.1.1" || cust["linuxOptions"].ObjectValue()["hostName"].StringValue() != "ankpweb01" {
+		t.Errorf("clone = %v", clone)
+	}
+	if disks := vm["disks"].ArrayValue(); len(disks) != 2 || disks[1].ObjectValue()["size"].NumberValue() != 100 {
+		t.Errorf("disks = %v", vm["disks"])
+	}
+	if n := vm["networkInterfaces"].ArrayValue()[0].ObjectValue(); n["networkId"].StringValue() != "dvportgroup-20" || n["adapterType"].StringValue() != "vmxnet3" {
+		t.Errorf("nic = %v", n)
+	}
+}
+
+func TestFlatten(t *testing.T) {
+	if got := flatten([]any{[]any{"10.0.0.1", "fe80::1"}, []any{}}); len(got) != 2 {
+		t.Errorf("proxmox shape = %v", got)
+	}
+	if got := flatten([]any{"10.0.0.2"}); len(got) != 1 {
+		t.Errorf("vsphere shape = %v", got)
+	}
+}
+
+func TestGuestinfo(t *testing.T) {
+	v := VM{UID: "u1", Hostname: "h1", Gateway: "10.0.0.1", DNS: []string{"10.0.0.2"}, Domain: "lab.test", User: "gaia", SSHKeys: []string{"ssh-ed25519 K"}}
+	meta, user := guestinfo(v, "10.0.0.5", 24)
+	m, _ := base64.StdEncoding.DecodeString(meta)
+	u, _ := base64.StdEncoding.DecodeString(user)
+	for _, want := range []string{`"local-hostname":"h1"`, `"addresses":["10.0.0.5/24"]`, `"gateway4":"10.0.0.1"`, `"search":["lab.test"]`} {
+		if !strings.Contains(string(m), want) {
+			t.Errorf("metadata lacks %s: %s", want, m)
+		}
+	}
+	if !strings.HasPrefix(string(u), "#cloud-config\n") || !strings.Contains(string(u), `"ssh_authorized_keys":["ssh-ed25519 K"]`) {
+		t.Errorf("userdata = %s", u)
+	}
 }

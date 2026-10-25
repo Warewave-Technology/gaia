@@ -86,12 +86,27 @@ type VM struct {
 	Tags        []string
 	Description string
 	SMBIOSUUID  string
+
+	// vSphere: where the VM goes and what it is cloned from.
+	Datacenter   string
+	Cluster      string
+	Datastore    string
+	Folder       string
+	Portgroup    string
+	TemplateName string
+	Domain       string
+	// CloudInit passes the network, user and keys to cloud-init through
+	// guestinfo (its VMware datasource) instead of guest customization,
+	// which cannot install SSH keys.
+	CloudInit bool
 }
 
 // Stack is the VMs of one contract on one site.
 type Stack struct {
 	Name    string
 	Proxmox proxmox.Credentials
+	// VSphere, when set, makes the stack's VMs vSphere VMs.
+	VSphere *VSphereCredentials
 	VMs     []VM
 }
 
@@ -100,6 +115,9 @@ type Changes map[string]int
 
 // Program returns the stack's Pulumi program.
 func Program(st Stack) pulumi.RunFunc {
+	if st.VSphere != nil {
+		return vsphereProgram(st)
+	}
 	return func(ctx *pulumi.Context) error {
 		prov, err := proxmoxve.NewProvider(ctx, "proxmox", &proxmoxve.ProviderArgs{
 			Endpoint: pulumi.String(st.Proxmox.Endpoint),
@@ -237,7 +255,11 @@ func stack(ctx context.Context, b Backend, st Stack) (auto.Stack, error) {
 			return auto.Stack{}, err
 		}
 	}
-	if err := s.Workspace().InstallPluginFromServer(ctx, proxmoxPlugin, proxmoxPluginVersion, proxmoxPluginServer); err != nil {
+	if st.VSphere != nil {
+		if err := s.Workspace().InstallPlugin(ctx, vspherePlugin, vspherePluginVersion); err != nil {
+			return auto.Stack{}, fmt.Errorf("install %s plugin: %w", vspherePlugin, err)
+		}
+	} else if err := s.Workspace().InstallPluginFromServer(ctx, proxmoxPlugin, proxmoxPluginVersion, proxmoxPluginServer); err != nil {
 		return auto.Stack{}, fmt.Errorf("install %s plugin: %w", proxmoxPlugin, err)
 	}
 	return s, nil
@@ -245,8 +267,9 @@ func stack(ctx context.Context, b Backend, st Stack) (auto.Stack, error) {
 
 // Result is what Up reports per VM, by UID.
 type Result struct {
-	VMID int
-	IPv4 []string // the addresses the guest agent reports
+	VMID int      // Proxmox
+	UUID string   // vSphere
+	IPv4 []string // the addresses the guest agent or VMware Tools report
 }
 
 // Up brings the stack to the program and returns each VM's ID and
@@ -274,18 +297,17 @@ func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]Resul
 			}
 		}
 	}
+	if out, ok := res.Outputs["uuids"].Value.(map[string]any); ok {
+		for uid, v := range out {
+			r := vms[uid]
+			r.UUID, _ = v.(string)
+			vms[uid] = r
+		}
+	}
 	if out, ok := res.Outputs["ipv4"].Value.(map[string]any); ok {
 		for uid, ifaces := range out {
 			r := vms[uid]
-			list, _ := ifaces.([]any)
-			for _, iface := range list {
-				addrs, _ := iface.([]any)
-				for _, a := range addrs {
-					if s, ok := a.(string); ok {
-						r.IPv4 = append(r.IPv4, s)
-					}
-				}
-			}
+			r.IPv4 = append(r.IPv4, flatten(ifaces)...)
 			vms[uid] = r
 		}
 	}
@@ -316,6 +338,22 @@ func Preview(ctx context.Context, b Backend, st Stack, w io.Writer) (Changes, er
 }
 
 // String prints changes as "create 1, same 2".
+// flatten collects the strings of nested lists: Proxmox reports addresses
+// per interface, vSphere in one list.
+func flatten(v any) []string {
+	switch x := v.(type) {
+	case string:
+		return []string{x}
+	case []any:
+		var out []string
+		for _, e := range x {
+			out = append(out, flatten(e)...)
+		}
+		return out
+	}
+	return nil
+}
+
 func (c Changes) String() string {
 	var keys []string
 	for k := range c {
