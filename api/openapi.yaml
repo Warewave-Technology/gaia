@@ -343,7 +343,7 @@ paths:
       operationId: listOperations
       responses:
         "200":
-          description: Newest first
+          description: The ones Gaia took up, newest first, then the repository's that it has not, by name
           content:
             application/json:
               schema:
@@ -352,12 +352,63 @@ paths:
                   type: object
                   properties:
                     name: { type: string }
-                    status: { type: string, enum: [scheduled, running, succeeded, failed, partial, cancelled, expired] }
+                    status: { type: string, enum: [scheduled, running, succeeded, failed, partial, cancelled, expired], description: Absent before Gaia takes it up }
                     change: { type: string }
                     run: { type: string }
                     results: { type: array, items: { type: object, properties: { uid: { type: string }, hostname: { type: string }, contract: { type: string }, batch: { type: integer }, result: { type: string, enum: [ok, failed, skipped, not run] }, detail: { type: string } } } }
                     updatedAt: { type: string, format: date-time }
                     finishedAt: { type: string, format: date-time }
+                    action: { type: string, description: From the contract repository while the Operation is there }
+                    selector: { type: string }
+                    window: { type: object, properties: { start: { type: string }, end: { type: string } } }
+                    notAfter: { type: string }
+                    hosts: { type: array, items: { type: string } }
+                    schedule: { type: string, description: The OperationSchedule that wrote it }
+  /api/v1/schedules:
+    get:
+      summary: The contract repository's OperationSchedules and the Operations each wrote (operator)
+      operationId: listSchedules
+      responses:
+        "200":
+          description: By name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    recurrence: { type: string, description: iCalendar RRULE }
+                    start: { type: string, description: "HH:MM" }
+                    timezone: { type: string }
+                    duration: { type: string }
+                    createAhead: { type: string }
+                    approval: { type: string, enum: [perInstance, once] }
+                    action: { type: string }
+                    selector: { type: string }
+                    operations: { type: array, items: { type: string } }
+        "503": { description: The server does not follow a repository }
+  /api/v1/access:
+    get:
+      summary: The access entries of the contracts the caller may see in full (design 14.3)
+      operationId: listAccess
+      responses:
+        "200":
+          description: By contract
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    contract: { type: string }
+                    group: { type: string }
+                    team: { type: string }
+                    sudo: { type: boolean, description: Every command }
+                    commands: { type: array, items: { type: string }, description: Only these commands }
+        "503": { description: The server does not follow a repository }
   /api/v1/sources:
     get:
       summary: What each Source (TeamSource...) did last, the sync report (design 5.4)
@@ -383,7 +434,8 @@ paths:
       summary: The desired catalog's objects, contracts left out (design 11.5)
       operationId: listCatalog
       parameters:
-        - { name: kind, in: query, schema: { type: string }, description: Only objects of this kind }
+        - { name: kind, in: query, schema: { type: string }, description: "Only objects of these kinds, comma separated" }
+        - { name: spec, in: query, schema: { type: string, enum: ["1"] }, description: Add each object's spec; params are counted, not listed }
       responses:
         "200":
           description: The catalog's commit and its objects by kind and name
@@ -1124,6 +1176,9 @@ components:
         generatedBy: { type: string, description: The Source that wrote it }
         patches: { type: integer }
         usedBy: { type: integer, description: How many objects refer to it }
+        contracts: { type: integer, description: How many of those are contracts }
+        spec: { type: object, description: "With ?spec=1: the spec without params" }
+        params: { type: integer, description: "With ?spec=1: how many params it takes" }
     CatalogRef:
       type: object
       properties:

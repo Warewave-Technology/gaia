@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeAPI, ME, renderAt } from "../../test-utils";
 
@@ -6,17 +6,19 @@ beforeEach(() => {
   fakeAPI({
     "GET /me": { body: { ...ME, roles: ["viewer", "operator", "platform-admin"] } },
     "GET /changes?open=true&limit=500": { body: [] },
-    "GET /catalog": { body: { commit: "9a1b0c4aaaa", objects: [
-      { kind: "Network", name: "lab-poc", labels: { site: "lab" }, source: "catalog/networks.yaml:1", usedBy: 2 },
-      { kind: "Network", name: "dc1-prod", labels: { site: "dc1" }, source: "", generatedBy: "NetworkSource/ipam", patches: 1, usedBy: 0 },
-      { kind: "Image", name: "rocky9", source: "catalog/images.yaml:1", usedBy: 1 },
+    "GET /catalog?kind=AnsibleRole,App,Agent,Baseline&spec=1": { body: { commit: "9a1b0c4aaaa", objects: [
+      { kind: "AnsibleRole", name: "nginx", labels: { category: "web" }, source: "", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 2, contracts: 2, params: 4,
+        spec: { description: "nginx'i kurar ve tek bir siteyi sunar", os: ["el"] } },
+      { kind: "AnsibleRole", name: "podman", source: "", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 0, contracts: 0, params: 1, spec: { os: ["el"] } },
+      { kind: "Agent", name: "zabbix-agent", source: "catalog/agents.yaml:1", usedBy: 0, contracts: 0, spec: { mandatory: true, ansibleRole: "zabbix" } },
+      { kind: "Baseline", name: "linux-base", source: "catalog/baseline.yaml:1", usedBy: 1, contracts: 1, spec: { os: "linux", playbook: "baseline/linux.yml" } },
     ] } },
     "GET /catalog/Network/lab-poc": { body: {
-      kind: "Network", name: "lab-poc", source: "catalog/networks.yaml:1", usedBy: 1, yaml: "kind: Network\nmetadata: { name: lab-poc }\n",
+      kind: "Network", name: "lab-poc", source: "catalog/networks.yaml:1", usedBy: 1, contracts: 1, yaml: "kind: Network\nmetadata: { name: lab-poc }\n",
       refs: [{ kind: "Provider", name: "ipam", field: "spec.ipam.provider" }], usedByRefs: [{ kind: "Server", name: "poc-web", field: "spec.network" }],
     } },
     "GET /catalog/AnsibleRole/nginx": { body: {
-      kind: "AnsibleRole", name: "nginx", source: "generated/ansible-roles/nginx.yaml:1", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 0, yaml: "kind: AnsibleRole\n",
+      kind: "AnsibleRole", name: "nginx", source: "generated/ansible-roles/nginx.yaml:1", generatedBy: "AnsibleRoleSource/lab-roles", usedBy: 0, contracts: 0, yaml: "kind: AnsibleRole\n",
       refs: [], usedByRefs: [],
       role: { provider: "config-repo", role: "nginx", os: ["el"] },
       params: [
@@ -27,33 +29,34 @@ beforeEach(() => {
       ],
       rules: [{ expression: "params.listen_port != 22", message: "22 SSH'ın" }],
     } },
-    "GET /providers": { body: [
-      { name: "pve-lab", type: "proxmox", endpoint: "https://pve:8006", credentials: "bao://kv/platform/pve", usedBy: [{ kind: "Site", name: "lab", field: "spec.compute" }],
-        check: { status: "failed", error: "dial tcp: connection refused", latencyMs: 3, checkedAt: "2026-10-25T08:00:00Z", lastOkAt: "2026-10-25T07:00:00Z" } },
-      { name: "zabbix", type: "zabbix", endpoint: "http://zbx/api_jsonrpc.php", usedBy: [], check: { status: "ok", detail: "Zabbix 7.0.32 · 12 host", latencyMs: 41, checkedAt: "2026-10-25T08:00:00Z" } },
-      { name: "team-slack", type: "slack", usedBy: [], check: { status: "skipped", detail: "denetim bir mesaj göndermek olurdu", latencyMs: 0, checkedAt: "2026-10-25T08:00:00Z" } },
-    ] },
-    "POST /providers/check": { status: 202, body: { status: "checking" } },
   });
 });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("catalog", () => {
-  it("filters by kind and by label", async () => {
+  it("shows what can be installed as cards, filtered by kind and text", async () => {
     renderAt("/catalog");
-    expect(await screen.findByRole("link", { name: /rocky9/ })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Network/ }));
-    expect(screen.queryByRole("link", { name: /rocky9/ })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText(/Ad ya da etiket/), { target: { value: "site=dc1" } });
-    expect(screen.getByRole("link", { name: /dc1-prod/ })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /lab-poc/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/NetworkSource\/ipam \+ 1 patch/)).toBeInTheDocument();
+    const nginx = await screen.findByRole("link", { name: "AnsibleRole nginx" });
+    expect(nginx).toHaveAttribute("href", "/catalog/AnsibleRole/nginx");
+    expect(nginx).toHaveTextContent("nginx'i kurar");
+    expect(nginx).toHaveTextContent("web");
+    expect(within(nginx).getByTitle("Kullanan kontrat")).toHaveTextContent("2");
+    expect(screen.getByRole("link", { name: "Agent zabbix-agent" })).toHaveTextContent("zorunlu");
+    fireEvent.click(screen.getByRole("button", { name: /Baseline'lar/ }));
+    expect(screen.queryByRole("link", { name: "AnsibleRole nginx" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Baseline linux-base" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Hepsi/ }));
+    fireEvent.change(screen.getByPlaceholderText(/Ad, açıklama/), { target: { value: "siteyi" } });
+    expect(screen.getByRole("link", { name: "AnsibleRole nginx" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "AnsibleRole podman" })).not.toBeInTheDocument();
   });
 
   it("shows an object's YAML, its references and the contracts that use it", async () => {
-    renderAt("/catalog/Network/lab-poc");
+    renderAt("/infra/Network/lab-poc");
     expect(await screen.findByText(/kind: Network/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Provider\/ipam/ })).toHaveAttribute("href", "/catalog/Provider/ipam");
+    expect(screen.getByRole("banner")).toHaveTextContent("Altyapı / Network / lab-poc");
+    expect(within(screen.getByRole("navigation", { name: "Ana menü" })).getByRole("link", { name: /Altyapı/ })).toHaveClass("active");
+    expect(screen.getByRole("link", { name: /Provider\/ipam/ })).toHaveAttribute("href", "/settings/Provider/ipam");
     expect(screen.getByRole("link", { name: /Server\/poc-web/ })).toHaveAttribute("href", "/contracts/poc-web");
   });
 
@@ -66,17 +69,5 @@ describe("catalog", () => {
     expect(screen.getByText("key").closest("tr")).toHaveTextContent("gizli");
     expect(screen.getByText("params.listen_port != 22")).toBeInTheDocument();
     expect(screen.getByText(/ansibleRoles:\s+- name: nginx\s+params:\s+server_name: …/)).toBeInTheDocument();
-  });
-
-  it("lists providers with their connection check", async () => {
-    renderAt("/providers");
-    const pve = (await screen.findByRole("link", { name: "pve-lab" })).closest("tr")!;
-    expect(pve).toHaveTextContent("bao://kv/platform/pve");
-    expect(pve).toHaveTextContent("Ulaşılamıyor");
-    expect(screen.getByText("dial tcp: connection refused")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "zabbix" }).closest("tr")).toHaveTextContent("Zabbix 7.0.32 · 12 host · 41 ms");
-    expect(screen.getByRole("link", { name: "team-slack" }).closest("tr")).toHaveTextContent("Denetlenmiyor");
-    fireEvent.click(screen.getByRole("button", { name: /Şimdi denetle/ }));
-    expect(await screen.findByText(/Denetim başladı/)).toBeInTheDocument();
   });
 });

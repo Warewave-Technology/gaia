@@ -53,8 +53,23 @@ spec:
 		}
 	}
 	var nets struct{ Objects []CatalogObject }
-	if get(t, hs.URL+"/api/v1/catalog?kind=Network", &nets); len(nets.Objects) == 0 || nets.Objects[0].Kind != "Network" || nets.Objects[0].UsedBy == 0 {
+	if get(t, hs.URL+"/api/v1/catalog?kind=Network", &nets); len(nets.Objects) == 0 || nets.Objects[0].Kind != "Network" || nets.Objects[0].UsedBy == 0 || nets.Objects[0].Contracts != 1 {
 		t.Fatalf("networks: %+v", nets)
+	}
+	var install struct{ Objects []CatalogObject }
+	get(t, hs.URL+"/api/v1/catalog?kind=AnsibleRole,Size&spec=1", &install)
+	kinds := map[string]bool{}
+	for _, o := range install.Objects {
+		kinds[o.Kind] = true
+		if o.Kind == "AnsibleRole" && o.Name == "nginx" && (o.Params != 3 || o.Spec["params"] != nil || o.Spec["os"] == nil) {
+			t.Errorf("nginx with its spec: %+v", o)
+		}
+		if o.Kind == "Size" && o.Spec["cpu"] == nil {
+			t.Errorf("size without its spec: %+v", o)
+		}
+	}
+	if len(kinds) != 2 || !kinds["AnsibleRole"] || !kinds["Size"] {
+		t.Errorf("two kinds: %v", kinds)
 	}
 	var d CatalogDetail
 	if code := get(t, hs.URL+"/api/v1/catalog/Network/"+nets.Objects[0].Name, &d); code != 200 || !strings.Contains(d.YAML, "kind: Network") || len(d.UsedByRefs) == 0 || d.Source == "" {

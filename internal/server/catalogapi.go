@@ -10,6 +10,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/queue"
+	"go.yaml.in/yaml/v3"
 )
 
 // contractKinds are the contract repository's kinds: the catalog API
@@ -26,6 +27,13 @@ type CatalogObject struct {
 	GeneratedBy string `json:"generatedBy,omitempty"`
 	Patches     int    `json:"patches,omitempty"`
 	UsedBy      int    `json:"usedBy"`
+	// Contracts is how many of those are contracts.
+	Contracts int `json:"contracts"`
+	// Spec is the object's spec, asked for with ?spec=1. Params are left
+	// out and counted: the object's page shows them, without secret
+	// defaults.
+	Spec   map[string]any `json:"spec,omitempty"`
+	Params int            `json:"params,omitempty"`
 }
 
 // CatalogRef is one reference of a field to another object.
@@ -134,30 +142,70 @@ func (s *Server) graph(w http.ResponseWriter) *catalog.Graph {
 }
 
 func catalogObject(g *catalog.Graph, o *catalog.Object) CatalogObject {
+	used := g.UsedBy(o.Key())
+	contracts := map[string]bool{}
+	for _, r := range used {
+		if contractKinds[r.From.Kind] {
+			contracts[r.From.Kind+"/"+r.From.Name] = true
+		}
+	}
 	return CatalogObject{
 		Kind: o.Kind, Name: o.Metadata.Name, Labels: o.Metadata.Labels, Source: o.Source.String(),
-		GeneratedBy: o.Metadata.Annotations[catalog.AnnotationGeneratedBy], Patches: len(o.Patches), UsedBy: len(g.UsedBy(o.Key())),
+		GeneratedBy: o.Metadata.Annotations[catalog.AnnotationGeneratedBy], Patches: len(o.Patches), UsedBy: len(used), Contracts: len(contracts),
 	}
 }
 
+// withSpec adds the object's spec to its list entry.
+func withSpec(c *CatalogObject, o *catalog.Object) error {
+	y, err := o.YAML()
+	if err != nil {
+		return err
+	}
+	var doc struct {
+		Spec map[string]any `yaml:"spec"`
+	}
+	if err := yaml.Unmarshal(y, &doc); err != nil {
+		return err
+	}
+	if p, ok := doc.Spec["params"].(map[string]any); ok {
+		c.Params = len(p)
+	}
+	delete(doc.Spec, "params")
+	c.Spec = doc.Spec
+	return nil
+}
+
 // listCatalog is the desired catalog's objects, by kind and name;
-// ?kind= keeps one kind.
+// ?kind= keeps kinds (comma separated), ?spec=1 adds their specs.
 func (s *Server) listCatalog(w http.ResponseWriter, r *http.Request) {
 	g := s.graph(w)
 	if g == nil {
 		return
 	}
-	want := r.URL.Query().Get("kind")
+	want := map[string]bool{}
+	for _, k := range strings.Split(r.URL.Query().Get("kind"), ",") {
+		if k != "" {
+			want[k] = true
+		}
+	}
+	spec := r.URL.Query().Get("spec") == "1"
 	out := struct {
 		Commit  string          `json:"commit"`
 		Objects []CatalogObject `json:"objects"`
 	}{Commit: g.Catalog.Commit, Objects: []CatalogObject{}}
 	for _, k := range catalog.Kinds() {
-		if contractKinds[k] || (want != "" && k != want) {
+		if contractKinds[k] || (len(want) > 0 && !want[k]) {
 			continue
 		}
 		for _, o := range g.Catalog.List(k) {
-			out.Objects = append(out.Objects, catalogObject(g, o))
+			c := catalogObject(g, o)
+			if spec {
+				if err := withSpec(&c, o); err != nil {
+					s.fail(w, err)
+					return
+				}
+			}
+			out.Objects = append(out.Objects, c)
 		}
 	}
 	writeJSON(w, http.StatusOK, out)

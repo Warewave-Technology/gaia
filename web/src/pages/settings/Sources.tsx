@@ -1,14 +1,22 @@
-// Sync: what each Source (NetworkSource, AnsibleRoleSource, TeamSource)
-// did last, and Gaia's commits (design 5.4, 11.5).
+// Ayarlar → Kaynaklar: the Sources (NetworkSource, AnsibleRoleSource,
+// TeamSource), what each did last and Gaia's commits (design 5.4, 11.5).
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { hasRole, useSession } from "../../api/session";
 import { Icon } from "../../ui/icons";
-import { Badge, Button, Card, ErrorNote, Hint, Leg, Loading, Mono, short, type Tone } from "../../ui/parts";
-import { Page } from "../../ui/shell";
-import { kindOf } from "../../ui/kinds";
+import { Badge, Button, Card, ErrorNote, Leg, Loading, Mono, short, type Tone } from "../../ui/parts";
+import { kindOf, objectPath } from "../../ui/kinds";
+import { field, str, useObjects } from "../../api/objects";
+import { ObjectTable, Ref, type Col } from "../../ui/objects";
+import { TabHead } from "../../ui/tabs";
+
+const SOURCE_COLS: Col[] = [
+  { title: "Tür", cell: (o) => <span className="il" style={{ fontWeight: 500 }}><Icon name={kindOf(o.kind).icon} size={14} />{o.kind}</span> },
+  { title: "Okuduğu", hint: "Kaynağın okuduğu provider: IPAM, dizin ya da config reposu.", cell: (o) => <Ref kind="Provider" name={str(field(o.spec, "provider"))} /> },
+  { title: "Yazdığı yer", hint: "Ürettiği nesnelerin platform reposundaki dizini.", cell: (o) => <Mono>{str(field(o.spec, "output")) || "–"}</Mono> },
+];
 import { ago } from "../../lib/time";
 
 type Report = { source: string; status: "unchanged" | "committed" | "refused" | "failed"; commit?: string; detail?: { added?: string[]; changed?: string[]; removed?: string[]; problems?: string[] }; error?: string; ranAt: string };
@@ -20,10 +28,11 @@ const STATUS: Record<Report["status"], { tone: Tone; label: string }> = {
   failed: { tone: "red", label: "Başarısız" },
 };
 
-export function Sync() {
+export function Sources() {
   const session = useSession();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["sources"], queryFn: () => api<Report[]>("/sources"), refetchInterval: 30_000 });
+  const defs = useObjects(["NetworkSource", "TeamSource", "AnsibleRoleSource"]);
   const [note, setNote] = useState<string | null>(null);
   const sync = async () => {
     setNote(null);
@@ -36,14 +45,10 @@ export function Sync() {
     }
   };
   return (
-    <Page crumbs="Sync">
-      <div className="spread">
-        <div className="title-row">
-          <h1>Sync</h1>
-          <Hint>Source'lar katalog nesnelerini başka sistemlerden üretir: ağları IPAM'dan, rolleri config reposundan, takımları AD'den. Ürettiklerini Gaia'nın imzalı commit'iyle platform reposuna yazarlar.</Hint>
-        </div>
-        {hasRole(session, "platform-admin") && <Button icon="sync" onClick={sync}>Şimdi eşitle</Button>}
-      </div>
+    <>
+      <TabHead icon="repeat" text="Nesneleri başka sistemlerden üreten kaynaklar ve son eşitlemeleri."
+        hint="Source'lar nesneleri başka sistemlerden üretir: ağları IPAM'dan, rolleri config reposundan, takımları dizinden. Ürettiklerini Gaia'nın imzalı commit'iyle platform reposuna yazarlar."
+        right={hasRole(session, "platform-admin") && <Button icon="sync" onClick={sync}>Şimdi eşitle</Button>} />
       {note && <div className="notice" role="status">{note}</div>}
       <Card title="Source'lar" icon="repeat" hint={<>Her Source'un son çalışması.
         <Leg icon="same" color="var(--fg4)" name="Değişiklik yok">üretilen nesneler zaten Git'tekiyle aynı</Leg>
@@ -59,7 +64,7 @@ export function Sync() {
                 const d = r.detail ?? {};
                 return (
                   <tr key={r.source} style={{ verticalAlign: "top" }}>
-                    <td><Link to={`/catalog/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`} className="il"><Icon name={kindOf(kind).icon} size={15} /><span className="faint" style={{ fontWeight: 400 }}>{kind}/</span>{name}</Link></td>
+                    <td><Link to={objectPath(kind, name)} className="il"><Icon name={kindOf(kind).icon} size={15} /><span className="faint" style={{ fontWeight: 400 }}>{kind}/</span>{name}</Link></td>
                     <td><Badge tone={STATUS[r.status]?.tone ?? "gray"}>{STATUS[r.status]?.label ?? r.status}</Badge>{r.error && <div className="error" style={{ fontSize: 13, marginTop: 4 }}>{r.error}</div>}</td>
                     <td>{r.commit ? <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} /><Mono>{short(r.commit)}</Mono></span> : <span className="faint">–</span>}</td>
                     <td className="muted">
@@ -76,6 +81,7 @@ export function Sync() {
           </table>
         )}
       </Card>
-    </Page>
+      {defs.data && <ObjectTable kind="Source" title="Source tanımları" hint="Kaynakların kendisi: neyi okuyup nereye yazdıkları." cols={SOURCE_COLS} objs={defs.data.objects} />}
+    </>
   );
 }

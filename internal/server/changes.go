@@ -453,28 +453,3 @@ func (s *Server) changeNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, out)
 }
-
-// OperationState is an Operation's state and how it went per server.
-type OperationState struct {
-	Name       string          `json:"name"`
-	Status     string          `json:"status"`
-	Change     string          `json:"change,omitempty"`
-	Run        string          `json:"run,omitempty"`
-	Results    json.RawMessage `json:"results"`
-	UpdatedAt  time.Time       `json:"updatedAt"`
-	FinishedAt *time.Time      `json:"finishedAt,omitempty"`
-}
-
-func (s *Server) listOperations(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.store.Q().Operations(r.Context(), 200)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	out := make([]OperationState, 0, len(rows))
-	for _, o := range rows {
-		out = append(out, OperationState{Name: o.Name, Status: o.Status, Change: o.ChangeID.String, Run: o.RunID.String,
-			Results: json.RawMessage(o.Results), UpdatedAt: o.UpdatedAt.Time, FinishedAt: timePtr(o.FinishedAt)})
-	}
-	writeJSON(w, http.StatusOK, out)
-}

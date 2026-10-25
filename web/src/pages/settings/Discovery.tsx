@@ -1,4 +1,4 @@
-// Keşif: what the last discovery found at the compute and monitoring
+// Ayarlar → Keşif: what the last discovery found at the compute and monitoring
 // providers (design 8.3): servers Gaia manages, ones it does not, ones
 // that are gone.
 import { useState } from "react";
@@ -7,8 +7,8 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import { hasRole, useSession } from "../../api/session";
 import { Icon } from "../../ui/icons";
-import { Badge, Button, Card, ErrorNote, Hint, IL, Loading, Mono, StatusBar, type Tone } from "../../ui/parts";
-import { Page } from "../../ui/shell";
+import { Badge, Button, Card, ErrorNote, IL, Loading, Mono, StatusBar, type Tone } from "../../ui/parts";
+import { TabHead } from "../../ui/tabs";
 import { ago, stamp } from "../../lib/time";
 
 type VM = { provider: string; id: string; name: string; powerState: string; ips?: string[]; category: "managed" | "orphan" | "unmanaged" | "template"; uid?: string; hostname?: string; contract?: string };
@@ -39,14 +39,10 @@ export function Discovery() {
   };
   const vms = (q.data?.vms ?? []).filter((v) => !cat || v.category === cat);
   return (
-    <Page crumbs="Keşif">
-      <div className="spread">
-        <div className="title-row">
-          <h1>Keşif</h1>
-          <Hint>Keşif, compute ve izleme provider'larındaki her şeyi Gaia'nın bildikleriyle karşılaştırır: Gaia'nın yönettiği, yönetmediği ve kaybolmuş sunucular.</Hint>
-        </div>
-        {operator && <Button icon="compass" onClick={request}>Şimdi keşfet</Button>}
-      </div>
+    <>
+      <TabHead icon="compass" text="Provider'lardaki sunucular ile Gaia'nın bildiklerinin karşılaştırması."
+        hint="Keşif, compute ve izleme provider'larındaki her şeyi Gaia'nın bildikleriyle karşılaştırır: Gaia'nın yönettiği, yönetmediği ve kaybolmuş sunucular."
+        right={operator && <Button icon="compass" onClick={request}>Şimdi keşfet</Button>} />
       {note && <div className="notice" role="status">{note}</div>}
       {!operator ? <div className="notice warn">Keşif raporlarını operator ve platform-admin rolleri görür.</div>
         : q.isPending ? <Loading />
@@ -97,6 +93,6 @@ export function Discovery() {
             </Card>
           </>
         )}
-    </Page>
+    </>
   );
 }

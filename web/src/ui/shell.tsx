@@ -11,11 +11,12 @@ const MENU: { to: string; icon: IconName; label: string; end?: boolean }[] = [
   { to: "/", icon: "grid", label: "Genel bakış", end: true },
   { to: "/changes", icon: "pr", label: "Değişiklikler" },
   { to: "/contracts", icon: "file", label: "Kontratlar" },
+  { to: "/operations", icon: "calendar", label: "Operasyonlar" },
   { to: "/runs", icon: "play", label: "Run'lar" },
   { to: "/catalog", icon: "book", label: "Katalog" },
-  { to: "/providers", icon: "plug", label: "Provider'lar" },
-  { to: "/sync", icon: "repeat", label: "Sync" },
-  { to: "/discovery", icon: "compass", label: "Keşif" },
+  { to: "/infra", icon: "server", label: "Altyapı" },
+  { to: "/access", icon: "shield", label: "Erişim" },
+  { to: "/settings", icon: "gear", label: "Ayarlar" },
 ];
 
 function PendingCount() {

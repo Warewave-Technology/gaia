@@ -48,9 +48,10 @@ spec:
   output: platform/generated/ansible-roles
 `,
 		coll + "nginx/tasks/main.yml": "- ansible.builtin.debug: { msg: hi }\n",
-		coll + "nginx/meta/main.yml":  "galaxy_info:\n  platforms:\n    - name: EL\n      versions: ['9']\n",
+		coll + "nginx/meta/main.yml":  "galaxy_info:\n  description: from galaxy\n  platforms:\n    - name: EL\n      versions: ['9']\n",
 		coll + "nginx/meta/argument_specs.yml": `argument_specs:
   main:
+    short_description: Serves one site
     options:
       server_name: { type: str, required: true }
       worker_processes: { type: str, default: auto }
@@ -97,7 +98,7 @@ spec:
 	}
 	r := o.Spec.(*catalog.AnsibleRoleSpec)
 	if r.Source.Role != "corp.web.nginx" || r.Source.Provider != "config-repo" || strings.Join(r.OS, ",") != "el" || strings.Join(r.Monitoring, ",") != "nginx" ||
-		r.CheckMode != "supported" || !r.Params["server_name"].Required || r.Params["server_name"].Gaia == nil || r.Params["server_name"].Gaia.Pattern != "^[a-z.]+$" ||
+		r.CheckMode != "supported" || r.Description != "Serves one site" || !r.Params["server_name"].Required || r.Params["server_name"].Gaia == nil || r.Params["server_name"].Gaia.Pattern != "^[a-z.]+$" ||
 		o.Metadata.Labels["category"] != "web" || !strings.HasPrefix(o.Metadata.Annotations[catalog.AnnotationSourceRevision], "tree:") {
 		t.Errorf("web.nginx = %+v labels %v", r, o.Metadata.Labels)
 	}

@@ -1,22 +1,23 @@
-// Katalog: the desired catalog by kind, with label filters; one object's
-// YAML, its references and what uses it.
+// Katalog: what can be installed on servers (design 17.8): roles, apps,
+// agents and baselines as cards. ObjectPage is any catalog object's page:
+// its YAML, its references and what uses it.
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
+import { field, matches, str, strs, useObjects, type CatalogObj } from "../../api/objects";
 import { Icon } from "../../ui/icons";
 import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono, short, StatusBar } from "../../ui/parts";
 import { Page } from "../../ui/shell";
-import { kindOf } from "../../ui/kinds";
+import { kindOf, listPath, objectPath, SECTIONS, sectionOf } from "../../ui/kinds";
 
-type Obj = { kind: string; name: string; labels?: Record<string, string>; source: string; generatedBy?: string; patches?: number; usedBy: number };
 type Ref = { kind: string; name: string; field: string };
 type Param = {
   name: string; type?: string; elements?: string; required?: boolean; default?: unknown; choices?: unknown[]; description?: string;
   secret?: boolean; pattern?: string; format?: string; min?: number; max?: number; deprecated?: string;
 };
 type RoleInfo = { provider: string; role: string; os?: string[]; monitoring?: string[]; conflicts?: string[]; allowedEnvironments?: string[]; checkMode?: string; runbook?: boolean };
-type Detail = Obj & {
+type Detail = CatalogObj & {
   annotations?: Record<string, string>; patchFiles?: string[]; yaml: string; refs: Ref[]; usedByRefs: Ref[];
   params?: Param[]; rules?: { expression: string; message?: string }[]; role?: RoleInfo;
 };
@@ -104,10 +105,10 @@ function RoleCard({ role }: { role: RoleInfo }) {
 const CONTRACT_KINDS = new Set(["Server", "Operation", "OperationSchedule"]);
 
 export function refLink(r: { kind: string; name: string }): string {
-  return CONTRACT_KINDS.has(r.kind) ? `/contracts/${encodeURIComponent(r.name)}` : `/catalog/${encodeURIComponent(r.kind)}/${encodeURIComponent(r.name)}`;
+  return objectPath(r.kind, r.name);
 }
 
-function Labels({ labels }: { labels?: Record<string, string> }) {
+export function Labels({ labels }: { labels?: Record<string, string> }) {
   return (
     <span className="row" style={{ gap: 4 }}>
       {Object.entries(labels ?? {}).map(([k, v]) => <span key={k} className="badge gray" style={{ fontWeight: 500 }}>{k}={v}</span>)}
@@ -115,79 +116,88 @@ function Labels({ labels }: { labels?: Record<string, string> }) {
   );
 }
 
-// matches reads "key=value" (or just text) against an object.
-function matches(o: Obj, q: string): boolean {
-  const t = q.trim().toLowerCase();
-  if (!t) return true;
-  return t.split(/\s+/).every((part) => {
-    const [k, v] = part.split("=");
-    if (v !== undefined) return (o.labels?.[k ?? ""] ?? "").toLowerCase() === v;
-    return o.name.toLowerCase().includes(part) || Object.entries(o.labels ?? {}).some(([a, b]) => `${a}=${b}`.toLowerCase().includes(part));
-  });
+// What the catalog offers, in the order a contract adds them.
+const INSTALL: { kind: string; label: string; plural: string }[] = [
+  { kind: "AnsibleRole", label: "Rol", plural: "Roller" },
+  { kind: "App", label: "Uygulama", plural: "Uygulamalar" },
+  { kind: "Agent", label: "Ajan", plural: "Ajanlar" },
+  { kind: "Baseline", label: "Baseline", plural: "Baseline'lar" },
+];
+const INSTALL_KINDS = INSTALL.map((k) => k.kind);
+
+function osOf(o: CatalogObj): string[] {
+  return strs(field(o.spec, "os"));
+}
+
+function Tile({ o }: { o: CatalogObj }) {
+  const k = kindOf(o.kind);
+  const text = str(field(o.spec, "description"));
+  const os = osOf(o);
+  return (
+    <Link to={objectPath(o.kind, o.name)} className="tile" aria-label={`${o.kind} ${o.name}`}>
+      <div className="tile-head">
+        <span className="tile-icon"><Icon name={k.icon} size={18} /></span>
+        <h3 title={o.name}>{o.name}</h3>
+        <span className="badge gray">{INSTALL.find((i) => i.kind === o.kind)?.label ?? o.kind}</span>
+      </div>
+      <div className="tile-text">{text || <span className="faint">Açıklama yok.</span>}</div>
+      <div className="row" style={{ gap: 6, minHeight: 24 }}>
+        {o.labels?.category && <span className="badge blue">{o.labels.category}</span>}
+        {os.map((x) => <span key={x} className="badge gray" title="İşletim sistemi"><Icon name="disc" size={12} />{x}</span>)}
+        {field(o.spec, "mandatory") === true && <span className="badge yellow" title="Her sunucuya kurulur">zorunlu</span>}
+      </div>
+      <div className="tile-foot">
+        <span className="il" style={{ fontWeight: 500 }} title="Parametre"><Icon name="plan" size={14} />{o.params ?? 0}</span>
+        <span className="il" style={{ fontWeight: 500 }} title="Kullanan kontrat"><Icon name="file" size={14} />{o.contracts}</span>
+        {o.generatedBy && <span className="il push" style={{ fontWeight: 500 }} title={o.generatedBy}><Icon name="repeat" size={14} />üretildi</span>}
+      </div>
+    </Link>
+  );
 }
 
 export function CatalogList() {
   const [params, setParams] = useSearchParams();
   const kind = params.get("kind") ?? "";
   const [q, setQ] = useState(params.get("q") ?? "");
-  const all = useQuery({ queryKey: ["catalog"], queryFn: () => api<{ commit: string; objects: Obj[] }>("/catalog") });
+  const all = useObjects(INSTALL_KINDS);
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of all.data?.objects ?? []) m.set(o.kind, (m.get(o.kind) ?? 0) + 1);
     return m;
   }, [all.data]);
-  const shown = (all.data?.objects ?? []).filter((o) => (!kind || o.kind === kind) && matches(o, q));
+  const shown = (all.data?.objects ?? []).filter((o) => (!kind || o.kind === kind) && matches(o, q, [str(field(o.spec, "description")), ...osOf(o)].join(" ")));
+  const pick = (k: string) => setParams(k ? { kind: k } : {});
   return (
     <Page crumbs="Katalog">
       <div className="title-row">
         <h1>Katalog</h1>
-        <Hint>Katalog, platform reposundaki nesnelerdir: provider'lar, site'lar, ağlar, imajlar, roller… Kontratlar bunlara sadece adıyla referans verir.</Hint>
+        <Hint width={340}>Sunuculara kurulabilecekler: Ansible rolleri, uygulamalar, ajanlar ve baseline'lar. Kontrat bunları adıyla ister; parametrelerini ve örneğini kartın sayfasında görürsün.
+          <Leg icon="plan" color="var(--fg4)" name="parametre">kontratın verebileceği değer sayısı</Leg>
+          <Leg icon="file" color="var(--fg4)" name="kontrat">bunu kullanan kontrat sayısı</Leg>
+          <Leg icon="repeat" color="var(--fg4)" name="üretildi">bir Source config reposundan üretti</Leg>
+          <Leg icon="disc" color="var(--fg4)" name="işletim sistemi">kurulabildiği işletim sistemleri</Leg></Hint>
         {all.data && <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} />platform @ <Mono>{short(all.data.commit)}</Mono></span>}
       </div>
       {all.isPending ? <Loading /> : all.error ? <CatalogError e={all.error} /> : (
-        <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
-          <nav className="card" aria-label="Türler" style={{ flex: "0 0 220px", padding: "8px 0" }}>
-            <button type="button" className="kindrow" aria-pressed={!kind} onClick={() => setParams(q ? { q } : {})}>
-              <Icon name="grid" size={15} /><span>Hepsi</span><span className="faint">{all.data.objects.length}</span>
-            </button>
-            {[...counts.entries()].map(([k, n]) => (
-              <button key={k} type="button" className="kindrow" aria-pressed={kind === k} title={kindOf(k).text} onClick={() => setParams(q ? { kind: k, q } : { kind: k })}>
-                <Icon name={kindOf(k).icon} size={15} /><span>{k}</span><span className="faint">{n}</span>
-              </button>
-            ))}
-          </nav>
-          <div style={{ flex: "1 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-            <label className="search" style={{ width: "100%", height: 36 }}>
+        <>
+          <div className="spread">
+            <div className="chips" role="group" aria-label="Türler">
+              <button type="button" className="chip" aria-pressed={!kind} onClick={() => pick("")}><Icon name="grid" size={14} />Hepsi<span className="tab-count">{all.data.objects.length}</span></button>
+              {INSTALL.map((i) => (
+                <button key={i.kind} type="button" className="chip" aria-pressed={kind === i.kind} title={kindOf(i.kind).text} onClick={() => pick(i.kind)}>
+                  <Icon name={kindOf(i.kind).icon} size={14} />{i.plural}<span className="tab-count">{counts.get(i.kind) ?? 0}</span>
+                </button>
+              ))}
+            </div>
+            <label className="search" style={{ width: 340, height: 36 }}>
               <Icon name="filter" size={14} />
               <span className="sr-only">Filtre</span>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad ya da etiket: owner=team-platform env=prod" />
-              <Hint right width={300}>Ada göre ya da <b className="term">anahtar=değer</b> biçiminde etiketlere göre süzer. Boşlukla ayrılan koşulların hepsi sağlanmalı.</Hint>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad, açıklama ya da category=web" />
+              <Hint right width={300}>Ada, açıklamaya, işletim sistemine ya da <b className="term">anahtar=değer</b> biçiminde etiketlere göre süzer. Boşlukla ayrılan koşulların hepsi sağlanmalı.</Hint>
             </label>
-            <Card title={kind || "Bütün nesneler"} icon={kind ? kindOf(kind).icon : "book"} hint={kind ? kindOf(kind).text : undefined} right={<span className="faint">{shown.length} nesne</span>}>
-              {shown.length === 0 ? <div className="empty">Eşleşen nesne yok.</div> : (
-                <table className="grid">
-                  <thead>
-                    <tr>
-                      <th>Nesne</th><th>Etiketler</th>
-                      <th><span className="th-hint">Kaynak<Hint>Nesnenin yazıldığı dosya; bir Source ürettiyse o Source.</Hint></span></th>
-                      <th><span className="th-hint">Kullanan<Hint right>Bu nesneye referans veren nesne sayısı.</Hint></span></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((o) => (
-                      <tr key={o.kind + "/" + o.name}>
-                        <td><Link to={refLink(o)} className="il" style={{ fontWeight: 600 }}><span className="faint"><Icon name={kindOf(o.kind).icon} size={15} /></span><span className="faint" style={{ fontWeight: 400 }}>{o.kind}/</span>{o.name}</Link></td>
-                        <td><Labels labels={o.labels} /></td>
-                        <td className="muted">{o.generatedBy ? <span className="il" style={{ fontWeight: 400 }}><Icon name="repeat" size={14} />{o.generatedBy}{o.patches ? ` + ${o.patches} patch` : ""}</span> : <Mono>{o.source}</Mono>}</td>
-                        <td>{o.usedBy}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
           </div>
-        </div>
+          {shown.length === 0 ? <div className="card empty">Eşleşen bir şey yok.</div> : <div className="tiles">{shown.map((o) => <Tile key={o.kind + "/" + o.name} o={o} />)}</div>}
+        </>
       )}
     </Page>
   );
@@ -214,12 +224,13 @@ function RefList({ refs, empty }: { refs: Ref[]; empty: string }) {
   );
 }
 
-export function CatalogObject() {
+export function ObjectPage() {
   const { kind = "", name = "" } = useParams();
   const q = useQuery({ queryKey: ["catalog", kind, name], queryFn: () => api<Detail>(`/catalog/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`) });
   const k = kindOf(kind);
+  const sec = SECTIONS[sectionOf(kind)];
   return (
-    <Page crumbs={<><Link to="/catalog">Katalog</Link> / <Link to={`/catalog?kind=${encodeURIComponent(kind)}`}>{kind}</Link> / {name}</>}>
+    <Page crumbs={<><Link to={sec.path}>{sec.label}</Link> / <Link to={listPath(kind)}>{kind}</Link> / {name}</>}>
       <div className="title-row">
         <span style={{ color: "var(--blue)" }}><Icon name={k.icon} size={22} /></span>
         <h1>{name}</h1>

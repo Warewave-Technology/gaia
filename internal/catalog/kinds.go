@@ -776,14 +776,16 @@ func (s *SizeSpec) validate() []string {
 
 // BaselineSpec is a hardening playbook.
 type BaselineSpec struct {
-	OS       string `yaml:"os" gaia:"required"`
-	Playbook string `yaml:"playbook" gaia:"required"`
+	OS          string `yaml:"os" gaia:"required"`
+	Playbook    string `yaml:"playbook" gaia:"required"`
+	Description string `yaml:"description,omitempty"`
 }
 
 // AnsibleRoleSpec is an Ansible role in the catalog. In the PoC it is
 // written by hand; later AnsibleRoleSource generates it.
 type AnsibleRoleSpec struct {
 	Source              RoleSource       `yaml:"source" gaia:"required"`
+	Description         string           `yaml:"description,omitempty"`
 	OS                  []string         `yaml:"os,omitempty"`
 	Monitoring          []string         `yaml:"monitoring,omitempty"`
 	Conflicts           []string         `yaml:"conflicts,omitempty"`
@@ -1543,11 +1545,12 @@ func (s *AnsibleRoleSourceSpec) validate() []string {
 // and where its artifact comes from (${param} in path is the param's
 // value).
 type AppSpec struct {
-	Playbook string           `yaml:"playbook" gaia:"required"`
-	Requires []string         `yaml:"requires"`
-	Artifact *Artifact        `yaml:"artifact"`
-	Params   map[string]Param `yaml:"params"`
-	Rules    []Rule           `yaml:"rules"`
+	Playbook    string           `yaml:"playbook" gaia:"required"`
+	Description string           `yaml:"description,omitempty"`
+	Requires    []string         `yaml:"requires"`
+	Artifact    *Artifact        `yaml:"artifact"`
+	Params      map[string]Param `yaml:"params"`
+	Rules       []Rule           `yaml:"rules"`
 }
 
 // Artifact is a file in an artifact repository (a nexus provider).
@@ -1572,6 +1575,7 @@ func (s *AppSpec) validate() []string {
 // 4.3). A mandatory agent goes on every server of its operating systems
 // without a contract naming it.
 type AgentSpec struct {
+	Description string         `yaml:"description,omitempty"`
 	OS          []string       `yaml:"os"`
 	AnsibleRole string         `yaml:"ansibleRole" gaia:"required"`
 	Params      map[string]any `yaml:"params"`
