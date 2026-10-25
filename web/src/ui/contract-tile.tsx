@@ -4,7 +4,7 @@ import type { ContractSummary } from "../api/types";
 import { health, syncState } from "../lib/contract";
 import { ago } from "../lib/time";
 import { Icon } from "./icons";
-import { Hint, Mono, short } from "./parts";
+import { Hint, Mono, shortLabel } from "./parts";
 import { HEALTH, HealthLabel, Sync } from "./status";
 
 export function ContractTile({ c, drift }: { c: ContractSummary; drift: number }) {
@@ -32,7 +32,7 @@ export function ContractTile({ c, drift }: { c: ContractSummary; drift: number }
         <dt style={dt}>Sahip</dt><dd style={{ margin: 0 }}>{l.owner ?? "–"}</dd>
         <dt style={dt}>Ortam</dt><dd style={{ margin: 0 }}>{[l.env, l.app && `app ${l.app}`].filter(Boolean).join(" · ") || "–"}</dd>
         <dt style={dt}>Uygulanan<Hint>Gerçekte uygulanmış olan: son başarılı run'ın commit'i.</Hint></dt>
-        <dd style={{ margin: 0 }}><Mono>{short(c.appliedLabel) || "–"}</Mono></dd>
+        <dd style={{ margin: 0 }}><Mono>{shortLabel(c.appliedLabel) || "–"}</Mono></dd>
         <dt style={dt}>Git'te<Hint>Uygulanandan farklıysa onay ya da uygulama bekleyen bir Change vardır.</Hint></dt>
         <dd style={{ margin: 0 }}>{c.openChange ? <Link to={`/changes/${encodeURIComponent(c.openChange)}`} style={{ color: "var(--blue)" }}>Change açık</Link> : <span className="muted">uygulananla aynı</span>}</dd>
         <dt style={dt}>Sunucu</dt><dd style={{ margin: 0 }}>{c.liveHosts}</dd>

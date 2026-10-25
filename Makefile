@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build web web-check test itest generate lint ee package image dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
+.PHONY: build web web-check ui-demo test itest generate lint ee package image dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
 
 build: web
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -19,6 +19,12 @@ web: web/node_modules/.package-lock.json
 
 web-check: web/node_modules/.package-lock.json
 	cd web && npm run typecheck && npm run lint && npm test
+
+# A whole server for trying the UI against a real API: the lab catalog in
+# a test repository, a change waiting for approval, sign-in with password
+# and TOTP, runs on fake systems. It prints the enrolment link.
+ui-demo: web
+	GAIA_INTEGRATION=1 GAIA_UI_DEMO=$${GAIA_UI_DEMO:-1h} go test ./internal/server -run TestUIDemo -v -count=1 -timeout 0
 
 # Integration tests start containers (docker).
 itest:

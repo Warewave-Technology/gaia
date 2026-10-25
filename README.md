@@ -49,6 +49,7 @@ Go 1.27 ve arayüz için Node.js 24 gerekir.
 make build     # arayüz + bin/gaia, bin/gaia-ipam
 make web       # sadece arayüz (web/ → internal/web/dist)
 make web-check # arayüzün tip kontrolü, lint ve testleri
+make ui-demo   # arayüzü gerçek API'yle denemek için demo sunucu (http://localhost:8090)
 make test
 make lint      # go vet + golangci-lint
 make ee        # EE imajı (ansible-builder)

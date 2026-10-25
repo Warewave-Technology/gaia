@@ -188,6 +188,11 @@ export function short(sha: string | null | undefined, n = 7): string {
   return sha ? sha.slice(0, n) : "";
 }
 
+// shortLabel shortens each commit of a snapshot label ("platform contracts").
+export function shortLabel(label: string | null | undefined): string {
+  return (label ?? "").split(/\s+/).filter(Boolean).map((x) => (/^[0-9a-f]{12,}$/.test(x) ? x.slice(0, 7) : x)).join(" ");
+}
+
 export function Loading() {
   return <div className="empty" role="status">Yükleniyor…</div>;
 }
