@@ -495,6 +495,11 @@ func (r *resolver) network(o *Object) {
 			r.fail(o, "spec.dns.provider", "Provider %q has no writeCredentials: Gaia cannot write DNS records", s.DNS.Provider)
 		}
 	}
+	if s.Domain != nil {
+		if p := r.ref(o, "spec.domain.provider", KindProvider, s.Domain.Provider, "activedirectory"); p != nil && p.Spec.(*ProviderSpec).WriteCredentials == "" {
+			r.fail(o, "spec.domain.provider", "Provider %q has no writeCredentials: Gaia cannot create computer accounts", s.Domain.Provider)
+		}
+	}
 	site := r.ref(o, "spec.site", KindSite, s.Site)
 	if site == nil {
 		return

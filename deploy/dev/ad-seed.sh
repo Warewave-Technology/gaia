@@ -39,6 +39,12 @@ t group addmembers SG-Team-Web ali
 # bilgisayar hesapları. Kullanıcı ve gruplara yazamaz.
 t user create gaia-writer "Dev-gaia-writer-Password-1!" --userou="OU=People" --description="Gaia yazma hesabı"
 t group addmembers DnsAdmins gaia-writer
+t ou create "OU=Servers,$B"
+# OU=Servers'ta bilgisayar hesabı açma ve silme, açtıklarında tam yetki.
+SID=$(samba-tool user show gaia-writer --attributes=objectSid | sed -n 's/^objectSid: //p')
+COMPUTER=bf967a86-0de6-11d0-a285-00aa003049e2
+t dsacl set --objectdn="OU=Servers,$B" --sddl="(OA;CI;CCDC;$COMPUTER;;$SID)"
+t dsacl set --objectdn="OU=Servers,$B" --sddl="(OA;CIIO;GA;;$COMPUTER;$SID)"
 ADMIN="-U administrator --password=$(cat /run/secrets/samba-admin-password)"
 t dns zonecreate 127.0.0.1 0.50.10.in-addr.arpa $ADMIN
 echo "AD hazır: $(samba-tool group listmembers SG-Team-Web | tr '\n' ' ')"

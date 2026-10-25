@@ -168,6 +168,7 @@ type runner struct {
 	changes    []runrecord.Change
 	executedAs map[string]string // provider -> identity
 	access     []runrecord.AccessGrant
+	joins      map[string]join // server UID -> how it joins its domain
 }
 
 func (r *runner) change(c runrecord.Change) { r.changes = append(r.changes, c) }
@@ -369,8 +370,11 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 	}
-	if (c.Monitoring != nil || hasDNS(w.targets)) && len(w.targets) > 0 {
+	if (c.Monitoring != nil || hasDNS(w.targets) || hasDomain(c)) && len(w.targets) > 0 {
 		err := r.stage(ctx, c.Name, "register", func() error {
+			if err := r.prestage(ctx, c, w.targets); err != nil {
+				return err
+			}
 			if err := r.registerDNS(ctx, c, w.targets); err != nil {
 				return err
 			}

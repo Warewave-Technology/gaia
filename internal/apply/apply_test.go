@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -459,8 +460,14 @@ func TestApplyCreatesThenKeeps(t *testing.T) {
 
 // fakeDirectory is AD-integrated DNS: zone -> name -> records.
 type fakeDirectory struct {
-	zones map[string]map[string][]ad.Record
-	cfg   ad.Config
+	zones     map[string]map[string][]ad.Record
+	computers map[string]*ad.Computer // DN -> account
+	passwords map[string]string       // DN -> its one-time password
+	cfg       ad.Config
+}
+
+func newFakeDirectory() *fakeDirectory {
+	return &fakeDirectory{zones: map[string]map[string][]ad.Record{}, computers: map[string]*ad.Computer{}, passwords: map[string]string{}}
 }
 
 func (f *fakeDirectory) SetRecord(zone, name string, rec ad.Record, owned bool) (bool, error) {
@@ -501,10 +508,52 @@ func (f *fakeDirectory) ReverseZone(ip netip.Addr) (string, string, error) {
 
 func (f *fakeDirectory) Close() error { return nil }
 
+func (f *fakeDirectory) Domain() string { return "lab.test" }
+
+func (f *fakeDirectory) Computer(name string) (ad.Computer, error) {
+	for _, c := range f.computers {
+		if strings.EqualFold(c.Name, name) {
+			return *c, nil
+		}
+	}
+	return ad.Computer{}, ad.ErrNoComputer
+}
+
+func (f *fakeDirectory) ComputerByGUID(guid string) (ad.Computer, error) {
+	for _, c := range f.computers {
+		if c.GUID == guid {
+			return *c, nil
+		}
+	}
+	return ad.Computer{}, ad.ErrNoComputer
+}
+
+func (f *fakeDirectory) CreateComputer(ou, name, info, password string) (ad.Computer, error) {
+	dn := "CN=" + strings.ToUpper(name) + "," + ou
+	if _, ok := f.computers[dn]; ok {
+		return ad.Computer{}, errors.New("exists")
+	}
+	c := &ad.Computer{DN: dn, Name: strings.ToUpper(name), GUID: fmt.Sprintf("guid-%d", len(f.computers)+1), Info: info}
+	f.computers[dn] = c
+	f.passwords[dn] = password
+	return *c, nil
+}
+
+func (f *fakeDirectory) ResetComputer(dn, password string) error {
+	f.passwords[dn] = password
+	return nil
+}
+
+func (f *fakeDirectory) DeleteComputer(dn string) error {
+	delete(f.computers, dn)
+	return nil
+}
+
 func TestApplyWritesDNS(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
-	dir := &fakeDirectory{zones: map[string]map[string][]ad.Record{"lab.test": {"taken": {{Type: ad.TypeA, Data: "10.9.9.9"}}}, "0.50.10.in-addr.arpa": {}}}
+	dir := newFakeDirectory()
+	dir.zones = map[string]map[string][]ad.Record{"lab.test": {"taken": {{Type: ad.TypeA, Data: "10.9.9.9"}}}, "0.50.10.in-addr.arpa": {}}
 	e.deps.Directory = func(_ context.Context, c ad.Config) (Directory, error) {
 		dir.cfg = c
 		return dir, nil
@@ -568,6 +617,92 @@ func TestApplyWritesDNS(t *testing.T) {
 	if n := len(dir.zones["lab.test"]) + len(dir.zones["0.50.10.in-addr.arpa"]); n != 1 { // "taken" stays
 		t.Errorf("zones after decommission = %+v", dir.zones)
 	}
+}
+
+func TestApplyJoinsTheDomain(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	dir := newFakeDirectory()
+	dir.computers["CN=LABTPOC02,CN=Computers"] = &ad.Computer{DN: "CN=LABTPOC02,CN=Computers", Name: "LABTPOC02", GUID: "someone-else"}
+	e.deps.Directory = func(context.Context, ad.Config) (Directory, error) { return dir, nil }
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/ad/writer"] = map[string]string{"username": "gaia-writer@lab.test", "password": "w"}
+	ou := "OU=Servers,DC=lab,DC=test"
+	e.platform = map[string]func(string) string{
+		"platform/providers/corp-ad.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: corp-ad }\nspec: { type: activedirectory, endpoint: ldaps://dc1.lab.test, credentials: bao://kv/platform/ad/reader, writeCredentials: bao://kv/platform/ad/writer }\n"
+		},
+		"platform/catalog/network.yaml": func(c string) string {
+			return strings.Replace(c, "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1] }\n  domain: { provider: corp-ad, ou: \""+ou+"\" }", 1)
+		},
+	}
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	dn := "CN=LABTPOC01," + ou
+	comp := dir.computers[dn]
+	hosts, _ := e.store.Q().LiveHosts(ctx, "poc-web")
+	uid := hosts[0].Uid
+	if comp == nil || comp.Info != "Managed by Gaia. gaia.uid="+uid+" contract=poc-web" {
+		t.Fatalf("computers = %+v", dir.computers)
+	}
+	if id, _ := e.externalIDOf(uid, "corp-ad", "computer"); id != comp.GUID {
+		t.Errorf("recorded GUID = %q", id)
+	}
+	otp := dir.passwords[dn]
+	job := e.configure.jobs[0]
+	if j := job.Hosts[0].Vars["gaia_domain_join"]; j != (join{Domain: "lab.test", Password: otp}) || otp == "" {
+		t.Errorf("join vars = %+v (password %q)", j, otp)
+	}
+	if !slices.Contains(job.Secrets, otp) {
+		t.Error("the one-time password is not masked")
+	}
+	site := e.configure.projects[0][sitePlaybook]
+	if !strings.Contains(site, `"name": "Domain of poc-web"`) || strings.Index(site, "gaia_domain_join") > strings.Index(site, "baseline/linux.yml") {
+		t.Errorf("site play:\n%s", site)
+	}
+	if _, ok := e.configure.projects[0][".gaia/roles/gaia_domain_join/tasks/main.yml"]; !ok {
+		t.Error("the join role is not in the project")
+	}
+
+	// Not joined yet: a new password. Joined: none.
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	if again := dir.passwords[dn]; again == otp || e.configure.jobs[1].Hosts[0].Vars["gaia_domain_join"].(join).Password != again {
+		t.Errorf("not joined: password %q, then %q", otp, again)
+	}
+	comp.Joined = true
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	if j := e.configure.jobs[2].Hosts[0].Vars["gaia_domain_join"].(join); j.Password != "" {
+		t.Errorf("joined: %+v", j)
+	}
+
+	// A name whose account is someone else's stops the run.
+	if _, err := e.apply(func(c string) string { return strings.Replace(c, "replicas: 1", "replicas: 2", 1) }); err == nil ||
+		!strings.Contains(err.Error(), "labtpoc02: computer account CN=LABTPOC02,CN=Computers exists and is not the server's") {
+		t.Fatalf("taken: %v", err)
+	}
+	delete(dir.computers, "CN=LABTPOC02,CN=Computers")
+
+	// Decommissioning deletes the accounts.
+	if _, err := e.apply(func(c string) string { return c + "  lifecycle: { state: decommissioned }\n" }); err != nil {
+		t.Fatal(err)
+	}
+	if len(dir.computers) != 0 {
+		t.Errorf("computers after decommission = %+v", dir.computers)
+	}
+}
+
+func (e *env) externalIDOf(uid, provider, kind string) (string, error) {
+	ids, err := e.store.Q().ExternalIDs(context.Background(), uid)
+	for _, x := range ids {
+		if x.Provider == provider && x.Kind == kind {
+			return x.ExternalID, err
+		}
+	}
+	return "", err
 }
 
 // onVSphere turns the lab site into a vSphere one.
@@ -902,7 +1037,7 @@ func (a failAll) Run(ctx context.Context, j ansible.Job, on func(ansible.Event) 
 func TestSitePlay(t *testing.T) {
 	c := plan.Contract{Name: "web", Baseline: &plan.Baseline{Playbook: "baseline/linux.yml"},
 		Roles: []plan.Role{{Name: "ansible-nginx", Role: "nginx", Params: map[string]any{"port": 8080}}}}
-	got, err := sitePlay(c, nil, false)
+	got, err := sitePlay(c, nil, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -913,7 +1048,7 @@ func TestSitePlay(t *testing.T) {
 	}
 	// A no_log default masked in the plan is the role's own: not passed.
 	c.Roles[0].Params["password"] = plan.Masked
-	if got, err := sitePlay(c, nil, false); err != nil || strings.Contains(string(got), "password") {
+	if got, err := sitePlay(c, nil, false, false); err != nil || strings.Contains(string(got), "password") {
 		t.Errorf("masked param: %s %v", got, err)
 	}
 }

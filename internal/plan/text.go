@@ -21,6 +21,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	vms := map[string]*counts{}      // per compute provider
 	monitors := map[string]*counts{} // per monitoring provider
 	names := map[string]*counts{}    // per DNS provider
+	accounts := map[string]*counts{} // per directory
 	bump := func(m map[string]*counts, k, action string) {
 		if m[k] == nil {
 			m[k] = &counts{}
@@ -82,6 +83,10 @@ func WriteText(w io.Writer, p *Plan) error {
 				}
 				pr.f("    %-14s dns %s.%s A%s (%s)\n", "", s.Hostname, d.Zone, ptr, d.Provider)
 				bump(names, d.Provider, s.Action)
+			}
+			if d := s.Domain; d != nil {
+				pr.f("    %-14s computer account in %s (%s)\n", "", d.OU, d.Provider)
+				bump(accounts, d.Provider, s.Action)
 			}
 			running++
 		}
@@ -170,6 +175,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	line("provision", vms)
 	line("monitoring", monitors)
 	line("dns", names)
+	line("computers", accounts)
 	if configure > 0 {
 		pr.f("  configure  %d server(s)\n", configure)
 	}

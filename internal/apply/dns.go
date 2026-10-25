@@ -13,11 +13,18 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
-// Directory writes DNS records in Active Directory (ad.Directory).
+// Directory writes DNS records and computer accounts in Active Directory
+// (ad.Directory).
 type Directory interface {
 	SetRecord(zone, name string, rec ad.Record, owned bool) (bool, error)
 	DeleteRecord(zone, name string, rec ad.Record) (bool, error)
 	ReverseZone(ip netip.Addr) (zone, node string, err error)
+	Domain() string
+	Computer(name string) (ad.Computer, error)
+	ComputerByGUID(guid string) (ad.Computer, error)
+	CreateComputer(ou, name, info, password string) (ad.Computer, error)
+	ResetComputer(dn, password string) error
+	DeleteComputer(dn string) error
 	Close() error
 }
 

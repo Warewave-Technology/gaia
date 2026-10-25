@@ -283,3 +283,24 @@ func TestPlanDNS(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanDomain(t *testing.T) {
+	ad := "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: corp-ad }\nspec: { type: activedirectory, endpoint: ldaps://dc1, credentials: bao://kv/ad, writeCredentials: bao://kv/ad-w }\n"
+	net := strings.Replace(readLab(t, "platform/catalog/network.yaml"), "dns: { servers: [1.1.1.1] }", "dns: { servers: [1.1.1.1] }\n  domain: { provider: corp-ad, ou: \"OU=Servers,DC=lab,DC=test\" }", 1)
+	p := build(t, nil, "platform/providers/corp-ad.yaml", ad, "platform/catalog/network.yaml", net)
+	if d := p.Contracts[0].Servers[0].Domain; d == nil || *d != (Domain{Provider: "corp-ad", OU: "OU=Servers,DC=lab,DC=test"}) {
+		t.Errorf("domain = %+v", d)
+	}
+	var b bytes.Buffer
+	_ = WriteText(&b, p)
+	for _, want := range []string{"computer account in OU=Servers,DC=lab,DC=test (corp-ad)", "computers  +1 =0 (corp-ad)"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("output lacks %q:\n%s", want, b.String())
+		}
+	}
+	policy := strings.Replace(readLab(t, "platform/policy.yaml"), "pad(seq, 2)", "'-long-name' + pad(seq, 2)", 1)
+	if _, err := tryBuild(t, nil, "platform/providers/corp-ad.yaml", ad, "platform/catalog/network.yaml", net, "platform/policy.yaml", policy); err == nil ||
+		!strings.Contains(err.Error(), "hostname labtpoc-long-name01 is longer than 15 characters") {
+		t.Errorf("long name: %v", err)
+	}
+}

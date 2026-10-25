@@ -26,10 +26,12 @@ type doomed struct {
 	monitor map[string]string // monitoring provider -> host ID
 	dnsA    map[string]string // DNS provider -> the A record's name
 	dnsPTR  map[string]string // DNS provider -> the PTR record's name
+	// computers are its computer accounts: directory -> GUID.
+	computers map[string]string
 }
 
 func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
-	d := doomed{s: s, monitor: map[string]string{}, dnsA: map[string]string{}, dnsPTR: map[string]string{}}
+	d := doomed{s: s, monitor: map[string]string{}, dnsA: map[string]string{}, dnsPTR: map[string]string{}, computers: map[string]string{}}
 	ids, err := r.d.Store.Q().ExternalIDs(ctx, s.UID)
 	if err != nil {
 		return d, err
@@ -53,6 +55,8 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 			d.dnsA[e.Provider] = e.ExternalID
 		case "dns-ptr":
 			d.dnsPTR[e.Provider] = e.ExternalID
+		case "computer":
+			d.computers[e.Provider] = e.ExternalID
 		}
 	}
 	if err := r.d.Store.Q().SetHostStatus(ctx, db.SetHostStatusParams{Uid: s.UID, Status: db.HostStatusDecommissioning}); err != nil {
@@ -62,11 +66,15 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 	return d, nil
 }
 
-// unregister removes the doomed servers' DNS records, and removes them
-// from monitoring with their history (design 9.3).
+// unregister removes the doomed servers' DNS records and computer
+// accounts, and removes them from monitoring with their history (design
+// 9.3).
 func (r *runner) unregister(ctx context.Context, c plan.Contract, gone []doomed) error {
 	for _, d := range gone {
 		if err := r.unregisterDNS(ctx, c, d); err != nil {
+			return err
+		}
+		if err := r.deleteComputers(ctx, c, d); err != nil {
 			return err
 		}
 		for provider, hostID := range d.monitor {
