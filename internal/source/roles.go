@@ -81,7 +81,8 @@ func (s *Syncer) roles(ctx context.Context, snap repo.Snapshot, g *catalog.Graph
 		var meta map[string]any
 		var specs struct {
 			ArgumentSpecs map[string]struct {
-				Options map[string]catalog.Param `yaml:"options"`
+				ShortDescription string                   `yaml:"short_description"`
+				Options          map[string]catalog.Param `yaml:"options"`
 			} `yaml:"argument_specs"`
 		}
 		var extra struct {
@@ -128,8 +129,15 @@ func (s *Syncer) roles(ctx context.Context, snap repo.Snapshot, g *catalog.Graph
 			Monitoring: extra.Monitoring, Conflicts: extra.Conflicts, AllowedEnvironments: extra.AllowedEnvironments,
 			CheckMode: extra.CheckMode, Runbook: extra.Runbook, Rules: extra.Rules,
 		}
-		if main, ok := specs.ArgumentSpecs["main"]; ok && len(main.Options) > 0 {
+		main, ok := specs.ArgumentSpecs["main"]
+		if ok && len(main.Options) > 0 {
 			role.Params = main.Options
+		}
+		// The catalog card's text: the entry point's short description, or
+		// galaxy_info's.
+		role.Description = main.ShortDescription
+		if gi, ok := meta["galaxy_info"].(map[string]any); ok && role.Description == "" {
+			role.Description, _ = gi["description"].(string)
 		}
 		// meta/gaia.yml extends params with Gaia's own fields.
 		for p, x := range extra.Params {

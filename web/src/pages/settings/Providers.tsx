@@ -1,5 +1,6 @@
-// Provider'lar: the systems Gaia talks to, where they are used and what
-// the last discovery got from them (platform-admin).
+// Ayarlar → Provider'lar and Bildirim kanalları: the systems Gaia talks
+// to, where they are used, whether Gaia reaches them and what the last
+// discovery got from them (platform-admin).
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
@@ -9,8 +10,12 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Card, ErrorNote, Hint, IL, Leg, Loading, Mono } from "../../ui/parts";
 import { ago, stamp } from "../../lib/time";
-import { Page } from "../../ui/shell";
 import { refLink } from "../catalog/Catalog";
+import { objectPath } from "../../ui/kinds";
+import { TabHead } from "../../ui/tabs";
+
+// The provider types that carry notifications (catalog.NotificationTypes).
+export const CHANNEL_TYPES = new Set(["msteams", "slack", "smtp", "webhook"]);
 
 type Check = { status: "ok" | "failed" | "skipped"; detail?: string; error?: string; latencyMs: number; checkedAt: string; lastOkAt?: string };
 type Provider = { name: string; type: string; endpoint?: string; credentials?: string; usedBy: { kind: string; name: string; field: string }[]; error?: string; check?: Check };
@@ -41,10 +46,11 @@ function CheckCell({ c }: { c?: Check }) {
   );
 }
 
-export function Providers() {
+export function Providers({ channels = false }: { channels?: boolean }) {
   const session = useSession();
   const admin = hasRole(session, "platform-admin");
-  const q = useQuery({ queryKey: ["providers"], queryFn: () => api<Provider[]>("/providers"), enabled: admin, refetchInterval: 60_000 });
+  const q = useQuery({ queryKey: ["providers"], queryFn: () => api<Provider[]>("/providers"), enabled: admin, refetchInterval: 60_000,
+    select: (ps) => ps.filter((p) => CHANNEL_TYPES.has(p.type) === channels) });
   const qc = useQueryClient();
   const [note, setNote] = useState<string | null>(null);
   const checkNow = async () => {
@@ -58,20 +64,17 @@ export function Providers() {
     }
   };
   return (
-    <Page crumbs="Provider'lar">
-      <div className="spread">
-      <div className="title-row">
-        <h1>Provider'lar</h1>
-        <Hint>Provider, Gaia'nın konuştuğu bir sistemdir: vSphere, Proxmox, IPAM, Zabbix, AD, OpenBao, Git… Kontratlar provider'ları doğrudan değil, katalog nesneleri (Site, Network…) üzerinden kullanır.</Hint>
-      </div>
-      {admin && <Button icon="sync" onClick={checkNow} title="Bütün provider'ları şimdi denetle">Şimdi denetle</Button>}
-      </div>
+    <>
+      {channels
+        ? <TabHead icon="bell" text="Bildirimlerin gittiği kanallar: Slack, Teams, e-posta, webhook." hint="Bildirim kanalı da bir provider'dır. Takımlar ve kişiler hangi olayların hangi kanala gideceğini kendi aboneliklerinde seçer." />
+        : <TabHead icon="plug" text="Gaia'nın konuştuğu sistemler ve bağlantı durumları." hint="Provider, Gaia'nın konuştuğu bir sistemdir: vSphere, Proxmox, IPAM, Zabbix, AD, OpenBao, Git… Kontratlar provider'ları doğrudan değil, Site, Network gibi nesneler üzerinden kullanır."
+            right={admin && <Button icon="sync" onClick={checkNow} title="Bütün provider'ları şimdi denetle">Şimdi denetle</Button>} />}
       {note && <div className="notice" role="status">{note}</div>}
       {!admin ? <div className="notice warn">Provider'ları sadece platform-admin rolü görür.</div>
         : q.isPending ? <Loading />
         : q.error ? (q.error instanceof ApiError && q.error.status === 503 ? <div className="notice warn">Bu sunucu bir repo izlemiyor; provider tanımı yok.</div> : <ErrorNote error={q.error} />)
         : (
-          <Card title="Provider'lar" icon="plug" right={<span className="faint">{q.data.length} provider</span>}>
+          <Card title={channels ? "Bildirim kanalları" : "Provider'lar"} icon={channels ? "bell" : "plug"} right={<span className="faint">{q.data.length} provider</span>}>
             <table className="grid">
               <thead>
                 <tr>
@@ -88,7 +91,7 @@ export function Providers() {
               <tbody>
                 {q.data.map((p) => (
                   <tr key={p.name}>
-                    <td><Link to={`/catalog/Provider/${encodeURIComponent(p.name)}`} className="il"><Icon name="plug" size={15} />{p.name}</Link></td>
+                    <td><Link to={objectPath("Provider", p.name)} className="il"><Icon name={channels ? "bell" : "plug"} size={15} />{p.name}</Link></td>
                     <td><span className="badge gray">{p.type}</span></td>
                     <td className="mono">{p.endpoint ?? "–"}</td>
                     <td className="mono muted">{p.credentials ?? "–"}</td>
@@ -105,6 +108,7 @@ export function Providers() {
                 ))}
               </tbody>
             </table>
+            {q.data.length === 0 && <div className="empty">{channels ? "Bildirim kanalı yok." : "Provider yok."}</div>}
             {q.data.some((p) => p.check?.status === "failed" || p.error) && (
               <div style={{ padding: "0 16px 16px" }}>
                 {q.data.filter((p) => p.check?.status === "failed").map((p) => <div key={p.name} className="notice err" style={{ marginTop: 8 }}><b>{p.name}</b>: <Mono>{p.check?.error}</Mono></div>)}
@@ -113,6 +117,6 @@ export function Providers() {
             )}
           </Card>
         )}
-    </Page>
+    </>
   );
 }

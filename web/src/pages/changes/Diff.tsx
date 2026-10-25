@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { Icon } from "../../ui/icons";
-import { kindOf } from "../../ui/kinds";
+import { kindOf, objectPath } from "../../ui/kinds";
 import { Badge, ErrorNote, Hint, Loading, Mono, shortLabel, type Tone } from "../../ui/parts";
 
 type ObjectDiff = { kind: string; name: string; file: string; status: "added" | "modified" | "removed"; diff: string };
@@ -39,7 +39,7 @@ export function YamlDiff({ id, contract }: { id: string; contract: string }) {
       {d.objects.map((o) => {
         const lines = o.diff.split("\n").filter((l) => !l.startsWith("---") && !l.startsWith("+++"));
         while (lines.length && lines[lines.length - 1] === "") lines.pop();
-        const link = o.kind === "Server" ? `/contracts/${encodeURIComponent(o.name)}` : `/catalog/${encodeURIComponent(o.kind)}/${encodeURIComponent(o.name)}`;
+        const link = objectPath(o.kind, o.name);
         return (
           <section key={o.kind + "/" + o.name} aria-label={`${o.kind}/${o.name}`}>
             <div className="row" style={{ gap: 8, marginBottom: 8 }}>

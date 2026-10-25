@@ -19,7 +19,7 @@
 | 10 | Yaşam döngüsü: drift, keşif, adopt, reconcile | 3, 8, 9 | – |
 | 11 | Dağıtım: paketler, Ansible rolü, Helm | 1 | – |
 | 12 | Yeni yapılanma: tasarım (design.md §17) | – | **Tamam** |
-| 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | – |
+| 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | **Tamam** |
 | 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | – |
 | 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | – |
 | 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | – |
@@ -330,8 +330,8 @@ Tasarım: design.md §17. Kararlar 2026-10-25'te alındı:
 - Geri kalanı Gaia'nın ayar deposuna geçer; değişiklikleri aynı onay kurallarından geçer ve denetim kaydına yazılır.
 - Giriş LDAP ile yapılır, OIDC şimdilik kullanılmaz.
 
-### Faz 13: Ekran yapısı
-Sadece arayüz; veri modeli değişmez.
+### Faz 13: Ekran yapısı — Tamam
+Sadece arayüz; veri modeli değişmez. Okuma için eklenen API'ler: katalog listesinde `?spec=1` ve virgüllü `?kind=`, nesneyi kullanan kontrat sayısı, `/operations` (repodaki tanımlarla birlikte), `/schedules`, `/access`. Kurulabilir türlere isteğe bağlı `description` alanı eklendi; AnsibleRoleSource bunu `argument_specs` ya da `galaxy_info`'dan doldurur. Kategori `category` etiketidir.
 - **Menü:** Genel bakış, Değişiklikler, Kontratlar, Operasyonlar, Run'lar, Katalog, Altyapı, Erişim, Ayarlar.
 - **Katalog:** AnsibleRole, App, Agent ve Baseline kartları; açıklama, işletim sistemi, kategori, kullanım sayısı. Tıklayınca parametreler ve kullanım örneği.
 - **Altyapı:** Site, Network, Image ve Size listeleri ve ayrıntıları.

@@ -1,0 +1,98 @@
+import { fireEvent, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fakeAPI, ME, renderAt } from "../../test-utils";
+
+afterEach(() => vi.unstubAllGlobals());
+
+const ADMIN = { body: { ...ME, roles: ["viewer", "operator", "platform-admin"] } };
+const PROVIDERS = { body: [
+  { name: "pve-lab", type: "proxmox", endpoint: "https://pve:8006", credentials: "bao://kv/platform/pve", usedBy: [{ kind: "Site", name: "lab", field: "spec.compute" }],
+    check: { status: "failed", error: "dial tcp: connection refused", latencyMs: 3, checkedAt: "2026-10-25T08:00:00Z", lastOkAt: "2026-10-25T07:00:00Z" } },
+  { name: "zabbix", type: "zabbix", endpoint: "http://zbx/api_jsonrpc.php", usedBy: [], check: { status: "ok", detail: "Zabbix 7.0.32 · 12 host", latencyMs: 41, checkedAt: "2026-10-25T08:00:00Z" } },
+  { name: "team-slack", type: "slack", usedBy: [], check: { status: "skipped", detail: "denetim bir mesaj göndermek olurdu", latencyMs: 0, checkedAt: "2026-10-25T08:00:00Z" } },
+] };
+
+describe("settings", () => {
+  it("opens on the providers tab, without the notification channels", async () => {
+    fakeAPI({ "GET /me": ADMIN, "GET /changes?open=true&limit=500": { body: [] }, "GET /providers": PROVIDERS, "POST /providers/check": { status: 202, body: { status: "checking" } } });
+    renderAt("/settings");
+    const pve = (await screen.findByRole("link", { name: "pve-lab" })).closest("tr")!;
+    expect(screen.getByRole("link", { name: /Provider'lar/ })).toHaveClass("active");
+    expect(pve).toHaveTextContent("bao://kv/platform/pve");
+    expect(pve).toHaveTextContent("Ulaşılamıyor");
+    expect(pve).toHaveTextContent("Site/lab");
+    expect(screen.getByText("dial tcp: connection refused")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "zabbix" }).closest("tr")).toHaveTextContent("Zabbix 7.0.32 · 12 host · 41 ms");
+    expect(screen.queryByRole("link", { name: "team-slack" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Şimdi denetle/ }));
+    expect(await screen.findByText(/Denetim başladı/)).toBeInTheDocument();
+  });
+
+  it("lists the notification channels on their own tab", async () => {
+    fakeAPI({ "GET /me": ADMIN, "GET /changes?open=true&limit=500": { body: [] }, "GET /providers": PROVIDERS });
+    renderAt("/settings/channels");
+    expect((await screen.findByRole("link", { name: "team-slack" })).closest("tr")).toHaveTextContent("Denetlenmiyor");
+    expect(screen.queryByRole("link", { name: "pve-lab" })).not.toBeInTheDocument();
+  });
+
+  it("sends the old screens to their tabs", async () => {
+    fakeAPI({ "GET /me": ADMIN, "GET /changes?open=true&limit=500": { body: [] }, "GET /providers": PROVIDERS });
+    renderAt("/providers");
+    expect(await screen.findByRole("link", { name: "pve-lab" })).toBeInTheDocument();
+  });
+
+  it("shows what each source did, with its problems, and the sources themselves", async () => {
+    fakeAPI({
+      "GET /me": ADMIN,
+      "GET /changes?open=true&limit=500": { body: [] },
+      "GET /sources": { body: [
+        { source: "AnsibleRoleSource/corp-roles", status: "committed", commit: "abc1234def", detail: { added: ["a.yaml", "b.yaml"], problems: ["broken: blob.type raw is not allowed"] }, ranAt: "2026-10-25T08:00:00Z" },
+        { source: "TeamSource/corp-ad", status: "failed", error: "ldap: connection refused", ranAt: "2026-10-25T08:00:00Z" },
+      ] },
+      "GET /catalog?kind=NetworkSource,TeamSource,AnsibleRoleSource&spec=1": { body: { commit: "c", objects: [
+        { kind: "AnsibleRoleSource", name: "corp-roles", source: "sources.yaml:1", usedBy: 0, contracts: 0, spec: { provider: "config-repo", output: "platform/generated/ansible-roles" } },
+      ] } },
+      "POST /sources/sync": { status: 202, body: { status: "syncing" } },
+    });
+    renderAt("/sync");
+    const row = (await screen.findByRole("link", { name: /AnsibleRoleSource\/corp-roles/ })).closest("tr")!;
+    expect(row).toHaveTextContent("Commit yazıldı");
+    expect(row).toHaveTextContent("+2");
+    expect(screen.getByText("1 sorun")).toBeInTheDocument();
+    expect(screen.getByText("ldap: connection refused")).toBeInTheDocument();
+    expect((await screen.findByText("platform/generated/ansible-roles")).closest("tr")).toHaveTextContent("config-repo");
+    fireEvent.click(screen.getByRole("button", { name: /Şimdi eşitle/ }));
+    expect(await screen.findByText(/Eşitleme başladı/)).toBeInTheDocument();
+  });
+
+  it("lists unmanaged VMs first and the missing ones", async () => {
+    fakeAPI({
+      "GET /me": { body: ME },
+      "GET /changes?open=true&limit=500": { body: [] },
+      "GET /discovery": { body: {
+        takenAt: "2026-10-25T08:00:00Z", counts: {},
+        vms: [
+          { provider: "pve-lab", id: "9400", name: "labtpoc01", powerState: "running", category: "managed", contract: "poc-web" },
+          { provider: "pve-lab", id: "120", name: "old-db", powerState: "running", category: "unmanaged", ips: ["192.168.1.40"] },
+        ],
+        missing: [{ provider: "pve-lab", id: "9401", uid: "u2", hostname: "labtpoc02", contract: "poc-web" }], hosts: [],
+      } },
+    });
+    renderAt("/settings/discovery");
+    expect(await screen.findByText("old-db")).toBeInTheDocument();
+    expect(screen.queryByText("labtpoc01")).not.toBeInTheDocument();
+    expect(screen.getByText("Kayıp sunucular")).toBeInTheDocument();
+  });
+
+  it("shows the Policy as written", async () => {
+    fakeAPI({
+      "GET /me": ADMIN,
+      "GET /changes?open=true&limit=500": { body: [] },
+      "GET /catalog?kind=Policy&spec=1": { body: { commit: "c", objects: [{ kind: "Policy", name: "default", source: "policy.yaml:1", usedBy: 0, contracts: 0, spec: {} }] } },
+      "GET /catalog/Policy/default": { body: { kind: "Policy", name: "default", source: "policy.yaml:1", yaml: "kind: Policy\nspec:\n  approvals: {}\n", refs: [], usedByRefs: [] } },
+    });
+    renderAt("/settings/policy");
+    expect(await screen.findByText(/approvals: \{\}/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ayrıntı/ })).toHaveAttribute("href", "/settings/Policy/default");
+  });
+});

@@ -42,8 +42,8 @@ export const SOURCE: Record<string, { icon: IconName; label: string; text: strin
   revert: { icon: "undo", label: "revert", text: "önceki bir sürüme geri dönüldü" },
   drift: { icon: "scan", label: "drift", text: "elle yapılan bir değişiklik düzeltiliyor" },
   "drift-auto": { icon: "scan", label: "drift (otomatik)", text: "enforce seviyesinde sapma kendiliğinden düzeltiliyor" },
-  operation: { icon: "wrench", label: "operation", text: "bir Operation (ör. yeniden başlatma, yama) çalışıyor" },
-  schedule: { icon: "clock", label: "schedule", text: "zamanlanmış bir Operation onaylanıyor" },
+  operation: { icon: "zap", label: "operation", text: "bir Operation (ör. yeniden başlatma, yama) çalışıyor" },
+  schedule: { icon: "calendar", label: "schedule", text: "zamanlanmış bir Operation onaylanıyor" },
 };
 
 export function SourceLabel({ source, children }: { source: string; children?: ReactNode }) {

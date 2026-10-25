@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ApiError } from "./api/client";
 import { SessionProvider } from "./api/session";
 import { Shell } from "./ui/shell";
@@ -11,11 +11,12 @@ import { RunDetail } from "./pages/runs/Detail";
 import { ContractList } from "./pages/contracts/List";
 import { ContractDetail } from "./pages/contracts/Detail";
 import { Overview } from "./pages/overview/Overview";
-import { CatalogList, CatalogObject } from "./pages/catalog/Catalog";
-import { Providers } from "./pages/providers/Providers";
+import { CatalogList, ObjectPage } from "./pages/catalog/Catalog";
 import { Profile } from "./pages/profile/Profile";
-import { Sync } from "./pages/sync/Sync";
-import { Discovery } from "./pages/sync/Discovery";
+import { Infra } from "./pages/infra/Infra";
+import { Operations } from "./pages/operations/Operations";
+import { Access } from "./pages/access/Access";
+import { Settings } from "./pages/settings/Settings";
 
 export function makeClient() {
   return new QueryClient({
@@ -40,11 +41,21 @@ export function AppRoutes() {
         <Route path="contracts/:name" element={<ContractDetail />} />
         <Route path="runs" element={<RunList />} />
         <Route path="runs/:id" element={<RunDetail />} />
+        <Route path="operations" element={<Operations />} />
         <Route path="catalog" element={<CatalogList />} />
-        <Route path="catalog/:kind/:name" element={<CatalogObject />} />
-        <Route path="providers" element={<Providers />} />
-        <Route path="sync" element={<Sync />} />
-        <Route path="discovery" element={<Discovery />} />
+        <Route path="catalog/:kind/:name" element={<ObjectPage />} />
+        <Route path="infra" element={<Infra />} />
+        <Route path="infra/:kind" element={<Infra />} />
+        <Route path="infra/:kind/:name" element={<ObjectPage />} />
+        <Route path="access" element={<Access />} />
+        <Route path="access/:tab" element={<Access />} />
+        <Route path="access/:kind/:name" element={<ObjectPage />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="settings/:tab" element={<Settings />} />
+        <Route path="settings/:kind/:name" element={<ObjectPage />} />
+        <Route path="providers" element={<Navigate to="/settings/providers" replace />} />
+        <Route path="sync" element={<Navigate to="/settings/sources" replace />} />
+        <Route path="discovery" element={<Navigate to="/settings/discovery" replace />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Route>
