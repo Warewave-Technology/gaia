@@ -114,7 +114,8 @@ function Body({ run, crumbs }: { run: Run; crumbs: React.ReactNode }) {
   const live = !end && ["queued", "running"].includes(run.status);
   const changed = Object.values(m.summary).reduce((n, s) => n + s.changed, 0);
   const failed = Object.values(m.summary).reduce((n, s) => n + s.failed, 0);
-  const created = (rec.data?.body.changes ?? []).filter((c) => c.action === "create" && c.stage === "provision").length;
+  // The record names each server the run creates in its plan stage.
+  const created = (rec.data?.body.changes ?? []).filter((c) => c.stage === "plan" && (c.action === "create" || c.action === "adopt")).length;
   const approvers = rec.data?.body.approvedBy ?? [];
   const contract = run.contracts[0];
 

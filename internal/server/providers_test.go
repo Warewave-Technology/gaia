@@ -37,16 +37,27 @@ func TestProviderChecks(t *testing.T) {
 	if code := get(t, hs.URL+"/api/v1/providers", &ps); code != 200 || len(ps) == 0 {
 		t.Fatalf("providers: %d %+v", code, ps)
 	}
-	// The lab's systems are not here: every provider is checked and
-	// fails, but for those that have no harmless call.
+	// Every provider is checked. Whether the lab's systems answer depends
+	// on where the test runs, so only the shape of the result is checked.
 	for _, p := range ps {
+		c := p.Check
 		switch {
-		case p.Check == nil:
+		case c == nil:
 			t.Errorf("%s: not checked", p.Name)
-		case p.Type == "git" && p.Check.Status != check.Skipped:
-			t.Errorf("%s: %+v", p.Name, p.Check)
-		case p.Type != "git" && p.Check.Status != check.Failed || p.Check.Status == check.Failed && p.Check.Error == "" || p.Check.LastOKAt != nil:
-			t.Errorf("%s (%s): %+v", p.Name, p.Type, p.Check)
+		case p.Type == "git":
+			if c.Status != check.Skipped || c.Detail == "" {
+				t.Errorf("%s: %+v", p.Name, c)
+			}
+		case c.Status == check.Failed:
+			if c.Error == "" || c.LastOKAt != nil {
+				t.Errorf("%s (%s): %+v", p.Name, p.Type, c)
+			}
+		case c.Status == check.OK:
+			if c.Detail == "" || c.LastOKAt == nil {
+				t.Errorf("%s (%s): %+v", p.Name, p.Type, c)
+			}
+		default:
+			t.Errorf("%s (%s): %+v", p.Name, p.Type, c)
 		}
 	}
 	if code := post(t, hs.URL+"/api/v1/providers/check"); code != 202 {

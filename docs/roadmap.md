@@ -332,6 +332,15 @@ Gerçek sunucularla yapılacak denemeler tek bir lab oturumunda toplanır: Faz 3
 - Lab'de bulunan ve düzeltilen hatalar: Proxmox'un `WARNINGS: n` ile biten başarılı görevleri hata sayılıyordu; patch play'i `exclude: null` gönderiyordu; `proxmoxve`'nin disk `speed` gürültüsü provisioning drift'inde sürekli bulgu üretiyordu (`ignoreChanges` işe yaramadığı için drift'te filtreleniyor). Lab playbook'u `/etc/gaia`'yı oluşturmuyordu.
 - Lab'de denenmeyenler: change akışının sunucuda (webhook, onay, bildirim) lab'le uçtan uca çalıştırılması (yerelde gerçek River worker'ı ve Gitea ile denendi), vSphere, AD, Warpgate (yerelde gerçek Samba/Warpgate ile denendi).
 
+**2026-10-25, arayüzle ikinci oturum** (lab yeniden kuruldu; `lab/server.yml`):
+- Kurulum:
+  - `gaia server` platform VM'inde systemd servisi olarak çalışıyor. Platform reposu VM'deki bare repo.
+  - Giriş `require: mfa` ile; arayüze SSH tüneliyle `localhost`'tan giriliyor, böylece passkey de çalışıyor.
+- İmzalı bir commit ile açılan Change, arayüzde TOTP ile onaylandı. Gerçek run 48 saniyede bitti: VM, IPAM, Zabbix kaydı, Ansible (8 changed), run kaydı.
+- Arayüzde canlı görülenler: aşamalar, matris ve log. Kaynak ağacı gerçek VM, IP ve Zabbix host'uyla dolu.
+- Provider denetimi gerçek sistemlere karşı yapıldı: OpenBao, IPAM, Proxmox, iki S3 bucket'ı, PostgreSQL ve Zabbix bağlı; git denetlenmiyor.
+- Bulunan ve düzeltilen: run'ın "Değişen" panelinde yeni sunucular sayılmıyordu; kayıt onları `plan` aşamasında yazıyor.
+
 ## Dışarıya bağlı işler
 
 - `proxmoxve` disk `speed` sorununun upstream'e bildirilmesi (dışarıya açık bir iş; ayrıca onay gerekir).
