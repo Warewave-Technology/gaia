@@ -417,6 +417,40 @@ paths:
                       yaml: { type: string }
                       refs: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
                       usedByRefs: { type: array, items: { $ref: "#/components/schemas/CatalogRef" } }
+                      params:
+                        type: array
+                        description: "AnsibleRole and App: the params a contract may give, nested options as dotted names"
+                        items:
+                          type: object
+                          properties:
+                            name: { type: string }
+                            type: { type: string }
+                            elements: { type: string }
+                            required: { type: boolean }
+                            default: { description: Left out for secrets }
+                            choices: { type: array, items: {} }
+                            description: { type: string }
+                            secret: { type: boolean }
+                            pattern: { type: string }
+                            format: { type: string }
+                            min: { type: number }
+                            max: { type: number }
+                            deprecated: { type: string }
+                      rules:
+                        type: array
+                        items: { type: object, properties: { expression: { type: string }, message: { type: string } } }
+                      role:
+                        type: object
+                        description: "AnsibleRole: where it comes from and where it runs"
+                        properties:
+                          provider: { type: string }
+                          role: { type: string }
+                          os: { type: array, items: { type: string } }
+                          monitoring: { type: array, items: { type: string } }
+                          conflicts: { type: array, items: { type: string } }
+                          allowedEnvironments: { type: array, items: { type: string } }
+                          checkMode: { type: string }
+                          runbook: { type: boolean }
         "404": { description: No such object, or a contract }
   /api/v1/providers:
     get:
