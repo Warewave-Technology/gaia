@@ -212,7 +212,7 @@ func (s *Service) Check(ctx context.Context, edits []Edit) (*Check, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.Errors = append(errs, c.Errors...)
+	c.Errors = append(append([]string{}, errs...), c.Errors...)
 	return c, nil
 }
 

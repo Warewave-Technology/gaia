@@ -253,6 +253,11 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 	}
 	if source == "commit" {
 		source = sourceOf(commits)
+		if authors, ok := e.bySettings(ctx, st, snap, name, p); ok {
+			// The settings alone changed the plan: who proposed them asked
+			// for it, and may not approve it either.
+			source, by = Settings, authors
+		}
 	}
 	c := db.Change{
 		ID: store.NewChangeID(), Contract: name, Source: source, Snapshot: mustJSON(snap), Label: snap.Label(),
@@ -271,6 +276,37 @@ func (e *Engine) create(ctx context.Context, name, source string, snap repo.Snap
 
 // sourceOf says where a change's commits come from: revert when the
 // newest is Gaia's revert, else commit.
+// Settings is the source of a change that a settings change made.
+const Settings = "settings"
+
+// bySettings reports whether a contract's new plan comes from the
+// settings alone: the applied commits with the new settings version give
+// the same plan. It answers who wrote those settings versions.
+func (e *Engine) bySettings(ctx context.Context, st db.ContractState, snap repo.Snapshot, name string, p *plan.Plan) ([]string, bool) {
+	if len(st.AppliedSnapshot) == 0 || snap.Settings == 0 {
+		return nil, false
+	}
+	var applied repo.Snapshot
+	if err := json.Unmarshal(st.AppliedSnapshot, &applied); err != nil || applied.Settings == snap.Settings {
+		return nil, false
+	}
+	mixed := applied
+	mixed.Settings = snap.Settings
+	g, err := e.Repos.Graph(ctx, mixed)
+	if err != nil {
+		return nil, false
+	}
+	q, err := plan.Build(ctx, g, []string{name}, apply.StoreState{S: e.Store})
+	if err != nil || q.Hash != p.Hash {
+		return nil, false
+	}
+	authors, err := e.Store.Q().SettingsAuthors(ctx, db.SettingsAuthorsParams{After: applied.Settings, Upto: snap.Settings})
+	if err != nil {
+		return nil, false
+	}
+	return authors, true
+}
+
 func sourceOf(commits []Commit) string {
 	if len(commits) > 0 && commits[0].Reverts != "" {
 		return "revert"

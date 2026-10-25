@@ -154,6 +154,35 @@ func (q *Queries) LatestSettingsVersion(ctx context.Context) (int64, error) {
 	return column_1, err
 }
 
+const settingsAuthors = `-- name: SettingsAuthors :many
+select distinct author from settings_versions where version > $1 and version <= $2 order by author
+`
+
+type SettingsAuthorsParams struct {
+	After int64
+	Upto  int64
+}
+
+func (q *Queries) SettingsAuthors(ctx context.Context, arg SettingsAuthorsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, settingsAuthors, arg.After, arg.Upto)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var author string
+		if err := rows.Scan(&author); err != nil {
+			return nil, err
+		}
+		items = append(items, author)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const settingsObjects = `-- name: SettingsObjects :many
 select path, data from settings_objects where version = $1 order by path
 `

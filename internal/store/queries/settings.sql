@@ -29,3 +29,6 @@ where (sqlc.narg(actor)::text is null or actor = sqlc.narg(actor))
   and (sqlc.narg(since)::timestamptz is null or at >= sqlc.narg(since))
   and (sqlc.narg(before_id)::bigint is null or id < sqlc.narg(before_id))
 order by id desc limit sqlc.arg(max_rows);
+
+-- name: SettingsAuthors :many
+select distinct author from settings_versions where version > sqlc.arg(after) and version <= sqlc.arg(upto) order by author;
