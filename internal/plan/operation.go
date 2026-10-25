@@ -154,8 +154,12 @@ func operationSteps(s *catalog.OperationSpec) []string {
 		steps = append(steps, "reboot")
 	case "runbook":
 		steps = append(steps, "runbook "+s.Runbook)
+	case "power":
+		steps = append(steps, fmt.Sprintf("power %v", s.Options["state"]))
+	case "revert":
+		steps = append(steps, fmt.Sprintf("revert to %v", s.Options["snapshot"]))
 	}
-	if s.Action != "snapshot" {
+	if off := s.Action == "power" && s.Options["state"] == "off"; s.Action != "snapshot" && !off {
 		steps = append(steps, "health")
 	}
 	return append(steps, "end maintenance")

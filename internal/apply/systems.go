@@ -2,8 +2,11 @@ package apply
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strconv"
 
+	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
@@ -24,14 +27,22 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 			return proxmox.New(c).UsedVMIDs(ctx)
 		},
 		ScanHostKey: ScanHostKey,
-		Snapshot: func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error {
-			return proxmox.New(c).Snapshot(ctx, vmid, name, description)
-		},
-		Configure: ansible.Podman{},
-		Monitor:   func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
+		Compute:     Compute,
+		Configure:   ansible.Podman{},
+		Monitor:     func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
 		Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
 			return runrecord.NewS3(endpoint, bucket, ak, sk)
 		},
 		Out: out,
 	}
+}
+
+// Compute opens a hypervisor's day-2 API.
+func Compute(kind, endpoint string, secret map[string]string) (compute.Compute, error) {
+	switch kind {
+	case "proxmox":
+		insecure, _ := strconv.ParseBool(secret["insecure"])
+		return proxmox.Compute{C: proxmox.New(proxmox.Credentials{Endpoint: endpoint, TokenID: secret["token_id"], TokenSecret: secret["token_secret"], Insecure: insecure})}, nil
+	}
+	return nil, fmt.Errorf("no day-2 API for %s", kind)
 }

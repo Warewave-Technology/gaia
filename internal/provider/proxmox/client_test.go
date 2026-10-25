@@ -77,3 +77,44 @@ func TestSnapshotWaitsForItsTask(t *testing.T) {
 		t.Errorf("SnapshotName = %s", got)
 	}
 }
+
+func TestComputeDayTwo(t *testing.T) {
+	var calls []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api2/json/cluster/resources":
+			_, _ = w.Write([]byte(`{"data":[{"vmid":9401,"node":"pve2","name":"labtpoc01","status":"running","tags":"gaia;env.test"},{"vmid":9300,"node":"pve2","name":"tpl","status":"stopped","template":1}]}`))
+		case strings.HasPrefix(r.URL.Path, "/api2/json/nodes/pve2/tasks/"):
+			_, _ = w.Write([]byte(`{"data":{"status":"stopped","exitstatus":"OK"}}`))
+		default:
+			_ = r.ParseForm()
+			calls = append(calls, r.Method+" "+strings.TrimPrefix(r.URL.Path, "/api2/json/nodes/pve2/qemu/9401")+" "+r.PostForm.Encode())
+			_, _ = w.Write([]byte(`{"data":"UPID:pve2:x"}`))
+		}
+	}))
+	defer srv.Close()
+	c := Compute{C: New(Credentials{Endpoint: srv.URL, TokenID: "t", TokenSecret: "s"})}
+	ctx := context.Background()
+	for _, a := range []string{"off", "on", "restart"} {
+		if err := c.Power(ctx, "9401", a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := c.Revert(ctx, "9401", "before"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.DeleteSnapshot(ctx, "9401", "before"); err != nil {
+		t.Fatal(err)
+	}
+	want := "POST /status/shutdown timeout=300|POST /status/start |POST /status/reboot timeout=300|POST /snapshot/before/rollback |POST /status/start |DELETE /snapshot/before "
+	if got := strings.Join(calls, "|"); got != want {
+		t.Errorf("calls\n got %s\nwant %s", got, want)
+	}
+	if err := c.Power(ctx, "9401", "pause"); err == nil {
+		t.Error("an unknown power action")
+	}
+	vms, err := c.Discover(ctx)
+	if err != nil || len(vms) != 2 || vms[0].PowerState != "on" || strings.Join(vms[0].Tags, ",") != "gaia,env.test" || !vms[1].Template {
+		t.Errorf("discover = %+v, %v", vms, err)
+	}
+}

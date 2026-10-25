@@ -8,8 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Warewave-Technology/gaia/internal/compute"
 )
 
 // Credentials reach the Proxmox API with an API token.
@@ -184,4 +187,106 @@ func (c *Client) wait(ctx context.Context, node, upid string) error {
 		case <-time.After(2 * time.Second):
 		}
 	}
+}
+
+// Compute is the Proxmox API as a compute.Compute; VMs are named by VMID.
+type Compute struct{ C *Client }
+
+func vmid(vm string) (int, error) {
+	id, err := strconv.Atoi(vm)
+	if err != nil {
+		return 0, fmt.Errorf("proxmox: %q is not a VMID", vm)
+	}
+	return id, nil
+}
+
+// task posts to a VM's path and waits for the task it starts.
+func (p Compute) task(ctx context.Context, method, vm, path string, form url.Values) error {
+	id, err := vmid(vm)
+	if err != nil {
+		return err
+	}
+	node, err := p.C.node(ctx, id)
+	if err != nil {
+		return err
+	}
+	var started struct {
+		Data string `json:"data"`
+	}
+	if err := p.C.do(ctx, method, fmt.Sprintf("/nodes/%s/qemu/%d%s", node, id, path), form, &started); err != nil {
+		return err
+	}
+	if started.Data == "" {
+		return nil
+	}
+	return p.C.wait(ctx, node, started.Data)
+}
+
+// Power starts a VM, or shuts it down or reboots it gracefully through
+// the QEMU guest agent (five minutes before giving up).
+func (p Compute) Power(ctx context.Context, vm, action string) error {
+	switch action {
+	case "on":
+		return p.task(ctx, http.MethodPost, vm, "/status/start", url.Values{})
+	case "off":
+		return p.task(ctx, http.MethodPost, vm, "/status/shutdown", url.Values{"timeout": {"300"}})
+	case "restart":
+		return p.task(ctx, http.MethodPost, vm, "/status/reboot", url.Values{"timeout": {"300"}})
+	}
+	return fmt.Errorf("proxmox: %q: power: on, off or restart", action)
+}
+
+// Snapshot takes a snapshot without memory.
+func (p Compute) Snapshot(ctx context.Context, vm, name, description string) error {
+	id, err := vmid(vm)
+	if err != nil {
+		return err
+	}
+	return p.C.Snapshot(ctx, id, name, description)
+}
+
+// Revert rolls a VM back to a snapshot; one without memory leaves it
+// off, so it is started again.
+func (p Compute) Revert(ctx context.Context, vm, name string) error {
+	if err := p.task(ctx, http.MethodPost, vm, "/snapshot/"+url.PathEscape(name)+"/rollback", url.Values{}); err != nil {
+		return err
+	}
+	return p.task(ctx, http.MethodPost, vm, "/status/start", url.Values{})
+}
+
+// DeleteSnapshot removes a snapshot.
+func (p Compute) DeleteSnapshot(ctx context.Context, vm, name string) error {
+	return p.task(ctx, http.MethodDelete, vm, "/snapshot/"+url.PathEscape(name), nil)
+}
+
+// Discover lists the cluster's VMs and templates.
+func (p Compute) Discover(ctx context.Context) ([]compute.ObservedVM, error) {
+	var out struct {
+		Data []struct {
+			VMID     int    `json:"vmid"`
+			Name     string `json:"name"`
+			Status   string `json:"status"`
+			Tags     string `json:"tags"`
+			Template int    `json:"template"`
+		} `json:"data"`
+	}
+	if err := p.C.get(ctx, "/cluster/resources?type=vm", &out); err != nil {
+		return nil, err
+	}
+	vms := make([]compute.ObservedVM, 0, len(out.Data))
+	for _, r := range out.Data {
+		state := "other"
+		switch r.Status {
+		case "running":
+			state = "on"
+		case "stopped":
+			state = "off"
+		}
+		v := compute.ObservedVM{ID: strconv.Itoa(r.VMID), Name: r.Name, PowerState: state, Template: r.Template == 1}
+		if r.Tags != "" {
+			v.Tags = strings.Split(r.Tags, ";")
+		}
+		vms = append(vms, v)
+	}
+	return vms, nil
 }

@@ -21,6 +21,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
 	"github.com/Warewave-Technology/gaia/internal/gitsrc/gittest"
@@ -1094,11 +1095,8 @@ func TestRunOperationInBatches(t *testing.T) {
 func TestPatchOperationWithSnapshotAndMaintenance(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
-	var snaps []string
-	e.deps.Snapshot = func(_ context.Context, _ proxmox.Credentials, vmid int, name, _ string) error {
-		snaps = append(snaps, fmt.Sprintf("%d:%s", vmid, name))
-		return nil
-	}
+	fc := &fakeDayTwo{}
+	e.deps.Compute = func(string, string, map[string]string) (compute.Compute, error) { return fc, nil }
 	op := `---
 apiVersion: gaia/v1alpha1
 kind: Operation
@@ -1127,8 +1125,8 @@ spec:
 	if err != nil || out.Status != "succeeded" || len(out.Results) != 2 {
 		t.Fatalf("outcome = %+v, %v", out, err)
 	}
-	if len(snaps) != 2 || !strings.Contains(snaps[0], ":gaia_patch_poc_") {
-		t.Errorf("snapshots = %v", snaps)
+	if len(fc.calls) != 2 || !strings.Contains(fc.calls[0], " snapshot gaia_patch_poc_") {
+		t.Errorf("snapshots = %v", fc.calls)
 	}
 	if len(e.monitor.maintenances) != 2 || !strings.HasPrefix(e.monitor.maintenances[0], "start Gaia: patch-poc, batch 1 ") || e.monitor.maintenances[1] != "end m0" {
 		t.Errorf("maintenance = %v", e.monitor.maintenances)
@@ -1139,9 +1137,7 @@ spec:
 	}
 
 	// A snapshot that fails fails its server, which then is not patched.
-	e.deps.Snapshot = func(context.Context, proxmox.Credentials, int, string, string) error {
-		return fmt.Errorf("storage full")
-	}
+	fc.err = fmt.Errorf("storage full")
 	jobs := len(e.configure.jobs)
 	_, out, _ = RunOperation(ctx, g, o, e.deps)
 	if out.Status != "failed" || !strings.Contains(out.Results[0].Detail, "storage full") || len(e.configure.jobs) != jobs {
@@ -1154,4 +1150,78 @@ func testHostKey(addr string) ssh.PublicKey {
 	seed := sha256.Sum256([]byte(addr))
 	k, _ := ssh.NewPublicKey(ed25519.NewKeyFromSeed(seed[:]).Public())
 	return k
+}
+
+// fakeDayTwo records day-2 calls.
+type fakeDayTwo struct {
+	calls []string
+	err   error
+}
+
+func (f *fakeDayTwo) Power(_ context.Context, vm, action string) error {
+	f.calls = append(f.calls, vm+" power "+action)
+	return f.err
+}
+
+func (f *fakeDayTwo) Snapshot(_ context.Context, vm, name, _ string) error {
+	f.calls = append(f.calls, vm+" snapshot "+name)
+	return f.err
+}
+
+func (f *fakeDayTwo) Revert(_ context.Context, vm, name string) error {
+	f.calls = append(f.calls, vm+" revert "+name)
+	return f.err
+}
+
+func (f *fakeDayTwo) DeleteSnapshot(_ context.Context, vm, name string) error {
+	f.calls = append(f.calls, vm+" delete "+name)
+	return f.err
+}
+
+func (f *fakeDayTwo) Discover(context.Context) ([]compute.ObservedVM, error) { return nil, f.err }
+
+func TestPowerAndRevertOperations(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	fc := &fakeDayTwo{}
+	e.deps.Compute = func(kind, _ string, sec map[string]string) (compute.Compute, error) {
+		if kind != "proxmox" || sec["token_id"] == "" {
+			return nil, fmt.Errorf("compute %s %v", kind, sec)
+		}
+		return fc, nil
+	}
+	ops := `---
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: off }
+spec: { action: power, selector: 'true', options: { state: "off" } }
+---
+apiVersion: gaia/v1alpha1
+kind: Operation
+metadata: { name: back }
+spec: { action: revert, selector: 'true', options: { snapshot: before } }
+`
+	g := e.graph(func(c string) string { return c + ops })
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(ctx, g, p, e.deps); err != nil {
+		t.Fatal(err)
+	}
+	jobs := len(e.configure.jobs)
+	off, _ := plan.BuildOperation(ctx, g, "off", StoreState{S: e.store})
+	if _, out, err := RunOperation(ctx, g, off, e.deps); err != nil || out.Status != "succeeded" || len(e.configure.jobs) != jobs {
+		t.Fatalf("power off: %+v %v (%d jobs)", out, err, len(e.configure.jobs)-jobs)
+	}
+	back, _ := plan.BuildOperation(ctx, g, "back", StoreState{S: e.store})
+	if _, out, err := RunOperation(ctx, g, back, e.deps); err != nil || out.Status != "succeeded" || len(e.configure.jobs) != jobs+1 {
+		t.Fatalf("revert: %+v %v", out, err)
+	}
+	if len(fc.calls) != 2 || !strings.HasSuffix(fc.calls[0], " power off") || !strings.HasSuffix(fc.calls[1], " revert before") {
+		t.Errorf("calls = %v", fc.calls)
+	}
+	if !strings.Contains(e.configure.projects[len(e.configure.projects)-1][".gaia/site.yml"], "wait_for_connection") {
+		t.Error("no health check after the revert")
+	}
 }

@@ -243,6 +243,18 @@ type Compute interface {
 
 Operation aksiyonları (`power`, `snapshot`, `revert`) her hipervizörde aynı arayüzden geçer ve hipervizör farkı tek bir yerde kalır.
 
+- **Uygulamada:** `internal/compute.Compute`. VM, Gaia'nın kaydettiği kimlikle anılır: Proxmox'ta VMID, vSphere'de instance UUID.
+- **Proxmox:**
+  - güç: start; shutdown ve reboot guest agent üzerinden, 5 dakika zaman aşımıyla
+  - snapshot belleksiz alınır
+  - revert: rollback ve ardından start (belleksiz snapshot VM'i kapalı bırakır)
+  - snapshot silme
+  - keşif: cluster kaynakları (güç durumu, tag'ler, şablonlar)
+  - her iş görev bitene kadar beklenir
+- **Operation aksiyonları:**
+  - `power` (`options.state: on|off|restart`); `off` sonrası sağlık kontrolü yapılmaz
+  - `revert` (`options.snapshot`), sonrasında sağlık kontrolü
+
 **Önce Proxmox:** İlk yazılacak compute provider Proxmox'tur, vSphere ikinci gelir. Böylece soyutlama baştan iki provider ile sınanmış olur. PoC hedefi: tek bir Linux VM'in Proxmox üzerinde uçtan uca açılması. Bunun için Proxmox'ta cloud-init destekli ve QEMU guest agent kurulu bir şablon gerekir.
 
 ## 5. Üretilen Objeler
