@@ -21,7 +21,7 @@
 | 12 | Yeni yapılanma: tasarım (design.md §17) | – | **Tamam** |
 | 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | **Tamam** |
 | 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | **Tamam** |
-| 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | – |
+| 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | **Tamam** |
 | 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | – |
 | 17 | Denetim kaydının tamamı ve ekranı | 14–16 | – |
 | 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | – |
@@ -362,7 +362,25 @@ Yapılanlar:
 - **CLI:** `gaia settings export` ve `gaia settings import`.
 - **API:** ayarları, sürümleri ve denetim kaydını okuma.
 
-### Faz 15: Ayar değişiklikleri
+### Faz 15: Ayar değişiklikleri — Tamam
+Yapılanlar:
+- **Servis ve tablo:** `internal/proposal` servisi ve `settings_proposals` tablosu.
+- **Kontrol:** Öneri, ayarlar uygulanmış gibi yüklenerek doğrulanır. Her kontratın planı önce ve sonra kurulur; hash'i değişenler etki listesine girer, planı kurulamayan kontrat önerilemez.
+- **Kısıtlar:** Bir Source'un ürettiği nesne elle değiştirilemez. Git türleri ve `gaia/` notları reddedilir.
+- **Onay:** Öneren onaylayamaz. Policy, AuthConfig, Platform, Group ve ayrıcalıklı bir gruptaki takım `platform-admin` ister. Diğerlerini `Policy.spec.settings.approvers` takımları ya da bir platform-admin onaylar.
+- **Karar:** Onay ve red step-up ister ve içerik hash'ine bağlıdır. Red gerekçe ister; öneren önerisini geri çekebilir.
+- **Eskime:**
+  - Yeni sürüm (öneri ya da Source), aynı nesnelere dokunan bekleyen önerileri eskitir.
+  - Başka nesneler değiştiyse öneri yeni sürüm üzerinde yeniden kontrol edilip uygulanır.
+- **Sonrası:** Onaylanan öneri yeni sürüm olur ve Gaia istenen durumu yeniden yükler; etkilenen kontratların Change'leri açılır.
+- **Kayıtlar:** Bildirimler `settings.pending`, `settings.applied` ve `settings.rejected`. Denetim kaydı `settings.propose`, `.approve`, `.apply`, `.reject` ve `.withdraw` yazar.
+- **API:** `POST /settings/check` ve `/settings/proposals` (liste, ayrıntı, approve, reject, withdraw).
+- **Arayüz:**
+  - Altyapı, Erişim ve Ayarlar'da sağ üstte "Ekle"; nesne sayfasında "Düzenle" ve "Kaldır"
+  - Modalda form (Size, Network, Site, Image, Group, Team, Provider) ve YAML görünümü, "Kontrol et", hatalar ve etki listesi
+  - Değişiklikler'de ayar önerileri kontrat Change'leriyle birlikte; `/changes/settings/{id}` sayfasında satır satır fark, etki ve karar
+
+İlk plan:
 - **Akış:** Öneri (ekle, değiştir, sil; birden çok nesne birlikte), doğrulama, etki (planı değişecek kontratlar), onay ve red (step-up ile, içerik hash'ine bağlı), uygulama (yeni sürüm), eskime.
 - **Onay kuralları:**
   - Öneren onaylayamaz.

@@ -198,3 +198,19 @@ table.grid td.nowrap { white-space: nowrap; }
 .chip[aria-pressed="true"] { border-color: var(--dyellow); background: var(--tint-yellow); color: var(--yellow); }
 .chip .tab-count { background: transparent; padding: 0; }
 .tab-head { min-height: 36px; }
+
+/* settings editor */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; }
+textarea.input { resize: vertical; line-height: 1.55; }
+.chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* line diffs */
+.diff-line { padding: 0 16px; white-space: pre; color: var(--fg3); }
+.diff-line.add { background: var(--tint-green); color: var(--fg); }
+.diff-line.del { background: var(--tint-red); color: var(--fg); }
+.diff-sign { display: inline-block; width: 18px; color: var(--gray); user-select: none; }
+.diff-line.add .diff-sign { color: var(--green); }
+.diff-line.del .diff-sign { color: var(--red); }
+.form-grid.two { grid-template-columns: 1fr 1fr; }
+.modal-section { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--bg1); padding-top: 14px; }
+.input[readonly] { color: var(--fg4); background: var(--bg0s); }

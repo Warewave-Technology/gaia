@@ -180,6 +180,14 @@ func (s *Store) Write(ctx context.Context, w Write) (Diff, error) {
 					return err
 				}
 			}
+			// Pending proposals for the same objects were made against what
+			// is no longer there (design 17.3).
+			touched := append(append(append([]string{}, diff.Added...), diff.Changed...), diff.Removed...)
+			if _, err := q.StaleSettingsProposals(ctx, db.StaleSettingsProposalsParams{
+				Reason: fmt.Sprintf("v%d aynı nesneleri değiştirdi", diff.Version), Keep: w.Proposal, Paths: touched,
+			}); err != nil {
+				return err
+			}
 			e := w.Audit
 			if e.Actor == "" {
 				e.Actor = w.Author

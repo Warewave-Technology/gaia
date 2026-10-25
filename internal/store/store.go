@@ -305,5 +305,8 @@ func NewSessionID() string { return "ses-" + newID(10) }
 // NewChangeID returns a new change's ID.
 func NewChangeID() string { return "chg-" + newID(10) }
 
+// NewProposalID returns a new settings proposal's ID.
+func NewProposalID() string { return "set-" + newID(10) }
+
 // NewFlowID returns a new sign-in ceremony's ID.
 func NewFlowID() string { return "flw-" + newID(16) }

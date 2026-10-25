@@ -13,6 +13,7 @@ import { ago, stamp } from "../../lib/time";
 import { refLink } from "../catalog/Catalog";
 import { objectPath } from "../../ui/kinds";
 import { TabHead } from "../../ui/tabs";
+import { AddButton } from "../../ui/settings-editor";
 
 // The provider types that carry notifications (catalog.NotificationTypes).
 export const CHANNEL_TYPES = new Set(["msteams", "slack", "smtp", "webhook"]);
@@ -74,7 +75,7 @@ export function Providers({ channels = false }: { channels?: boolean }) {
         : q.isPending ? <Loading />
         : q.error ? (q.error instanceof ApiError && q.error.status === 503 ? <div className="notice warn">Bu sunucu bir repo izlemiyor; provider tanımı yok.</div> : <ErrorNote error={q.error} />)
         : (
-          <Card title={channels ? "Bildirim kanalları" : "Provider'lar"} icon={channels ? "bell" : "plug"} right={<span className="faint">{q.data.length} provider</span>}>
+          <Card title={channels ? "Bildirim kanalları" : "Provider'lar"} icon={channels ? "bell" : "plug"} right={<AddButton kind="Provider" label={channels ? "Kanal ekle" : "Provider ekle"} />}>
             <table className="grid">
               <thead>
                 <tr>

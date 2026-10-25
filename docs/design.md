@@ -2013,7 +2013,8 @@ Bir ayarı değiştirmek, bir **ayar değişikliği** önerisidir. Kontrat Chang
 3. **Onay:**
    - Öneren kişi kendi önerisini onaylayamaz.
    - `Policy`, `AuthConfig`, `Platform`, `Group` ve ayrıcalıklı erişime dokunan öneriler `platform-admin` onayı ister.
-   - Diğerlerini Policy'deki ayar onaycıları onaylar; varsayılan `platform-admin`'dir.
+   - Diğerlerini Policy'deki ayar onaycıları (`spec.settings.approvers`, takımlar) ya da bir `platform-admin` onaylar.
+   - Ayrıcalıklı erişime dokunmak: ayrıcalıklı bir Group'un içindeki bir takımı değiştirmek.
    - Onay ve red, kontrat Change'lerinde olduğu gibi passkey/TOTP doğrulaması ister ve önerinin içeriğinin hash'ine bağlıdır.
 4. **Uygulama:**
    - Onaylanan öneri yeni bir ayar sürümü olarak uygulanır.

@@ -15,6 +15,9 @@ var titles = map[string]string{
 	"drift.found":       "sapma bulundu",
 	"approval.expiring": "onayın süresi doluyor",
 	"access.privileged": "ayrıcalıklı gruba AD'den yeni üye",
+	"settings.pending":  "onay bekliyor",
+	"settings.applied":  "uygulandı",
+	"settings.rejected": "reddedildi",
 }
 
 // render is a notification as a title and plain text lines.
@@ -33,6 +36,27 @@ func render(ev Event) (string, string) {
 		}
 		if ev.URL != "" {
 			fmt.Fprintf(&b, "\nBağlantı: %s", ev.URL)
+		}
+		return title, strings.TrimRight(b.String(), "\n")
+	}
+	if strings.HasPrefix(ev.Trigger, "settings.") {
+		// A settings change: Status is its title, Summary its impact.
+		title = fmt.Sprintf("Ayar değişikliği %s: %s", what, ev.Status)
+		fmt.Fprintf(&b, "Öneri: %s\nİsteyen: %s\n", ev.Change, strings.Join(ev.RequestedBy, ", "))
+		if ev.Comment != "" && ev.DecidedBy == "" {
+			fmt.Fprintf(&b, "Neden: %s\n", ev.Comment)
+		}
+		if ev.Summary.Keep > 0 {
+			fmt.Fprintf(&b, "Planı değişecek kontrat: %d\n", ev.Summary.Keep)
+		}
+		if ev.DecidedBy != "" {
+			fmt.Fprintf(&b, "Karar: %s: %s\n", ev.DecidedBy, ev.Comment)
+		}
+		if ev.Label != "" {
+			fmt.Fprintf(&b, "Ayar sürümü: %s\n", ev.Label)
+		}
+		if ev.URL != "" {
+			fmt.Fprintf(&b, "Bağlantı: %s", ev.URL)
 		}
 		return title, strings.TrimRight(b.String(), "\n")
 	}

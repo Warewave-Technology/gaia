@@ -25,7 +25,12 @@ function PendingCount() {
     queryFn: () => api<Change[]>("/changes?open=true&limit=500"),
     refetchInterval: 30_000,
   });
-  const n = q.data?.filter((c) => c.status === "pending").length ?? 0;
+  const sq = useQuery({
+    queryKey: ["proposals", "pending-count"],
+    queryFn: () => api<{ id: string }[]>("/settings/proposals?status=pending"),
+    refetchInterval: 30_000,
+  });
+  const n = (q.data?.filter((c) => c.status === "pending").length ?? 0) + (sq.data?.length ?? 0);
   return n > 0 ? <span className="count" title="Onay bekleyen değişiklik">{n}</span> : null;
 }
 

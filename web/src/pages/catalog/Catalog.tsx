@@ -10,6 +10,7 @@ import { Icon } from "../../ui/icons";
 import { Badge, Card, ErrorNote, Hint, Leg, Loading, Mono, short, StatusBar } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { kindOf, listPath, objectPath, SECTIONS, sectionOf } from "../../ui/kinds";
+import { EditButtons } from "../../ui/settings-editor";
 
 type Ref = { kind: string; name: string; field: string };
 type Param = {
@@ -231,12 +232,15 @@ export function ObjectPage() {
   const sec = SECTIONS[sectionOf(kind)];
   return (
     <Page crumbs={<><Link to={sec.path}>{sec.label}</Link> / <Link to={listPath(kind)}>{kind}</Link> / {name}</>}>
-      <div className="title-row">
-        <span style={{ color: "var(--blue)" }}><Icon name={k.icon} size={22} /></span>
-        <h1>{name}</h1>
-        <span className="badge gray">{kind}</span>
-        {k.text && <Hint>{k.text}</Hint>}
-        {q.data && <Labels labels={q.data.labels} />}
+      <div className="spread">
+        <div className="title-row">
+          <span style={{ color: "var(--blue)" }}><Icon name={k.icon} size={22} /></span>
+          <h1>{name}</h1>
+          <span className="badge gray">{kind}</span>
+          {k.text && <Hint>{k.text}</Hint>}
+          {q.data && <Labels labels={q.data.labels} />}
+        </div>
+        {q.data && fromSettings(q.data.source) && <EditButtons kind={kind} name={name} generatedBy={q.data.generatedBy} />}
       </div>
       {q.isPending ? <Loading /> : q.error ? <CatalogError e={q.error} /> : (
         <>

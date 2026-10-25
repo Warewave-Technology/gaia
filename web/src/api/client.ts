@@ -4,10 +4,13 @@
 export class ApiError extends Error {
   status: number;
   stepUp: boolean;
-  constructor(status: number, message: string, stepUp = false) {
+  // data is the whole answer, for errors that carry more than a message.
+  data: unknown;
+  constructor(status: number, message: string, stepUp = false, data: unknown = undefined) {
     super(message);
     this.status = status;
     this.stepUp = stepUp;
+    this.data = data;
   }
 }
 
@@ -40,7 +43,7 @@ export async function api<T>(path: string, opts: Options = {}): Promise<T> {
   }
   if (!res.ok) {
     const d = (data ?? {}) as { error?: string; stepUp?: boolean };
-    throw new ApiError(res.status, d.error ?? res.statusText, d.stepUp === true);
+    throw new ApiError(res.status, d.error ?? res.statusText, d.stepUp === true, data);
   }
   return data as T;
 }
