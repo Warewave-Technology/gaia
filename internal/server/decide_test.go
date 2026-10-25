@@ -66,7 +66,7 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := auth.New(e.store, cat.Graph, nil)
-	srv, err := New(Config{Listen: "127.0.0.1:0", Workers: 1, Repos: e.repos, Systems: e.systems, Finished: e.finished, StopTimeout: 5 * time.Second, Auth: a, Changes: en}, e.store)
+	srv, err := New(Config{Listen: "127.0.0.1:0", Workers: 1, Repos: e.repos, Systems: e.systems, Finished: e.finished, StopTimeout: 5 * time.Second, Auth: a, Changes: en, Catalog: cat}, e.store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,6 +126,11 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 	c = e.waitChange(c.ID, change.Applied, change.Failed)
 	if c.Status != change.Applied {
 		t.Fatalf("change = %+v", c)
+	}
+	var ct Contract
+	if code := send(t, "GET", hs.URL+"/api/v1/contracts/poc-web", ayse, nil, &ct); code != 200 || ct.State == nil || ct.State.Sync != "synced" ||
+		ct.State.AppliedPlanHash != c.PlanHash || len(ct.State.AppliedPlan) == 0 || ct.Labels["owner"] != "team-platform" || ct.OpenChange != "" {
+		t.Errorf("the applied contract: %d %+v state=%+v", code, ct, ct.State)
 	}
 	var run Run
 	if code := send(t, "GET", hs.URL+"/api/v1/runs/"+c.RunID.String, ayse, nil, &run); code != 200 || run.Change != c.ID {

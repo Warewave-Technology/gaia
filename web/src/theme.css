@@ -139,3 +139,8 @@ table.grid td.nowrap { white-space: nowrap; }
 .notice.warn { border-left-color: var(--yellow); }
 .notice.err { border-left-color: var(--red); }
 .empty { padding: 24px 16px; color: var(--fg4); text-align: center; }
+
+/* React Flow on the theme's own background */
+.react-flow { --xy-background-color: transparent; --xy-edge-stroke: var(--bg4); }
+.react-flow__attribution { background: transparent; }
+.react-flow__attribution a { color: var(--gray); }

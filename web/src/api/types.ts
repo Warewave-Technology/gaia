@@ -94,5 +94,51 @@ export type ContractSummary = {
   lastStatus?: RunStatus;
   sync?: "synced" | "out-of-sync" | "unknown";
   openChange?: string;
+  labels?: Record<string, string>;
+  appliedLabel?: string;
+  appliedAt?: string;
+  restricted?: boolean;
+};
+
+export type Host = {
+  uid: string;
+  hostname: string;
+  site: string;
+  network: string;
+  status: "provisioning" | "active" | "draining" | "stopped" | "decommissioning";
+  externalIds: Record<string, string>; // "provider/kind" → id
+};
+
+export type ContractState = {
+  sync: "synced" | "out-of-sync" | "unknown";
+  error?: string;
+  evaluatedAt?: string;
+  appliedLabel?: string;
+  appliedPlanHash?: string;
+  appliedAt?: string;
+  appliedPlan?: unknown;
+};
+
+export type Contract = {
+  name: string;
+  labels?: Record<string, string>;
+  state?: ContractState;
+  openChange?: string;
+  hosts: Host[];
+  runs: Run[];
+};
+
+export type Drift = {
+  contract: string;
+  uid?: string;
+  hostname?: string;
+  area?: string;
+  key?: string;
+  want?: string;
+  got?: string;
+  status: "open" | "unknown";
+  firstSeen: string;
+  lastSeen: string;
+  change?: string;
   restricted?: boolean;
 };

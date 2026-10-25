@@ -131,3 +131,25 @@ export function RecordLegend() {
     </>
   );
 }
+
+export const HEALTH = {
+  green: { icon: "heart" as IconName, color: "var(--green)", label: "Sağlıklı", fill: "var(--green)" },
+  yellow: { icon: "alert" as IconName, color: "var(--yellow)", label: "Uyarı", fill: "none" },
+  red: { icon: "heart-crack" as IconName, color: "var(--red)", label: "Bozuk", fill: "none" },
+};
+
+export function HealthLabel({ h, children, size = 15 }: { h: keyof typeof HEALTH; children?: ReactNode; size?: number }) {
+  const x = HEALTH[h];
+  return <IL icon={x.icon} color={x.color} size={size} fill={x.fill}>{children ?? x.label}</IL>;
+}
+
+export function HealthLegend() {
+  return (
+    <>
+      Gaia'nın bildiklerinden çıkarılır: son run başarılı mı, sunucular active mi, açık drift var mı.
+      <Leg icon="heart" color="var(--green)" name="Sağlıklı" fill="var(--green)">son run başarılı, sunucular active, drift yok</Leg>
+      <Leg icon="alert" color="var(--yellow)" name="Uyarı">açık drift var ya da bir sunucu active değil</Leg>
+      <Leg icon="heart-crack" color="var(--red)" name="Bozuk">son run başarısız</Leg>
+    </>
+  );
+}

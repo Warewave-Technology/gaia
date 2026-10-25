@@ -21,8 +21,8 @@ export type PlanContract = {
   image?: string;
   size?: { name: string; cpu?: number; memoryGiB?: number; diskGiB?: number };
   servers?: PlanServer[];
-  baseline?: string;
-  roles?: { name: string }[];
+  baseline?: string | { name: string; playbook?: string };
+  roles?: { name: string; role?: string; provider?: string }[];
   monitoring?: { provider?: string; templates?: string[] };
   apps?: unknown[];
   agents?: unknown[];
@@ -77,4 +77,8 @@ export function total(p: Plan): Counts {
   const c = zero();
   for (const s of servers(p)) bump(c, s.action);
   return c;
+}
+
+export function baselineName(c: PlanContract): string {
+  return typeof c.baseline === "string" ? c.baseline : c.baseline?.name ?? "";
 }
