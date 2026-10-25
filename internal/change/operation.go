@@ -207,6 +207,12 @@ func (e *Engine) advanceOperation(ctx context.Context, c db.Change, g *catalog.G
 // several owners' contracts.
 func (e *Engine) operationApproval(ctx context.Context, c db.Change, g *catalog.Graph, op *plan.Operation) (Need, error) {
 	need := Need{Excluded: append([]string{}, c.RequestedBy...)}
+	if strings.HasPrefix(c.Contract, catalog.KindOperation+"/") {
+		if by, ok := e.approvedBySchedule(ctx, g, op.Name); ok {
+			need.Via = ScheduleKey(by)
+			return need, nil
+		}
+	}
 	var ops *catalog.OperationPolicy
 	var roles map[string][]string
 	if pol := g.Policy(); pol != nil {

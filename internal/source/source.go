@@ -17,6 +17,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -81,6 +82,9 @@ func (s *Syncer) Run(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) 
 	}
 	for _, o := range g.Catalog.List(catalog.KindRoleSource) {
 		run(s.roles(ctx, snap, g, o))
+	}
+	for _, o := range g.Catalog.List(catalog.KindSchedule) {
+		run(s.schedules(ctx, snap, g, o, time.Now()))
 	}
 	return wrote, errors.Join(errs...)
 }

@@ -62,7 +62,14 @@ func (e *Engine) Decide(ctx context.Context, d Decision) error {
 		}
 		var need Need
 		var op *plan.Operation
-		if strings.HasPrefix(c.Contract, catalog.KindOperation+"/") {
+		schedule := strings.HasPrefix(c.Contract, catalog.KindSchedule+"/")
+		if schedule {
+			var sp schedulePlan
+			if err := json.Unmarshal(c.Plan, &sp); err != nil {
+				return err
+			}
+			need, err = e.operationApproval(ctx, c, g, &plan.Operation{Name: sp.Schedule, Action: sp.Action, Owners: sp.Owners, Envs: sp.Envs})
+		} else if strings.HasPrefix(c.Contract, catalog.KindOperation+"/") {
 			op = &plan.Operation{}
 			if err := json.Unmarshal(c.Plan, op); err != nil {
 				return err
@@ -108,6 +115,9 @@ func (e *Engine) Decide(ctx context.Context, d Decision) error {
 			c.Status = Rejected
 			e.emit(ctx, g, "change.rejected", c, func(ev *notify.Event) { ev.DecidedBy, ev.Comment = d.Username, d.Comment })
 			return nil
+		}
+		if schedule {
+			return e.advanceSchedule(ctx, c, g, snap)
 		}
 		if op != nil {
 			o, ok := g.Catalog.Get(catalog.KindOperation, op.Name)

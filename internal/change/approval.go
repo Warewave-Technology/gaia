@@ -19,6 +19,9 @@ import (
 // by someone who did not sign the change's commits.
 type Need struct {
 	Groups []Group `json:"groups"`
+	// Via: approved another way, such as by an OperationSchedule
+	// approved once.
+	Via string `json:"via,omitempty"`
 	// Excluded may not approve it: its signers, and the members of the
 	// teams it gives access to.
 	Excluded []string `json:"excluded,omitempty"`
