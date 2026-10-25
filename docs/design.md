@@ -1602,6 +1602,9 @@ Gaia tek bir binary'dir:
 - DSN chart'a yazılmaz: başka bir aracın yönettiği bir Secret'ın anahtarından (`database.existingSecret`) ya da OpenBao Agent'ın/CSI'ın yazdığı bir dosyadan (`database.file`, `GAIA_DSN_FILE`) gelir.
 - OpenBao'ya Kubernetes auth ile girilir: `GAIA_BAO_K8S_ROLE` (mount `GAIA_BAO_K8S_MOUNT`, varsayılan `kubernetes`), pod'un service account token'ıyla; token her girişte dosyadan okunur, oturum AppRole'deki gibi yenilenir.
 - kind'da denendi: migration hook'u şemayı kurdu, API ve worker ayrı Deployment'larla ayağa kalktı, worker OpenBao'ya Kubernetes auth ile girdi.
+- **Ansible pod'ları:** Chart'taki worker'lar `--ansible-executor pod` ile çalışır: her Ansible run'ı release'in namespace'inde ayrı bir pod'dur (EE imajı, `ansible-runner`, bellekte bir `emptyDir`). Run'ın veri dizini (proje, envanter, SSH anahtarı) pod'a `exec` ile tar olarak aktarılır, hiçbir API nesnesine (Secret, ConfigMap) yazılmaz; olaylar pod'un log'undan okunur ve aynı maskelemeden geçer; pod run bitince silinir. Pod'lar service account token'ı taşımaz, ayrıcalık yükseltemez, bütün capability'ler düşürülmüştür. Worker'ın yetkisi namespace'teki pod'ları oluşturmak, silmek, exec ve log'la sınırlıdır.
+- Pod executor EE'nin digest ile sabitlenmesini ister (`image@sha256:...`), böylece run kaydı tam olarak çalışanı adlandırır; `--ansible-allow-tags` (chart: `ansible.allowTags`) sadece geliştirme içindir. Ansible pod'larının sunuculara SSH ile ulaşabilmesi cluster'ın çıkış kurallarına bağlıdır.
+- kind'da gerçek bir pod'la denendi: olaylar ve play recap okundu, secret maskelendi, pod silindi; worker'ın yetkileri `kubectl auth can-i` ile doğrulandı.
 
 ## 14. Erişim Yönetimi: Takımlar ve Gruplar
 

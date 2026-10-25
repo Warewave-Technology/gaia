@@ -58,6 +58,11 @@ spec:
             {{- if $work }}
             - --workers
             - {{ $.Values.worker.workers | quote }}
+            - --ansible-executor
+            - pod
+            {{- if $.Values.ansible.allowTags }}
+            - --ansible-allow-tags
+            {{- end }}
             {{- end }}
             {{- include "gaia.args" $ | nindent 12 }}
           env:
