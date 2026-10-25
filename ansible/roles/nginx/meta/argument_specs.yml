@@ -1,0 +1,22 @@
+---
+argument_specs:
+  main:
+    short_description: nginx'i kurar ve tek bir siteyi sunar
+    options:
+      server_name:
+        type: str
+        default: _
+        description: Sitenin adı (nginx server_name); _ her isme cevap verir.
+      listen_port:
+        type: int
+        default: 80
+        choices: [80, 81, 443, 8008, 8080, 8443]
+        description: Dinlenen port. SELinux'un http portları arasından seçilir.
+      root:
+        type: path
+        default: /usr/share/nginx/html
+        description: Sitenin dosyalarının dizini.
+      worker_processes:
+        type: str
+        default: auto
+        description: nginx worker sayısı; auto çekirdek sayısı kadar.

@@ -1,0 +1,13 @@
+---
+# Both listen to "nginx changed" and run in this order: the reload only
+# when the check passed.
+- name: Check nginx
+  ansible.builtin.command: nginx -t -q
+  changed_when: false
+  listen: nginx changed
+
+- name: Reload nginx
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: reloaded
+  listen: nginx changed
