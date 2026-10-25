@@ -57,7 +57,7 @@ func (v Compute) vm(ctx context.Context, uuid string) (*object.VirtualMachine, e
 		return nil, fmt.Errorf("vsphere: %w", err)
 	}
 	if ref == nil {
-		return nil, fmt.Errorf("vsphere: no VM %s", uuid)
+		return nil, fmt.Errorf("vsphere: VM %s: %w", uuid, compute.ErrNoVM)
 	}
 	return object.NewVirtualMachine(v.C, ref.Reference()), nil
 }
@@ -87,6 +87,32 @@ func (v Compute) Power(ctx context.Context, uuid, action string) error {
 		return vm.RebootGuest(ctx)
 	}
 	return compute.ErrUnknownAction
+}
+
+// Delete powers a VM off at once and destroys it with its disks.
+func (v Compute) Delete(ctx context.Context, uuid string) error {
+	vm, err := v.vm(ctx, uuid)
+	if err != nil {
+		return err
+	}
+	st, err := vm.PowerState(ctx)
+	if err != nil {
+		return err
+	}
+	if st != types.VirtualMachinePowerStatePoweredOff {
+		t, err := vm.PowerOff(ctx)
+		if err != nil {
+			return err
+		}
+		if err := t.Wait(ctx); err != nil {
+			return err
+		}
+	}
+	t, err := vm.Destroy(ctx)
+	if err != nil {
+		return err
+	}
+	return t.Wait(ctx)
 }
 
 // Snapshot takes a snapshot without memory.

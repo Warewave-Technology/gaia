@@ -25,6 +25,7 @@ type Directory interface {
 	CreateComputer(ou, name, info, password string) (ad.Computer, error)
 	ResetComputer(dn, password string) error
 	DeleteComputer(dn string) error
+	SetComputerEnabled(dn string, enabled bool) error
 	Close() error
 }
 

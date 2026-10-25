@@ -2,12 +2,14 @@ package pulumi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -99,6 +101,10 @@ type VM struct {
 	// guestinfo (its VMware datasource) instead of guest customization,
 	// which cannot install SSH keys.
 	CloudInit bool
+
+	// Stopped: a server waiting to be deleted (design 9.8) stays off, also
+	// when its node restarts.
+	Stopped bool
 }
 
 // Stack is the VMs of one contract on one site.
@@ -188,8 +194,8 @@ func vmArgs(v VM) *proxmoxve.VmLegacyArgs {
 		Agent:           &proxmoxve.VmLegacyAgentArgs{Enabled: pulumi.Bool(true)},
 		Smbios:          &proxmoxve.VmLegacySmbiosArgs{Uuid: pulumi.String(v.SMBIOSUUID)},
 		OperatingSystem: &proxmoxve.VmLegacyOperatingSystemArgs{Type: pulumi.String("l26")},
-		OnBoot:          pulumi.Bool(true),
-		Started:         pulumi.Bool(true),
+		OnBoot:          pulumi.Bool(!v.Stopped),
+		Started:         pulumi.Bool(!v.Stopped),
 	}
 }
 
@@ -318,6 +324,70 @@ func Up(ctx context.Context, b Backend, st Stack, w io.Writer) (map[string]Resul
 		}
 	}
 	return vms, changes, nil
+}
+
+// Forget drops VMs from a stack's state without deleting them: the VMs of
+// servers whose deletion Gaia does itself through the hypervisor's API
+// (design 9.8), or that leave Gaia's management. The stack's next up does
+// not know them. It returns the UIDs it found.
+func Forget(ctx context.Context, b Backend, st Stack, uids []string) ([]string, error) {
+	s, err := stack(ctx, b, st)
+	if err != nil {
+		return nil, err
+	}
+	dep, err := s.Export(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("export %s: %w", st.Name, err)
+	}
+	out, found, err := forget(dep.Deployment, uids)
+	if err != nil || len(found) == 0 {
+		return found, err
+	}
+	dep.Deployment = out
+	if err := s.Import(ctx, dep); err != nil {
+		return nil, fmt.Errorf("import %s: %w", st.Name, err)
+	}
+	return found, nil
+}
+
+// forget removes the resources named vm-<uid> from a deployment.
+func forget(deployment json.RawMessage, uids []string) (json.RawMessage, []string, error) {
+	var d map[string]json.RawMessage
+	if err := json.Unmarshal(deployment, &d); err != nil {
+		return nil, nil, err
+	}
+	var resources []map[string]any
+	if raw, ok := d["resources"]; ok {
+		if err := json.Unmarshal(raw, &resources); err != nil {
+			return nil, nil, err
+		}
+	}
+	var keep []map[string]any
+	var found []string
+	for _, r := range resources {
+		urn, _ := r["urn"].(string)
+		gone := ""
+		for _, uid := range uids {
+			if strings.HasSuffix(urn, "::vm-"+uid) {
+				gone = uid
+			}
+		}
+		if gone == "" {
+			keep = append(keep, r)
+			continue
+		}
+		found = append(found, gone)
+	}
+	if len(found) == 0 {
+		return deployment, nil, nil
+	}
+	raw, err := json.Marshal(keep)
+	if err != nil {
+		return nil, nil, err
+	}
+	d["resources"] = raw
+	out, err := json.Marshal(d)
+	return out, found, err
 }
 
 // Preview returns what Up would change, without changing anything.

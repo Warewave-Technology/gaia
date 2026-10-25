@@ -2,11 +2,14 @@ package proxmox
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/Warewave-Technology/gaia/internal/compute"
 )
 
 func TestUsedAndFreeVMIDs(t *testing.T) {
@@ -88,7 +91,11 @@ func TestComputeDayTwo(t *testing.T) {
 			_, _ = w.Write([]byte(`{"data":{"status":"stopped","exitstatus":"OK"}}`))
 		default:
 			_ = r.ParseForm()
-			calls = append(calls, r.Method+" "+strings.TrimPrefix(r.URL.Path, "/api2/json/nodes/pve2/qemu/9401")+" "+r.PostForm.Encode())
+			calls = append(calls, r.Method+" "+strings.TrimPrefix(r.URL.Path, "/api2/json/nodes/pve2/qemu/9401")+" "+r.PostForm.Encode()+r.URL.RawQuery)
+			if strings.HasSuffix(r.URL.Path, "/status/current") {
+				_, _ = w.Write([]byte(`{"data":{"status":"running"}}`))
+				return
+			}
 			_, _ = w.Write([]byte(`{"data":"UPID:pve2:x"}`))
 		}
 	}))
@@ -106,12 +113,19 @@ func TestComputeDayTwo(t *testing.T) {
 	if err := c.DeleteSnapshot(ctx, "9401", "before"); err != nil {
 		t.Fatal(err)
 	}
-	want := "POST /status/shutdown timeout=300|POST /status/start |POST /status/reboot timeout=300|POST /snapshot/before/rollback |POST /status/start |DELETE /snapshot/before "
+	if err := c.Delete(ctx, "9401"); err != nil {
+		t.Fatal(err)
+	}
+	want := "POST /status/shutdown timeout=300|POST /status/start |POST /status/reboot timeout=300|POST /snapshot/before/rollback |POST /status/start |DELETE /snapshot/before " +
+		"|GET /status/current |POST /status/stop |DELETE  purge=1&destroy-unreferenced-disks=1"
 	if got := strings.Join(calls, "|"); got != want {
 		t.Errorf("calls\n got %s\nwant %s", got, want)
 	}
 	if err := c.Power(ctx, "9401", "pause"); err == nil {
 		t.Error("an unknown power action")
+	}
+	if err := c.Delete(ctx, "9499"); !errors.Is(err, compute.ErrNoVM) {
+		t.Errorf("a VM that is not there: %v", err)
 	}
 	vms, err := c.Discover(ctx)
 	if err != nil || len(vms) != 2 || vms[0].PowerState != "on" || strings.Join(vms[0].Tags, ",") != "gaia,env.test" || !vms[1].Template {

@@ -91,6 +91,9 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 		if err := river.AddWorkerSafely(workers, &queue.PruneEventsWorker{Store: s, Retention: cfg.EventRetention}); err != nil {
 			return nil, err
 		}
+		if err := river.AddWorkerSafely(workers, &queue.EndGraceWorker{Store: s}); err != nil {
+			return nil, err
+		}
 		if err := river.AddWorkerSafely(workers, &notify.SendWorker{Store: s, Secrets: cfg.NotifySecrets}); err != nil {
 			return nil, err
 		}
@@ -102,7 +105,7 @@ func New(cfg Config, s *store.Store) (*Server, error) {
 			queue.Apply:        {MaxWorkers: cfg.Workers},
 			river.QueueDefault: {MaxWorkers: 4},
 		}
-		rc.PeriodicJobs = []*river.PeriodicJob{queue.PruneEventsDaily()}
+		rc.PeriodicJobs = []*river.PeriodicJob{queue.PruneEventsDaily(), queue.EndGraceEvery()}
 	}
 	c, err := river.NewClient(riverpgxv5.New(s.Pool()), rc)
 	if err != nil {

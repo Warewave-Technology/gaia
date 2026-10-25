@@ -1,5 +1,6 @@
-// Package compute is what Gaia does to VMs besides creating and deleting
-// them (design 4.2): power, snapshots, discovery. Every hypervisor
+// Package compute is what Gaia does to VMs besides creating them (design
+// 4.2): power, snapshots, discovery, and deleting a decommissioned one
+// (9.8). Every hypervisor
 // implements Compute, so that Operations and discovery do not care which
 // one a server is on.
 package compute
@@ -24,7 +25,13 @@ type Compute interface {
 	Revert(ctx context.Context, vm, name string) error
 	DeleteSnapshot(ctx context.Context, vm, name string) error
 	Discover(ctx context.Context) ([]ObservedVM, error)
+	// Delete powers a VM off at once and deletes it with its disks;
+	// ErrNoVM when it is already gone.
+	Delete(ctx context.Context, vm string) error
 }
+
+// ErrNoVM: the hypervisor has no such VM.
+var ErrNoVM = errors.New("no such VM")
 
 // ObservedVM is a VM as its hypervisor reports it.
 type ObservedVM struct {

@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/vmware/govmomi/find"
@@ -64,6 +65,12 @@ func TestDayTwoOnVcsim(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("DC0_H0_VM0 not in %+v", vms)
+		}
+		if err := v.Delete(ctx, uuid); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.Delete(ctx, uuid); !errors.Is(err, compute.ErrNoVM) {
+			t.Errorf("deleted twice: %v", err)
 		}
 	})
 }

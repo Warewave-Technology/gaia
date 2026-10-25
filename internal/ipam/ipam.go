@@ -190,12 +190,16 @@ func (s *Server) Allocate(ctx context.Context, r AllocateRequest) (Allocation, e
 	return out, err
 }
 
-// Release frees every address of owner; they go into quarantine.
-func (s *Server) Release(ctx context.Context, owner string) ([]Allocation, error) {
+// Release frees every address of owner; they go into quarantine, the
+// server's unless the caller gives one (design 9.9: Policy ipQuarantine).
+func (s *Server) Release(ctx context.Context, owner string, quarantine time.Duration) ([]Allocation, error) {
 	if owner == "" {
 		return nil, badRequest("owner is required")
 	}
-	rows, err := db.New(s.pool).ReleaseOwner(ctx, db.ReleaseOwnerParams{QuarantineSecs: s.quarantine.Seconds(), Owner: owner})
+	if quarantine <= 0 {
+		quarantine = s.quarantine
+	}
+	rows, err := db.New(s.pool).ReleaseOwner(ctx, db.ReleaseOwnerParams{QuarantineSecs: quarantine.Seconds(), Owner: owner})
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +286,8 @@ func badRequest(format string, a ...any) error { return &requestError{fmt.Sprint
 //	GET    /v1/pools
 //	POST   /v1/allocations           allocate for an owner
 //	GET    /v1/allocations?owner=    an owner's live addresses
-//	DELETE /v1/allocations?owner=    release an owner's addresses
+//	DELETE /v1/allocations?owner=[&quarantine=336h]
+//	                                 release an owner's addresses
 //	GET    /healthz                  no token needed
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -342,7 +347,15 @@ func (s *Server) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, a)
 	}))
 	mux.HandleFunc("DELETE /v1/allocations", s.auth(func(w http.ResponseWriter, r *http.Request) {
-		a, err := s.Release(r.Context(), r.URL.Query().Get("owner"))
+		var q time.Duration
+		if v := r.URL.Query().Get("quarantine"); v != "" {
+			var err error
+			if q, err = time.ParseDuration(v); err != nil || q < 0 {
+				writeErr(w, badRequest("quarantine: a duration (336h)"))
+				return
+			}
+		}
+		a, err := s.Release(r.Context(), r.URL.Query().Get("owner"), q)
 		if err != nil {
 			writeErr(w, err)
 			return

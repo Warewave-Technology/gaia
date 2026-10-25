@@ -476,10 +476,23 @@ func (e *Engine) reconcile(ctx context.Context, c db.Change) (bool, error) {
 // An applied change makes the contract synced with the plan taken right
 // after the run.
 func (e *Engine) Finished(ctx context.Context, a queue.ApplyArgs, g *catalog.Graph) error {
-	if a.ChangeID == "" {
-		return nil
-	}
 	q := e.Store.Q()
+	if a.ChangeID == "" {
+		// A decommission run carries out an applied change: the contract
+		// stays synced with the plan taken after it.
+		if !a.Decommission || g == nil {
+			return nil
+		}
+		run, err := q.Run(ctx, a.Run)
+		if err != nil || run.Status != "succeeded" {
+			return err
+		}
+		p, err := plan.Build(ctx, g, []string{a.Contract}, apply.StoreState{S: e.Store})
+		if err != nil {
+			return err
+		}
+		return q.SetApplied(ctx, db.SetAppliedParams{Contract: a.Contract, AppliedSnapshot: mustJSON(a.Snapshot), AppliedLabel: text(a.Snapshot.Label()), AppliedPlanHash: text(p.Hash), AppliedPlan: mustJSON(p)})
+	}
 	run, err := q.Run(ctx, a.Run)
 	if err != nil {
 		return err

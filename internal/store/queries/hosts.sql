@@ -1,6 +1,6 @@
 -- name: LiveHosts :many
 select * from hosts
-where contract = $1 and status <> 'deleted'
+where contract = $1 and status not in ('deleted', 'unmanaged')
 order by site, seq;
 
 -- name: Host :one
@@ -52,7 +52,7 @@ delete from host_external_ids where uid = $1;
 -- Every contract Gaia has hosts or runs for, with its live hosts and its
 -- last run.
 select c.name::text as name,
-       (select count(*) from hosts h where h.contract = c.name and h.status <> 'deleted')::int as live_hosts,
+       (select count(*) from hosts h where h.contract = c.name and h.status not in ('deleted', 'unmanaged'))::int as live_hosts,
        coalesce((select r.id from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_run,
        coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
 from (select contract as name from hosts union select unnest(contracts) from runs union select contract from contract_states) c
@@ -71,3 +71,21 @@ delete from host_keys where uid = $1;
 -- name: DeleteExternalID :exec
 -- One ID goes when Gaia removed what it named (a bastion target).
 delete from host_external_ids where uid = $1 and provider = $2 and kind = $3;
+
+-- name: SetVMSpec :exec
+-- The VM as the last run applied it, for a server that stops.
+update hosts set vm_spec = $2 where uid = $1;
+
+-- name: StopHost :exec
+-- A server stopped to be deleted after its grace period.
+update hosts set status = 'stopped', delete_after = $2, updated_at = now() where uid = $1;
+
+-- name: RestoreHost :exec
+-- A stopped server wanted again.
+update hosts set status = 'active', delete_after = null, updated_at = now() where uid = $1;
+
+-- name: DueContracts :many
+-- Contracts with a stopped server whose grace period is over.
+select distinct contract from hosts
+where status = 'stopped' and delete_after <= sqlc.arg(now)::timestamptz
+order by contract;

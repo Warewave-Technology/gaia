@@ -13,7 +13,7 @@ import (
 
 const contractSummaries = `-- name: ContractSummaries :many
 select c.name::text as name,
-       (select count(*) from hosts h where h.contract = c.name and h.status <> 'deleted')::int as live_hosts,
+       (select count(*) from hosts h where h.contract = c.name and h.status not in ('deleted', 'unmanaged'))::int as live_hosts,
        coalesce((select r.id from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_run,
        coalesce((select r.status from runs r where c.name = any (r.contracts) order by r.queued_at desc, r.id desc limit 1), '')::text as last_status
 from (select contract as name from hosts union select unnest(contracts) from runs union select contract from contract_states) c
@@ -88,6 +88,33 @@ delete from host_keys where uid = $1
 func (q *Queries) DeleteHostKeys(ctx context.Context, uid string) error {
 	_, err := q.db.Exec(ctx, deleteHostKeys, uid)
 	return err
+}
+
+const dueContracts = `-- name: DueContracts :many
+select distinct contract from hosts
+where status = 'stopped' and delete_after <= $1::timestamptz
+order by contract
+`
+
+// Contracts with a stopped server whose grace period is over.
+func (q *Queries) DueContracts(ctx context.Context, now pgtype.Timestamptz) ([]string, error) {
+	rows, err := q.db.Query(ctx, dueContracts, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var contract string
+		if err := rows.Scan(&contract); err != nil {
+			return nil, err
+		}
+		items = append(items, contract)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const externalIDs = `-- name: ExternalIDs :many
@@ -165,7 +192,7 @@ func (q *Queries) HoldName(ctx context.Context, arg HoldNameParams) error {
 }
 
 const host = `-- name: Host :one
-select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network from hosts where uid = $1
+select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network, vm_spec, delete_after from hosts where uid = $1
 `
 
 func (q *Queries) Host(ctx context.Context, uid string) (Host, error) {
@@ -183,6 +210,8 @@ func (q *Queries) Host(ctx context.Context, uid string) (Host, error) {
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Network,
+		&i.VmSpec,
+		&i.DeleteAfter,
 	)
 	return i, err
 }
@@ -264,8 +293,8 @@ func (q *Queries) InsertHost(ctx context.Context, arg InsertHostParams) error {
 }
 
 const liveHosts = `-- name: LiveHosts :many
-select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network from hosts
-where contract = $1 and status <> 'deleted'
+select uid, contract, hostname, site, seq, status, created_run, created_at, updated_at, deleted_at, network, vm_spec, delete_after from hosts
+where contract = $1 and status not in ('deleted', 'unmanaged')
 order by site, seq
 `
 
@@ -290,6 +319,8 @@ func (q *Queries) LiveHosts(ctx context.Context, contract string) ([]Host, error
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.Network,
+			&i.VmSpec,
+			&i.DeleteAfter,
 		); err != nil {
 			return nil, err
 		}
@@ -319,6 +350,16 @@ where uid = $1 and released_at is null
 
 func (q *Queries) ReleaseNames(ctx context.Context, uid string) error {
 	_, err := q.db.Exec(ctx, releaseNames, uid)
+	return err
+}
+
+const restoreHost = `-- name: RestoreHost :exec
+update hosts set status = 'active', delete_after = null, updated_at = now() where uid = $1
+`
+
+// A stopped server wanted again.
+func (q *Queries) RestoreHost(ctx context.Context, uid string) error {
+	_, err := q.db.Exec(ctx, restoreHost, uid)
 	return err
 }
 
@@ -376,5 +417,35 @@ type SetHostStatusParams struct {
 
 func (q *Queries) SetHostStatus(ctx context.Context, arg SetHostStatusParams) error {
 	_, err := q.db.Exec(ctx, setHostStatus, arg.Uid, arg.Status)
+	return err
+}
+
+const setVMSpec = `-- name: SetVMSpec :exec
+update hosts set vm_spec = $2 where uid = $1
+`
+
+type SetVMSpecParams struct {
+	Uid    string
+	VmSpec []byte
+}
+
+// The VM as the last run applied it, for a server that stops.
+func (q *Queries) SetVMSpec(ctx context.Context, arg SetVMSpecParams) error {
+	_, err := q.db.Exec(ctx, setVMSpec, arg.Uid, arg.VmSpec)
+	return err
+}
+
+const stopHost = `-- name: StopHost :exec
+update hosts set status = 'stopped', delete_after = $2, updated_at = now() where uid = $1
+`
+
+type StopHostParams struct {
+	Uid         string
+	DeleteAfter pgtype.Timestamptz
+}
+
+// A server stopped to be deleted after its grace period.
+func (q *Queries) StopHost(ctx context.Context, arg StopHostParams) error {
+	_, err := q.db.Exec(ctx, stopHost, arg.Uid, arg.DeleteAfter)
 	return err
 }

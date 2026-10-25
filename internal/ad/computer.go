@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 
@@ -120,6 +121,32 @@ func (d *Directory) ResetComputer(dn, password string) error {
 	mod.Replace("unicodePwd", []string{quotedUTF16(password)})
 	if err := d.conn.Modify(mod); err != nil {
 		return fmt.Errorf("ad: reset %s: %w", dn, err)
+	}
+	return nil
+}
+
+// SetComputerEnabled turns an account on or off: a stopped server waiting
+// to be deleted keeps its account, disabled (design 9.8).
+func (d *Directory) SetComputerEnabled(dn string, enabled bool) error {
+	entries, err := d.search(dn, "(objectClass=computer)", []string{"userAccountControl"})
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return ErrNoComputer
+	}
+	uac, _ := strconv.Atoi(entries[0].GetAttributeValue("userAccountControl"))
+	want := uac &^ accountDisable
+	if !enabled {
+		want = uac | accountDisable
+	}
+	if want == uac {
+		return nil
+	}
+	mod := ldap.NewModifyRequest(dn, nil)
+	mod.Replace("userAccountControl", []string{strconv.Itoa(want)})
+	if err := d.conn.Modify(mod); err != nil {
+		return fmt.Errorf("ad: %s: %w", dn, err)
 	}
 	return nil
 }

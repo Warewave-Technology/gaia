@@ -256,6 +256,86 @@ type PolicySpec struct {
 	GaiaRoles map[string][]string `yaml:"gaiaRoles"`
 	// Operations says who approves Operations (design 6.4).
 	Operations *OperationPolicy `yaml:"operations"`
+	// Decommission is how servers go (design 9.8); environments may
+	// override it.
+	Decommission *DecommissionPolicy `yaml:"decommission"`
+}
+
+// DecommissionPolicy: how long a stopped server waits before it is
+// deleted, whether a last snapshot is taken first, and how long its
+// address stays in quarantine. Durations are days (7d) or Go durations;
+// no grace period deletes at once.
+type DecommissionPolicy struct {
+	GracePeriod   string         `yaml:"gracePeriod"`
+	FinalSnapshot *FinalSnapshot `yaml:"finalSnapshot"`
+	IPQuarantine  string         `yaml:"ipQuarantine"`
+}
+
+// FinalSnapshot is the snapshot taken before a server is stopped.
+type FinalSnapshot struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+// Decommission is a decommission policy with durations read.
+type Decommission struct {
+	Grace         time.Duration
+	FinalSnapshot bool
+	IPQuarantine  time.Duration
+}
+
+// ParsePeriod reads 7d or a Go duration; empty and "0" are zero.
+func ParsePeriod(s string) (time.Duration, error) {
+	switch {
+	case s == "" || s == "0":
+		return 0, nil
+	case strings.HasSuffix(s, "d"):
+		n, err := strconv.Atoi(s[:len(s)-1])
+		if err != nil || n < 0 {
+			return 0, fmt.Errorf("%q: want days (7d) or a duration (12h)", s)
+		}
+		return time.Duration(n) * 24 * time.Hour, nil
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil || d < 0 {
+		return 0, fmt.Errorf("%q: want days (7d) or a duration (12h)", s)
+	}
+	return d, nil
+}
+
+// DecommissionIn is the decommission policy of an environment: its own
+// fields over the Policy's.
+func (s *PolicySpec) DecommissionIn(env string) Decommission {
+	var d Decommission
+	apply := func(p *DecommissionPolicy) {
+		if p == nil {
+			return
+		}
+		if p.GracePeriod != "" {
+			d.Grace, _ = ParsePeriod(p.GracePeriod)
+		}
+		if p.FinalSnapshot != nil {
+			d.FinalSnapshot = p.FinalSnapshot.Enabled
+		}
+		if p.IPQuarantine != "" {
+			d.IPQuarantine, _ = ParsePeriod(p.IPQuarantine)
+		}
+	}
+	apply(s.Decommission)
+	apply(s.Environments[env].Decommission)
+	return d
+}
+
+func (p *DecommissionPolicy) validate(at string) []string {
+	if p == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range []struct{ name, v string }{{"gracePeriod", p.GracePeriod}, {"ipQuarantine", p.IPQuarantine}} {
+		if _, err := ParsePeriod(f.v); err != nil {
+			out = append(out, fmt.Sprintf("%s.%s: %v", at, f.name, err))
+		}
+	}
+	return out
 }
 
 // OperationPolicy: approvals per environment ("default" for the rest)
@@ -291,8 +371,9 @@ func (o *OperationPolicy) Approvers(env, action string) []string {
 var GaiaRoles = []string{"operator", "platform-admin"}
 
 type EnvironmentPolicy struct {
-	Approval         string `yaml:"approval"`
-	DeleteProtection bool   `yaml:"deleteProtection"`
+	Approval         string              `yaml:"approval"`
+	DeleteProtection bool                `yaml:"deleteProtection"`
+	Decommission     *DecommissionPolicy `yaml:"decommission"`
 }
 
 func (s *PolicySpec) validate() []string {
@@ -306,7 +387,9 @@ func (s *PolicySpec) validate() []string {
 		if a := s.Environments[name].Approval; a != "" && a != "required" && a != "none" {
 			out = append(out, fmt.Sprintf("environments.%s.approval: %q (required or none)", name, a))
 		}
+		out = append(out, s.Environments[name].Decommission.validate("environments."+name+".decommission")...)
 	}
+	out = append(out, s.Decommission.validate("decommission")...)
 	if o := s.Operations; o != nil {
 		for _, env := range sortedKeys(o.Approvals) {
 			for _, action := range sortedKeys(o.Approvals[env]) {

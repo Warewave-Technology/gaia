@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
@@ -147,7 +148,7 @@ func (r *runner) release(ctx context.Context, c plan.Contract, gone []doomed, cr
 			if err != nil {
 				return err
 			}
-			if _, err := ipamclient.New(p.Endpoint, f["token"]).Release(ctx, d.s.UID); err != nil {
+			if _, err := ipamclient.New(p.Endpoint, f["token"]).Release(ctx, d.s.UID, time.Duration(c.Decommission.IPQuarantineSeconds())*time.Second); err != nil {
 				return fmt.Errorf("%s: %w", d.s.Hostname, err)
 			}
 			done = append(done, "ip "+d.ip+" released")

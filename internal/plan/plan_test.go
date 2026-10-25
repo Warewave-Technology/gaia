@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 )
@@ -324,5 +325,27 @@ func TestPlanBastion(t *testing.T) {
 	// Without access there is nothing to reach the servers for.
 	if p := build(t, nil, "platform/providers/wg.yaml", wg, "platform/platform.yaml", platform); p.Contracts[0].Bastion != nil {
 		t.Errorf("bastion without access = %+v", p.Contracts[0].Bastion)
+	}
+}
+
+func TestPlanSaysHowServersGo(t *testing.T) {
+	policy := strings.Replace(readLab(t, "platform/policy.yaml"), "  environments:\n    test: { approval: none }\n",
+		"  decommission: { gracePeriod: 7d, finalSnapshot: { enabled: true } }\n  environments:\n    test: { approval: none, decommission: { gracePeriod: 1d } }\n", 1)
+	h := host(1)
+	h.UID = "u1"
+	st := fakeState{hosts: map[string][]Host{"poc-web": {h}}}
+	gone := readLab(t, "contracts/poc-web.yaml") + "  lifecycle: { state: decommissioned }\n"
+	p := buildWith(t, st, nil, "platform/policy.yaml", policy, "contracts/poc-web.yaml", gone)
+	if d := p.Contracts[0].Decommission; d == nil || d.Grace() != 24*time.Hour || !d.FinalSnapshot {
+		t.Fatalf("decommission = %+v", d)
+	}
+	var b bytes.Buffer
+	_ = WriteText(&b, p)
+	if !strings.Contains(b.String(), "uid u1 (active) · last snapshot, stopped, deleted after 24h0m0s") {
+		t.Errorf("output:\n%s", b.String())
+	}
+	if _, err := catalog.Load("c0ffee", labFiles(t, "platform/policy.yaml", strings.Replace(policy, "gracePeriod: 1d", "gracePeriod: soon", 1))); err == nil ||
+		!strings.Contains(err.Error(), `environments.test.decommission.gracePeriod: "soon"`) {
+		t.Errorf("a grace period that is not a duration: %v", err)
 	}
 }
