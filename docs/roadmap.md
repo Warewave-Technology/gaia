@@ -18,6 +18,13 @@
 | 9 | Provider'lar: vSphere, AD, DNS, Warpgate, artifact deposu (Pulp, Nexus) | 1 | Pulp provider'ı açık |
 | 10 | Yaşam döngüsü: drift, keşif, adopt, reconcile | 3, 8, 9 | – |
 | 11 | Dağıtım: paketler, Ansible rolü, Helm | 1 | – |
+| 12 | Yeni yapılanma: tasarım (design.md §17) | – | **Tamam** |
+| 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | – |
+| 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | – |
+| 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | – |
+| 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | – |
+| 17 | Denetim kaydının tamamı ve ekranı | 14–16 | – |
+| 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | – |
 
 Arayüzün ekranları tasarım taslağı onaylanınca yazılır. Taslak beklerken arka uç fazları ilerler.
 
@@ -315,6 +322,64 @@ Tasarım 14.
 - Tamam: `gaia.server` Ansible rolü (`deploy/ansible/roles/gaia.server`); `gaia migrate` uygulanan migration sayısını söyler.
 - Tamam: container imajı, Helm chart, OpenBao Kubernetes auth, `GAIA_DSN_FILE`; kind'da denendi.
 - Tamam: Kubernetes'te her Ansible run'ı ayrı pod (`--ansible-executor pod`); kind'da denendi.
+
+## Faz 12–18: Yeni yapılanma
+
+Tasarım: design.md §17. Kararlar 2026-10-25'te alındı:
+- Git'te sadece kontratlar ve sunuculara ne kurulacağı kalır.
+- Geri kalanı Gaia'nın ayar deposuna geçer; değişiklikleri aynı onay kurallarından geçer ve denetim kaydına yazılır.
+- Giriş LDAP ile yapılır, OIDC şimdilik kullanılmaz.
+
+### Faz 13: Ekran yapısı
+Sadece arayüz; veri modeli değişmez.
+- **Menü:** Genel bakış, Değişiklikler, Kontratlar, Operasyonlar, Run'lar, Katalog, Altyapı, Erişim, Ayarlar.
+- **Katalog:** AnsibleRole, App, Agent ve Baseline kartları; açıklama, işletim sistemi, kategori, kullanım sayısı. Tıklayınca parametreler ve kullanım örneği.
+- **Altyapı:** Site, Network, Image ve Size listeleri ve ayrıntıları.
+- **Operasyonlar:** Operation ve OperationSchedule; durumları ve son çalışmaları.
+- **Erişim:** Group'lar, takımlar, kontrat başına kimin hangi sudo ile eriştiği.
+- **Ayarlar:** sekmeli sayfa. Bu fazda Provider'lar, Kaynaklar (Source ve Sync) ve Keşif buraya taşınır.
+
+### Faz 14: Ayar deposu, denetim kaydının temeli, geçiş
+- **Veritabanı:** ayar nesneleri, ayar sürümleri (sürüm başına tam içerik), denetim kaydı (sadece ekleme).
+- **İstenen durum:** Git nesneleri ile ayar sürümü birlikte yüklenir. Anlık görüntü ayar sürümünü taşır; plan hash'i, run kaydı ve Change'ler de.
+- **Geçiş:** Ayar deposu boşsa Git'teki ayar türleri ilk sürüm olarak içeri alınır. Sonra Git'teki bu türler yok sayılır ve Sync ekranında uyarı olur.
+- **CLI:** `gaia settings export` ve `gaia settings import`.
+- **API:** ayarları, sürümleri ve denetim kaydını okuma.
+
+### Faz 15: Ayar değişiklikleri
+- **Akış:** Öneri (ekle, değiştir, sil; birden çok nesne birlikte), doğrulama, etki (planı değişecek kontratlar), onay ve red (step-up ile, içerik hash'ine bağlı), uygulama (yeni sürüm), eskime.
+- **Onay kuralları:**
+  - Öneren onaylayamaz.
+  - Policy, AuthConfig, Platform, Group ve ayrıcalıklı erişim platform-admin onayı ister.
+  - Diğerleri Policy'deki ayar onaycılarına gider; varsayılan platform-admin.
+- **Sonrası:** Uygulanınca etkilenen kontratlar için olağan Change'ler açılır. Bildirimler: `settings.pending`, `settings.applied`, `settings.rejected`.
+- **Arayüz:**
+  - Ayarlar ve Altyapı'da düzenleme modalı: form ve YAML görünümü, doğrulama hataları ve etki listesi.
+  - Değişiklikler'de ayar önerileri, kontrat Change'leriyle birlikte; detay, onay ve red.
+
+### Faz 16: Kimlik
+- **LDAP girişi:**
+  - Kullanıcı adı ve dizin parolasıyla giriş: dizinde arama, ardından kişinin hesabıyla bind.
+  - Ardından ikinci faktör: passkey ya da `require: mfa` ise TOTP. İlk girişte kayıt.
+- **Hesaplar:**
+  - Dizinde kapatılan hesap giremez; oturumları eşitlemede kapanır.
+  - Yerel hesaplar sadece break-glass. Dizin yoksa yerel kullanıcılar ve elle yazılan takımlar kullanılır.
+  - OIDC ayarlarda ve arayüzde sunulmaz.
+- **Ayarlar ekranları:**
+  - Kullanıcılar: dizin kullanıcıları salt okunur; break-glass hesap açma, kapatma, yeniden kayıt.
+  - Takımlar: dizinden gelenler ve yerel takımlar.
+  - Kimlik doğrulama: dizin bağlantısı, ikinci faktör, oturum süreleri.
+- **Source çıktıları:** TeamSource ve NetworkSource artık ayar deposuna yazar (Gaia'nın kaynak hesabı adına, denetim kaydıyla). AnsibleRoleSource Git'e yazmaya devam eder.
+- **Testler:** LDAP girişi, dizinde kapatılan hesap, ikinci faktör kaydı ve takım eşitlemesi; Samba AD'ye karşı.
+
+### Faz 17: Denetim kaydının tamamı
+- **Kapsam:** Bütün yönetim işlemleri: ayar önerileri ve kararları, kontrat Change kararları, kullanıcı ve oturum işlemleri, girişler (başarılı ve başarısız), step-up, run iptali, keşif ve sync tetikleme, anahtarlar.
+- **Ekran:** Ayarlar → Denetim kaydı; kişi, işlem, nesne ve zamana göre süzme; JSON satırları olarak dışa aktarma.
+
+### Faz 18: Lab
+- **Kurulum:** Lab'de Samba AD (platform VM'inde container). Örnek kullanıcılar ve takım grupları; TeamSource ve LDAP girişi.
+- **Geçiş:** Lab'deki Gaia yeni yapıya geçer; ayarlar Git'ten içeri alınır.
+- **Uçtan uca deneme:** Altyapı'dan bir ağ ayarı değişikliği → onay → etkilenen kontratın Change'i. LDAP ile giriş ve ikinci faktör. Denetim kaydında bunların görünmesi.
 
 ## Lab oturumu
 

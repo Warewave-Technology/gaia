@@ -1,6 +1,6 @@
 # Gaia – Tasarım Taslağı
 
-> Durum: **Taslak v0.2** (2026-10-24: değişiklik akışı, bkz. 7.6)
+> Durum: **Taslak v0.3** (2026-10-25: Git ile Gaia ayarlarının ayrılması ve LDAP kimlik modeli, bkz. 17)
 > Kapsam: Altyapı bileşenlerinin (Linux, Windows/AD, vCenter/Proxmox ve çevre sistemler) tamamını tek bir kontrat üzerinden yöneten servisin tasarımı.
 
 ## 0. Amaç ve Prensipler
@@ -10,9 +10,13 @@ Teknolojiler çeşitli olsa da hepsini **tek bir YAML kontratı** yönetir.
 - **Kontrat sadece referans içerir.** Endpoint, credential ve altyapı detayı kontratta bulunmaz; bunlar Gaia'nın kendi objelerinde tanımlıdır.
 - **Provisioning Pulumi'de, konfigürasyon Ansible'da.** Diğer sistemlerle (Zabbix, IPAM, AD, Warpgate, Pulp, Zot, OpenBao, SeaweedFS) doğrudan API üzerinden konuşulur.
 - **Tüm bileşenler açık kaynak.**
-- **Git, istenen durumun geçmişidir.** Değişiklik Git'e commit ile girer. İncelenmesi, onaylanması ve uygulanması Gaia'dadır (bkz. 7.6). Arayüz ve CLI istenen durumu değiştiremez.
+- **Sunucuların istenen durumu Git'tedir; Gaia'nın kendi ayarları Gaia'dadır** (bkz. 17).
+  - Git'te: kontratlar (Server, Operation, OperationSchedule) ve sunuculara ne kurulacağı (AnsibleRole, App, Agent, Baseline).
+  - Gaia'da: geri kalan her şey; provider'lar, altyapı seçenekleri, erişim grupları, kurallar, kimlik.
+  - İki taraftaki değişiklik de aynı onay kurallarından ve aynı onaycılardan geçer, denetim kaydına yazılır.
+- **Değişikliği kişi önerir, Gaia uygular.** Git'teki değişiklik commit ile, Gaia ayarındaki değişiklik arayüzden bir öneriyle gelir. İkisi de incelenir ve onaylanır; uygulamayı Gaia başlatır (bkz. 7.6 ve 17.3).
 - **Her verinin tek bir sahibi vardır.** Gaia veriyi kopyalamaz, sahibine referans verir.
-- **Bir plan tamamen bir commit'ten üretilebilir.** Canlı bir kaynağı okuyarak plan değiştirilemez; kaynaklardan gelen veri önce Git'e yazılır.
+- **Bir plan, bir commit ve bir ayar sürümünden üretilebilir.** Canlı bir kaynağı okuyarak plan değiştirilemez. Kaynaklardan gelen veri önce Git'e ya da ayar deposuna, sürümlenerek yazılır.
 
 ## 1. Kavramlar
 
@@ -57,28 +61,30 @@ contracts/                         # ayrı repo, uygulama ekipleri yazar
 
 ## 3. Kind Listesi
 
-| Kind | Grup | Elle / üretilen | Not |
-|---|---|---|---|
-| `Platform` | Sistem | Elle | Tekil. Engine ayarları |
-| `AuthConfig` | Sistem | Elle | Kimlik doğrulama, bkz. bölüm 11 |
-| `Provider` | Sistem | Elle | Her dış sistem için bir tane |
-| `Policy` | Sistem | Elle | İsimlendirme, ortamlar, zorunlu etiketler |
-| `Site` | Katalog | Elle | Lokasyon: hipervizör yerleşimi, NTP, Zabbix proxy |
-| `Network` | Katalog | **Üretilen** + elle | `NetworkSource` üretir |
-| `NetworkSource` | Source | Elle | IPAM'dan Network üretir |
-| `Image` | Katalog | Elle | VM şablonu |
-| `Size` | Katalog | Elle | CPU/RAM/disk profili |
-| `Baseline` | Katalog | Elle | Hardening playbook'u |
-| `AnsibleRole` | Katalog | **Üretilen** + elle | `AnsibleRoleSource` üretir |
-| `AnsibleRoleSource` | Source | Elle | Ansible reposundan AnsibleRole üretir |
-| `App` | Katalog | Elle | Uygulama: artifact, playbook, parametreler |
-| `Agent` | Katalog | Elle | BigFix, Kaspersky, Zabbix ajanı… |
-| `Team` | Erişim | **Üretilen** | `TeamSource` AD'den üretir (bkz. 14) |
-| `TeamSource` | Source | Elle | AD gruplarından Team üretir |
-| `Group` | Erişim | Elle | Team'lere referans veren erişim grubu |
-| `Server` | Kontrat | Elle | İstenen durum |
-| `Operation` | Kontrat | Elle | Tek seferlik iş: patch, snapshot, replace, reconcile, runbook… (bkz. 6.4) |
-| `OperationSchedule` | Kontrat | Elle | Tekrarlayan Operation şablonu (bkz. 6.4) |
+"Nerede" sütunu 17. bölümdeki ayrımı gösterir: **Git** (repo, commit ile) ya da **Gaia** (ayar deposu, arayüzden öneri ile).
+
+| Kind | Grup | Nerede | Elle / üretilen | Not |
+|---|---|---|---|---|
+| `Server` | Kontrat | Git | Elle | İstenen durum |
+| `Operation` | Kontrat | Git | Elle | Tek seferlik iş: patch, snapshot, replace, reconcile, runbook… (bkz. 6.4) |
+| `OperationSchedule` | Kontrat | Git | Elle | Tekrarlayan Operation şablonu (bkz. 6.4) |
+| `AnsibleRole` | Katalog | Git | **Üretilen** + elle | `AnsibleRoleSource` üretir |
+| `App` | Katalog | Git | Elle | Uygulama: artifact, playbook, parametreler |
+| `Agent` | Katalog | Git | Elle | BigFix, Kaspersky, Zabbix ajanı… |
+| `Baseline` | Katalog | Git | Elle | Hardening playbook'u |
+| `Site` | Altyapı | Gaia | Elle | Lokasyon: hipervizör yerleşimi, NTP, Zabbix proxy |
+| `Network` | Altyapı | Gaia | **Üretilen** + elle | `NetworkSource` üretir |
+| `Image` | Altyapı | Gaia | Elle | VM şablonu |
+| `Size` | Altyapı | Gaia | Elle | CPU/RAM/disk profili |
+| `Group` | Erişim | Gaia | Elle | Team'lere referans veren erişim grubu |
+| `Team` | Erişim | Gaia | **Üretilen** + elle | Dizinden (LDAP) `TeamSource` üretir; dizin yoksa elle (bkz. 17.5) |
+| `Policy` | Ayar | Gaia | Elle | İsimlendirme, ortamlar, onaylar, zorunlu etiketler |
+| `Platform` | Ayar | Gaia | Elle | Tekil. Engine ayarları |
+| `AuthConfig` | Ayar | Gaia | Elle | Kimlik doğrulama (bkz. 17.5) |
+| `Provider` | Ayar | Gaia | Elle | Her dış sistem için bir tane; bildirim kanalları da |
+| `NetworkSource` | Source | Gaia | Elle | IPAM'dan Network üretir |
+| `AnsibleRoleSource` | Source | Gaia | Elle | Config reposundan AnsibleRole üretir (çıktısı Git'e) |
+| `TeamSource` | Source | Gaia | Elle | Dizin gruplarından Team üretir |
 
 Rol objesine `Ansible` öneki bilerek eklendi. "Rol" kelimesi Warpgate rolleri ve RBAC rolleri için de kullanılıyor; önek bu karışıklığı önlüyor.
 
@@ -1963,3 +1969,121 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Host anahtarları ilk temasta Gaia tarafından kaydedilir, sonra Ansible sıkı host key kontrolüyle çalışır (phone_home/konsol yerine) |
 | 2026-10-25 | Artifact deposu Nexus yerine Pulp 3 (OS paketleri ve aynaları, Galaxy, PyPI, App dosyaları) ve Zot (OCI: EE, Gaia imajı, Helm chart). İkisi de OSI lisanslı, EULA'sız; depolama SeaweedFS (S3). `nexus` provider'ı mevcut Nexus'u olanlar için kalır; App artifact'ı provider'dan bağımsız `Resolve → {url, sha256}` ile çözülür |
 | 2026-10-25 | Kontrattaki `access.sudo`, `true`/`false`'a ek olarak komut listesi alır: sadece o komutlar, root olarak. Komutlar mutlak yollu ve düz yazılır (ayraç, joker, `!`, `ALL`, `sudoedit` yok). Yeni bir komut "verilen erişim" sayılır; daraltmak onay istemez |
+| 2026-10-25 | Git'te sadece Server, Operation, OperationSchedule, AnsibleRole, App, Agent ve Baseline kalır. Site, Network, Image, Size, Group, Team, Policy, Platform, AuthConfig, Provider ve Source tanımları Gaia'nın ayar deposuna geçer (bkz. 17) |
+| 2026-10-25 | Ayar değişiklikleri öneri → doğrulama/etki → onay (öneren onaylayamaz; kritik ayarlar platform-admin) → yeni ayar sürümü olarak uygulanır; anlık görüntü ayar sürümünü taşır; etkilenen kontratlar için olağan Change'ler açılır |
+| 2026-10-25 | Denetim kaydı: bütün yönetim işlemleri ve girişler, eklenir ama değiştirilmez/silinmez; dışa aktarılabilir |
+| 2026-10-25 | Giriş LDAP bind + Gaia'nın ikinci faktörü (passkey; mfa'da TOTP da). Kullanıcı ve takımlar dizinden; yerel hesap sadece break-glass, dizin yoksa yerel kullanıcı/takım. OIDC şimdilik kullanılmıyor |
+
+## 17. Git ve Gaia: neyin nerede tutulduğu
+
+> 2026-10-25'te kararlaştırıldı. 2, 3, 4, 5, 11 ve 14. bölümlerde nesnelerin Git'te durduğunu söyleyen yerler, aşağıdaki türler için bu bölümle değişir. Geçiş yol haritasında Faz 12–18'dir.
+
+### 17.1 İlke
+
+Git'te sadece **sunucuların istenen durumu** ve **sunuculara ne kurulacağı** durur:
+- `Server`, `Operation`, `OperationSchedule`
+- `AnsibleRole`, `App`, `Agent`, `Baseline`
+
+Geri kalan her şey **Gaia'nın ayarıdır**: `Site`, `Network`, `Image`, `Size`, `Group`, `Team`, `Policy`, `Platform`, `AuthConfig`, `Provider` (bildirim kanalları dahil) ve Source tanımları.
+
+**Neden:** Onaycılar iki tarafta da aynıdır ve aynı kurallarla onaylar. Bir ayarın Git'te olması ona ek bir güvence katmıyor. Güvenceyi verenler şunlar:
+- değişikliğin onaydan geçmesi
+- öneren kişinin kendi değişikliğini onaylayamaması
+- denetim kaydının eksiksiz ve değiştirilemez olması
+
+Ayarları Git'ten çıkarmak, platform ekibinin YAML yazıp commit atmadan arayüzden çalışmasını sağlar. "Katalog" da yalnızca kurulabilecek şeylerin listesi olur.
+
+### 17.2 Ayar deposu
+
+- **Biçim:** Ayarlar veritabanında, Git'teki nesnelerle aynı biçimde durur: `apiVersion`, `kind`, `metadata`, `spec`. Doğrulama, referans grafı ve CEL kuralları aynı kodla çalışır. İstenen durum, Git'teki nesneler ile ayar nesnelerinin birlikte yüklenmesiyle elde edilir.
+- **Sürüm:** Her uygulanan ayar değişikliği yeni bir **ayar sürümü** üretir (artan bir numara). Önceki sürümler silinmez.
+- **Anlık görüntü:** Bir anlık görüntü artık şunlardan oluşur: platform ve kontrat repolarının commit'leri, config reposunun commit'i ve **ayar sürümü**. Plan hash'i, run kaydı ve Change'ler bu sürümü taşır. Böylece "bir plan, bir commit ve bir ayar sürümünden üretilebilir" ilkesi korunur.
+- **Sırlar:** Ayarlar sır taşımaz, sadece OpenBao referansı (`bao://…`) taşır.
+- **Dışa aktarma:** `gaia settings export` bir ayar sürümünü YAML dosyalarına yazar; `gaia settings import` dosyalardan bir ayar değişikliği önerir. Yedek, ortam kopyalama ve ilk kurulum için kullanılır.
+
+### 17.3 Ayar değişiklikleri
+
+Bir ayarı değiştirmek, bir **ayar değişikliği** önerisidir. Kontrat Change'leri gibi incelenir ve onaylanır.
+
+1. **Öneri:** Kişi arayüzde (ya da API'de) ekleme, değiştirme veya silme önerir. Bir öneri birden fazla nesneyi birlikte değiştirebilir.
+2. **Doğrulama ve etki:**
+   - Gaia öneriyi uygulanmış gibi yükler: şema, referanslar, CEL kuralları.
+   - Hangi kontratların planının değişeceğini hesaplar; örneğin bir ağın DNS'i değişince o ağdaki bütün kontratlar.
+   - Hatalı bir öneri kaydedilmez. Etki listesi öneriyle birlikte gösterilir.
+3. **Onay:**
+   - Öneren kişi kendi önerisini onaylayamaz.
+   - `Policy`, `AuthConfig`, `Platform`, `Group` ve ayrıcalıklı erişime dokunan öneriler `platform-admin` onayı ister.
+   - Diğerlerini Policy'deki ayar onaycıları onaylar; varsayılan `platform-admin`'dir.
+   - Onay ve red, kontrat Change'lerinde olduğu gibi passkey/TOTP doğrulaması ister ve önerinin içeriğinin hash'ine bağlıdır.
+4. **Uygulama:**
+   - Onaylanan öneri yeni bir ayar sürümü olarak uygulanır.
+   - Gaia istenen durumu yeniden yükler. Planı değişen her kontrat için olağan bir Change açılır; o Change kendi onay kurallarıyla ilerler.
+   - Ayar değişikliği kendi başına hiçbir sunucuya dokunmaz.
+5. **Red ve eskime:** Red gerekçe ister. Önerinin dayandığı sürümden sonra aynı nesneler başka bir öneriyle değiştiyse, bekleyen öneri eskir ve yeniden yapılmalıdır.
+
+Ayar değişiklikleri Değişiklikler ekranında kontrat Change'leriyle birlikte, "ayar" türüyle listelenir. Bildirimler (`settings.pending`, `settings.applied`, `settings.rejected`) aynı kanallardan gider.
+
+### 17.4 Denetim kaydı
+
+- **Ne yazılır:** Gaia'da yapılan her yönetim işlemi denetim kaydına yazılır:
+  - ayar önerileri, onaylar, redler ve uygulamalar (önce/sonra farkıyla)
+  - kontrat Change'lerinin onay ve redleri
+  - kullanıcı işlemleri (oluşturma, devre dışı bırakma, yeniden kayıt)
+  - oturum kapatma
+  - başarılı ve başarısız girişler
+  - adım adım doğrulamalar (step-up)
+  - run iptali, keşif ve sync tetikleme
+  - anahtar ekleme ve silme
+- **Her kayıtta:** kim, hangi oturumdan ve adresten, ne zaman, hangi işlem, hangi nesne, sonuç.
+- **Değiştirilemezlik:** Kayıt eklenir, değiştirilmez ve silinmez. Uygulamanın veritabanı rolü (`gaia_app`) bu tabloya sadece ekleyebilir; `run_records` ile aynı kural.
+- **Ekran ve dışa aktarma:** Ayarlar → Denetim kaydı ekranında kişiye, işleme ve nesneye göre süzülür. Dışa aktarılabilir (JSON satırları), böylece bir SIEM'e gönderilebilir.
+
+### 17.5 Kimlik: LDAP
+
+- **Giriş LDAP iledir:**
+  - Kişi kullanıcı adı ve dizin parolasıyla girer. Gaia, dizinde kişinin hesabını bulur ve onunla bind ederek parolayı doğrular. Parola Gaia'da saklanmaz.
+  - Ardından Gaia'nın ikinci faktörü istenir: `require: passkey` ise passkey; `require: mfa` ise passkey ya da TOTP.
+  - İlk girişte ikinci faktör orada kaydedilir.
+  - Dizinde devre dışı bırakılan hesap giremez; açık oturumları sonraki eşitlemede kapanır.
+- **Kullanıcılar ve takımlar dizinden gelir:**
+  - `TeamSource` dizin gruplarından takımları ve üyelerini eşitler.
+  - Üçüncü taraf kullanıcılar da kurumun dizinindedir; dizin varken Gaia'da dizin dışı kullanıcı açılmaz.
+- **Yerel hesaplar:** Sadece **break-glass** içindir; dizin ya da giriş sorunluyken içeri girmek için bir iki platform-admin hesabı.
+- **Dizin yoksa:** Lab ve küçük kurulumlar için yerel kullanıcılar ve elle yazılan takımlar kullanılır. Bu yol, dizin tanımlıyken kapalıdır.
+- **OIDC şimdilik kullanılmıyor.** Kodu duruyor ama ayarlarda ve arayüzde sunulmaz. Kurumların SSO'ya geçmesi gündeme gelince yeniden açılır.
+- **Dizin uyumluluğu:** Bugün Active Directory alanları okunuyor (`objectGUID`, `sAMAccountName`, `userAccountControl`). OpenLDAP veya FreeIPA gerekirse alan eşlemesi ayarlanabilir yapılır.
+
+### 17.6 Source'lar
+
+- Source tanımları Gaia ayarıdır.
+- **Çıktıları hedefin sahibine yazılır:**
+  - `NetworkSource` ve `TeamSource` ayar deposuna yazar. Yazdıkları, denetim kaydında `source/<ad>` olarak görünen bir ayar sürümüdür.
+  - `AnsibleRoleSource` Git'e yazmaya devam eder, çünkü `AnsibleRole` Git'tedir.
+- Source çıktıları kendisi onay beklemez. Asıl veri dizinde ya da IPAM'dadır ve orada değişmiştir. Çıktının etkilediği kontratların Change'leri yine onaydan geçer.
+
+### 17.7 Geçiş
+
+- **Var olan kurulumlar:**
+  - Gaia ilk açılışta ayar deposu boşsa, Git'teki ayar türlerini (17.1) olduğu gibi içeri alır. Bu ilk ayar sürümü denetim kaydında "Git'ten içeri alındı, commit X" diye görünür.
+  - Bundan sonra Git'te kalan bu türdeki nesneler yok sayılır ve Sync ekranında uyarı olarak listelenir.
+- **Yeni kurulumlar:** İlk ayarlar `gaia settings import <dizin>` ile yüklenir. İlk platform-admin `gaia user add` ile açılır (break-glass).
+
+### 17.8 Ekran yapısı
+
+```
+Genel bakış
+Değişiklikler        kontrat Change'leri ve ayar değişiklikleri
+Kontratlar           Server
+Operasyonlar         Operation, OperationSchedule
+Run'lar
+Katalog              ne kurulabilir: roller, uygulamalar, ajanlar, baseline'lar
+Altyapı              nereye ve neyle: site, ağ, imaj, boyut
+Erişim               Group'lar, takımlar, kim hangi kontrata nasıl erişiyor
+Ayarlar
+  Provider'lar  Kaynaklar (Source ve Sync)  Keşif  Kullanıcılar
+  Kimlik doğrulama  Bildirim kanalları  Platform  Policy  Denetim kaydı
+```
+
+- Katalog kartlarla gösterilir: ad, açıklama, işletim sistemi, kategori, kaç kontratta kullanıldığı.
+- Ayarlarda her sekme bir listedir. Ekleme ve düzenleme sağ üstteki butonla açılan modalda yapılır; modalda form ve YAML görünümü vardır.
+- Kaydetmek bir ayar değişikliği önerir; etki listesi ve doğrulama hataları modalda gösterilir.
