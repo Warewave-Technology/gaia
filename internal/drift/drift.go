@@ -53,6 +53,55 @@ type Scanner struct {
 	Now    func() time.Time
 	// Checks overrides the areas, for tests.
 	Checks map[string]Check
+	// Graph is the desired state now, for discovery; without it there is
+	// no discovery.
+	Graph func() *catalog.Graph
+}
+
+// DiscoveryArea names discovery among the scans; it runs once a day, or
+// at once after a request (POST /api/v1/discovery).
+const DiscoveryArea = "discovery"
+
+// discover writes a discovery report when one is due.
+func (s *Scanner) discover(ctx context.Context) error {
+	if s.Graph == nil || s.Systems == nil {
+		return nil
+	}
+	g := s.Graph()
+	if g == nil {
+		return nil
+	}
+	return s.Store.WithLock(ctx, "gaia/drift/"+DiscoveryArea, func(ctx context.Context) error {
+		q := s.Store.Q()
+		last, err := q.DriftScanned(ctx, DiscoveryArea)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		now := s.now()
+		if err == nil && now.Sub(last.Time) < 24*time.Hour {
+			return nil
+		}
+		deps, err := s.Systems(g)
+		if err != nil {
+			return err
+		}
+		rep, err := apply.Discover(ctx, g, deps)
+		if err != nil {
+			return err
+		}
+		data, err := json.Marshal(rep)
+		if err != nil {
+			return err
+		}
+		if err := q.InsertDiscovery(ctx, data); err != nil {
+			return err
+		}
+		if err := q.PruneDiscovery(ctx); err != nil {
+			return err
+		}
+		s.log().Info("discovery", "counts", rep.Counts, "errors", len(rep.Errors))
+		return q.SetDriftScanned(ctx, db.SetDriftScannedParams{Area: DiscoveryArea, LastAt: pgtype.Timestamptz{Time: now, Valid: true}})
+	})
 }
 
 func (s *Scanner) now() time.Time {
@@ -124,6 +173,9 @@ func (s *Scanner) Tick(ctx context.Context) error {
 		if err != nil && !errors.Is(err, store.ErrLocked) {
 			errs = append(errs, fmt.Errorf("%s: %w", area, err))
 		}
+	}
+	if err := s.discover(ctx); err != nil && !errors.Is(err, store.ErrLocked) {
+		errs = append(errs, fmt.Errorf("discovery: %w", err))
 	}
 	return errors.Join(errs...)
 }

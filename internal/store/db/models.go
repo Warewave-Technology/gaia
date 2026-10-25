@@ -139,6 +139,12 @@ type DeviceCode struct {
 	PolledAt  pgtype.Timestamptz
 }
 
+type DiscoveryReport struct {
+	ID      int64
+	TakenAt pgtype.Timestamptz
+	Report  []byte
+}
+
 type DriftReport struct {
 	ID         int64
 	Contract   string

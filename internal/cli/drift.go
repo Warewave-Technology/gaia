@@ -70,3 +70,61 @@ func newReconcileCommand() *cobra.Command {
 	serverFlag(cmd, &addr)
 	return cmd
 }
+
+func newDiscoverCommand() *cobra.Command {
+	var addr string
+	var now bool
+	cmd := &cobra.Command{
+		Use:   "discover",
+		Short: "Show the latest discovery report: VMs and monitoring hosts next to Gaia's records (operator)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c := apiClient(addr)
+			if now {
+				if err := c.Post(cmd.Context(), "/api/v1/discovery", nil, nil); err != nil {
+					return hint(err)
+				}
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "requested; the report comes within a minute or two")
+				return nil
+			}
+			var rep struct {
+				TakenAt time.Time         `json:"takenAt"`
+				Counts  map[string]int    `json:"counts"`
+				Errors  map[string]string `json:"errors"`
+				VMs     []map[string]any  `json:"vms"`
+				Missing []map[string]any  `json:"missing"`
+				Hosts   []map[string]any  `json:"hosts"`
+			}
+			if err := c.Get(cmd.Context(), "/api/v1/discovery", &rep); err != nil {
+				return hint(err)
+			}
+			w := cmd.OutOrStdout()
+			_, _ = fmt.Fprintf(w, "taken %s\n", rep.TakenAt.Local().Format(time.DateTime))
+			for p, e := range rep.Errors {
+				_, _ = fmt.Fprintf(w, "%s: %s\n", p, e)
+			}
+			tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+			_, _ = fmt.Fprintln(tw, "CATEGORY\tPROVIDER\tVM\tNAME\tPOWER\tSERVER")
+			for _, v := range rep.VMs {
+				if v["category"] == "managed" || v["category"] == "template" {
+					continue
+				}
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", v["category"], v["provider"], v["id"], v["name"], v["powerState"], str(v["uid"]))
+			}
+			for _, m := range rep.Missing {
+				_, _ = fmt.Fprintf(tw, "missing\t%s\t%s\t\t\t%s (%s)\n", m["provider"], m["id"], m["hostname"], m["contract"])
+			}
+			for _, h := range rep.Hosts {
+				_, _ = fmt.Fprintf(tw, "monitoring orphan\t%s\t\t%s\t\t%s\n", h["provider"], h["name"], h["uid"])
+			}
+			if err := tw.Flush(); err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintf(w, "counts: %v\n", rep.Counts)
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&now, "now", false, "ask for a report now")
+	serverFlag(cmd, &addr)
+	return cmd
+}

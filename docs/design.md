@@ -1137,6 +1137,11 @@ spec:
 | Katalog taslakları (Site, Image, `TeamSource` seçim kuralı) | Arayüzde taslak, tamamlanınca Gaia'nın commit'i |
 | Adopt taslakları (Server kontratları) | Arayüzde taslak, tamamlanınca Gaia'nın commit'i (bkz. 8.1) |
 
+**Uygulamada (düzey 1–2, ilk sürüm):**
+- Keşif raporu günde bir (ya da `gaia discover --now` / `POST /api/v1/discovery` ile hemen) drift taramasıyla aynı yerde üretilir ve `discovery_reports`'a yazılır (son on rapor kalır). `gaia discover` ve `GET /api/v1/discovery` son raporu gösterir (operator).
+- Katalogdaki her Proxmox ve vSphere provider'ının VM'leri kaydedilen VM ID'leriyle eşleştirilir: `managed` (bir sunucunun), `orphan` (`gaia-uid_` tag'i veya `gaia.uid=` notu taşıyıp Gaia'da sunucusu olmayan), `unmanaged` (adopt adayı), `template`. Kaydı olup hipervizörde olmayan sunucular `missing` olarak, Zabbix'te `gaia.uid` taşıyıp sunucusu olmayan host'lar ayrıca listelenir. Okunamayan provider rapordaki hatalarda görünür, raporun geri kalanı durur.
+- Henüz yok: ağ/şablon/datastore envanteri, IP–DNS karşılaştırması, AD ve Warpgate tarafı, düzey 3 (`discover` Operation'ı) ve taslak üretimi.
+
 İlk iki düzeyin raporları sunuculara dokunmadan, sadece API erişimiyle üretilir. Bu yüzden bir ortama girildiğinde ilk hafta verilebilecek somut bir çıktıdır: envanter sağlığı raporu.
 
 ## 9. Sunucu Kimliği ve Silme

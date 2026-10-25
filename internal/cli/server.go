@@ -234,7 +234,7 @@ func newServerCommand() *cobra.Command {
 				if cfg.Systems != nil {
 					// Drift is checked where the change engine runs: it opens
 					// the changes that put drift right.
-					sc := &drift.Scanner{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, Open: engine.OpenDrift, Notify: notifier, Log: cfg.Log,
+					sc := &drift.Scanner{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, Open: engine.OpenDrift, Notify: notifier, Log: cfg.Log, Graph: cat.Graph,
 						Policy: func() *catalog.PolicySpec {
 							if o := cat.Graph().Policy(); o != nil {
 								return o.Spec.(*catalog.PolicySpec)

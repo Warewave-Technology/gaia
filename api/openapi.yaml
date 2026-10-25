@@ -147,6 +147,18 @@ paths:
         - { name: contract, in: query, schema: { type: string } }
       responses:
         "200": { description: Drift reports, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Drift" } } } } }
+  /api/v1/discovery:
+    get:
+      summary: The latest discovery report, what the hypervisors and monitoring have next to Gaia's records (operator)
+      operationId: getDiscovery
+      responses:
+        "200": { description: The report, content: { application/json: { schema: { $ref: "#/components/schemas/Discovery" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Ask for a discovery report now, instead of at the daily scan (operator)
+      operationId: requestDiscovery
+      responses:
+        "202": { description: Requested; the report comes within a minute or two }
   /api/v1/contracts/{name}/reconcile:
     post:
       summary: Open a change that applies the contract's applied plan again, putting drift right; the owner approves it (operator)
@@ -801,6 +813,28 @@ components:
       type: object
       required: [error]
       properties: { error: { type: string } }
+    Discovery:
+      type: object
+      properties:
+        takenAt: { type: string, format: date-time }
+        vms:
+          type: array
+          items:
+            type: object
+            properties:
+              provider: { type: string }
+              id: { type: string }
+              name: { type: string }
+              powerState: { type: string }
+              ips: { type: array, items: { type: string } }
+              category: { type: string, enum: [managed, orphan, unmanaged, template] }
+              uid: { type: string }
+              hostname: { type: string }
+              contract: { type: string }
+        missing: { type: array, items: { type: object, properties: { provider: { type: string }, id: { type: string }, uid: { type: string }, hostname: { type: string }, contract: { type: string } } } }
+        hosts: { type: array, items: { type: object, properties: { provider: { type: string }, name: { type: string }, uid: { type: string } } } }
+        counts: { type: object, additionalProperties: { type: integer } }
+        errors: { type: object, additionalProperties: { type: string } }
     Drift:
       type: object
       description: A live drift report; the details only for those who see the contract in full.
