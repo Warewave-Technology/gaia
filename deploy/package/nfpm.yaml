@@ -1,0 +1,43 @@
+# .deb and .rpm of Gaia (design 13.2): make package.
+name: gaia
+arch: ${GOARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: Warewave Technology <gaia@warewave.example>
+description: |
+  Gaia: infrastructure from one contract. The gaia server and CLI, the
+  gaia-ipam service, their systemd units and configuration.
+vendor: Warewave Technology
+homepage: https://github.com/Warewave-Technology/gaia
+license: Proprietary
+recommends:
+  - podman
+contents:
+  - src: ./dist/stage/gaia
+    dst: /usr/bin/gaia
+    file_info: { mode: 0755 }
+  - src: ./dist/stage/gaia-ipam
+    dst: /usr/bin/gaia-ipam
+    file_info: { mode: 0755 }
+  - src: ./deploy/package/gaia.service
+    dst: /usr/lib/systemd/system/gaia.service
+  - src: ./deploy/package/gaia-ipam.service
+    dst: /usr/lib/systemd/system/gaia-ipam.service
+  - src: ./deploy/package/sysusers.conf
+    dst: /usr/lib/sysusers.d/gaia.conf
+  - src: ./deploy/package/gaia.env
+    dst: /etc/gaia/gaia.env
+    type: config|noreplace
+    file_info: { mode: 0640 }
+  - src: ./deploy/package/gaia-ipam.env
+    dst: /etc/gaia/gaia-ipam.env
+    type: config|noreplace
+    file_info: { mode: 0640 }
+  - dst: /etc/gaia
+    type: dir
+    file_info: { mode: 0750 }
+scripts:
+  postinstall: ./deploy/package/scripts/postinstall.sh
+  preremove: ./deploy/package/scripts/preremove.sh

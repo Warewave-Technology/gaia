@@ -274,6 +274,31 @@ func stack(ctx context.Context, b Backend, st Stack) (auto.Stack, error) {
 	return s, nil
 }
 
+// Prepare installs the pinned Pulumi CLI and the provider plugins Gaia
+// uses, so that runs need no download: for package and image builds and
+// for servers without internet access to GitHub. They go where runs find
+// them: the CLI under the user's cache directory, plugins under
+// $PULUMI_HOME.
+func Prepare(ctx context.Context) error {
+	cmd, err := command(ctx)
+	if err != nil {
+		return err
+	}
+	ws, err := auto.NewLocalWorkspace(ctx, auto.Pulumi(cmd), auto.Project(workspace.Project{
+		Name: tokens.PackageName(Project), Runtime: workspace.NewProjectRuntimeInfo("go", nil),
+	}))
+	if err != nil {
+		return err
+	}
+	if err := ws.InstallPluginFromServer(ctx, proxmoxPlugin, proxmoxPluginVersion, proxmoxPluginServer); err != nil {
+		return fmt.Errorf("install %s plugin: %w", proxmoxPlugin, err)
+	}
+	if err := ws.InstallPlugin(ctx, vspherePlugin, vspherePluginVersion); err != nil {
+		return fmt.Errorf("install %s plugin: %w", vspherePlugin, err)
+	}
+	return nil
+}
+
 // Result is what Up reports per VM, by UID.
 type Result struct {
 	VMID int      // Proxmox

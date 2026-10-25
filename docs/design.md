@@ -1576,6 +1576,15 @@ Gaia tek bir binary'dir:
 - **Ansible çalıştırma:** Worker sunucularında EE container'ları için `podman` kurulu olmalıdır. EE imajları Nexus'tan çekilir.
 - **Kurulumun kendisi:** Gaia'yı VM'e kuran bir Ansible rolü (`gaia.server`) hazırlanır. Gaia'yı da aynı araçlarla kurmuş oluruz.
 
+**Uygulamada:**
+- `make package`, linux/amd64 ve linux/arm64 için `dist/`'e `.deb` ve `.rpm` üretir (nfpm). Paket `gaia` ve `gaia-ipam` binary'lerini, `gaia.service` ve `gaia-ipam.service` unit'lerini, `/usr/lib/sysusers.d/gaia.conf`'u ve `/etc/gaia/gaia.env`, `/etc/gaia/gaia-ipam.env` örneklerini (config, güncellemede korunur) taşır. Etiket yoksa sürüm `0.0.0~<commit>` olur.
+- Kurulum `gaia` sistem hesabını açar, rootless podman için ona alt UID/GID aralığı verir ve `/etc/gaia`'yı `root:gaia 0750` yapar. Servisler kendiliğinden başlamaz: önce yapılandırma yazılır, `gaia migrate` (`gaia_owner` ile) çalıştırılır.
+- `gaia.service`: `EnvironmentFile=/etc/gaia/gaia.env`, `ExecStart=/usr/bin/gaia server $GAIA_SERVER_ARGS`; durum `/var/lib/gaia` (StateDirectory), Pulumi CLI'ı `/var/cache/gaia`, plugin'ler `PULUMI_HOME=/var/lib/gaia/pulumi`. Hardening açıktır (`ProtectSystem=strict`, sadece bu dizinlere yazma, kernel ve cgroup koruması vb.); rootless podman setuid `newuidmap` istediği için `NoNewPrivileges` ve system call filtresi kapalıdır. Sadece API çalıştıran bir sunucu bunları bir drop-in ile açabilir.
+- `gaia-ipam.service` tam hardening'le çalışır (`systemd-analyze security`: 2.1).
+- AppRole `secret_id`'si `GAIA_BAO_SECRET_ID_FILE` ile bir dosyadan ya da systemd credential'ı (`LoadCredential=bao-secret-id:...`, `CREDENTIALS_DIRECTORY`) olarak verilir; env dosyasında düz metin secret yoktur.
+- `gaia pulumi prepare` sabitlenmiş Pulumi CLI'ını ve provider plugin'lerini indirir; internete çıkamayan sunucularda ya da imaj üretiminde run'ların indirme yapmaması için `gaia` kullanıcısıyla (aynı `HOME`, `XDG_CACHE_HOME`, `PULUMI_HOME` ile) bir kez çalıştırılır.
+- Rocky 9'da (systemd'li container) kuruldu: servisler hardening altında gerçek PostgreSQL'le çalıştı, `gaia pulumi prepare` servis kullanıcısıyla çalıştı. Debian 12'de kurulum ve kaldırma denendi.
+
 ### 13.3 Kubernetes (Helm)
 
 - **Chart içeriği:** Deployment, Service, Ingress, ConfigMap, ServiceAccount ve PodDisruptionBudget. HorizontalPodAutoscaler isteğe bağlı.

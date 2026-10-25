@@ -1,0 +1,39 @@
+# Gaia's IPAM (design 5.2). Configuration: /etc/gaia/gaia-ipam.env.
+[Unit]
+Description=Gaia IPAM
+Documentation=https://github.com/Warewave-Technology/gaia
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gaia
+Group=gaia
+EnvironmentFile=/etc/gaia/gaia-ipam.env
+ExecStart=/usr/bin/gaia-ipam serve $GAIA_IPAM_ARGS
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

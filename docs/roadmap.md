@@ -227,6 +227,9 @@ Tasarım 14.
 - `nfpm` ile `.deb` / `.rpm`, systemd unit'i, `gaia.server` Ansible rolü.
 - Container imajı ve Helm chart (13.3).
 
+**Durum:**
+- Tamam: `.deb` / `.rpm` (nfpm, amd64 ve arm64), systemd unit'leri (hardening), `gaia` sistem hesabı, `gaia pulumi prepare`; CI paketleri artifact olarak üretir.
+
 ## Lab oturumu
 
 Gerçek sunucularla yapılacak denemeler tek bir lab oturumunda toplanır: Faz 3–4'ün uygulama ayağı (commit → Change → onay → gerçek VM ve bildirimler) ve lab gerektiren sonraki fazlar.

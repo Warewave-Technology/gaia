@@ -18,3 +18,18 @@ jobs:
         env:
           GAIA_INTEGRATION: "1"
       - run: go build ./cmd/...
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/*

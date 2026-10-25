@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build test itest generate lint ee dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
+.PHONY: build test itest generate lint ee package dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -19,6 +19,18 @@ generate:
 lint:
 	go vet ./...
 	golangci-lint run
+
+# .deb and .rpm for linux/amd64 and linux/arm64 in dist/ (design 13.2).
+NFPM := go run github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
+PKG_VERSION ?= $(shell sh deploy/package/version.sh $(VERSION))
+package:
+	for arch in amd64 arm64; do \
+	  rm -rf dist/stage && CGO_ENABLED=0 GOOS=linux GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o dist/stage/ ./cmd/... || exit 1; \
+	  for fmt in deb rpm; do \
+	    GOARCH=$$arch VERSION=$(PKG_VERSION) $(NFPM) package -f deploy/package/nfpm.yaml -p $$fmt -t dist/ || exit 1; \
+	  done; \
+	done; \
+	rm -rf dist/stage
 
 ee:
 	ansible-builder build -f ee/execution-environment.yml -t localhost/gaia/ee-default:dev

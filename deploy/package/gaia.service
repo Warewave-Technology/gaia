@@ -1,0 +1,47 @@
+# Gaia server (design 13.2). Configuration: /etc/gaia/gaia.env.
+[Unit]
+Description=Gaia server
+Documentation=https://github.com/Warewave-Technology/gaia
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gaia
+Group=gaia
+EnvironmentFile=/etc/gaia/gaia.env
+ExecStart=/usr/bin/gaia server $GAIA_SERVER_ARGS
+Restart=on-failure
+RestartSec=5s
+# gaia server --stop-timeout (5m) lets runs finish first.
+TimeoutStopSec=6min
+LimitNOFILE=65536
+
+# State: repository mirrors, Pulumi's CLI and plugins, podman's images.
+StateDirectory=gaia
+CacheDirectory=gaia
+RuntimeDirectory=gaia
+Environment=HOME=/var/lib/gaia XDG_CACHE_HOME=/var/cache XDG_RUNTIME_DIR=/run/gaia PULUMI_HOME=/var/lib/gaia/pulumi
+ExecStartPre=+/bin/sh -c 'chown gaia:gaia /run/gaia'
+
+# Hardening. Workers run Ansible in rootless podman, which needs the
+# setuid newuidmap: NoNewPrivileges stays off and system calls are not
+# filtered. An API-only server (--role=api) can turn both on in a drop-in.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gaia /var/cache/gaia /run/gaia
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictNamespaces=no
+LockPersonality=yes
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
