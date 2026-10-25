@@ -173,6 +173,9 @@ Gaia'nın omurgası (tasarım 7.6).
     - operatöre "yeniden uygula"
   - **Sağlık:** Gaia'nın bildiklerinden çıkarılır: son run, sunucu durumları ve açık drift. Canlı izleme verisi değildir.
   - **API:** kontrat listesine etiketler ve son uygulama eklendi. Detay artık `state` (sync, hata, uygulanan commit'ler, plan hash'i ve plan), etiketler ve açık Change'i de veriyor.
+- Tamam: Genel bakış.
+  - Durum paneli: sağlık ve sync sayıları, onayınızı bekleyenler, son 24 saatin başarısız run'ları.
+  - Onayınızı bekleyen değişiklikler en üstte, ardından kontrat kartları ve son run'lar.
 - Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
 
 ## Faz 6: Erişim yönetimi
