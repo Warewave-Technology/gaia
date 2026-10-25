@@ -176,6 +176,10 @@ func (s *ProviderSpec) validate() []string {
 		if s.Credentials == "" {
 			out = append(out, "credentials: required for type activedirectory (username, password; ca and server_name optional)")
 		}
+	case "nexus":
+		if u, err := url.Parse(s.Endpoint); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			out = append(out, fmt.Sprintf("endpoint: %q: want https://nexus", s.Endpoint))
+		}
 	case "warpgate":
 		if u, err := url.Parse(s.Endpoint); err != nil || u.Scheme != "https" || u.Host == "" {
 			out = append(out, fmt.Sprintf("endpoint: %q: want https://host:port", s.Endpoint))

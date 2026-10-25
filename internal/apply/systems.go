@@ -10,6 +10,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
+	"github.com/Warewave-Technology/gaia/internal/provider/nexus"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
 	"github.com/Warewave-Technology/gaia/internal/provider/vsphere"
 	"github.com/Warewave-Technology/gaia/internal/provider/warpgate"
@@ -35,6 +36,9 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		Monitor:     func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
 		Directory: func(ctx context.Context, c ad.Config) (Directory, error) {
 			return ad.Open(ctx, c)
+		},
+		Artifact: func(ctx context.Context, endpoint, username, password, repository, path string) (nexus.Asset, error) {
+			return nexus.New(endpoint, username, password).Asset(ctx, repository, path)
 		},
 		Bastion: func(endpoint, token string, insecure bool, ca []byte) (Bastion, error) {
 			return warpgate.New(endpoint, token, insecure, ca)

@@ -203,6 +203,9 @@ Tasarım 14.
 - Tamam: DNS A/PTR kayıtları (AD-integrated zone'lar, LDAP), ayrı yazma hesabı; Samba AD ile test.
 - Tamam: AD bilgisayar hesapları (OU'da önceden açma, tek kullanımlık parola, `gaia_domain_join` rolü, decommission'da silme); Linux katılımı Samba AD ile doğrulandı.
 - Tamam: Warpgate (Platform `bastion`): SSH/RDP hedefleri, `gaia/<kontrat>` rolleri ve üyeleri, host anahtarları; Warpgate 0.29.2 ile doğrulandı. Geliştirme ortamında `make dev-warpgate`.
+- Tamam: Nexus: App artifact'ı run öncesi aranır, SHA-256'sı playbook'a ve run kaydına gider. Gerçek Nexus ile doğrulama açık (Nexus CE EULA kabulü gerektiriyor).
+- Düzeltme: erişim run'ları ajanları ve App'leri de çalıştırıyordu; artık sadece erişim play'ini çalıştırır.
+- Açık soru: tasarımdaki "Nexus'ta kullanıcı ve grup atamaları" (14.4) hangi yetkiyi kime vereceği tanımlı olmadığı için yapılmadı.
 
 ## Faz 10: Yaşam döngüsü
 

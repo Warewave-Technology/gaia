@@ -445,6 +445,10 @@ spec:
 - **Zorunlu ajanlar:** `mandatory: true` olan ve `os`'u imajın işletim sistemini kapsayan Agent'lar, kontrat yazmasa da eklenir.
 - **App:** Config reposundaki playbook'u, `requires`'taki rollerin kontratta olmasını ister. Parametreleri ve kuralları rollerle aynı biçimdedir.
 - **App'in artifact'ı:** `artifact.path`'teki `${param}` değerleriyle Nexus adresine çevrilir ve playbook'a `gaia_app.artifact` olarak verilir.
+  - Run, sunuculara dokunmadan önce artifact'ı Nexus'ta arar (search API; bulamazsa dosyanın kendisine HEAD). Yoksa run `configure` aşamasında, hiçbir sunucu yapılandırılmadan durur.
+  - Nexus'un bildirdiği SHA-256 playbook'a `gaia_app.sha256` olarak verilir (playbook indirmeyi bununla doğrulayabilir) ve run kaydına yazılır. Checksum plana girmez: repo run başladığında okunur.
+  - Gaia Nexus'u provider'ın credentials'ı varsa onunla (`username`, `password`), yoksa anonim okur. Sunucunun indirmek için kimlik bilgisine ihtiyacı varsa bu, App'in `bao://` secret parametresi olarak verilir.
+  - Nexus 3.77 ve sonrası Community Edition, API'ye izin vermeden önce EULA kabulü ister. Bu yüzden istemci gerçek bir Nexus'a karşı değil, Nexus 3'ün REST API'sini taklit eden bir sunucuyla test edildi; gerçek Nexus doğrulaması açık.
 
 **Kontratta yazılmayan ama yine de uygulananlar**
 
