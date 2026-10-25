@@ -205,7 +205,10 @@ Gaia'nın omurgası (tasarım 7.6).
   - Passkey töreninin kendisi arayüz testlerinde (taklit edilmiş tarayıcı API'si) ve sunucunun sanal authenticator'lı Go testlerinde sınanıyor. Tarayıcı panelinde bir authenticator olmadığından elle denenmedi.
   - Denemede bulunan hata düzeltildi: passkey'i olmayan bir kişinin step-up isteği, AuthConfig `url`'i WebAuthn'ın kabul etmediği bir adres olduğunda (IP) 500 dönüyordu. Artık önce passkey olup olmadığına bakılıyor ve TOTP'ye geçiliyor.
 - Açık: provider'lar için sürekli bağlantı denetimi. Şimdilik durum, son keşfin cevabından geliyor.
-- Açık: YAML diff. API kontratın uygulanan ve yeni commit'teki dosya farkını henüz vermiyor; detay ekranında yerine ham plan gösteriliyor.
+- Tamam: YAML diff.
+  - Değişiklik ekranında, kontratın son uygulandığı commit'ten değişikliğin commit'ine Git'te değişenler gösterilir: kontrat, referans verdiği bütün katalog nesneleri, Policy ve Platform.
+  - Her nesne ayrı bir unified diff olarak gelir.
+  - API: `GET /api/v1/changes/{id}/diff`.
 
 ## Faz 6: Erişim yönetimi
 

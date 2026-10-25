@@ -38,6 +38,9 @@ beforeEach(() => {
     "POST /auth/step-up/begin": { body: { flow: "f1", options: { publicKey: { challenge: "abc", allowCredentials: [] } } } },
     "POST /auth/step-up/finish": { status: 204 },
     "POST /changes/ch1/approve": { body: { ...CHANGE, status: "approved" } },
+    "GET /changes/ch1/diff": { body: { from: "2eeece1aaaaaaaaaaaaaaa", to: "3f9c2e1aaaaaaaaaaaaaaa", objects: [
+      { kind: "Server", name: "poc-web", file: "contracts/poc-web.yaml", status: "modified", diff: "--- contracts/poc-web.yaml\n+++ contracts/poc-web.yaml\n@@ -3,3 +3,3 @@\n spec:\n-  replicas: 1\n+  replicas: 2\n" },
+    ] } },
   });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -56,6 +59,17 @@ describe("changes", () => {
     expect(screen.getByText("labtpoc02").closest("tr")).toHaveClass("added");
     expect(screen.getByText(/team-platform üyelerinden biri/)).toBeInTheDocument();
     expect(screen.getByText(/mehmet.y bu değişikliği onaylayamaz/)).toBeInTheDocument();
+  });
+
+  it("shows the YAML diff since the contract was applied", async () => {
+    renderAt("/changes/ch1");
+    fireEvent.click(await screen.findByRole("tab", { name: /YAML diff/ }));
+    const line = (t: string) => (_: string, el: Element | null) => el?.tagName === "SPAN" && el.textContent === t;
+    expect(await screen.findByText(line("-  replicas: 1"))).toHaveStyle({ color: "var(--red)" });
+    expect(screen.getByText(line("+  replicas: 2"))).toHaveStyle({ color: "var(--green)" });
+    expect(screen.queryByText(/^\+\+\+/)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Server\/poc-web/ })).toHaveAttribute("href", "/contracts/poc-web");
+    expect(screen.getByText("2eeece1")).toBeInTheDocument();
   });
 
   it("confirms with a passkey, then approves the plan it saw", async () => {

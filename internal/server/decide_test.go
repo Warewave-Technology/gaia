@@ -153,6 +153,18 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 	e.evaluate(en)
 	c2, _ := e.open("poc-web")
 	url = hs.URL + "/api/v1/changes/" + c2.ID
+	// The diff shows the contract's file as it changed since it was applied.
+	var diff ChangeDiff
+	if code := send(t, "GET", url+"/diff", ayse, nil, &diff); code != 200 || diff.From == "" || diff.To == "" || len(diff.Objects) != 1 {
+		t.Fatalf("diff: %d %+v", code, diff)
+	}
+	if o := diff.Objects[0]; o.Kind != "Server" || o.Name != "poc-web" || o.Status != "modified" || o.File != "contracts/poc-web.yaml" ||
+		!strings.Contains(o.Diff, "-") || !strings.Contains(o.Diff, "+") || !strings.Contains(o.Diff, "poc2") {
+		t.Errorf("contract diff = %+v", o)
+	}
+	if code := send(t, "GET", url+"/diff", e.token(a, "can", false), nil, nil); code != 403 {
+		t.Errorf("diff for someone who sees the name only: %d", code)
+	}
 	if code := send(t, "POST", url+"/reject", ayse, map[string]string{"planHash": c2.PlanHash, "comment": "not now"}, &out); code != 200 || out["status"] != change.Rejected {
 		t.Fatalf("reject: %d %v", code, out)
 	}
