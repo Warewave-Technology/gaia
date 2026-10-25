@@ -1234,7 +1234,7 @@ type AuthConfigSpec struct {
 // local accounts.
 type AuthProvider struct {
 	Name    string `yaml:"name" gaia:"required"`
-	Type    string `yaml:"type" gaia:"required"` // oidc | local
+	Type    string `yaml:"type" gaia:"required"` // ldap | local (oidc: kept, not offered)
 	Purpose string `yaml:"purpose"`              // local: break-glass
 	// OIDC
 	Issuer       string   `yaml:"issuer"`
@@ -1244,7 +1244,8 @@ type AuthProvider struct {
 	GroupsClaim  string   `yaml:"groupsClaim"` // teams from the token, when there is no directory
 	MFA          *OIDCMFA `yaml:"mfa"`
 	// Directory ties sign-ins to Active Directory accounts (design 14):
-	// teams and roles then come from AD, not from the token.
+	// teams and roles then come from AD, not from the token. An ldap
+	// provider checks the password against it (design 17.5).
 	Directory *AuthDirectory `yaml:"directory"`
 }
 
@@ -1310,6 +1311,12 @@ func (s *AuthConfigSpec) validate() []string {
 		switch p.Type {
 		case "local":
 			locals++
+		case "ldap":
+			// Sign-in with the directory password (design 17.5): the
+			// directory is an activedirectory Provider.
+			if p.Directory == nil || p.Directory.Provider == "" {
+				out = append(out, at+".directory.provider: required for ldap")
+			}
 		case "oidc":
 			u, err := url.Parse(p.Issuer)
 			localHTTP := err == nil && u.Scheme == "http" && isLoopbackHost(u.Hostname())
@@ -1326,7 +1333,7 @@ func (s *AuthConfigSpec) validate() []string {
 				out = append(out, fmt.Sprintf("%s.mfa.fallback: %q (local-passkey)", at, p.MFA.Fallback))
 			}
 		default:
-			out = append(out, fmt.Sprintf("%s.type: %q (oidc or local)", at, p.Type))
+			out = append(out, fmt.Sprintf("%s.type: %q (ldap or local)", at, p.Type))
 		}
 	}
 	if locals > 1 {

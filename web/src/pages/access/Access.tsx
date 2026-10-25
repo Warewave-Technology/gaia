@@ -10,6 +10,8 @@ import { Page } from "../../ui/shell";
 import { Tabs } from "../../ui/tabs";
 import { dash, ObjectTable, ObjectsError, Ref, type Col } from "../../ui/objects";
 import { AddButton } from "../../ui/settings-editor";
+import { hasRole, useSession } from "../../api/session";
+import { useUsers } from "../settings/Users";
 
 type Entry = { contract: string; group?: string; team?: string; sudo?: boolean; commands?: string[] };
 
@@ -30,6 +32,21 @@ const GROUP_COLS: Col[] = [
   { title: "Sahip", hint: "Grubun üyeliğini değiştirmeyi onaylayan takım.", cell: (o) => <Ref kind="Team" name={str(field(o.spec, "owner"))} /> },
   { title: "Ayrıcalıklı", hint: "Ayrıcalıklı bir gruba eklenen sudo, değişikliği platform-admin onayına götürür.", cell: (o) => (field(o.spec, "privileged") === true ? <Badge tone="orange" icon="shield">ayrıcalıklı</Badge> : dash) },
 ];
+
+function teamCols(members: Map<string, string[]> | null): Col[] {
+  const cols = [...TEAM_COLS];
+  if (members) {
+    cols.splice(1, 0, {
+      title: "Üyeler", hint: "Takımın Gaia'daki üyeleri: dizinden eşitlenenler ya da elle yazılanlar.",
+      cell: (o) => {
+        const xs = members.get(o.name) ?? [];
+        if (xs.length === 0) return dash;
+        return <span className="row" style={{ gap: 4 }} title={xs.join(", ")}>{xs.slice(0, 4).map((x) => <span key={x} className="badge gray" style={{ fontWeight: 500 }}><Icon name="user" size={12} />{x}</span>)}{xs.length > 4 && <span className="faint">+{xs.length - 4}</span>}</span>;
+      },
+    });
+  }
+  return cols;
+}
 
 const TEAM_COLS: Col[] = [
   { title: "Görünen ad", cell: (o) => str(field(o.spec, "displayName")) || dash },
@@ -88,6 +105,13 @@ const TABS = [
 export function Access() {
   const { tab = "" } = useParams();
   const q = useObjects(["Group", "Team"]);
+  const admin = hasRole(useSession(), "platform-admin");
+  const users = useUsers(admin && tab === "Team");
+  let members: Map<string, string[]> | null = null;
+  if (users.data) {
+    members = new Map();
+    for (const u of users.data) for (const t of u.teams) members.set(t, [...(members.get(t) ?? []), u.username]);
+  }
   const t = TABS.find((x) => x.tab === tab);
   if (!t) return <Navigate to="/access/contracts" replace />;
   const objs = (k: string) => (q.data?.objects ?? []).filter((o) => o.kind === k);
@@ -103,7 +127,7 @@ export function Access() {
         : q.error ? <ErrorNote error={q.error} />
         : tab === "Group"
           ? <ObjectTable kind="Group" title="Group'lar" hint="Erişim grupları: takımların (ve başka grupların) birleşimi. Kontratlar erişimi bunlara verir." cols={GROUP_COLS} objs={objs("Group")} right={<AddButton kind="Group" label="Group ekle" />} />
-          : <ObjectTable kind="Team" title="Takımlar" hint="Takımlar ve onaycıları. Bir TeamSource varsa dizindeki gruplardan üretilir." cols={TEAM_COLS} objs={objs("Team")} right={<AddButton kind="Team" label="Takım ekle" />} />}
+          : <ObjectTable kind="Team" title="Takımlar" hint="Takımlar ve onaycıları. Bir TeamSource varsa dizindeki gruplardan üretilir." cols={teamCols(members)} objs={objs("Team")} right={<AddButton kind="Team" label="Takım ekle" />} />}
     </Page>
   );
 }

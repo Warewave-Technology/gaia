@@ -801,6 +801,70 @@ paths:
       responses:
         "200": { description: Signed in }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/ldap:
+    post:
+      summary: Check a directory password; a pending sign-in then waits for Gaia's second factor (public; design 17.5)
+      operationId: ldapLogin
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [username, password], properties: { provider: { type: string }, username: { type: string }, password: { type: string }, next: { type: string } } } } } }
+      responses:
+        "200": { description: "Password checked; sets the gaia_pending cookie", content: { application/json: { schema: { $ref: "#/components/schemas/SecondFactor" } } } }
+        "401": { description: The username or password is wrong }
+        "403": { description: "Disabled in the directory, or not in a team Gaia knows" }
+        "502": { description: The directory did not answer }
+  /api/v1/auth/pending:
+    post:
+      summary: How a pending sign-in may finish (public; needs the gaia_pending cookie)
+      operationId: pendingState
+      security: []
+      responses:
+        "200": { description: Its second factors, content: { application/json: { schema: { $ref: "#/components/schemas/SecondFactor" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/pending/passkey/begin:
+    post:
+      summary: The passkey step of a pending sign-in; a first sign-in registers one (public; needs the gaia_pending cookie)
+      operationId: pendingPasskeyBegin
+      security: []
+      responses:
+        "200": { description: The ceremony, content: { application/json: { schema: { type: object, properties: { flow: { type: string }, options: { type: object }, register: { type: boolean } } } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/pending/passkey/finish:
+    post:
+      summary: Check the passkey and sign in (public; needs the gaia_pending cookie)
+      operationId: pendingPasskeyFinish
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, properties: { flow: { type: string }, name: { type: string }, credential: { type: object } } } } } }
+      responses:
+        "200": { description: "Signed in; recovery codes after a first passkey", content: { application/json: { schema: { type: object, properties: { next: { type: string }, recoveryCodes: { type: array, items: { type: string } } } } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/pending/totp:
+    post:
+      summary: Finish a pending sign-in with a TOTP code (public; require mfa)
+      operationId: pendingTOTP
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string } } } } } }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { type: object, properties: { next: { type: string } } } } } }
+        "401": { description: The code is wrong }
+        "409": { description: The account has no TOTP yet }
+  /api/v1/auth/pending/totp/begin:
+    post:
+      summary: A first sign-in's TOTP seed, for an account with no second factor (public; require mfa)
+      operationId: pendingTOTPBegin
+      security: []
+      responses:
+        "200": { description: The seed, content: { application/json: { schema: { type: object, properties: { secret: { type: string }, uri: { type: string } } } } } }
+        "409": { description: The account has a second factor already }
+  /api/v1/auth/pending/totp/finish:
+    post:
+      summary: Confirm the first TOTP with a code, sign in, get recovery codes (public; require mfa)
+      operationId: pendingTOTPFinish
+      security: []
+      requestBody: { content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string } } } } } }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { type: object, properties: { next: { type: string }, recoveryCodes: { type: array, items: { type: string } } } } } } }
+        "401": { description: The code is wrong }
+        "409": { description: Start the setup again }
   /api/v1/auth/enroll/totp/begin:
     post:
       summary: Make a TOTP seed for an enrolling account (public; require mfa)
@@ -1082,6 +1146,14 @@ paths:
       responses:
         "200": { description: Accounts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/User" } } } } }
         "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Open a local account and get its enrollment link; with a directory, a break-glass platform admin only (platform-admin; step-up)
+      operationId: createUser
+      requestBody: { content: { application/json: { schema: { type: object, required: [username], properties: { username: { type: string }, displayName: { type: string }, teams: { type: array, items: { type: string } }, breakGlass: { type: boolean } } } } } }
+      responses:
+        "201": { description: Opened, content: { application/json: { schema: { type: object, properties: { enrollUrl: { type: string } } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/v1/users/{id}/disable:
     post:
       summary: Disable an account and end its sessions (platform-admin)
@@ -1287,6 +1359,8 @@ components:
         provider: { type: string }
         enabled: { type: boolean }
         teams: { type: array, items: { type: string } }
+        directory: { type: boolean, description: From the directory; changed there }
+        breakGlass: { type: boolean, description: A local account while people sign in with the directory }
     Run:
       type: object
       required: [id, contracts, commit, planHash, status, queuedAt]
@@ -1359,6 +1433,13 @@ components:
         contentHash: { type: string }
         createdAt: { type: string, format: date-time }
         objects: { type: integer }
+    SecondFactor:
+      type: object
+      properties:
+        require: { type: string, enum: [passkey, mfa] }
+        username: { type: string }
+        passkey: { type: boolean, description: The account has a passkey }
+        totp: { type: boolean, description: The account has a TOTP }
     SettingsEdit:
       type: object
       description: "An object to add or change (yaml), or to remove (kind, name, delete)"

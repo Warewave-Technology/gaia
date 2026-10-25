@@ -187,7 +187,7 @@ func (b *browser) login() (int, map[string]any) {
 
 func (e *env) user(name string, teams ...string) (string, string) {
 	e.t.Helper()
-	link, err := e.auth.CreateLocalUser(context.Background(), name, "", teams)
+	link, err := e.auth.CreateLocalUser(context.Background(), name, "", teams, false)
 	if err != nil {
 		e.t.Fatal(err)
 	}

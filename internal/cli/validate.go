@@ -51,6 +51,12 @@ func settingsFiles(dir string) ([]catalog.File, error) {
 // graph loads and resolves the objects. It prints which commit was read
 // and, on problems, each of them; the error then carries their count.
 func (s *source) graph(out io.Writer) (*catalog.Graph, error) {
+	return s.graphWith(out, nil)
+}
+
+// graphWith is graph with the settings store's files, when Gaia keeps
+// its settings in the database.
+func (s *source) graphWith(out io.Writer, stored []catalog.File) (*catalog.Graph, error) {
 	all, commit, err := gitsrc.Load(s.repo, s.ref, s.paths)
 	if err != nil {
 		return nil, err
@@ -59,7 +65,12 @@ func (s *source) graph(out io.Writer) (*catalog.Graph, error) {
 		return nil, err
 	}
 	load := catalog.Load
-	if s.settings != "" {
+	if stored != nil {
+		if _, err := fmt.Fprintf(out, "settings from the database, %d files\n", len(stored)); err != nil {
+			return nil, err
+		}
+		all, load = append(all, stored...), catalog.LoadSplit
+	} else if s.settings != "" {
 		files, err := settingsFiles(s.settings)
 		if err != nil {
 			return nil, err

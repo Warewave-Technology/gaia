@@ -22,7 +22,7 @@
 | 13 | Ekran yapısı: Katalog, Altyapı, Operasyonlar, Erişim, Ayarlar | 5 | **Tamam** |
 | 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | **Tamam** |
 | 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | **Tamam** |
-| 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | – |
+| 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | **Tamam** |
 | 17 | Denetim kaydının tamamı ve ekranı | 14–16 | – |
 | 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | – |
 
@@ -391,7 +391,21 @@ Yapılanlar:
   - Ayarlar ve Altyapı'da düzenleme modalı: form ve YAML görünümü, doğrulama hataları ve etki listesi.
   - Değişiklikler'de ayar önerileri, kontrat Change'leriyle birlikte; detay, onay ve red.
 
-### Faz 16: Kimlik
+### Faz 16: Kimlik — Tamam
+Yapılanlar:
+- **LDAP girişi:** AuthConfig'te `type: ldap`. `ad.Authenticate` hesabı Gaia'nın okuma hesabıyla bulur, ardından kişi olarak bind eder; dizinde kapalı hesap giremez. Kişi, Gaia'nın bildiği bir takımda değilse giremez.
+- **İkinci adım:** Parolanın ardından gelen bekleyen oturum, passkey ya da `require: mfa` ise TOTP ile biter. İlk girişte passkey veya TOTP orada kaydedilir; bunun için `/auth/pending`, `/auth/pending/passkey/*` ve `/auth/pending/totp[/begin|/finish]` uçları eklendi. Kurulu bir ikinci adımın üzerine yenisi kurulamaz.
+- **Hesaplar:**
+  - Dizin varken yerel hesap sadece break-glass olarak açılır (`gaia user add --break-glass`, `POST /users`) ve platform-admin olmak zorundadır.
+  - Dizin hesapları Gaia'dan kapatılıp açılamaz.
+  - OIDC giriş sayfasında ve ayarlarda sunulmuyor.
+- **Ekranlar:** Ayarlar → Kullanıcılar (dizin hesapları salt okunur; break-glass açma, kapatma, yeniden kayıt), Kimlik doğrulama özeti, Erişim → Takımlar'da üyeler. Giriş sayfasında dizin formu ve ikinci adım; yerel parola formu "Break-glass hesabıyla giriş" altında.
+- **Denetim kaydı:** Başarılı ve reddedilen girişler (`auth.login`), TOTP kaydı, `user.create`, `user.disable`, `user.enable` ve `user.enroll`.
+- **CLI:** `gaia user`, AuthConfig'i ayar deposundan okur.
+- **Source çıktıları:** Ayar deposuna yazılması Faz 14'te yapıldı.
+- **Testler:** Samba AD'ye karşı yanlış parola, kapalı hesap, bilinmeyen kişi, TOTP ile ilk ve sonraki giriş, passkey ile ilk giriş ve break-glass kuralı.
+
+İlk plan:
 - **LDAP girişi:**
   - Kullanıcı adı ve dizin parolasıyla giriş: dizinde arama, ardından kişinin hesabıyla bind.
   - Ardından ikinci faktör: passkey ya da `require: mfa` ise TOTP. İlk girişte kayıt.
