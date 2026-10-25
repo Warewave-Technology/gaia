@@ -288,7 +288,7 @@ func (e *Engine) granted(ctx context.Context, contract string, p *plan.Plan) ([]
 	var out []plan.Access
 	for _, a := range now {
 		b, ok := before[a.Via]
-		if !ok || b.Sudo != a.Sudo && a.Sudo || !subset(a.Teams, b.Teams) {
+		if !ok || b.Sudo != a.Sudo && a.Sudo || !b.Sudo && !subset(a.SudoCommands, b.SudoCommands) || !subset(a.Teams, b.Teams) {
 			out = append(out, a)
 		}
 	}

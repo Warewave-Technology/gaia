@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"net/url"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -962,7 +963,65 @@ type AppRef struct {
 type Access struct {
 	Group string `yaml:"group"`
 	Team  string `yaml:"team"`
-	Sudo  bool   `yaml:"sudo"`
+	Sudo  Sudo   `yaml:"sudo"`
+}
+
+// Sudo is what an access entry may run as root: everything (sudo: true)
+// or only the listed commands (sudo: [/usr/bin/systemctl restart nginx]).
+type Sudo struct {
+	All      bool
+	Commands []string
+}
+
+// Any reports whether it gives any sudo.
+func (s Sudo) Any() bool { return s.All || len(s.Commands) > 0 }
+
+func (s *Sudo) UnmarshalYAML(n *yaml.Node) error {
+	switch n.Kind {
+	case yaml.ScalarNode:
+		if n.Tag == "!!null" {
+			*s = Sudo{}
+			return nil
+		}
+		var b bool
+		if err := n.Decode(&b); err != nil {
+			return fmt.Errorf("line %d: sudo: true, false or a list of commands", n.Line)
+		}
+		*s = Sudo{All: b}
+		return nil
+	case yaml.SequenceNode:
+		var cmds []string
+		if err := n.Decode(&cmds); err != nil {
+			return fmt.Errorf("line %d: sudo: a list of commands", n.Line)
+		}
+		*s = Sudo{Commands: cmds}
+		return nil
+	}
+	return fmt.Errorf("line %d: sudo: true, false or a list of commands", n.Line)
+}
+
+func (s Sudo) MarshalYAML() (any, error) {
+	if len(s.Commands) > 0 {
+		return s.Commands, nil
+	}
+	return s.All, nil
+}
+
+// sudoCommand is a command line sudoers takes as written: an absolute
+// path and plain arguments, none of sudoers' separators, wildcards or
+// negation, and not ALL.
+var sudoCommand = regexp.MustCompile(`^/[A-Za-z0-9._/+-]+( [A-Za-z0-9._/@+%-]+)*$`)
+
+func validSudoCommand(c string) bool {
+	if !sudoCommand.MatchString(c) {
+		return false
+	}
+	for _, w := range strings.Fields(c) {
+		if w == "ALL" || w == "sudoedit" || strings.HasSuffix(w, "/sudoedit") {
+			return false
+		}
+	}
+	return true
 }
 
 type Placement struct {
@@ -1018,6 +1077,16 @@ func (s *ServerSpec) validateAccess() []string {
 			out = append(out, at+": listed twice")
 		}
 		seen[k] = true
+		cmds := map[string]bool{}
+		for j, c := range a.Sudo.Commands {
+			switch {
+			case !validSudoCommand(c):
+				out = append(out, fmt.Sprintf("%s.sudo[%d]: %q is not a plain command: an absolute path and arguments, without , : = \\ * ? ! or ALL", at, j, c))
+			case cmds[c]:
+				out = append(out, fmt.Sprintf("%s.sudo[%d]: %q listed twice", at, j, c))
+			}
+			cmds[c] = true
+		}
 	}
 	return out
 }

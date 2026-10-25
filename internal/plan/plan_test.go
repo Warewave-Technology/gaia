@@ -426,3 +426,44 @@ func TestAdoptionRules(t *testing.T) {
 		t.Errorf("another hypervisor: %v", err)
 	}
 }
+
+func TestPlanSudoCommands(t *testing.T) {
+	wg := "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: wg }\nspec: { type: warpgate, endpoint: \"https://wg:8888\", credentials: bao://kv/wg }\n"
+	platform := strings.Replace(readLab(t, "platform/platform.yaml"), "\nspec:\n", "\nspec:\n  bastion: { provider: wg }\n", 1)
+	team := "apiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+	with := func(sudo string) []string {
+		c := strings.Replace(readLab(t, "contracts/poc-web.yaml"), "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { team: team-platform, sudo: "+sudo+" }\n", 1)
+		return []string{"platform/providers/wg.yaml", wg, "platform/platform.yaml", platform, "platform/catalog/team.yaml", team, "contracts/poc-web.yaml", c}
+	}
+	p := build(t, nil, with(`["/usr/bin/systemctl restart nginx", "/usr/bin/systemctl restart podman"]`)...)
+	a := p.Contracts[0].Access[0]
+	if a.Sudo || strings.Join(a.SudoCommands, "|") != "/usr/bin/systemctl restart nginx|/usr/bin/systemctl restart podman" {
+		t.Errorf("access = %+v", a)
+	}
+	// Limited sudo is no sudo target on the bastion.
+	if b := p.Contracts[0].Bastion; b == nil || b.Sudo {
+		t.Errorf("bastion = %+v", b)
+	}
+	var b bytes.Buffer
+	_ = WriteText(&b, p)
+	if want := "team/team-platform: team-platform [sudo: /usr/bin/systemctl restart nginx, /usr/bin/systemctl restart podman]"; !strings.Contains(b.String(), want) {
+		t.Errorf("output lacks %q:\n%s", want, b.String())
+	}
+	if full := build(t, nil, with("true")...); full.Hash == p.Hash || !full.Contracts[0].Access[0].Sudo {
+		t.Error("the commands do not change the plan")
+	}
+	for sudo, want := range map[string]string{
+		`["systemctl restart nginx"]`:               "is not a plain command",
+		`["/usr/bin/systemctl restart nginx, ALL"]`: "is not a plain command",
+		`["/usr/bin/su ALL"]`:                       "is not a plain command",
+		`["/usr/bin/vi /etc/*"]`:                    "is not a plain command",
+		`["/usr/bin/sudoedit /etc/hosts"]`:          "is not a plain command",
+		`["/usr/bin/x", "/usr/bin/x"]`:              "listed twice",
+		`"yes please"`:                              "true, false or a list of commands",
+	} {
+		// Invalid sudo does not load.
+		if _, err := catalog.Load("c0ffee1234567890", labFiles(t, with(sudo)...)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("sudo: %s: %v", sudo, err)
+		}
+	}
+}

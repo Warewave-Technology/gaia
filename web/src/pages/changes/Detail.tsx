@@ -6,10 +6,10 @@ import { api, ApiError } from "../../api/client";
 import { useSession } from "../../api/session";
 import type { ApprovalGroup, Change, Commit, Gate } from "../../api/types";
 import { Icon, type IconName } from "../../ui/icons";
-import { Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, shortLabel, StatusBar, type StatusItem } from "../../ui/parts";
+import { Badge, Button, Card, ErrorNote, Hint, IL, Leg, LinkButton, Loading, Mono, short, shortLabel, StatusBar, type StatusItem } from "../../ui/parts";
 import { Page } from "../../ui/shell";
 import { ChangeBadge, ChangeStatusLegend, PLAN_ACTION, PlanLegend, Sync, SyncLegend } from "../../ui/status";
-import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan } from "../../lib/plan";
+import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan, type PlanAccess } from "../../lib/plan";
 import { decide, stepUp, stepUpTOTP } from "../../lib/stepup";
 import { YamlDiff } from "./Diff";
 import { clock } from "../../lib/time";
@@ -288,12 +288,45 @@ function PlanView({ plan }: { plan: Plan }) {
           })}
         </tbody>
       </table>
+      {contract?.access && contract.access.length > 0 && <AccessView access={contract.access} />}
       {contract && (
         <div className="row muted" style={{ gap: "6px 16px" }}>
           {contract.monitoring && <span className="il" style={{ fontWeight: 400 }}><Icon name="activity" size={14} />İzleme: {contract.monitoring.provider}{contract.monitoring.templates?.length ? ` · ${contract.monitoring.templates.join(", ")}` : ""}</span>}
           {contract.baseline && <span className="il" style={{ fontWeight: 400 }}><Icon name="layers" size={14} />Konfigürasyon: baseline {baselineName(contract)}{contract.roles?.length ? ` + ${contract.roles.map((r) => r.name).join(", ")}` : ""}</span>}
         </div>
       )}
+    </div>
+  );
+}
+
+function AccessView({ access }: { access: PlanAccess[] }) {
+  return (
+    <div>
+      <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}><Icon name="user" size={14} />Erişim
+        <Hint width={300}>Sunuculara kimin girebildiği. Kişiler takımlardan gelir; kullanıcı adları Git'e girmez.
+          <Leg icon="key" color="var(--red)" name="tam sudo">her komutu root olarak çalıştırabilir</Leg>
+          <Leg icon="key" color="var(--yellow)" name="sınırlı sudo">sadece listelenen komutları</Leg>
+          <Leg icon="user" color="var(--fg4)" name="sudo yok">sadece giriş</Leg></Hint></div>
+      <table className="grid">
+        <thead><tr><th>Kim</th><th>Takımlar</th><th>Sudo</th></tr></thead>
+        <tbody>
+          {access.map((a) => (
+            <tr key={a.via}>
+              <td className="nowrap"><span className="mono">{a.via}</span>{a.privileged && <> <Badge tone="orange">ayrıcalıklı</Badge></>}</td>
+              <td>{a.teams.join(", ")}</td>
+              <td>
+                {a.sudo ? <IL icon="key" color="var(--red)" size={14}>tam sudo</IL>
+                  : a.sudoCommands?.length ? (
+                    <span>
+                      <IL icon="key" color="var(--yellow)" size={14}>sınırlı sudo</IL>
+                      <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{a.sudoCommands.map((c) => <li key={c} className="mono">{c}</li>)}</ul>
+                    </span>
+                  ) : <span className="muted">yok</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

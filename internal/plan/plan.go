@@ -147,11 +147,14 @@ type ArtifactSource struct {
 
 // Access is one access entry of a contract.
 type Access struct {
-	Via        string   `json:"via"` // group/<name> or team/<name>
-	Teams      []string `json:"teams"`
-	Sudo       bool     `json:"sudo,omitempty"`
-	Privileged bool     `json:"privileged,omitempty"`
-	Owner      string   `json:"owner,omitempty"` // the group's owner team
+	Via   string   `json:"via"` // group/<name> or team/<name>
+	Teams []string `json:"teams"`
+	Sudo  bool     `json:"sudo,omitempty"` // every command
+	// SudoCommands are the only commands it may run as root, when Sudo is
+	// not set.
+	SudoCommands []string `json:"sudoCommands,omitempty"`
+	Privileged   bool     `json:"privileged,omitempty"`
+	Owner        string   `json:"owner,omitempty"` // the group's owner team
 }
 
 // Monitoring is where the contract's servers are registered and with
@@ -535,7 +538,7 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 	}
 	for _, a := range s.Access {
 		if a.Team != "" {
-			c.Access = append(c.Access, Access{Via: "team/" + a.Team, Teams: []string{a.Team}, Sudo: a.Sudo})
+			c.Access = append(c.Access, Access{Via: "team/" + a.Team, Teams: []string{a.Team}, Sudo: a.Sudo.All, SudoCommands: a.Sudo.Commands})
 			continue
 		}
 		teams, privileged := g.GroupTeams(a.Group)
@@ -543,7 +546,7 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 		if o, ok := g.Catalog.Get(catalog.KindGroup, a.Group); ok {
 			owner = o.Spec.(*catalog.GroupSpec).Owner
 		}
-		c.Access = append(c.Access, Access{Via: "group/" + a.Group, Teams: teams, Sudo: a.Sudo, Privileged: privileged, Owner: owner})
+		c.Access = append(c.Access, Access{Via: "group/" + a.Group, Teams: teams, Sudo: a.Sudo.All, SudoCommands: a.Sudo.Commands, Privileged: privileged, Owner: owner})
 	}
 	if b := g.Platform().Spec.(*catalog.PlatformSpec).Bastion; b != nil && len(c.Access) > 0 {
 		c.Bastion = &Bastion{Provider: b.Provider, Kind: "ssh"}

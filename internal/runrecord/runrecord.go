@@ -46,6 +46,8 @@ type AccessGrant struct {
 	Teams    []string `json:"teams"`
 	Users    []string `json:"users"`
 	Sudo     bool     `json:"sudo,omitempty"`
+	// SudoCommands are the commands it gave, when not every command.
+	SudoCommands []string `json:"sudoCommands,omitempty"`
 }
 
 // Source is where the contracts came from.
