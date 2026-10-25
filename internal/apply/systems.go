@@ -23,6 +23,7 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		UsedVMIDs: func(ctx context.Context, c proxmox.Credentials) (map[int]bool, error) {
 			return proxmox.New(c).UsedVMIDs(ctx)
 		},
+		ScanHostKey: ScanHostKey,
 		Snapshot: func(ctx context.Context, c proxmox.Credentials, vmid int, name, description string) error {
 			return proxmox.New(c).Snapshot(ctx, vmid, name, description)
 		},

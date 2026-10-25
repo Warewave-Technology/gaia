@@ -65,6 +65,15 @@ func (q *Queries) DeleteExternalIDs(ctx context.Context, uid string) error {
 	return err
 }
 
+const deleteHostKeys = `-- name: DeleteHostKeys :exec
+delete from host_keys where uid = $1
+`
+
+func (q *Queries) DeleteHostKeys(ctx context.Context, uid string) error {
+	_, err := q.db.Exec(ctx, deleteHostKeys, uid)
+	return err
+}
+
 const externalIDs = `-- name: ExternalIDs :many
 select uid, provider, kind, external_id from host_external_ids where uid = $1 order by provider, kind
 `
@@ -179,6 +188,35 @@ func (q *Queries) HostByExternalID(ctx context.Context, arg HostByExternalIDPara
 	return uid, err
 }
 
+const hostKeys = `-- name: HostKeys :many
+select uid, key_type, public_key, recorded_at from host_keys where uid = $1 order by key_type
+`
+
+func (q *Queries) HostKeys(ctx context.Context, uid string) ([]HostKey, error) {
+	rows, err := q.db.Query(ctx, hostKeys, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HostKey
+	for rows.Next() {
+		var i HostKey
+		if err := rows.Scan(
+			&i.Uid,
+			&i.KeyType,
+			&i.PublicKey,
+			&i.RecordedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertHost = `-- name: InsertHost :exec
 insert into hosts (uid, contract, hostname, site, network, seq, status, created_run)
 values ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -288,6 +326,22 @@ func (q *Queries) SetExternalID(ctx context.Context, arg SetExternalIDParams) er
 		arg.Kind,
 		arg.ExternalID,
 	)
+	return err
+}
+
+const setHostKey = `-- name: SetHostKey :exec
+insert into host_keys (uid, key_type, public_key) values ($1, $2, $3)
+on conflict (uid, key_type) do update set public_key = excluded.public_key, recorded_at = now()
+`
+
+type SetHostKeyParams struct {
+	Uid       string
+	KeyType   string
+	PublicKey string
+}
+
+func (q *Queries) SetHostKey(ctx context.Context, arg SetHostKeyParams) error {
+	_, err := q.db.Exec(ctx, setHostKey, arg.Uid, arg.KeyType, arg.PublicKey)
 	return err
 }
 

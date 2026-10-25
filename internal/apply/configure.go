@@ -137,11 +137,19 @@ func (r *runner) configure(ctx context.Context, c plan.Contract, contract *catal
 		hosts = append(hosts, ansible.Host{Name: t.s.UID, Address: t.address, Vars: r.hostVars(c, contract, t.s)})
 	}
 	sort.Slice(hosts, func(i, j int) bool { return names[hosts[i].Name] < names[hosts[j].Name] })
+	addrs := map[string]string{}
+	for _, t := range targets {
+		addrs[t.s.UID] = t.address
+	}
+	known, err := r.knownHosts(ctx, addrs)
+	if err != nil {
+		return err
+	}
 
 	cfg := r.cfg
 	job := ansible.Job{
 		Name: "gaia-" + r.run + "-" + c.Name, Image: cfg.image, Playbook: sitePlaybook,
-		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout, Secrets: secrets,
+		Hosts: hosts, User: cfg.user, SSHKey: cfg.sshKey, Forks: cfg.forks, Timeout: cfg.timeout, Secrets: secrets, KnownHosts: known,
 		Project: func(dir string) error {
 			if _, err := gitsrc.Export(cfg.repo, cfg.commit, cfg.dir, dir); err != nil {
 				return err

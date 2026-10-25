@@ -1660,6 +1660,13 @@ access:
 - Anahtarlar Git'te tutulmaz: Git'e kullanıcı adı girmez (14.2) ve imza anahtarlarında olduğu gibi anahtarın sahibi Gaia'daki hesaptır.
 - AD'de etkin olmayan bir kullanıcının anahtarı dağıtılmaz.
 
+**Host anahtarları:**
+- Gaia bir sunucuya ilk ulaştığında (oluşturulduktan hemen sonra, kendi ağı üzerinden) sunucunun sunduğu SSH host anahtarını kaydeder. Sırayla ed25519, ecdsa, rsa denenir; giriş yapmadan, anahtar değişiminden sonra el sıkışma kesilir.
+- O andan sonra Ansible host anahtarı kontrolüyle çalışır: `StrictHostKeyChecking=yes`, sadece Gaia'nın kaydettiği anahtarlar.
+- Anahtarı değişen bir sunucu run'ı başarısız yapar.
+- Bu sürümden önce kurulmuş sunucuların anahtarı ilk temasta kaydedilir.
+- cloud-init'in `phone_home`'u ya da konsoldan okuma özel user-data veya hipervizöre özgü erişim gerektirdiği için tercih edilmedi.
+
 **Linux'ta dağıtım:** Gaia, kendi içinde taşıdığı `gaia_access` Ansible rolünü run'ın configure adımında, kontratın baseline ve rollerinden sonra çalıştırır. Rol config reposunun parçası değildir.
 - Erişimin takımlarındaki etkin üyeler `gaia-users` grubunda yerel hesap olarak açılır.
 - `authorized_keys` tam olarak Gaia'daki anahtarlardır.
@@ -1792,3 +1799,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | SSH giriş anahtarları Git'te değil Gaia profilinde (kullanıcı adları Git'e girmez); Linux erişimi Gaia'nın gömülü `gaia_access` rolüyle; çıkarılan hesap silinmez, süresi doldurulur |
 | 2026-10-25 | Zabbix'te erişim takım başına `Gaia/<takım>` kullanıcı grubu, sadece kontratların kendi host grubuna (`Gaia/contract/<ad>`) hak; Gaia Zabbix kullanıcısı açmaz |
 | 2026-10-25 | Secret parametre değeri planda ve kayıtta değil, sadece run'da; referans `bao://<yol>#<alan>`; `no_log` parametreye kontratta düz değer yazılamaz |
+| 2026-10-25 | Host anahtarları ilk temasta Gaia tarafından kaydedilir, sonra Ansible sıkı host key kontrolüyle çalışır (phone_home/konsol yerine) |

@@ -2,6 +2,8 @@ package apply
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +17,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
@@ -268,6 +272,12 @@ func setup(t *testing.T) *env {
 		Provision: e.compute.provision,
 		UsedVMIDs: e.compute.used,
 		Configure: e.configure,
+		ScanHostKey: func(_ context.Context, addr, alg string) (ssh.PublicKey, error) {
+			if alg != ssh.KeyAlgoED25519 {
+				return nil, fmt.Errorf("no %s", alg)
+			}
+			return testHostKey(addr), nil
+		},
 		Monitor: func(endpoint, token string) Monitor {
 			e.monitor.endpoint, e.monitor.token = endpoint, token
 			return e.monitor
@@ -609,6 +619,12 @@ func TestApplyConfiguresServers(t *testing.T) {
 	}}
 	if len(j.Hosts) != 1 || !reflect.DeepEqual(j.Hosts[0], wantHost) {
 		t.Errorf("hosts\n got %+v\nwant %+v", j.Hosts, wantHost)
+	}
+	// The new server's host key is recorded and checked from then on.
+	hk, _ := q.HostKeys(ctx, uid)
+	wantKey := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(testHostKey("10.50.0.100"))))
+	if len(hk) != 1 || hk[0].PublicKey != wantKey || j.KnownHosts != "10.50.0.100 "+wantKey+"\n" {
+		t.Errorf("host keys %+v, known hosts %q", hk, j.KnownHosts)
 	}
 	proj := e.configure.projects[0]
 	if proj["baseline/linux.yml"] != "- hosts: all" || proj["roles/gaia_linux_base/tasks/main.yml"] == "" {
@@ -1131,4 +1147,11 @@ spec:
 	if out.Status != "failed" || !strings.Contains(out.Results[0].Detail, "storage full") || len(e.configure.jobs) != jobs {
 		t.Errorf("after a failed snapshot: %+v, %d jobs", out, len(e.configure.jobs)-jobs)
 	}
+}
+
+// testHostKey is a server's host key in tests, derived from its address.
+func testHostKey(addr string) ssh.PublicKey {
+	seed := sha256.Sum256([]byte(addr))
+	k, _ := ssh.NewPublicKey(ed25519.NewKeyFromSeed(seed[:]).Public())
+	return k
 }
