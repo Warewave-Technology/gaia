@@ -304,3 +304,25 @@ func TestPlanDomain(t *testing.T) {
 		t.Errorf("long name: %v", err)
 	}
 }
+
+func TestPlanBastion(t *testing.T) {
+	wg := "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: wg }\nspec: { type: warpgate, endpoint: \"https://wg:8888\", credentials: bao://kv/wg }\n"
+	platform := strings.Replace(readLab(t, "platform/platform.yaml"), "\nspec:\n", "\nspec:\n  bastion: { provider: wg }\n", 1)
+	team := "apiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+	contract := strings.Replace(readLab(t, "contracts/poc-web.yaml"), "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { team: team-platform, sudo: true }\n", 1)
+	p := build(t, nil, "platform/providers/wg.yaml", wg, "platform/platform.yaml", platform, "platform/catalog/team.yaml", team, "contracts/poc-web.yaml", contract)
+	if b := p.Contracts[0].Bastion; b == nil || *b != (Bastion{Provider: "wg", Kind: "ssh", Sudo: true}) {
+		t.Errorf("bastion = %+v", b)
+	}
+	var b bytes.Buffer
+	_ = WriteText(&b, p)
+	for _, want := range []string{"through wg: SSH targets and sudo, roles gaia/poc-web", "bastion    +1 =0 (wg)"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("output lacks %q:\n%s", want, b.String())
+		}
+	}
+	// Without access there is nothing to reach the servers for.
+	if p := build(t, nil, "platform/providers/wg.yaml", wg, "platform/platform.yaml", platform); p.Contracts[0].Bastion != nil {
+		t.Errorf("bastion without access = %+v", p.Contracts[0].Bastion)
+	}
+}

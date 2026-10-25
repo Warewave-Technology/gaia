@@ -46,6 +46,26 @@ type Contract struct {
 	// to it is a change to the contract, approved like any. The people
 	// in the teams are not part of the plan; they come from AD.
 	Access []Access `json:"access,omitempty"`
+	// Bastion is how the access reaches the servers, when the Platform
+	// has a bastion and the contract has access.
+	Bastion *Bastion `json:"bastion,omitempty"`
+}
+
+// Bastion is a contract's servers in Warpgate: one target each, SSH or,
+// for Windows, RDP; with Sudo a second SSH target that logs in with sudo.
+type Bastion struct {
+	Provider string `json:"provider"`
+	Kind     string `json:"kind"` // ssh | rdp
+	Sudo     bool   `json:"sudo,omitempty"`
+}
+
+// BastionRole is the Warpgate role of a contract's access; sudo is the
+// role of its sudo targets.
+func BastionRole(contract string, sudo bool) string {
+	if sudo {
+		return "gaia/" + contract + "/sudo"
+	}
+	return "gaia/" + contract
 }
 
 // ContractHostGroup is the monitoring host group of a contract's servers
@@ -396,6 +416,15 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			owner = o.Spec.(*catalog.GroupSpec).Owner
 		}
 		c.Access = append(c.Access, Access{Via: "group/" + a.Group, Teams: teams, Sudo: a.Sudo, Privileged: privileged, Owner: owner})
+	}
+	if b := g.Platform().Spec.(*catalog.PlatformSpec).Bastion; b != nil && len(c.Access) > 0 {
+		c.Bastion = &Bastion{Provider: b.Provider, Kind: "ssh"}
+		if img.OS == "windows" {
+			c.Bastion.Kind = "rdp"
+		}
+		for _, a := range c.Access {
+			c.Bastion.Sudo = c.Bastion.Sudo || (a.Sudo && c.Bastion.Kind == "ssh")
+		}
 	}
 	if m := g.Platform().Spec.(*catalog.PlatformSpec).Monitoring; m != nil {
 		if c.Monitoring, err = monitoring(g, m, img, s); err != nil {

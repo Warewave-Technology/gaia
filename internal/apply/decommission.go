@@ -28,10 +28,12 @@ type doomed struct {
 	dnsPTR  map[string]string // DNS provider -> the PTR record's name
 	// computers are its computer accounts: directory -> GUID.
 	computers map[string]string
+	// bastion are its Warpgate targets: provider -> kind -> target ID.
+	bastion map[string]map[string]string
 }
 
 func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
-	d := doomed{s: s, monitor: map[string]string{}, dnsA: map[string]string{}, dnsPTR: map[string]string{}, computers: map[string]string{}}
+	d := doomed{s: s, monitor: map[string]string{}, dnsA: map[string]string{}, dnsPTR: map[string]string{}, computers: map[string]string{}, bastion: map[string]map[string]string{}}
 	ids, err := r.d.Store.Q().ExternalIDs(ctx, s.UID)
 	if err != nil {
 		return d, err
@@ -57,6 +59,11 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 			d.dnsPTR[e.Provider] = e.ExternalID
 		case "computer":
 			d.computers[e.Provider] = e.ExternalID
+		case "target", "target-sudo":
+			if d.bastion[e.Provider] == nil {
+				d.bastion[e.Provider] = map[string]string{}
+			}
+			d.bastion[e.Provider][e.Kind] = e.ExternalID
 		}
 	}
 	if err := r.d.Store.Q().SetHostStatus(ctx, db.SetHostStatusParams{Uid: s.UID, Status: db.HostStatusDecommissioning}); err != nil {
@@ -66,9 +73,9 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 	return d, nil
 }
 
-// unregister removes the doomed servers' DNS records and computer
-// accounts, and removes them from monitoring with their history (design
-// 9.3).
+// unregister removes the doomed servers' DNS records, computer accounts
+// and bastion targets, and removes them from monitoring with their
+// history (design 9.3).
 func (r *runner) unregister(ctx context.Context, c plan.Contract, gone []doomed) error {
 	for _, d := range gone {
 		if err := r.unregisterDNS(ctx, c, d); err != nil {
@@ -76,6 +83,22 @@ func (r *runner) unregister(ctx context.Context, c plan.Contract, gone []doomed)
 		}
 		if err := r.deleteComputers(ctx, c, d); err != nil {
 			return err
+		}
+		for provider, ids := range d.bastion {
+			for kind, id := range ids {
+				if err := r.deleteTarget(ctx, c, d.s, provider, kind, id); err != nil {
+					return err
+				}
+			}
+			if d.ip != "" {
+				wg, err := r.bastion(ctx, provider)
+				if err != nil {
+					return err
+				}
+				if _, err := wg.SetHostKeys(ctx, d.ip, 22, nil); err != nil {
+					return fmt.Errorf("%s: %w", d.s.Hostname, err)
+				}
+			}
 		}
 		for provider, hostID := range d.monitor {
 			m, err := r.monitor(ctx, provider)

@@ -736,3 +736,10 @@ func TestNetworkDomain(t *testing.T) {
 	wantError(t, resolveErrors(t, with(adProvider, "{ provider: corp-ad, ou: \"OU=Servers,DC=gaia,DC=dev\" }")), "Network/lab-app",
 		`spec.domain.provider: Provider "corp-ad" has no writeCredentials`)
 }
+
+func TestWarpgateProvider(t *testing.T) {
+	bad := "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: wg }\nspec: { type: warpgate, endpoint: \"http://wg\" }\n"
+	errs := loadErrors(t, catalogWith(t, "wg.yaml", "", bad))
+	wantError(t, errs, `endpoint: "http://wg": want https://host:port`)
+	wantError(t, errs, "credentials: required for type warpgate")
+}

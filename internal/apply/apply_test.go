@@ -16,6 +16,7 @@ import (
 	"reflect"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	ipamclient "github.com/Warewave-Technology/gaia/internal/provider/ipam"
 	"github.com/Warewave-Technology/gaia/internal/provider/proxmox"
+	"github.com/Warewave-Technology/gaia/internal/provider/warpgate"
 	"github.com/Warewave-Technology/gaia/internal/provider/zabbix"
 	"github.com/Warewave-Technology/gaia/internal/runrecord"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -1222,6 +1224,194 @@ func TestApplyDistributesAccess(t *testing.T) {
 	_ = json.Unmarshal([]byte(rec.Body), &body)
 	if len(body.AccessSnapshot) != 1 || strings.Join(body.AccessSnapshot[0].Users, ",") != "ayse,mehmet" || !body.AccessSnapshot[0].Sudo {
 		t.Errorf("access snapshot = %+v", body.AccessSnapshot)
+	}
+}
+
+// fakeBastion is Warpgate: targets by ID, roles with their users.
+type fakeBastion struct {
+	targets     map[string]warpgate.Target
+	targetRoles map[string][]string
+	roles       map[string]string // name -> ID
+	roleUsers   map[string][]string
+	users       []warpgate.User
+	hostKeys    map[string][]ssh.PublicKey
+}
+
+func newFakeBastion() *fakeBastion {
+	return &fakeBastion{targets: map[string]warpgate.Target{}, targetRoles: map[string][]string{}, roles: map[string]string{},
+		roleUsers: map[string][]string{}, hostKeys: map[string][]ssh.PublicKey{},
+		users: []warpgate.User{{ID: "w-ayse", Username: "ayse"}, {ID: "w-admin", Username: "admin"}}}
+}
+
+func (f *fakeBastion) EnsureTarget(_ context.Context, t warpgate.Target, id, mark string) (warpgate.Result, error) {
+	if _, ok := f.targets[id]; !ok {
+		id = ""
+		for k, x := range f.targets {
+			if x.Name == t.Name {
+				if !strings.Contains(x.Description, mark) {
+					return warpgate.Result{}, warpgate.ErrTaken
+				}
+				id = k
+			}
+		}
+	}
+	if id == "" {
+		id = fmt.Sprintf("t%d", len(f.targets)+1)
+		t.ID = id
+		f.targets[id] = t
+		return warpgate.Result{ID: id, Action: "create"}, nil
+	}
+	t.ID = id
+	if f.targets[id] == t {
+		return warpgate.Result{ID: id, Action: "same"}, nil
+	}
+	f.targets[id] = t
+	return warpgate.Result{ID: id, Action: "update"}, nil
+}
+
+func (f *fakeBastion) DeleteTarget(_ context.Context, id string) (bool, error) {
+	_, ok := f.targets[id]
+	delete(f.targets, id)
+	return ok, nil
+}
+
+func (f *fakeBastion) EnsureRole(_ context.Context, name string) (string, error) {
+	if _, ok := f.roles[name]; !ok {
+		f.roles[name] = "r-" + name
+	}
+	return f.roles[name], nil
+}
+
+func (f *fakeBastion) SetTargetRoles(_ context.Context, target string, roles []string) ([]string, error) {
+	f.targetRoles[target] = roles
+	return nil, nil
+}
+
+func (f *fakeBastion) Users(context.Context) ([]warpgate.User, error) { return f.users, nil }
+
+func (f *fakeBastion) SetRoleUsers(_ context.Context, role string, users []warpgate.User) ([]string, []string, error) {
+	var names []string
+	for _, u := range users {
+		names = append(names, u.Username)
+	}
+	sort.Strings(names)
+	f.roleUsers[role] = names
+	return names, nil, nil
+}
+
+func (f *fakeBastion) OwnKeys(context.Context) ([]string, error) {
+	return []string{"ssh-ed25519 WGKEY warpgate"}, nil
+}
+
+func (f *fakeBastion) SetHostKeys(_ context.Context, host string, _ int, keys []ssh.PublicKey) (bool, error) {
+	f.hostKeys[host] = keys
+	return true, nil
+}
+
+func TestApplyThroughTheBastion(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	for _, name := range []string{"ayse", "mehmet"} {
+		id := store.NewUserID()
+		if err := q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id, Username: name, Provider: "corp", Subject: pgText("g-" + name), DirectoryName: pgText(name), Enabled: true}); err != nil {
+			t.Fatal(err)
+		}
+		if err := q.AddTeam(ctx, db.AddTeamParams{UserID: id, Team: "team-platform", Source: "ad:corp"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	wg := newFakeBastion()
+	e.deps.Bastion = func(endpoint, token string, insecure bool, _ []byte) (Bastion, error) {
+		if endpoint != "https://wg.lab.test:8888" || token != "wgt" || !insecure {
+			return nil, fmt.Errorf("bastion %s %s %v", endpoint, token, insecure)
+		}
+		return wg, nil
+	}
+	e.deps.Secrets.(fakeSecrets)["bao://kv/platform/warpgate"] = map[string]string{"token": "wgt", "insecure": "true"}
+	e.platform = map[string]func(string) string{
+		"platform/providers/wg.yaml": func(string) string {
+			return "apiVersion: gaia/v1alpha1\nkind: Provider\nmetadata: { name: wg }\nspec: { type: warpgate, endpoint: \"https://wg.lab.test:8888\", credentials: bao://kv/platform/warpgate }\n"
+		},
+		"platform/platform.yaml": func(c string) string {
+			return strings.Replace(c, "\nspec:\n", "\nspec:\n  bastion: { provider: wg }\n", 1)
+		},
+	}
+	withAccess := func(sudo bool) func(string) string {
+		return func(c string) string {
+			return strings.Replace(c, "  baseline: linux-base\n", fmt.Sprintf("  baseline: linux-base\n  access:\n    - { team: team-platform, sudo: %v }\n", sudo), 1) +
+				"---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+		}
+	}
+	p, err := e.apply(withAccess(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b := p.Contracts[0].Bastion; b == nil || *b != (plan.Bastion{Provider: "wg", Kind: "ssh", Sudo: true}) {
+		t.Fatalf("plan bastion = %+v", b)
+	}
+	hosts, _ := q.LiveHosts(ctx, "poc-web")
+	uid := hosts[0].Uid
+	main, _ := e.externalIDOf(uid, "wg", "target")
+	sudo, _ := e.externalIDOf(uid, "wg", "target-sudo")
+	desc := "Managed by Gaia. gaia.uid=" + uid + " contract=poc-web"
+	if got := wg.targets[main]; got != (warpgate.Target{ID: main, Name: "labtpoc01", Description: desc, Kind: "ssh", Host: "10.50.0.100", Port: 22, Username: "gaia-wg"}) {
+		t.Errorf("target = %+v", got)
+	}
+	if got := wg.targets[sudo]; got.Name != "labtpoc01-sudo" || got.Username != "gaia-wg-sudo" {
+		t.Errorf("sudo target = %+v", got)
+	}
+	if r := wg.targetRoles[main]; len(r) != 1 || r[0] != "r-gaia/poc-web" || wg.targetRoles[sudo][0] != "r-gaia/poc-web/sudo" {
+		t.Errorf("target roles = %v", wg.targetRoles)
+	}
+	if u := wg.roleUsers["r-gaia/poc-web"]; strings.Join(u, ",") != "ayse" || strings.Join(wg.roleUsers["r-gaia/poc-web/sudo"], ",") != "ayse" {
+		t.Errorf("role users = %v (mehmet has no Warpgate user)", wg.roleUsers)
+	}
+	if k := wg.hostKeys["10.50.0.100"]; len(k) != 1 || k[0].Type() != ssh.KeyAlgoED25519 {
+		t.Errorf("host keys = %v", k)
+	}
+	site := e.configure.projects[0][".gaia/site.yml"]
+	if !strings.Contains(site, `"name": "gaia-wg"`) || !strings.Contains(site, `"name": "gaia-wg-sudo"`) || !strings.Contains(site, "ssh-ed25519 WGKEY warpgate") {
+		t.Errorf("site.yml lacks the bastion accounts:\n%s", site)
+	}
+
+	// Without sudo the sudo target goes; without access every target.
+	// What the change flow records after a run: whether the access was
+	// there decides whether it is taken back.
+	applied := func(p *plan.Plan, err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, _ := json.Marshal(p)
+		if err := q.SetApplied(ctx, db.SetAppliedParams{Contract: "poc-web", AppliedPlanHash: pgText(p.Hash), AppliedPlan: data}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	applied(p, nil)
+	applied(e.apply(withAccess(false)))
+	if _, ok := wg.targets[sudo]; ok || len(wg.targets) != 1 {
+		t.Errorf("targets without sudo = %+v", wg.targets)
+	}
+	if _, err := e.apply(nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(wg.targets) != 0 {
+		t.Errorf("targets without access = %+v", wg.targets)
+	}
+	if id, _ := e.externalIDOf(uid, "wg", "target"); id != "" {
+		t.Errorf("target ID still recorded: %s", id)
+	}
+
+	// Decommissioning deletes the target and the host keys.
+	if _, err := e.apply(withAccess(false)); err != nil || len(wg.targets) != 1 {
+		t.Fatalf("again: %v %+v", err, wg.targets)
+	}
+	if _, err := e.apply(func(c string) string { return withAccess(false)(c + "  lifecycle: { state: decommissioned }\n") }); err != nil {
+		t.Fatal(err)
+	}
+	if len(wg.targets) != 0 || len(wg.hostKeys["10.50.0.100"]) != 0 {
+		t.Errorf("after decommission: %+v %v", wg.targets, wg.hostKeys)
 	}
 }
 

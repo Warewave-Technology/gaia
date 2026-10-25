@@ -23,7 +23,10 @@ type PlatformSpec struct {
 	Secrets    string      `yaml:"secrets" gaia:"required"`
 	Engines    Engines     `yaml:"engines" gaia:"required"`
 	Monitoring *Monitoring `yaml:"monitoring"`
-	RunArchive string      `yaml:"runArchive"`
+	// Bastion is the Warpgate the people of a contract's access reach its
+	// servers through (design 14.4).
+	Bastion    *Bastion `yaml:"bastion"`
+	RunArchive string   `yaml:"runArchive"`
 	// RunLogs is an s3 provider for each run's raw output, kept without
 	// a lock (design 10.1: logs are not evidence).
 	RunLogs string `yaml:"runLogs"`
@@ -33,6 +36,11 @@ type PlatformSpec struct {
 	// Notifications is how Gaia reaches people who subscribe themselves
 	// (design 7.6): email is an smtp provider.
 	Notifications *PlatformNotifications `yaml:"notifications"`
+}
+
+// Bastion names a warpgate provider.
+type Bastion struct {
+	Provider string `yaml:"provider" gaia:"required"`
 }
 
 // PlatformNotifications names the channels of personal subscriptions.
@@ -167,6 +175,13 @@ func (s *ProviderSpec) validate() []string {
 		}
 		if s.Credentials == "" {
 			out = append(out, "credentials: required for type activedirectory (username, password; ca and server_name optional)")
+		}
+	case "warpgate":
+		if u, err := url.Parse(s.Endpoint); err != nil || u.Scheme != "https" || u.Host == "" {
+			out = append(out, fmt.Sprintf("endpoint: %q: want https://host:port", s.Endpoint))
+		}
+		if s.Credentials == "" {
+			out = append(out, "credentials: required for type warpgate (token; insecure or ca optional)")
 		}
 	case "smtp":
 		if _, _, err := net.SplitHostPort(s.Endpoint); err != nil {

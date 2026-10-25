@@ -54,6 +54,22 @@ func (q *Queries) ContractSummaries(ctx context.Context) ([]ContractSummariesRow
 	return items, nil
 }
 
+const deleteExternalID = `-- name: DeleteExternalID :exec
+delete from host_external_ids where uid = $1 and provider = $2 and kind = $3
+`
+
+type DeleteExternalIDParams struct {
+	Uid      string
+	Provider string
+	Kind     string
+}
+
+// One ID goes when Gaia removed what it named (a bastion target).
+func (q *Queries) DeleteExternalID(ctx context.Context, arg DeleteExternalIDParams) error {
+	_, err := q.db.Exec(ctx, deleteExternalID, arg.Uid, arg.Provider, arg.Kind)
+	return err
+}
+
 const deleteExternalIDs = `-- name: DeleteExternalIDs :exec
 delete from host_external_ids where uid = $1
 `

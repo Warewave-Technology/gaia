@@ -51,6 +51,8 @@ type Deps struct {
 	Monitor   func(endpoint, token string) Monitor
 	// Directory opens Active Directory to write DNS records.
 	Directory func(ctx context.Context, c ad.Config) (Directory, error)
+	// Bastion opens Warpgate's admin API.
+	Bastion func(endpoint, token string, insecure bool, ca []byte) (Bastion, error)
 	// Archive opens the run record archive (Platform.runArchive).
 	Archive func(endpoint, bucket, accessKey, secretKey string) (runrecord.Archive, error)
 	// RunID is a queued run to take; empty starts a new run.
@@ -169,6 +171,7 @@ type runner struct {
 	executedAs map[string]string // provider -> identity
 	access     []runrecord.AccessGrant
 	joins      map[string]join // server UID -> how it joins its domain
+	bastions   map[string]Bastion
 }
 
 func (r *runner) change(c runrecord.Change) { r.changes = append(r.changes, c) }
@@ -256,7 +259,7 @@ func (r *runner) accessOnly(ctx context.Context, p *plan.Plan) error {
 				if err := r.configure(ctx, only, contract, targets); err != nil {
 					return err
 				}
-				return r.monitorAccess(ctx, c)
+				return r.otherAccess(ctx, c, targets)
 			})
 		})
 		if err != nil {
@@ -389,10 +392,22 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 	}
-	if c.Monitoring != nil && r.managesAccess(ctx, c) {
-		return r.stage(ctx, c.Name, "access", func() error { return r.monitorAccess(ctx, c) })
+	if r.managesAccess(ctx, c) {
+		return r.stage(ctx, c.Name, "access", func() error { return r.otherAccess(ctx, c, w.targets) })
 	}
 	return nil
+}
+
+// otherAccess distributes a contract's access beyond its servers:
+// monitoring and the bastion.
+func (r *runner) otherAccess(ctx context.Context, c plan.Contract, targets []target) error {
+	if err := r.bastionAccess(ctx, c, targets); err != nil {
+		return err
+	}
+	if c.Monitoring == nil {
+		return nil
+	}
+	return r.monitorAccess(ctx, c)
 }
 
 func hasDNS(ts []target) bool {

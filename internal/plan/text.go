@@ -22,6 +22,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	monitors := map[string]*counts{} // per monitoring provider
 	names := map[string]*counts{}    // per DNS provider
 	accounts := map[string]*counts{} // per directory
+	bastions := map[string]*counts{} // per bastion, servers
 	bump := func(m map[string]*counts, k, action string) {
 		if m[k] == nil {
 			m[k] = &counts{}
@@ -83,6 +84,9 @@ func WriteText(w io.Writer, p *Plan) error {
 				}
 				pr.f("    %-14s dns %s.%s A%s (%s)\n", "", s.Hostname, d.Zone, ptr, d.Provider)
 				bump(names, d.Provider, s.Action)
+			}
+			if b := c.Bastion; b != nil {
+				bump(bastions, b.Provider, s.Action)
 			}
 			if d := s.Domain; d != nil {
 				pr.f("    %-14s computer account in %s (%s)\n", "", d.OU, d.Provider)
@@ -155,6 +159,13 @@ func WriteText(w io.Writer, p *Plan) error {
 				}
 				pr.f("    %s: %s%s\n", a.Via, strings.Join(a.Teams, ", "), extra)
 			}
+			if b := c.Bastion; b != nil {
+				sudo := ""
+				if b.Sudo {
+					sudo = " and sudo"
+				}
+				pr.f("    through %s: %s targets%s, roles %s\n", b.Provider, strings.ToUpper(b.Kind), sudo, BastionRole(c.Name, false))
+			}
 		}
 	}
 
@@ -176,6 +187,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	line("monitoring", monitors)
 	line("dns", names)
 	line("computers", accounts)
+	line("bastion", bastions)
 	if configure > 0 {
 		pr.f("  configure  %d server(s)\n", configure)
 	}
