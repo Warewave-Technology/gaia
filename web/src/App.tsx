@@ -10,6 +10,7 @@ import { RunList } from "./pages/runs/List";
 import { RunDetail } from "./pages/runs/Detail";
 import { ContractList } from "./pages/contracts/List";
 import { ContractDetail } from "./pages/contracts/Detail";
+import { Overview } from "./pages/overview/Overview";
 
 export function makeClient() {
   return new QueryClient({
@@ -27,7 +28,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Shell />}>
-        <Route index element={<Soon title="Genel bakış" />} />
+        <Route index element={<Overview />} />
         <Route path="changes" element={<ChangeList />} />
         <Route path="changes/:id" element={<ChangeDetail />} />
         <Route path="contracts" element={<ContractList />} />
