@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -155,5 +157,58 @@ func TestFinishedOperationsAreRemoved(t *testing.T) {
 	}
 	if _, ok := g.Catalog.Get(catalog.KindOperation, "new"); !ok {
 		t.Error("the new Operation was removed")
+	}
+}
+
+func TestDecommissionedContractsAreRemoved(t *testing.T) {
+	itest.Require(t)
+	ctx := context.Background()
+	dsn := itest.StartPostgres(t)
+	if err := store.Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(st.Close)
+	web, _ := os.ReadFile(filepath.Join("..", "..", "examples", "lab", "contracts", "poc-web.yaml"))
+	gone := string(web) + "  lifecycle: { state: decommissioned }\n"
+	platform := labRepo(t, map[string]string{"contracts/poc-web.yaml": gone})
+	_, priv, _ := ed25519.GenerateKey(rand.Reader)
+	key, _ := ssh.NewSignerFromKey(priv)
+	m := &repo.Mirrors{Dir: t.TempDir()}
+	s := &Syncer{Store: st, Repos: m, Writer: &repo.Writer{Mirrors: m, Signer: signature.SSHSigner{Key: key}, Name: "Gaia", Email: "gaia@example.com"}}
+	snap, _ := m.Head(ctx, platform)
+	g, err := m.Graph(ctx, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := st.Q()
+	// A server still waits out its grace period: the file stays.
+	if err := st.CreateHost(ctx, store.NewHost{UID: "u1", Contract: "poc-web", Hostname: "labtpoc01", Site: "lab", Network: "lab-poc", Seq: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.SetContractSync(ctx, db.SetContractSyncParams{Contract: "poc-web", Sync: "synced"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RemoveDecommissioned(ctx, snap, g); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := m.Head(ctx, platform); again.Platform.Commit != snap.Platform.Commit {
+		t.Fatal("removed while a server is left")
+	}
+	if err := st.DeleteHost(ctx, "u1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RemoveDecommissioned(ctx, snap, g); err != nil {
+		t.Fatal(err)
+	}
+	snap, _ = m.Head(ctx, platform)
+	if g, err = m.Graph(ctx, snap); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := g.Catalog.Get(catalog.KindServer, "poc-web"); ok {
+		t.Error("the decommissioned contract is still there")
 	}
 }

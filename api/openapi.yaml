@@ -147,6 +147,14 @@ paths:
         - { name: contract, in: query, schema: { type: string } }
       responses:
         "200": { description: Drift reports, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Drift" } } } } }
+  /api/v1/contracts/{name}/reconcile:
+    post:
+      summary: Open a change that applies the contract's applied plan again, putting drift right; the owner approves it (operator)
+      operationId: reconcileContract
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      responses:
+        "202": { description: The change, content: { application/json: { schema: { type: object, properties: { change: { type: string } } } } } }
+        "409": { description: Nothing applied to go back to, or a change is coming, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
   /api/v1/changes/{id}:
     get:
       summary: A change with its plan, requirements, commits and approvals

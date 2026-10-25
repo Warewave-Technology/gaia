@@ -40,6 +40,7 @@ func (s *Server) apiRoutes() []route {
 		{"GET", "/api/v1/contracts/{name}", "", s.getContract},
 		{"GET", "/api/v1/changes", "", s.listChanges},
 		{"GET", "/api/v1/drift", "", s.listDrift},
+		{"POST", "/api/v1/contracts/{name}/reconcile", "operator", s.reconcileContract},
 		{"GET", "/api/v1/changes/{id}", "", s.getChange},
 		{"POST", "/api/v1/changes/{id}/retry", "operator", s.retryChange},
 		{"GET", "/api/v1/changes/{id}/notifications", "", s.changeNotifications},

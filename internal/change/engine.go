@@ -629,6 +629,9 @@ func (e *Engine) OpenDrift(ctx context.Context, contract string, auto bool) (str
 		return "", err
 	}
 	st, err := q.ContractState(ctx, contract)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
 	if err != nil || len(st.AppliedPlan) == 0 {
 		return "", err
 	}
