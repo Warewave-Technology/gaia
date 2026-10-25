@@ -11,6 +11,7 @@ import { Page } from "../../ui/shell";
 import { ChangeBadge, ChangeStatusLegend, PLAN_ACTION, PlanLegend, Sync, SyncLegend } from "../../ui/status";
 import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan } from "../../lib/plan";
 import { decide, stepUp, stepUpTOTP } from "../../lib/stepup";
+import { YamlDiff } from "./Diff";
 import { clock } from "../../lib/time";
 
 type Step = "idle" | "approve" | "reject";
@@ -42,7 +43,7 @@ function gate(c: Change, name: string): Gate | undefined {
 function Body({ c, crumbs }: { c: Change; crumbs: ReactNode }) {
   const { me } = useSession();
   const [step, setStep] = useState<Step>("idle");
-  const [tab, setTab] = useState<"plan" | "commits" | "raw">("plan");
+  const [tab, setTab] = useState<"plan" | "diff" | "commits" | "raw">("plan");
   const plan = isServerPlan(c.plan) ? c.plan : null;
   const commits = (c.commits ?? []) as Commit[];
   const canDecide = !!me && !!c.awaitingMe;
@@ -78,10 +79,12 @@ function Body({ c, crumbs }: { c: Change; crumbs: ReactNode }) {
         <section className="card" style={{ flex: "2 1 520px", minWidth: 0 }} aria-label="Değişikliğin içeriği">
           <div role="tablist" aria-label="Görünüm" className="row" style={{ gap: 4, padding: "0 8px", borderBottom: "1px solid var(--bg1)" }}>
             <Tab on={tab === "plan"} icon="plan" onClick={() => setTab("plan")}>Plan</Tab>
+            <Tab on={tab === "diff"} icon="diff" onClick={() => setTab("diff")}>YAML diff</Tab>
             <Tab on={tab === "commits"} icon="commit" onClick={() => setTab("commits")}>Commit'ler</Tab>
             <Tab on={tab === "raw"} icon="code" onClick={() => setTab("raw")}>Plan JSON</Tab>
           </div>
           {tab === "plan" && (plan ? <PlanView plan={plan} /> : <div className="card-body muted">Bu değişikliğin planı sunucu planı değil; ayrıntısı Plan JSON'da.</div>)}
+          {tab === "diff" && <YamlDiff id={c.id} contract={c.contract} />}
           {tab === "commits" && <Commits commits={commits} />}
           {tab === "raw" && <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)" }}>{JSON.stringify(c.plan, null, 2)}</pre>}
         </section>

@@ -204,6 +204,35 @@ paths:
           description: One result per change
           content: { application/json: { schema: { type: array, items: { type: object, properties: { id: { type: string }, status: { type: string }, error: { type: string } } } } } }
         "403": { description: "Confirm with a passkey first (stepUp: true)", content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /api/v1/changes/{id}/diff:
+    get:
+      summary: What changed in Git for the change's contract since it was last applied
+      description: The contract and every object it refers to (directly or through others), and the Policy and Platform; each as a unified diff of its YAML.
+      operationId: changeDiff
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The changed objects, the contract first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from: { type: string, description: The applied snapshot's label; empty if the contract was never applied }
+                  to: { type: string, description: The change's snapshot label }
+                  objects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string }
+                        name: { type: string }
+                        file: { type: string }
+                        status: { type: string, enum: [added, modified, removed] }
+                        diff: { type: string, description: Unified diff with three lines of context }
+        "403": { description: The caller sees the contract's name only }
+        "404": { description: No such change }
   /api/v1/changes/{id}/notifications:
     get:
       summary: The notifications sent, or being sent, about a change
