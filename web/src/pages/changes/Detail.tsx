@@ -11,6 +11,7 @@ import { Page } from "../../ui/shell";
 import { ChangeBadge, ChangeStatusLegend, PLAN_ACTION, PlanLegend, Sync, SyncLegend } from "../../ui/status";
 import { areas, baselineName, isServerPlan, servers, total, type Counts, type Plan, type PlanAccess } from "../../lib/plan";
 import { decide, stepUp, stepUpTOTP } from "../../lib/stepup";
+import { Modal } from "../../ui/modal";
 import { YamlDiff } from "./Diff";
 import { clock } from "../../lib/time";
 
@@ -428,22 +429,21 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
     }
   };
 
-  const color = approve ? "var(--yellow)" : "var(--red)";
   return (
-    <form onSubmit={run} className="card" aria-label={approve ? "Onay" : "Red"}
-      style={{ borderColor: approve ? "var(--dyellow)" : "var(--dred)", borderLeft: `4px solid ${color}`, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div className="row" style={{ gap: 20, alignItems: "center" }}>
-        <span style={{ color }}><Icon name="lock" size={32} width={1.8} /></span>
-        <div style={{ flex: "1 1 320px" }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>{approve ? "Bu planı onaylıyorsunuz" : "Bu planı reddediyorsunuz"}</div>
-          <div className="muted" style={{ marginTop: 4 }}>
-            Karar bu plana bağlıdır: <Mono>{short(c.planHash, 19)}…</Mono>. Plan değişirse onay düşer. Devam etmek için passkey'inizle doğrulayın.
-          </div>
-        </div>
-      </div>
+    <Modal title={approve ? "Planı onayla" : "Planı reddet"} icon={approve ? "check-circle" : "x-circle"} tone={approve ? "yellow" : "red"} onClose={onDone} onSubmit={run} width={560}
+      footer={<>
+        <Button onClick={onDone} disabled={busy}>Vazgeç</Button>
+        <Button type="submit" kind={approve ? "primary" : "solid-danger"} icon="key" disabled={busy}>
+          {busy ? "Bekleniyor…" : totp !== null ? (approve ? "Kodla onayla" : "Kodla reddet") : approve ? "Passkey ile onayla" : "Passkey ile reddet"}
+        </Button>
+      </>}>
+      <p style={{ margin: 0 }}>
+        <b>{c.contract}</b> için bu plana karar veriyorsunuz: <Mono>{short(c.planHash, 19)}…</Mono>
+      </p>
+      <p className="muted" style={{ margin: 0 }}>Karar bu plana bağlıdır; plan değişirse onay düşer. Devam etmek için passkey'inizle doğrulayın.</p>
       <label className="field">
         <span>{approve ? "Not (isteğe bağlı)" : "Red gerekçesi"}</span>
-        <textarea className="input" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={approve ? "" : "Commit sahibine ve kanala gider"} />
+        <textarea className="input" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={approve ? "" : "Commit sahibine ve kanala gider"} />
       </label>
       {totp !== null && (
         <label className="field">
@@ -452,13 +452,7 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
         </label>
       )}
       {error && <div className="error" role="alert">{error}</div>}
-      <div className="row" style={{ justifyContent: "flex-end" }}>
-        <Button onClick={onDone} disabled={busy}>Vazgeç</Button>
-        <Button type="submit" kind={approve ? "primary" : "solid-danger"} icon="key" disabled={busy}>
-          {busy ? "Bekleniyor…" : totp !== null ? (approve ? "Kodla onayla" : "Kodla reddet") : approve ? "Passkey ile onayla" : "Passkey ile reddet"}
-        </Button>
-      </div>
-    </form>
+    </Modal>
   );
 }
 

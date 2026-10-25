@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeAPI, ME, renderAt, type Call } from "../../test-utils";
 
@@ -19,7 +19,7 @@ beforeEach(() => {
     "GET /me/signing-keys": { body: [] },
     "GET /me/login-keys": { body: [] },
     "GET /me/notifications": { body: { email: "ayse@corp.local", emailEditable: false, triggers: ["change.pending"], available: ["change.pending", "change.failed"] } },
-    "PUT /me/notifications": { body: { email: "ayse@corp.local", emailEditable: false, triggers: ["change.pending", "change.failed"], available: [] } },
+    "PUT /me/notifications": { body: { email: "ayse@corp.local", emailEditable: false, triggers: ["change.pending", "change.failed"], available: ["change.pending", "change.failed"] } },
     "POST /auth/step-up/begin": { body: { flow: "f", options: { publicKey: { challenge: "c" } } } },
     "POST /auth/step-up/finish": () => { strong = true; return { status: 204 }; },
     "POST /me/signing-keys": () => (strong ? { status: 201, body: { fingerprint: "SHA256:x" } } : { status: 403, body: { error: "confirm with your passkey first", stepUp: true } }),
@@ -28,21 +28,37 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("profile", () => {
-  it("confirms with a passkey when adding a signing key needs it, then retries", async () => {
+  it("adds a signing key from a modal, confirming with a passkey when Gaia asks", async () => {
     renderAt("/profile");
-    const forms = await screen.findAllByPlaceholderText(/ssh-ed25519 AAAA/);
-    fireEvent.change(forms[0]!, { target: { value: "ssh-ed25519 AAAAC3Nza me@laptop" } });
-    fireEvent.click(screen.getAllByRole("button", { name: /Anahtar ekle/ })[0]!);
+    const card = (await screen.findByRole("heading", { name: "İmza anahtarları" })).closest("section")!;
+    fireEvent.click(within(card).getByRole("button", { name: /Anahtar ekle/ }));
+    const dialog = await screen.findByRole("dialog", { name: "İmza anahtarı ekle" });
+    fireEvent.change(within(dialog).getByPlaceholderText(/ssh-ed25519 AAAA/), { target: { value: "ssh-ed25519 AAAAC3Nza me@laptop" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /Ekle/ }));
     await vi.waitFor(() => expect(calls.filter((c) => c.path === "/me/signing-keys" && c.method === "POST")).toHaveLength(2));
     expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/me/signing-keys", "/auth/step-up/begin", "/auth/step-up/finish", "/me/signing-keys"]);
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("saves notification choices", async () => {
+  it("closes a modal with Escape and asks before removing", async () => {
     renderAt("/profile");
-    fireEvent.click(await screen.findByRole("checkbox", { name: /run'ı başarısız/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Kaydet/ }));
+    const card = (await screen.findByRole("heading", { name: "Passkey'ler" })).closest("section")!;
+    fireEvent.click(within(card).getByRole("button", { name: /Passkey ekle/ }));
+    expect(await screen.findByRole("dialog", { name: "Passkey ekle" })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The only passkey cannot be removed.
+    expect(within(card).getByRole("button", { name: /Sil/ })).toBeDisabled();
+  });
+
+  it("saves a notification at once when its switch flips", async () => {
+    renderAt("/profile");
+    const sw = await screen.findByRole("switch", { name: "Başarısız" });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(sw);
     await vi.waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     expect(calls.find((c) => c.method === "PUT")!.body).toEqual({ email: null, triggers: ["change.pending", "change.failed"] });
+    await vi.waitFor(() => expect(screen.getByRole("switch", { name: "Başarısız" })).toHaveAttribute("aria-checked", "true"));
     expect(screen.getByText("bu oturum")).toBeInTheDocument();
   });
 });
