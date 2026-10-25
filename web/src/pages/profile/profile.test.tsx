@@ -30,11 +30,11 @@ afterEach(() => vi.unstubAllGlobals());
 describe("profile", () => {
   it("adds a signing key from a modal, confirming with a passkey when Gaia asks", async () => {
     renderAt("/profile");
-    const card = (await screen.findByRole("heading", { name: "İmza anahtarları" })).closest("section")!;
-    fireEvent.click(within(card).getByRole("button", { name: /Anahtar ekle/ }));
-    const dialog = await screen.findByRole("dialog", { name: "İmza anahtarı ekle" });
+    const card = (await screen.findByRole("heading", { name: "Signing keys" })).closest("section")!;
+    fireEvent.click(within(card).getByRole("button", { name: /Add key/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Add a signing key" });
     fireEvent.change(within(dialog).getByPlaceholderText(/ssh-ed25519 AAAA/), { target: { value: "ssh-ed25519 AAAAC3Nza me@laptop" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: /Ekle/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
     await vi.waitFor(() => expect(calls.filter((c) => c.path === "/me/signing-keys" && c.method === "POST")).toHaveLength(2));
     expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/me/signing-keys", "/auth/step-up/begin", "/auth/step-up/finish", "/me/signing-keys"]);
     await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -42,23 +42,23 @@ describe("profile", () => {
 
   it("closes a modal with Escape and asks before removing", async () => {
     renderAt("/profile");
-    const card = (await screen.findByRole("heading", { name: "Passkey'ler" })).closest("section")!;
-    fireEvent.click(within(card).getByRole("button", { name: /Passkey ekle/ }));
-    expect(await screen.findByRole("dialog", { name: "Passkey ekle" })).toBeInTheDocument();
+    const card = (await screen.findByRole("heading", { name: "Passkeys" })).closest("section")!;
+    fireEvent.click(within(card).getByRole("button", { name: /Add passkey/ }));
+    expect(await screen.findByRole("dialog", { name: "Add a passkey" })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     // The only passkey cannot be removed.
-    expect(within(card).getByRole("button", { name: /Sil/ })).toBeDisabled();
+    expect(within(card).getByRole("button", { name: /Remove/ })).toBeDisabled();
   });
 
   it("saves a notification at once when its switch flips", async () => {
     renderAt("/profile");
-    const sw = await screen.findByRole("switch", { name: "Başarısız" });
+    const sw = await screen.findByRole("switch", { name: "Failed" });
     expect(sw).toHaveAttribute("aria-checked", "false");
     fireEvent.click(sw);
     await vi.waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     expect(calls.find((c) => c.method === "PUT")!.body).toEqual({ email: null, triggers: ["change.pending", "change.failed"] });
-    await vi.waitFor(() => expect(screen.getByRole("switch", { name: "Başarısız" })).toHaveAttribute("aria-checked", "true"));
-    expect(screen.getByText("bu oturum")).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.getByRole("switch", { name: "Failed" })).toHaveAttribute("aria-checked", "true"));
+    expect(screen.getByText("this session")).toBeInTheDocument();
   });
 });

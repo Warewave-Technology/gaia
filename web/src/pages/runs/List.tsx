@@ -1,4 +1,4 @@
-// Run'lar: every run, newest first; one contract's with ?contract=.
+// Runs: every run, newest first; one contract's with ?contract=.
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
@@ -18,29 +18,29 @@ export function RunList() {
     refetchInterval: 10_000,
   });
   return (
-    <Page crumbs={contract ? <><Link to="/runs">Run'lar</Link> / {contract}</> : "Run'lar"}>
+    <Page crumbs={contract ? <><Link to="/runs">Runs</Link> / {contract}</> : "Runs"}>
       <div className="title-row">
-        <h1>Run'lar{contract && <span className="muted" style={{ fontWeight: 400 }}> · {contract}</span>}</h1>
-        <Hint>Run, bir değişikliğin sunuculara uygulanmasıdır: IP ayırma, VM, izleme kaydı ve Ansible, sırayla.</Hint>
+        <h1>Runs{contract && <span className="muted" style={{ fontWeight: 400 }}> · {contract}</span>}</h1>
+        <Hint>A run applies a change to servers: addresses, VMs, monitoring and Ansible, in that order.</Hint>
       </div>
-      <Card title={contract ? `${contract} kontratının run'ları` : "Son run'lar"} icon="play">
-        {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : q.data.length === 0 ? <div className="empty">Run yok.</div> : (
+      <Card title={contract ? `Runs of ${contract}` : "Latest runs"} icon="play">
+        {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : q.data.length === 0 ? <div className="empty">No runs.</div> : (
           <table className="grid">
             <thead>
               <tr>
                 <th>Run</th>
-                <th>Kontrat</th>
-                <th><span className="th-hint">Sonuç<Hint><RecordLegend /></Hint></span></th>
-                <th>İsteyen</th>
-                <th>Süre</th>
-                <th>Zaman</th>
+                <th>Contract</th>
+                <th><span className="th-hint">Result<Hint><RecordLegend /></Hint></span></th>
+                <th>Requested by</th>
+                <th>Duration</th>
+                <th>When</th>
               </tr>
             </thead>
             <tbody>
               {q.data.map((r) => (
                 <tr key={r.id}>
                   <td className="mono">{r.restricted ? r.id : <Link to={`/runs/${encodeURIComponent(r.id)}`}>{r.id}</Link>}</td>
-                  <td>{r.contracts.join(", ")}{r.restricted && <span className="faint"> (yetkiniz yok)</span>}</td>
+                  <td>{r.contracts.join(", ")}{r.restricted && <span className="faint"> (no access)</span>}</td>
                   <td><RunResult run={r} /></td>
                   <td className="muted">{r.requestedBy}</td>
                   <td>{duration(r.startedAt, r.finishedAt)}</td>

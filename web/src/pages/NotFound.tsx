@@ -2,9 +2,9 @@ import { Page } from "../ui/shell";
 
 export function NotFound() {
   return (
-    <Page crumbs="Bulunamadı">
-      <h1>Bulunamadı</h1>
-      <div className="notice warn">Böyle bir sayfa yok.</div>
+    <Page crumbs="Not found">
+      <h1>Not found</h1>
+      <div className="notice warn">There is no such page.</div>
     </Page>
   );
 }

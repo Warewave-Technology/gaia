@@ -62,7 +62,7 @@ func New(files fs.FS) http.Handler {
 		}
 		index, err := fs.ReadFile(files, "index.html")
 		if errors.Is(err, fs.ErrNotExist) {
-			http.Error(w, "Bu binary arayüz olmadan derlenmiş: önce make web.", http.StatusServiceUnavailable)
+			http.Error(w, "This binary was built without the UI: run make web first.", http.StatusServiceUnavailable)
 			return
 		}
 		if err != nil {

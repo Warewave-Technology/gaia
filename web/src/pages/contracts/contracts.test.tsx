@@ -36,14 +36,14 @@ describe("contracts", () => {
     expect(within(poc).getByText("team-platform")).toBeInTheDocument();
     const portal = screen.getByRole("link", { name: "portal-api" }).closest(".card") as HTMLElement;
     expect(within(portal).getByText("Drifted")).toBeInTheDocument();
-    expect(within(portal).getByText("Uyarı")).toBeInTheDocument();
-    expect(screen.getByText("Bu kontratın sadece adını görebilirsiniz.")).toBeInTheDocument();
+    expect(within(portal).getByText("Warning")).toBeInTheDocument();
+    expect(screen.getByText("You may see this contract's name only.")).toBeInTheDocument();
   });
 
   it("shows the contract's state, catalog, servers and history", async () => {
     renderAt("/contracts/poc-web");
     expect(await screen.findByRole("heading", { name: "poc-web" })).toBeInTheDocument();
-    expect(screen.getByText("Git'te uygulanmamış bir değişiklik var")).toBeInTheDocument();
+    expect(screen.getByText("Git has a change not applied yet")).toBeInTheDocument();
     expect(await screen.findByText("rocky9")).toBeInTheDocument();
     expect(screen.getByText("linux-base")).toBeInTheDocument();
     const row = screen.getByText("xfaoec2tq4ekespr").closest("tr")!;

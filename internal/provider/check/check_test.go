@@ -98,7 +98,7 @@ func TestChecks(t *testing.T) {
 		{"smtp", catalog.ProviderSpec{Type: "smtp", Endpoint: smtpLn.Addr().String()}, OK, "STARTTLS"},
 		{"missing credentials", catalog.ProviderSpec{Type: "ipam", Endpoint: "http://127.0.0.1:1", Credentials: "bao://kv/none"}, Failed, "credentials bao://kv/none"},
 		{"unreachable", catalog.ProviderSpec{Type: "ipam", Endpoint: "http://127.0.0.1:1", Credentials: "bao://kv/zabbix"}, Failed, "refused"},
-		{"slack", catalog.ProviderSpec{Type: "slack", Endpoint: "https://hooks.slack.com/x"}, Skipped, "mesaj"},
+		{"slack", catalog.ProviderSpec{Type: "slack", Endpoint: "https://hooks.slack.com/x"}, Skipped, "message"},
 		{"git", catalog.ProviderSpec{Type: "git", URL: "https://example.com/x.git"}, Skipped, "fetch"},
 	}
 	for _, c := range cases {

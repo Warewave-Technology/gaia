@@ -1,38 +1,38 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/auth/gaia-auth.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<title>Gaia · Hesabı etkinleştir</title>
+<title>Gaia · Activate your account</title>
 <script src="/auth/gaia-auth.js" defer></script>
 </head>
 <body>
 <main class="wide">
 <div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="#fabd2f" stroke-width="2"></circle><path d="M5 15c4-1 6-6 16-5" fill="none" stroke="#8ec07c" stroke-width="2"></path></svg>gaia</div>
-<h1>Hesabı etkinleştir</h1>
-<p class="muted">Bu cihazda bir passkey oluşturun. Gaia'ya bundan sonra onunla girersiniz.</p>
-<label>Passkey adı <input id="name" placeholder="ör. iş dizüstü"></label>
-<button id="enroll" type="button" class="btn primary block">Passkey oluştur</button>
+<h1>Activate your account</h1>
+<p class="muted">Create a passkey on this device. You sign in to Gaia with it from now on.</p>
+<label>Passkey name <input id="name" placeholder="e.g. work laptop"></label>
+<button id="enroll" type="button" class="btn primary block">Create a passkey</button>
 <section id="totp" class="box" hidden>
-<h2>veya parola ve doğrulama uygulaması</h2>
-<button id="totp-begin" type="button" class="btn">Doğrulama anahtarı oluştur</button>
+<h2>or a password and an authenticator app</h2>
+<button id="totp-begin" type="button" class="btn">Make an authenticator key</button>
 <form id="totp-form" hidden>
-<p class="muted small gap">Bu anahtarı doğrulama uygulamanıza ekleyin:</p>
+<p class="muted small gap">Add this key to your authenticator app:</p>
 <code id="totp-secret" class="secret"></code>
-<a id="totp-uri" href="#">Uygulamada aç</a>
-<label>Parola (en az 12 karakter) <input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
-<label>Uygulamadaki kod <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
-<button type="submit" class="btn primary block">Kaydet</button>
+<a id="totp-uri" href="#">Open in the app</a>
+<label>Password (at least 12 characters) <input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+<label>Code from the app <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+<button type="submit" class="btn primary block">Save</button>
 </form>
 </section>
 <p id="error" class="error" role="alert"></p>
 <section id="codes" class="box" hidden>
-<h2>Kurtarma kodları</h2>
-<p class="muted">Her biri bir kez kullanılır. Güvenli bir yere kaydedin; bir daha gösterilmeyecek.</p>
+<h2>Recovery codes</h2>
+<p class="muted">Each works once. Keep them somewhere safe; they are not shown again.</p>
 <pre id="codelist" class="codes"></pre>
-<a href="/" class="btn primary">Devam et</a>
+<a href="/" class="btn primary">Continue</a>
 </section>
 </main>
 </body>

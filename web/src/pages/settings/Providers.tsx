@@ -1,4 +1,4 @@
-// Ayarlar → Provider'lar and Bildirim kanalları: the systems Gaia talks
+// Settings → Providers and Notifications: the systems Gaia talks
 // to, where they are used, whether Gaia reaches them and what the last
 // discovery got from them (platform-admin).
 import { useQuery } from "@tanstack/react-query";
@@ -22,11 +22,11 @@ type Check = { status: "ok" | "failed" | "skipped"; detail?: string; error?: str
 type Provider = { name: string; type: string; endpoint?: string; credentials?: string; usedBy: { kind: string; name: string; field: string }[]; error?: string; check?: Check };
 
 function CheckCell({ c }: { c?: Check }) {
-  if (!c) return <span className="faint">henüz denetlenmedi</span>;
+  if (!c) return <span className="faint">not checked yet</span>;
   if (c.status === "ok") {
     return (
       <span title={`${c.latencyMs} ms · ${stamp(c.checkedAt)}`}>
-        <IL icon="check-circle" color="var(--green)" size={15}>Bağlı</IL>
+        <IL icon="check-circle" color="var(--green)" size={15}>Connected</IL>
         <span className="muted" style={{ display: "block", fontSize: 12 }}>{c.detail} · {c.latencyMs} ms</span>
       </span>
     );
@@ -34,15 +34,15 @@ function CheckCell({ c }: { c?: Check }) {
   if (c.status === "skipped") {
     return (
       <span>
-        <IL icon="minus" color="var(--fg4)" size={15} weight={500}>Denetlenmiyor</IL>
+        <IL icon="minus" color="var(--fg4)" size={15} weight={500}>Not checked</IL>
         <span className="faint" style={{ display: "block", fontSize: 12 }}>{c.detail}</span>
       </span>
     );
   }
   return (
     <span title={c.error}>
-      <IL icon="x-circle" color="var(--red)" size={15}>Ulaşılamıyor</IL>
-      <span className="muted" style={{ display: "block", fontSize: 12 }}>{c.lastOkAt ? `son bağlantı ${ago(c.lastOkAt)}` : "hiç bağlanamadı"}</span>
+      <IL icon="x-circle" color="var(--red)" size={15}>Unreachable</IL>
+      <span className="muted" style={{ display: "block", fontSize: 12 }}>{c.lastOkAt ? `last connected ${ago(c.lastOkAt)}` : "never connected"}</span>
     </span>
   );
 }
@@ -57,7 +57,7 @@ export function Providers({ channels = false }: { channels?: boolean }) {
   const checkNow = async () => {
     try {
       await api("/providers/check", { method: "POST" });
-      setNote("Denetim başladı; sonuçlar birkaç saniye içinde gelir.");
+      setNote("Checking; the results come in a few seconds.");
       setTimeout(() => void qc.invalidateQueries({ queryKey: ["providers"] }), 4000);
       setTimeout(() => void qc.invalidateQueries({ queryKey: ["providers"] }), 25000);
     } catch (e) {
@@ -67,26 +67,26 @@ export function Providers({ channels = false }: { channels?: boolean }) {
   return (
     <>
       {channels
-        ? <TabHead icon="bell" text="Bildirimlerin gittiği kanallar: Slack, Teams, e-posta, webhook." hint="Bildirim kanalı da bir provider'dır. Takımlar ve kişiler hangi olayların hangi kanala gideceğini kendi aboneliklerinde seçer." />
-        : <TabHead icon="plug" text="Gaia'nın konuştuğu sistemler ve bağlantı durumları." hint="Provider, Gaia'nın konuştuğu bir sistemdir: vSphere, Proxmox, IPAM, Zabbix, AD, OpenBao, Git… Kontratlar provider'ları doğrudan değil, Site, Network gibi nesneler üzerinden kullanır."
-            right={admin && <Button icon="sync" onClick={checkNow} title="Bütün provider'ları şimdi denetle">Şimdi denetle</Button>} />}
+        ? <TabHead icon="bell" text="Where notifications go: Slack, Teams, email, webhooks." hint="A notification channel is a provider too. Teams and people choose which events go to which channel in their subscriptions." />
+        : <TabHead icon="plug" text="The systems Gaia talks to, and whether it reaches them." hint="A provider is a system Gaia talks to: vSphere, Proxmox, IPAM, Zabbix, a directory, OpenBao, Git… Contracts never name providers; they use sites, networks and images that do."
+            right={admin && <Button icon="sync" onClick={checkNow} title="Check every provider now">Check now</Button>} />}
       {note && <div className="notice" role="status">{note}</div>}
-      {!admin ? <div className="notice warn">Provider'ları sadece platform-admin rolü görür.</div>
+      {!admin ? <div className="notice warn">Providers are for platform admins.</div>
         : q.isPending ? <Loading />
-        : q.error ? (q.error instanceof ApiError && q.error.status === 503 ? <div className="notice warn">Bu sunucu bir repo izlemiyor; provider tanımı yok.</div> : <ErrorNote error={q.error} />)
+        : q.error ? (q.error instanceof ApiError && q.error.status === 503 ? <div className="notice warn">This server follows no repository; there are no providers.</div> : <ErrorNote error={q.error} />)
         : (
-          <Card title={channels ? "Bildirim kanalları" : "Provider'lar"} icon={channels ? "bell" : "plug"} right={<AddButton kind="Provider" label={channels ? "Kanal ekle" : "Provider ekle"} />}>
+          <Card title={channels ? "Notification channels" : "Providers"} icon={channels ? "bell" : "plug"} right={<AddButton kind="Provider" label={channels ? "Add channel" : "Add provider"} />}>
             <table className="grid">
               <thead>
                 <tr>
-                  <th>Ad</th><th>Tür</th><th>Adres</th>
-                  <th><span className="th-hint">Kimlik bilgisi<Hint>Sadece OpenBao'daki yerine referans (bao://…). Secret'ın kendisi Gaia'nın API'sinden hiç çıkmaz.</Hint></span></th>
-                  <th>Kullanan</th>
-                  <th><span className="th-hint">Bağlantı<Hint right width={320}>Gaia her beş dakikada bir her provider'a kendi kimlik bilgisiyle zararsız bir çağrı yapar (sürüm sorgusu, tek bir okuma, LDAP bind).
-                    <Leg icon="check-circle" color="var(--green)" name="Bağlı">adres ve kimlik bilgisi çalışıyor; cevabı ve süresi altta</Leg>
-                    <Leg icon="x-circle" color="var(--red)" name="Ulaşılamıyor">bağlanamadı ya da kimlik bilgisi reddedildi; üstüne gelince hata görünür</Leg>
-                    <Leg icon="minus" color="var(--fg4)" name="Denetlenmiyor">zararsız bir çağrısı yok (ör. Slack'e denemek bir mesaj göndermek olurdu)</Leg></Hint></span></th>
-                  <th>Denetim</th>
+                  <th>Name</th><th>Type</th><th>Endpoint</th>
+                  <th><span className="th-hint">Credentials<Hint>A reference to where they are in OpenBao (bao://…). The secret itself never leaves Gaia's API.</Hint></span></th>
+                  <th>Used by</th>
+                  <th><span className="th-hint">Connection<Hint right width={320}>Every five minutes Gaia makes a harmless call to each provider with its credentials (a version query, a single read, an LDAP bind).
+                    <Leg icon="check-circle" color="var(--green)" name="Connected">the endpoint and credentials work; the answer and its time below</Leg>
+                    <Leg icon="x-circle" color="var(--red)" name="Unreachable">could not connect, or the credentials were refused; hover for the error</Leg>
+                    <Leg icon="minus" color="var(--fg4)" name="Not checked">it has no harmless call (trying Slack would send a message)</Leg></Hint></span></th>
+                  <th>Checked</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,11 +109,11 @@ export function Providers({ channels = false }: { channels?: boolean }) {
                 ))}
               </tbody>
             </table>
-            {q.data.length === 0 && <div className="empty">{channels ? "Bildirim kanalı yok." : "Provider yok."}</div>}
+            {q.data.length === 0 && <div className="empty">{channels ? "No notification channels." : "No providers."}</div>}
             {q.data.some((p) => p.check?.status === "failed" || p.error) && (
               <div style={{ padding: "0 16px 16px" }}>
                 {q.data.filter((p) => p.check?.status === "failed").map((p) => <div key={p.name} className="notice err" style={{ marginTop: 8 }}><b>{p.name}</b>: <Mono>{p.check?.error}</Mono></div>)}
-                {q.data.filter((p) => p.error).map((p) => <div key={p.name + "/d"} className="notice warn" style={{ marginTop: 8 }}><b>{p.name}</b> (son keşif): <Mono>{p.error}</Mono></div>)}
+                {q.data.filter((p) => p.error).map((p) => <div key={p.name + "/d"} className="notice warn" style={{ marginTop: 8 }}><b>{p.name}</b> (last discovery): <Mono>{p.error}</Mono></div>)}
               </div>
             )}
           </Card>

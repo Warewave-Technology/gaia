@@ -169,7 +169,7 @@ spec:
 		t.Errorf("a stale proposal: %d", code)
 	}
 	send(t, "GET", api+"/proposals/"+second.ID, ayse, nil, &detail)
-	if detail.Status != "stale" || !strings.Contains(detail.StaleReason, "aynı nesneleri") {
+	if detail.Status != "stale" || !strings.Contains(detail.StaleReason, "changed the same objects") {
 		t.Errorf("second = %+v", detail)
 	}
 	if code, out := decide(ayse, other, "approve", ""); code != 200 || out.AppliedVersion != 6 {

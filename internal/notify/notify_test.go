@@ -281,7 +281,7 @@ func TestNotificationsReachSubscribersOnce(t *testing.T) {
 	}
 
 	slack := box.wait(t, "/slack", 1)
-	if !strings.Contains(slack[0], `poc-web: değişiklik onay bekliyor`) || !strings.Contains(slack[0], "ayse") {
+	if !strings.Contains(slack[0], `poc-web: change awaits approval`) || !strings.Contains(slack[0], "ayse") {
 		t.Errorf("slack = %s", slack[0])
 	}
 	hook := box.wait(t, "/hook", 1)
@@ -301,7 +301,7 @@ func TestNotificationsReachSubscribersOnce(t *testing.T) {
 		t.Errorf("teams = %s", teams[0])
 	}
 	mail := box.wait(t, "mail", 1)
-	if !strings.HasPrefix(mail[0], "ayse@example.com\n") || !strings.Contains(mail[0], "Subject: =?utf-8?q?poc-web") {
+	if !strings.HasPrefix(mail[0], "ayse@example.com\n") || !strings.Contains(mail[0], "Subject: poc-web: change awaits approval") {
 		t.Errorf("mail = %s", mail[0])
 	}
 

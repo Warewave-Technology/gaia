@@ -126,7 +126,7 @@ async function devicePage() {
       await post("/api/v1/auth/device/" + encodeURIComponent(code) + "/" + what);
       document.getElementById("device-check").hidden = true;
       const done = document.getElementById("done");
-      done.textContent = what === "approve" ? "Onaylandı. Terminale dönebilirsiniz." : "Reddedildi.";
+      done.textContent = what === "approve" ? "Approved. You can go back to the terminal." : "Denied.";
       done.hidden = false;
     } catch (e) {
       showError(e);
@@ -261,11 +261,11 @@ function secondStep(st) {
   document.getElementById("second").hidden = false;
   const first = !st.passkey && !st.totp;
   document.getElementById("intro").textContent = first
-    ? "Kimliğiniz doğrulandı. Bu ilk girişiniz: Gaia için bir ikinci adım kaydedin."
-    : "Kimliğiniz doğrulandı. Girişi ikinci adımla tamamlayın.";
+    ? "Your password is checked. This is your first sign-in: register a second factor for Gaia."
+    : "Your password is checked. Finish signing in with your second factor.";
   const pk = document.getElementById("step");
   pk.hidden = !(st.passkey || first);
-  pk.textContent = first ? "Passkey oluştur" : "Passkey ile devam et";
+  pk.textContent = first ? "Create a passkey" : "Continue with a passkey";
   document.getElementById("second-totp").hidden = !(st.require === "mfa" && st.totp);
   document.getElementById("second-setup").hidden = !(st.require === "mfa" && first);
 }
@@ -315,7 +315,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (cfg.providers.some((p) => p.type === "ldap") && document.getElementById("ldap")) {
       // People sign in with the directory; local accounts are break-glass.
       document.getElementById("ldap").hidden = false;
-      document.getElementById("intro").textContent = "Kurumunuzun kullanıcı adı ve parolasıyla giriş yapın.";
+      document.getElementById("intro").textContent = "Sign in with your organisation's username and password.";
       document.getElementById("passkey").className = "btn block";
       const pw = document.getElementById("password");
       if (cfg.require === "mfa") {
@@ -329,7 +329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       for (const p of cfg.providers.filter((p) => p.type === "oidc")) {
         const a = document.createElement("a");
         a.href = "/auth/oidc/" + encodeURIComponent(p.name) + "/start?next=" + encodeURIComponent(params.get("next") || "/");
-        a.textContent = p.name + " ile giriş";
+        a.textContent = "Sign in with " + p.name;
         a.className = "btn alt";
         box.appendChild(a);
       }

@@ -58,8 +58,8 @@ export function servers(p: Plan): (PlanServer & { contract: PlanContract })[] {
 export function areas(p: Plan): Area[] {
   const ipam = { key: "ipam", label: "IPAM", providers: new Set<string>(), counts: zero() };
   const prov = { key: "provisioning", label: "Provisioning", providers: new Set<string>(), counts: zero() };
-  const mon = { key: "monitoring", label: "İzleme", providers: new Set<string>(), counts: zero() };
-  const conf = { key: "configuration", label: "Konfigürasyon", providers: new Set<string>(), counts: zero() };
+  const mon = { key: "monitoring", label: "Monitoring", providers: new Set<string>(), counts: zero() };
+  const conf = { key: "configuration", label: "Configuration", providers: new Set<string>(), counts: zero() };
   for (const c of p.contracts ?? []) {
     for (const s of c.servers ?? []) {
       bump(ipam.counts, s.action);

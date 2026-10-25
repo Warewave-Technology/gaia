@@ -95,7 +95,7 @@ func run(ctx context.Context, p *catalog.ProviderSpec, secrets Secrets) (string,
 		return c.ServiceContent.About.FullName, nil
 	case "ipam":
 		pools, err := ipamclient.New(p.Endpoint, creds["token"]).Pools(ctx)
-		return fmt.Sprintf("%d havuz", len(pools)), err
+		return fmt.Sprintf("%d pools", len(pools)), err
 	case "zabbix":
 		v, n, err := zabbix.New(p.Endpoint, creds["token"]).Check(ctx)
 		return fmt.Sprintf("Zabbix %s · %d host", v, n), err
@@ -105,7 +105,7 @@ func run(ctx context.Context, p *catalog.ProviderSpec, secrets Secrets) (string,
 			return "", err
 		}
 		roles, err := w.Roles(ctx)
-		return fmt.Sprintf("%d rol", len(roles)), err
+		return fmt.Sprintf("%d roles", len(roles)), err
 	case "activedirectory":
 		d, err := ad.Open(ctx, ad.ConfigFrom(p.Endpoint, p.BaseDN, creds))
 		if err != nil {
@@ -140,11 +140,11 @@ func run(ctx context.Context, p *catalog.ProviderSpec, secrets Secrets) (string,
 	case "smtp":
 		return smtpHello(ctx, p.Endpoint)
 	case "git":
-		return "repolar her fetch'te denetlenir (Sync ekranı)", errSkip
+		return "repositories are checked at every fetch (see Sources)", errSkip
 	case "slack", "msteams", "webhook":
-		return "denetim bir mesaj göndermek olurdu", errSkip
+		return "checking would send a message", errSkip
 	}
-	return "bu tür için denetim yok", errSkip
+	return "no check for this type", errSkip
 }
 
 func openbao(ctx context.Context, addr string) (string, error) {

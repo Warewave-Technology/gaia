@@ -31,13 +31,13 @@ export function ObjectTable({ kind, title, hint, cols, objs, right }: { kind: st
         <div className="card-title"><Icon name={kindOf(kind).icon} size={16} /><h2>{title}</h2><Hint>{hint}</Hint></div>
         {right}
       </div>
-      {objs.length === 0 ? <div className="empty">Henüz yok.</div> : (
+      {objs.length === 0 ? <div className="empty">None yet.</div> : (
         <table className="grid">
           <thead>
             <tr>
-              <th>Ad</th>
+              <th>Name</th>
               {cols.map((c) => <th key={c.title}>{c.hint ? <span className="th-hint">{c.title}<Hint>{c.hint}</Hint></span> : c.title}</th>)}
-              <th><span className="th-hint">Kullanan<Hint right>Bu nesneyi kullanan kontrat sayısı.</Hint></span></th>
+              <th><span className="th-hint">Used by<Hint right>How many contracts use it.</Hint></span></th>
             </tr>
           </thead>
           <tbody>
@@ -45,7 +45,7 @@ export function ObjectTable({ kind, title, hint, cols, objs, right }: { kind: st
               <tr key={o.name}>
                 <td className="nowrap">
                   <Link to={objectPath(o.kind, o.name)} style={{ fontWeight: 600 }}>{o.name}</Link>
-                  {o.generatedBy && <span className="faint" title={`${o.generatedBy} üretti`} style={{ marginLeft: 6, verticalAlign: "middle", display: "inline-block" }}><Icon name="repeat" size={13} /></span>}
+                  {o.generatedBy && <span className="faint" title={`Written by ${o.generatedBy}`} style={{ marginLeft: 6, verticalAlign: "middle", display: "inline-block" }}><Icon name="repeat" size={13} /></span>}
                 </td>
                 {cols.map((c) => <td key={c.title} className={c.nowrap ? "nowrap" : undefined}>{c.cell(o)}</td>)}
                 <td><IL icon="file" size={14} weight={500} color="var(--fg4)">{o.contracts}</IL></td>
@@ -60,6 +60,6 @@ export function ObjectTable({ kind, title, hint, cols, objs, right }: { kind: st
 
 
 export function ObjectsError({ error }: { error: unknown }) {
-  if (error instanceof ApiError && error.status === 503) return <div className="notice warn">Bu sunucu bir repo izlemiyor; tanım yok.</div>;
+  if (error instanceof ApiError && error.status === 503) return <div className="notice warn">This server follows no repository; there is nothing to show.</div>;
   return <ErrorNote error={error} />;
 }

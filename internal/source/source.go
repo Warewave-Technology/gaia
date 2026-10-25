@@ -68,6 +68,9 @@ type Report struct {
 	Removed  []string `json:"removed,omitempty"`
 	Problems []string `json:"problems,omitempty"` // what was left out, and why
 	Error    string   `json:"error,omitempty"`
+	// A directory's membership sync says who joined or left a team and
+	// whose account the directory closed or opened.
+	Membership *Membership `json:"membership,omitempty"`
 }
 
 // Run runs every source of the catalog once and records their reports.
@@ -97,7 +100,11 @@ func (s *Syncer) Run(ctx context.Context, snap repo.Snapshot, g *catalog.Graph) 
 }
 
 func (s *Syncer) save(ctx context.Context, r Report) error {
-	detail, _ := json.Marshal(map[string]any{"added": r.Added, "changed": r.Changed, "removed": r.Removed, "problems": r.Problems, "version": r.Version})
+	d := map[string]any{"added": r.Added, "changed": r.Changed, "removed": r.Removed, "problems": r.Problems, "version": r.Version}
+	if m := r.Membership; m != nil {
+		d = map[string]any{"joined": m.Joined, "left": m.Left, "disabled": m.Disabled, "enabled": m.Enabled}
+	}
+	detail, _ := json.Marshal(d)
 	s.log().Info("source", "source", r.Source, "status", r.Status, "commit", r.Commit, "version", r.Version, "err", r.Error)
 	return s.Store.Q().SetSourceReport(ctx, db.SetSourceReportParams{
 		Source: r.Source, Status: r.Status, Commit: text(r.Commit), Detail: detail, Error: text(r.Error),

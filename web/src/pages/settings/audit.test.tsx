@@ -21,24 +21,24 @@ describe("audit log", () => {
       "GET /audit?limit=100&action=settings.": { body: [entry(498, "settings.apply", { object: "settings@4" })] },
     });
     renderAt("/settings/audit");
-    const approve = (await screen.findByText("Change onaylama")).closest("tr")!;
+    const approve = (await screen.findByText("Change approved")).closest("tr")!;
     expect(approve).toHaveTextContent("ayse");
     expect(approve).toHaveTextContent("10.0.0.5");
     expect(screen.getByRole("link", { name: "chg-abc" })).toHaveAttribute("href", "/changes/chg-abc");
     expect(screen.getByRole("link", { name: "settings@4" })).toHaveAttribute("href", "/settings/versions/4");
-    expect(screen.getAllByText("reddedildi", { selector: ".badge" })).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: /Daha eski/ }));
+    expect(screen.getAllByText("denied", { selector: ".badge" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /Older/ }));
     expect(await screen.findByRole("link", { name: "run-x" })).toHaveAttribute("href", "/runs/run-x");
-    fireEvent.click(screen.getByRole("button", { name: /Ayarlar/ }));
-    await vi.waitFor(() => expect(screen.queryByText("Change onaylama")).not.toBeInTheDocument());
-    expect(await screen.findByText("Ayar değişikliğini uygulama")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /JSON satırları/ })).toHaveAttribute("href", "/api/v1/audit?format=jsonl&limit=10000&action=settings.");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    await vi.waitFor(() => expect(screen.queryByText("Change approved")).not.toBeInTheDocument());
+    expect(await screen.findByText("Settings change applied")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /JSON lines/ })).toHaveAttribute("href", "/api/v1/audit?format=jsonl&limit=10000&action=settings.");
     expect(calls.some((c) => c.path === "/audit?limit=100&action=settings.")).toBe(true);
   });
 
   it("is for platform admins", async () => {
     fakeAPI({ "GET /me": { body: ME }, "GET /changes?open=true&limit=500": { body: [] } });
     renderAt("/settings/audit");
-    expect(await screen.findByText(/sadece platform-admin/)).toBeInTheDocument();
+    expect(await screen.findByText(/for platform admins/)).toBeInTheDocument();
   });
 });

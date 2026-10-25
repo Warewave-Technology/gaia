@@ -1,4 +1,4 @@
-// Değişiklikler: the open changes, those that wait for me, and the rest.
+// Changes: the open changes, those that wait for me, and the rest.
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
@@ -13,9 +13,9 @@ import { ChangeBadge, ChangeStatusLegend, SourceLabel, SourceLegend } from "../.
 import { ago } from "../../lib/time";
 
 const FILTERS = [
-  { key: "mine", label: "Onayımı bekleyenler", query: "?awaiting=me&limit=200", settings: "?awaiting=me" },
-  { key: "open", label: "Açık", query: "?open=true&limit=200", settings: "?status=pending" },
-  { key: "all", label: "Tümü", query: "?limit=200", settings: "?limit=200" },
+  { key: "mine", label: "Awaiting me", query: "?awaiting=me&limit=200", settings: "?awaiting=me" },
+  { key: "open", label: "Open", query: "?open=true&limit=200", settings: "?status=pending" },
+  { key: "all", label: "All", query: "?limit=200", settings: "?limit=200" },
 ] as const;
 
 // A row is a contract change or a settings change, newest first.
@@ -34,15 +34,15 @@ export function ChangeList() {
     ...(sq.data ?? []).map((p): Item => ({ kind: "settings", at: p.createdAt, p })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   return (
-    <Page crumbs="Değişiklikler">
+    <Page crumbs="Changes">
       <div className="title-row">
-        <h1>Değişiklikler</h1>
-        <Hint width={340}>Change: kontrat reposuna gelen bir commit'in Gaia'daki karşılığı. Gaia planı hesaplar, gerekenler (imza, onay…) sağlanınca uygular.
-          <span style={{ display: "block", marginTop: 6 }}>Ayar değişikliği: Gaia'nın ayarlarına (site, ağ, takım, provider…) önerilen bir değişiklik. Onaylanınca yeni bir ayar sürümü olur; planı değişen kontratlar için Change'ler açılır.</span>
-          <Leg icon="file" color="var(--fg4)" name="kontrat">bir kontratın Change'i</Leg>
-          <Leg icon="gear" color="var(--fg4)" name="ayar">bir ayar değişikliği</Leg></Hint>
+        <h1>Changes</h1>
+        <Hint width={340}>A contract change is Gaia's plan for a commit to the contract repository. Gaia applies it once what it needs (signatures, approvals…) is there.
+          <span style={{ display: "block", marginTop: 6 }}>A settings change is a proposed change to Gaia's settings (sites, networks, teams, providers…). Once approved it becomes a new settings version, and the contracts whose plan changes get their own changes.</span>
+          <Leg icon="file" color="var(--fg4)" name="contract">a contract's change</Leg>
+          <Leg icon="gear" color="var(--fg4)" name="settings">a settings change</Leg></Hint>
       </div>
-      <div className="row" role="tablist" aria-label="Filtre">
+      <div className="row" role="tablist" aria-label="Filter">
         {filters.map((x) => (
           <button key={x.key} type="button" role="tab" aria-selected={x.key === f.key} className={x.key === f.key ? "btn primary" : "btn"}
             onClick={() => setParams(x.key === "open" ? {} : { f: x.key })}>
@@ -52,17 +52,17 @@ export function ChangeList() {
       </div>
       <Card title={f.label} icon="pr">
         {q.isPending ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : items.length === 0 ? (
-          <div className="empty">{f.key === "mine" ? "Onayınızı bekleyen değişiklik yok." : "Değişiklik yok."}</div>
+          <div className="empty">{f.key === "mine" ? "No change is waiting for you." : "No changes."}</div>
         ) : (
           <table className="grid">
             <thead>
               <tr>
-                <th><span className="th-hint">Durum<Hint><ChangeStatusLegend /><span style={{ display: "block", marginTop: 8 }}>Ayar değişiklikleri:</span><ProposalLegend /></Hint></span></th>
-                <th>Kontrat ya da ayar</th>
-                <th><span className="th-hint">Kaynak<Hint><SourceLegend /></Hint></span></th>
-                <th>Commit ya da sürüm</th>
-                <th>İsteyen</th>
-                <th>Zaman</th>
+                <th><span className="th-hint">Status<Hint><ChangeStatusLegend /><span style={{ display: "block", marginTop: 8 }}>Settings changes:</span><ProposalLegend /></Hint></span></th>
+                <th>Contract or settings</th>
+                <th><span className="th-hint">Source<Hint><SourceLegend /></Hint></span></th>
+                <th>Commit or version</th>
+                <th>Requested by</th>
+                <th>When</th>
               </tr>
             </thead>
             <tbody>
@@ -81,11 +81,11 @@ function SettingsRow({ p }: { p: Proposal }) {
       <td>
         <span className="row">
           <ProposalBadge status={p.status} />
-          {p.mayDecide && <Badge tone="orange" icon="user">sizi bekliyor</Badge>}
+          {p.mayDecide && <Badge tone="orange" icon="user">awaiting you</Badge>}
         </span>
       </td>
       <td><Link to={`/changes/settings/${encodeURIComponent(p.id)}`} className="il" style={{ fontWeight: 600 }}><span className="faint"><Icon name="gear" size={14} /></span>{p.title}</Link></td>
-      <td><IL icon="gear" color="var(--fg4)" size={15} weight={400}>ayar</IL></td>
+      <td><IL icon="gear" color="var(--fg4)" size={15} weight={400}>settings</IL></td>
       <td><span className="il muted" style={{ fontWeight: 400 }}><Icon name="history" size={15} />v{p.appliedVersion ?? p.baseVersion}</span></td>
       <td className="muted">{p.requestedBy}</td>
       <td className="muted">{ago(p.createdAt)}</td>
@@ -98,7 +98,7 @@ function Row({ c }: { c: Change }) {
     return (
       <tr>
         <td><ChangeBadge status={c.status} /></td>
-        <td>{c.contract} <span className="faint">(yetkiniz yok)</span></td>
+        <td>{c.contract} <span className="faint">(no access)</span></td>
         <td colSpan={3} />
         <td className="muted">{ago(c.updatedAt)}</td>
       </tr>
@@ -110,7 +110,7 @@ function Row({ c }: { c: Change }) {
       <td>
         <span className="row">
           <ChangeBadge status={c.status} />
-          {c.awaitingMe && <Badge tone="orange" icon="user">sizi bekliyor</Badge>}
+          {c.awaitingMe && <Badge tone="orange" icon="user">awaiting you</Badge>}
         </span>
       </td>
       <td><Link to={`/changes/${encodeURIComponent(c.id)}`} className="il" style={{ fontWeight: 600 }}><span className="faint"><Icon name="file" size={14} /></span>{c.contract}</Link></td>

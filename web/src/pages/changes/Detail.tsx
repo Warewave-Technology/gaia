@@ -24,13 +24,13 @@ export function ChangeDetail() {
     queryFn: () => api<Change>(`/changes/${encodeURIComponent(id)}`),
     refetchInterval: (query) => (query.state.data && ["pending", "approved", "running"].includes(query.state.data.status) ? 10_000 : false),
   });
-  const crumbs = <><Link to="/changes">Değişiklikler</Link> / {q.data?.contract ?? id}</>;
+  const crumbs = <><Link to="/changes">Changes</Link> / {q.data?.contract ?? id}</>;
   if (q.isPending) return <Page crumbs={crumbs}><Loading /></Page>;
   if (q.error) {
     const restricted = q.error instanceof ApiError && q.error.status === 403;
     return (
       <Page crumbs={crumbs}>
-        {restricted ? <div className="notice warn">Bu kontratın sadece adını görebilirsiniz; ayrıntıları kapalı.</div> : <ErrorNote error={q.error} />}
+        {restricted ? <div className="notice warn">You may see this contract's name only; its details are closed to you.</div> : <ErrorNote error={q.error} />}
       </Page>
     );
   }
@@ -60,13 +60,13 @@ function Body({ c, crumbs }: { c: Change; crumbs: ReactNode }) {
 
       <div className="spread">
         <div className="row">
-          <LinkButton to={`/contracts/${encodeURIComponent(c.contract)}`} icon="file">Kontrat</LinkButton>
+          <LinkButton to={`/contracts/${encodeURIComponent(c.contract)}`} icon="file">Contract</LinkButton>
           {c.runId && <LinkButton to={`/runs/${encodeURIComponent(c.runId)}`} icon="play">Run</LinkButton>}
         </div>
         {canDecide && step === "idle" && (
           <div className="row">
-            <Button kind="danger" icon="x" onClick={() => setStep("reject")}>Reddet</Button>
-            <Button kind="primary" icon="check" onClick={() => setStep("approve")}>Onayla</Button>
+            <Button kind="danger" icon="x" onClick={() => setStep("reject")}>Reject</Button>
+            <Button kind="primary" icon="check" onClick={() => setStep("approve")}>Approve</Button>
           </div>
         )}
       </div>
@@ -77,14 +77,14 @@ function Body({ c, crumbs }: { c: Change; crumbs: ReactNode }) {
 
       <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
         <Gates c={c} />
-        <section className="card" style={{ flex: "2 1 520px", minWidth: 0 }} aria-label="Değişikliğin içeriği">
-          <div role="tablist" aria-label="Görünüm" className="row" style={{ gap: 4, padding: "0 8px", borderBottom: "1px solid var(--bg1)" }}>
+        <section className="card" style={{ flex: "2 1 520px", minWidth: 0 }} aria-label="What the change does">
+          <div role="tablist" aria-label="View" className="row" style={{ gap: 4, padding: "0 8px", borderBottom: "1px solid var(--bg1)" }}>
             <Tab on={tab === "plan"} icon="plan" onClick={() => setTab("plan")}>Plan</Tab>
-            <Tab on={tab === "diff"} icon="diff" onClick={() => setTab("diff")}>YAML diff</Tab>
-            <Tab on={tab === "commits"} icon="commit" onClick={() => setTab("commits")}>Commit'ler</Tab>
-            <Tab on={tab === "raw"} icon="code" onClick={() => setTab("raw")}>Plan JSON</Tab>
+            <Tab on={tab === "diff"} icon="diff" onClick={() => setTab("diff")}>Git diff</Tab>
+            <Tab on={tab === "commits"} icon="commit" onClick={() => setTab("commits")}>Commits</Tab>
+            <Tab on={tab === "raw"} icon="code" onClick={() => setTab("raw")}>Raw plan</Tab>
           </div>
-          {tab === "plan" && (plan ? <PlanView plan={plan} /> : <div className="card-body muted">Bu değişikliğin planı sunucu planı değil; ayrıntısı Plan JSON'da.</div>)}
+          {tab === "plan" && (plan ? <PlanView plan={plan} /> : <div className="card-body muted">This change's plan is not a server plan; see the raw plan.</div>)}
           {tab === "diff" && <YamlDiff id={c.id} contract={c.contract} />}
           {tab === "commits" && <Commits commits={commits} />}
           {tab === "raw" && <pre className="mono" style={{ margin: 0, padding: 16, overflowX: "auto", color: "var(--fg2)" }}>{JSON.stringify(c.plan, null, 2)}</pre>}
@@ -133,52 +133,52 @@ function statusItems(c: Change, plan: Plan | null): StatusItem[] {
   const signers = ((sg?.detail ?? {}) as { signers?: string[] }).signers ?? c.requestedBy ?? [];
   const items: StatusItem[] = [
     {
-      icon: "sync", title: "Sync durumu", hint: <SyncLegend />,
+      icon: "sync", title: "Sync", hint: <SyncLegend />,
       value: open ? <Sync state="out-of-sync" size={20} /> : c.status === "applied" ? <Sync state="synced" size={20} /> : <ChangeBadge status={c.status} />,
       sub: <>{shortLabel(c.label)}{c.commits ? ` · ${(c.commits as Commit[]).length} commit` : ""}</>,
     },
     {
-      icon: "user", title: "Onay",
-      hint: <>Gereken onaylar ve kimin onayladığı. Onay plan hash'ine bağlıdır; plan değişirse düşer.
-        <Leg icon="clock" color="var(--blue)" name="Bekliyor">onay verilmedi</Leg>
-        <Leg icon="check-circle" color="var(--green)" name="Onaylandı">gereken onaylar tamam</Leg>
-        <Leg icon="x-circle" color="var(--red)" name="Reddedildi">bir onaycı reddetti</Leg></>,
-      value: !ag ? <span className="muted" style={{ fontSize: 15 }}>gerekmiyor</span>
-        : rejected ? <IL icon="x-circle" color="var(--red)" size={20}>Reddedildi</IL>
-        : ag.status === "ok" ? <IL icon="check-circle" color="var(--green)" size={20}>{need.via ? "Onaylı" : `${approved}/${need.groups.length}`}</IL>
+      icon: "user", title: "Approval",
+      hint: <>The approvals it needs and who gave them. An approval is bound to the plan hash; it falls if the plan changes.
+        <Leg icon="clock" color="var(--blue)" name="Waiting">not approved yet</Leg>
+        <Leg icon="check-circle" color="var(--green)" name="Approved">the approvals it needs are given</Leg>
+        <Leg icon="x-circle" color="var(--red)" name="Rejected">an approver rejected it</Leg></>,
+      value: !ag ? <span className="muted" style={{ fontSize: 15 }}>not needed</span>
+        : rejected ? <IL icon="x-circle" color="var(--red)" size={20}>Rejected</IL>
+        : ag.status === "ok" ? <IL icon="check-circle" color="var(--green)" size={20}>{need.via ? "Approved" : `${approved}/${need.groups.length}`}</IL>
         : <IL icon="clock" color="var(--blue)" size={20}>{approved}/{need.groups.length}</IL>,
-      sub: need.via ? `onay: ${need.via}` : need.groups.map((g) => g.approvedBy ?? `bekleniyor: ${g.candidates.join(", ") || "kimse yok"}`).join(" · "),
+      sub: need.via ? `approved by ${need.via}` : need.groups.map((g) => g.approvedBy ?? `waiting for: ${g.candidates.join(", ") || "nobody"}`).join(" · "),
     },
   ];
   if (plan) {
     items.push({
-      icon: "plan", title: "Plan", hint: <>Gaia'nın bu commit için hesapladığı değişiklik. Hash planın parmak izidir.<PlanLegend /></>,
-      value: <><CountsView c={total(plan)} size={18} /><span className="muted" style={{ fontSize: 15, fontWeight: 500 }}>sunucu</span></>,
+      icon: "plan", title: "Plan", hint: <>What Gaia worked out for this change. The hash is the plan's fingerprint.<PlanLegend /></>,
+      value: <><CountsView c={total(plan)} size={18} /><span className="muted" style={{ fontSize: 15, fontWeight: 500 }}>servers</span></>,
       sub: <Mono>{short(c.planHash, 19)}…</Mono>,
     });
   }
   items.push({
-    icon: "key", title: "İmza", hint: "Commit'lerin imzası ve imzalayan anahtarın Gaia'da kayıtlı sahibi.",
+    icon: "key", title: "Signature", hint: "The commits' signatures, and the person Gaia knows the signing key as.",
     value: !sg ? <span className="muted" style={{ fontSize: 15 }}>–</span>
-      : sg.status === "ok" ? <IL icon="check-circle" color="var(--green)" size={20}>Doğrulandı</IL>
-      : sg.status === "failed" ? <IL icon="x-circle" color="var(--red)" size={20}>İmzasız</IL>
-      : <IL icon="clock" color="var(--blue)" size={20}>Bekliyor</IL>,
+      : sg.status === "ok" ? <IL icon="check-circle" color="var(--green)" size={20}>Verified</IL>
+      : sg.status === "failed" ? <IL icon="x-circle" color="var(--red)" size={20}>Unsigned</IL>
+      : <IL icon="clock" color="var(--blue)" size={20}>Waiting</IL>,
     sub: signers.join(", "),
   });
   return items;
 }
 
 const GATES: Record<string, { title: string; icon: IconName; hint: string }> = {
-  validation: { title: "Validasyon", icon: "check", hint: "Kontratın katalogla tutarlı olduğu, parametrelerin şemaya ve CEL kurallarına uyduğu kontrol edilir." },
-  signature: { title: "İmza", icon: "key", hint: "Commit, kişinin Gaia profiline kaydettiği SSH veya OpenPGP anahtarıyla imzalanmış olmalı." },
-  approval: { title: "Onay", icon: "user", hint: "Policy'nin istediği onaylar. Onay plan hash'ine bağlıdır; plan değişirse onay düşer. Commit sahibi kendi değişikliğini onaylayamaz." },
-  window: { title: "Pencere", icon: "clock", hint: "Operation'ın çalışabileceği zaman aralığı." },
+  validation: { title: "Validation", icon: "check", hint: "The contract fits the catalog, and its parameters fit their schemas and CEL rules." },
+  signature: { title: "Signature", icon: "key", hint: "The commit is signed with an SSH or OpenPGP key its author registered in Gaia." },
+  approval: { title: "Approval", icon: "user", hint: "The approvals the Policy asks for. An approval is bound to the plan hash and falls if the plan changes. Whoever asked for a change may not approve it." },
+  window: { title: "Window", icon: "clock", hint: "When the Operation may run." },
 };
 
 function GateMark({ status }: { status: Gate["status"] }) {
-  if (status === "ok") return <span style={{ color: "var(--green)" }} aria-label="Tamam"><Icon name="check-circle" size={18} /></span>;
-  if (status === "failed") return <span style={{ color: "var(--red)" }} aria-label="Başarısız"><Icon name="x-circle" size={18} /></span>;
-  return <span style={{ color: "var(--blue)" }} aria-label="Bekliyor"><Icon name="clock" size={18} /></span>;
+  if (status === "ok") return <span style={{ color: "var(--green)" }} aria-label="Done"><Icon name="check-circle" size={18} /></span>;
+  if (status === "failed") return <span style={{ color: "var(--red)" }} aria-label="Failed"><Icon name="x-circle" size={18} /></span>;
+  return <span style={{ color: "var(--blue)" }} aria-label="Waiting"><Icon name="clock" size={18} /></span>;
 }
 
 function gateDetail(c: Change, g: Gate): ReactNode {
@@ -186,29 +186,29 @@ function gateDetail(c: Change, g: Gate): ReactNode {
   if (typeof d.error === "string") return <span className="error">{d.error}</span>;
   switch (g.gate) {
     case "validation":
-      return g.status === "ok" ? "Graf, params ve CEL kuralları geçti" : "Validasyon geçmedi";
+      return g.status === "ok" ? "References, parameters and CEL rules pass" : "Validation failed";
     case "signature": {
-      if (g.status === "ok") return `İmzalayan: ${((d.signers as string[]) ?? []).join(", ")}`;
+      if (g.status === "ok") return `Signed by ${((d.signers as string[]) ?? []).join(", ")}`;
       const bad = (d.commits as Commit[] | undefined) ?? [];
-      return <>İmzasız ya da tanınmayan: {bad.map((x) => <Mono key={x.commit}>{short(x.commit)} </Mono>)}{bad[0]?.problem && <span className="muted"> · {bad[0].problem}</span>}</>;
+      return <>Unsigned or unknown: {bad.map((x) => <Mono key={x.commit}>{short(x.commit)} </Mono>)}{bad[0]?.problem && <span className="muted"> · {bad[0].problem}</span>}</>;
     }
     case "approval": {
       const need = approvalNeed(c);
-      if (need.via) return `Onay: ${need.via}`;
+      if (need.via) return `Approved by ${need.via}`;
       return (
         <>
           {need.groups.map((gr) => (
             <div key={gr.name}>
-              {gr.teams.join(", ")} {gr.role === "approver" ? "onaycılarından" : "üyelerinden"} biri:{" "}
-              {gr.approvedBy ? <b style={{ color: "var(--green)" }}>{gr.approvedBy} onayladı</b> : <span>bekleniyor ({gr.candidates.join(", ") || "onaylayabilecek kimse yok"})</span>}
+              One of {gr.teams.join(", ")}'s {gr.role === "approver" ? "approvers" : "members"}:{" "}
+              {gr.approvedBy ? <b style={{ color: "var(--green)" }}>{gr.approvedBy} approved</b> : <span>waiting ({gr.candidates.join(", ") || "nobody may approve"})</span>}
             </div>
           ))}
-          {need.excluded.length > 0 && <div className="faint" style={{ fontSize: 13 }}>{need.excluded.join(", ")} bu değişikliği onaylayamaz</div>}
+          {need.excluded.length > 0 && <div className="faint" style={{ fontSize: 13 }}>{need.excluded.join(", ")} may not approve this change</div>}
         </>
       );
     }
     case "window":
-      return d.start || d.end ? `${String(d.start ?? "")} – ${String(d.end ?? "")}` : "Her zaman";
+      return d.start || d.end ? `${String(d.start ?? "")} – ${String(d.end ?? "")}` : "Any time";
     default:
       return null;
   }
@@ -220,8 +220,8 @@ function Gates({ c }: { c: Change }) {
   return (
     <section className="card" style={{ flex: "1 1 320px" }} aria-labelledby="h-gates">
       <div className="card-head">
-        <div className="card-title"><Icon name="check-circle" size={16} /><h2 id="h-gates">Uygulanması için gerekenler</h2>
-          <Hint>Gaia değişikliği bunların hepsi sağlanınca kendiliğinden uygular. Biri eksikse Change bekler.</Hint></div>
+        <div className="card-title"><Icon name="check-circle" size={16} /><h2 id="h-gates">What it needs to be applied</h2>
+          <Hint>Gaia applies the change on its own once all of these are met. While one is missing, the change waits.</Hint></div>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {gates.map((g, i) => {
@@ -238,9 +238,9 @@ function Gates({ c }: { c: Change }) {
         })}
       </ul>
       <div style={{ padding: "12px 16px", background: "var(--bg0)", borderTop: "1px solid var(--bg1)", color: "var(--fg4)", fontSize: 13, borderRadius: "0 0 6px 6px" }}>
-        {c.status === "pending" && waiting ? "Gereksinimler sağlanınca Gaia uygulamayı kendisi başlatır."
-          : c.status === "rejected" ? "Reddedildi. Kontratı değiştiren yeni bir commit gelince yeni bir Change açılır."
-          : c.status === "approved" || c.status === "running" ? "Gereksinimlerin hepsi sağlandı; Gaia uyguluyor."
+        {c.status === "pending" && waiting ? "Gaia starts applying it as soon as these are met."
+          : c.status === "rejected" ? "Rejected. A new commit to the contract opens a new change."
+          : c.status === "approved" || c.status === "running" ? "Everything is met; Gaia is applying it."
           : <ChangeBadge status={c.status} />}
       </div>
     </section>
@@ -251,10 +251,10 @@ function PlanView({ plan }: { plan: Plan }) {
   const rows = servers(plan);
   const AREA_ICON: Record<string, IconName> = { ipam: "network", provisioning: "vm", monitoring: "activity", configuration: "wrench" };
   const AREA_HINT: Record<string, string> = {
-    ipam: "IP adresleri.",
-    provisioning: "VM'ler: Pulumi'nin oluşturacağı, değiştireceği veya sileceği makineler.",
-    monitoring: "İzleme sistemindeki (Zabbix) host kayıtları.",
-    configuration: "Ansible'ın çalışacağı sunucular. Konfigürasyon her sunucuda baştan doğrulanır.",
+    ipam: "IP addresses.",
+    provisioning: "VMs: the machines Pulumi creates, changes or deletes.",
+    monitoring: "Host entries in the monitoring system (Zabbix).",
+    configuration: "The servers Ansible runs on. Configuration is checked again on every server.",
   };
   const contract = plan.contracts?.[0];
   return (
@@ -264,14 +264,14 @@ function PlanView({ plan }: { plan: Plan }) {
           <div key={a.key} style={{ background: "var(--bg0)", border: "1px solid var(--bg2)", borderRadius: 6, padding: "10px 12px" }}>
             <div className="label-caps row" style={{ gap: 6 }}><Icon name={AREA_ICON[a.key] ?? "info"} size={14} />{a.label}<Hint width={240}>{AREA_HINT[a.key]}<PlanLegend /></Hint></div>
             <div className="row" style={{ marginTop: 4, gap: 10, fontWeight: 600 }}>
-              {a.key === "configuration" ? <span>{a.counts.same} sunucu</span> : <CountsView c={a.counts} />}
+              {a.key === "configuration" ? <span>{a.counts.same} servers</span> : <CountsView c={a.counts} />}
               {a.providers.length > 0 && <span className="muted" style={{ fontWeight: 400 }}>{a.providers.join(", ")}</span>}
             </div>
           </div>
         ))}
       </div>
       <table className="grid">
-        <thead><tr><th style={{ width: 32 }} /><th>Sunucu</th><th>Yer</th><th>Boyut</th><th>IP</th><th>UID</th></tr></thead>
+        <thead><tr><th style={{ width: 32 }} /><th>Server</th><th>Placement</th><th>Size</th><th>IP</th><th>UID</th></tr></thead>
         <tbody>
           {rows.map((s) => {
             const a = PLAN_ACTION[s.action] ?? PLAN_ACTION.keep!;
@@ -282,8 +282,8 @@ function PlanView({ plan }: { plan: Plan }) {
                 <td style={{ fontWeight: 600 }}>{s.hostname}</td>
                 <td className="nowrap">{s.site} / {s.network}</td>
                 <td className="nowrap">{size ? `${size.name} · ${size.cpu ?? "?"} vCPU, ${size.memoryGiB ?? "?"} GiB` : ""}</td>
-                <td className="muted">{s.ipam?.pool ? `IPAM'dan (${s.ipam.pool})` : ""}</td>
-                <td className="mono">{s.uid ? short(s.uid, 8) + "…" : <span className="muted">uygulamada</span>}</td>
+                <td className="muted">{s.ipam?.pool ? `from IPAM (${s.ipam.pool})` : ""}</td>
+                <td className="mono">{s.uid ? short(s.uid, 8) + "…" : <span className="muted">when applied</span>}</td>
               </tr>
             );
           })}
@@ -292,8 +292,8 @@ function PlanView({ plan }: { plan: Plan }) {
       {contract?.access && contract.access.length > 0 && <AccessView access={contract.access} />}
       {contract && (
         <div className="row muted" style={{ gap: "6px 16px" }}>
-          {contract.monitoring && <span className="il" style={{ fontWeight: 400 }}><Icon name="activity" size={14} />İzleme: {contract.monitoring.provider}{contract.monitoring.templates?.length ? ` · ${contract.monitoring.templates.join(", ")}` : ""}</span>}
-          {contract.baseline && <span className="il" style={{ fontWeight: 400 }}><Icon name="layers" size={14} />Konfigürasyon: baseline {baselineName(contract)}{contract.roles?.length ? ` + ${contract.roles.map((r) => r.name).join(", ")}` : ""}</span>}
+          {contract.monitoring && <span className="il" style={{ fontWeight: 400 }}><Icon name="activity" size={14} />Monitoring: {contract.monitoring.provider}{contract.monitoring.templates?.length ? ` · ${contract.monitoring.templates.join(", ")}` : ""}</span>}
+          {contract.baseline && <span className="il" style={{ fontWeight: 400 }}><Icon name="layers" size={14} />Configuration: baseline {baselineName(contract)}{contract.roles?.length ? ` + ${contract.roles.map((r) => r.name).join(", ")}` : ""}</span>}
         </div>
       )}
     </div>
@@ -303,26 +303,26 @@ function PlanView({ plan }: { plan: Plan }) {
 function AccessView({ access }: { access: PlanAccess[] }) {
   return (
     <div>
-      <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}><Icon name="user" size={14} />Erişim
-        <Hint width={300}>Sunuculara kimin girebildiği. Kişiler takımlardan gelir; kullanıcı adları Git'e girmez.
-          <Leg icon="key" color="var(--red)" name="tam sudo">her komutu root olarak çalıştırabilir</Leg>
-          <Leg icon="key" color="var(--yellow)" name="sınırlı sudo">sadece listelenen komutları</Leg>
-          <Leg icon="user" color="var(--fg4)" name="sudo yok">sadece giriş</Leg></Hint></div>
+      <div className="label-caps row" style={{ gap: 6, marginBottom: 8 }}><Icon name="user" size={14} />Access
+        <Hint width={300}>Who may log in to the servers. People come from teams; usernames never go to Git.
+          <Leg icon="key" color="var(--red)" name="full sudo">may run any command as root</Leg>
+          <Leg icon="key" color="var(--yellow)" name="limited sudo">only the listed commands</Leg>
+          <Leg icon="user" color="var(--fg4)" name="no sudo">log in only</Leg></Hint></div>
       <table className="grid">
-        <thead><tr><th>Kim</th><th>Takımlar</th><th>Sudo</th></tr></thead>
+        <thead><tr><th>Who</th><th>Teams</th><th>Sudo</th></tr></thead>
         <tbody>
           {access.map((a) => (
             <tr key={a.via}>
-              <td className="nowrap"><span className="mono">{a.via}</span>{a.privileged && <> <Badge tone="orange">ayrıcalıklı</Badge></>}</td>
+              <td className="nowrap"><span className="mono">{a.via}</span>{a.privileged && <> <Badge tone="orange">privileged</Badge></>}</td>
               <td>{a.teams.join(", ")}</td>
               <td>
-                {a.sudo ? <IL icon="key" color="var(--red)" size={14}>tam sudo</IL>
+                {a.sudo ? <IL icon="key" color="var(--red)" size={14}>full sudo</IL>
                   : a.sudoCommands?.length ? (
                     <span>
-                      <IL icon="key" color="var(--yellow)" size={14}>sınırlı sudo</IL>
+                      <IL icon="key" color="var(--yellow)" size={14}>limited sudo</IL>
                       <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{a.sudoCommands.map((c) => <li key={c} className="mono">{c}</li>)}</ul>
                     </span>
-                  ) : <span className="muted">yok</span>}
+                  ) : <span className="muted">none</span>}
               </td>
             </tr>
           ))}
@@ -333,15 +333,15 @@ function AccessView({ access }: { access: PlanAccess[] }) {
 }
 
 function Commits({ commits }: { commits: Commit[] }) {
-  if (commits.length === 0) return <div className="empty">Commit yok.</div>;
+  if (commits.length === 0) return <div className="empty">No commits.</div>;
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {commits.map((x, i) => (
         <li key={x.repo + x.commit} className="row" style={{ gap: 12, padding: "14px 16px", borderTop: i ? "1px solid var(--bg1)" : undefined }}>
           <span className="il muted" style={{ fontWeight: 400 }}><Icon name="commit" size={15} /><Mono>{short(x.commit)}</Mono></span>
           <span className="muted">{x.repo}</span>
-          {x.signer ? <IL icon="key" color="var(--green)" size={14}>{x.signer}</IL> : <IL icon="x-circle" color="var(--red)" size={14}>imzasız</IL>}
-          {x.reverts && <span className="muted">geri alıyor: <Mono>{short(x.reverts)}</Mono></span>}
+          {x.signer ? <IL icon="key" color="var(--green)" size={14}>{x.signer}</IL> : <IL icon="x-circle" color="var(--red)" size={14}>unsigned</IL>}
+          {x.reverts && <span className="muted">reverts <Mono>{short(x.reverts)}</Mono></span>}
           {x.problem && <span className="error">{x.problem}</span>}
         </li>
       ))}
@@ -354,20 +354,20 @@ type Note = { id: number; trigger: string; channel: string; recipient: string; s
 function Activity({ c }: { c: Change }) {
   const notes = useQuery({ queryKey: ["change", c.id, "notifications"], queryFn: () => api<Note[]>(`/changes/${encodeURIComponent(c.id)}/notifications`) });
   type Item = { at: string; icon: IconName; color: string; text: ReactNode };
-  const items: Item[] = [{ at: c.createdAt, icon: "plan", color: "var(--yellow)", text: <>Change açıldı; plan <Mono>{short(c.planHash, 15)}…</Mono></> }];
+  const items: Item[] = [{ at: c.createdAt, icon: "plan", color: "var(--yellow)", text: <>Change opened; plan <Mono>{short(c.planHash, 15)}…</Mono></> }];
   for (const a of c.approvals ?? []) {
     items.push(a.decision === "approve"
-      ? { at: a.createdAt, icon: "check-circle", color: "var(--green)", text: <b>{a.username} onayladı</b> }
-      : { at: a.createdAt, icon: "x-circle", color: "var(--red)", text: <><b>{a.username} reddetti</b>{a.comment && <span className="muted">: {a.comment}</span>}</> });
+      ? { at: a.createdAt, icon: "check-circle", color: "var(--green)", text: <b>{a.username} approved</b> }
+      : { at: a.createdAt, icon: "x-circle", color: "var(--red)", text: <><b>{a.username} rejected</b>{a.comment && <span className="muted">: {a.comment}</span>}</> });
   }
   for (const n of notes.data ?? []) {
-    items.push({ at: n.createdAt, icon: "bell", color: "var(--aqua)", text: <>Bildirim ({n.trigger}): {n.channel} → {n.recipient} <span className="faint">· {n.status}</span></> });
+    items.push({ at: n.createdAt, icon: "bell", color: "var(--aqua)", text: <>Notification ({n.trigger}): {n.channel} → {n.recipient} <span className="faint">· {n.status}</span></> });
   }
   if (c.runId) items.push({ at: c.updatedAt, icon: "play", color: "var(--yellow)", text: <>Run: <Link to={`/runs/${encodeURIComponent(c.runId)}`}><Mono>{c.runId}</Mono></Link></> });
-  if (c.finishedAt) items.push({ at: c.finishedAt, icon: "history", color: "var(--fg4)", text: <>Kapandı: <ChangeBadge status={c.status} /></> });
+  if (c.finishedAt) items.push({ at: c.finishedAt, icon: "history", color: "var(--fg4)", text: <>Closed: <ChangeBadge status={c.status} /></> });
   items.sort((a, b) => a.at.localeCompare(b.at));
   return (
-    <Card title="Akış" icon="history" hint="Bu Change'le ilgili olanlar, sırayla: planın hesaplanması, bildirimler, kararlar ve run.">
+    <Card title="Activity" icon="history" hint="What happened to this change, in order: its plan, notifications, decisions and run.">
       <ol style={{ listStyle: "none", margin: 0, padding: "10px 16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((it, i) => (
           <li key={i} className="row" style={{ gap: 12, flexWrap: "nowrap" }}>
@@ -396,7 +396,7 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
   });
 
   const finish = async () => {
-    await decide(send, async () => { throw new Error("Doğrulama süresi doldu; tekrar deneyin."); });
+    await decide(send, async () => { throw new Error("The confirmation expired; try again."); });
     await qc.invalidateQueries({ queryKey: ["change", c.id] });
     await qc.invalidateQueries({ queryKey: ["changes"] });
     onDone();
@@ -405,7 +405,7 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
   const run = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!approve && !comment.trim()) {
-      setError("Red için bir gerekçe yazın.");
+      setError("Say why you reject.");
       return;
     }
     setBusy(true);
@@ -430,24 +430,24 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
   };
 
   return (
-    <Modal title={approve ? "Planı onayla" : "Planı reddet"} icon={approve ? "check-circle" : "x-circle"} tone={approve ? "yellow" : "red"} onClose={onDone} onSubmit={run} width={560}
+    <Modal title={approve ? "Approve the plan" : "Reject the plan"} icon={approve ? "check-circle" : "x-circle"} tone={approve ? "yellow" : "red"} onClose={onDone} onSubmit={run} width={560}
       footer={<>
-        <Button onClick={onDone} disabled={busy}>Vazgeç</Button>
+        <Button onClick={onDone} disabled={busy}>Cancel</Button>
         <Button type="submit" kind={approve ? "primary" : "solid-danger"} icon="key" disabled={busy}>
-          {busy ? "Bekleniyor…" : totp !== null ? (approve ? "Kodla onayla" : "Kodla reddet") : approve ? "Passkey ile onayla" : "Passkey ile reddet"}
+          {busy ? "Waiting…" : totp !== null ? (approve ? "Approve with the code" : "Reject with the code") : approve ? "Approve with a passkey" : "Reject with a passkey"}
         </Button>
       </>}>
       <p style={{ margin: 0 }}>
-        <b>{c.contract}</b> için bu plana karar veriyorsunuz: <Mono>{short(c.planHash, 19)}…</Mono>
+        You decide on this plan for <b>{c.contract}</b>: <Mono>{short(c.planHash, 19)}…</Mono>
       </p>
-      <p className="muted" style={{ margin: 0 }}>Karar bu plana bağlıdır; plan değişirse onay düşer. Devam etmek için passkey'inizle doğrulayın.</p>
+      <p className="muted" style={{ margin: 0 }}>The decision is bound to this plan; if the plan changes, the approval falls. Confirm with your passkey to go on.</p>
       <label className="field">
-        <span>{approve ? "Not (isteğe bağlı)" : "Red gerekçesi"}</span>
-        <textarea className="input" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={approve ? "" : "Commit sahibine ve kanala gider"} />
+        <span>{approve ? "Note (optional)" : "Why you reject"}</span>
+        <textarea className="input" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={approve ? "" : "Goes to whoever asked for it and to the channel"} />
       </label>
       {totp !== null && (
         <label className="field">
-          <span>Passkey'iniz yok; doğrulama uygulamanızdaki kodu girin</span>
+          <span>You have no passkey; enter the code from your authenticator app</span>
           <input className="input mono" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={totp} onChange={(e) => setTotp(e.target.value)} autoFocus required />
         </label>
       )}
@@ -458,12 +458,12 @@ function Decision({ c, approve, onDone }: { c: Change; approve: boolean; onDone:
 
 function message(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.status === 409) return `${err.message} — sayfayı yenileyip tekrar bakın.`;
-    if (err.status === 403) return `Bu değişikliği onaylayamazsınız: ${err.message}`;
-    if (err.status === 401) return "Kod ya da passkey kabul edilmedi.";
+    if (err.status === 409) return `${err.message} — reload the page and look again.`;
+    if (err.status === 403) return `You may not decide on this change: ${err.message}`;
+    if (err.status === 401) return "The code or passkey was not accepted.";
     return err.message;
   }
-  if (err instanceof Error && err.name === "NotAllowedError") return "Passkey doğrulaması iptal edildi ya da zaman aşımına uğradı.";
+  if (err instanceof Error && err.name === "NotAllowedError") return "The passkey prompt was cancelled or timed out.";
   return err instanceof Error ? err.message : String(err);
 }
 

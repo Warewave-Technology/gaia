@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fakeAPI, ME, renderAt } from "../../test-utils";
 import { recurrence } from "./Operations";
@@ -7,9 +7,9 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("operations", () => {
   it("reads the schedules' recurrences", () => {
-    expect(recurrence("FREQ=WEEKLY;BYDAY=SA")).toBe("Her hafta Cumartesi");
-    expect(recurrence("FREQ=MONTHLY;BYDAY=2TU")).toBe("Her ay ayın 2. Salı");
-    expect(recurrence("FREQ=DAILY;INTERVAL=2")).toBe("Her 2 gün");
+    expect(recurrence("FREQ=WEEKLY;BYDAY=SA")).toBe("Every week on Saturday");
+    expect(recurrence("FREQ=MONTHLY;BYDAY=2TU")).toBe("Every month on the 2nd Tuesday");
+    expect(recurrence("FREQ=DAILY;INTERVAL=2")).toBe("Every 2 days");
     expect(recurrence("FREQ=YEARLY")).toBe("FREQ=YEARLY");
   });
 
@@ -24,18 +24,18 @@ describe("operations", () => {
       ] },
     });
     renderAt("/operations");
-    const sched = (await screen.findByText(/Her hafta Cumartesi/)).closest("tr")!;
-    expect(sched).toHaveTextContent("Her hafta Cumartesi · 03:00 UTC");
-    expect(sched).toHaveTextContent("yeniden başlatma");
+    const sched = (await screen.findByText(/Every week on Saturday/)).closest("tr")!;
+    expect(sched).toHaveTextContent("Every week on Saturday · 03:00 UTC");
+    expect(within(sched).getByText("reboot", { selector: "td" })).toBeInTheDocument();
     const patch = screen.getByText("patch-1").closest("tr")!;
-    expect(patch).toHaveTextContent("Kısmen");
+    expect(patch).toHaveTextContent("Partial");
     expect(screen.getByRole("link", { name: "run-1" })).toHaveAttribute("href", "/runs/run-1");
-    expect(screen.getByText("weekly-reboot-20261031").closest("tr")).toHaveTextContent("Bekliyor");
+    expect(screen.getByText("weekly-reboot-20261031").closest("tr")).toHaveTextContent("Waiting");
   });
 
   it("is for operators", async () => {
     fakeAPI({ "GET /me": { body: { ...ME, roles: ["viewer"] } }, "GET /changes?open=true&limit=500": { body: [] } });
     renderAt("/operations");
-    expect(await screen.findByText(/operator ve platform-admin/)).toBeInTheDocument();
+    expect(await screen.findByText(/for operators and platform admins/)).toBeInTheDocument();
   });
 });

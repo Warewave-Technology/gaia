@@ -8,15 +8,15 @@ import type { Change } from "../api/types";
 import { Icon, Logo, type IconName } from "./icons";
 
 const MENU: { to: string; icon: IconName; label: string; end?: boolean }[] = [
-  { to: "/", icon: "grid", label: "Genel bakış", end: true },
-  { to: "/changes", icon: "pr", label: "Değişiklikler" },
-  { to: "/contracts", icon: "file", label: "Kontratlar" },
-  { to: "/operations", icon: "calendar", label: "Operasyonlar" },
-  { to: "/runs", icon: "play", label: "Run'lar" },
-  { to: "/catalog", icon: "book", label: "Katalog" },
-  { to: "/infra", icon: "server", label: "Altyapı" },
-  { to: "/access", icon: "shield", label: "Erişim" },
-  { to: "/settings", icon: "gear", label: "Ayarlar" },
+  { to: "/", icon: "grid", label: "Overview", end: true },
+  { to: "/changes", icon: "pr", label: "Changes" },
+  { to: "/contracts", icon: "file", label: "Contracts" },
+  { to: "/operations", icon: "calendar", label: "Operations" },
+  { to: "/runs", icon: "play", label: "Runs" },
+  { to: "/catalog", icon: "book", label: "Catalog" },
+  { to: "/infra", icon: "server", label: "Infrastructure" },
+  { to: "/access", icon: "shield", label: "Access" },
+  { to: "/settings", icon: "gear", label: "Settings" },
 ];
 
 function PendingCount() {
@@ -31,13 +31,13 @@ function PendingCount() {
     refetchInterval: 30_000,
   });
   const n = (q.data?.filter((c) => c.status === "pending").length ?? 0) + (sq.data?.length ?? 0);
-  return n > 0 ? <span className="count" title="Onay bekleyen değişiklik">{n}</span> : null;
+  return n > 0 ? <span className="count" title="Changes awaiting approval">{n}</span> : null;
 }
 
 export function Shell() {
   return (
     <div className="shell">
-      <nav className="nav" aria-label="Ana menü">
+      <nav className="nav" aria-label="Main menu">
         <div className="nav-logo"><Logo />gaia</div>
         {MENU.map((m) => (
           <NavLink key={m.to} to={m.to} end={m.end} className={({ isActive }) => (isActive ? "active" : "")}>
@@ -68,9 +68,9 @@ function Search() {
   return (
     <form role="search" onSubmit={go}>
       <label className="search">
-        <span className="sr-only">Ara</span>
+        <span className="sr-only">Search</span>
         <Icon name="search" size={14} />
-        <input type="search" placeholder="Kontrat adı veya run-…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input type="search" placeholder="Contract name or run-…" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
     </form>
   );
@@ -93,10 +93,10 @@ export function Page({ crumbs, children }: { crumbs: ReactNode; children: ReactN
           {me && (
             <>
               <NavLink to="/profile" className="il" style={{ color: "var(--fg2)" }}><Icon name="user" size={18} />{me.username}</NavLink>
-              <button type="button" className="icon-btn" title="Çıkış" aria-label="Çıkış" onClick={logout}><Icon name="logout" size={18} /></button>
+              <button type="button" className="icon-btn" title="Sign out" aria-label="Sign out" onClick={logout}><Icon name="logout" size={18} /></button>
             </>
           )}
-          {open && <span className="badge yellow" title="Bu sunucuda AuthConfig yok; API herkese açık.">kimlik doğrulama kapalı</span>}
+          {open && <span className="badge yellow" title="This server has no AuthConfig; its API is open to anyone.">sign-in off</span>}
         </div>
       </header>
       <main className="page">{children}</main>

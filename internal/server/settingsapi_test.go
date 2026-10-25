@@ -45,7 +45,7 @@ func TestSettingsAndAuditAPI(t *testing.T) {
 		t.Errorf("ignored = %+v", state.Ignored)
 	}
 	var versions []SettingsVersion
-	if get(t, hs.URL+"/api/v1/settings/versions", &versions); len(versions) != 1 || versions[0].Objects == 0 || !strings.Contains(versions[0].Reason, "Git'ten içeri alındı") {
+	if get(t, hs.URL+"/api/v1/settings/versions", &versions); len(versions) != 1 || versions[0].Objects == 0 || !strings.Contains(versions[0].Reason, "Imported from Git") {
 		t.Errorf("versions = %+v", versions)
 	}
 	var v1 struct {

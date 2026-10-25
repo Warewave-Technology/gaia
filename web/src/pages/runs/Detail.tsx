@@ -14,17 +14,17 @@ import { line, matrix, type Line, type Mark } from "../../lib/events";
 import { clock, duration } from "../../lib/time";
 
 const STAGES: Record<string, { icon: IconName; text: string }> = {
-  ipam: { icon: "network", text: "IP adresleri IPAM'dan ayrılır." },
-  restore: { icon: "rerun", text: "Durdurulmuş sunucular geri açılır." },
-  decommission: { icon: "x", text: "Kaldırılan sunucular kapatılır." },
-  deregister: { icon: "activity", text: "Kaldırılan sunucular izlemeden çıkarılır." },
-  provision: { icon: "vm", text: "Pulumi VM'leri oluşturur veya günceller." },
-  release: { icon: "network", text: "Boşalan IP'ler IPAM'a geri verilir." },
-  register: { icon: "activity", text: "Sunucular izlemeye (Zabbix), DNS'e ve AD'ye kaydedilir." },
-  configure: { icon: "wrench", text: "Ansible sunucuları yapılandırır." },
-  access: { icon: "user", text: "Erişim (kullanıcılar, sudo) dağıtılır." },
-  record: { icon: "lock", text: "Run kaydı imzalanıp değiştirilemez arşive yazılır." },
-  operation: { icon: "wrench", text: "Operation'ın aksiyonu (ör. yeniden başlatma) çalışır." },
+  ipam: { icon: "network", text: "Addresses are allocated from IPAM." },
+  restore: { icon: "rerun", text: "Stopped servers are started again." },
+  decommission: { icon: "x", text: "Removed servers are shut down." },
+  deregister: { icon: "activity", text: "Removed servers leave monitoring." },
+  provision: { icon: "vm", text: "Pulumi creates or updates the VMs." },
+  release: { icon: "network", text: "Freed addresses go back to IPAM." },
+  register: { icon: "activity", text: "Servers are registered in monitoring (Zabbix), DNS and the directory." },
+  configure: { icon: "wrench", text: "Ansible configures the servers." },
+  access: { icon: "user", text: "Access (users, sudo) is handed out." },
+  record: { icon: "lock", text: "The run record is signed and written to the unchangeable archive." },
+  operation: { icon: "wrench", text: "The Operation's action (a reboot…) runs." },
 };
 
 const STAGE_COLOR: Record<Stage["status"], string> = {
@@ -43,12 +43,12 @@ export function RunDetail() {
     queryFn: () => api<Run>(`/runs/${encodeURIComponent(id)}`),
     refetchInterval: (query) => (query.state.data && ["queued", "running"].includes(query.state.data.status) ? 3000 : false),
   });
-  const crumbs = <><Link to="/runs">Run'lar</Link> / <Mono>{id}</Mono></>;
+  const crumbs = <><Link to="/runs">Runs</Link> / <Mono>{id}</Mono></>;
   if (q.isPending) return <Page crumbs={crumbs}><Loading /></Page>;
   if (q.error) {
     return (
       <Page crumbs={crumbs}>
-        {q.error instanceof ApiError && q.error.status === 403 ? <div className="notice warn">Bu run'ın kontratını sadece adıyla görebilirsiniz.</div> : <ErrorNote error={q.error} />}
+        {q.error instanceof ApiError && q.error.status === 403 ? <div className="notice warn">You may see this run's contract by name only.</div> : <ErrorNote error={q.error} />}
       </Page>
     );
   }
@@ -123,10 +123,10 @@ function Body({ run, crumbs }: { run: Run; crumbs: React.ReactNode }) {
     await api(`/runs/${encodeURIComponent(run.id)}/cancel`, { method: "POST" }).catch(() => undefined);
   };
   const check = async () => {
-    setVerify("Zincir doğrulanıyor…");
+    setVerify("Checking the chain…");
     try {
       const r = await api<{ records: number; intact: boolean; broken?: { seq: number; run: string; reason: string } }>("/records/verify");
-      setVerify(r.intact ? `Zincir sağlam: ${r.records} kayıt.` : `Zincir bozuk: #${r.broken?.seq} (${r.broken?.run}): ${r.broken?.reason}`);
+      setVerify(r.intact ? `The chain is intact: ${r.records} records.` : `The chain is broken: #${r.broken?.seq} (${r.broken?.run}): ${r.broken?.reason}`);
     } catch (e) {
       setVerify(e instanceof Error ? e.message : String(e));
     }
@@ -138,25 +138,25 @@ function Body({ run, crumbs }: { run: Run; crumbs: React.ReactNode }) {
         <span style={{ color: RUN[run.status]?.tone === "red" ? "var(--red)" : "var(--green)" }}><Icon name="play" size={22} /></span>
         <h1 className="mono" style={{ fontSize: 22 }}>{run.id}</h1>
         <RunBadge status={run.status} />
-        {live && <span className="badge yellow" role="status"><Icon name="activity" size={13} />canlı</span>}
+        {live && <span className="badge yellow" role="status"><Icon name="activity" size={13} />live</span>}
       </div>
 
       <div className="spread">
         <div className="row">
-          {contract && <LinkButton to={`/contracts/${encodeURIComponent(contract)}`} icon="file">Kontrat</LinkButton>}
+          {contract && <LinkButton to={`/contracts/${encodeURIComponent(contract)}`} icon="file">Contract</LinkButton>}
           {run.change && <LinkButton to={`/changes/${encodeURIComponent(run.change)}`} icon="pr">Change</LinkButton>}
-          <a className="btn" href={`/api/v1/runs/${encodeURIComponent(run.id)}/events?limit=5000`} target="_blank" rel="noreferrer" title="Run'ın bütün olayları (JSON)"><Icon name="terminal" size={15} />Ham olaylar</a>
+          <a className="btn" href={`/api/v1/runs/${encodeURIComponent(run.id)}/events?limit=5000`} target="_blank" rel="noreferrer" title="All of the run's events (JSON)"><Icon name="terminal" size={15} />Raw events</a>
         </div>
         <div className="row">
-          {run.record && <Button icon="lock" onClick={check} title="Bütün run kayıtları zincirinin bozulmadığını kontrol et">Zinciri doğrula</Button>}
-          {live && hasRole(session, "operator") && <Button kind="danger" icon="stop" onClick={cancel}>Durdur</Button>}
+          {run.record && <Button icon="lock" onClick={check} title="Check that the chain of run records is unbroken">Verify the chain</Button>}
+          {live && hasRole(session, "operator") && <Button kind="danger" icon="stop" onClick={cancel}>Stop</Button>}
         </div>
       </div>
-      {verify && <div className={verify.startsWith("Zincir sağlam") ? "notice" : "notice warn"} role="status">{verify}</div>}
+      {verify && <div className={verify.startsWith("The chain is intact") ? "notice" : "notice warn"} role="status">{verify}</div>}
 
       <StatusBar items={[
         {
-          icon: "play", title: "Sonuç", hint: <RecordLegend />,
+          icon: "play", title: "Result", hint: <RecordLegend />,
           value: <span className="row" style={{ gap: 8 }}>
             <IL icon={run.status === "succeeded" ? "check-circle" : run.status === "failed" ? "x-circle" : RUN[run.status]?.icon ?? "help"} color={`var(--${RUN[run.status]?.tone === "gray" ? "fg4" : RUN[run.status]?.tone ?? "fg4"})`} size={20}>{RUN[run.status]?.label}</IL>
             <RecordTip run={run} />
@@ -164,20 +164,20 @@ function Body({ run, crumbs }: { run: Run; crumbs: React.ReactNode }) {
           sub: <>{duration(run.startedAt, run.finishedAt)}{run.startedAt && ` · ${clock(run.startedAt)}${run.finishedAt ? " – " + clock(run.finishedAt) : ""}`}{run.error && <span className="error"> · {run.error}</span>}</>,
         },
         {
-          icon: "file", title: "Kontrat", hint: "Run'ın uyguladığı kontrat(lar) ve commit'i.",
+          icon: "file", title: "Contract", hint: "The contract(s) the run applies, and their commit.",
           value: <span className="row">{run.contracts.map((c) => <Link key={c} to={`/contracts/${encodeURIComponent(c)}`} style={{ color: "var(--fg)" }}>{c}</Link>)}</span>,
           sub: <>commit <Mono>{short(run.commit)}</Mono></>,
         },
         {
-          icon: "user", title: "Kişiler", hint: <><Term>İstedi</Term>: commit'in sahibi (imzasından).<br /><Term>Onayladı</Term>: planı passkey ile onaylayan.</>,
+          icon: "user", title: "People", hint: <><Term>Requested</Term>: whoever asked for it (by the signature, or the settings change).<br /><Term>Approved</Term>: who approved the plan.</>,
           value: <span className="row" style={{ fontSize: 15 }}>{run.requestedBy || "gaia"}{approvers.length > 0 && <><span className="faint"><Icon name="arrow" size={14} /></span>{approvers.join(", ")}</>}</span>,
-          sub: approvers.length ? "istedi · onayladı" : "istedi",
+          sub: approvers.length ? "requested · approved" : "requested",
         },
         {
-          icon: "diff", title: "Değişen", hint: <>Run'ın gerçekte değiştirdikleri: oluşturulan sunucular ve Ansible'ın <Term>changed</Term> saydığı task'lar.</>,
+          icon: "diff", title: "Changed", hint: <>What the run really changed: servers it created, and tasks Ansible counted as <Term>changed</Term>.</>,
           value: <span className="row" style={{ gap: 10 }}>
-            {created > 0 && <IL icon="plus" color="var(--green)" size={16}>{created} sunucu</IL>}
-            <IL icon="pencil" color="var(--yellow)" size={15}>{changed} task</IL>
+            {created > 0 && <IL icon="plus" color="var(--green)" size={16}>{created} {created === 1 ? "server" : "servers"}</IL>}
+            <IL icon="pencil" color="var(--yellow)" size={15}>{changed} {changed === 1 ? "task" : "tasks"}</IL>
           </span>,
           sub: `failed ${failed}`,
         },
@@ -194,9 +194,9 @@ function Stages({ run }: { run: Run }) {
   const stages = run.stages ?? [];
   const many = run.contracts.length > 1;
   return (
-    <Card title="Aşamalar" icon="layers" hint={<>Run'ın sırayla geçtiği adımlar; biri başarısız olursa sonrakiler çalışmaz.
+    <Card title="Stages" icon="layers" hint={<>The steps the run goes through in order; if one fails, the rest do not run.
       {Object.entries(STAGES).map(([k, s]) => <Leg key={k} icon={s.icon} color="var(--fg2)" name={k}>{s.text}</Leg>)}</>}>
-      {stages.length === 0 ? <div className="empty">Henüz bir aşama başlamadı.</div> : (
+      {stages.length === 0 ? <div className="empty">No stage has started yet.</div> : (
         <ol style={{ listStyle: "none", margin: 0, padding: 16, display: "flex", flexWrap: "wrap", alignItems: "stretch" }}>
           {stages.map((s, i) => {
             const meta = STAGES[s.stage] ?? { icon: "info" as IconName, text: "" };
@@ -208,7 +208,7 @@ function Stages({ run }: { run: Run }) {
                   <span style={{ color }}><Icon name={s.status === "failed" ? "x-circle" : meta.icon} size={18} /></span>
                   <span>
                     <span style={{ display: "block", fontWeight: 600 }}>{s.stage}{many && s.contract && <span className="faint" style={{ fontWeight: 400 }}> · {s.contract}</span>}</span>
-                    <span className="muted" style={{ display: "block", fontSize: 12 }}>{s.status === "running" ? "çalışıyor · " : ""}{duration(s.startedAt, s.finishedAt)}</span>
+                    <span className="muted" style={{ display: "block", fontSize: 12 }}>{s.status === "running" ? "running · " : ""}{duration(s.startedAt, s.finishedAt)}</span>
                     {s.detail && <span className={s.status === "failed" ? "error" : "muted"} style={{ display: "block", fontSize: 12, overflowWrap: "anywhere" }}>{s.detail}</span>}
                   </span>
                 </li>
@@ -236,20 +236,20 @@ function MatrixCard({ m, hosts, live }: { m: ReturnType<typeof matrix>; hosts: R
     </span>
   ));
   return (
-    <Card title="Sunucu × task" icon="grid" right={<div className="row muted" style={{ gap: 16, fontSize: 13 }}>{legend}</div>}
-      hint={<>Her sunucuda her Ansible task'ının sonucu.
-        <Leg icon="check" color="var(--green)" name="ok">zaten istenen durumdaydı</Leg>
-        <Leg icon="pencil" color="var(--yellow)" name="changed">değiştirildi</Leg>
-        <Leg icon="x" color="var(--red)" name="failed">hata verdi</Leg>
-        <Leg icon="minus" color="var(--gray)" name="skipped">bu sunucuda çalışmadı</Leg></>}>
-      {m.hosts.length === 0 ? <div className="empty">{live ? "Ansible henüz çalışmadı." : "Bu run'da Ansible çalışmadı."}</div> : (
+    <Card title="Server × task" icon="grid" right={<div className="row muted" style={{ gap: 16, fontSize: 13 }}>{legend}</div>}
+      hint={<>Each Ansible task's result on each server.
+        <Leg icon="check" color="var(--green)" name="ok">already as wanted</Leg>
+        <Leg icon="pencil" color="var(--yellow)" name="changed">changed</Leg>
+        <Leg icon="x" color="var(--red)" name="failed">failed</Leg>
+        <Leg icon="minus" color="var(--gray)" name="skipped">did not run on this server</Leg></>}>
+      {m.hosts.length === 0 ? <div className="empty">{live ? "Ansible has not run yet." : "Ansible did not run in this run."}</div> : (
         <div style={{ overflowX: "auto", padding: "8px 16px 16px" }}>
           <table style={{ borderCollapse: "separate", borderSpacing: 4, fontSize: 13 }}>
             <thead>
               <tr className="muted" style={{ textAlign: "left" }}>
-                <th style={{ padding: "6px 8px" }}>Sunucu</th>
+                <th style={{ padding: "6px 8px" }}>Server</th>
                 {m.tasks.map((t) => <th key={t} style={{ padding: "6px 8px", fontWeight: 500, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t}>{t.replace(/^[^:]+ : /, "")}</th>)}
-                <th style={{ padding: "6px 8px" }}>Özet</th>
+                <th style={{ padding: "6px 8px" }}>Summary</th>
               </tr>
             </thead>
             <tbody>
@@ -287,17 +287,17 @@ function Log({ events, hosts, live, broken }: { events: RunEvent[]; hosts: Recor
     <section aria-labelledby="h-log" style={{ background: "var(--bg0h)", border: "1px solid var(--bg1)", borderRadius: 6, color: "var(--fg2)" }}>
       <div className="spread" style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg1)" }}>
         <div className="row faint" style={{ gap: 8 }}><Icon name="terminal" size={16} /><h2 id="h-log" style={{ color: "var(--fg)" }}>Log</h2>
-          {live && <span className="badge yellow">canlı</span>}
-          {broken && <span className="badge red">bağlantı koptu</span>}</div>
+          {live && <span className="badge yellow">live</span>}
+          {broken && <span className="badge red">connection lost</span>}</div>
         <div className="row faint" style={{ gap: 14, fontSize: 13 }}>
-          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />sona kaydır</label>
-          <span className="il" style={{ fontWeight: 400 }}><Icon name="lock" size={13} />secret'lar maskeli</span>
+          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />follow</label>
+          <span className="il" style={{ fontWeight: 400 }}><Icon name="lock" size={13} />secrets masked</span>
         </div>
       </div>
       <pre ref={box} className="mono" style={{ margin: 0, padding: "12px 16px 16px", lineHeight: 1.6, overflow: "auto", maxHeight: 480, whiteSpace: "pre-wrap" }}>
-        {lines.length === 0 ? <span className="faint">{live ? "Olay bekleniyor…" : "Olay yok."}</span> : lines.map((l) => (
+        {lines.length === 0 ? <span className="faint">{live ? "Waiting for events…" : "No events."}</span> : lines.map((l) => (
           <div key={l.seq}>
-            <span className="faint">{new Date(l.at).toLocaleTimeString("tr-TR")}</span>{"  "}
+            <span className="faint">{new Date(l.at).toLocaleTimeString("en-GB")}</span>{"  "}
             <span style={{ color: STAGE_TAG[l.stage] ?? "var(--fg4)", display: "inline-block", minWidth: 96 }}>{l.stage}</span>
             <span style={{ color: KIND_COLOR[l.kind] }}>{l.text}</span>
           </div>
