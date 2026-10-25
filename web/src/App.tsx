@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ApiError } from "./api/client";
 import { SessionProvider } from "./api/session";
 import { Shell } from "./ui/shell";
-import { NotFound, Soon } from "./pages/Soon";
+import { NotFound } from "./pages/NotFound";
 import { ChangeList } from "./pages/changes/List";
 import { ChangeDetail } from "./pages/changes/Detail";
 import { RunList } from "./pages/runs/List";
@@ -14,6 +14,8 @@ import { Overview } from "./pages/overview/Overview";
 import { CatalogList, CatalogObject } from "./pages/catalog/Catalog";
 import { Providers } from "./pages/providers/Providers";
 import { Profile } from "./pages/profile/Profile";
+import { Sync } from "./pages/sync/Sync";
+import { Discovery } from "./pages/sync/Discovery";
 
 export function makeClient() {
   return new QueryClient({
@@ -41,8 +43,8 @@ export function AppRoutes() {
         <Route path="catalog" element={<CatalogList />} />
         <Route path="catalog/:kind/:name" element={<CatalogObject />} />
         <Route path="providers" element={<Providers />} />
-        <Route path="sync" element={<Soon title="Sync" />} />
-        <Route path="discovery" element={<Soon title="Keşif" />} />
+        <Route path="sync" element={<Sync />} />
+        <Route path="discovery" element={<Discovery />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Route>
