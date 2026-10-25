@@ -260,6 +260,7 @@ func (a *Service) passkeyFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := a.FinishPasskeyLogin(r.Context(), w, r, b.Flow, b.Credential)
 	if err != nil {
+		a.audit(r.Context(), r, audit.Entry{Action: "auth.login", Result: "denied", Detail: map[string]string{"method": "passkey", "why": err.Error()}})
 		a.fail(w, err, http.StatusUnauthorized)
 		return
 	}
@@ -298,9 +299,11 @@ func (a *Service) recovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.RecoveryLogin(r.Context(), w, r, b.Username, b.Code); err != nil {
+		a.audit(r.Context(), r, audit.Entry{Actor: b.Username, Action: "auth.login", Result: "denied", Detail: map[string]string{"method": "recovery code"}})
 		a.fail(w, err, http.StatusUnauthorized)
 		return
 	}
+	a.audit(r.Context(), r, audit.Entry{Actor: b.Username, Action: "auth.recovery-code"})
 	writeJSON(w, http.StatusOK, map[string]string{"next": "register a new passkey under Profile"})
 }
 
@@ -311,6 +314,7 @@ func (a *Service) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: CookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	a.record(r, "auth.logout", "session/"+p.SessionID, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -375,6 +379,7 @@ func (a *Service) revokeMySession(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusNotFound, "no such session")
 		return
 	}
+	a.record(r, "session.revoke", "session/"+r.PathValue("id"), nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -427,6 +432,7 @@ func (a *Service) addPasskeyFinish(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusForbidden, "this sign-in step belongs to someone else")
 		return
 	}
+	a.record(r, "passkey.add", "", map[string]string{"name": b.Name})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -456,6 +462,7 @@ func (a *Service) deletePasskey(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusNotFound, "no such passkey")
 		return
 	}
+	a.record(r, "passkey.delete", "", nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -465,6 +472,7 @@ func (a *Service) regenerateCodes(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	a.record(r, "recovery-codes.renew", "", nil)
 	writeJSON(w, http.StatusOK, map[string]any{"recoveryCodes": codes})
 }
 
@@ -597,6 +605,7 @@ func (a *Service) passwordLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.PasswordLogin(r.Context(), w, r, b.Username, b.Password, b.Code); err != nil {
+		a.audit(r.Context(), r, audit.Entry{Actor: b.Username, Action: "auth.login", Result: "denied", Detail: map[string]string{"method": "password"}})
 		a.fail(w, err, http.StatusUnauthorized)
 		return
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/itest"
 	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
 // rp is Gaia as the lab example's AuthConfig describes it.
@@ -225,6 +226,14 @@ func TestEnrollLoginAndLogout(t *testing.T) {
 	}
 	if code, _ := b.do("GET", "/api/v1/me", nil); code != 401 {
 		t.Errorf("after logout: %d", code)
+	}
+	actions := map[string]int{}
+	log, _ := e.store.Q().AuditLog(context.Background(), db.AuditLogParams{MaxRows: 100})
+	for _, l := range log {
+		actions[l.Action+"/"+l.Result]++
+	}
+	if actions["auth.login/ok"] == 0 || actions["auth.logout/ok"] != 1 {
+		t.Errorf("audit = %v", actions)
 	}
 
 	// A new browser with the same authenticator signs in by passkey alone.

@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/Warewave-Technology/gaia/internal/audit"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
@@ -246,6 +247,11 @@ func (a *Service) deviceDecide(approve bool) http.HandlerFunc {
 			problem(w, http.StatusNotFound, "no such code, or it expired")
 			return
 		}
+		action := "auth.device.deny"
+		if approve {
+			action = "auth.device.approve"
+		}
+		a.record(r, action, "", nil)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -343,6 +349,7 @@ func (a *Service) stepUpFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := a.assert(ctx, sd, p.UserID, b.Credential); err != nil {
+		a.audit(ctx, r, audit.Entry{Actor: p.Username, ActorID: p.UserID, SessionID: p.SessionID, Action: "auth.step-up", Result: "denied", Detail: map[string]string{"method": "passkey"}})
 		a.fail(w, err, http.StatusUnauthorized)
 		return
 	}
@@ -350,6 +357,7 @@ func (a *Service) stepUpFinish(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	a.record(r, "auth.step-up", "", map[string]string{"method": "passkey"})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -367,6 +375,7 @@ func (a *Service) stepUpTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.checkTOTP(ctx, p.UserID, b.Code, false); err != nil {
+		a.audit(ctx, r, audit.Entry{Actor: p.Username, ActorID: p.UserID, SessionID: p.SessionID, Action: "auth.step-up", Result: "denied", Detail: map[string]string{"method": "totp"}})
 		problem(w, http.StatusUnauthorized, "the code is not valid")
 		return
 	}
@@ -374,6 +383,7 @@ func (a *Service) stepUpTOTP(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	a.record(r, "auth.step-up", "", map[string]string{"method": "totp"})
 	w.WriteHeader(http.StatusNoContent)
 }
 

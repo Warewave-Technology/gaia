@@ -123,6 +123,14 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 	if code := send(t, "GET", url, ayse, nil, &one); code != 200 || one.AwaitingMe {
 		t.Errorf("after approving: %d awaitingMe=%v", code, one.AwaitingMe)
 	}
+	decisions, _ := e.store.Q().AuditLog(ctx, db.AuditLogParams{MaxRows: 20, Action: pgtype.Text{String: "change.", Valid: true}})
+	results := []string{}
+	for _, d := range decisions {
+		results = append(results, d.Actor+":"+d.Action+":"+d.Result)
+	}
+	if strings.Join(results, ",") != "ayse:change.approve:denied,ayse:change.approve:ok,mehmet:change.approve:denied,ayse:change.approve:denied" {
+		t.Errorf("audit = %v", results)
+	}
 	c = e.waitChange(c.ID, change.Applied, change.Failed)
 	if c.Status != change.Applied {
 		t.Fatalf("change = %+v", c)

@@ -23,7 +23,7 @@
 | 14 | Ayar deposu ve denetim kaydının temeli; Git'ten geçiş | 12 | **Tamam** |
 | 15 | Ayar değişiklikleri: öneri, etki, onay, uygulama; düzenleme ekranları | 14 | **Tamam** |
 | 16 | Kimlik: LDAP girişi, ikinci faktör, kullanıcılar ve takımlar; Source çıktıları | 14, 15 | **Tamam** |
-| 17 | Denetim kaydının tamamı ve ekranı | 14–16 | – |
+| 17 | Denetim kaydının tamamı ve ekranı | 14–16 | **Tamam** |
 | 18 | Lab: yeni yapıya geçiş, lab'de LDAP (Samba AD), uçtan uca deneme | 13–17 | – |
 
 Arayüzün ekranları tasarım taslağı onaylanınca yazılır. Taslak beklerken arka uç fazları ilerler.
@@ -420,7 +420,22 @@ Yapılanlar:
 - **Source çıktıları:** TeamSource ve NetworkSource artık ayar deposuna yazar (Gaia'nın kaynak hesabı adına, denetim kaydıyla). AnsibleRoleSource Git'e yazmaya devam eder.
 - **Testler:** LDAP girişi, dizinde kapatılan hesap, ikinci faktör kaydı ve takım eşitlemesi; Samba AD'ye karşı.
 
-### Faz 17: Denetim kaydının tamamı
+### Faz 17: Denetim kaydının tamamı — Tamam
+Yapılanlar:
+- **Kapsam:** Faz 14–16'da yazılanlara ek olarak:
+  - Change onay ve redleri (toplu onay dahil; reddedilen girişimler `denied` olarak)
+  - Change'i yeniden deneme, kontrat reconcile, commit geri alma, run iptali
+  - Çıkış ve oturum kapatma
+  - Passkey ekleme ve silme, kurtarma kodlarını yenileme, imza ve giriş anahtarları
+  - Başarısız passkey, parola ve kurtarma kodu girişleri
+  - Step-up (başarılı ve başarısız)
+  - Cihaz girişini onaylama ve reddetme
+- **Ekran:**
+  - Ayarlar → Denetim kaydı: alan çipleri (Girişler, Ayarlar, Change kararları, Hesaplar, Run'lar), kişi, işlem öneki, nesne ve başlangıç zamanı süzgeçleri, "Daha eski" ile sayfalama
+  - Nesneler sayfalarına bağlanır; süzülen kayıtlar JSON satırları olarak indirilir
+  - Ayarlar sekmeleri tek satırda: Giriş, Bildirimler
+
+İlk plan:
 - **Kapsam:** Bütün yönetim işlemleri: ayar önerileri ve kararları, kontrat Change kararları, kullanıcı ve oturum işlemleri, girişler (başarılı ve başarısız), step-up, run iptali, keşif ve sync tetikleme, anahtarlar.
 - **Ekran:** Ayarlar → Denetim kaydı; kişi, işlem, nesne ve zamana göre süzme; JSON satırları olarak dışa aktarma.
 

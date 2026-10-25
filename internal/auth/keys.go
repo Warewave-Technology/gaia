@@ -112,6 +112,7 @@ func (a *Service) addSigningKey(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusBadRequest)
 		return
 	}
+	a.record(r, "signing-key.add", "key/"+k.Fingerprint, map[string]string{"name": b.Name})
 	writeJSON(w, http.StatusCreated, k)
 }
 
@@ -125,6 +126,7 @@ func (a *Service) revokeSigningKey(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusNotFound, "no such key")
 		return
 	}
+	a.record(r, "signing-key.revoke", "key/"+r.PathValue("fingerprint"), nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -173,6 +175,7 @@ func (a *Service) addLoginKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.loginKeysChanged(r.Context(), From(r.Context()).UserID)
+	a.record(r, "login-key.add", "key/"+fp, map[string]string{"name": b.Name})
 	writeJSON(w, http.StatusCreated, LoginKey{Fingerprint: fp, Name: b.Name, PublicKey: stored, CreatedAt: a.now()})
 }
 
@@ -187,6 +190,7 @@ func (a *Service) revokeLoginKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.loginKeysChanged(r.Context(), From(r.Context()).UserID)
+	a.record(r, "login-key.revoke", "key/"+r.PathValue("fingerprint"), nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/Warewave-Technology/gaia/internal/store/db"
+	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"net/url"
 	"strings"
@@ -213,6 +215,10 @@ func TestStepUpAndSigningKeys(t *testing.T) {
 	}
 	if signers, _ := e.auth.Signers(ctx); len(signers) != 1 {
 		t.Errorf("signers after revoke = %+v", signers)
+	}
+	log, _ := e.store.Q().AuditLog(ctx, db.AuditLogParams{MaxRows: 50, Action: pgtype.Text{String: "signing-key.", Valid: true}})
+	if len(log) != 3 || log[0].Action != "signing-key.revoke" || log[0].Actor != "selin" || log[2].Action != "signing-key.add" {
+		t.Errorf("audit = %+v", log)
 	}
 }
 

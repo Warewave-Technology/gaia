@@ -276,6 +276,15 @@ func (a *Service) pendingTOTPFinish(w http.ResponseWriter, r *http.Request) {
 	a.finishPending(w, r, userID, next, codes)
 }
 
+// record writes an entry for what the signed-in caller did.
+func (a *Service) record(r *http.Request, action, object string, detail any) {
+	e := audit.Entry{Action: action, Object: object, Detail: detail}
+	if p := From(r.Context()); p != nil {
+		e.Actor, e.ActorID, e.SessionID = p.Username, p.UserID, p.SessionID
+	}
+	a.audit(r.Context(), r, e)
+}
+
 // audit writes an audit entry for a sign-in; the person is named by the
 // entry, or looked up by its ActorID. A failure to write is logged, not
 // shown: the sign-in itself is decided by its own checks.

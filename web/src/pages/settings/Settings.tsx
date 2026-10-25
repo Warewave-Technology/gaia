@@ -16,6 +16,7 @@ import { Sources } from "./Sources";
 import { Discovery } from "./Discovery";
 import { Versions } from "./Versions";
 import { Users } from "./Users";
+import { Audit } from "./Audit";
 import { fromSettings, useObjects, useSettings } from "../../api/objects";
 import { EditButtons } from "../../ui/settings-editor";
 
@@ -58,8 +59,8 @@ const TABS: Tab[] = [
   { tab: "sources", label: "Kaynaklar", icon: "repeat", body: () => <Sources /> },
   { tab: "discovery", label: "Keşif", icon: "compass", body: () => <Discovery /> },
   { tab: "users", label: "Kullanıcılar", icon: "users", body: () => <Users /> },
-  { tab: "auth", label: "Kimlik doğrulama", icon: "key", body: () => <><AuthSummary /><ObjectYAML kind="AuthConfig" text="Giriş ayarlarının kendisi." hint="AuthConfig, kişilerin nasıl girdiğini söyler. Değiştirmek bir ayar değişikliğidir ve platform-admin onayı ister." /></> },
-  { tab: "channels", label: "Bildirim kanalları", icon: "bell", body: () => <Providers channels /> },
+  { tab: "auth", label: "Giriş", icon: "key", body: () => <><AuthSummary /><ObjectYAML kind="AuthConfig" text="Giriş ayarlarının kendisi." hint="AuthConfig, kişilerin nasıl girdiğini söyler. Değiştirmek bir ayar değişikliğidir ve platform-admin onayı ister." /></> },
+  { tab: "channels", label: "Bildirimler", icon: "bell", body: () => <Providers channels /> },
   {
     tab: "platform", label: "Platform", icon: "grid",
     body: () => <ObjectYAML kind="Platform" text="Platformun genel ayarları: motorlar, izleme, arşiv, depolar." hint="Platform nesnesi Gaia'nın kendisini nasıl çalıştıracağını söyler: Pulumi ve Ansible sürümleri, run kayıtlarının arşivi, izleme, artifact depoları." />,
@@ -69,6 +70,7 @@ const TABS: Tab[] = [
     body: () => <ObjectYAML kind="Policy" text="Kurallar: onaylar, isimlendirme, zorunlu etiketler, ortamlar, roller." hint="Policy, kontratların uyması gereken kuralları ve onay akışını söyler: hangi ortamda kimin onayı gerekir, sunucular nasıl adlandırılır, hangi etiketler zorunludur, ayar değişikliklerini kim onaylar." />,
   },
   { tab: "versions", label: "Sürümler", icon: "history", body: () => <Versions /> },
+  { tab: "audit", label: "Denetim kaydı", icon: "eye", body: () => <Audit /> },
 ];
 
 type AuthSpec = {
