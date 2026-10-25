@@ -20,6 +20,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	addrs := map[string]*counts{}    // per IPAM provider
 	vms := map[string]*counts{}      // per compute provider
 	monitors := map[string]*counts{} // per monitoring provider
+	names := map[string]*counts{}    // per DNS provider
 	bump := func(m map[string]*counts, k, action string) {
 		if m[k] == nil {
 			m[k] = &counts{}
@@ -73,6 +74,14 @@ func WriteText(w io.Writer, p *Plan) error {
 			bump(vms, s.Compute.Provider, s.Action)
 			if c.Monitoring != nil {
 				bump(monitors, c.Monitoring.Provider, s.Action)
+			}
+			if d := s.DNS; d != nil {
+				ptr := ""
+				if d.Reverse {
+					ptr = " and PTR"
+				}
+				pr.f("    %-14s dns %s.%s A%s (%s)\n", "", s.Hostname, d.Zone, ptr, d.Provider)
+				bump(names, d.Provider, s.Action)
 			}
 			running++
 		}
@@ -160,6 +169,7 @@ func WriteText(w io.Writer, p *Plan) error {
 	line("ipam", addrs)
 	line("provision", vms)
 	line("monitoring", monitors)
+	line("dns", names)
 	if configure > 0 {
 		pr.f("  configure  %d server(s)\n", configure)
 	}

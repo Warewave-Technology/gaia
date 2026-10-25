@@ -24,10 +24,12 @@ type doomed struct {
 	ipam    string // IPAM provider; "" when no address was recorded
 	ip      string
 	monitor map[string]string // monitoring provider -> host ID
+	dnsA    map[string]string // DNS provider -> the A record's name
+	dnsPTR  map[string]string // DNS provider -> the PTR record's name
 }
 
 func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
-	d := doomed{s: s, monitor: map[string]string{}}
+	d := doomed{s: s, monitor: map[string]string{}, dnsA: map[string]string{}, dnsPTR: map[string]string{}}
 	ids, err := r.d.Store.Q().ExternalIDs(ctx, s.UID)
 	if err != nil {
 		return d, err
@@ -47,6 +49,10 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 			d.ipam, d.ip = e.Provider, e.ExternalID
 		case "host":
 			d.monitor[e.Provider] = e.ExternalID
+		case "dns-a":
+			d.dnsA[e.Provider] = e.ExternalID
+		case "dns-ptr":
+			d.dnsPTR[e.Provider] = e.ExternalID
 		}
 	}
 	if err := r.d.Store.Q().SetHostStatus(ctx, db.SetHostStatusParams{Uid: s.UID, Status: db.HostStatusDecommissioning}); err != nil {
@@ -56,10 +62,13 @@ func (r *runner) doom(ctx context.Context, s plan.Server) (doomed, error) {
 	return d, nil
 }
 
-// unregister removes the doomed servers from monitoring, with their
-// history (design 9.3).
+// unregister removes the doomed servers' DNS records, and removes them
+// from monitoring with their history (design 9.3).
 func (r *runner) unregister(ctx context.Context, c plan.Contract, gone []doomed) error {
 	for _, d := range gone {
+		if err := r.unregisterDNS(ctx, c, d); err != nil {
+			return err
+		}
 		for provider, hostID := range d.monitor {
 			m, err := r.monitor(ctx, provider)
 			if err != nil {

@@ -35,4 +35,10 @@ t group addmembers SG-Team-Web-Approvers can
 t group addmembers SG-Web-Contractors zeynep
 t user disable ali
 t group addmembers SG-Team-Web ali
+# Gaia'nın yazma hesabı: sadece DNS zone'ları (DnsAdmins) ve OU=Servers'taki
+# bilgisayar hesapları. Kullanıcı ve gruplara yazamaz.
+t user create gaia-writer "Dev-gaia-writer-Password-1!" --userou="OU=People" --description="Gaia yazma hesabı"
+t group addmembers DnsAdmins gaia-writer
+ADMIN="-U administrator --password=$(cat /run/secrets/samba-admin-password)"
+t dns zonecreate 127.0.0.1 0.50.10.in-addr.arpa $ADMIN
 echo "AD hazır: $(samba-tool group listmembers SG-Team-Web | tr '\n' ' ')"

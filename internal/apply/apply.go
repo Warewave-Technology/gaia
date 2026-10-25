@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/Warewave-Technology/gaia/internal/ad"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
@@ -48,6 +49,8 @@ type Deps struct {
 	Compute   func(ctx context.Context, kind, endpoint string, secret map[string]string) (compute.Compute, error)
 	Configure Configurer
 	Monitor   func(endpoint, token string) Monitor
+	// Directory opens Active Directory to write DNS records.
+	Directory func(ctx context.Context, c ad.Config) (Directory, error)
 	// Archive opens the run record archive (Platform.runArchive).
 	Archive func(endpoint, bucket, accessKey, secretKey string) (runrecord.Archive, error)
 	// RunID is a queued run to take; empty starts a new run.
@@ -366,8 +369,14 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 			return err
 		}
 	}
-	if c.Monitoring != nil && len(w.targets) > 0 {
-		if err := r.stage(ctx, c.Name, "register", func() error { return r.register(ctx, c, contract, w.targets) }); err != nil {
+	if (c.Monitoring != nil || hasDNS(w.targets)) && len(w.targets) > 0 {
+		err := r.stage(ctx, c.Name, "register", func() error {
+			if err := r.registerDNS(ctx, c, w.targets); err != nil {
+				return err
+			}
+			return r.register(ctx, c, contract, w.targets)
+		})
+		if err != nil {
 			return err
 		}
 	}
@@ -380,6 +389,15 @@ func (r *runner) contract(ctx context.Context, c plan.Contract, backend pulumi.B
 		return r.stage(ctx, c.Name, "access", func() error { return r.monitorAccess(ctx, c) })
 	}
 	return nil
+}
+
+func hasDNS(ts []target) bool {
+	for _, t := range ts {
+		if t.s.DNS != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // prepare records new hosts and gives every server its address, VM ID

@@ -123,6 +123,9 @@ type ProviderSpec struct {
 	// BaseDN is where an activedirectory provider searches; empty is the
 	// directory's default naming context.
 	BaseDN string `yaml:"baseDN"`
+	// WriteCredentials is an activedirectory account that may write DNS
+	// records and computer accounts, and nothing else (design 14.6).
+	WriteCredentials string `yaml:"writeCredentials"`
 }
 
 type ProviderAuth struct {
@@ -367,10 +370,13 @@ type NetworkIPAM struct {
 	Pool     string `yaml:"pool" gaia:"required"`
 }
 
+// DNS is a network's name service. With a provider, Gaia writes each
+// server's A record in zone and, with reverse, its PTR record.
 type DNS struct {
 	Provider string   `yaml:"provider,omitempty"`
 	Zone     string   `yaml:"zone,omitempty"`
 	Reverse  bool     `yaml:"reverse,omitempty"`
+	TTL      int      `yaml:"ttl,omitempty"` // seconds; 3600 when not set
 	Servers  []string `yaml:"servers,omitempty"`
 }
 
@@ -388,6 +394,17 @@ func (s *NetworkSpec) validate() []string {
 	}
 	if a.VLAN != 0 && a.Bridge == "" {
 		out = append(out, "attachment.vlan: only with bridge")
+	}
+	if d := s.DNS; d != nil {
+		if d.Provider != "" && d.Zone == "" {
+			out = append(out, "dns.zone: required with dns.provider")
+		}
+		if d.Provider == "" && d.Reverse {
+			out = append(out, "dns.reverse: only with dns.provider")
+		}
+		if d.TTL < 0 {
+			out = append(out, "dns.ttl: seconds, not negative")
+		}
 	}
 	return out
 }

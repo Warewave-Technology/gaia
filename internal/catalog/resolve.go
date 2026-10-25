@@ -491,7 +491,9 @@ func (r *resolver) network(o *Object) {
 	s := o.Spec.(*NetworkSpec)
 	r.ref(o, "spec.ipam.provider", KindProvider, s.IPAM.Provider, "ipam")
 	if s.DNS != nil && s.DNS.Provider != "" {
-		r.ref(o, "spec.dns.provider", KindProvider, s.DNS.Provider, "activedirectory")
+		if p := r.ref(o, "spec.dns.provider", KindProvider, s.DNS.Provider, "activedirectory"); p != nil && p.Spec.(*ProviderSpec).WriteCredentials == "" {
+			r.fail(o, "spec.dns.provider", "Provider %q has no writeCredentials: Gaia cannot write DNS records", s.DNS.Provider)
+		}
 	}
 	site := r.ref(o, "spec.site", KindSite, s.Site)
 	if site == nil {

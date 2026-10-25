@@ -1719,6 +1719,15 @@ access:
 
 Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisidir. Sunucu tarafında AD'ye yazma gerekebilir: Windows sunucuların domain'e alınması ve bilgisayar hesaplarının silinmesi, ya da DNS AD üzerindeyse A/PTR kayıtları. Bu ihtiyaç varsa yazma yetkisi sadece bilgisayar hesaplarının OU'su ve DNS zone'u ile sınırlıdır. Kullanıcı ve grup nesnelerini kapsamaz.
 
+- **Ayrı hesap:** `activedirectory` provider'ının `credentials`'ı okuma hesabıdır. Yazma `writeCredentials` ile verilen ayrı bir hesapla yapılır; yazma gereken bir Network'ün provider'ında bu alan yoksa katalog reddedilir.
+- **DNS kayıtları:**
+  - Network'te `dns: { provider: corp-ad, zone: corp.local, reverse: true, ttl: 3600 }` varsa Gaia her sunucunun A kaydını, `reverse` ile PTR kaydını yazar. TTL verilmezse 3600 saniyedir. Plan bunları sunucu satırında ve özette (`dns +N =M`) gösterir.
+  - Kayıtlar AD-integrated zone'lardaki `dnsNode` nesneleridir (MS-DNSP 2.3.2.2). Gaia bunları LDAP ile yazar; DNS sunucuları dizinden okur, replikasyon AD'nin işidir. Hesabın zone'larda yazma yetkisi (ör. DnsAdmins ya da zone üzerinde yetki devri) yeterlidir.
+  - PTR, adresi kapsayan en uzun `in-addr.arpa` zone'una yazılır. `reverse: true` iken böyle bir zone yoksa run durur.
+  - Yazılan isimler sunucunun dış kimlikleri olarak tutulur (`dns-a`, `dns-ptr`). Gaia'ya ait bir ismin kaydı değişmişse düzeltilir. İsim başka bir adresle başkasına aitse run durur (bkz. 9.2).
+  - Kayıtlar `register` aşamasında, izlemeden önce yazılır. Decommission'da izlemeyle birlikte, VM silinmeden önce kaldırılır.
+  - Samba AD ile test edilir: kayıtlar DC'nin kendi DNS sunucusundan `dig` ile doğrulanır.
+
 ## 15. Açık Konular
 
 - [ ] **`proxmoxve` Pulumi provider'ının olgunluğu:** Topluluk provider'ı; PoC'de doğrulanıyor. Klon, cloud-init, SMBIOS UUID ve tag'ler lab'de çalıştı. Bilinen sorun (v8.6.0, Terraform provider v0.112.0): disk `speed` bloğunun varsayılanı sıfırlarla dolu, okumada ise hiç dönmüyor. Bu yüzden her apply'da diske etkisiz bir update gidiyor. Upstream'e bildirilecek.

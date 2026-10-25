@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/Warewave-Technology/gaia/internal/ad"
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
 	"github.com/Warewave-Technology/gaia/internal/engine/pulumi"
@@ -31,6 +32,9 @@ func Systems(s *store.Store, secrets Secrets, out io.Writer) Deps {
 		Compute:     Compute,
 		Configure:   ansible.Podman{},
 		Monitor:     func(endpoint, token string) Monitor { return zabbix.New(endpoint, token) },
+		Directory: func(ctx context.Context, c ad.Config) (Directory, error) {
+			return ad.Open(ctx, c)
+		},
 		Archive: func(endpoint, bucket, ak, sk string) (runrecord.Archive, error) {
 			return runrecord.NewS3(endpoint, bucket, ak, sk)
 		},

@@ -111,6 +111,16 @@ type Server struct {
 	IPAM     IPAM    `json:"ipam"`
 	// HostGroups are the server's monitoring host groups.
 	HostGroups []string `json:"hostGroups,omitempty"`
+	// DNS is where Gaia writes the server's records, when it does.
+	DNS *DNS `json:"dns,omitempty"`
+}
+
+// DNS is a server's A record in Zone and, with Reverse, its PTR record.
+type DNS struct {
+	Provider string `json:"provider"`
+	Zone     string `json:"zone"`
+	Reverse  bool   `json:"reverse,omitempty"`
+	TTL      int    `json:"ttl"`
 }
 
 type Compute struct {
@@ -255,6 +265,12 @@ func contract(ctx context.Context, g *catalog.Graph, o *catalog.Object, st State
 			}
 			if site.Compute.Storage != nil {
 				srv.Compute.Storage = site.Compute.Storage.Default
+			}
+			if d := ns.DNS; d != nil && d.Provider != "" {
+				srv.DNS = &DNS{Provider: d.Provider, Zone: d.Zone, Reverse: d.Reverse, TTL: d.TTL}
+				if srv.DNS.TTL == 0 {
+					srv.DNS.TTL = 3600
+				}
 			}
 			return srv
 		}
