@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/time/rate"
 
+	"github.com/Warewave-Technology/gaia/internal/audit"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
 
@@ -48,6 +49,13 @@ func (a *Service) Routes() []Route {
 		{Method: "GET", Path: "/auth/oidc/{provider}/callback", Public: true, Handler: a.limit(a.oidcCallback)},
 		{Method: "POST", Path: "/api/v1/auth/oidc/passkey/begin", Public: true, Handler: limited(a.pendingBegin)},
 		{Method: "POST", Path: "/api/v1/auth/oidc/passkey/finish", Public: true, Handler: limited(a.pendingFinish)},
+		{Method: "POST", Path: "/api/v1/auth/ldap", Public: true, Handler: limited(a.ldapLogin)},
+		{Method: "POST", Path: "/api/v1/auth/pending", Public: true, Handler: limited(a.pendingState)},
+		{Method: "POST", Path: "/api/v1/auth/pending/passkey/begin", Public: true, Handler: limited(a.pendingBegin)},
+		{Method: "POST", Path: "/api/v1/auth/pending/passkey/finish", Public: true, Handler: limited(a.pendingFinish)},
+		{Method: "POST", Path: "/api/v1/auth/pending/totp", Public: true, Handler: limited(a.pendingTOTP)},
+		{Method: "POST", Path: "/api/v1/auth/pending/totp/begin", Public: true, Handler: limited(a.pendingTOTPBegin)},
+		{Method: "POST", Path: "/api/v1/auth/pending/totp/finish", Public: true, Handler: limited(a.pendingTOTPFinish)},
 		{Method: "POST", Path: "/api/v1/auth/enroll/totp/begin", Public: true, Handler: limited(a.totpBegin)},
 		{Method: "POST", Path: "/api/v1/auth/enroll/totp/finish", Public: true, Handler: limited(a.totpFinish)},
 		{Method: "POST", Path: "/api/v1/auth/logout", Handler: a.logout},
@@ -86,6 +94,7 @@ func (a *Service) Routes() []Route {
 		{Method: "POST", Path: "/api/v1/me/signing-keys", Handler: a.strong(a.addSigningKey)},
 		{Method: "DELETE", Path: "/api/v1/me/signing-keys/{fingerprint}", Handler: a.strong(a.revokeSigningKey)},
 		{Method: "GET", Path: "/api/v1/users", Role: "platform-admin", Handler: a.listUsers},
+		{Method: "POST", Path: "/api/v1/users", Role: "platform-admin", Handler: a.strong(a.createUser)},
 		{Method: "POST", Path: "/api/v1/users/{id}/disable", Role: "platform-admin", Handler: a.setEnabled(false)},
 		{Method: "POST", Path: "/api/v1/users/{id}/enable", Role: "platform-admin", Handler: a.setEnabled(true)},
 		{Method: "POST", Path: "/api/v1/users/{id}/enroll", Role: "platform-admin", Handler: a.strong(a.reenroll)},
@@ -220,6 +229,9 @@ func (a *Service) authConfig(w http.ResponseWriter, _ *http.Request) {
 		Providers []provider `json:"providers"`
 	}{Require: cfg.Require, Providers: []provider{}}
 	for _, p := range cfg.Providers {
+		if p.Type == "oidc" {
+			continue // kept, not offered (design 17.5)
+		}
 		out.Providers = append(out.Providers, provider{Name: p.Name, Type: p.Type})
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -464,6 +476,10 @@ type UserInfo struct {
 	Provider    string   `json:"provider"`
 	Enabled     bool     `json:"enabled"`
 	Teams       []string `json:"teams"`
+	// Directory accounts come from the directory and are changed there;
+	// local ones are break-glass accounts when there is a directory.
+	Directory  bool `json:"directory"`
+	BreakGlass bool `json:"breakGlass,omitempty"`
 }
 
 func (a *Service) listUsers(w http.ResponseWriter, r *http.Request) {
@@ -474,6 +490,7 @@ func (a *Service) listUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := []UserInfo{}
+	dir := a.HasDirectory()
 	for _, u := range rows {
 		teams, err := a.store.Q().Teams(ctx, u.ID)
 		if err != nil {
@@ -483,7 +500,8 @@ func (a *Service) listUsers(w http.ResponseWriter, r *http.Request) {
 		if teams == nil {
 			teams = []string{}
 		}
-		out = append(out, UserInfo{ID: u.ID, Username: u.Username, DisplayName: u.DisplayName.String, Provider: u.Provider, Enabled: u.Enabled, Teams: teams})
+		out = append(out, UserInfo{ID: u.ID, Username: u.Username, DisplayName: u.DisplayName.String, Provider: u.Provider, Enabled: u.Enabled, Teams: teams,
+			Directory: u.DirectoryName.Valid, BreakGlass: dir && u.Provider == "local"})
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -494,15 +512,20 @@ func (a *Service) setEnabled(on bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		id := r.PathValue("id")
-		if _, err := a.store.Q().User(ctx, id); errors.Is(err, pgx.ErrNoRows) {
+		u, err := a.store.Q().User(ctx, id)
+		if errors.Is(err, pgx.ErrNoRows) {
 			problem(w, http.StatusNotFound, "no such user")
+			return
+		}
+		if err == nil && u.DirectoryName.Valid {
+			problem(w, http.StatusConflict, "a directory account is opened and closed in the directory")
 			return
 		}
 		if !on && id == From(ctx).UserID {
 			problem(w, http.StatusConflict, "you cannot disable yourself")
 			return
 		}
-		err := a.store.Tx(ctx, func(q *db.Queries) error {
+		err = a.store.Tx(ctx, func(q *db.Queries) error {
 			if err := q.SetUserEnabled(ctx, db.SetUserEnabledParams{ID: id, Enabled: on}); err != nil {
 				return err
 			}
@@ -515,8 +538,37 @@ func (a *Service) setEnabled(on bool) http.HandlerFunc {
 			a.fail(w, err, http.StatusInternalServerError)
 			return
 		}
+		action := "user.disable"
+		if on {
+			action = "user.enable"
+		}
+		a.audit(ctx, r, audit.Entry{Actor: From(ctx).Username, ActorID: From(ctx).UserID, Action: action, Object: "user/" + u.Username})
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// createUser opens a local account and answers its enrollment link: a
+// break-glass account when people sign in with the directory.
+func (a *Service) createUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var b struct {
+		Username    string   `json:"username"`
+		DisplayName string   `json:"displayName"`
+		Teams       []string `json:"teams"`
+		BreakGlass  bool     `json:"breakGlass"`
+	}
+	if !decode(w, r, &b) {
+		return
+	}
+	link, err := a.CreateLocalUser(ctx, strings.TrimSpace(b.Username), b.DisplayName, b.Teams, b.BreakGlass)
+	if err != nil {
+		a.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	p := From(ctx)
+	a.audit(ctx, r, audit.Entry{Actor: p.Username, ActorID: p.UserID, Action: "user.create", Object: "user/" + b.Username,
+		Detail: map[string]any{"teams": b.Teams, "breakGlass": b.BreakGlass}})
+	writeJSON(w, http.StatusCreated, map[string]string{"enrollUrl": link})
 }
 
 func (a *Service) reenroll(w http.ResponseWriter, r *http.Request) {
@@ -535,6 +587,7 @@ func (a *Service) reenroll(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	a.audit(ctx, r, audit.Entry{Actor: From(ctx).Username, ActorID: From(ctx).UserID, Action: "user.enroll", Object: "user/" + u.Username})
 	writeJSON(w, http.StatusOK, map[string]string{"enrollUrl": link})
 }
 

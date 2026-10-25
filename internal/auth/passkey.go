@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -118,15 +119,26 @@ func (a *Service) takeFlow(ctx context.Context, id, kind string, data any) (stri
 // CreateLocalUser records a local account and returns its enrollment link:
 // the person opens it, registers a passkey and gets recovery codes. The
 // token is in the URL's fragment, which browsers do not send to servers.
-func (a *Service) CreateLocalUser(ctx context.Context, username, display string, teams []string) (string, error) {
-	if _, _, err := a.config(); err != nil {
+func (a *Service) CreateLocalUser(ctx context.Context, username, display string, teams []string, breakGlass bool) (string, error) {
+	_, g, err := a.config()
+	if err != nil {
 		return "", err
+	}
+	if a.HasDirectory() {
+		// With a directory, everyone is in it; local accounts are for
+		// getting in when the directory or sign-in is broken (17.5).
+		if !breakGlass {
+			return "", errors.New("people sign in with the directory; a local account is a break-glass account only")
+		}
+		if !slices.Contains(g.RolesOf(teams), "platform-admin") {
+			return "", errors.New("a break-glass account is a platform admin's: give it a team the Policy makes platform-admin")
+		}
 	}
 	if !validUsername(username) {
 		return "", fmt.Errorf("username %q: lowercase letters, digits, '.', '-' and '_'", username)
 	}
 	id := store.NewUserID()
-	err := a.store.Tx(ctx, func(q *db.Queries) error {
+	err = a.store.Tx(ctx, func(q *db.Queries) error {
 		if err := q.InsertUser(ctx, db.InsertUserParams{ID: id, Username: username, DisplayName: text(display), Provider: "local"}); err != nil {
 			return err
 		}

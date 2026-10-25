@@ -216,21 +216,85 @@ async function totpFinish(ev) {
   }
 }
 
-// step finishes an OIDC sign-in with Gaia's passkey: an existing one, or
-// the person's first.
+// step finishes a sign-in that waits for Gaia's second factor (after the
+// directory password, or an identity provider) with a passkey: an
+// existing one, or the person's first.
 async function step() {
   try {
-    const start = await post("/api/v1/auth/oidc/passkey/begin");
+    const start = await post("/api/v1/auth/pending/passkey/begin");
     const cred = start.register
       ? await navigator.credentials.create(creationOptions(start.options))
       : await navigator.credentials.get(requestOptions(start.options));
-    const done = await post("/api/v1/auth/oidc/passkey/finish", { flow: start.flow, credential: credentialJSON(cred) });
-    if (done.recoveryCodes) {
-      showCodes(done.recoveryCodes);
-      document.getElementById("codes-next").href = nextPath(done.next);
-      return;
-    }
-    location.href = nextPath(done.next);
+    const done = await post("/api/v1/auth/pending/passkey/finish", { flow: start.flow, credential: credentialJSON(cred) });
+    finished(done);
+  } catch (e) {
+    showError(e);
+  }
+}
+
+function finished(done) {
+  if (done.recoveryCodes) {
+    showCodes(done.recoveryCodes);
+    document.getElementById("codes-next").href = nextPath(done.next);
+    return;
+  }
+  location.href = nextPath(done.next);
+}
+
+// ldapLogin checks the directory password, then shows the second step.
+async function ldapLogin(ev) {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  try {
+    const st = await post("/api/v1/auth/ldap", { username: f.get("username"), password: f.get("password"), next: new URLSearchParams(location.search).get("next") || "/" });
+    secondStep(st);
+  } catch (e) {
+    showError(e);
+  }
+}
+
+// secondStep offers what the person can finish with: their passkey, their
+// TOTP code, or, at the first sign-in, registering one of them.
+function secondStep(st) {
+  document.getElementById("error").textContent = "";
+  for (const id of ["ldap", "providers", "passkey", "password", "local-box", "recovery-box"]) document.getElementById(id).hidden = true;
+  document.getElementById("second").hidden = false;
+  const first = !st.passkey && !st.totp;
+  document.getElementById("intro").textContent = first
+    ? "Kimliğiniz doğrulandı. Bu ilk girişiniz: Gaia için bir ikinci adım kaydedin."
+    : "Kimliğiniz doğrulandı. Girişi ikinci adımla tamamlayın.";
+  const pk = document.getElementById("step");
+  pk.hidden = !(st.passkey || first);
+  pk.textContent = first ? "Passkey oluştur" : "Passkey ile devam et";
+  document.getElementById("second-totp").hidden = !(st.require === "mfa" && st.totp);
+  document.getElementById("second-setup").hidden = !(st.require === "mfa" && first);
+}
+
+async function secondTOTP(ev) {
+  ev.preventDefault();
+  try {
+    finished(await post("/api/v1/auth/pending/totp", { code: new FormData(ev.target).get("code") }));
+  } catch (e) {
+    showError(e);
+  }
+}
+
+async function setupBegin() {
+  try {
+    const setup = await post("/api/v1/auth/pending/totp/begin");
+    document.getElementById("setup-secret").textContent = setup.secret;
+    document.getElementById("setup-uri").href = setup.uri;
+    document.getElementById("setup-form").hidden = false;
+    document.getElementById("setup-begin").hidden = true;
+  } catch (e) {
+    showError(e);
+  }
+}
+
+async function setupFinish(ev) {
+  ev.preventDefault();
+  try {
+    finished(await post("/api/v1/auth/pending/totp/finish", { code: new FormData(ev.target).get("code") }));
   } catch (e) {
     showError(e);
   }
@@ -248,6 +312,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (el) el.hidden = false;
       }
     }
+    if (cfg.providers.some((p) => p.type === "ldap") && document.getElementById("ldap")) {
+      // People sign in with the directory; local accounts are break-glass.
+      document.getElementById("ldap").hidden = false;
+      document.getElementById("intro").textContent = "Kurumunuzun kullanıcı adı ve parolasıyla giriş yapın.";
+      document.getElementById("passkey").className = "btn block";
+      const pw = document.getElementById("password");
+      if (cfg.require === "mfa") {
+        document.getElementById("local-slot").appendChild(pw);
+        pw.querySelector(".or").hidden = true;
+        document.getElementById("local-box").hidden = false;
+      }
+    }
     const box = document.getElementById("providers");
     if (box) {
       for (const p of cfg.providers.filter((p) => p.type === "oidc")) {
@@ -261,13 +337,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (e) {
     /* the page still offers passkeys */
   }
+  const st = document.getElementById("step");
+  if (st) st.addEventListener("click", step);
   if (params.get("step") === "passkey") {
-    document.getElementById("intro").textContent = "Kimliğiniz doğrulandı. Girişi Gaia passkey'inizle tamamlayın.";
-    document.getElementById("step").hidden = false;
-    document.getElementById("step").addEventListener("click", step);
-    document.getElementById("passkey").hidden = true;
-    document.getElementById("providers").hidden = true;
+    try {
+      secondStep(await post("/api/v1/auth/pending"));
+    } catch (e) {
+      showError(e);
+    }
   }
+  const ld = document.getElementById("ldap");
+  if (ld) ld.addEventListener("submit", ldapLogin);
+  const s2 = document.getElementById("second-totp");
+  if (s2) s2.addEventListener("submit", secondTOTP);
+  const sb = document.getElementById("setup-begin");
+  if (sb) sb.addEventListener("click", setupBegin);
+  const sf = document.getElementById("setup-form");
+  if (sf) sf.addEventListener("submit", setupFinish);
   const pw = document.getElementById("password");
   if (pw) pw.addEventListener("submit", passwordLogin);
   const tb = document.getElementById("totp-begin");

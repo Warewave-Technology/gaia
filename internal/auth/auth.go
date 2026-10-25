@@ -24,6 +24,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/Warewave-Technology/gaia/internal/audit"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
@@ -171,10 +172,11 @@ func (a *Service) uiSession(ctx context.Context, w http.ResponseWriter, r *http.
 		return err
 	}
 	ttl, idle, _, _ := cfg.Sessions.Durations()
-	token, _, expires, err := a.newSession(ctx, session{userID: userID, kind: KindUI, ttl: ttl, idle: idle, strong: strong, r: r})
+	token, sid, expires, err := a.newSession(ctx, session{userID: userID, kind: KindUI, ttl: ttl, idle: idle, strong: strong, r: r})
 	if err != nil {
 		return err
 	}
+	a.audit(ctx, r, audit.Entry{ActorID: userID, SessionID: sid, Action: "auth.login"})
 	http.SetCookie(w, &http.Cookie{
 		Name: CookieName, Value: token, Path: "/", Expires: expires,
 		HttpOnly: true, Secure: strings.HasPrefix(cfg.URL, "https://"), SameSite: http.SameSiteStrictMode,

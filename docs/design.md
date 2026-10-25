@@ -2052,6 +2052,13 @@ Ayar değişiklikleri Değişiklikler ekranında kontrat Change'leriyle birlikte
 - **Yerel hesaplar:** Sadece **break-glass** içindir; dizin ya da giriş sorunluyken içeri girmek için bir iki platform-admin hesabı.
 - **Dizin yoksa:** Lab ve küçük kurulumlar için yerel kullanıcılar ve elle yazılan takımlar kullanılır. Bu yol, dizin tanımlıyken kapalıdır.
 - **OIDC şimdilik kullanılmıyor.** Kodu duruyor ama ayarlarda ve arayüzde sunulmaz. Kurumların SSO'ya geçmesi gündeme gelince yeniden açılır.
+- **Ayar:** AuthConfig'te `type: ldap` bir sağlayıcı, bir `activedirectory` Provider'ını gösterir:
+  ```yaml
+  providers:
+    - { name: corp, type: ldap, directory: { provider: corp-ad } }
+    - { name: local, type: local, purpose: break-glass }
+  ```
+  Gaia hesabı kendi okuma hesabıyla bulur, aynı TLS bağlantısında kişinin DN'iyle bind eder. Boş parola reddedilir (anonim bind'e dönmesin diye). Kişinin Gaia'da hesabı olması, yani bildiği bir takımda olması gerekir; hesaplar ve takımlar üyelik eşitlemesiyle gelir.
 - **Dizin uyumluluğu:** Bugün Active Directory alanları okunuyor (`objectGUID`, `sAMAccountName`, `userAccountControl`). OpenLDAP veya FreeIPA gerekirse alan eşlemesi ayarlanabilir yapılır.
 
 ### 17.6 Source'lar

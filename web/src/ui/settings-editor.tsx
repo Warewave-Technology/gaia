@@ -340,6 +340,9 @@ export function AddButton({ kind, label }: { kind: string; label?: string }) {
 }
 
 // EditButtons are an object page's edit and remove, for settings kinds.
+// SINGLE are the kinds there is one of: changed, never removed.
+const SINGLE = new Set(["AuthConfig", "Platform", "Policy"]);
+
 export function EditButtons({ kind, name, generatedBy }: { kind: string; name: string; generatedBy?: string }): ReactNode {
   const can = useCanPropose();
   const [open, setOpen] = useState<"edit" | "remove" | null>(null);
@@ -348,7 +351,7 @@ export function EditButtons({ kind, name, generatedBy }: { kind: string; name: s
   return (
     <span className="row">
       <Button icon="pencil" onClick={() => setOpen("edit")} disabled={!!locked} title={locked}>Düzenle</Button>
-      <Button kind="danger" icon="x" onClick={() => setOpen("remove")} disabled={!!locked} title={locked}>Kaldır</Button>
+      {!SINGLE.has(kind) && <Button kind="danger" icon="x" onClick={() => setOpen("remove")} disabled={!!locked} title={locked}>Kaldır</Button>}
       {open === "edit" && <SettingsEditor kind={kind} name={name} onClose={() => setOpen(null)} />}
       {open === "remove" && <RemoveSetting kind={kind} name={name} onClose={() => setOpen(null)} />}
     </span>

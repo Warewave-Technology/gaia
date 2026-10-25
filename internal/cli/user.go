@@ -9,6 +9,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
+	"github.com/Warewave-Technology/gaia/internal/settings"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/store/db"
 )
@@ -26,15 +27,9 @@ func newUserCommand() *cobra.Command {
 	var src source
 	var dsn, display string
 	var teams []string
+	var breakGlass bool
 
 	open := func(cmd *cobra.Command) (*store.Store, *auth.Service, error) {
-		g, err := src.graph(cmd.ErrOrStderr())
-		if err != nil {
-			return nil, nil, err
-		}
-		if g.AuthConfig() == nil {
-			return nil, nil, fmt.Errorf("the catalog has no AuthConfig")
-		}
 		d, err := resolveDSN(dsn)
 		if err != nil {
 			return nil, nil, err
@@ -42,6 +37,24 @@ func newUserCommand() *cobra.Command {
 		s, err := store.Open(cmd.Context(), d)
 		if err != nil {
 			return nil, nil, err
+		}
+		// AuthConfig is a setting: the database's when Gaia keeps them there.
+		var stored []catalog.File
+		st := &settings.Store{DB: s}
+		if v, err := st.Latest(cmd.Context()); err == nil && v > 0 {
+			if stored, err = st.Files(cmd.Context(), v); err != nil {
+				s.Close()
+				return nil, nil, err
+			}
+		}
+		g, err := src.graphWith(cmd.ErrOrStderr(), stored)
+		if err != nil {
+			s.Close()
+			return nil, nil, err
+		}
+		if g.AuthConfig() == nil {
+			s.Close()
+			return nil, nil, fmt.Errorf("the catalog has no AuthConfig")
 		}
 		return s, auth.New(s, func() *catalog.Graph { return g }, nil), nil
 	}
@@ -54,7 +67,7 @@ func newUserCommand() *cobra.Command {
 				return err
 			}
 			defer s.Close()
-			link, err := a.CreateLocalUser(cmd.Context(), args[0], display, teams)
+			link, err := a.CreateLocalUser(cmd.Context(), args[0], display, teams, breakGlass)
 			if err != nil {
 				return err
 			}
@@ -64,6 +77,7 @@ func newUserCommand() *cobra.Command {
 	}
 	add.Flags().StringVar(&display, "display-name", "", "full name")
 	add.Flags().StringSliceVar(&teams, "team", nil, "team; repeatable (roles come from Policy.gaiaRoles)")
+	add.Flags().BoolVar(&breakGlass, "break-glass", false, "a break-glass platform admin, when people sign in with the directory")
 
 	enroll := &cobra.Command{
 		Use: "enroll USERNAME", Short: "Print a new enrollment link for a local account", Args: cobra.ExactArgs(1),

@@ -196,6 +196,45 @@ func (d *Directory) User(username string) (User, error) {
 	return user(entries[0]), nil
 }
 
+// ErrBadCredentials: no such account, or the password is wrong; which
+// one is not said.
+var ErrBadCredentials = errors.New("ad: the username or password is wrong")
+
+// ErrDisabled: the account is closed in the directory.
+var ErrDisabled = errors.New("ad: this account is disabled in the directory")
+
+// Authenticate checks a person's directory password (design 17.5): Gaia
+// finds the account with its own read-only account, then binds as the
+// person on the same TLS connection. The password is not kept.
+func Authenticate(ctx context.Context, c Config, username, password string) (User, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if username == "" || password == "" {
+		// An empty password would be an unauthenticated bind, which
+		// directories accept.
+		return User{}, ErrBadCredentials
+	}
+	d, err := Open(ctx, c)
+	if err != nil {
+		return User{}, err
+	}
+	defer func() { _ = d.Close() }()
+	u, err := d.User(username)
+	if err != nil {
+		return User{}, ErrBadCredentials
+	}
+	if u.Disabled {
+		return u, ErrDisabled
+	}
+	if err := d.conn.Bind(u.DN, password); err != nil {
+		var le *ldap.Error
+		if errors.As(err, &le) && le.ResultCode == ldap.LDAPResultInvalidCredentials {
+			return User{}, ErrBadCredentials
+		}
+		return User{}, fmt.Errorf("ad: bind as %s: %w", u.Username, err)
+	}
+	return u, nil
+}
+
 // ErrNoAccount: the directory has no such account (any more).
 var ErrNoAccount = errors.New("ad: no such account")
 
