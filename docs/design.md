@@ -1596,6 +1596,13 @@ Gaia tek bir binary'dir:
 - **Veritabanı chart'ın içinde yoktur.** PostgreSQL dışarıda durur ve DSN referansıyla verilir.
 - **Dağıtım:** Container imajı ve chart Nexus'ta tutulur (Docker registry ve Helm hosted repo).
 
+**Uygulamada:**
+- `make image` imajı üretir: distroless (`base-debian12:nonroot`), `gaia` ve `gaia-ipam`, önceden indirilmiş Pulumi CLI'ı ve plugin'leri (`gaia pulumi prepare`; run'lar bir şey indirmez). Varsayılan komut `gaia server --listen 0.0.0.0:8080 --data-dir /gaia/data`.
+- Chart `deploy/helm/gaia`: tek Deployment (`--role=all`) ya da `split: true` ile API ve worker ayrı; Service, isteğe bağlı Ingress ve HPA, PDB, ServiceAccount, Ansible pod'ları için namespace'e sınırlı Role, `pre-install`/`pre-upgrade` migration Job'ı. Pod'lar root olmadan, salt okunur kök dosya sistemiyle, bütün capability'ler düşürülmüş çalışır; repo aynaları `emptyDir`'dedir.
+- DSN chart'a yazılmaz: başka bir aracın yönettiği bir Secret'ın anahtarından (`database.existingSecret`) ya da OpenBao Agent'ın/CSI'ın yazdığı bir dosyadan (`database.file`, `GAIA_DSN_FILE`) gelir.
+- OpenBao'ya Kubernetes auth ile girilir: `GAIA_BAO_K8S_ROLE` (mount `GAIA_BAO_K8S_MOUNT`, varsayılan `kubernetes`), pod'un service account token'ıyla; token her girişte dosyadan okunur, oturum AppRole'deki gibi yenilenir.
+- kind'da denendi: migration hook'u şemayı kurdu, API ve worker ayrı Deployment'larla ayağa kalktı, worker OpenBao'ya Kubernetes auth ile girdi.
+
 ## 14. Erişim Yönetimi: Takımlar ve Gruplar
 
 Kişiler ve gruplar AD'de oluşturulur ve yönetilir. Gaia **AD'ye kullanıcı veya grup olarak hiçbir şey yazmaz**; AD'yi okur ve var olan grupların erişimini dağıtır. Model, Network ve AnsibleRole ile aynıdır: kaynak dışarıdadır, Gaia oradan obje üretir.

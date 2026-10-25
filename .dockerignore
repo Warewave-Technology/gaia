@@ -1,0 +1,6 @@
+.git
+bin
+dist
+lab
+context
+*.test

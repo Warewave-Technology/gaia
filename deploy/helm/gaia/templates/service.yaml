@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gaia.fullname" . }}
+  labels:
+    {{- include "gaia.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "gaia.selector" . | nindent 4 }}
+    gaia.dev/api: "true"
+  ports:
+    - { name: http, port: {{ .Values.service.port }}, targetPort: http }

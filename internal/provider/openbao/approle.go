@@ -8,31 +8,54 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 )
 
-// Session is Gaia's own login to OpenBao with AppRole (design 13.2): it
-// logs in, renews its token before it expires and logs in again when the
-// token cannot be renewed any more.
+// Session is Gaia's own login to OpenBao (design 13.2): with AppRole on
+// a VM, with the pod's service account in Kubernetes (13.3). It logs in,
+// renews its token before it expires and logs in again when the token
+// cannot be renewed any more.
 type Session struct {
-	addr, mount      string
-	roleID, secretID string
-	http             *http.Client
-	log              *slog.Logger
-	mu               sync.RWMutex
-	token            string
-	expires          time.Time
-	renewable        bool
+	addr, mount string
+	method      string
+	// body is the login request; read each time, since a service
+	// account token is rotated.
+	body      func() ([]byte, error)
+	http      *http.Client
+	log       *slog.Logger
+	mu        sync.RWMutex
+	token     string
+	expires   time.Time
+	renewable bool
 }
 
 // Login logs in with role_id and secret_id at the approle mount.
 func Login(ctx context.Context, addr, roleID, secretID string, log *slog.Logger) (*Session, error) {
+	return start(ctx, addr, "approle", "approle", func() ([]byte, error) {
+		return json.Marshal(map[string]string{"role_id": roleID, "secret_id": secretID})
+	}, log)
+}
+
+// LoginKubernetes logs in as role at a kubernetes auth mount with the
+// service account token in tokenFile.
+func LoginKubernetes(ctx context.Context, addr, mount, role, tokenFile string, log *slog.Logger) (*Session, error) {
+	return start(ctx, addr, mount, "kubernetes", func() ([]byte, error) {
+		jwt, err := os.ReadFile(tokenFile) //nolint:gosec // the operator's path
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(map[string]string{"role": role, "jwt": strings.TrimSpace(string(jwt))})
+	}, log)
+}
+
+func start(ctx context.Context, addr, mount, method string, body func() ([]byte, error), log *slog.Logger) (*Session, error) {
 	if log == nil {
 		log = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	s := &Session{addr: strings.TrimRight(addr, "/"), mount: "approle", roleID: roleID, secretID: secretID,
+	s := &Session{addr: strings.TrimRight(addr, "/"), mount: mount, method: method, body: body,
 		http: &http.Client{Timeout: 30 * time.Second}, log: log}
 	return s, s.login(ctx)
 }
@@ -61,10 +84,13 @@ type authResponse struct {
 }
 
 func (s *Session) login(ctx context.Context) error {
-	body, _ := json.Marshal(map[string]string{"role_id": s.roleID, "secret_id": s.secretID})
+	body, err := s.body()
+	if err != nil {
+		return fmt.Errorf("openbao %s login: %w", s.method, err)
+	}
 	a, err := s.post(ctx, "/v1/auth/"+s.mount+"/login", "", body)
 	if err != nil {
-		return fmt.Errorf("openbao approle login: %w", err)
+		return fmt.Errorf("openbao %s login: %w", s.method, err)
 	}
 	s.set(a)
 	return nil

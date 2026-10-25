@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/Warewave-Technology/gaia/internal/version.Version=$(VERSION)
 
-.PHONY: build test itest generate lint ee package dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
+.PHONY: build test itest generate lint ee package image dev-up dev-down dev-oidc dev-git dev-mail dev-ad dev-zabbix dev-warpgate
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ ./cmd/...
@@ -19,6 +19,11 @@ generate:
 lint:
 	go vet ./...
 	golangci-lint run
+
+# The container image (design 13.3).
+IMAGE ?= localhost/gaia/gaia:$(VERSION)
+image:
+	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE) .
 
 # .deb and .rpm for linux/amd64 and linux/arm64 in dist/ (design 13.2).
 NFPM := go run github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0

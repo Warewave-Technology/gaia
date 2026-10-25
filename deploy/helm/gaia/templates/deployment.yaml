@@ -1,0 +1,99 @@
+{{- $roles := list "all" -}}
+{{- if .Values.split }}{{- $roles = list "api" "worker" -}}{{- end }}
+{{- range $role := $roles }}
+{{- $api := ne $role "worker" }}
+{{- $work := ne $role "api" }}
+{{- $spec := ternary $.Values.worker $.Values.api (eq $role "worker") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gaia.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "gaia.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+spec:
+  {{- if not (and $api $.Values.hpa.enabled) }}
+  replicas: {{ $spec.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gaia.selector" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $role }}
+  template:
+    metadata:
+      labels:
+        {{- include "gaia.selector" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $role }}
+        {{- if $api }}
+        gaia.dev/api: "true"
+        {{- end }}
+      {{- with $.Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "gaia.serviceAccount" $ }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- if $work }}
+      terminationGracePeriodSeconds: {{ $.Values.worker.terminationGracePeriodSeconds }}
+      {{- end }}
+      containers:
+        - name: gaia
+          image: {{ include "gaia.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          args:
+            - server
+            - --role
+            - {{ $role }}
+            {{- if $api }}
+            - --listen
+            - 0.0.0.0:8080
+            {{- end }}
+            {{- if $work }}
+            - --workers
+            - {{ $.Values.worker.workers | quote }}
+            {{- end }}
+            {{- include "gaia.args" $ | nindent 12 }}
+          env:
+            {{- include "gaia.env" $ | nindent 12 }}
+          {{- if $api }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+            failureThreshold: 6
+          {{- end }}
+          securityContext:
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $spec.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /gaia/data }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        # Repository mirrors: rebuilt from the repositories on start.
+        - { name: data, emptyDir: {} }
+        - { name: tmp, emptyDir: {} }
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
