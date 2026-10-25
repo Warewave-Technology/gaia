@@ -1,0 +1,4 @@
+---
+api_socket: true
+restart_containers: true
+extra_packages: []

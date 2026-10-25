@@ -1,0 +1,48 @@
+---
+- name: nginx
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+# Paketin nginx.conf'u kendi örnek sitesiyle gelir; Gaia ana
+# yapılandırmayı ve tek siteyi kendisi yazar.
+- name: Ana yapılandırma
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify: nginx changed
+
+- name: Site
+  ansible.builtin.template:
+    src: gaia-site.conf.j2
+    dest: /etc/nginx/conf.d/gaia-site.conf
+    mode: "0644"
+  notify: nginx changed
+
+- name: Site dizini
+  ansible.builtin.file:
+    path: "{{ root }}"
+    state: directory
+    mode: "0755"
+
+- name: Servisler
+  ansible.builtin.service_facts:
+
+- name: Güvenlik duvarı (firewalld çalışıyorsa)
+  ansible.posix.firewalld:
+    port: "{{ listen_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  when: ansible_facts.services['firewalld.service'].state | default('') == 'running'
+
+- name: Yapılandırma geçerli mi?
+  ansible.builtin.command: nginx -t -q
+  changed_when: false
+
+- name: nginx açılışta başlasın ve çalışsın
+  ansible.builtin.systemd_service:
+    name: nginx
+    enabled: true
+    state: started

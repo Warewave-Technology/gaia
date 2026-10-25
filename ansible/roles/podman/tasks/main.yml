@@ -1,0 +1,16 @@
+---
+- name: podman
+  ansible.builtin.dnf:
+    name: "{{ ['podman'] + extra_packages }}"
+    state: present
+
+- name: API soketi
+  ansible.builtin.systemd_service:
+    name: podman.socket
+    enabled: "{{ api_socket }}"
+    state: "{{ 'started' if api_socket else 'stopped' }}"
+
+- name: Container'lar açılışta geri gelsin
+  ansible.builtin.systemd_service:
+    name: podman-restart.service
+    enabled: "{{ restart_containers }}"

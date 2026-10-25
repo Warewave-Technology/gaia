@@ -1,0 +1,5 @@
+---
+server_name: _
+listen_port: 80
+root: /usr/share/nginx/html
+worker_processes: auto

@@ -1,0 +1,5 @@
+# Gaia'nın argument_specs'e eklediği bilgiler (AnsibleRoleSource: extra).
+checkMode: supported
+params:
+  server_name: { gaia: { pattern: '^(_|[a-z0-9]([a-z0-9.-]*[a-z0-9])?)$' } }
+  worker_processes: { gaia: { pattern: '^(auto|[1-9][0-9]*)$' } }

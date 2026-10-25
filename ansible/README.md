@@ -6,7 +6,13 @@ PoC'de Gaia'nın config reposu bu dizin (`config-repo` provider'ı, `path: ansib
 ansible.cfg
 baseline/linux.yml        Baseline: linux-base
 roles/gaia_linux_base/    baseline'ın rolü
+roles/nginx/              örnek: nginx, tek site (server_name, listen_port, root, worker_processes)
+roles/podman/             örnek: podman, API soketi, açılışta container'lar (api_socket, restart_containers, extra_packages)
 ```
+
+`nginx` ve `podman` örnek rollerdir. Katalogda bir `AnsibleRoleSource` onları `AnsibleRole` nesnesine çevirir; kontrat da `ansibleRoles: [nginx, podman]` diye kullanır.
+- Parametreler `meta/argument_specs.yml`'den gelir. Gaia'nın ek bilgileri (`checkMode`, parametre desenleri) `meta/gaia.yml`'dedir.
+- Rol değişkenleri parametrelerle aynı adı taşır.
 
 ## Gaia'nın verdiği değişkenler
 
