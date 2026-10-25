@@ -877,3 +877,100 @@ func TestReconcileOpensADriftChange(t *testing.T) {
 		t.Errorf("change = %+v", c)
 	}
 }
+
+// Sudo for a few commands is access like any: adding a command is a grant
+// that needs the group's approvers, and nobody gaining it approves it;
+// taking one away needs nothing more.
+func TestSudoCommandsAreGrants(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	e.finished = en.Finished
+	can := e.signer("can", "team-web")
+	e.signer("ayse", "team-platform") // platform-admin
+	e.signer("deniz", "team-dba")
+	e.signer("selin", "team-sec")
+	e.git.Write("platform/access.yaml", `apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-platform }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-web }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-dba }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Team
+metadata: { name: team-sec }
+spec: {}
+---
+apiVersion: gaia/v1alpha1
+kind: Group
+metadata: { name: dbas }
+spec: { teams: [team-dba], owner: team-sec, privileged: true }
+`)
+	nginx := "/usr/bin/systemctl restart nginx"
+	podman := "/usr/bin/systemctl restart podman"
+	e.edit("contracts/poc-web.yaml", "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - { group: dbas, sudo: [\""+nginx+"\"] }\n")
+	e.git.CommitSigned("dbas may restart nginx", can.git)
+	e.start()
+	e.evaluate(en)
+
+	need := func(id string) change.Need {
+		rows, _ := e.store.Q().Gates(ctx, id)
+		var n change.Need
+		for _, r := range rows {
+			if r.Gate == "approval" {
+				_ = json.Unmarshal(r.Detail, &n)
+			}
+		}
+		return n
+	}
+	approve := func(c db.Change, who ...string) {
+		t.Helper()
+		for _, w := range who {
+			u, _ := e.store.Q().UserByName(ctx, w)
+			if err := en.Decide(ctx, change.Decision{Change: c.ID, PlanHash: c.PlanHash, UserID: u.ID, Username: w, Approve: true}); err != nil {
+				t.Fatalf("%s: %v", w, err)
+			}
+		}
+		if c := e.waitChange(c.ID, change.Applied, change.Failed); c.Status != change.Applied {
+			t.Fatalf("change = %+v", c)
+		}
+	}
+	c, _ := e.open("poc-web")
+	if n := need(c.ID); len(n.Groups) != 2 || !slices.Contains(n.Excluded, "deniz") {
+		t.Fatalf("first command: %+v", n)
+	}
+	var p plan.Plan
+	_ = json.Unmarshal(c.Plan, &p)
+	if a := p.Contracts[0].Access; len(a) != 1 || a[0].Sudo || strings.Join(a[0].SudoCommands, "|") != nginx {
+		t.Fatalf("plan access = %+v", a)
+	}
+	approve(c, "ayse", "selin")
+
+	// Another command is a grant again.
+	e.edit("contracts/poc-web.yaml", "sudo: [\""+nginx+"\"]", "sudo: [\""+nginx+"\", \""+podman+"\"]")
+	e.git.CommitSigned("and podman", can.git)
+	e.evaluate(en)
+	c, _ = e.open("poc-web")
+	if n := need(c.ID); len(n.Groups) != 2 {
+		t.Fatalf("a second command: %+v", n)
+	}
+	approve(c, "ayse", "selin")
+
+	// Taking one away is not.
+	e.edit("contracts/poc-web.yaml", "sudo: [\""+nginx+"\", \""+podman+"\"]", "sudo: [\""+podman+"\"]")
+	e.git.CommitSigned("no more nginx", can.git)
+	e.evaluate(en)
+	c, _ = e.open("poc-web")
+	if n := need(c.ID); len(n.Groups) != 0 {
+		t.Errorf("narrowing needs approval: %+v", n)
+	}
+}

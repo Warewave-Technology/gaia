@@ -26,7 +26,10 @@ export type PlanContract = {
   monitoring?: { provider?: string; templates?: string[] };
   apps?: unknown[];
   agents?: unknown[];
+  access?: PlanAccess[];
 };
+
+export type PlanAccess = { via: string; teams: string[]; sudo?: boolean; sudoCommands?: string[]; privileged?: boolean; owner?: string };
 
 export type Plan = { commit?: string; hash?: string; contracts?: PlanContract[] };
 

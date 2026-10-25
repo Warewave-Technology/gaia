@@ -26,7 +26,10 @@ const JoinRole = "gaia_domain_join"
 type User struct {
 	Name string   `json:"name"`
 	Keys []string `json:"keys"`
-	Sudo bool     `json:"sudo"`
+	Sudo bool     `json:"sudo"` // every command
+	// Commands are the only commands they may run as root, when Sudo is
+	// not set; empty without sudo.
+	Commands []string `json:"commands"`
 }
 
 // WriteRoles writes the role into dir/roles.

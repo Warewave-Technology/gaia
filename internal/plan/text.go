@@ -161,6 +161,8 @@ func WriteText(w io.Writer, p *Plan) error {
 				var flags []string
 				if a.Sudo {
 					flags = append(flags, "sudo")
+				} else if len(a.SudoCommands) > 0 {
+					flags = append(flags, "sudo: "+strings.Join(a.SudoCommands, ", "))
 				}
 				if a.Privileged {
 					flags = append(flags, "privileged")

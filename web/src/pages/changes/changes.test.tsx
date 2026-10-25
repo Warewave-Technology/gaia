@@ -9,6 +9,7 @@ vi.mock("@simplewebauthn/browser", () => ({
 const PLAN = {
   contracts: [{
     name: "poc-web", size: { name: "small", cpu: 2, memoryGiB: 2 }, monitoring: { provider: "zabbix" }, baseline: "linux-base",
+    access: [{ via: "team/team-web-ops", teams: ["team-web-ops"], sudoCommands: ["/usr/bin/systemctl restart nginx"] }],
     servers: [
       { action: "keep", uid: "xfaoec2tq4ekespr", hostname: "labtpoc01", site: "lab", network: "lab-poc", compute: { provider: "pve-lab" }, ipam: { provider: "ipam", pool: "10.50.0.0/24" } },
       { action: "create", hostname: "labtpoc02", site: "lab", network: "lab-poc", compute: { provider: "pve-lab" }, ipam: { provider: "ipam", pool: "10.50.0.0/24" } },
@@ -59,6 +60,9 @@ describe("changes", () => {
     expect(screen.getByText("labtpoc02").closest("tr")).toHaveClass("added");
     expect(screen.getByText(/team-platform üyelerinden biri/)).toBeInTheDocument();
     expect(screen.getByText(/mehmet.y bu değişikliği onaylayamaz/)).toBeInTheDocument();
+    const access = screen.getByText("team/team-web-ops").closest("tr")!;
+    expect(access).toHaveTextContent("sınırlı sudo");
+    expect(access).toHaveTextContent("/usr/bin/systemctl restart nginx");
   });
 
   it("shows the YAML diff since the contract was applied", async () => {

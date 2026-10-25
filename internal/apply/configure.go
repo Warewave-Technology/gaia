@@ -396,7 +396,7 @@ func (r *runner) accessUsers(ctx context.Context, c plan.Contract) ([]access.Use
 		if err != nil {
 			return nil, err
 		}
-		grant := runrecord.AccessGrant{Contract: c.Name, Via: a.Via, Teams: a.Teams, Users: []string{}, Sudo: a.Sudo}
+		grant := runrecord.AccessGrant{Contract: c.Name, Via: a.Via, Teams: a.Teams, Users: []string{}, Sudo: a.Sudo, SudoCommands: a.SudoCommands}
 		for _, row := range rows {
 			if !linuxName.MatchString(row.Username) {
 				r.printf("  access: %s is not a Linux account name; skipped\n", row.Username)
@@ -404,11 +404,18 @@ func (r *runner) accessUsers(ctx context.Context, c plan.Contract) ([]access.Use
 			}
 			u, ok := byName[row.Username]
 			if !ok {
-				u = &access.User{Name: row.Username, Keys: []string{}}
+				u = &access.User{Name: row.Username, Keys: []string{}, Commands: []string{}}
 				byName[row.Username] = u
 				order = append(order, row.Username)
 			}
+			// Someone in several entries gets the widest: every command,
+			// or every listed one.
 			u.Sudo = u.Sudo || a.Sudo
+			for _, cmd := range a.SudoCommands {
+				if !slices.Contains(u.Commands, cmd) {
+					u.Commands = append(u.Commands, cmd)
+				}
+			}
 			if row.PublicKey != "" && !slices.Contains(u.Keys, row.PublicKey) {
 				u.Keys = append(u.Keys, row.PublicKey)
 			}

@@ -1731,7 +1731,23 @@ access:
   - group: portal-admins
     sudo: true
   - team: team-portal
+  - team: team-web-ops
+    sudo:                           # sadece bu komutlar, root olarak
+      - /usr/bin/systemctl restart nginx
+      - /usr/bin/systemctl restart podman
 ```
+
+**`sudo` alanı** üç şekilde yazılır:
+- `true`: her komut (`NOPASSWD: ALL`).
+- Komut listesi: sadece bu komutlar, root olarak.
+  - Her komut mutlak yoluyla ve düz argümanlarla yazılır.
+  - sudoers'ın ayraçları (`,` `:` `=` `\`), joker karakterler (`*` `?`), `!`, `ALL` ve `sudoedit` kabul edilmez. Böylece bir liste tam yetkiye dönüşemez.
+- `false` ya da hiç yazılmaması: sudo yok.
+
+Sınırlı sudo:
+- Bastion'da (Warpgate) sudo hedefi açmaz.
+- Zabbix'te sadece okuma hakkı verir.
+- Bir kişi birden fazla girdiden erişim alıyorsa en genişi geçer: tam sudo varsa o, yoksa listelerin birleşimi.
 
 **Kurallar**
 
@@ -1741,7 +1757,13 @@ access:
 
 **Planla bağlantısı:** Kontratın planı erişimi de içerir. Her girdi için şunlar plandadır: gruba mı takıma mı verildiği, çözülmüş takım listesi, sudo, ayrıcalık ve grubun sahibi. Erişim vermek veya bir Group'un takımlarını değiştirmek planı, dolayısıyla plan hash'ini değiştirir ve bir Change olur. Takımların içindeki kişiler plana girmez; onların değişikliği AD'den gelir ve onaysız dağıtılır (14.5).
 
-**Ne verildiği:** Gaia, Change'in planını kontratta en son uygulanan planla karşılaştırır. Yeni bir girdi, takım listesi genişleyen ya da sudo kazanan bir girdi "verilen erişim"dir. Erişimi kaldırmak veya daraltmak ek onay gerektirmez.
+**Ne verildiği:** Gaia, Change'in planını kontratta en son uygulanan planla karşılaştırır. "Verilen erişim" sayılanlar:
+- yeni bir girdi
+- takım listesi genişleyen bir girdi
+- tam sudo kazanan bir girdi
+- sudo listesine yeni bir komut eklenen bir girdi
+
+Erişimi kaldırmak veya daraltmak (bir komutu çıkarmak dahil) ek onay gerektirmez.
 
 **Verilen erişimin onayları:**
 - Ayrıcalıklı bir Group üzerinden: `platform-admin`
@@ -1757,7 +1779,7 @@ access:
 |---|---|
 | Gaia arayüzü | `viewer` / `operator` / `platform-admin` rolleri Team üyeliklerinden gelir (bkz. 11.4). OIDC sadece kimlik doğrulama için kullanılır |
 | Warpgate | API ile kullanıcıların rol ve hedef atamaları. Hedef tipi imajdan gelir: Linux için SSH, Windows için RDP |
-| Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar |
+| Linux | SSSD/AD entegrasyonu varsa sudo ve erişim kuralları AD gruplarına referans verir. Yoksa Ansible yerel hesap açar, SSH anahtarlarını dağıtır ve sudoers yazar (`/etc/sudoers.d/gaia-<kişi>`: tam sudo `ALL=(ALL) NOPASSWD: ALL`, sınırlı sudo `ALL=(root) NOPASSWD: <komutlar>`; `visudo` ile doğrulanır) |
 | Zabbix | Kendi API'siyle kullanıcı grubu atamaları |
 
 **SSH anahtarları:**
@@ -1940,3 +1962,4 @@ Kullanıcı ve grup tarafında Gaia AD'ye yazmaz; ihtiyacı sadece okuma yetkisi
 | 2026-10-25 | Secret parametre değeri planda ve kayıtta değil, sadece run'da; referans `bao://<yol>#<alan>`; `no_log` parametreye kontratta düz değer yazılamaz |
 | 2026-10-25 | Host anahtarları ilk temasta Gaia tarafından kaydedilir, sonra Ansible sıkı host key kontrolüyle çalışır (phone_home/konsol yerine) |
 | 2026-10-25 | Artifact deposu Nexus yerine Pulp 3 (OS paketleri ve aynaları, Galaxy, PyPI, App dosyaları) ve Zot (OCI: EE, Gaia imajı, Helm chart). İkisi de OSI lisanslı, EULA'sız; depolama SeaweedFS (S3). `nexus` provider'ı mevcut Nexus'u olanlar için kalır; App artifact'ı provider'dan bağımsız `Resolve → {url, sha256}` ile çözülür |
+| 2026-10-25 | Kontrattaki `access.sudo`, `true`/`false`'a ek olarak komut listesi alır: sadece o komutlar, root olarak. Komutlar mutlak yollu ve düz yazılır (ayraç, joker, `!`, `ALL`, `sudoedit` yok). Yeni bir komut "verilen erişim" sayılır; daraltmak onay istemez |

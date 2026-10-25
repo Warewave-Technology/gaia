@@ -24,6 +24,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Warewave-Technology/gaia/internal/ad"
+	"github.com/Warewave-Technology/gaia/internal/apply/access"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/compute"
 	"github.com/Warewave-Technology/gaia/internal/engine/ansible"
@@ -2371,5 +2372,69 @@ func TestPatchPlayNeverPassesANullExclude(t *testing.T) {
 		if strings.Contains(string(data), `"exclude":null`) {
 			t.Errorf("options %v: %s", opts, data)
 		}
+	}
+}
+
+// Sudo for a few commands goes to the access role as a list, gives
+// read-only monitoring, and the run record names the commands.
+func TestApplyLimitedSudo(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	q := e.store.Q()
+	for _, name := range []string{"yigit", "mehmet"} {
+		id := store.NewUserID()
+		if err := q.InsertDirectoryUser(ctx, db.InsertDirectoryUserParams{ID: id, Username: name, Provider: "corp", Subject: pgText("g-" + name), DirectoryName: pgText(name), Enabled: true}); err != nil {
+			t.Fatal(err)
+		}
+		if err := q.AddTeam(ctx, db.AddTeamParams{UserID: id, Team: "team-web-ops", Source: "ad:corp"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	g := e.graph(func(c string) string {
+		return strings.Replace(c, "  baseline: linux-base\n", "  baseline: linux-base\n  access:\n    - team: team-web-ops\n      sudo: [/usr/bin/systemctl restart nginx, /usr/bin/systemctl restart podman]\n", 1) +
+			"---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-web-ops }\nspec: {}\n---\napiVersion: gaia/v1alpha1\nkind: Team\nmetadata: { name: team-platform }\nspec: {}\n"
+	})
+	p, err := plan.Build(ctx, g, nil, StoreState{S: e.store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := Run(ctx, g, p, e.deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := e.configure.projects[0][".gaia/site.yml"]
+	var doc []struct {
+		Roles []struct {
+			Role string
+			Vars map[string]json.RawMessage
+		}
+	}
+	if err := json.Unmarshal([]byte(site), &doc); err != nil {
+		t.Fatalf("site.yml: %v\n%s", err, site)
+	}
+	var users []access.User
+	for _, play := range doc {
+		for _, r := range play.Roles {
+			if r.Role == access.Role {
+				_ = json.Unmarshal(r.Vars["gaia_access_users"], &users)
+			}
+		}
+	}
+	want := "/usr/bin/systemctl restart nginx|/usr/bin/systemctl restart podman"
+	if len(users) != 2 || users[0].Sudo || strings.Join(users[0].Commands, "|") != want || strings.Join(users[1].Commands, "|") != want {
+		t.Errorf("access users = %+v", users)
+	}
+	ug := e.monitor.userGroups["Gaia/team-web-ops"]
+	if ug.rights["Gaia/contract/poc-web"] != zabbix.PermissionRead {
+		t.Errorf("monitoring rights = %+v, want read-only", ug.rights)
+	}
+	rec, err := q.RunRecord(ctx, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body runrecord.Record
+	_ = json.Unmarshal([]byte(rec.Body), &body)
+	if s := body.AccessSnapshot; len(s) != 1 || s[0].Sudo || strings.Join(s[0].SudoCommands, "|") != want {
+		t.Errorf("access snapshot = %+v", s)
 	}
 }
