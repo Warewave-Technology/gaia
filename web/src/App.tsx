@@ -13,6 +13,7 @@ import { ContractDetail } from "./pages/contracts/Detail";
 import { Overview } from "./pages/overview/Overview";
 import { CatalogList, CatalogObject } from "./pages/catalog/Catalog";
 import { Providers } from "./pages/providers/Providers";
+import { Profile } from "./pages/profile/Profile";
 
 export function makeClient() {
   return new QueryClient({
@@ -42,7 +43,7 @@ export function AppRoutes() {
         <Route path="providers" element={<Providers />} />
         <Route path="sync" element={<Soon title="Sync" />} />
         <Route path="discovery" element={<Soon title="Keşif" />} />
-        <Route path="profile" element={<Soon title="Profil" />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
