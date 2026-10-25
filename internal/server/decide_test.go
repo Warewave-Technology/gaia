@@ -127,6 +127,10 @@ func TestApproveAndRejectThroughTheAPI(t *testing.T) {
 	if c.Status != change.Applied {
 		t.Fatalf("change = %+v", c)
 	}
+	var run Run
+	if code := send(t, "GET", hs.URL+"/api/v1/runs/"+c.RunID.String, ayse, nil, &run); code != 200 || run.Change != c.ID {
+		t.Errorf("the run of the change: %d change=%q", code, run.Change)
+	}
 	rec, err := e.store.Q().RunRecord(ctx, c.RunID.String)
 	if err != nil {
 		t.Fatal(err)

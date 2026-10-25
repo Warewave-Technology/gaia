@@ -940,6 +940,10 @@ components:
         queuedAt: { type: string, format: date-time }
         startedAt: { type: string, format: date-time }
         finishedAt: { type: string, format: date-time }
+        configCommit: { type: string, description: The Ansible repository's commit the run used }
+        eeImage: { type: string, description: The execution environment image, by digest }
+        change: { type: string, description: The change the run applies (detail only) }
+        hosts: { type: object, additionalProperties: { type: string }, description: "UID → hostname of the servers its events name (detail only)" }
         stages: { type: array, items: { $ref: "#/components/schemas/Stage" } }
         restricted: { type: boolean, description: The caller sees the run's contracts by name only; details are left out }
         record:
@@ -951,7 +955,7 @@ components:
       required: [contract, stage, status, startedAt]
       properties:
         contract: { type: string, description: Empty for stages of the whole run }
-        stage: { type: string, enum: [ipam, deregister, provision, release, register, configure, record] }
+        stage: { type: string, enum: [ipam, restore, decommission, deregister, provision, release, register, configure, access, record, operation] }
         status: { type: string, enum: [running, succeeded, failed, cancelled] }
         detail: { type: string }
         startedAt: { type: string, format: date-time }

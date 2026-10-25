@@ -6,6 +6,8 @@ import { Shell } from "./ui/shell";
 import { NotFound, Soon } from "./pages/Soon";
 import { ChangeList } from "./pages/changes/List";
 import { ChangeDetail } from "./pages/changes/Detail";
+import { RunList } from "./pages/runs/List";
+import { RunDetail } from "./pages/runs/Detail";
 
 export function makeClient() {
   return new QueryClient({
@@ -27,7 +29,8 @@ export function AppRoutes() {
         <Route path="changes" element={<ChangeList />} />
         <Route path="changes/:id" element={<ChangeDetail />} />
         <Route path="contracts/*" element={<Soon title="Kontratlar" />} />
-        <Route path="runs/*" element={<Soon title="Run'lar" />} />
+        <Route path="runs" element={<RunList />} />
+        <Route path="runs/:id" element={<RunDetail />} />
         <Route path="catalog/*" element={<Soon title="Katalog" />} />
         <Route path="providers" element={<Soon title="Provider'lar" />} />
         <Route path="sync" element={<Soon title="Sync" />} />
