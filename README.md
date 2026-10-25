@@ -20,7 +20,7 @@ gaia plan     --path examples/lab/platform --path examples/lab/contracts
 
 ```
 cmd/
-  gaia/                CLI (ileride server)
+  gaia/                CLI ve gaia server
   gaia-ipam/           IPAM servisi; Gaia ona bir provider üzerinden bağlanır
 internal/
   catalog/             objeler, yükleme, referans grafı, validasyon
@@ -33,6 +33,9 @@ internal/
   store/               PostgreSQL erişimi
   runrecord/           değiştirilemez run kaydı
   cli/                 komut ağacı
+  server/              API ve iş kuyruğu (gaia server)
+  web/                 arayüzün gömülü derlemesini sunar
+web/                   arayüz (React + TypeScript)
 ee/                    Ansible execution environment tanımı
 examples/lab/          Proxmox lab'i için platform reposu ve kontrat
 docs/                  tasarım, PoC planı ve yol haritası
@@ -40,14 +43,18 @@ docs/                  tasarım, PoC planı ve yol haritası
 
 ## Geliştirme
 
-Go 1.27 gerekir.
+Go 1.27 ve arayüz için Node.js 24 gerekir.
 
 ```bash
-make build     # bin/gaia, bin/gaia-ipam
+make build     # arayüz + bin/gaia, bin/gaia-ipam
+make web       # sadece arayüz (web/ → internal/web/dist)
+make web-check # arayüzün tip kontrolü, lint ve testleri
 make test
 make lint      # go vet + golangci-lint
 make ee        # EE imajı (ansible-builder)
 ```
+
+Arayüzü geliştirirken `gaia server` :8080'de çalışırken `cd web && npm run dev` Vite'ı açar; `/api` istekleri sunucuya gider. Passkey'ler AuthConfig'teki `url`'in origin'ine bağlı olduğundan, geliştirmede bu `url` Vite'ın adresi olmalıdır.
 
 ## Dokümanlar
 

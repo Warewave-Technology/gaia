@@ -4,3 +4,6 @@ dist
 lab
 context
 *.test
+web/node_modules
+internal/web/dist/assets
+internal/web/dist/index.html
