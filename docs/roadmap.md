@@ -141,6 +141,15 @@ Gaia'nın omurgası (tasarım 7.6).
 
 **Bitti sayılır:** Bir değişiklik arayüzde görülüp passkey ile onaylanıyor, run canlı izleniyor.
 
+**Durum:**
+- Tamam: tasarım taslağı onaylandı (gruvbox, Argo CD'ye yakın; durum paneli, ikonlar ve "?" açıklamaları).
+- Tamam: iskelet.
+  - `web/` içinde React + TypeScript + Vite uygulaması.
+  - `make web`, uygulamayı `internal/web/dist`'e derler; binary onu `go:embed` ile taşır.
+  - Sunucu, başka bir route'un almadığı her yolu uygulamaya verir. API yolları uygulamaya düşmez.
+  - `make build`, `make package`, imaj ve CI arayüzü de derler.
+  - Giriş sayfaları (`/login`, `/enroll`, `/device`, `/cli-login`, `/approve/{id}`) sunucuda kalır. Oturum yoksa uygulama `/login?next=` adresine gider.
+
 ## Faz 6: Erişim yönetimi
 
 Tasarım 14.

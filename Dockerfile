@@ -1,9 +1,17 @@
 # Gaia's container image (design 13.3): make image.
+FROM node:24-bookworm-slim AS web
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN mkdir -p ../internal/web/dist && npm run build
+
 FROM golang:1.27.1-bookworm AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+COPY --from=web /src/internal/web/dist internal/web/dist
 ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-X github.com/Warewave-Technology/gaia/internal/version.Version=${VERSION}" -o /out/ ./cmd/...
 # The pinned Pulumi CLI and plugins, so that runs download nothing.

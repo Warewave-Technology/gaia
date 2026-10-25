@@ -24,6 +24,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/queue"
 	"github.com/Warewave-Technology/gaia/internal/repo"
 	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/web"
 )
 
 // Config is how one server process runs.
@@ -198,4 +199,6 @@ func (s *Server) routes() {
 		}
 		_, _ = fmt.Fprintln(w, "ready")
 	})
+	// The user interface takes every path nothing above claims.
+	s.mux.Handle("GET /", web.Handler())
 }
