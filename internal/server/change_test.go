@@ -18,6 +18,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/apply"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/drift"
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/plan"
 	"github.com/Warewave-Technology/gaia/internal/queue"
@@ -754,5 +755,99 @@ func TestGracePeriodsEndInADecommissionRun(t *testing.T) {
 	e.evaluate(en)
 	if c, ok := e.open("poc-web"); ok {
 		t.Errorf("a change opened after the decommission run: %+v", c)
+	}
+}
+
+// apply records the head as applied, as a change would.
+func (e *env) applied(contract string) {
+	e.t.Helper()
+	ctx := context.Background()
+	snap := e.snapshot()
+	g, err := e.repos.Graph(ctx, snap)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	p, err := plan.Build(ctx, g, []string{contract}, apply.StoreState{S: e.store})
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	if err := e.store.Q().SetApplied(ctx, db.SetAppliedParams{Contract: contract, AppliedSnapshot: mustJSONT(e.t, snap), AppliedPlanHash: pgtype.Text{String: p.Hash, Valid: true}, AppliedPlan: mustJSONT(e.t, p)}); err != nil {
+		e.t.Fatal(err)
+	}
+}
+
+func mustJSONT(t *testing.T, v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+// Drift opens the change that puts it right: at once for registration,
+// after the owner's approval when the Policy says so.
+func TestDriftOpensAChange(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	en := e.engine()
+	e.finished = en.Finished
+	e.start()
+	e.applied("poc-web")
+	now := time.Now()
+	found := []apply.Finding{{Contract: "poc-web", UID: "u1", Hostname: "labtpoc01", Area: "registration", Key: "monitoring/enabled", Want: "enabled", Got: "disabled"}}
+	sc := &drift.Scanner{Store: e.store, Repos: e.repos, Systems: e.systems, Open: en.OpenDrift, Now: func() time.Time { return now },
+		Checks: map[string]drift.Check{"registration": func(context.Context, *catalog.Graph, *plan.Plan, apply.Deps) ([]apply.Finding, error) {
+			return found, nil
+		}}}
+	if err := sc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	live, err := e.store.Q().LiveDrift(ctx, pgtype.Text{})
+	if err != nil || len(live) != 1 || live[0].Key != "monitoring/enabled" || !live[0].ChangeID.Valid {
+		t.Fatalf("drift = %+v %v", live, err)
+	}
+	c, err := e.store.Q().Change(ctx, live[0].ChangeID.String)
+	if err != nil || c.Source != change.DriftAuto {
+		t.Fatalf("change = %+v %v", c, err)
+	}
+	if c := e.waitChange(c.ID, change.Applied, change.Failed); c.Status != change.Applied {
+		t.Fatalf("drift change = %s", c.Status)
+	}
+	// Not due again for fifteen minutes.
+	if err := sc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := e.open("poc-web"); ok {
+		t.Error("checked again before it was due")
+	}
+
+	// The Policy wants approval: the change waits for the owner.
+	e.edit("platform/policy.yaml", "  gaiaRoles:\n", "  drift: { remediation: { registration: approval } }\n  gaiaRoles:\n")
+	e.git.Commit("drift needs approval")
+	e.applied("poc-web")
+	now = now.Add(16 * time.Minute)
+	if err := sc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	open, ok := e.open("poc-web")
+	if !ok || open.Source != change.Drift || open.Status != change.Pending || gates(t, e, open.ID)["approval"] != change.Waiting {
+		t.Fatalf("open = %+v %v, gates %v", open, ok, gates(t, e, open.ID))
+	}
+	// An evaluation does not take it away: it keeps the applied plan.
+	e.evaluate(en)
+	if again, ok := e.open("poc-web"); !ok || again.ID != open.ID {
+		t.Errorf("after evaluation: %+v", again)
+	}
+	// Put right: the report resolves.
+	found = nil
+	now = now.Add(16 * time.Minute)
+	if err := sc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if live, _ := e.store.Q().LiveDrift(ctx, pgtype.Text{}); len(live) != 0 {
+		t.Errorf("drift after it went = %+v", live)
+	}
+	if c, _ := e.store.Q().Change(ctx, open.ID); c.Status != change.Superseded {
+		t.Errorf("its change = %s", c.Status)
 	}
 }

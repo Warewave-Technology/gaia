@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"strings"
 	"time"
@@ -72,6 +73,44 @@ func (s *Server) listChanges(w http.ResponseWriter, r *http.Request) {
 			ch = Change{ID: c.ID, Contract: c.Contract, Status: c.Status, CreatedAt: ch.CreatedAt, UpdatedAt: ch.UpdatedAt, Restricted: true}
 		}
 		out = append(out, ch)
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// Drift is a live drift report (design 7.5).
+type Drift struct {
+	Contract  string    `json:"contract"`
+	UID       string    `json:"uid,omitempty"`
+	Hostname  string    `json:"hostname,omitempty"`
+	Area      string    `json:"area,omitempty"`
+	Key       string    `json:"key,omitempty"`
+	Want      string    `json:"want,omitempty"`
+	Got       string    `json:"got,omitempty"`
+	Status    string    `json:"status"`
+	FirstSeen time.Time `json:"firstSeen"`
+	LastSeen  time.Time `json:"lastSeen"`
+	Change    string    `json:"change,omitempty"`
+	// Restricted: the contract is not the caller's to see in full.
+	Restricted bool `json:"restricted,omitempty"`
+}
+
+// listDrift is the live drift, of one contract with ?contract=.
+func (s *Server) listDrift(w http.ResponseWriter, r *http.Request) {
+	contract := pgtype.Text{String: r.URL.Query().Get("contract"), Valid: r.URL.Query().Get("contract") != ""}
+	rows, err := s.store.Q().LiveDrift(r.Context(), contract)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	out := make([]Drift, 0, len(rows))
+	for _, d := range rows {
+		x := Drift{Contract: d.Contract, Status: d.Status, FirstSeen: d.FirstSeen.Time, LastSeen: d.LastSeen.Time}
+		if s.full(r, []string{d.Contract}) {
+			x.UID, x.Hostname, x.Area, x.Key, x.Want, x.Got, x.Change = d.Uid, d.Hostname, d.Area, d.Key, d.Want, d.Got, d.ChangeID.String
+		} else {
+			x.Restricted = true
+		}
+		out = append(out, x)
 	}
 	writeJSON(w, http.StatusOK, out)
 }

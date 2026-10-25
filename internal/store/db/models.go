@@ -139,6 +139,27 @@ type DeviceCode struct {
 	PolledAt  pgtype.Timestamptz
 }
 
+type DriftReport struct {
+	ID         int64
+	Contract   string
+	Uid        string
+	Hostname   string
+	Area       string
+	Key        string
+	Want       string
+	Got        string
+	Status     string
+	FirstSeen  pgtype.Timestamptz
+	LastSeen   pgtype.Timestamptz
+	ResolvedAt pgtype.Timestamptz
+	ChangeID   pgtype.Text
+}
+
+type DriftScan struct {
+	Area   string
+	LastAt pgtype.Timestamptz
+}
+
 type Host struct {
 	Uid         string
 	Contract    string

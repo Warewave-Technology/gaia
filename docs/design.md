@@ -883,6 +883,14 @@ spec:
 
 **Çakışma:** Bir kontrat için apply çalışırken o kontratta drift taraması yapılmaz; kontrat başına alınan kilit bunu sağlar.
 
+**Uygulamada (kayıt alanı):**
+- Tarama, change motorunun çalıştığı sunucuda her dakika hangi alanların zamanı geldiğine bakar (Policy `drift.<alan>.every`, `window`); her alanı tek bir replika tarar (advisory lock, `drift_scans`).
+- Kayıt alanı her kontratın son uygulanan planındaki aktif sunucuları, kaydedilen ID'lerle kontrol eder: IPAM'daki adres; Zabbix host'u, açık olması, adresi, host grupları ve template'leri; DNS A ve PTR kayıtları; AD bilgisayar hesabı ve açık olması; Warpgate hedefleri, adresleri ve rolleri. Sisteme ulaşılamazsa bulgu `unknown` olur.
+- Bulgular `drift_reports`'ta `(sunucu, alan, anahtar)` ile tekilleşir; görülmeyen bulgu `resolved` olur. Yeni bulgular `drift.found` bildirimini tetikler.
+- Düzeltme bir Change'tir ve uygulanan planı tekrar uygular: `remediation: auto` için `drift-auto` (onay istemez; onay olarak uygulanan planı gösterir), `approval` için `drift` (owner onayı ister, ortamın onay ayarından bağımsız). Değerlendirme bu Change'i "Git uygulanana döndü" diye kapatmaz. Kontratta açık bir Change varsa yenisi açılmaz; başarısız olan drift Change'i aynı planla kendiliğinden tekrar açılmaz. Drift kendiliğinden geçerse bekleyen düzeltme Change'i `superseded` olur.
+- `GET /api/v1/drift[?contract=]` ve `gaia drift [kontrat]` açık bulguları gösterir.
+- Drift sayılarının Zabbix'e trapper olarak gönderilmesi ve `exceptions` ile kabul henüz yok.
+
 #### Kayıt, gösterim ve bildirim
 
 - **Tekilleştirme:** `drift_reports` tablosunda her drift `(host_uid, alan, anahtar)` ile tekilleştirilir; aynı sapma her taramada yeni kayıt oluşturmaz. Kayıtta `first_seen`, `last_seen` ve `resolved_at` alanları vardır. Durum `open`, `resolved`, `accepted` (istisnaya dönüştü) veya `unknown` (check-mode desteklenmiyor) olabilir.

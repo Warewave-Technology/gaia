@@ -202,6 +202,59 @@ func (c *Client) Delete(ctx context.Context, uid, hostID string) (bool, error) {
 	return true, c.call(ctx, "host.delete", []string{cur.HostID}, nil)
 }
 
+// HostState is a host as Zabbix has it, for drift (design 7.5).
+type HostState struct {
+	HostID    string
+	Name      string
+	Enabled   bool
+	IP        string   // the main interface's
+	Groups    []string // names
+	Templates []string // technical names
+}
+
+// State reads the host of uid, found as Register finds it; nil when there
+// is none.
+func (c *Client) State(ctx context.Context, uid, hostID string) (*HostState, error) {
+	cur, err := c.find(ctx, uid, hostID)
+	if err != nil || cur == nil {
+		return nil, err
+	}
+	var hosts []struct {
+		HostID string `json:"hostid"`
+		Host   string `json:"host"`
+		Status string `json:"status"`
+		Groups []struct {
+			Name string `json:"name"`
+		} `json:"hostgroups"`
+		Templates []struct {
+			Host string `json:"host"`
+		} `json:"parentTemplates"`
+	}
+	if err := c.call(ctx, "host.get", map[string]any{"hostids": []string{cur.HostID}, "output": []string{"hostid", "host", "status"},
+		"selectHostGroups": []string{"name"}, "selectParentTemplates": []string{"host"}}, &hosts); err != nil {
+		return nil, err
+	}
+	if len(hosts) != 1 {
+		return nil, nil
+	}
+	h := hosts[0]
+	st := &HostState{HostID: h.HostID, Name: h.Host, Enabled: h.Status == "0"}
+	for _, i := range cur.Interfaces {
+		if i.Main == "1" {
+			st.IP = i.IP
+		}
+	}
+	for _, g := range h.Groups {
+		st.Groups = append(st.Groups, g.Name)
+	}
+	for _, t := range h.Templates {
+		st.Templates = append(st.Templates, t.Host)
+	}
+	sort.Strings(st.Groups)
+	sort.Strings(st.Templates)
+	return st, nil
+}
+
 // SetEnabled switches a host's monitoring on or off: a stopped server
 // waiting to be deleted is not monitored, and keeps its history
 // (design 9.8).

@@ -24,6 +24,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/auth"
 	"github.com/Warewave-Technology/gaia/internal/catalog"
 	"github.com/Warewave-Technology/gaia/internal/change"
+	"github.com/Warewave-Technology/gaia/internal/drift"
 	"github.com/Warewave-Technology/gaia/internal/notify"
 	"github.com/Warewave-Technology/gaia/internal/provider/openbao"
 	"github.com/Warewave-Technology/gaia/internal/queue"
@@ -229,6 +230,18 @@ func newServerCommand() *cobra.Command {
 				}
 				if cfg.Sources != nil {
 					go cfg.Sources.Run(ctx, sourceEvery)
+				}
+				if cfg.Systems != nil {
+					// Drift is checked where the change engine runs: it opens
+					// the changes that put drift right.
+					sc := &drift.Scanner{Store: s, Repos: cfg.Repos, Systems: cfg.Systems, Open: engine.OpenDrift, Notify: notifier, Log: cfg.Log,
+						Policy: func() *catalog.PolicySpec {
+							if o := cat.Graph().Policy(); o != nil {
+								return o.Spec.(*catalog.PolicySpec)
+							}
+							return nil
+						}}
+					go sc.Run(ctx, time.Minute)
 				}
 				go cat.Run(ctx, refresh)
 				cat.Kick()

@@ -259,6 +259,184 @@ type PolicySpec struct {
 	// Decommission is how servers go (design 9.8); environments may
 	// override it.
 	Decommission *DecommissionPolicy `yaml:"decommission"`
+	// Drift is how often each area is checked and how it is put right
+	// (design 7.5).
+	Drift *DriftPolicy `yaml:"drift"`
+}
+
+// DriftAreas are the areas drift is checked in.
+var DriftAreas = []string{"registration", "provisioning", "configuration"}
+
+// DriftPolicy: per area how often (every, a Go duration; configuration
+// also a window, "02:00-05:00", and how many servers at once) and how
+// drift is put right: auto (a run without approval) or approval (a change
+// the owner approves), for every environment or per environment with a
+// default.
+type DriftPolicy struct {
+	Registration  *DriftArea             `yaml:"registration"`
+	Provisioning  *DriftArea             `yaml:"provisioning"`
+	Configuration *DriftArea             `yaml:"configuration"`
+	Remediation   map[string]Remediation `yaml:"remediation"`
+}
+
+// DriftArea is when an area is checked.
+type DriftArea struct {
+	Every       string `yaml:"every"`
+	Window      string `yaml:"window"`
+	Concurrency int    `yaml:"concurrency"`
+}
+
+// Remediation is auto or approval, for all environments (a string) or
+// per environment with a default (a map).
+type Remediation map[string]string
+
+// UnmarshalYAML takes a string or a map.
+func (r *Remediation) UnmarshalYAML(n *yaml.Node) error {
+	if n.Kind == yaml.ScalarNode {
+		*r = Remediation{"default": n.Value}
+		return nil
+	}
+	m := map[string]string{}
+	if err := n.Decode(&m); err != nil {
+		return err
+	}
+	*r = m
+	return nil
+}
+
+// DriftDefaults are design 7.5's: registration every 15 minutes, put
+// right at once everywhere; provisioning every hour and configuration
+// once a day, both approved.
+var DriftDefaults = map[string]struct {
+	Every       time.Duration
+	Remediation string
+}{
+	"registration":  {15 * time.Minute, "auto"},
+	"provisioning":  {time.Hour, "approval"},
+	"configuration": {24 * time.Hour, "approval"},
+}
+
+// DriftEvery is how often area is checked.
+func (s *PolicySpec) DriftEvery(area string) time.Duration {
+	if a := s.driftArea(area); a != nil && a.Every != "" {
+		if d, err := time.ParseDuration(a.Every); err == nil && d > 0 {
+			return d
+		}
+	}
+	return DriftDefaults[area].Every
+}
+
+// DriftWindow is when configuration drift may be checked ("" any time).
+func (s *PolicySpec) DriftWindow(area string) string {
+	if a := s.driftArea(area); a != nil {
+		return a.Window
+	}
+	return ""
+}
+
+func (s *PolicySpec) driftArea(area string) *DriftArea {
+	if s == nil || s.Drift == nil {
+		return nil
+	}
+	switch area {
+	case "registration":
+		return s.Drift.Registration
+	case "provisioning":
+		return s.Drift.Provisioning
+	case "configuration":
+		return s.Drift.Configuration
+	}
+	return nil
+}
+
+// DriftRemediation is how drift in area is put right in env.
+func (s *PolicySpec) DriftRemediation(area, env string) string {
+	if s != nil && s.Drift != nil {
+		if r := s.Drift.Remediation[area]; r != nil {
+			if v, ok := r[env]; ok {
+				return v
+			}
+			if v, ok := r["default"]; ok {
+				return v
+			}
+		}
+	}
+	return DriftDefaults[area].Remediation
+}
+
+func (p *DriftPolicy) validate() []string {
+	if p == nil {
+		return nil
+	}
+	var out []string
+	for _, a := range []struct {
+		name string
+		v    *DriftArea
+	}{{"registration", p.Registration}, {"provisioning", p.Provisioning}, {"configuration", p.Configuration}} {
+		if a.v == nil {
+			continue
+		}
+		if a.v.Every != "" {
+			if d, err := time.ParseDuration(a.v.Every); err != nil || d < time.Minute {
+				out = append(out, fmt.Sprintf("drift.%s.every: %q: a duration of a minute or more", a.name, a.v.Every))
+			}
+		}
+		if a.v.Window != "" {
+			if _, _, err := ParseDailyWindow(a.v.Window); err != nil {
+				out = append(out, fmt.Sprintf("drift.%s.window: %v", a.name, err))
+			}
+		}
+	}
+	for _, area := range sortedKeys(p.Remediation) {
+		if !contains(DriftAreas, area) {
+			out = append(out, fmt.Sprintf("drift.remediation.%s: not an area (%s)", area, strings.Join(DriftAreas, ", ")))
+		}
+		for env, v := range p.Remediation[area] {
+			if v != "auto" && v != "approval" {
+				out = append(out, fmt.Sprintf("drift.remediation.%s.%s: %q (auto or approval)", area, env, v))
+			}
+		}
+	}
+	return out
+}
+
+// ParseDailyWindow reads "HH:MM-HH:MM" as minutes after midnight; the end
+// may be past midnight (22:00-02:00).
+func ParseDailyWindow(s string) (start, end int, err error) {
+	a, b, ok := strings.Cut(s, "-")
+	if !ok {
+		return 0, 0, fmt.Errorf("%q: want HH:MM-HH:MM", s)
+	}
+	parse := func(v string) (int, error) {
+		t, err := time.Parse("15:04", strings.TrimSpace(v))
+		if err != nil {
+			return 0, fmt.Errorf("%q: want HH:MM-HH:MM", s)
+		}
+		return t.Hour()*60 + t.Minute(), nil
+	}
+	if start, err = parse(a); err != nil {
+		return 0, 0, err
+	}
+	if end, err = parse(b); err != nil {
+		return 0, 0, err
+	}
+	if start == end {
+		return 0, 0, fmt.Errorf("%q: an empty window", s)
+	}
+	return start, end, nil
+}
+
+// InDailyWindow reports whether t (in its own zone) is in the window.
+func InDailyWindow(window string, t time.Time) bool {
+	start, end, err := ParseDailyWindow(window)
+	if err != nil {
+		return false
+	}
+	m := t.Hour()*60 + t.Minute()
+	if start < end {
+		return m >= start && m < end
+	}
+	return m >= start || m < end
 }
 
 // DecommissionPolicy: how long a stopped server waits before it is
@@ -390,6 +568,7 @@ func (s *PolicySpec) validate() []string {
 		out = append(out, s.Environments[name].Decommission.validate("environments."+name+".decommission")...)
 	}
 	out = append(out, s.Decommission.validate("decommission")...)
+	out = append(out, s.Drift.validate()...)
 	if o := s.Operations; o != nil {
 		for _, env := range sortedKeys(o.Approvals) {
 			for _, action := range sortedKeys(o.Approvals[env]) {

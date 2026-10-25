@@ -20,6 +20,8 @@ import (
 type Bastion interface {
 	EnsureTarget(ctx context.Context, t warpgate.Target, id, mark string) (warpgate.Result, error)
 	DeleteTarget(ctx context.Context, id string) (bool, error)
+	Target(ctx context.Context, id string) (warpgate.Target, error)
+	TargetRoles(ctx context.Context, id string) ([]string, error)
 	EnsureRole(ctx context.Context, name string) (string, error)
 	SetTargetRoles(ctx context.Context, target string, roles []string) ([]string, error)
 	Users(ctx context.Context) ([]warpgate.User, error)

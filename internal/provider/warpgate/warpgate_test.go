@@ -78,6 +78,15 @@ func TestWarpgate(t *testing.T) {
 	if changed, err := c.SetTargetRoles(ctx, id, []string{role, other}); err != nil || len(changed) != 2 {
 		t.Errorf("target roles = %v %v", changed, err)
 	}
+	if names, err := c.TargetRoles(ctx, id); err != nil || len(names) != 2 || !slices.Contains(names, "gaia/poc-web") {
+		t.Errorf("target roles = %v %v", names, err)
+	}
+	if got, err := c.Target(ctx, id); err != nil || got.Host != "10.50.0.101" || got.Username != "gaia-wg" {
+		t.Errorf("target = %+v %v", got, err)
+	}
+	if _, err := c.Target(ctx, "00000000-0000-0000-0000-000000000000"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("missing target: %v", err)
+	}
 	if changed, err := c.SetTargetRoles(ctx, id, nil); err != nil || !slices.Equal(changed, []string{"-gaia/poc-web"}) {
 		t.Errorf("roles taken back = %v %v (operators stays)", changed, err)
 	}

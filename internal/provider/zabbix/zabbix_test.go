@@ -276,6 +276,22 @@ func TestLab(t *testing.T) {
 	if err != nil || again.Action != "same" {
 		t.Errorf("second register: %+v, %v", again, err)
 	}
+	st, err := c.State(ctx, h.UID, r.HostID)
+	if err != nil || st == nil || st.Name != h.Hostname || !st.Enabled || st.IP != h.IP || !slices.Contains(st.Groups, "Gaia/test") {
+		t.Errorf("state = %+v, %v", st, err)
+	}
+	if err := c.SetEnabled(ctx, r.HostID, false); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := c.State(ctx, h.UID, r.HostID); st == nil || st.Enabled {
+		t.Errorf("disabled state = %+v", st)
+	}
+	if err := c.SetEnabled(ctx, r.HostID, true); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := c.State(ctx, h.UID, ""); st == nil || !st.Enabled {
+		t.Errorf("enabled again = %+v", st)
+	}
 	h.IP = "10.0.0.6"
 	if up, err := c.Register(ctx, h, r.HostID); err != nil || up.Action != "update" {
 		t.Errorf("update: %+v, %v", up, err)

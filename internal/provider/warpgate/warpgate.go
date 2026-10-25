@@ -216,6 +216,28 @@ func (c *Client) EnsureTarget(ctx context.Context, t Target, id, mark string) (R
 	return Result{ID: id, Action: "update"}, nil
 }
 
+// Target reads a target by ID; ErrNotFound when there is none.
+func (c *Client) Target(ctx context.Context, id string) (Target, error) {
+	var cur apiTarget
+	if err := c.do(ctx, http.MethodGet, "/targets/"+id, nil, &cur); err != nil {
+		return Target{}, err
+	}
+	return cur.target(), nil
+}
+
+// TargetRoles are the names of a target's roles.
+func (c *Client) TargetRoles(ctx context.Context, id string) ([]string, error) {
+	var cur []Role
+	if err := c.do(ctx, http.MethodGet, "/targets/"+id+"/roles", nil, &cur); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(cur))
+	for _, r := range cur {
+		out = append(out, r.Name)
+	}
+	return out, nil
+}
+
 // DeleteTarget deletes a target; false when it was already gone.
 func (c *Client) DeleteTarget(ctx context.Context, id string) (bool, error) {
 	err := c.do(ctx, http.MethodDelete, "/targets/"+id, nil, nil)

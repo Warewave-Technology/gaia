@@ -78,7 +78,8 @@ func (n Need) may(username string) bool {
 func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p *plan.Plan) (Need, error) {
 	need := Need{Excluded: append([]string{}, c.RequestedBy...)}
 	contract, ok := g.Catalog.Get(catalog.KindServer, c.Contract)
-	if !ok {
+	if !ok || c.Source == DriftAuto {
+		// Putting drift right at once was approved with the plan.
 		return need, nil
 	}
 	env := contract.Metadata.Labels["env"]
@@ -95,9 +96,12 @@ func (e *Engine) approval(ctx context.Context, c db.Change, g *catalog.Graph, p 
 		}
 	}
 	owner := contract.Metadata.Labels["owner"]
-	if ep.Approval == "required" || deletes && ep.DeleteProtection {
+	if ep.Approval == "required" || deletes && ep.DeleteProtection || c.Source == Drift {
 		why := "env " + env + " needs approval"
-		if ep.Approval != "required" {
+		switch {
+		case c.Source == Drift:
+			why = "puts drift right: the systems are set back to the applied plan"
+		case ep.Approval != "required":
 			why = "deleting servers in env " + env
 		}
 		gr := Group{Name: "owner", Teams: []string{owner}, Role: "member", Why: why}

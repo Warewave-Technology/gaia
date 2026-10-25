@@ -19,6 +19,7 @@ type Directory interface {
 	SetRecord(zone, name string, rec ad.Record, owned bool) (bool, error)
 	DeleteRecord(zone, name string, rec ad.Record) (bool, error)
 	ReverseZone(ip netip.Addr) (zone, node string, err error)
+	Records(zone, name string) ([]ad.Record, error)
 	Domain() string
 	Computer(name string) (ad.Computer, error)
 	ComputerByGUID(guid string) (ad.Computer, error)
