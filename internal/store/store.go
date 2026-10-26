@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -119,11 +120,33 @@ func migrateRiver(ctx context.Context, dsn string) error {
 // Store is Gaia's database.
 type Store struct {
 	pool *pgxpool.Pool
+	// locks holds the transactions of advisory locks. A lock's
+	// transaction stays open while its work runs, and the work takes
+	// connections of its own: from one pool, a few locks held at once
+	// would use up the connections their work waits for.
+	locks *pgxpool.Pool
 }
+
+// Pool sizes when the DSN does not set pool_max_conns: pgx's default
+// (the CPU count, at least 4) is too small for Gaia's background loops.
+const (
+	defaultConns = 20
+	lockConns    = 32
+)
 
 // Open connects and checks the connection.
 func Open(ctx context.Context, dsn string) (*Store, error) {
-	pool, err := pgxpool.New(ctx, dsn)
+	cfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.Contains(dsn, "pool_max_conns") {
+		cfg.MaxConns = defaultConns
+	}
+	lcfg := cfg.Copy()
+	lcfg.MaxConns, lcfg.MinConns = lockConns, 0
+	lcfg.MaxConnIdleTime = time.Minute
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -131,11 +154,19 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 		pool.Close()
 		return nil, fmt.Errorf("connect: %w", err)
 	}
-	return &Store{pool: pool}, nil
+	locks, err := pgxpool.NewWithConfig(ctx, lcfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return &Store{pool: pool, locks: locks}, nil
 }
 
 // Close releases the connections.
-func (s *Store) Close() { s.pool.Close() }
+func (s *Store) Close() {
+	s.locks.Close()
+	s.pool.Close()
+}
 
 // Q returns the queries, outside any transaction.
 func (s *Store) Q() *db.Queries { return db.New(s.pool) }
@@ -181,7 +212,7 @@ func (s *Store) WithContractLock(ctx context.Context, contract string, fn func(c
 // WithLock runs fn while holding the named advisory lock, or returns
 // ErrLocked at once when someone else holds it.
 func (s *Store) WithLock(ctx context.Context, name string, fn func(context.Context) error) error {
-	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+	return pgx.BeginFunc(ctx, s.locks, func(tx pgx.Tx) error {
 		var ok bool
 		if err := tx.QueryRow(ctx, `select pg_try_advisory_xact_lock(hashtextextended($1, 0))`, name).Scan(&ok); err != nil {
 			return err
@@ -196,7 +227,7 @@ func (s *Store) WithLock(ctx context.Context, name string, fn func(context.Conte
 // WaitLock runs fn holding the advisory lock name, waiting for it when
 // another replica holds it.
 func (s *Store) WaitLock(ctx context.Context, name string, fn func(context.Context) error) error {
-	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+	return pgx.BeginFunc(ctx, s.locks, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `select pg_advisory_xact_lock(hashtextextended($1, 0))`, name); err != nil {
 			return err
 		}
