@@ -3,10 +3,12 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -154,6 +156,53 @@ func TestContractLock(t *testing.T) {
 			t.Fatalf("lock not released: %v", err)
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// Lock holders keep a transaction open while their work runs, and the
+// work needs connections of its own: holding locks must never use up the
+// connections the work waits for (the lab hung that way with four).
+func TestLocksDoNotStarveThePool(t *testing.T) {
+	itest.Require(t)
+	dsn := itest.StartPostgres(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	s, err := Open(ctx, dsn+sep+"pool_max_conns=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	const n = 4
+	var inside sync.WaitGroup
+	inside.Add(n)
+	all := make(chan struct{})
+	go func() { inside.Wait(); close(all) }()
+	errs := make(chan error, n)
+	for i := range n {
+		go func() {
+			errs <- s.WithLock(ctx, fmt.Sprintf("test/%d", i), func(ctx context.Context) error {
+				inside.Done()
+				select { // every lock is held at once
+				case <-all:
+				case <-ctx.Done():
+					return fmt.Errorf("not every lock could be taken: %w", ctx.Err())
+				}
+				_, err := s.Q().DirectoryUsers(ctx, "none")
+				return err
+			})
+		}()
+	}
+	for range n {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
