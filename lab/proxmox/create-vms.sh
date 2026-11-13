@@ -48,15 +48,18 @@ exists() {
 if exists "$ESXI_VMID" gaia-esxi; then
 	echo "gaia-esxi ($ESXI_VMID) exists, skipping"
 else
-	# ESXi needs: host CPU (VT-x/AMD-V passthrough), SATA disk, vmxnet3 NIC, q35.
+	# ESXi needs: host CPU (VT-x/AMD-V passthrough), SATA disk, vmxnet3 NIC.
+	# The CD is on IDE, with the i440fx machine type: ESXi 8's vmw_ahci sees QEMU's SATA disk
+	# but not a SATA CD-ROM, so the installer never finds KS.CFG (seen in T1 on q35:
+	# /vmfs/devices/cdrom/ empty, "cannot find kickstart file on cd-rom").
 	# UEFI because legacy BIOS boot is deprecated in ESXi 8; no pre-enrolled keys, so Secure Boot is off.
-	qm create "$ESXI_VMID" --name gaia-esxi --ostype other --machine q35 \
+	qm create "$ESXI_VMID" --name gaia-esxi --ostype other --machine pc \
 		--bios ovmf --efidisk0 "${STORAGE}:1,efitype=4m,pre-enrolled-keys=0" \
 		--cpu host --sockets 1 --cores 4 --memory 16384 --balloon 0 \
 		--sata0 "${STORAGE}:200,ssd=1" \
-		--sata1 "${ISO_STORAGE}:iso/${ESXI_ISO},media=cdrom" \
+		--ide2 "${ISO_STORAGE}:iso/${ESXI_ISO},media=cdrom" \
 		--net0 "vmxnet3,bridge=${BRIDGE}" \
-		--boot "order=sata0;sata1" --onboot 0
+		--boot "order=sata0;ide2" --onboot 0
 	echo "gaia-esxi created. Start it; the install is unattended (watch the console):"
 	echo "  qm start $ESXI_VMID"
 fi
