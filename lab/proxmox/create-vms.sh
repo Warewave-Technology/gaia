@@ -11,7 +11,10 @@
 # Usage (as root on the Proxmox host):
 #   ESXI_ISO=gaia-esxi-ks.iso lab/proxmox/create-vms.sh
 # Env: STORAGE (local-lvm), ISO_STORAGE (local), BRIDGE (vmbr0), ESXI_VMID (9101), LAB_VMID (9102),
-#      SSH_PUBKEY (~/.ssh/id_ed25519.pub) for the lab VM's cloud-init user "gaia".
+#      SSH_PUBKEY (~/.ssh/id_ed25519.pub) for the lab VM's cloud-init user "gaia",
+#      LAB_IP (empty = DHCP) with LAB_PREFIX (24), LAB_GATEWAY and LAB_DNS (default: this host's
+#      default gateway and first non-loopback nameserver). ESXi's address is set in the ISO
+#      (lab/esxi/remaster-iso.sh, ESXI_IP).
 set -euo pipefail
 
 STORAGE="${STORAGE:-local-lvm}"
@@ -21,6 +24,10 @@ ESXI_VMID="${ESXI_VMID:-9101}"
 LAB_VMID="${LAB_VMID:-9102}"
 ESXI_ISO="${ESXI_ISO:?name of the remastered ESXi ISO in ${ISO_STORAGE}:iso/}"
 SSH_PUBKEY="${SSH_PUBKEY:-$HOME/.ssh/id_ed25519.pub}"
+LAB_IP="${LAB_IP:-}"
+LAB_PREFIX="${LAB_PREFIX:-24}"
+LAB_GATEWAY="${LAB_GATEWAY:-$(ip -4 route show default 2>/dev/null | awk '{ print $3; exit }')}"
+LAB_DNS="${LAB_DNS:-$(awk '$1 == "nameserver" && $2 !~ /^127\./ { print $2; exit }' /etc/resolv.conf 2>/dev/null)}"
 # A dated Debian build, not "latest", so every lab is built from the same bytes.
 DEBIAN_BUILD="20261112-2660"
 DEBIAN_IMG="debian-12-genericcloud-amd64-${DEBIAN_BUILD}.qcow2"
@@ -28,6 +35,16 @@ DEBIAN_IMG_URL="https://cloud.debian.org/images/cloud/bookworm/${DEBIAN_BUILD}/$
 DEBIAN_IMG_SHA512="485a390d1c5e3a9f57ebb903654c21044c5d5b5b94de126d28b9d0cd960112dc0536afd1217c45036c331659543c8c8acb5f56dff706c9530f9fe39e2908e512"
 
 command -v qm >/dev/null || { echo "run this on a Proxmox host"; exit 1; }
+
+# A fixed address keeps the lab VM reachable over the operator's VPN, which routes only known IPs.
+lab_net=(--ipconfig0 ip=dhcp)
+if [[ -n "$LAB_IP" ]]; then
+	ipv4='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+	for v in LAB_IP LAB_GATEWAY LAB_DNS; do
+		[[ "${!v}" =~ $ipv4 ]] || { echo "$v='${!v}' is not an IPv4 address (set it explicitly)"; exit 1; }
+	done
+	lab_net=(--ipconfig0 "ip=${LAB_IP}/${LAB_PREFIX},gw=${LAB_GATEWAY}" --nameserver "$LAB_DNS")
+fi
 
 # Nested virtualization must be on, or ESXi will not run at all.
 nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null || cat /sys/module/kvm_amd/parameters/nested 2>/dev/null || echo N)
@@ -83,7 +100,7 @@ else
 	# The cloud-init drive goes on virtio-scsi, not IDE: on q35, IDE is AHCI, and Debian's cloud
 	# kernel has no AHCI driver (CONFIG_SATA_AHCI is not set), so cloud-init never saw an IDE drive.
 	qm set "$LAB_VMID" --scsi1 "${STORAGE}:cloudinit" --boot order=scsi0 \
-		--ciuser gaia --sshkeys "$SSH_PUBKEY" --ipconfig0 ip=dhcp
+		--ciuser gaia --sshkeys "$SSH_PUBKEY" "${lab_net[@]}"
 	echo "gaia-lab created. Start it, then run lab/lab-vm/setup.sh inside:"
 	echo "  qm start $LAB_VMID"
 fi
