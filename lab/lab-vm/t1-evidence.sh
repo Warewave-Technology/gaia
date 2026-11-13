@@ -45,8 +45,15 @@ if govc about 2>&1; then
 	section "govc host.info"
 	run govc host.info
 
-	section "govc license.ls"
-	run govc license.ls
+	# The edition is evidence; the key is not and must not reach a public report.
+	section "govc license.ls (keys masked)"
+	if out=$(govc license.ls 2>&1); then
+		sed -E 's/\b([A-Z0-9]{5})(-[A-Z0-9]{5}){3}-([A-Z0-9]{5})\b/\1-*****-*****-*****-\3/g' <<<"$out"
+	else
+		echo "$out"
+		echo "FAILED: govc license.ls"
+		rc=2
+	fi
 else
 	echo "FAILED: govc about (login); remaining govc checks SKIPPED to avoid an ESXi account lockout"
 	rc=2
