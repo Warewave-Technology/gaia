@@ -19,8 +19,15 @@ KOPIA_SHA256="3998c96b2db3410880ec8f6723f3c127248915896c22e6b882b352693230253a"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-apt-get update -q
-apt-get install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs
+# A fresh cloud VM upgrades its packages through cloud-init on first boot; wait for that
+# instead of failing on the apt lock (seen in T1).
+if command -v cloud-init >/dev/null; then
+	echo "cloud-init: $(cloud-init status --wait 2>&1 | tail -1)"
+fi
+aptq() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
+
+aptq update -q
+aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
@@ -38,7 +45,7 @@ export PATH=$PATH:/usr/local/go/bin
 # Kopia, pinned .deb from the GitHub release.
 curl -fsSL "https://github.com/kopia/kopia/releases/download/v${KOPIA_VERSION}/kopia_${KOPIA_VERSION}_linux_amd64.deb" -o "$tmp/kopia.deb"
 echo "$KOPIA_SHA256  $tmp/kopia.deb" | sha256sum -c --quiet
-apt-get install -y -q "$tmp/kopia.deb"
+aptq install -y -q "$tmp/kopia.deb"
 
 # govc (vSphere CLI), pinned release.
 curl -fsSL "https://github.com/vmware/govmomi/releases/download/${GOVC_VERSION}/govc_Linux_x86_64.tar.gz" -o "$tmp/govc.tgz"
