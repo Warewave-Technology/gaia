@@ -40,6 +40,8 @@ if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
 fi
 # shellcheck disable=SC2016 # $PATH must expand at login, not now
 echo 'export PATH=$PATH:/usr/local/go/bin' >/etc/profile.d/go.sh
+# profile.d only reaches login shells; sudo and make need go on the default PATH too.
+ln -sf /usr/local/go/bin/go /usr/local/go/bin/gofmt /usr/local/bin/
 export PATH=$PATH:/usr/local/go/bin
 
 # Kopia, pinned .deb from the GitHub release.

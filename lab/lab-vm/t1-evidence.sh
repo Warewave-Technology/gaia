@@ -35,17 +35,22 @@ run ping -c 3 -W 2 "$ESXI_IP"
 section "reachability: HTTPS ${GOVC_URL}"
 run curl -sk -o /dev/null -w 'HTTP %{http_code} in %{time_total}s\n' --max-time 10 "https://${ESXI_IP}/sdk/vimServiceVersions.xml"
 
+# One login attempt first: ESXi locks root after 5 failed logins (Security.AccountLockFailures),
+# so a wrong password must not be retried by every govc call below.
 section "govc about"
-run govc about
+if govc about 2>&1; then
+	section "govc about -json"
+	run govc about -json
 
-section "govc about -json"
-run govc about -json
+	section "govc host.info"
+	run govc host.info
 
-section "govc host.info"
-run govc host.info
-
-section "govc license.ls"
-run govc license.ls
+	section "govc license.ls"
+	run govc license.ls
+else
+	echo "FAILED: govc about (login); remaining govc checks SKIPPED to avoid an ESXi account lockout"
+	rc=2
+fi
 
 section "lab VM"
 run uname -srm
