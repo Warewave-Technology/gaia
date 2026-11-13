@@ -80,7 +80,9 @@ else
 		--serial0 socket --vga serial0 --onboot 0
 	qm set "$LAB_VMID" --scsi0 "${STORAGE}:0,import-from=${img},iothread=1,discard=on"
 	qm resize "$LAB_VMID" scsi0 200G
-	qm set "$LAB_VMID" --ide2 "${STORAGE}:cloudinit" --boot order=scsi0 \
+	# The cloud-init drive goes on virtio-scsi, not IDE: on q35, IDE is AHCI, and Debian's cloud
+	# kernel has no AHCI driver (CONFIG_SATA_AHCI is not set), so cloud-init never saw an IDE drive.
+	qm set "$LAB_VMID" --scsi1 "${STORAGE}:cloudinit" --boot order=scsi0 \
 		--ciuser gaia --sshkeys "$SSH_PUBKEY" --ipconfig0 ip=dhcp
 	echo "gaia-lab created. Start it, then run lab/lab-vm/setup.sh inside:"
 	echo "  qm start $LAB_VMID"
