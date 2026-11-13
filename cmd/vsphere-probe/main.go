@@ -70,10 +70,10 @@ func main() {
 	if *jsonOut != "" {
 		b, _ := json.MarshalIndent(r, "", "  ")
 		if err := os.WriteFile(*jsonOut, b, 0o644); err != nil {
+			// The JSON is the evidence; without it the run cannot count as anything but UNKNOWN.
 			fmt.Fprintln(os.Stderr, "vsphere-probe: write json:", err)
+			os.Exit(vsphereprobe.Unknown.ExitCode())
 		}
 	}
-	os.Exit(map[vsphereprobe.Verdict]int{
-		vsphereprobe.OK: 0, vsphereprobe.Warning: 1, vsphereprobe.Critical: 2, vsphereprobe.Unknown: 3,
-	}[r.Verdict])
+	os.Exit(r.Verdict.ExitCode())
 }

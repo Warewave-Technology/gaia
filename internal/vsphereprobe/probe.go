@@ -44,6 +44,20 @@ const (
 	Unknown  Verdict = "UNKNOWN"
 )
 
+// ExitCode maps a verdict to 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN.
+// Anything unrecognised is UNKNOWN, never OK.
+func (v Verdict) ExitCode() int {
+	switch v {
+	case OK:
+		return 0
+	case Warning:
+		return 1
+	case Critical:
+		return 2
+	}
+	return 3
+}
+
 // Step is one recorded API check.
 type Step struct {
 	ID      string  `json:"id"`
@@ -55,13 +69,15 @@ type Step struct {
 
 // Report is the probe's evidence.
 type Report struct {
-	Product   string    `json:"product"`
-	APIType   string    `json:"api_type"`
-	Licenses  []string  `json:"licenses"`
-	Steps     []Step    `json:"steps"`
-	Verdict   Verdict   `json:"verdict"`
-	Summary   string    `json:"summary"`
-	StartedAt time.Time `json:"started_at"`
+	Product  string   `json:"product"`
+	APIType  string   `json:"api_type"`
+	Licenses []string `json:"licenses"`
+	// LicenseError is set when the license list could not be read.
+	LicenseError string    `json:"license_error,omitempty"`
+	Steps        []Step    `json:"steps"`
+	Verdict      Verdict   `json:"verdict"`
+	Summary      string    `json:"summary"`
+	StartedAt    time.Time `json:"started_at"`
 }
 
 // Config controls a probe run.
@@ -113,7 +129,10 @@ func Run(ctx context.Context, c *vim25.Client, cfg Config) *Report {
 	p := &run{ctx: ctx, c: c, cfg: cfg, r: &Report{
 		Product: about.FullName, APIType: about.ApiType, StartedAt: time.Now().UTC(),
 	}}
-	if infos, err := license.NewManager(c).List(ctx); err == nil {
+	// The license list is evidence for the gate answer, so a failure to read it is recorded, not dropped.
+	if infos, err := license.NewManager(c).List(ctx); err != nil {
+		p.r.LicenseError = err.Error()
+	} else {
 		for _, l := range infos {
 			p.r.Licenses = append(p.r.Licenses, fmt.Sprintf("%s (%s)", l.Name, l.EditionKey))
 		}
@@ -123,16 +142,28 @@ func Run(ctx context.Context, c *vim25.Client, cfg Config) *Report {
 	var vm *object.VirtualMachine
 	var created bool
 
+	// Both paths need the datacenter: VM and datastore lookups are relative to it.
+	dc, dcErr := finder.DefaultDatacenter(ctx)
+	if dcErr == nil {
+		finder.SetDatacenter(dc)
+	}
+
 	if cfg.VMName != "" {
 		p.step(stepVM, "find existing VM "+cfg.VMName, func() (string, error) {
+			if dcErr != nil {
+				return "", dcErr
+			}
 			var err error
 			vm, err = finder.VirtualMachine(ctx, cfg.VMName)
 			return "", err
 		})
 	} else {
 		p.step(stepVM, "create throwaway VM gaia-probe (CreateVM_Task)", func() (string, error) {
+			if dcErr != nil {
+				return "", dcErr
+			}
 			var err error
-			vm, err = createProbeVM(ctx, c, finder, cfg.Datastore)
+			vm, err = createProbeVM(ctx, c, finder, dc, cfg.Datastore)
 			created = err == nil
 			return "1 GiB thin disk, never powered on", err
 		})
@@ -259,13 +290,9 @@ func (p *run) finish() {
 	}
 }
 
-func createProbeVM(ctx context.Context, c *vim25.Client, finder *find.Finder, dsName string) (*object.VirtualMachine, error) {
-	dc, err := finder.DefaultDatacenter(ctx)
-	if err != nil {
-		return nil, err
-	}
-	finder.SetDatacenter(dc)
+func createProbeVM(ctx context.Context, c *vim25.Client, finder *find.Finder, dc *object.Datacenter, dsName string) (*object.VirtualMachine, error) {
 	var ds *object.Datastore
+	var err error
 	if dsName != "" {
 		ds, err = finder.Datastore(ctx, dsName)
 	} else {
@@ -362,9 +389,14 @@ func readViaNFC(ctx context.Context, c *vim25.Client, vm *object.VirtualMachine,
 			return "", err
 		}
 		defer rc.Close()
+		// A short read is fine (an export of an empty disk is a tiny stream-optimized VMDK),
+		// but zero bytes proves nothing.
 		got, err := io.CopyN(io.Discard, rc, n)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return "", err
+		}
+		if got == 0 {
+			return "", fmt.Errorf("export of %s returned no data", item.Path)
 		}
 		return fmt.Sprintf("read %d bytes of %s", got, item.Path), nil
 	}
@@ -394,9 +426,14 @@ func readViaDatastore(ctx context.Context, finder *find.Finder, disk *types.Virt
 		return "", err
 	}
 	defer rc.Close()
-	got, err := io.Copy(io.Discard, rc)
-	if err != nil {
+	// CopyN, not Copy: a host that ignores Range would otherwise stream the whole disk.
+	got, err := io.CopyN(io.Discard, rc, n)
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
+	}
+	// The flat file of a thin disk reads as zeros, so a full disk always yields n bytes.
+	if got < n {
+		return "", fmt.Errorf("short read: %d of %d bytes of [%s] %s", got, n, path.Datastore, flat)
 	}
 	return fmt.Sprintf("read %d bytes of [%s] %s", got, path.Datastore, flat), nil
 }

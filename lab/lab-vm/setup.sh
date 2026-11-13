@@ -3,7 +3,9 @@
 # Run as root inside the VM, from a checkout of the repository.
 set -euo pipefail
 
-GO_VERSION="${GO_VERSION:-1.24.7}"
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+# The Go version comes from go.mod, so the lab builds with what CI builds with.
+GO_VERSION="${GO_VERSION:-$(awk '$1 == "go" { print $2 }' "$repo_root/go.mod")}"
 
 apt-get update -q
 apt-get install -y -q ca-certificates curl gnupg git jq make qemu-utils e2fsprogs
@@ -13,6 +15,7 @@ if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
 	curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz
 	rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
 fi
+# shellcheck disable=SC2016 # $PATH must expand at login, not now
 echo 'export PATH=$PATH:/usr/local/go/bin' >/etc/profile.d/go.sh
 export PATH=$PATH:/usr/local/go/bin
 
@@ -27,10 +30,8 @@ apt-get update -q && apt-get install -y -q kopia
 curl -fsSL https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz |
 	tar -C /usr/local/bin -xz govc
 
-# Gaia tools. go.sum is generated here, where the Go checksum database is reachable.
-repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+# Gaia tools, built against the committed go.sum (never regenerated here).
 cd "$repo_root"
-go mod tidy
 make build
 
 echo

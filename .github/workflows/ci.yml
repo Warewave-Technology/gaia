@@ -15,5 +15,5 @@ jobs:
       - name: go.sum is tidy
         run: go mod tidy && git diff --exit-code go.mod go.sum
       - name: shellcheck
-        run: sudo apt-get install -y -q shellcheck
+        run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck
       - run: make check
