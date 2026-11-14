@@ -1,12 +1,17 @@
 package vsphereprobe
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/soap"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 // TestAgainstSimulator runs the whole probe against vcsim. vcsim does not
@@ -53,11 +58,32 @@ func TestExistingVM(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// Give the disk real data: a ranged GET of a non-empty file is answered with
+		// 206 Partial Content, as real ESXi does (T2), and the read step must accept it.
+		disk, err := firstDisk(ctx, vms[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		var path object.DatastorePath
+		path.FromString(disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName)
+		ds, err := f.Datastore(ctx, path.Datastore)
+		if err != nil {
+			t.Fatal(err)
+		}
+		flat := strings.TrimSuffix(path.Path, ".vmdk") + "-flat.vmdk"
+		data := bytes.Repeat([]byte{0xa5}, 2<<20)
+		if err := ds.Upload(ctx, bytes.NewReader(data), flat, &soap.DefaultUpload); err != nil {
+			t.Fatal(err)
+		}
+
 		r := Run(ctx, c, Config{VMName: vms[0].Name(), ReadBytes: 1 << 20})
 		for _, s := range r.Steps {
 			t.Logf("%-20s %-4s %s", s.ID, s.Status, s.Detail)
 			if s.ID == stepVM && s.Status != Pass {
 				t.Errorf("step vm = %q (%s), want PASS", s.Status, s.Detail)
+			}
+			if s.ID == stepHTTP && s.Status != Pass {
+				t.Errorf("step %s = %q (%s), want PASS", stepHTTP, s.Status, s.Detail)
 			}
 			if s.ID == "vm-destroy" {
 				t.Error("an existing VM must never be destroyed")

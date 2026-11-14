@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -419,15 +420,27 @@ func readViaDatastore(ctx context.Context, finder *find.Finder, disk *types.Virt
 		return "", err
 	}
 	flat := strings.TrimSuffix(path.Path, ".vmdk") + "-flat.vmdk"
-	param := soap.DefaultDownload
-	param.Headers = map[string]string{"Range": fmt.Sprintf("bytes=0-%d", n-1)}
-	rc, _, err := ds.Download(ctx, flat, &param)
+	// Not ds.Download: it accepts only 200, but the answer to a Range request is 206 Partial
+	// Content (seen on ESXi 8 in T2), and on an error it leaves the response body open.
+	u, ticket, err := ds.ServiceTicket(ctx, flat, "GET")
 	if err != nil {
 		return "", err
 	}
-	defer rc.Close()
-	// CopyN, not Copy: a host that ignores Range would otherwise stream the whole disk.
-	got, err := io.CopyN(io.Discard, rc, n)
+	param := soap.DefaultDownload
+	param.Headers = map[string]string{"Range": fmt.Sprintf("bytes=0-%d", n-1)}
+	if ticket != nil {
+		param.Ticket, param.Close = ticket, true
+	}
+	res, err := ds.Client().DownloadRequest(ctx, u, &param)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusPartialContent {
+		return "", fmt.Errorf("GET %s: %s", u, res.Status)
+	}
+	// CopyN, not Copy: a host that ignores Range (200) would otherwise stream the whole disk.
+	got, err := io.CopyN(io.Discard, res.Body, n)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
