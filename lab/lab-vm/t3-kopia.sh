@@ -6,15 +6,17 @@
 # Usage (on gaia-lab, as root, after setup.sh):  lab/lab-vm/t3-kopia.sh
 # It takes long (~1 h for 30 GiB), so start it detached and follow the log:
 #   systemd-run --unit=gaia-t3 --collect -E HOME=/root lab/lab-vm/t3-kopia.sh
-# Env: SIZE_GB (30), IMAGE (/var/lib/gaia/test.img, built if missing), SPLITTER (empty = Kopia default),
+# Env: SIZE_GB (30), IMAGE (/var/lib/gaia/test.img, built if missing),
+#      CONFIGS ("zstd none"): one run per item, COMPRESSION[/SPLITTER[/PARALLEL]], e.g. "none/FIXED-4M/8";
+#      an empty field keeps Kopia's default,
 #      OUT_DIR (/root/t3-<UTC timestamp>), KEEP=1 keeps the Kopia work dirs (default: removed, then fstrim).
-# Exit: worst verdict of the two runs, 0 OK / 1 WARNING / 2 CRITICAL / 3 UNKNOWN (also when the harness failed).
+# Exit: worst verdict of all runs, 0 OK / 1 WARNING / 2 CRITICAL / 3 UNKNOWN (also when the harness failed).
 set -euo pipefail
 
 SIZE_GB="${SIZE_GB:-30}"
 IMAGE="${IMAGE:-/var/lib/gaia/test.img}"
 OUT_DIR="${OUT_DIR:-/root/t3-$(date -u +%Y%m%dT%H%M%SZ)}"
-export SPLITTER="${SPLITTER:-}"
+CONFIGS="${CONFIGS:-zstd none}"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 # Any unexpected failure is a harness failure: UNKNOWN, never a verdict the run did not reach.
 set -E
@@ -78,16 +80,21 @@ ls -ls "$IMAGE"
 df -h "$(dirname "$IMAGE")"
 
 worst=0
-for compression in zstd none; do
-	work="$(dirname "$IMAGE")/t3-kopia-${compression}-$(basename "$OUT_DIR")"
-	section "spikes/kopia/run.sh COMPRESSION=$compression SPLITTER=${SPLITTER:-default}"
+labels=()
+for config in $CONFIGS; do
+	IFS=/ read -r compression splitter parallel <<<"$config"
+	label="${config//\//_}"
+	labels+=("$label")
+	work="$(dirname "$IMAGE")/t3-kopia-${label}-$(basename "$OUT_DIR")"
+	section "spikes/kopia/run.sh COMPRESSION=$compression SPLITTER=${splitter:-default} PARALLEL=${parallel:-default}"
 	rc=0
-	IMAGE="$IMAGE" WORK="$work" COMPRESSION="$compression" "$repo_root/spikes/kopia/run.sh" || rc=$?
+	IMAGE="$IMAGE" WORK="$work" COMPRESSION="$compression" SPLITTER="$splitter" PARALLEL="$parallel" \
+		"$repo_root/spikes/kopia/run.sh" || rc=$?
 	echo "exit: $rc"
 	# The verdict comes from the report, and must agree with the exit code: run.sh also exits 1
 	# when it cannot start, which must not read as WARNING.
 	if [[ -s "$work/report.json" ]]; then
-		cp "$work/report.json" "$OUT_DIR/report-${compression}.json"
+		cp "$work/report.json" "$OUT_DIR/report-${label}.json"
 		case "$(jq -r .verdict "$work/report.json")" in
 		OK) want=0 ;;
 		WARNING) want=1 ;;
@@ -108,10 +115,20 @@ done
 section "fstrim"
 fstrim -av || echo "WARNING: fstrim failed"
 
-for compression in zstd none; do
-	section "report-${compression}.json"
-	cat "$OUT_DIR/report-${compression}.json" 2>/dev/null || echo "(missing)"
+for label in "${labels[@]}"; do
+	section "report-${label}.json"
+	cat "$OUT_DIR/report-${label}.json" 2>/dev/null || echo "(missing)"
 done
+
+# A derived view for reading; the JSON above is the evidence.
+section "summary (full_backup / baseline; the gate needs <= gate_factor)"
+for label in "${labels[@]}"; do
+	jq -r --arg l "$label" '[$l, .verdict, (.seconds.full_backup / .seconds.baseline_qemu_img * 100 | round / 100),
+		.seconds.full_backup, .seconds.baseline_qemu_img, (.context.full_backup_cpu.busy_pct // "-"),
+		(.ratios.incremental_growth_vs_changed * 10 | round / 10)] | @tsv' "$OUT_DIR/report-${label}.json" 2>/dev/null ||
+		echo "$label (no report)"
+done | awk -F'\t' 'BEGIN { printf "%-28s %-8s %6s %9s %10s %12s %13s\n", "config", "verdict", "ratio", "full_s", "baseline_s", "cpu_busy_pct", "incr_growth_x" }
+	NF == 7 { printf "%-28s %-8s %6s %9s %10s %12s %13s\n", $1, $2, $3, $4, $5, $6, $7; next } { print }'
 
 section "result"
 case $worst in
@@ -120,5 +137,5 @@ case $worst in
 2) echo "CRITICAL" ;;
 *) echo "UNKNOWN" ;;
 esac
-echo "(worst of both runs; reports in $OUT_DIR)"
+echo "(worst of all runs; reports in $OUT_DIR)"
 exit "$worst"

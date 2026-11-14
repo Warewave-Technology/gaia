@@ -20,6 +20,7 @@ WORK="${WORK:-/var/lib/gaia/spike-kopia}"
 CHANGE_PERCENT="${CHANGE_PERCENT:-1}"
 COMPRESSION="${COMPRESSION:-zstd}" # none|zstd|...
 SPLITTER="${SPLITTER:-}"           # empty = Kopia's default; e.g. DYNAMIC-1M-BUZHASH, FIXED-1M (tuning only)
+PARALLEL="${PARALLEL:-}"           # empty = Kopia's default (one worker per CPU); snapshot create --parallel (tuning only)
 GATE_FACTOR="${GATE_FACTOR:-2}"
 IMGTOOL="${IMGTOOL:-$(dirname "$0")/../../bin/imgtool}"
 
@@ -42,6 +43,15 @@ elapsed() { awk -v a="$(now)" -v b="$1" 'BEGIN { printf "%.3f", a - b }'; }
 drop_caches() { if [[ $EUID -eq 0 ]]; then sync && echo 3 >/proc/sys/vm/drop_caches; fi; }
 repo_bytes() { du -sb "$REPO" | cut -f1; }
 sha() { "$IMGTOOL" hash -file "$1" | jq -r .sha256; }
+# CPU use between two /proc/stat samples, as JSON: is a step CPU-bound or waiting on the disk?
+cpu_sample() { awk '$1 == "cpu" { print $2 + $3 + $4 + $5 + $6 + $7 + $8 + $9, $5, $6; exit }' /proc/stat; }
+cpu_json() { # cpu_json "TOTAL IDLE IOWAIT" (from cpu_sample before the step)
+	local t0 i0 w0 t1 i1 w1
+	read -r t0 i0 w0 <<<"$1"
+	read -r t1 i1 w1 <<<"$(cpu_sample)"
+	awk -v t="$((t1 - t0))" -v i="$((i1 - i0))" -v w="$((w1 - w0))" -v n="$(nproc)" \
+		'BEGIN { printf "{\"cpus\": %d, \"busy_pct\": %.1f, \"iowait_pct\": %.1f}", n, 100 * (t - i - w) / t, 100 * w / t }'
+}
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 
@@ -70,9 +80,11 @@ drop_caches
 hash_v1=$("$IMGTOOL" hash -file "$SRC")
 sha_v1=$(jq -r .sha256 <<<"$hash_v1")
 drop_caches
+c=$(cpu_sample)
 t=$(now)
-k snapshot create "$SRC" >/dev/null
+k snapshot create "$SRC" ${PARALLEL:+--parallel="$PARALLEL"} >/dev/null
 full_s=$(elapsed "$t")
+full_cpu=$(cpu_json "$c")
 repo_after_full=$(repo_bytes)
 snap_v1=$(k snapshot list "$SRC" --json | jq -r '.[-1].id')
 
@@ -81,7 +93,7 @@ mutate_json=$("$IMGTOOL" mutate -file "$SRC" -percent "$CHANGE_PERCENT")
 sha_v2=$(sha "$SRC")
 drop_caches
 t=$(now)
-k snapshot create "$SRC" >/dev/null
+k snapshot create "$SRC" ${PARALLEL:+--parallel="$PARALLEL"} >/dev/null
 incr_s=$(elapsed "$t")
 repo_after_incr=$(repo_bytes)
 snap_v2=$(k snapshot list "$SRC" --json | jq -r '.[-1].id')
@@ -119,6 +131,7 @@ jq -n \
 	--argjson repo_after_full "$repo_after_full" --argjson repo_after_incr "$repo_after_incr" \
 	--arg ok_v1 "$ok_v1" --arg ok_v2 "$ok_v2" --argjson gate_factor "$GATE_FACTOR" \
 	--argjson mutate "$mutate_json" --argjson repo_format "$repo_format" --argjson hash_v1 "$hash_v1" \
+	--argjson full_cpu "$full_cpu" --arg parallel "${PARALLEL:-default}" \
 	--arg kopia_version "$kopia_version" --arg qemu_img_version "$qemu_img_version" \
 	'{
 	  verdict: $verdict,
@@ -128,10 +141,12 @@ jq -n \
 	  image_gib: ($image_bytes / 1073741824),
 	  compression: $compression,
 	  kopia_repository: $repo_format,
+	  parallel: $parallel,
 	  tools: {kopia: $kopia_version, qemu_img: $qemu_img_version},
 	  seconds: {baseline_qemu_img: $baseline_s, full_backup: $full_s, incremental_backup: $incr_s,
 	            restore_full: $restore_v1_s, restore_incremental: $restore_v2_s},
-	  context: {sha256_full_read_s: $hash_v1.seconds, sha256_full_read_mib_s: $hash_v1.mb_per_s},
+	  context: {sha256_full_read_s: $hash_v1.seconds, sha256_full_read_mib_s: $hash_v1.mb_per_s,
+	            full_backup_cpu: $full_cpu},
 	  throughput_mib_s: {baseline: ($image_bytes / 1048576 / $baseline_s),
 	                     full_backup: ($image_bytes / 1048576 / $full_s),
 	                     restore_full: (if $restore_v1_s > 0 then $image_bytes / 1048576 / $restore_v1_s else null end)},
