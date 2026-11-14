@@ -62,6 +62,7 @@ check_flag() { # check_flag NAME SUBCOMMAND...: prints the help line for --NAME,
 flags_ok=1
 check_flag path repository create filesystem || flags_ok=0
 check_flag object-splitter repository create filesystem || flags_ok=0
+check_flag cache-directory repository create filesystem || flags_ok=0
 check_flag compression policy set || flags_ok=0
 check_flag global policy set || flags_ok=0
 check_flag json snapshot list || flags_ok=0
@@ -79,6 +80,10 @@ fi
 ls -ls "$IMAGE"
 df -h "$(dirname "$IMAGE")"
 
+# One run needs the image copy, the repository (up to ~2x the allocated image after the incremental),
+# a full-size restore and Kopia's cache (~10 GB). Ask for 3x the image size free before each run, so a
+# full disk shows up as UNKNOWN up front instead of a failed restore.
+need_kib=$(($(stat -c %s "$IMAGE") * 3 / 1024))
 worst=0
 labels=()
 for config in $CONFIGS; do
@@ -87,6 +92,12 @@ for config in $CONFIGS; do
 	labels+=("$label")
 	work="$(dirname "$IMAGE")/t3-kopia-${label}-$(basename "$OUT_DIR")"
 	section "spikes/kopia/run.sh COMPRESSION=$compression SPLITTER=${splitter:-default} PARALLEL=${parallel:-default}"
+	free_kib=$(df -Pk "$(dirname "$IMAGE")" | awk 'NR == 2 { print $4 }')
+	if ((free_kib < need_kib)); then
+		echo "UNKNOWN: not run, $((free_kib / 1048576)) GiB free, needs $((need_kib / 1048576)) GiB"
+		((3 > worst)) && worst=3
+		continue
+	fi
 	rc=0
 	IMAGE="$IMAGE" WORK="$work" COMPRESSION="$compression" SPLITTER="$splitter" PARALLEL="$parallel" \
 		"$repo_root/spikes/kopia/run.sh" || rc=$?

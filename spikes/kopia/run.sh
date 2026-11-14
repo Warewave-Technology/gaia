@@ -27,6 +27,9 @@ IMGTOOL="${IMGTOOL:-$(dirname "$0")/../../bin/imgtool}"
 export KOPIA_PASSWORD="${KOPIA_PASSWORD:-gaia-spike-not-a-secret}"
 export KOPIA_CHECK_FOR_UPDATES=false
 CFG="$WORK/kopia.config"
+# Kopia's cache (up to 5000 MB content + 5000 MB metadata per repository by default) would otherwise go to
+# ~/.cache/kopia/<id> and outlive the work dir: in T3 it filled gaia-lab's disk after four runs.
+CACHE="$WORK/cache"
 REPO="$WORK/repo"
 SRC="$WORK/source.img"
 OUT="$WORK/restored.img"
@@ -67,7 +70,7 @@ baseline_s=$(elapsed "$t")
 rm -f "$WORK/baseline.raw"
 
 log "creating Kopia repository (filesystem, compression=$COMPRESSION, splitter=${SPLITTER:-default})"
-k repository create filesystem --path="$REPO" ${SPLITTER:+--object-splitter="$SPLITTER"} >/dev/null
+k repository create filesystem --path="$REPO" --cache-directory="$CACHE" ${SPLITTER:+--object-splitter="$SPLITTER"} >/dev/null
 k policy set --global --compression="$COMPRESSION" >/dev/null
 # The repository's format and the tool versions go into the report, so a number can be traced to its setup.
 repo_format=$(k repository status --json | jq -c '{hash: .contentFormat.hash, encryption: .contentFormat.encryption, splitter: .objectFormat.splitter}')
