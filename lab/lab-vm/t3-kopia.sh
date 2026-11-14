@@ -123,7 +123,10 @@ for config in $CONFIGS; do
 done
 
 # The lab VM's disk is a thin volume (discard=on): hand freed blocks back to the Proxmox pool.
+# sync first: ext4 hands blocks freed by the rm above to the allocator only when the journal commits,
+# and fstrim right after the rm of a full run trimmed 17.4 MiB in T3.
 section "fstrim"
+sync
 fstrim -av || echo "WARNING: fstrim failed"
 
 for label in "${labels[@]}"; do
