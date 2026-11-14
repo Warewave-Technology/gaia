@@ -2,14 +2,17 @@
 # Phase 1 / Track B: can a Kopia repository be Gaia's store for VM disk images?
 #
 # Scenario
-#   0. baseline: qemu-img convert of the image (the gate's reference speed)
-#   1. full backup of the image
+#   0. context: qemu-img convert of the image, and a plain sequential read of it
+#   1. reference: sequential read + sha256 of the whole image (imgtool hash), then the full backup
 #   2. change ~CHANGE_PERCENT of the image, incremental backup
 #   3. restore both snapshots and verify them byte for byte (sha256)
 #
-# Gate (ADR-001, feasibility doc):
+# Gate of this one run (ADR-004 §1, amends ADR-001):
 #   - both restores are byte-identical to what was backed up
-#   - full backup time <= GATE_FACTOR x baseline time (default 2, i.e. Kopia at least half as fast)
+#   - full backup time <= GATE_FACTOR x reference time (default 2). The reference reads the same bytes
+#     Kopia reads (all of the image); qemu-img convert very likely skips unallocated regions, so its
+#     ratio is reported as context only.
+# The formal gate is the median of >= 3 such runs: lab/lab-vm/t3-kopia.sh with REPEAT.
 #
 # Usage:  IMAGE=/var/lib/gaia/test.img WORK=/var/lib/gaia/spike-kopia spikes/kopia/run.sh
 # Needs:  kopia, qemu-img, jq, imgtool (make build). Run as root to drop page caches between steps.
@@ -62,12 +65,17 @@ log "copying image to work dir (the source is never modified)"
 cp --sparse=always "$IMAGE" "$SRC"
 img_bytes=$(stat -c %s "$SRC")
 
-log "0/3 baseline: qemu-img convert"
+log "0/3 context: qemu-img convert, plain read"
 drop_caches
 t=$(now)
 qemu-img convert -O raw "$SRC" "$WORK/baseline.raw"
 baseline_s=$(elapsed "$t")
 rm -f "$WORK/baseline.raw"
+# Without the hash: shows whether the sha256 reference below is bound by the disk or by hashing.
+drop_caches
+t=$(now)
+dd if="$SRC" of=/dev/null bs=4M status=none
+plain_read_s=$(elapsed "$t")
 
 log "creating Kopia repository (filesystem, compression=$COMPRESSION, splitter=${SPLITTER:-default})"
 k repository create filesystem --path="$REPO" --cache-directory="$CACHE" ${SPLITTER:+--object-splitter="$SPLITTER"} >/dev/null
@@ -77,8 +85,8 @@ repo_format=$(k repository status --json | jq -c '{hash: .contentFormat.hash, en
 kopia_version=$(kopia --version | head -1)
 qemu_img_version=$(qemu-img --version | head -1)
 
-log "1/3 full backup"
-# Context, not gate: one sequential read + sha256 of the whole image, as imgtool measures it.
+log "1/3 reference read, full backup"
+# The gate's reference (ADR-004 §1): one sequential read + sha256 of the whole image, as imgtool measures it.
 drop_caches
 hash_v1=$("$IMGTOOL" hash -file "$SRC")
 sha_v1=$(jq -r .sha256 <<<"$hash_v1")
@@ -121,7 +129,8 @@ verify() { # verify SNAPSHOT_ID EXPECTED_SHA -> prints "seconds ok|FAIL"
 read -r restore_v2_s ok_v2 < <(verify "$snap_v2" "$sha_v2")
 read -r restore_v1_s ok_v1 < <(verify "$snap_v1" "$sha_v1")
 
-gate_speed=$(awk -v f="$full_s" -v b="$baseline_s" -v g="$GATE_FACTOR" 'BEGIN { print (f <= g * b) ? 1 : 0 }')
+reference_s=$(jq .seconds <<<"$hash_v1")
+gate_speed=$(awk -v f="$full_s" -v r="$reference_s" -v g="$GATE_FACTOR" 'BEGIN { print (f <= g * r) ? 1 : 0 }')
 verdict=OK
 [[ "$ok_v1" == ok && "$ok_v2" == ok ]] || verdict=CRITICAL
 [[ "$verdict" == OK && "$gate_speed" == 0 ]] && verdict=WARNING
@@ -130,6 +139,7 @@ jq -n \
 	--arg verdict "$verdict" --arg compression "$COMPRESSION" \
 	--argjson image_bytes "$img_bytes" \
 	--argjson baseline_s "$baseline_s" --argjson full_s "$full_s" --argjson incr_s "$incr_s" \
+	--argjson reference_s "$reference_s" --argjson plain_read_s "$plain_read_s" \
 	--argjson restore_v1_s "$restore_v1_s" --argjson restore_v2_s "$restore_v2_s" \
 	--argjson repo_after_full "$repo_after_full" --argjson repo_after_incr "$repo_after_incr" \
 	--arg ok_v1 "$ok_v1" --arg ok_v2 "$ok_v2" --argjson gate_factor "$GATE_FACTOR" \
@@ -139,8 +149,11 @@ jq -n \
 	'{
 	  verdict: $verdict,
 	  gate: {restore_identical: ($ok_v1 == "ok" and $ok_v2 == "ok"),
-	         speed: {rule: "full_s <= gate_factor * baseline_s", gate_factor: $gate_factor,
-	                 passed: ($full_s <= $gate_factor * $baseline_s)}},
+	         speed: {rule: "full_s <= gate_factor * reference_s", reference: "sha256_full_read_s",
+	                 reference_s: $reference_s, gate_factor: $gate_factor,
+	                 ratio: ($full_s / $reference_s), passed: ($full_s <= $gate_factor * $reference_s)},
+	         speed_qemu_img_context: {rule: "full_s <= gate_factor * baseline_qemu_img", ratio: ($full_s / $baseline_s),
+	                                  passed: ($full_s <= $gate_factor * $baseline_s)}},
 	  image_gib: ($image_bytes / 1073741824),
 	  compression: $compression,
 	  kopia_repository: $repo_format,
@@ -149,6 +162,7 @@ jq -n \
 	  seconds: {baseline_qemu_img: $baseline_s, full_backup: $full_s, incremental_backup: $incr_s,
 	            restore_full: $restore_v1_s, restore_incremental: $restore_v2_s},
 	  context: {sha256_full_read_s: $hash_v1.seconds, sha256_full_read_mib_s: $hash_v1.mb_per_s,
+	            plain_read_s: $plain_read_s, plain_read_mib_s: ($image_bytes / 1048576 / $plain_read_s),
 	            full_backup_cpu: $full_cpu},
 	  throughput_mib_s: {baseline: ($image_bytes / 1048576 / $baseline_s),
 	                     full_backup: ($image_bytes / 1048576 / $full_s),

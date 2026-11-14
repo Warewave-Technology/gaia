@@ -1,28 +1,34 @@
 #!/usr/bin/env bash
-# Runs the T3 gate on gaia-lab: builds the tools, makes the 30 GiB test image (once), checks the
-# Kopia CLI flags the spike uses against the installed kopia, and runs spikes/kopia/run.sh with
-# COMPRESSION=zstd and COMPRESSION=none. Output goes verbatim into the T3 report.
+# Runs the Track B gate on gaia-lab (T3, T4): builds the tools, makes the 30 GiB test image (once), checks
+# the Kopia CLI flags the spike uses against the installed kopia, runs spikes/kopia/run.sh REPEAT times per
+# config and evaluates the gate of ADR-004 §1 per config: median of full_backup / sha256_full_read_s over
+# >= 3 runs <= the gate factor, and every restore byte-identical. Output goes verbatim into the report.
 #
 # Usage (on gaia-lab, as root, after setup.sh):  lab/lab-vm/t3-kopia.sh
 # It takes long (~1 h for 30 GiB), so start it detached and follow the log:
 #   systemd-run --unit=gaia-t3 --collect -E HOME=/root lab/lab-vm/t3-kopia.sh
 # Env: SIZE_GB (30), IMAGE (/var/lib/gaia/test.img, built if missing),
-#      CONFIGS ("zstd none"): one run per item, COMPRESSION[/SPLITTER[/PARALLEL]], e.g. "none/FIXED-4M/8";
-#      an empty field keeps Kopia's default,
+#      CONFIGS ("s2-default/FIXED-4M", the ADR-004 §2 default): COMPRESSION[/SPLITTER[/PARALLEL]] per item,
+#      e.g. "none/FIXED-4M/8"; an empty field keeps Kopia's default,
+#      REPEAT (3): runs per config, in rounds (every config once, then again), so a slow period of the
+#      shared host does not hit one config only,
 #      OUT_DIR (/root/t3-<UTC timestamp>), KEEP=1 keeps the Kopia work dirs (default: removed, then fstrim).
-# Exit: worst verdict of all runs, 0 OK / 1 WARNING / 2 CRITICAL / 3 UNKNOWN (also when the harness failed).
+# Exit: worst gate verdict of all configs, 0 OK / 1 WARNING / 2 CRITICAL / 3 UNKNOWN (also when the harness
+#      failed). A config is UNKNOWN when it has fewer than 3 runs with a report, or any run of it was UNKNOWN.
 set -euo pipefail
 
 SIZE_GB="${SIZE_GB:-30}"
 IMAGE="${IMAGE:-/var/lib/gaia/test.img}"
 OUT_DIR="${OUT_DIR:-/root/t3-$(date -u +%Y%m%dT%H%M%SZ)}"
-CONFIGS="${CONFIGS:-zstd none}"
+CONFIGS="${CONFIGS:-s2-default/FIXED-4M}"
+REPEAT="${REPEAT:-3}"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 # Any unexpected failure is a harness failure: UNKNOWN, never a verdict the run did not reach.
 set -E
 trap 'echo "UNKNOWN: harness failed at line $LINENO: $BASH_COMMAND"; exit 3' ERR
 
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
+[[ "$REPEAT" =~ ^[1-9][0-9]*$ ]] || { echo "REPEAT must be a positive integer"; exit 3; }
 for bin in go kopia qemu-img jq make mkfs.ext4 fstrim; do command -v "$bin" >/dev/null || { echo "MISSING: $bin (run setup.sh)"; exit 3; }; done
 mkdir -p "$OUT_DIR"
 exec > >(tee "$OUT_DIR/t3.log") 2>&1
@@ -84,42 +90,54 @@ df -h "$(dirname "$IMAGE")"
 # a full-size restore and Kopia's cache (~10 GB). Ask for 3x the image size free before each run, so a
 # full disk shows up as UNKNOWN up front instead of a failed restore.
 need_kib=$(($(stat -c %s "$IMAGE") * 3 / 1024))
-worst=0
 labels=()
+runs=()
+declare -A unknown_runs
 for config in $CONFIGS; do
-	IFS=/ read -r compression splitter parallel <<<"$config"
 	label="${config//\//_}"
 	labels+=("$label")
-	work="$(dirname "$IMAGE")/t3-kopia-${label}-$(basename "$OUT_DIR")"
-	section "spikes/kopia/run.sh COMPRESSION=$compression SPLITTER=${splitter:-default} PARALLEL=${parallel:-default}"
-	free_kib=$(df -Pk "$(dirname "$IMAGE")" | awk 'NR == 2 { print $4 }')
-	if ((free_kib < need_kib)); then
-		echo "UNKNOWN: not run, $((free_kib / 1048576)) GiB free, needs $((need_kib / 1048576)) GiB"
-		((3 > worst)) && worst=3
-		continue
-	fi
-	rc=0
-	IMAGE="$IMAGE" WORK="$work" COMPRESSION="$compression" SPLITTER="$splitter" PARALLEL="$parallel" \
-		"$repo_root/spikes/kopia/run.sh" || rc=$?
-	echo "exit: $rc"
-	# The verdict comes from the report, and must agree with the exit code: run.sh also exits 1
-	# when it cannot start, which must not read as WARNING.
-	if [[ -s "$work/report.json" ]]; then
-		cp "$work/report.json" "$OUT_DIR/report-${label}.json"
-		case "$(jq -r .verdict "$work/report.json")" in
-		OK) want=0 ;;
-		WARNING) want=1 ;;
-		CRITICAL) want=2 ;;
-		*) want=3 ;;
-		esac
-		((rc == want)) || { echo "UNKNOWN: exit $rc does not match the report's verdict"; rc=3; }
-	else
-		echo "UNKNOWN: no report.json"
-		rc=3
-	fi
-	df -h "$(dirname "$IMAGE")"
-	[[ "${KEEP:-}" == 1 ]] || rm -rf "$work"
-	((rc > worst)) && worst=$rc
+	unknown_runs[$label]=0
+done
+((${#labels[@]})) || { echo "UNKNOWN: CONFIGS is empty"; exit 3; }
+for ((round = 1; round <= REPEAT; round++)); do
+	for config in $CONFIGS; do
+		IFS=/ read -r compression splitter parallel <<<"$config"
+		label="${config//\//_}"
+		run="${label}-r${round}"
+		runs+=("$run")
+		work="$(dirname "$IMAGE")/t3-kopia-${run}-$(basename "$OUT_DIR")"
+		section "run $round/$REPEAT: spikes/kopia/run.sh COMPRESSION=$compression SPLITTER=${splitter:-default} PARALLEL=${parallel:-default}"
+		free_kib=$(df -Pk "$(dirname "$IMAGE")" | awk 'NR == 2 { print $4 }')
+		if ((free_kib < need_kib)); then
+			echo "UNKNOWN: not run, $((free_kib / 1048576)) GiB free, needs $((need_kib / 1048576)) GiB"
+			unknown_runs[$label]=$((unknown_runs[$label] + 1))
+			continue
+		fi
+		rc=0
+		IMAGE="$IMAGE" WORK="$work" COMPRESSION="$compression" SPLITTER="$splitter" PARALLEL="$parallel" \
+			"$repo_root/spikes/kopia/run.sh" || rc=$?
+		echo "exit: $rc"
+		# The verdict comes from the report, and must agree with the exit code: run.sh also exits 1
+		# when it cannot start, which must not read as WARNING.
+		if [[ -s "$work/report.json" ]]; then
+			cp "$work/report.json" "$OUT_DIR/report-${run}.json"
+			case "$(jq -r .verdict "$work/report.json")" in
+			OK) want=0 ;;
+			WARNING) want=1 ;;
+			CRITICAL) want=2 ;;
+			*) want=3 ;;
+			esac
+			if ((rc != want)); then
+				echo "UNKNOWN: exit $rc does not match the report's verdict"
+				unknown_runs[$label]=$((unknown_runs[$label] + 1))
+			fi
+		else
+			echo "UNKNOWN: no report.json"
+			unknown_runs[$label]=$((unknown_runs[$label] + 1))
+		fi
+		df -h "$(dirname "$IMAGE")"
+		[[ "${KEEP:-}" == 1 ]] || rm -rf "$work"
+	done
 done
 
 # The lab VM's disk is a thin volume (discard=on): hand freed blocks back to the Proxmox pool.
@@ -129,20 +147,60 @@ section "fstrim"
 sync
 fstrim -av || echo "WARNING: fstrim failed"
 
-for label in "${labels[@]}"; do
-	section "report-${label}.json"
-	cat "$OUT_DIR/report-${label}.json" 2>/dev/null || echo "(missing)"
+for run in "${runs[@]}"; do
+	section "report-${run}.json"
+	cat "$OUT_DIR/report-${run}.json" 2>/dev/null || echo "(missing)"
 done
 
 # A derived view for reading; the JSON above is the evidence.
-section "summary (full_backup / baseline; the gate needs <= gate_factor)"
+section "runs (ratio = full_backup / sha256_full_read_s, the gate reference; ratio_qemu = full_backup / qemu-img, context)"
+for run in "${runs[@]}"; do
+	jq -r --arg r "$run" '[$r, .verdict, (.seconds.full_backup / .context.sha256_full_read_s * 100 | round / 100),
+		(.seconds.full_backup / .seconds.baseline_qemu_img * 100 | round / 100), .seconds.full_backup,
+		.context.sha256_full_read_s, (.context.plain_read_s // "-"), .gate.restore_identical] | @tsv' \
+		"$OUT_DIR/report-${run}.json" 2>/dev/null || echo "$run (no report)"
+done | awk -F'\t' 'BEGIN { printf "%-32s %-8s %6s %10s %9s %10s %10s %9s\n", "run", "verdict", "ratio", "ratio_qemu", "full_s", "sha256_s", "plain_s", "restores" }
+	NF == 8 { printf "%-32s %-8s %6s %10s %9s %10s %10s %9s\n", $1, $2, $3, $4, $5, $6, $7, ($8 == "true" ? "identical" : "DIFFER"); next } { print }'
+
+# ADR-004 §1: per config, the median of full_backup / sha256_full_read_s over >= 3 runs; every restore identical.
+# shellcheck disable=SC2016 # $vars below are jq's, not the shell's
+gate_jq='
+def median: sort | length as $n | if $n == 0 then null elif $n % 2 == 1 then .[($n - 1) / 2] else (.[$n / 2 - 1] + .[$n / 2]) / 2 end;
+(map(.seconds.full_backup / .context.sha256_full_read_s)) as $ratios
+| (map(.seconds.full_backup / .seconds.baseline_qemu_img)) as $qemu
+| (.[0].gate.speed.gate_factor // 2) as $factor
+| ($ratios | median) as $m
+| (map(.gate.restore_identical) | all) as $identical
+| {config: $config, runs_planned: $repeat, runs_with_report: length, runs_unknown: $unknown,
+   rule: "median(full_backup / sha256_full_read_s) over >= 3 runs <= gate_factor, all restores identical",
+   gate_factor: $factor, full_vs_sha256_read: $ratios, median_full_vs_sha256_read: $m,
+   context_median_full_vs_qemu_img: ($qemu | median), restores_identical: (length > 0 and $identical),
+   verdict: (if length > 0 and ($identical | not) then "CRITICAL"
+             elif $unknown > 0 or length < 3 then "UNKNOWN"
+             elif $m <= $factor then "OK" else "WARNING" end)}'
+section "gate (ADR-004 §1)"
 for label in "${labels[@]}"; do
-	jq -r --arg l "$label" '[$l, .verdict, (.seconds.full_backup / .seconds.baseline_qemu_img * 100 | round / 100),
-		.seconds.full_backup, .seconds.baseline_qemu_img, (.context.full_backup_cpu.busy_pct // "-"),
-		(.ratios.incremental_growth_vs_changed * 10 | round / 10)] | @tsv' "$OUT_DIR/report-${label}.json" 2>/dev/null ||
-		echo "$label (no report)"
-done | awk -F'\t' 'BEGIN { printf "%-28s %-8s %6s %9s %10s %12s %13s\n", "config", "verdict", "ratio", "full_s", "baseline_s", "cpu_busy_pct", "incr_growth_x" }
-	NF == 7 { printf "%-28s %-8s %6s %9s %10s %12s %13s\n", $1, $2, $3, $4, $5, $6, $7; next } { print }'
+	files=()
+	for ((round = 1; round <= REPEAT; round++)); do
+		f="$OUT_DIR/report-${label}-r${round}.json"
+		[[ -s "$f" ]] && files+=("$f")
+	done
+	if ((${#files[@]})); then jq -s . "${files[@]}"; else echo '[]'; fi |
+		jq --arg config "$label" --argjson repeat "$REPEAT" --argjson unknown "${unknown_runs[$label]}" "$gate_jq"
+done | jq -s . | tee "$OUT_DIR/gate.json"
+
+# One verdict per config, or the gate was not evaluated.
+[[ "$(jq length "$OUT_DIR/gate.json")" == "${#labels[@]}" ]] || { echo "UNKNOWN: gate.json is incomplete"; exit 3; }
+worst=0
+for v in $(jq -r '.[].verdict' "$OUT_DIR/gate.json"); do
+	case $v in
+	OK) rc=0 ;;
+	WARNING) rc=1 ;;
+	CRITICAL) rc=2 ;;
+	*) rc=3 ;;
+	esac
+	((rc > worst)) && worst=$rc
+done
 
 section "result"
 case $worst in
@@ -151,5 +209,5 @@ case $worst in
 2) echo "CRITICAL" ;;
 *) echo "UNKNOWN" ;;
 esac
-echo "(worst of all runs; reports in $OUT_DIR)"
+echo "(worst gate verdict of all configs; reports and gate.json in $OUT_DIR)"
 exit "$worst"
