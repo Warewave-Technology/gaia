@@ -27,7 +27,7 @@ fi
 aptq() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
 
 aptq update -q
-aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs
+aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs fuse3
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
