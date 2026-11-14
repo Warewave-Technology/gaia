@@ -17,15 +17,20 @@ Design rule: **an unchecked state is never green.** Unknown is shown as UNKNOWN 
 
 ## Status
 
-Feasibility study, Phase 1 (testing the risky assumptions). Nothing here is production software yet.
+Phase 2: building the data path and verification core on KVM/libvirt. Phase 1 (feasibility) is closed; its
+reports are in [`docs/reports/`](docs/reports). Nothing here is production software yet.
+
+VMware is a migration source only ([ADR-003](docs/adr/003-vmware-as-migration-source-and-platform-order.md)): the
+**migration check** copies powered-off vSphere VMs with read-only API calls, converts them for KVM, boots them in an
+isolated sandbox and issues a signed readiness report per VM.
 
 | Path | What it is |
 |---|---|
 | [`docs/adr/`](docs/adr) | Architecture decision records |
-| [`CLAUDE.md`](CLAUDE.md) | Phase 1 tasks, rules and reporting format for the implementation agent |
+| [`CLAUDE.md`](CLAUDE.md) | Phase 2 tasks, rules and reporting format for the implementation agent |
 | [`docs/reports/`](docs/reports) | Task reports (template: `TEMPLATE.md`) |
 | [`lab/`](lab) | Fully automated lab: nested ESXi on Proxmox, Debian lab runner VM |
-| [`cmd/vsphere-probe`](cmd/vsphere-probe) | Track A: checks which backup APIs a vSphere host allows |
+| [`cmd/vsphere-probe`](cmd/vsphere-probe) | Diagnostic: checks which backup APIs a vSphere host allows (feeds the migration check's pre-flight) |
 | [`cmd/imgtool`](cmd/imgtool) | Test-image generation, mutation and verification (stdlib only) |
 | [`spikes/kopia`](spikes/kopia) | Track B: Kopia as the repository for VM disk images |
 
