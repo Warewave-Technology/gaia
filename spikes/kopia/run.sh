@@ -19,6 +19,7 @@ IMAGE="${IMAGE:?set IMAGE to the test disk image}"
 WORK="${WORK:-/var/lib/gaia/spike-kopia}"
 CHANGE_PERCENT="${CHANGE_PERCENT:-1}"
 COMPRESSION="${COMPRESSION:-zstd}" # none|zstd|...
+SPLITTER="${SPLITTER:-}"           # empty = Kopia's default; e.g. DYNAMIC-1M-BUZHASH, FIXED-1M (tuning only)
 GATE_FACTOR="${GATE_FACTOR:-2}"
 IMGTOOL="${IMGTOOL:-$(dirname "$0")/../../bin/imgtool}"
 
@@ -55,12 +56,19 @@ qemu-img convert -O raw "$SRC" "$WORK/baseline.raw"
 baseline_s=$(elapsed "$t")
 rm -f "$WORK/baseline.raw"
 
-log "creating Kopia repository (filesystem, compression=$COMPRESSION)"
-k repository create filesystem --path="$REPO" >/dev/null
+log "creating Kopia repository (filesystem, compression=$COMPRESSION, splitter=${SPLITTER:-default})"
+k repository create filesystem --path="$REPO" ${SPLITTER:+--object-splitter="$SPLITTER"} >/dev/null
 k policy set --global --compression="$COMPRESSION" >/dev/null
+# The repository's format and the tool versions go into the report, so a number can be traced to its setup.
+repo_format=$(k repository status --json | jq -c '{hash: .contentFormat.hash, encryption: .contentFormat.encryption, splitter: .objectFormat.splitter}')
+kopia_version=$(kopia --version | head -1)
+qemu_img_version=$(qemu-img --version | head -1)
 
 log "1/3 full backup"
-sha_v1=$(sha "$SRC")
+# Context, not gate: one sequential read + sha256 of the whole image, as imgtool measures it.
+drop_caches
+hash_v1=$("$IMGTOOL" hash -file "$SRC")
+sha_v1=$(jq -r .sha256 <<<"$hash_v1")
 drop_caches
 t=$(now)
 k snapshot create "$SRC" >/dev/null
@@ -110,7 +118,8 @@ jq -n \
 	--argjson restore_v1_s "$restore_v1_s" --argjson restore_v2_s "$restore_v2_s" \
 	--argjson repo_after_full "$repo_after_full" --argjson repo_after_incr "$repo_after_incr" \
 	--arg ok_v1 "$ok_v1" --arg ok_v2 "$ok_v2" --argjson gate_factor "$GATE_FACTOR" \
-	--argjson mutate "$mutate_json" \
+	--argjson mutate "$mutate_json" --argjson repo_format "$repo_format" --argjson hash_v1 "$hash_v1" \
+	--arg kopia_version "$kopia_version" --arg qemu_img_version "$qemu_img_version" \
 	'{
 	  verdict: $verdict,
 	  gate: {restore_identical: ($ok_v1 == "ok" and $ok_v2 == "ok"),
@@ -118,11 +127,14 @@ jq -n \
 	                 passed: ($full_s <= $gate_factor * $baseline_s)}},
 	  image_gib: ($image_bytes / 1073741824),
 	  compression: $compression,
+	  kopia_repository: $repo_format,
+	  tools: {kopia: $kopia_version, qemu_img: $qemu_img_version},
 	  seconds: {baseline_qemu_img: $baseline_s, full_backup: $full_s, incremental_backup: $incr_s,
 	            restore_full: $restore_v1_s, restore_incremental: $restore_v2_s},
+	  context: {sha256_full_read_s: $hash_v1.seconds, sha256_full_read_mib_s: $hash_v1.mb_per_s},
 	  throughput_mib_s: {baseline: ($image_bytes / 1048576 / $baseline_s),
 	                     full_backup: ($image_bytes / 1048576 / $full_s),
-	                     restore_full: ($image_bytes / 1048576 / $restore_v1_s)},
+	                     restore_full: (if $restore_v1_s > 0 then $image_bytes / 1048576 / $restore_v1_s else null end)},
 	  repository_bytes: {after_full: $repo_after_full, after_incremental: $repo_after_incr,
 	                     incremental_growth: ($repo_after_incr - $repo_after_full)},
 	  ratios: {stored_vs_image: ($repo_after_full / $image_bytes),

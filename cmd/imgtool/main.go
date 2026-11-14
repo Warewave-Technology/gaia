@@ -20,6 +20,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -206,9 +207,16 @@ func cmdMutate(args []string) error {
 	for int64(len(chosen)) < want {
 		chosen[rng.Int64N(blocks)] = struct{}{}
 	}
+	// Write in offset order: map iteration order is random, and the data drawn from rng
+	// for each block must not depend on it, or the same seed gives a different image.
+	order := make([]int64, 0, len(chosen))
+	for idx := range chosen {
+		order = append(order, idx)
+	}
+	slices.Sort(order)
 	buf := make([]byte, block)
 	start := time.Now()
-	for idx := range chosen {
+	for _, idx := range order {
 		for i := range buf {
 			buf[i] = byte(rng.Uint32())
 		}

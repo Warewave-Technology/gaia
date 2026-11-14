@@ -20,6 +20,9 @@ OUT_DIR="${OUT_DIR:-/root/t2-$(date -u +%Y%m%dT%H%M%SZ)}"
 LOCAL_VM=gaia-probe-local
 export GAIA_VSPHERE_URL="https://${ESXI_IP}/sdk" GAIA_VSPHERE_USER
 export GOVC_URL="$GAIA_VSPHERE_URL" GOVC_USERNAME="$GAIA_VSPHERE_USER" GOVC_INSECURE=1
+# Any unexpected failure is a harness failure: UNKNOWN, never a verdict the run did not reach.
+set -E
+trap 'echo "UNKNOWN: harness failed at line $LINENO: $BASH_COMMAND"; exit 3' ERR
 
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
 for bin in go govc jq ssh make; do command -v "$bin" >/dev/null || { echo "MISSING: $bin (run setup.sh)"; exit 3; }; done

@@ -64,3 +64,32 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("mutate changed file size to %d", hb.Bytes)
 	}
 }
+
+// TestMutateDeterministic: the same seed must change the same bytes the same way,
+// or a measurement cannot be reproduced (CLAUDE.md rule 5).
+func TestMutateDeterministic(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "imgtool")
+	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, out)
+	}
+	zeros := make([]byte, 4<<20)
+	var sums []string
+	for _, name := range []string{"a.img", "b.img"} {
+		img := filepath.Join(dir, name)
+		if err := os.WriteFile(img, zeros, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if out, err := exec.Command(bin, "mutate", "-file", img, "-percent", "10", "-block", "4KiB", "-seed", "7").CombinedOutput(); err != nil {
+			t.Fatalf("mutate: %v\n%s", err, out)
+		}
+		h, err := hashFile(img)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sums = append(sums, h.SHA256)
+	}
+	if sums[0] != sums[1] {
+		t.Fatalf("same seed, different result: %s vs %s", sums[0], sums[1])
+	}
+}
