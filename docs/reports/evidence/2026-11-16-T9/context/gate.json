@@ -1,0 +1,13 @@
+{
+  "rule": "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
+  "configs": [
+    {
+      "config": "4/4/s2-default same-disk",
+      "median_ratio": 2.467807728160663,
+      "gate": "CRITICAL"
+    }
+  ],
+  "best": null,
+  "verdict": "UNKNOWN",
+  "note": "ONLY_CONTEXT=1: same-disk context runs only, not the T9 gate"
+}

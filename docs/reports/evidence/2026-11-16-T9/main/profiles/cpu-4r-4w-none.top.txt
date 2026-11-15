@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: d3fe3b68af43eb32fe4d37738c567aaed011c027
+Type: cpu
+Time: 2026-11-15 23:23:25 UTC
+Duration: 55.31s, Total samples = 72.57s (131.21%)
+Showing nodes accounting for 69.53s, 95.81% of 72.57s total
+Dropped 409 nodes (cum <= 0.36s)
+Showing top 25 nodes out of 75
+      flat  flat%   sum%        cum   cum%
+    23.01s 31.71% 31.71%     23.01s 31.71%  internal/runtime/syscall.Syscall6
+    19.02s 26.21% 57.92%     19.02s 26.21%  runtime.memmove
+    18.96s 26.13% 84.04%     18.96s 26.13%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+     5.98s  8.24% 92.28%      5.98s  8.24%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.08s  2.87% 95.15%      2.08s  2.87%  runtime.memclrNoHeapPointers
+     0.08s  0.11% 95.26%      1.08s  1.49%  runtime.findRunnable
+     0.06s 0.083% 95.34%     12.61s 17.38%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.04s 0.055% 95.40%     38.27s 52.74%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.055% 95.45%     15.09s 20.79%  os.(*File).Write
+     0.04s 0.055% 95.51%      0.57s  0.79%  runtime.netpoll
+     0.03s 0.041% 95.55%     22.53s 31.05%  syscall.RawSyscall6
+     0.02s 0.028% 95.58%      6.02s  8.30%  crypto/internal/fips140/aes/gcm.(*GCM).Seal
+     0.02s 0.028% 95.60%      4.15s  5.72%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Write
+     0.02s 0.028% 95.63%     56.41s 77.73%  github.com/kopia/kopia/repo/content.(*WriteManager).WriteContent
+     0.02s 0.028% 95.66%     19.04s 26.24%  github.com/kopia/kopia/repo/hashing.init.1.truncatedKeyedHashFuncFactory.func3.2
+     0.02s 0.028% 95.69%     18.98s 26.15%  golang.org/x/crypto/blake2b.hashBlocks
+     0.01s 0.014% 95.70%         6s  8.27%  crypto/internal/fips140/aes/gcm.seal
+     0.01s 0.014% 95.71%     10.08s 13.89%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.2
+     0.01s 0.014% 95.73%     17.92s 24.69%  github.com/kopia/kopia/repo/blob/filesystem.(*fsImpl).PutBlobInPath.func1
+     0.01s 0.014% 95.74%     17.86s 24.61%  github.com/kopia/kopia/repo/blob/filesystem.(*fsImpl).createTempFileWithData
+     0.01s 0.014% 95.76%     14.34s 19.76%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.01s 0.014% 95.77%     18.99s 26.17%  golang.org/x/crypto/blake2b.(*digest).Write
+     0.01s 0.014% 95.78%      4.84s  6.67%  internal/poll.(*FD).Read
+     0.01s 0.014% 95.80%     15.14s 20.86%  internal/poll.(*FD).Write
+     0.01s 0.014% 95.81%      4.86s  6.70%  net.(*conn).Read

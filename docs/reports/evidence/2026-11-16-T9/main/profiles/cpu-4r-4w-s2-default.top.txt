@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: d3fe3b68af43eb32fe4d37738c567aaed011c027
+Type: cpu
+Time: 2026-11-15 23:21:57 UTC
+Duration: 40.62s, Total samples = 80.47s (198.09%)
+Showing nodes accounting for 77.38s, 96.16% of 80.47s total
+Dropped 437 nodes (cum <= 0.40s)
+Showing top 25 nodes out of 93
+      flat  flat%   sum%        cum   cum%
+    19.29s 23.97% 23.97%     19.29s 23.97%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    17.87s 22.21% 46.18%     17.87s 22.21%  runtime.memmove
+    15.84s 19.68% 65.86%     15.84s 19.68%  internal/runtime/syscall.Syscall6
+    13.43s 16.69% 82.55%     13.43s 16.69%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     4.19s  5.21% 87.76%      4.19s  5.21%  hash/crc32.castagnoliSSE42Triple
+     3.96s  4.92% 92.68%      3.96s  4.92%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.22s  2.76% 95.44%      2.22s  2.76%  runtime.memclrNoHeapPointers
+     0.08s 0.099% 95.54%      0.52s  0.65%  runtime.netpoll
+     0.07s 0.087% 95.63%      9.75s 12.12%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.05s 0.062% 95.69%      0.90s  1.12%  runtime.findRunnable
+     0.04s  0.05% 95.74%      0.96s  1.19%  runtime.schedule
+     0.04s  0.05% 95.79%     15.46s 19.21%  syscall.RawSyscall6
+     0.03s 0.037% 95.82%     50.73s 63.04%  github.com/Warewave-Technology/gaia/internal/diskstore.storeBlock
+     0.03s 0.037% 95.86%     17.88s 22.22%  github.com/klauspost/compress/s2.(*Writer).writeFull.func1
+     0.03s 0.037% 95.90%     13.50s 16.78%  github.com/klauspost/compress/s2.encodeBlock
+     0.03s 0.037% 95.94%      4.08s  5.07%  internal/poll.(*FD).Read
+     0.02s 0.025% 95.96%      8.41s 10.45%  github.com/Warewave-Technology/gaia/internal/diskstore.fillBlock
+     0.02s 0.025% 95.99%      8.36s 10.39%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).read
+     0.02s 0.025% 96.01%      1.83s  2.27%  github.com/klauspost/compress/s2.(*Writer).Reset.func1
+     0.02s 0.025% 96.04%      3.86s  4.80%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Write
+     0.02s 0.025% 96.06%     31.10s 38.65%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.02s 0.025% 96.09%         4s  4.97%  github.com/kopia/kopia/internal/iocopy.Copy
+     0.02s 0.025% 96.11%     13.23s 16.44%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.02s 0.025% 96.14%     46.97s 58.37%  github.com/kopia/kopia/repo/object.(*objectWriter).flushBufferLocked
+     0.02s 0.025% 96.16%     19.31s 24.00%  golang.org/x/crypto/blake2b.(*digest).Write

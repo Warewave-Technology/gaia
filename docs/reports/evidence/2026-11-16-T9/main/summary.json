@@ -1,0 +1,84 @@
+[
+  {
+    "config": "4/4/none",
+    "runs": 3,
+    "ratios": [
+      4.407954933695314,
+      4.901149190161993,
+      4.751080811998978
+    ],
+    "median_ratio": 4.751080811998978,
+    "median_full_backup_s": 57.527,
+    "median_fastest_plain_read_s": 12.108192278,
+    "median_backup_mib_s": 259.6024882881082,
+    "median_repository_bytes": 15773004964,
+    "median_restore_s": 46.852,
+    "median_cpu_busy_pct": 39.9,
+    "median_iowait_pct": 36.3,
+    "median_write_busy_per_s": 3.853471920022192,
+    "median_reader_wait_per_s": 2.893113970029767,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default",
+    "runs": 3,
+    "ratios": [
+      3.4721293875929558,
+      3.2184386240291936,
+      3.203623936233141
+    ],
+    "median_ratio": 3.2184386240291936,
+    "median_full_backup_s": 40.507,
+    "median_fastest_plain_read_s": 12.644118288,
+    "median_backup_mib_s": 368.6807797109142,
+    "median_repository_bytes": 9830409562,
+    "median_restore_s": 35.367,
+    "median_cpu_busy_pct": 64.8,
+    "median_iowait_pct": 17.9,
+    "median_write_busy_per_s": 3.4666485738895014,
+    "median_reader_wait_per_s": 1.6330693577737943,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default same-disk",
+    "runs": 1,
+    "ratios": [
+      2.7283415910174567
+    ],
+    "median_ratio": 2.7283415910174567,
+    "median_full_backup_s": 28.059,
+    "median_fastest_plain_read_s": 10.284269423,
+    "median_backup_mib_s": 532.2410757243665,
+    "median_repository_bytes": 9830396766,
+    "median_restore_s": 41.599,
+    "median_cpu_busy_pct": 81.5,
+    "median_iowait_pct": 5.6,
+    "median_write_busy_per_s": 3.0861527950115297,
+    "median_reader_wait_per_s": 0.4068731348600425,
+    "identical": true,
+    "gate": "UNKNOWN"
+  },
+  {
+    "config": "8/8/s2-default",
+    "runs": 3,
+    "ratios": [
+      2.940309991975549,
+      3.1237200567825356,
+      2.93978182975938
+    ],
+    "median_ratio": 2.940309991975549,
+    "median_full_backup_s": 38.11,
+    "median_fastest_plain_read_s": 12.784026209,
+    "median_backup_mib_s": 391.86964953424297,
+    "median_repository_bytes": 9830409465,
+    "median_restore_s": 35.047,
+    "median_cpu_busy_pct": 71.5,
+    "median_iowait_pct": 19.2,
+    "median_write_busy_per_s": 5.6274520265450825,
+    "median_reader_wait_per_s": 2.6742841925734773,
+    "identical": true,
+    "gate": "CRITICAL"
+  }
+]

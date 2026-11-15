@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: d3fe3b68af43eb32fe4d37738c567aaed011c027
+Type: cpu
+Time: 2026-11-15 23:22:46 UTC
+Duration: 36.44s, Total samples = 84.49s (231.83%)
+Showing nodes accounting for 81.41s, 96.35% of 84.49s total
+Dropped 443 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 91
+      flat  flat%   sum%        cum   cum%
+    20.49s 24.25% 24.25%     20.49s 24.25%  runtime.memmove
+    18.88s 22.35% 46.60%     18.88s 22.35%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    16.69s 19.75% 66.35%     16.69s 19.75%  internal/runtime/syscall.Syscall6
+    13.29s 15.73% 82.08%     13.29s 15.73%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     4.87s  5.76% 87.84%      4.87s  5.76%  hash/crc32.castagnoliSSE42Triple
+     3.77s  4.46% 92.31%      3.77s  4.46%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+        3s  3.55% 95.86%         3s  3.55%  runtime.memclrNoHeapPointers
+     0.04s 0.047% 95.90%     13.37s 15.82%  github.com/klauspost/compress/s2.encodeBlock
+     0.04s 0.047% 95.95%     31.42s 37.19%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.047% 96.00%      4.97s  5.88%  hash/crc32.archUpdateCastagnoli
+     0.04s 0.047% 96.05%     10.23s 12.11%  internal/poll.(*FD).Write
+     0.04s 0.047% 96.09%      4.68s  5.54%  net.(*conn).Read
+     0.03s 0.036% 96.13%      8.66s 10.25%  io.ReadAtLeast
+     0.03s 0.036% 96.17%      0.77s  0.91%  runtime.findRunnable
+     0.03s 0.036% 96.20%      4.59s  5.43%  syscall.read
+     0.02s 0.024% 96.22%     18.46s 21.85%  github.com/klauspost/compress/s2.(*Writer).writeFull.func1
+     0.02s 0.024% 96.25%     12.11s 14.33%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.02s 0.024% 96.27%      3.38s  4.00%  runtime.mallocgc
+     0.01s 0.012% 96.28%     10.01s 11.85%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.2
+     0.01s 0.012% 96.30%      2.22s  2.63%  github.com/klauspost/compress/s2.(*Writer).Reset.func1
+     0.01s 0.012% 96.31%      3.92s  4.64%  github.com/kopia/kopia/internal/gather.(*Bytes).AppendSectionTo
+     0.01s 0.012% 96.32%      4.50s  5.33%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Write
+     0.01s 0.012% 96.33%      3.94s  4.66%  github.com/kopia/kopia/internal/gather.Bytes.ReadAt
+     0.01s 0.012% 96.34%     13.62s 16.12%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.01s 0.012% 96.35%     28.08s 33.23%  github.com/kopia/kopia/repo/content.(*WriteManager).addToPackUnlocked

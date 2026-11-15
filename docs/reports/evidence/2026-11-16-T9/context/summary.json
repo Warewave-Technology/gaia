@@ -1,0 +1,23 @@
+[
+  {
+    "config": "4/4/s2-default same-disk",
+    "runs": 3,
+    "ratios": [
+      2.3169698374102166,
+      2.528116789297475,
+      2.467807728160663
+    ],
+    "median_ratio": 2.467807728160663,
+    "median_full_backup_s": 29.991,
+    "median_fastest_plain_read_s": 12.152891677,
+    "median_backup_mib_s": 497.9544644643393,
+    "median_repository_bytes": 9830425323,
+    "median_restore_s": 31.153,
+    "median_cpu_busy_pct": 85.4,
+    "median_iowait_pct": 3,
+    "median_write_busy_per_s": 2.897085559646044,
+    "median_reader_wait_per_s": 0.16667273088916737,
+    "identical": true,
+    "gate": "CRITICAL"
+  }
+]
