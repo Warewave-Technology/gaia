@@ -1,0 +1,83 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t7-20261115T211933Z-95b30d",
+  "vm": "gaia-t7",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "CRITICAL",
+      "seconds": 180.088298708,
+      "attempts": 181,
+      "detail": "no match for \"(?m)login: *$\" on the serial console within 180 s"
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "http-health",
+      "type": "http",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/libvirt/images/gaia-t7-broken.raw",
+    "format": "raw",
+    "bytes": 8589934592,
+    "sha256_before": "44ee4a12310f050cf304bfa00c4f009c002d802757c6f4e72bef00cee6dd4d46",
+    "sha256_after": "44ee4a12310f050cf304bfa00c4f009c002d802757c6f4e72bef00cee6dd4d46",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-95b30d",
+    "network": "gaia-verify-95b30d",
+    "bridge": "gvb-95b30d",
+    "netns": "gaia-verify-95b30d",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-95b30d proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-95b30d table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-95b30d table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-95b30d proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-95b30d table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "image_hash": 7.075690108,
+    "sandbox_setup": 1.441684953,
+    "shutdown": 0.371443571,
+    "total": 197.724949251
+  },
+  "shutdown": "forced (not booted)",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-15T21:19:33.232355089Z",
+  "finished": "2026-11-15T21:22:50.95730434Z"
+}

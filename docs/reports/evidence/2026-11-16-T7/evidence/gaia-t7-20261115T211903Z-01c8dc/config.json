@@ -1,0 +1,36 @@
+{
+  "vm": "gaia-t7",
+  "template": "linux-basic",
+  "machine": {
+    "arch": "x86_64",
+    "firmware": "bios",
+    "memory_mib": 1024,
+    "vcpus": 2,
+    "disk_bus": "virtio",
+    "nic_model": "virtio",
+    "mac": "52:54:00:47:a7:01"
+  },
+  "boot_timeout_s": 300,
+  "probe_timeout_s": 120,
+  "shutdown_timeout_s": 60,
+  "checks": [
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "pattern": "(?m)login: *$"
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "port": 22
+    },
+    {
+      "name": "http-health",
+      "type": "http",
+      "port": 8080,
+      "path": "/health",
+      "expect_status": 200,
+      "expect_body": "ok"
+    }
+  ]
+}

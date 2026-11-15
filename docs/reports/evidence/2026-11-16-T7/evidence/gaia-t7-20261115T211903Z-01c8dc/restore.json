@@ -1,0 +1,35 @@
+{
+  "command": "restore",
+  "format": "raw",
+  "out": "/var/lib/libvirt/images/gaia-t7-restored.raw",
+  "point": {
+    "id": "c5d326afbaa56bf05e4c855d5e50a05b",
+    "domain": "gaia-t7",
+    "disk": "vda",
+    "kind": "full",
+    "checkpoint": "gaia-20261115T211849937Z",
+    "size": 8589934592,
+    "block_size": 4194304,
+    "index": "572d0c6c8ed589c054a087f0c744aae1",
+    "created": "2026-11-15T21:18:50.429242438Z",
+    "stats": {
+      "changed_bytes": 1094451200,
+      "source_read_bytes": 1094451200,
+      "repo_read_bytes": 0,
+      "blocks": 2048,
+      "blocks_written": 307,
+      "blocks_reused": 0,
+      "blocks_zero": 1741,
+      "seconds": 1.666200334
+    }
+  },
+  "stats": {
+    "repo_read_bytes": 1287651328,
+    "written_bytes": 1287651328,
+    "blocks_written": 307,
+    "blocks_hole": 1741,
+    "seconds": 1.202919265
+  },
+  "verdict": "OK",
+  "workers": 4
+}

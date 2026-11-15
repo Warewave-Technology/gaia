@@ -1,0 +1,67 @@
+{
+  "format": "gaia-evidence/v1",
+  "bundle_id": "gaia-t7-20261115T211903Z-01c8dc",
+  "created": "2026-11-15T21:19:32.235858348Z",
+  "subject": {
+    "verdict": "OK",
+    "vm": "gaia-t7"
+  },
+  "key_fingerprint": "dc5109cbb6ddfdb5d329dc1456c0a8bdedec5888e351631f7258e5c081efa367",
+  "files": [
+    {
+      "path": "config.json",
+      "sha256": "8a580cd7878395328f43817ae52f88395af329fa0f546ef41a3e2c9ffb0c6ff9",
+      "bytes": 670
+    },
+    {
+      "path": "dnsmasq.leases",
+      "sha256": "1b92eba4b831e83b2fe3c5329dc932715277599f9db1b88bcaf4c1bda6d57773",
+      "bytes": 106
+    },
+    {
+      "path": "dnsmasq.log",
+      "sha256": "abad17eb19e102b79a9d9cfbf942bf26529719e17b759b27b554e7a6ace40a25",
+      "bytes": 3820
+    },
+    {
+      "path": "domain.xml",
+      "sha256": "c5a2479e602df6f8b340ca82f295a2ad3f701b1e2c8de3355467ec8799c84d4f",
+      "bytes": 1069
+    },
+    {
+      "path": "network.xml",
+      "sha256": "ba0cca4a5ff5abb2c1f73cfe9a802a90a1e1105ab11b5dcde784d5f5a5b78234",
+      "bytes": 97
+    },
+    {
+      "path": "restore.json",
+      "sha256": "fd38c51acf9eae368d78e3269a32927e06cf0e6e474a7d6982da2bd9a7ac1ccb",
+      "bytes": 882
+    },
+    {
+      "path": "result.json",
+      "sha256": "f1236589749caa7c0d859e5eab025b05d007a33fbff71ee8766b3cc7c4dd41e9",
+      "bytes": 2923
+    },
+    {
+      "path": "sandbox.log",
+      "sha256": "c316d0366f966a510f2ba3f79c82085c9a86632506e993841b174419c2e0406c",
+      "bytes": 3679
+    },
+    {
+      "path": "screenshot-boot.png",
+      "sha256": "1decee0ea8ebc0dfbdce74e0319d274b5b7ab292a0f5c40ab6c9ee804f01b96c",
+      "bytes": 1669
+    },
+    {
+      "path": "screenshot-end.png",
+      "sha256": "e10b18b3d38d141be8061ffefe09b3cfa404166dada454a5d678d99d5a393e70",
+      "bytes": 1661
+    },
+    {
+      "path": "serial.log",
+      "sha256": "deb3befe78cd32425a5b5a7b31c58bfc7496a5263805751e978543ed9be71fe7",
+      "bytes": 62564
+    }
+  ]
+}

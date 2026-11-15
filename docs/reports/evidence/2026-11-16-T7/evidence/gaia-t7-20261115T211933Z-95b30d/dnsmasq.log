@@ -1,0 +1,4 @@
+Nov 15 21:19:40 dnsmasq[26613]: started, version 2.90 DNS disabled
+Nov 15 21:19:40 dnsmasq[26613]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua TFTP conntrack ipset nftset auth cryptohash DNSSEC loop-detect inotify dumpfile
+Nov 15 21:19:40 dnsmasq-dhcp[26613]: DHCP, IP range 10.254.0.10 -- 10.254.0.99, lease time 1h
+Nov 15 21:19:40 dnsmasq-dhcp[26613]: DHCP, sockets bound exclusively to interface gvn-95b30d

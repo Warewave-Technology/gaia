@@ -1,0 +1,42 @@
+[21:19:40.308] image /var/lib/libvirt/images/gaia-t7-broken.raw: sha256 44ee4a12310f050cf304bfa00c4f009c002d802757c6f4e72bef00cee6dd4d46 (8589934592 bytes)
+[21:19:40.371] $ sysctl -q -w net.ipv6.conf.gvb-95b30d.disable_ipv6=1
+
+[21:19:40.379] $ ip netns add gaia-verify-95b30d
+
+[21:19:40.383] $ ip link add gvh-95b30d type veth peer name gvn-95b30d
+
+[21:19:40.385] $ sysctl -q -w net.ipv6.conf.gvh-95b30d.disable_ipv6=1
+
+[21:19:40.404] $ ip link set gvh-95b30d master gvb-95b30d up
+
+[21:19:40.447] $ ip link set gvn-95b30d netns gaia-verify-95b30d
+
+[21:19:40.449] $ ip -n gaia-verify-95b30d addr add 10.254.0.1/24 dev gvn-95b30d
+
+[21:19:40.456] $ ip -n gaia-verify-95b30d link set gvn-95b30d up
+
+[21:19:40.457] $ ip -n gaia-verify-95b30d link set lo up
+
+[21:19:40.458] $ ip netns exec gaia-verify-95b30d dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-95b30d --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-95b30d/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-95b30d/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-95b30d/dnsmasq.log --user=root --group=root
+[21:19:40.486] $ qemu-img create -q -f qcow2 -F raw -b /var/lib/libvirt/images/gaia-t7-broken.raw /var/lib/libvirt/images/gaia-verify-95b30d/overlay.qcow2
+
+[21:19:41.747] $ ip -o addr show dev gvb-95b30d
+
+[21:19:41.749] $ ip -n gaia-verify-95b30d route show table all
+10.254.0.0/24 dev gvn-95b30d proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-95b30d table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-95b30d table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-95b30d proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-95b30d table local proto kernel metric 256 pref medium
+[21:19:41.751] guest started (kvm)
+[21:22:41.840] boot not reached within 180 s
+[21:22:42.248] $ virsh screenshot gaia-verify-95b30d --file /var/lib/libvirt/images/gaia-verify-95b30d/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-95b30d/screenshot-boot.ppm, with type of image/png
+[21:22:42.624] $ virsh screenshot gaia-verify-95b30d --file /var/lib/libvirt/images/gaia-verify-95b30d/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-95b30d/screenshot-end.ppm, with type of image/png
+[21:22:42.999] $ ip netns del gaia-verify-95b30d
+

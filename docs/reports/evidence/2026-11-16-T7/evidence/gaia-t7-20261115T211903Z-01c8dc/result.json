@@ -1,0 +1,90 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t7-20261115T211903Z-01c8dc",
+  "vm": "gaia-t7",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 12.038959177,
+      "attempts": 13,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t7 login:\""
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "OK",
+      "seconds": 12.420935649,
+      "attempts": 1,
+      "detail": "connected to 10.254.0.63:22"
+    },
+    {
+      "name": "http-health",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 12.44581837,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.63:8080/health: 200"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/libvirt/images/gaia-t7-restored.raw",
+    "format": "raw",
+    "bytes": 8589934592,
+    "sha256_before": "75e959c0e67debf52e4f7573680a25e76e7462caa2102a49e71e90ab10ecc319",
+    "sha256_after": "75e959c0e67debf52e4f7573680a25e76e7462caa2102a49e71e90ab10ecc319",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-01c8dc",
+    "network": "gaia-verify-01c8dc",
+    "bridge": "gvb-01c8dc",
+    "netns": "gaia-verify-01c8dc",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "10.254.0.63",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-01c8dc proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-01c8dc table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-01c8dc table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-01c8dc proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "local fe80::40cd:22ff:fe33:659c dev gvn-01c8dc table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-01c8dc table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 12.038959177,
+    "image_hash": 6.545287969,
+    "proven_rto": 13.648737635,
+    "ready": 12.44581837,
+    "restore": 1.202919265,
+    "sandbox_setup": 1.385957012,
+    "shutdown": 2.002287385,
+    "total": 28.819845604
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-15T21:19:03.41512234Z",
+  "finished": "2026-11-15T21:19:32.234967944Z"
+}
