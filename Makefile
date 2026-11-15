@@ -4,6 +4,7 @@ build:
 	go build -o bin/imgtool ./cmd/imgtool
 	go build -o bin/vsphere-probe ./cmd/vsphere-probe
 	go build -o bin/gaia-backup ./cmd/gaia-backup
+	go build -o bin/gaia ./cmd/gaia
 
 test:
 	go test ./...

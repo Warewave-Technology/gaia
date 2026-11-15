@@ -34,6 +34,7 @@ isolated sandbox and issues a signed readiness report per VM.
 | [`cmd/imgtool`](cmd/imgtool) | Test-image generation, mutation and verification (stdlib only) |
 | [`cmd/gaia-backup`](cmd/gaia-backup) | Spike (T6): incremental KVM backup — libvirt checkpoint + pull-mode backup, changed extents over NBD, into Kopia; restore to a raw image |
 | [`internal/nbd`](internal/nbd) | Minimal pure-Go NBD client (read, block status, dirty bitmaps), tested against `qemu-nbd` |
+| [`cmd/gaia`](cmd/gaia) | Verification engine v0 (T7): `gaia verify` boots a restored image in an isolated sandbox and runs its checks; `gaia evidence verify` checks signed evidence bundles and the hash-chain ledger |
 | [`spikes/kopia`](spikes/kopia) | Track B: Kopia as the repository for VM disk images |
 
 ## Freedom

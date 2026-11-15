@@ -28,8 +28,10 @@ aptq() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
 
 aptq update -q
 aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs fuse3
-# T6: libvirt + KVM for the nested test guest, cloud-localds for its cloud-init seed.
-aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients qemu-system-x86 cloud-image-utils
+# T6/T7: libvirt + KVM for the nested test guests, cloud-localds for their cloud-init seed;
+# T7: dnsmasq for the verification sandbox's DHCP, iproute2 for its network namespace.
+aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients qemu-system-x86 cloud-image-utils \
+	dnsmasq-base iproute2 fdisk
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
