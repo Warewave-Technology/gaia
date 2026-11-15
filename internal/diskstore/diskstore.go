@@ -27,6 +27,7 @@ import (
 
 	"github.com/kopia/kopia/repo"
 	"github.com/kopia/kopia/repo/blob/filesystem"
+	"github.com/kopia/kopia/repo/compression"
 	"github.com/kopia/kopia/repo/content"
 	"github.com/kopia/kopia/repo/format"
 	"github.com/kopia/kopia/repo/manifest"
@@ -130,6 +131,15 @@ type BackupStats struct {
 	BlocksReused    int     `json:"blocks_reused"` // taken unchanged from the parent
 	BlocksZero      int     `json:"blocks_zero"`
 	Seconds         float64 `json:"seconds"`
+	// The pipeline: Readers fill blocks from the source, Writers compress, encrypt and store them.
+	// Busy seconds are summed over the goroutines of a stage; divided by Seconds they say how many
+	// of them were working on average, which locates the bottleneck.
+	Readers           int     `json:"readers"`
+	Writers           int     `json:"writers"`
+	Compressor        string  `json:"compressor"`
+	ReadBusySeconds   float64 `json:"read_busy_seconds"`
+	WriteBusySeconds  float64 `json:"write_busy_seconds"`
+	ReaderWaitSeconds float64 `json:"reader_wait_seconds"` // readers waiting for a free buffer (writers behind)
 }
 
 // Point is one disk image in time.
@@ -163,6 +173,9 @@ type BackupRequest struct {
 	Changed []Range
 	Parent  *Point   // nil: full backup
 	Sources []Source // one per parallel reader (an NBD connection serves one request at a time)
+	Writers int      // goroutines that compress, encrypt and store blocks; 0: one per source
+	// Compressor overrides Compression; "none" stores blocks uncompressed.
+	Compressor string
 }
 
 type blockJob struct {
@@ -217,28 +230,94 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	if req.Parent != nil {
 		pt.Kind, pt.ParentID, pt.ParentCheckpoint = "incremental", req.Parent.ID, req.Parent.Checkpoint
 	}
-	err = repo.WriteSession(ctx, s.r, repo.WriteSessionOptions{Purpose: "gaia-backup"}, func(ctx context.Context, w repo.RepositoryWriter) error {
-		var mu sync.Mutex
-		errs := make(chan error, len(req.Sources))
-		next := make(chan blockJob)
-		var wg sync.WaitGroup
+	writers := req.Writers
+	if writers <= 0 {
+		writers = len(req.Sources)
+	}
+	comp := compression.Name(Compression)
+	if req.Compressor != "" {
+		comp = compression.Name(req.Compressor)
+	}
+	st.Readers, st.Writers, st.Compressor = len(req.Sources), writers, string(comp)
+	outer := ctx
+	err = repo.WriteSession(ctx, s.r, repo.WriteSessionOptions{Purpose: "gaia-backup"}, func(wctx context.Context, w repo.RepositoryWriter) error {
+		ctx, cancel := context.WithCancel(wctx)
+		defer cancel()
+		var (
+			mu, emu  sync.Mutex
+			firstErr error
+			rwg, wwg sync.WaitGroup
+			jobsCh   = make(chan blockJob)
+			full     = make(chan filledBlock, writers)
+			pool     = make(chan []byte, len(req.Sources)+writers)
+		)
+		fail := func(err error) {
+			emu.Lock()
+			defer emu.Unlock()
+			if firstErr == nil {
+				firstErr = err
+				cancel()
+			}
+		}
+		for range cap(pool) {
+			pool <- make([]byte, BlockSize)
+		}
 		for _, src := range req.Sources {
-			wg.Add(1)
+			rwg.Add(1)
 			go func() {
-				defer wg.Done()
-				buf := make([]byte, BlockSize)
-				for j := range next {
-					id, srcBytes, repoBytes, err := buildBlock(ctx, w, src, parent, req.Size, j, buf)
-					if err != nil {
-						errs <- err
-						for range next { // drain so the producer finishes
-						}
+				defer rwg.Done()
+				for j := range jobsCh {
+					t := time.Now()
+					var buf []byte
+					select {
+					case buf = <-pool:
+					case <-ctx.Done():
 						return
 					}
+					waited := time.Since(t)
+					t = time.Now()
+					b, srcBytes, repoBytes, err := fillBlock(ctx, w, src, parent, req.Size, j, buf)
+					busy := time.Since(t)
 					mu.Lock()
-					idx.Blocks[j.i] = id
+					st.ReaderWaitSeconds += waited.Seconds()
+					st.ReadBusySeconds += busy.Seconds()
 					st.SourceReadBytes += srcBytes
 					st.RepoReadBytes += repoBytes
+					mu.Unlock()
+					if err != nil {
+						pool <- buf
+						fail(err)
+						return
+					}
+					select {
+					case full <- filledBlock{i: j.i, b: b, buf: buf}:
+					case <-ctx.Done():
+						pool <- buf
+						return
+					}
+				}
+			}()
+		}
+		for range writers {
+			wwg.Add(1)
+			go func() {
+				defer wwg.Done()
+				for f := range full { // keeps draining after an error, so readers never block on a full channel
+					if ctx.Err() != nil {
+						pool <- f.buf
+						continue
+					}
+					t := time.Now()
+					id, err := storeBlock(ctx, w, f.b, comp)
+					busy := time.Since(t)
+					pool <- f.buf
+					if err != nil {
+						fail(fmt.Errorf("block %d: write: %w", f.i, err))
+						continue
+					}
+					mu.Lock()
+					st.WriteBusySeconds += busy.Seconds()
+					idx.Blocks[f.i] = id
 					if id == "" {
 						st.BlocksZero++
 					} else {
@@ -248,16 +327,19 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 				}
 			}()
 		}
+	feed:
 		for _, j := range jobs {
-			if ctx.Err() != nil {
-				break
+			select {
+			case jobsCh <- j:
+			case <-ctx.Done():
+				break feed
 			}
-			next <- j
 		}
-		close(next)
-		wg.Wait()
-		close(errs)
-		if err := errors.Join(ctx.Err(), <-errs); err != nil {
+		close(jobsCh)
+		rwg.Wait()
+		close(full)
+		wwg.Wait()
+		if err := errors.Join(firstErr, outer.Err()); err != nil {
 			return err
 		}
 		indexID, err := writeJSON(ctx, w, "gaia block index", idx)
@@ -282,10 +364,16 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	return pt, nil
 }
 
-// buildBlock assembles block j.i: the parent's copy (or zeroes) with the changed ranges read from src on top.
-func buildBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent *blockIndex, size uint64, j blockJob, buf []byte) (id string, srcBytes, repoBytes uint64, err error) {
+type filledBlock struct {
+	i   int
+	b   []byte // the block's bytes, a prefix of buf
+	buf []byte // goes back to the pool once the block is stored
+}
+
+// fillBlock assembles block j.i in buf: the parent's copy (or zeroes) with the changed ranges read from src on top.
+func fillBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent *blockIndex, size uint64, j blockJob, buf []byte) (b []byte, srcBytes, repoBytes uint64, err error) {
 	bStart := uint64(j.i) * BlockSize
-	b := buf[:min(BlockSize, size-bStart)]
+	b = buf[:min(BlockSize, size-bStart)]
 	covered := uint64(0)
 	for _, r := range j.ranges {
 		covered += r.Length
@@ -294,7 +382,7 @@ func buildBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent
 		clear(b)
 		if parent != nil && parent.Blocks[j.i] != "" {
 			if err := readObject(ctx, w, parent.Blocks[j.i], b); err != nil {
-				return "", 0, 0, fmt.Errorf("block %d: parent copy: %w", j.i, err)
+				return nil, 0, 0, fmt.Errorf("block %d: parent copy: %w", j.i, err)
 			}
 			repoBytes = uint64(len(b))
 		}
@@ -302,23 +390,96 @@ func buildBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent
 	for _, r := range j.ranges {
 		p := b[r.Offset-bStart : r.Offset-bStart+r.Length]
 		if _, err := src.ReadAt(p, int64(r.Offset)); err != nil {
-			return "", 0, 0, fmt.Errorf("block %d: read [%d, +%d): %w", j.i, r.Offset, r.Length, err)
+			return nil, srcBytes, repoBytes, fmt.Errorf("block %d: read [%d, +%d): %w", j.i, r.Offset, r.Length, err)
 		}
 		srcBytes += r.Length
 	}
+	return b, srcBytes, repoBytes, nil
+}
+
+// storeBlock writes one block as a Kopia object ("" for a block of zeroes, which is not stored).
+func storeBlock(ctx context.Context, w repo.RepositoryWriter, b []byte, comp compression.Name) (string, error) {
 	if isZero(b) {
-		return "", srcBytes, repoBytes, nil
+		return "", nil
 	}
-	ow := w.NewObjectWriter(ctx, object.WriterOptions{Description: "gaia disk block", Compressor: Compression})
+	ow := w.NewObjectWriter(ctx, object.WriterOptions{Description: "gaia disk block", Compressor: comp})
 	defer ow.Close()
 	if _, err := ow.Write(b); err != nil {
-		return "", 0, 0, fmt.Errorf("block %d: write: %w", j.i, err)
+		return "", err
 	}
 	oid, err := ow.Result()
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("block %d: write: %w", j.i, err)
+		return "", err
 	}
-	return oid.String(), srcBytes, repoBytes, nil
+	return oid.String(), nil
+}
+
+// ReadStats is what ReadRanges read.
+type ReadStats struct {
+	Bytes   uint64  `json:"bytes"`
+	Blocks  int     `json:"blocks"`
+	Readers int     `json:"readers"`
+	Seconds float64 `json:"seconds"`
+}
+
+// ReadRanges reads exactly what Backup would read from the sources for these changed ranges, in the
+// same 4 MiB blocks and with one reader per source, and discards it: the hash-free reference of
+// ADR-004 A1 for the backup's throughput.
+func ReadRanges(ctx context.Context, changed []Range, size uint64, sources []Source) (ReadStats, error) {
+	start := time.Now()
+	rs, err := normalise(changed, size)
+	if err != nil {
+		return ReadStats{}, err
+	}
+	perBlock := splitByBlock(rs)
+	idx := make([]int, 0, len(perBlock))
+	for i := range perBlock {
+		idx = append(idx, i)
+	}
+	slices.Sort(idx)
+	st := ReadStats{Blocks: len(idx), Readers: len(sources)}
+	var (
+		mu   sync.Mutex
+		wg   sync.WaitGroup
+		next = make(chan int)
+		errs = make(chan error, len(sources))
+	)
+	for _, src := range sources {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			buf := make([]byte, BlockSize)
+			for i := range next {
+				var n uint64
+				for _, r := range perBlock[i] {
+					if _, err := src.ReadAt(buf[:r.Length], int64(r.Offset)); err != nil {
+						errs <- fmt.Errorf("read [%d, +%d): %w", r.Offset, r.Length, err)
+						for range next {
+						}
+						return
+					}
+					n += r.Length
+				}
+				mu.Lock()
+				st.Bytes += n
+				mu.Unlock()
+			}
+		}()
+	}
+	for _, i := range idx {
+		if ctx.Err() != nil {
+			break
+		}
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+	close(errs)
+	if err := errors.Join(ctx.Err(), <-errs); err != nil {
+		return st, err
+	}
+	st.Seconds = time.Since(start).Seconds()
+	return st, nil
 }
 
 // RestoreStats is what a restore read and wrote.

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 )
 
 const miB = 1 << 20
@@ -240,5 +241,55 @@ func TestNormalise(t *testing.T) {
 	if fmt.Sprint(split[0], split[1], split[3], split[4]) != fmt.Sprint([]Range{{BlockSize - 10, 10}}, []Range{{BlockSize, 10}},
 		[]Range{{3 * BlockSize, BlockSize}}, []Range{{4 * BlockSize, BlockSize}}) || len(split) != 4 {
 		t.Fatalf("split %v", split)
+	}
+}
+
+// The pipeline with more writers than readers, uncompressed blocks, and the reference reader.
+func TestPipelineWritersCompressionAndReadRanges(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	d, alloc := testDisk()
+	size := uint64(len(d.data))
+	p, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c", Size: size, Changed: alloc,
+		Sources: []Source{d}, Writers: 3, Compressor: "none"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Stats.Readers != 1 || p.Stats.Writers != 3 || p.Stats.Compressor != "none" || p.Stats.WriteBusySeconds <= 0 || p.Stats.ReadBusySeconds <= 0 {
+		t.Fatalf("stats %+v", p.Stats)
+	}
+	restoreAndCompare(t, s, p, d.data)
+
+	d.read = 0
+	rs, err := ReadRanges(ctx, alloc, size, []Source{d, d, d})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rs.Bytes != p.Stats.SourceReadBytes || d.read != rs.Bytes || rs.Readers != 3 || rs.Blocks != 3 {
+		t.Fatalf("read %+v (source counted %d), backup read %d", rs, d.read, p.Stats.SourceReadBytes)
+	}
+	if _, err := ReadRanges(ctx, []Range{{size - 1, 2}}, size, []Source{d}); err == nil {
+		t.Fatal("range outside the disk accepted")
+	}
+}
+
+// A read error with many writers and readers ends the backup with that error, without a deadlock.
+func TestPipelineErrorDoesNotHang(t *testing.T) {
+	s := newStore(t)
+	d, alloc := testDisk()
+	bad := &memDisk{data: d.data, fail: true}
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.Backup(context.Background(), BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c", Size: uint64(len(d.data)),
+			Changed: alloc, Sources: []Source{bad, bad, bad, bad}, Writers: 8})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil || !strings.Contains(err.Error(), "source broke") {
+			t.Fatalf("error %v", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("backup hangs after a read error")
 	}
 }

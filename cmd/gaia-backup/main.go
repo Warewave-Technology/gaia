@@ -8,6 +8,11 @@
 //	gaia-backup backup  -config FILE -domain NAME [-disk vda] [-full] [-nbd tcp:127.0.0.1:10809] [-conns 4] [-scratch-dir DIR] [-resume]
 //	gaia-backup restore -config FILE (-point ID | -domain NAME [-disk vda]) -out FILE [-workers 4]
 //	gaia-backup points  -config FILE [-domain NAME] [-disk vda]
+//	gaia-backup backup-nbd -config FILE -nbd unix:/path [-export NAME] -domain NAME [-disk vda] [-conns 4] [-writers 4] [-compression s2-default|none] [-cpuprofile F]
+//	gaia-backup nbd-read   -nbd unix:/path [-export NAME] [-conns 4]
+//
+// backup-nbd is a full backup of any NBD export, without libvirt (the source is e.g. qemu-nbd -r); nbd-read reads
+// exactly the bytes backup-nbd would read, hash-free and with nothing stored: the throughput reference (ADR-004 A1).
 //
 // The repository password comes from $GAIA_REPO_PASSWORD. Every command prints a
 // human-readable result, or JSON with -json. Exit codes: 0 OK, 3 UNKNOWN (it failed:
@@ -23,6 +28,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -51,6 +57,10 @@ func main() {
 		res, asJSON, err = cmdBackup(ctx, args)
 	case "restore":
 		res, asJSON, err = cmdRestore(ctx, args)
+	case "backup-nbd":
+		res, asJSON, err = cmdBackupNBD(ctx, args)
+	case "nbd-read":
+		res, asJSON, err = cmdNBDRead(ctx, args)
 	case "points":
 		res, asJSON, err = cmdPoints(ctx, args)
 	default:
@@ -71,7 +81,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gaia-backup repo-create|backup|restore|points [flags]  (-h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: gaia-backup repo-create|backup|restore|points|backup-nbd|nbd-read [flags]  (-h for flags)")
 	os.Exit(3)
 }
 
@@ -397,4 +407,158 @@ func orDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// openExport dials conns connections to an NBD export; the first also negotiates base:allocation
+// and returns the allocated (non-zero) extents, which is what a full backup reads.
+func openExport(ctx context.Context, server, export string, conns int) ([]*nbd.Client, []diskstore.Range, uint64, error) {
+	srv, err := libvirtbackup.ParseServer(server)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	dctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	first, err := nbd.Dial(dctx, srv.Network, srv.Addr, nbd.Options{Export: export, MetaContexts: []string{nbd.ContextBaseAllocation}})
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("NBD %s export %q: %w", server, export, err)
+	}
+	clients := []*nbd.Client{first}
+	for len(clients) < conns {
+		c, err := nbd.Dial(dctx, srv.Network, srv.Addr, nbd.Options{Export: export})
+		if err != nil {
+			closeAll(clients)
+			return nil, nil, 0, fmt.Errorf("NBD connection %d: %w", len(clients)+1, err)
+		}
+		clients = append(clients, c)
+	}
+	ext, err := first.Extents(nbd.ContextBaseAllocation, 0, first.Size())
+	if err != nil {
+		closeAll(clients)
+		return nil, nil, 0, err
+	}
+	var changed []diskstore.Range
+	for _, e := range ext {
+		if e.Flags&(nbd.StateHole|nbd.StateZero) == 0 {
+			changed = append(changed, diskstore.Range{Offset: e.Offset, Length: e.Length})
+		}
+	}
+	return clients, changed, first.Size(), nil
+}
+
+func closeAll(cs []*nbd.Client) {
+	for _, c := range cs {
+		c.Close()
+	}
+}
+
+func sources(cs []*nbd.Client) []diskstore.Source {
+	out := make([]diskstore.Source, len(cs))
+	for i, c := range cs {
+		out[i] = c
+	}
+	return out
+}
+
+func sumBytes(rs []diskstore.Range) (n uint64) {
+	for _, r := range rs {
+		n += r.Length
+	}
+	return n
+}
+
+// startProfile writes a CPU profile to path until the returned stop is called ("" = no profile).
+func startProfile(path string) (func(), error) {
+	if path == "" {
+		return func() {}, nil
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := pprof.StartCPUProfile(f); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return func() { pprof.StopCPUProfile(); f.Close() }, nil
+}
+
+func cmdBackupNBD(ctx context.Context, args []string) (any, bool, error) {
+	fs := flag.NewFlagSet("backup-nbd", flag.ExitOnError)
+	config := fs.String("config", "", "Kopia client config file")
+	server := fs.String("nbd", "", "NBD server: unix:/path or tcp:HOST:PORT")
+	export := fs.String("export", "", "NBD export name")
+	domain := fs.String("domain", "", "name the point is filed under (e.g. the image's name)")
+	disk := fs.String("disk", "vda", "disk name the point is filed under")
+	conns := fs.Int("conns", 4, "NBD connections = parallel readers")
+	writers := fs.Int("writers", 0, "goroutines that compress, encrypt and store (0: as many as -conns)")
+	comp := fs.String("compression", diskstore.Compression, "Kopia compressor for the blocks, or none")
+	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile (pprof) of the backup to this file")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	if *config == "" || *server == "" || *domain == "" || *conns < 1 {
+		return nil, *asJSON, errors.New("-config, -nbd and -domain are required, -conns >= 1")
+	}
+	pw, err := password()
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	store, err := diskstore.Open(ctx, *config, pw)
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	defer store.Close(ctx)
+	t0 := time.Now()
+	clients, changed, size, err := openExport(ctx, *server, *export, *conns)
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	defer closeAll(clients)
+	extents := time.Since(t0).Seconds()
+	stop, err := startProfile(*cpuprofile)
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	t1 := time.Now()
+	pt, err := store.Backup(ctx, diskstore.BackupRequest{Domain: *domain, Disk: *disk, Checkpoint: "full-" + time.Now().UTC().Format("20060102T150405Z"),
+		Size: size, Changed: changed, Sources: sources(clients), Writers: *writers, Compressor: *comp})
+	stop()
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	var payload, cmds uint64
+	for _, c := range clients {
+		b, n := c.Stats()
+		payload += b
+		cmds += n
+	}
+	return map[string]any{"command": "backup-nbd", "verdict": "OK", "nbd": *server, "export": *export, "disk_bytes": size,
+		"allocated_bytes": sumBytes(changed), "nbd_payload_bytes": payload, "nbd_read_commands": cmds, "point": pt,
+		"timings_s":  map[string]float64{"extents": extents, "backup": time.Since(t1).Seconds(), "total": time.Since(t0).Seconds()},
+		"cpuprofile": *cpuprofile}, *asJSON, nil
+}
+
+func cmdNBDRead(ctx context.Context, args []string) (any, bool, error) {
+	fs := flag.NewFlagSet("nbd-read", flag.ExitOnError)
+	server := fs.String("nbd", "", "NBD server: unix:/path or tcp:HOST:PORT")
+	export := fs.String("export", "", "NBD export name")
+	conns := fs.Int("conns", 1, "NBD connections = parallel readers")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	if *server == "" || *conns < 1 {
+		return nil, *asJSON, errors.New("-nbd is required, -conns >= 1")
+	}
+	t0 := time.Now()
+	clients, changed, size, err := openExport(ctx, *server, *export, *conns)
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	defer closeAll(clients)
+	extents := time.Since(t0).Seconds()
+	st, err := diskstore.ReadRanges(ctx, changed, size, sources(clients))
+	if err != nil {
+		return nil, *asJSON, err
+	}
+	return map[string]any{"command": "nbd-read", "verdict": "OK", "nbd": *server, "export": *export, "disk_bytes": size,
+		"allocated_bytes": sumBytes(changed), "read": st, "mib_s": float64(st.Bytes) / 1048576 / st.Seconds,
+		"timings_s": map[string]float64{"extents": extents, "read": st.Seconds, "total": time.Since(t0).Seconds()}}, *asJSON, nil
 }
