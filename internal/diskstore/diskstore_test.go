@@ -237,7 +237,7 @@ func TestNormalise(t *testing.T) {
 	if fmt.Sprint(got) != "[{0 60} {100 10}]" {
 		t.Fatalf("normalise %v", got)
 	}
-	split := splitByBlock([]Range{{BlockSize - 10, 20}, {3 * BlockSize, 2 * BlockSize}})
+	split := splitByBlock([]Range{{BlockSize - 10, 20}, {3 * BlockSize, 2 * BlockSize}}, BlockSize)
 	if fmt.Sprint(split[0], split[1], split[3], split[4]) != fmt.Sprint([]Range{{BlockSize - 10, 10}}, []Range{{BlockSize, 10}},
 		[]Range{{3 * BlockSize, BlockSize}}, []Range{{4 * BlockSize, BlockSize}}) || len(split) != 4 {
 		t.Fatalf("split %v", split)
@@ -261,14 +261,14 @@ func TestPipelineWritersCompressionAndReadRanges(t *testing.T) {
 	restoreAndCompare(t, s, p, d.data)
 
 	d.read = 0
-	rs, err := ReadRanges(ctx, alloc, size, []Source{d, d, d})
+	rs, err := ReadRanges(ctx, alloc, size, 0, []Source{d, d, d})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rs.Bytes != p.Stats.SourceReadBytes || d.read != rs.Bytes || rs.Readers != 3 || rs.Blocks != 3 {
 		t.Fatalf("read %+v (source counted %d), backup read %d", rs, d.read, p.Stats.SourceReadBytes)
 	}
-	if _, err := ReadRanges(ctx, []Range{{size - 1, 2}}, size, []Source{d}); err == nil {
+	if _, err := ReadRanges(ctx, []Range{{size - 1, 2}}, size, 0, []Source{d}); err == nil {
 		t.Fatal("range outside the disk accepted")
 	}
 }
@@ -291,5 +291,59 @@ func TestPipelineErrorDoesNotHang(t *testing.T) {
 		}
 	case <-time.After(30 * time.Second):
 		t.Fatal("backup hangs after a read error")
+	}
+}
+
+// Smaller blocks on repositories with another splitter and hash: full, incremental and restore,
+// and an incremental refuses a parent with another block size.
+func TestBlockSizesSplittersAndHashes(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		splitter, hash string
+		bs             uint64
+	}{{"FIXED-1M", "BLAKE3-256-128", 1 << 20}, {"FIXED-256K", "HMAC-SHA256-128", 256 << 10}} {
+		t.Run(tc.splitter, func(t *testing.T) {
+			dir := t.TempDir()
+			o := RepoOptions{Path: filepath.Join(dir, "repo"), ConfigFile: filepath.Join(dir, "k.config"), Password: "test-only",
+				CacheDir: filepath.Join(dir, "cache"), Splitter: tc.splitter, Hash: tc.hash}
+			if err := Create(ctx, o); err != nil {
+				t.Fatal(err)
+			}
+			s, err := Open(ctx, o.ConfigFile, o.Password)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Close(ctx)
+			d, alloc := testDisk()
+			size := uint64(len(d.data))
+			full, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c1", Size: size, Changed: alloc,
+				Sources: []Source{d}, BlockSize: tc.bs})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if full.BlockSize != tc.bs || full.Stats.Blocks != int((size+tc.bs-1)/tc.bs) {
+				t.Fatalf("point %+v", full)
+			}
+			dirty := []Range{{4096, 65536}}
+			fill(d.data[4096:4096+65536], 7)
+			d.allowed = dirty
+			inc, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c2", Size: size, Changed: dirty,
+				Parent: full, Sources: []Source{d}, BlockSize: tc.bs})
+			if err != nil {
+				t.Fatal(err)
+			}
+			// One block touched: the parent's copy read back is one block, not 4 MiB.
+			if inc.Stats.BlocksWritten != 1 || inc.Stats.RepoReadBytes != tc.bs || inc.Stats.SourceReadBytes != 65536 {
+				t.Fatalf("incremental stats %+v", inc.Stats)
+			}
+			restoreAndCompare(t, s, inc, d.data)
+			if _, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c3", Size: size, Changed: dirty,
+				Parent: inc, Sources: []Source{d}, BlockSize: BlockSize}); err == nil || !strings.Contains(err.Error(), "full backup is needed") {
+				t.Fatalf("block size change accepted: %v", err)
+			}
+			if _, err := s.Backup(ctx, BackupRequest{Size: size, Sources: []Source{d}, BlockSize: 1000}); err == nil {
+				t.Fatal("block size 1000 accepted")
+			}
+		})
 	}
 }

@@ -4,8 +4,8 @@
 // written into a Kopia repository through the Kopia Go library (internal/diskstore).
 // Every point restores to a complete raw image on its own.
 //
-//	gaia-backup repo-create -repo DIR -config FILE [-cache-dir DIR -cache-limit-mb N]
-//	gaia-backup backup  -config FILE -domain NAME [-disk vda] [-full] [-nbd tcp:127.0.0.1:10809] [-conns 4] [-scratch-dir DIR] [-resume]
+//	gaia-backup repo-create -repo DIR -config FILE [-cache-dir DIR -cache-limit-mb N] [-splitter FIXED-4M] [-hash NAME]
+//	gaia-backup backup  -config FILE -domain NAME [-disk vda] [-full] [-nbd tcp:127.0.0.1:10809] [-conns 4] [-writers N] [-block-size 4M] [-scratch-dir DIR] [-resume]
 //	gaia-backup restore -config FILE (-point ID | -domain NAME [-disk vda]) -out FILE [-workers 4]
 //	gaia-backup points  -config FILE [-domain NAME] [-disk vda]
 //	gaia-backup backup-nbd -config FILE -nbd unix:/path [-export NAME] -domain NAME [-disk vda] [-conns 4] [-writers 4] [-compression s2-default|none] [-cpuprofile F]
@@ -29,6 +29,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -105,6 +106,8 @@ func cmdRepoCreate(ctx context.Context, args []string) (any, bool, error) {
 	config := fs.String("config", "", "Kopia client config file to write")
 	cacheDir := fs.String("cache-dir", "", "Kopia cache directory (default: Kopia's, next to the config)")
 	limit := fs.Int64("cache-limit-mb", 0, "content cache hard limit in MB, 0 = Kopia's default (none); the soft target is half of it")
+	splitter := fs.String("splitter", diskstore.Splitter, "Kopia object splitter (fixed at creation)")
+	hash := fs.String("hash", "", "Kopia content hash (fixed at creation; default Kopia's, BLAKE2B-256-128)")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
 	if *path == "" || *config == "" {
@@ -114,7 +117,7 @@ func cmdRepoCreate(ctx context.Context, args []string) (any, bool, error) {
 	if err != nil {
 		return nil, *asJSON, err
 	}
-	o := diskstore.RepoOptions{Path: *path, ConfigFile: *config, Password: pw, CacheDir: *cacheDir}
+	o := diskstore.RepoOptions{Path: *path, ConfigFile: *config, Password: pw, CacheDir: *cacheDir, Splitter: *splitter, Hash: *hash}
 	if *limit > 0 {
 		o.ContentCacheMB, o.ContentCacheLimitMB = *limit/2, *limit
 		o.MetadataCacheMB, o.MetadataCacheLimitMB = *limit/4, *limit/2
@@ -123,7 +126,7 @@ func cmdRepoCreate(ctx context.Context, args []string) (any, bool, error) {
 		return nil, *asJSON, err
 	}
 	return map[string]any{"command": "repo-create", "verdict": "OK", "repo": *path, "config": *config,
-		"splitter": diskstore.Splitter, "compression": diskstore.Compression, "block_size": diskstore.BlockSize,
+		"splitter": *splitter, "hash": *hash, "compression": diskstore.Compression, "default_block_size": diskstore.BlockSize,
 		"cache_dir": *cacheDir, "content_cache_limit_mb": o.ContentCacheLimitMB}, *asJSON, nil
 }
 
@@ -161,6 +164,9 @@ func cmdBackup(ctx context.Context, args []string) (any, bool, error) {
 	full := fs.Bool("full", false, "full backup even if the repository has a point for this disk")
 	server := fs.String("nbd", "tcp:127.0.0.1:10809", "where qemu's NBD server listens: tcp:HOST:PORT or unix:/path")
 	conns := fs.Int("conns", 4, "parallel NBD connections (each reads one block at a time)")
+	writers := fs.Int("writers", 0, "goroutines that compress, encrypt and store (0: as many as -conns)")
+	comp := fs.String("compression", diskstore.Compression, "Kopia compressor for the blocks, or none")
+	blockSize := sizeFlag(fs, "block-size", "block size of the point, e.g. 4M, 1M, 256K (an incremental must use its parent's)")
 	sock := fs.String("libvirt-socket", libvirtbackup.DefaultSocket, "libvirtd socket")
 	scratch := fs.String("scratch-dir", "/var/lib/libvirt/images", "directory for qemu's copy-before-write scratch file (libvirt creates and removes it)")
 	resume := fs.Bool("resume", false, "resume the domain once the job has started, if it is paused (pull mode keeps the export at the checkpoint)")
@@ -227,7 +233,8 @@ func cmdBackup(ctx context.Context, args []string) (any, bool, error) {
 				rep.Timings["resumed_after_begin"] = time.Since(t0).Seconds()
 			}
 		}
-		return backupDisk(ctx, store, job, req, parent, *conns, rep)
+		return backupDisk(ctx, store, job, req, parent, *conns, rep,
+			diskstore.BackupRequest{Writers: *writers, Compressor: *comp, BlockSize: uint64(*blockSize)})
 	}()
 	t1 := time.Now()
 	if endErr := job.End(); endErr != nil {
@@ -242,8 +249,9 @@ func cmdBackup(ctx context.Context, args []string) (any, bool, error) {
 	return rep, *asJSON, nil
 }
 
+// backupDisk reads the job's export over NBD and writes a point; tuning carries Writers, Compressor and BlockSize.
 func backupDisk(ctx context.Context, store *diskstore.Store, job *libvirtbackup.Job, req libvirtbackup.Request,
-	parent *diskstore.Point, conns int, rep *BackupReport) error {
+	parent *diskstore.Point, conns int, rep *BackupReport, tuning diskstore.BackupRequest) error {
 	dialCtx, cancel := context.WithTimeout(ctx, 30*time.Second) // reads have no deadline
 	defer cancel()
 	network, addr := job.Server.Network, job.Server.Addr
@@ -295,7 +303,8 @@ func backupDisk(ctx context.Context, store *diskstore.Store, job *libvirtbackup.
 	}
 	t1 := time.Now()
 	pt, err := store.Backup(ctx, diskstore.BackupRequest{Domain: req.Domain, Disk: req.Disk,
-		Checkpoint: req.Checkpoint, Size: first.Size(), Changed: changed, Parent: parent, Sources: sources})
+		Checkpoint: req.Checkpoint, Size: first.Size(), Changed: changed, Parent: parent, Sources: sources,
+		Writers: tuning.Writers, Compressor: tuning.Compressor, BlockSize: tuning.BlockSize})
 	if err != nil {
 		return err
 	}
@@ -492,6 +501,7 @@ func cmdBackupNBD(ctx context.Context, args []string) (any, bool, error) {
 	conns := fs.Int("conns", 4, "NBD connections = parallel readers")
 	writers := fs.Int("writers", 0, "goroutines that compress, encrypt and store (0: as many as -conns)")
 	comp := fs.String("compression", diskstore.Compression, "Kopia compressor for the blocks, or none")
+	blockSize := sizeFlag(fs, "block-size", "block size of the point, e.g. 4M, 1M, 256K")
 	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile (pprof) of the backup to this file")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
@@ -520,7 +530,7 @@ func cmdBackupNBD(ctx context.Context, args []string) (any, bool, error) {
 	}
 	t1 := time.Now()
 	pt, err := store.Backup(ctx, diskstore.BackupRequest{Domain: *domain, Disk: *disk, Checkpoint: "full-" + time.Now().UTC().Format("20060102T150405Z"),
-		Size: size, Changed: changed, Sources: sources(clients), Writers: *writers, Compressor: *comp})
+		Size: size, Changed: changed, Sources: sources(clients), Writers: *writers, Compressor: *comp, BlockSize: uint64(*blockSize)})
 	stop()
 	if err != nil {
 		return nil, *asJSON, err
@@ -542,6 +552,7 @@ func cmdNBDRead(ctx context.Context, args []string) (any, bool, error) {
 	server := fs.String("nbd", "", "NBD server: unix:/path or tcp:HOST:PORT")
 	export := fs.String("export", "", "NBD export name")
 	conns := fs.Int("conns", 1, "NBD connections = parallel readers")
+	blockSize := sizeFlag(fs, "block-size", "read in blocks of this size, as backup-nbd would (e.g. 4M)")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
 	if *server == "" || *conns < 1 {
@@ -554,11 +565,38 @@ func cmdNBDRead(ctx context.Context, args []string) (any, bool, error) {
 	}
 	defer closeAll(clients)
 	extents := time.Since(t0).Seconds()
-	st, err := diskstore.ReadRanges(ctx, changed, size, sources(clients))
+	st, err := diskstore.ReadRanges(ctx, changed, size, uint64(*blockSize), sources(clients))
 	if err != nil {
 		return nil, *asJSON, err
 	}
 	return map[string]any{"command": "nbd-read", "verdict": "OK", "nbd": *server, "export": *export, "disk_bytes": size,
 		"allocated_bytes": sumBytes(changed), "read": st, "mib_s": float64(st.Bytes) / 1048576 / st.Seconds,
 		"timings_s": map[string]float64{"extents": extents, "read": st.Seconds, "total": time.Since(t0).Seconds()}}, *asJSON, nil
+}
+
+// sizeFlag is a byte count flag that takes K and M suffixes (KiB, MiB); 0 means the default.
+type sizeValue int64
+
+func (v *sizeValue) String() string { return strconv.FormatInt(int64(*v), 10) }
+
+func (v *sizeValue) Set(s string) error {
+	mult := int64(1)
+	switch {
+	case strings.HasSuffix(s, "K"):
+		mult, s = 1<<10, strings.TrimSuffix(s, "K")
+	case strings.HasSuffix(s, "M"):
+		mult, s = 1<<20, strings.TrimSuffix(s, "M")
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n < 0 {
+		return fmt.Errorf("size %q: want a number with an optional K or M suffix", s)
+	}
+	*v = sizeValue(n * mult)
+	return nil
+}
+
+func sizeFlag(fs *flag.FlagSet, name, usage string) *sizeValue {
+	v := new(sizeValue)
+	fs.Var(v, name, usage)
+	return v
 }

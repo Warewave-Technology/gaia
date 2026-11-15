@@ -34,7 +34,8 @@ import (
 	"github.com/kopia/kopia/repo/object"
 )
 
-// ADR-004 §2 defaults.
+// ADR-004 §2 defaults. BlockSize is the default block of a point; a backup may choose another
+// (T10 measures them), and an incremental must use its parent's.
 const (
 	BlockSize   = 4 << 20
 	Splitter    = "FIXED-4M"
@@ -54,6 +55,10 @@ type RepoOptions struct {
 	ContentCacheLimitMB  int64
 	MetadataCacheMB      int64
 	MetadataCacheLimitMB int64
+	// Repository format, fixed at creation: Kopia's splitter (default Splitter) and content hash
+	// ("" = Kopia's default, BLAKE2B-256-128). T10 measures both.
+	Splitter string
+	Hash     string
 }
 
 // Create initialises a new repository with the ADR-004 §2 splitter and connects to it.
@@ -63,7 +68,12 @@ func Create(ctx context.Context, o RepoOptions) error {
 		return fmt.Errorf("repository storage %s: %w", o.Path, err)
 	}
 	defer st.Close(ctx)
-	if err := repo.Initialize(ctx, st, &repo.NewRepositoryOptions{ObjectFormat: format.ObjectFormat{Splitter: Splitter}}, o.Password); err != nil {
+	sp := o.Splitter
+	if sp == "" {
+		sp = Splitter
+	}
+	if err := repo.Initialize(ctx, st, &repo.NewRepositoryOptions{ObjectFormat: format.ObjectFormat{Splitter: sp},
+		BlockFormat: format.ContentFormat{Hash: o.Hash}}, o.Password); err != nil {
 		return fmt.Errorf("initialise repository: %w", err)
 	}
 	return Connect(ctx, o)
@@ -174,6 +184,8 @@ type BackupRequest struct {
 	Parent  *Point   // nil: full backup
 	Sources []Source // one per parallel reader (an NBD connection serves one request at a time)
 	Writers int      // goroutines that compress, encrypt and store blocks; 0: one per source
+	// BlockSize of the new point (0: BlockSize). An incremental must use its parent's.
+	BlockSize uint64
 	// Compressor overrides Compression; "none" stores blocks uncompressed.
 	Compressor string
 }
@@ -189,14 +201,21 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	if len(req.Sources) == 0 {
 		return nil, errors.New("no source")
 	}
-	n := int((req.Size + BlockSize - 1) / BlockSize)
+	bs := req.BlockSize
+	if bs == 0 {
+		bs = BlockSize
+	}
+	if bs < 64<<10 || bs%4096 != 0 || bs > 64<<20 {
+		return nil, fmt.Errorf("block size %d: want a multiple of 4096 between 64 KiB and 64 MiB", bs)
+	}
+	n := int((req.Size + bs - 1) / bs)
 	var parent *blockIndex
 	if req.Parent != nil {
 		var err error
 		if parent, err = s.loadIndex(ctx, req.Parent); err != nil {
 			return nil, err
 		}
-		if parent.Size != req.Size || parent.BlockSize != BlockSize {
+		if parent.Size != req.Size || parent.BlockSize != bs {
 			return nil, fmt.Errorf("disk is %d bytes, parent point %d bytes (block %d): a full backup is needed",
 				req.Size, parent.Size, parent.BlockSize)
 		}
@@ -205,13 +224,13 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	if err != nil {
 		return nil, err
 	}
-	idx := &blockIndex{Size: req.Size, BlockSize: BlockSize, Blocks: make([]string, n)}
+	idx := &blockIndex{Size: req.Size, BlockSize: bs, Blocks: make([]string, n)}
 	st := BackupStats{Blocks: n}
 	for _, r := range changed {
 		st.ChangedBytes += r.Length
 	}
 	var jobs []blockJob
-	perBlock := splitByBlock(changed)
+	perBlock := splitByBlock(changed, bs)
 	for i := range n {
 		rs := perBlock[i]
 		switch {
@@ -226,7 +245,7 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	}
 
 	pt := &Point{Domain: req.Domain, Disk: req.Disk, Kind: "full", Checkpoint: req.Checkpoint,
-		Size: req.Size, BlockSize: BlockSize, Created: start.UTC()}
+		Size: req.Size, BlockSize: bs, Created: start.UTC()}
 	if req.Parent != nil {
 		pt.Kind, pt.ParentID, pt.ParentCheckpoint = "incremental", req.Parent.ID, req.Parent.Checkpoint
 	}
@@ -260,7 +279,7 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 			}
 		}
 		for range cap(pool) {
-			pool <- make([]byte, BlockSize)
+			pool <- make([]byte, bs)
 		}
 		for _, src := range req.Sources {
 			rwg.Add(1)
@@ -276,7 +295,7 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 					}
 					waited := time.Since(t)
 					t = time.Now()
-					b, srcBytes, repoBytes, err := fillBlock(ctx, w, src, parent, req.Size, j, buf)
+					b, srcBytes, repoBytes, err := fillBlock(ctx, w, src, parent, req.Size, bs, j, buf)
 					busy := time.Since(t)
 					mu.Lock()
 					st.ReaderWaitSeconds += waited.Seconds()
@@ -371,9 +390,9 @@ type filledBlock struct {
 }
 
 // fillBlock assembles block j.i in buf: the parent's copy (or zeroes) with the changed ranges read from src on top.
-func fillBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent *blockIndex, size uint64, j blockJob, buf []byte) (b []byte, srcBytes, repoBytes uint64, err error) {
-	bStart := uint64(j.i) * BlockSize
-	b = buf[:min(BlockSize, size-bStart)]
+func fillBlock(ctx context.Context, w repo.RepositoryWriter, src Source, parent *blockIndex, size, bs uint64, j blockJob, buf []byte) (b []byte, srcBytes, repoBytes uint64, err error) {
+	bStart := uint64(j.i) * bs
+	b = buf[:min(bs, size-bStart)]
 	covered := uint64(0)
 	for _, r := range j.ranges {
 		covered += r.Length
@@ -423,15 +442,18 @@ type ReadStats struct {
 }
 
 // ReadRanges reads exactly what Backup would read from the sources for these changed ranges, in the
-// same 4 MiB blocks and with one reader per source, and discards it: the hash-free reference of
-// ADR-004 A1 for the backup's throughput.
-func ReadRanges(ctx context.Context, changed []Range, size uint64, sources []Source) (ReadStats, error) {
+// same blocks (blockSize, 0 = BlockSize) and with one reader per source, and discards it: the
+// hash-free reference of ADR-004 A1 for the backup's throughput.
+func ReadRanges(ctx context.Context, changed []Range, size, blockSize uint64, sources []Source) (ReadStats, error) {
 	start := time.Now()
+	if blockSize == 0 {
+		blockSize = BlockSize
+	}
 	rs, err := normalise(changed, size)
 	if err != nil {
 		return ReadStats{}, err
 	}
-	perBlock := splitByBlock(rs)
+	perBlock := splitByBlock(rs, blockSize)
 	idx := make([]int, 0, len(perBlock))
 	for i := range perBlock {
 		idx = append(idx, i)
@@ -448,7 +470,7 @@ func ReadRanges(ctx context.Context, changed []Range, size uint64, sources []Sou
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			buf := make([]byte, BlockSize)
+			buf := make([]byte, blockSize)
 			for i := range next {
 				var n uint64
 				for _, r := range perBlock[i] {
@@ -686,13 +708,13 @@ func normalise(in []Range, size uint64) ([]Range, error) {
 	return out, nil
 }
 
-// splitByBlock cuts sorted, merged ranges at block boundaries: block index -> its ranges.
-func splitByBlock(rs []Range) map[int][]Range {
+// splitByBlock cuts sorted, merged ranges at block boundaries (blocks of bs): block index -> its ranges.
+func splitByBlock(rs []Range, bs uint64) map[int][]Range {
 	out := map[int][]Range{}
 	for _, r := range rs {
 		for off, end := r.Offset, r.Offset+r.Length; off < end; {
-			i := int(off / BlockSize)
-			bEnd := min(end, uint64(i+1)*BlockSize)
+			i := int(off / bs)
+			bEnd := min(end, uint64(i+1)*bs)
 			out[i] = append(out[i], Range{off, bEnd - off})
 			off = bEnd
 		}
