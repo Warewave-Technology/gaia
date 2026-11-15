@@ -14,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Warewave-Technology/gaia/internal/evidence"
 )
 
 func writeConfig(t *testing.T, body string) string {
@@ -134,5 +136,39 @@ func TestPPMToPNG(t *testing.T) {
 		if _, err := ppmToPNG([]byte(bad)); err == nil {
 			t.Fatalf("%q accepted", bad)
 		}
+	}
+}
+
+// Without an image (e.g. the conversion failed), Run still seals a bundle: the pre-checks,
+// every VM check UNKNOWN, the extra files, and a ledger entry.
+func TestRunWithoutImageSealsPreChecks(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := evidence.GenerateKey(filepath.Join(dir, "k.pem"), filepath.Join(dir, "p.pem")); err != nil {
+		t.Fatal(err)
+	}
+	key, _ := evidence.LoadPrivateKey(filepath.Join(dir, "k.pem"))
+	pub, _ := evidence.LoadPublicKey(filepath.Join(dir, "p.pem"))
+	cfg, err := LoadConfig(writeConfig(t, `{"vm":"vm1","template":"linux-basic","machine":{"mac":"52:54:00:aa:bb:cc"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	extra := filepath.Join(dir, "v2v.log")
+	os.WriteFile(extra, []byte("virt-v2v: error: no root device found\n"), 0o644)
+	res, err := Run(context.Background(), Options{Config: cfg, EvidenceDir: filepath.Join(dir, "ev"), Ledger: filepath.Join(dir, "ledger.jsonl"),
+		Key: key, WorkDir: dir, SerialDir: dir, SkipReason: "conversion failed",
+		PreChecks: []CheckResult{{Name: "conversion", Type: "virt-v2v", Verdict: Critical, Detail: "exit 1"}},
+		Extra:     map[string]string{"migration/v2v.log": extra}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Critical || len(res.Checks) != 3 || res.Checks[1].Verdict != Unknown || res.LedgerSeq != 1 {
+		t.Fatalf("result %+v", res)
+	}
+	if b, _ := os.ReadFile(filepath.Join(res.BundleDir, "migration", "v2v.log")); !strings.Contains(string(b), "no root device") {
+		t.Fatal("extra file not in the bundle")
+	}
+	lr, err := evidence.VerifyLedger(filepath.Join(dir, "ledger.jsonl"), filepath.Join(dir, "ev"), pub)
+	if err != nil || !lr.Intact {
+		t.Fatalf("ledger %+v %v", lr, err)
 	}
 }

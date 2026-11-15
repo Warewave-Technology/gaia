@@ -79,6 +79,12 @@ type Options struct {
 	Socket      string    // libvirtd socket
 	Self        string    // this binary, run as `Self probe ...` inside the sandbox's network namespace
 	Log         io.Writer // progress lines
+	// For callers that do more than verify (the migration check): steps that ran before,
+	// recorded as checks ahead of the VM's own; files to add to the bundle (bundle path ->
+	// local file); and, when there is no image (Image == ""), why the guest was not started.
+	PreChecks  []CheckResult
+	Extra      map[string]string
+	SkipReason string
 }
 
 // CheckResult is the outcome of one check. Seconds counts from the moment the guest's vCPUs started.
@@ -219,6 +225,28 @@ func (x *run) verify(ctx context.Context) error {
 	cfg, _ := json.MarshalIndent(c, "", "  ")
 	if err := os.WriteFile(filepath.Join(x.dir, "config.json"), append(cfg, '\n'), 0o644); err != nil {
 		return err
+	}
+	r.Checks = append(r.Checks, x.o.PreChecks...)
+	for dst, src := range x.o.Extra {
+		if strings.Contains(dst, "..") || filepath.IsAbs(dst) {
+			return fmt.Errorf("extra file %q: bad bundle path", dst)
+		}
+		b, err := os.ReadFile(src)
+		if err != nil {
+			return fmt.Errorf("extra file %s: %w", src, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(x.dir, dst)), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(x.dir, dst), b, 0o644); err != nil {
+			return err
+		}
+	}
+	if x.o.Image == "" {
+		for _, k := range c.Checks {
+			r.Checks = append(r.Checks, CheckResult{Name: k.Name, Type: k.Type, Verdict: Unknown, Detail: "not run: " + x.o.SkipReason})
+		}
+		return nil
 	}
 	if x.o.RestoreJSON != "" {
 		b, err := os.ReadFile(x.o.RestoreJSON)
@@ -641,7 +669,7 @@ func (x *run) finish() {
 	if len(r.Errors) > 0 && len(verdicts) > 0 {
 		verdicts = append(verdicts, Unknown) // a harness error: what was not checked is not OK
 	}
-	if len(r.Checks) < len(x.c.Checks)+1 {
+	if len(r.Checks) < len(x.o.PreChecks)+len(x.c.Checks)+1 { // + image_unchanged
 		verdicts = append(verdicts, Unknown)
 	}
 	r.Verdict = Worst(verdicts...)

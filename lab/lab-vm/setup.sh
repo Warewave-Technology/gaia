@@ -32,6 +32,9 @@ aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs fuse3
 # T7: dnsmasq for the verification sandbox's DHCP, iproute2 for its network namespace.
 aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients qemu-system-x86 cloud-image-utils \
 	dnsmasq-base iproute2 fdisk
+# T8: virt-v2v converts the downloaded VMware VMs for KVM; virt-customize (libguestfs-tools) prepares the
+# ESXi test fixtures (lab only).
+aptq install -y -q --no-install-recommends virt-v2v libguestfs-tools
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then

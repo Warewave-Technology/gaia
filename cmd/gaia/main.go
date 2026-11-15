@@ -3,12 +3,17 @@
 //	gaia verify -config VM.json -image RESTORED.raw -key KEY.pem -evidence-dir DIR -ledger LEDGER [-restore-json R.json]
 //	gaia evidence keygen -key KEY.pem -pub PUB.pem
 //	gaia evidence verify -pubkey PUB.pem (-bundle DIR | -ledger LEDGER -evidence-dir DIR)
+//	gaia migrate-check -url https://ESXI/sdk -password-file F -vm A,B -key KEY.pem -evidence-dir DIR -ledger LEDGER
 //
 // `gaia verify` boots the image in an isolated libvirt sandbox on a copy-on-write
 // overlay, runs the VM's checks from inside the sandbox network, and seals a signed
 // evidence bundle into the ledger. `gaia evidence verify` detects any change to a
 // bundle or the ledger. Every command prints a human-readable result, or JSON with
 // -json. Exit codes: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN.
+//
+// `gaia migrate-check` (ADR-003, stage 1) reads powered-off VMs from vSphere with
+// read-only calls only, converts them with virt-v2v and verifies them like above,
+// one signed readiness bundle per VM.
 //
 // `gaia probe` is internal: verify runs it inside the sandbox's network namespace.
 package main
@@ -21,12 +26,15 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/migrate"
 	"github.com/Warewave-Technology/gaia/internal/verify"
+	"github.com/Warewave-Technology/gaia/internal/vsphereread"
 )
 
 func main() {
@@ -48,6 +56,8 @@ func main() {
 		case "verify":
 			os.Exit(cmdEvidenceVerify(os.Args[3:]))
 		}
+	case "migrate-check":
+		os.Exit(cmdMigrateCheck(ctx, os.Args[2:]))
 	case "probe":
 		os.Exit(cmdProbe(ctx, os.Args[2:]))
 	}
@@ -55,7 +65,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gaia verify | evidence keygen | evidence verify [flags]  (-h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: gaia verify | migrate-check | evidence keygen | evidence verify [flags]  (-h for flags)")
 	os.Exit(3)
 }
 
@@ -221,4 +231,107 @@ func cmdProbe(ctx context.Context, args []string) int {
 		return 0
 	}
 	return 2
+}
+
+func cmdMigrateCheck(ctx context.Context, args []string) int {
+	fs := flag.NewFlagSet("migrate-check", flag.ExitOnError)
+	rawURL := fs.String("url", os.Getenv("GAIA_VSPHERE_URL"), "vSphere SDK URL, e.g. https://esxi.lab/sdk")
+	user := fs.String("user", envOr("GAIA_VSPHERE_USER", "root"), "vSphere user")
+	pwFile := fs.String("password-file", "", "file holding the password (default: $GAIA_VSPHERE_PASSWORD); never printed")
+	insecure := fs.Bool("insecure", false, "skip TLS verification (lab only)")
+	vms := fs.String("vm", "", "comma-separated VM names (default: every powered-off VM)")
+	checksPath := fs.String("checks", "", "per-VM checks (JSON: {\"vm\": {\"template\": ..., \"checks\": [...]}, \"*\": {...}})")
+	workDir := fs.String("work-dir", "/var/lib/gaia/migrate", "downloads (one folder per VM)")
+	imageDir := fs.String("image-dir", "/var/lib/libvirt/images/gaia-migrate", "converted images (qemu must have access)")
+	calls := fs.String("calls", "", "write the read-only guard's call log here (JSON lines); default: <work-dir>/calls.jsonl")
+	keyPath := fs.String("key", "", "ed25519 private key (PEM) that signs the evidence")
+	evDir := fs.String("evidence-dir", "", "directory for evidence bundles")
+	ledger := fs.String("ledger", "", "append-only ledger file")
+	sandboxDir := fs.String("sandbox-dir", "/var/lib/libvirt/images", "directory for the sandbox's copy-on-write overlay")
+	serialDir := fs.String("serial-dir", "/var/log/libvirt/qemu", "directory for the serial console log while the guest runs")
+	v2vTimeout := fs.Duration("v2v-timeout", 30*time.Minute, "virt-v2v timeout per VM")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	if *rawURL == "" || *keyPath == "" || *evDir == "" || *ledger == "" {
+		return fail(*asJSON, "migrate-check", errors.New("-url, -key, -evidence-dir and -ledger are required"))
+	}
+	pw := os.Getenv("GAIA_VSPHERE_PASSWORD")
+	if *pwFile != "" {
+		b, err := os.ReadFile(*pwFile)
+		if err != nil {
+			return fail(*asJSON, "migrate-check", err)
+		}
+		pw = strings.TrimRight(string(b), "\r\n")
+	}
+	if pw == "" {
+		return fail(*asJSON, "migrate-check", errors.New("no password: -password-file or GAIA_VSPHERE_PASSWORD"))
+	}
+	var checks migrate.ChecksFile
+	if *checksPath != "" {
+		var err error
+		if checks, err = migrate.LoadChecks(*checksPath); err != nil {
+			return fail(*asJSON, "migrate-check", err)
+		}
+	}
+	key, err := evidence.LoadPrivateKey(*keyPath)
+	if err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	if err := os.MkdirAll(*workDir, 0o755); err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	if *calls == "" {
+		*calls = filepath.Join(*workDir, "calls.jsonl")
+	}
+	callLog, err := os.OpenFile(*calls, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	defer callLog.Close()
+	src, err := vsphereread.Connect(ctx, *rawURL, *user, pw, *insecure, callLog)
+	if err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	defer src.Logout(context.Background())
+	var names []string
+	for _, n := range strings.Split(*vms, ",") {
+		if n = strings.TrimSpace(n); n != "" {
+			names = append(names, n)
+		}
+	}
+	rep, err := migrate.Run(ctx, migrate.Options{Source: src, VMs: names, Checks: checks, WorkDir: *workDir, ImageDir: *imageDir,
+		CallLog: *calls, V2VTimeout: *v2vTimeout, Log: os.Stderr,
+		Verify: verify.Options{Key: key, EvidenceDir: *evDir, Ledger: *ledger, WorkDir: *sandboxDir, SerialDir: *serialDir,
+			Socket: "/run/libvirt/libvirt-sock", Self: self, Log: os.Stderr}})
+	if err != nil {
+		return fail(*asJSON, "migrate-check", err)
+	}
+	verdict := rep.Verdict
+	if rep.Blocked > 0 { // Gaia tried a write call: the guard stopped it, but that is a bug (ADR-003 §2)
+		verdict = verify.Worst(verdict, verify.Critical)
+	}
+	if *asJSON {
+		emit(rep)
+	} else {
+		fmt.Printf("migration check of %s (%s): %s\n", rep.Source, rep.Product, verdict)
+		for _, r := range rep.VMs {
+			fmt.Printf("  %-24s %-9s bundle %s (ledger seq %d)\n", r.VM, r.Readiness, r.BundleID, r.LedgerSeq)
+			for _, c := range r.Checks {
+				fmt.Printf("      %-16s %-9s %s\n", c.Name, c.Verdict, c.Detail)
+			}
+		}
+		fmt.Printf("  vSphere calls: %d, blocked: %d (call log %s)\n", rep.Calls, rep.Blocked, *calls)
+	}
+	return verify.ExitCode(verdict)
+}
+
+func envOr(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
 }
