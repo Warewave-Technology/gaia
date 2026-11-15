@@ -77,7 +77,6 @@ grep " $IMG\$" "$WORK/SHA512SUMS"
 
 esxi "$DATASTORE" <<'EOF'
 [ -d "/vmfs/volumes/$1" ] || { echo "no datastore $1"; ls /vmfs/volumes; exit 1; }
-vmkload_mod -l | grep -q multiextent || vmkload_mod multiextent
 EOF
 
 cat >"$WORK/50-gaia.network" <<'EOF'
@@ -99,7 +98,7 @@ EOF
 
 for vm in "${VMS[@]}"; do
 	delete_vm "$vm" >/dev/null
-	qcow="$WORK/$vm.qcow2" raw="$WORK/$vm.raw" vmdk="$WORK/$vm-src.vmdk"
+	qcow="$WORK/$vm.qcow2" raw="$WORK/$vm.raw"
 	cp "$IMAGES/$IMG" "$qcow"
 	# Offline changes only (the guest never runs here): hostname, SSH host keys, the health endpoint,
 	# DHCP on any NIC by name (the NIC is vmxnet3 on ESXi, virtio on KVM), cloud-init off (no datasource).
@@ -115,19 +114,36 @@ for vm in "${VMS[@]}"; do
 		dd if=/dev/zero of="$raw" bs=440 count=1 conv=notrunc status=none
 		echo "$vm: zeroed the MBR boot code (bytes 0-439)"
 	fi
-	qemu-img convert -q -f raw -O vmdk -o subformat=monolithicSparse,adapter_type=lsilogic "$raw" "$vmdk"
-	rm -f "$qcow" "$raw"
+	rm -f "$qcow"
+	# ESXi 8 has no multiextent module, so it cannot import hosted (sparse) VMDKs: the raw image goes up as
+	# a flat extent with a VMFS descriptor, and vmkfstools clones that into a thin disk (VMFS to VMFS).
 	dir="/vmfs/volumes/$DATASTORE/$vm"
 	esxi "$dir" <<'EOF'
 mkdir -p "$1"
 EOF
-	esxi_put "$vmdk" "$dir/$vm-src.vmdk"
-	rm -f "$vmdk"
-	esxi "$dir" "$vm" "${MAC[$vm]}" <<'EOF'
+	esxi_put "$raw" "$dir/$vm-src-flat.vmdk"
+	sectors=$(($(stat -c %s "$raw") / 512))
+	rm -f "$raw"
+	esxi "$dir" "$vm" "${MAC[$vm]}" "$sectors" <<'EOF'
 set -e
 cd "$1"
+cat >"$2-src.vmdk" <<VMDK
+# Disk DescriptorFile
+version=1
+CID=fffffffe
+parentCID=ffffffff
+createType="vmfs"
+
+RW $4 VMFS "$2-src-flat.vmdk"
+
+ddb.adapterType = "lsilogic"
+ddb.geometry.cylinders = "$(($4 / 16065))"
+ddb.geometry.heads = "255"
+ddb.geometry.sectors = "63"
+ddb.virtualHWVersion = "19"
+VMDK
 vmkfstools -i "$2-src.vmdk" -d thin "$2.vmdk" >/dev/null
-rm -f "$2-src.vmdk"
+vmkfstools -U "$2-src.vmdk"
 cat >"$2.vmx" <<VMX
 .encoding = "UTF-8"
 config.version = "8"
