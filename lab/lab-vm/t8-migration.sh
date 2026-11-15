@@ -114,12 +114,17 @@ grep -q '^ok ' "$OUT_DIR/guard-tests.txt" && guard_tests=true || guard_tests=fal
 section "fixture (lab only: ESXi host shell)"
 hostd_fixture=$(esxi <<<'wc -l < /var/log/hostd.log')
 "$FIXTURE" create "$ESXI_IP"
-# Positive control for the task count below: the fixture's vim-cmd calls do create tasks in hostd.log.
-fixture_tasks=$(esxi "$hostd_fixture" <<'EOF'
-tail -n +"$(($1 + 1))" /var/log/hostd.log | grep -c 'Task Created' || true
+esxi "$hostd_fixture" >"$OUT_DIR/hostd-fixture.log" <<'EOF'
+tail -n +"$(($1 + 1))" /var/log/hostd.log
 EOF
-)
-echo "hostd.log 'Task Created' while the fixture was made (positive control): $fixture_tasks"
+# hostd logs a task for every operation it runs, reads included: the datastore file service resolves each
+# GET /folder's dcPath with vim.SearchIndex.findByInventoryPath (first T8 run). Those are reads; any other
+# task is a write. The fixture's vim-cmd calls are the positive control: they must show up as writes.
+read_tasks() { grep 'Task Created' "$1" | grep -c -E 'vim\.SearchIndex\.find' || true; }
+write_tasks() { grep 'Task Created' "$1" | grep -c -v -E 'vim\.SearchIndex\.find' || true; }
+fixture_tasks=$(write_tasks "$OUT_DIR/hostd-fixture.log")
+echo "hostd.log while the fixture was made (positive control): $fixture_tasks write task(s)"
+grep 'Task Created' "$OUT_DIR/hostd-fixture.log" | sed 's/.*Task Created : /  /' | sort | uniq -c
 host_state "$OUT_DIR/host-before.txt"
 cat "$OUT_DIR/host-before.txt"
 
@@ -145,8 +150,10 @@ host_state "$OUT_DIR/host-after.txt"
 section "read-only proof"
 echo "Gaia's call log (method path op allowed status):"
 jq -r '[.method, .path, (.op // "-"), .allowed, (.status // "-")] | @tsv' "$OUT_DIR/calls.jsonl" | sort | uniq -c
-tasks=$(grep -c 'Task Created' "$OUT_DIR/hostd-window.log" || true)
-echo "hostd.log while the check ran: $(wc -l <"$OUT_DIR/hostd-window.log") lines, 'Task Created': $tasks"
+tasks=$(write_tasks "$OUT_DIR/hostd-window.log")
+reads=$(read_tasks "$OUT_DIR/hostd-window.log")
+gets=$(jq -s 'map(select(.method == "GET")) | length' "$OUT_DIR/calls.jsonl")
+echo "hostd.log while the check ran: $(wc -l <"$OUT_DIR/hostd-window.log") lines; write tasks: $tasks; read tasks: $reads (GET /folder calls: $gets)"
 grep 'Task Created' "$OUT_DIR/hostd-window.log" || true
 if diff -u "$OUT_DIR/host-before.txt" "$OUT_DIR/host-after.txt"; then host_unchanged=true; else host_unchanged=false; fi
 echo "fixture VMs (power state, folder listing) unchanged: $host_unchanged"
@@ -163,7 +170,8 @@ jq -c '{verdict, entries: .report.entries, bundles: [.report.bundles[] | {bundle
 
 section "gate (CLAUDE.md T8)"
 jq -n --slurpfile m "$OUT_DIR/migrate.json" --slurpfile ev "$OUT_DIR/evidence-verify.json" --slurpfile calls "$OUT_DIR/calls.jsonl" \
-	--argjson guard_tests "$guard_tests" --argjson tasks "$tasks" --argjson fixture_tasks "${fixture_tasks:-0}" --argjson host_unchanged "$host_unchanged" '
+	--argjson guard_tests "$guard_tests" --argjson tasks "$tasks" --argjson reads "$reads" --argjson gets "$gets" \
+	--argjson fixture_tasks "${fixture_tasks:-0}" --argjson host_unchanged "$host_unchanged" '
 	($m[0].vms | map({key: .vm, value: .}) | from_entries) as $v
 	| $calls as $c
 	| {
@@ -174,9 +182,10 @@ jq -n --slurpfile m "$OUT_DIR/migrate.json" --slurpfile ev "$OUT_DIR/evidence-ve
 	  c_zero_writes: {allowlist_tests_pass: $guard_tests, calls: ($c | length), blocked: ($c | map(select(.allowed | not)) | length),
 	                  ops: ($c | map(.op // (.method + " /folder")) | unique),
 	                  non_read: ($c | map(select((.method == "POST" and .path == "/sdk") or ((.method == "GET" or .method == "HEAD") and (.path | startswith("/folder/"))) | not)) | length),
-	                  hostd_tasks_created_during_check: $tasks, hostd_tasks_created_by_fixture_positive_control: $fixture_tasks,
-	                  fixture_vms_unchanged: $host_unchanged,
-	                  pass: ($guard_tests and ($c | length) > 0 and ($c | all(.allowed)) and $tasks == 0 and $fixture_tasks > 0 and $host_unchanged)}
+	                  hostd_write_tasks_during_check: $tasks, hostd_read_tasks_during_check: $reads, get_folder_calls: $gets,
+	                  hostd_write_tasks_by_fixture_positive_control: $fixture_tasks, fixture_vms_unchanged: $host_unchanged,
+	                  pass: ($guard_tests and ($c | length) > 0 and ($c | all(.allowed)) and $tasks == 0 and $reads == $gets
+	                         and $fixture_tasks > 0 and $host_unchanged)}
 	} | . + {verdict: (if .a_linux_ready.pass and .b_broken_not_ok.pass and .c_zero_writes.pass then "OK"
 	                   elif .a_linux_ready.readiness == null or .a_linux_ready.readiness == "UNKNOWN" then "UNKNOWN"
 	                   else "CRITICAL" end)}' | tee "$OUT_DIR/gate.json"
