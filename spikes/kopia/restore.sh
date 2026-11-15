@@ -91,7 +91,7 @@ cpu_json() { # cpu_json "TOTAL IDLE IOWAIT" (from cpu_sample before the step)
 disk_sample() { awk '$3 ~ /^(sd[a-z]+|vd[a-z]+|nvme[0-9]+n[0-9]+)$/ { print $3, $6, $10 }' /proc/diskstats; }
 disk_json() { # disk_json "SAMPLE" (from disk_sample before the step) -> {"sda": {"read_bytes": .., "written_bytes": ..}}
 	awk 'NR == FNR { r[$1] = $2; w[$1] = $3; next }
-		($1 in r) { printf "%s\"%s\": {\"read_bytes\": %d, \"written_bytes\": %d}", sep, $1, ($2 - r[$1]) * 512, ($3 - w[$1]) * 512; sep = ", " }
+		($1 in r) { printf "%s\"%s\": {\"read_bytes\": %.0f, \"written_bytes\": %.0f}", sep, $1, ($2 - r[$1]) * 512, ($3 - w[$1]) * 512; sep = ", " }
 		BEGIN { printf "{" } END { print "}" }' <(echo "$1") <(disk_sample)
 }
 k() { kopia --config-file="$CFG" "$@"; }
