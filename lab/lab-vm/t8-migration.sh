@@ -62,13 +62,18 @@ esxi() {
 }
 host_state() { # host_state FILE: power state and folder listing (name, size, mtime) of each fixture VM
 	esxi "$DATASTORE" "${VMS[@]}" >"$1" <<'EOF'
+set -e
 ds=$1; shift
 for vm in "$@"; do
 	id=$(vim-cmd vmsvc/getallvms | awk -v n="$vm" '$2 == n { print $1 }')
 	echo "$vm vmid=$id $(vim-cmd vmsvc/power.getstate "$id" | tail -1)"
-	ls -le "/vmfs/volumes/$ds/$vm" | awk 'NR > 1 { print "  " $0 }'
+	ls -l --full-time "/vmfs/volumes/$ds/$vm" >/tmp/gaia-t8-ls
+	awk 'NR > 1 { print "  " $0 }' /tmp/gaia-t8-ls
 done
+rm -f /tmp/gaia-t8-ls
 EOF
+	# A listing that failed would compare as unchanged: require one line per file of each VM.
+	(($(grep -c '^  ' "$1") >= 3 * ${#VMS[@]})) || { echo "UNKNOWN: no folder listing in $1"; cat "$1"; exit 3; }
 }
 # shellcheck disable=SC2329 # invoked by the trap
 cleanup() {
