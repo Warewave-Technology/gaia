@@ -32,6 +32,8 @@ isolated sandbox and issues a signed readiness report per VM.
 | [`lab/`](lab) | Fully automated lab: nested ESXi on Proxmox, Debian lab runner VM |
 | [`cmd/vsphere-probe`](cmd/vsphere-probe) | Diagnostic: checks which backup APIs a vSphere host allows (feeds the migration check's pre-flight) |
 | [`cmd/imgtool`](cmd/imgtool) | Test-image generation, mutation and verification (stdlib only) |
+| [`cmd/gaia-backup`](cmd/gaia-backup) | Spike (T6): incremental KVM backup — libvirt checkpoint + pull-mode backup, changed extents over NBD, into Kopia; restore to a raw image |
+| [`internal/nbd`](internal/nbd) | Minimal pure-Go NBD client (read, block status, dirty bitmaps), tested against `qemu-nbd` |
 | [`spikes/kopia`](spikes/kopia) | Track B: Kopia as the repository for VM disk images |
 
 ## Freedom

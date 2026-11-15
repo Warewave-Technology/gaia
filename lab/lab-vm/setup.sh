@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepares the gaia-lab Debian 12 VM: Go, Kopia, govc, qemu-img and the Gaia tools.
+# Prepares the gaia-lab Debian 12 VM: Go, Kopia, govc, qemu-img, libvirt/KVM (T6) and the Gaia tools.
 # Run as root inside the VM, from a checkout of the repository.
 #
 # Every tool is pinned to a version and checksum, so two labs built from the same commit
@@ -28,6 +28,8 @@ aptq() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
 
 aptq update -q
 aptq install -y -q ca-certificates curl git jq make qemu-utils e2fsprogs fuse3
+# T6: libvirt + KVM for the nested test guest, cloud-localds for its cloud-init seed.
+aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients qemu-system-x86 cloud-image-utils
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
