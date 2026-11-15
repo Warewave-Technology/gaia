@@ -346,8 +346,10 @@ func (x *run) verify(ctx context.Context) error {
 		}
 	}
 	if Worst(checkVerdicts(r.Checks)...) == OK {
+		// Seconds since the vCPUs started, so only the guest's own checks count; pre-checks carry
+		// their own durations (a download, a conversion) and are not part of it.
 		ready := 0.0
-		for _, k := range r.Checks {
+		for _, k := range r.Checks[len(x.o.PreChecks):] {
 			ready = max(ready, k.Seconds)
 		}
 		r.Timings["ready"] = ready
