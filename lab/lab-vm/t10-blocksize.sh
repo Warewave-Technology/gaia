@@ -257,7 +257,7 @@ EOF
 		sleep 5
 	done
 }
-churn() { grep -a -o 'GAIA-CHURN bytes=[0-9]*' "$SERIAL" | tail -1 | cut -d= -f2; }
+churn() { { grep -a -o 'GAIA-CHURN bytes=[0-9]*' "$SERIAL" || true; } | tail -1 | cut -d= -f2; } # pgbench reports none
 
 : >"$OUT_DIR/cycles.jsonl"
 : >"$OUT_DIR/restores.jsonl"
