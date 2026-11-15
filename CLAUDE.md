@@ -1,8 +1,8 @@
-# CLAUDE.md — Gaia, Phase 2
+# CLAUDE.md — Gaia, Phase 2 (closing)
 
 You are the implementation engineer for **Gaia**, a free (AGPL-3.0-or-later) end-to-end backup and
-recoverability platform. Read `README.md`, every file in `docs/adr/` (ADR-003 and ADR-004 are new and change
-earlier decisions) and the Phase 1 reports in `docs/reports/` before you change anything.
+recoverability platform. Read `README.md`, every file in `docs/adr/` (ADR-004 has new
+**Amendments** that win over its original text) and the reports in `docs/reports/` before you change anything.
 
 ## Who does what
 
@@ -32,76 +32,69 @@ tell him what output to send back.
 8. Keep `go.sum` committed; CI must stay green (`make check`).
 9. **Never call a write API against a VMware migration source** (ADR-003 §2). In our lab only, the ESXi host shell
    may create and delete test fixtures; label such scripts `fixture` and keep them out of `cmd/` and `internal/`.
-10. Throughput gates use ADR-004 §1: same-bytes reference, median of ≥ 3 runs.
+10. Throughput gates use ADR-004 A1: hash-free read of the same bytes from the same source (the faster of single-
+    and multi-stream), median of ≥ 3 runs.
 
-## Where Phase 1 ended
+## Where we are
 
-| Track | Result | Evidence |
+| Task | Result | Evidence |
 |---|---|---|
-| T0 bootstrap | PASS | `2026-11-14-T0.md` |
-| T1 lab | PASS | `2026-11-14-T1.md` |
-| T2 free ESXi (Track A) | FAIL — closed by ADR-003, VMware becomes a migration source | `2026-11-14-T2.md` |
-| T3 Kopia (Track B) | PASS with tuning — defaults fixed by ADR-004 §2 | `2026-11-14-T3.md` |
+| T0–T3 (Phase 1) | T2 FAIL → ADR-003; T3 PASS with tuning | `2026-11-14-T*.md` |
+| T4 Kopia gate | Re-scored `FAIL` under ADR-004 A1 (median 2.388 vs `plain_read_s`) | `2026-11-15-T4.md` |
+| T5 restore | Cause found; became ADR-004 A2 | `2026-11-15-T5.md` |
+| T6 incremental | PASS | `2026-11-15-T6.md` |
+| T7 verification engine | PASS; Proven RTO defined in ADR-004 A4 | `2026-11-16-T7.md` |
+| T8 migration check (cold, Linux) | PASS | `2026-11-16-T8.md` |
 
-Update `README.md`'s Status section to say Phase 2 and to describe the migration check in one line.
+Phase 2 closes with T9–T11. After that the architect makes the go/no-go decision for the MVP.
 
-## Phase 2 tasks (do them in this order)
+## Phase 2 closing tasks (do them in this order)
 
 Each task ends with a report (see "Reporting"). Do not start the next task before the report of the current one
-exists. Lab capacity: `gaia-lab` disk is shared — keep the free-space check and cache handling from T3 in every
-runner, and `fstrim` after each run.
+exists. Keep the free-space checks, cache handling and `fstrim` from earlier runners in every new runner.
 
-### T4 — Close the Track B gate formally (small)
-- Add a repeat count to `lab/lab-vm/t3-kopia.sh` and the ADR-004 §1 gate (median of ≥ 3, reference
-  `sha256_full_read_s`) to `spikes/kopia/run.sh` / the runner summary. Keep the old `qemu-img` ratio as context.
-- Run `s2-default/FIXED-4M` × 3.
-- **Output:** report `T4`. Gate: median `full_backup / sha256_full_read` ≤ 2 and all restores byte-identical.
+### T9 — Full backup throughput through the product path (ADR-004 A1)
+- Measure a **full** backup with the product path from T6 (NBD reader → Kopia Go library), not the Kopia CLI.
+  Source: the 30 GiB test image exported read-only over NBD (`qemu-nbd`), or a guest disk if you prefer; say which.
+- Layout: source on one virtual disk, repository on the other (`scsi2` from T5). Also run once with both on the
+  same disk, as context only.
+- Reference (ADR-004 A1): hash-free read of exactly the byte ranges the backup reads, from the same NBD source;
+  report single-stream and multi-stream, gate against the faster.
+- Allowed tuning: number of NBD readers and Kopia writers, compression `s2-default` vs `none`. Not the splitter
+  (that is T10). No Rust data path.
+- **Output:** report `T9`. Gate: median `full_backup / plain_read` ≤ 2 over ≥ 3 runs, every restore byte-identical.
+  If it fails after tuning, name the bottleneck **with a profile** (`pprof` CPU profile of the backup), not a hypothesis.
 
-### T5 — Restore performance (groundwork for Proven RTO)
-- Full restore was 3–5× slower than backup (T3, Yorum 5). Find the cause **with measurements**, not hypotheses.
-  At least: Kopia cache on the same disk vs elsewhere (tmpfs or a second disk), restore to `/dev/null` vs to a
-  file, Kopia's restore parallelism options (verify against `kopia restore --help` 0.23.1).
-- If a second virtual disk for `gaia-lab` is needed, give Yiğit the exact `qm set` command.
-- **Output:** report `T5`. Gate: `N/A` (investigation). Required: the dominant cause named with a measurement,
-  and a recommended restore configuration with its measured median (≥ 3 runs).
+### T10 — Block size under real incremental write patterns (ADR-004 A3)
+- Splitters: `FIXED-4M`, `FIXED-1M` and the smallest fixed splitter Kopia 0.23.1 offers at or above 256 KiB
+  (check the list Kopia prints; do not assume names).
+- Workloads inside the nested guest, 3 incremental cycles each: (a) T6's scattered 64 KiB random writes,
+  (b) large sequential writes (file copy / log append), (c) a database workload (e.g. `pgbench` on PostgreSQL).
+- Per splitter × workload, medians of: repository growth per incremental, growth ÷ dirty bytes, bytes read back
+  from the repository during backup, incremental backup time, restore time of the latest point (ADR-004 A2 restore).
+- **Output:** report `T10` with a recommendation table. Gate: `N/A` (decision input). Do not change the default
+  yourself; the architect amends ADR-004.
 
-### T6 — Incremental KVM backup: changed extents only (ADR-004 §4–6)
-- Build `internal/nbd` (pure Go NBD client, ADR-004 §6) with tests against `qemu-nbd` in CI.
-- Spike `cmd/gaia-backup` (name can change): libvirt checkpoint + pull-mode backup through go-libvirt, read dirty
-  extents over NBD, write them into a Kopia repository **through the Kopia Go library** (ADR-004 §2 defaults).
-  Restore produces a qcow2/raw image.
-- Test VM: a small Linux guest inside `gaia-lab` (nested KVM; `gaia-lab` has `cpu: host`, the host has
-  `kvm_amd nested=1`). If `/dev/kvm` is missing in `gaia-lab`, tell Yiğit what to change.
-- Design the correctness check yourself, but it must compare the restored image with the disk state at the
-  checkpoint (e.g. pause the guest and capture a reference), not just "it boots".
-- **Output:** report `T6`. Gate: (a) incremental run reads ≈ only dirty bytes (report bytes read vs dirty bitmap
-  size), (b) restored image byte-identical to the checkpoint reference, (c) restore of the incremental point works.
+### T11 — Migration check stage 1: Windows guest (ADR-003)
+- Yiğit approved (2026-11-16): accepting the Microsoft Evaluation Center license and downloading a Windows Server
+  evaluation ISO, and using the virtio-win ISO published by the Fedora project. Record the exact versions and
+  download URLs in the report. Never commit either ISO.
+- Fixture: an **unattended** Windows Server install that looks like a real VMware guest (VMware virtual hardware;
+  VMware Tools if practical). Installing directly on the nested ESXi via the host shell is allowed (fixture rule 9).
+- Gaia flow unchanged: read-only inventory → datastore HTTP download → `virt-v2v` (with virtio-win) → `gaia verify`.
+- Windows has no serial `login:`. Boot detection must use something that proves Windows is up, e.g. the guest agent
+  (if `virt-v2v` installs it) or a TCP probe (RDP 3389 / WinRM) from the isolated network, plus screenshots.
+- **Output:** report `T11`. Gate: (a) Windows fixture → readiness `OK` with signed evidence, (b) zero write calls
+  against ESXi, (c) the report says which check proved Windows was up and why that check cannot pass on a broken boot.
 
-### T7 — Verification engine v0 (the product's core)
-- `gaia verify` boots a restored image in an isolated libvirt sandbox: copy-on-write overlay (the restored image is
-  never written), an isolated network with no uplink, probes run from inside that network.
-- Health checks v0: boot reached (qemu-guest-agent ping or a serial-console marker), TCP port probe, one HTTP probe.
-  Checks are declared per VM (YAML or JSON), templates first, user probes later (ADR-002 #4).
-- Evidence (ADR-002 #3): console screenshot(s) via libvirt, check results, logs, timings (boot time and restore
-  time feed Proven RTO, ADR-004 §3). Every artefact sha256-hashed; the bundle signed with ed25519; the bundle hash
-  appended to an append-only hash-chain ledger. `gaia evidence verify` detects any tampering.
-- **Output:** report `T7`. Gate: (a) healthy image → OK with a signed bundle, (b) deliberately broken image (e.g.
-  damaged bootloader) → CRITICAL, (c) one modified byte in a bundle or ledger → `gaia evidence verify` fails,
-  (d) the restored image's hash is unchanged after the test.
+### Not in this phase
+Control plane, scheduler, UI, Proxmox adapter, KubeVirt, Windows in-guest (VSS) agent, hot migration check.
 
-### T8 — Migration check, stage 1: cold (ADR-003)
-- In the free ESXi lab: fixture script (host shell, lab only) creates a powered-off **Linux** guest with a real OS.
-- Gaia, with **read-only** vSphere calls only: inventory → download the VM folder (vmx + disks) via the datastore
-  HTTP API → `virt-v2v -i vmx` locally to qcow2 with virtio → `gaia verify` (T7) → readiness report per VM.
-- Prove "read-only": wrap the vSphere client so only an allowlist of read methods can be called, and test it.
-- Windows guest is a stretch goal: Microsoft Evaluation Center ISO + virtio-win. Do it only if Linux passes; report
-  what blocks it if it does not work.
-- **Output:** report `T8`. Gate: (a) Linux fixture → readiness OK with signed evidence, (b) a deliberately broken
-  fixture → not OK, (c) zero write calls against ESXi (allowlist test + run log).
-
-### Not in Phase 2
-Control plane, scheduler, UI, Proxmox adapter, KubeVirt, Windows in-guest agent, hot migration check (stage 2).
-Do not start them.
+Product backlog collected from your reports (do **not** start; the architect will schedule it for the MVP):
+NBD over a unix socket or TLS; checkpoint retention; multiple disks per VM; disk resize handling; signing-key
+management and rotation; anchoring the ledger outside (RFC 3161 or similar); UEFI and Windows boot detection;
+vCenter and multiple datacenters; TLS verification for vSphere; VMs with snapshots as migration sources; thin-disk
+zeros over the network; telling `virt-v2v` environment errors apart from guest rejections.
 
 ## Reporting
 
