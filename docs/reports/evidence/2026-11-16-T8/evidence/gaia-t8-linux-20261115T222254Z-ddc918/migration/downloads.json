@@ -1,0 +1,23 @@
+[
+  {
+    "name": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx",
+    "local": "/var/lib/gaia/migrate/gaia-t8-linux/gaia-t8-linux.vmx",
+    "bytes": 493,
+    "sha256": "9f8a0723b35d78a94521955a0ebb61cc33b986668563ff38076b334c9594ba15",
+    "seconds": 0.016193105
+  },
+  {
+    "name": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmdk",
+    "local": "/var/lib/gaia/migrate/gaia-t8-linux/gaia-t8-linux.vmdk",
+    "bytes": 506,
+    "sha256": "78e06fcbefb5a399315e336fa2ee101f47537fdb128f1840554e2574de120461",
+    "seconds": 0.014959963
+  },
+  {
+    "name": "[datastore1] gaia-t8-linux/gaia-t8-linux-flat.vmdk",
+    "local": "/var/lib/gaia/migrate/gaia-t8-linux/gaia-t8-linux-flat.vmdk",
+    "bytes": 3221225472,
+    "sha256": "05884f5ed3bdada44074a2f83fd9b52479ccebccef4de1a66e572901de3d8a9b",
+    "seconds": 25.84991564
+  }
+]

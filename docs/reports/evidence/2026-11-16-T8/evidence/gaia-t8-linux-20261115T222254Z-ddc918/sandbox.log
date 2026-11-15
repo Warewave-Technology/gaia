@@ -1,0 +1,49 @@
+[22:22:55.607] image /var/lib/libvirt/images/gaia-migrate/gaia-t8-linux/gaia-t8-linux-sda: sha256 a051ac1f9cb9b94c142dcce85c627c295e7899302b5ace4015119350fdcf622c (1253507072 bytes)
+[22:22:55.815] $ sysctl -q -w net.ipv6.conf.gvb-ddc918.disable_ipv6=1
+
+[22:22:55.817] $ ip netns add gaia-verify-ddc918
+
+[22:22:55.821] $ ip link add gvh-ddc918 type veth peer name gvn-ddc918
+
+[22:22:55.821] $ sysctl -q -w net.ipv6.conf.gvh-ddc918.disable_ipv6=1
+
+[22:22:55.834] $ ip link set gvh-ddc918 master gvb-ddc918 up
+
+[22:22:55.856] $ ip link set gvn-ddc918 netns gaia-verify-ddc918
+
+[22:22:55.857] $ ip -n gaia-verify-ddc918 addr add 10.254.0.1/24 dev gvn-ddc918
+
+[22:22:55.861] $ ip -n gaia-verify-ddc918 link set gvn-ddc918 up
+
+[22:22:55.863] $ ip -n gaia-verify-ddc918 link set lo up
+
+[22:22:55.863] $ ip netns exec gaia-verify-ddc918 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-ddc918 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-ddc918/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-ddc918/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-ddc918/dnsmasq.log --user=root --group=root
+[22:22:55.884] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/gaia-migrate/gaia-t8-linux/gaia-t8-linux-sda /var/lib/libvirt/images/gaia-verify-ddc918/overlay.qcow2
+
+[22:22:57.169] $ ip -o addr show dev gvb-ddc918
+
+[22:22:57.170] $ ip -n gaia-verify-ddc918 route show table all
+10.254.0.0/24 dev gvn-ddc918 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-ddc918 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-ddc918 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-ddc918 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-ddc918 table local proto kernel metric 256 pref medium
+[22:22:57.172] guest started (kvm)
+[22:23:14.248] boot reached after 17.076 s
+[22:23:14.709] $ virsh screenshot gaia-verify-ddc918 --file /var/lib/libvirt/images/gaia-verify-ddc918/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-ddc918/screenshot-boot.ppm, with type of image/png
+[22:23:14.710] guest 00:50:56:3f:a8:01 has 10.254.0.86 after 17.538 s
+[22:23:14.723] $ ip netns exec gaia-verify-ddc918 /root/gaia/bin/gaia probe -check {"name":"ssh","type":"tcp","port":22} -host 10.254.0.86 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.00060397,"detail":"connected to 10.254.0.86:22"}
+[22:23:14.723] check ssh: OK (connected to 10.254.0.86:22)
+[22:23:14.743] $ ip netns exec gaia-verify-ddc918 /root/gaia/bin/gaia probe -check {"name":"http-health","type":"http","port":8080,"path":"/health","expect_status":200,"expect_body":"ok"} -host 10.254.0.86 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.008827255,"detail":"GET http://10.254.0.86:8080/health: 200","status":200,"body_head":"ok"}
+[22:23:14.743] check http-health: OK (GET http://10.254.0.86:8080/health: 200)
+[22:23:15.111] $ virsh screenshot gaia-verify-ddc918 --file /var/lib/libvirt/images/gaia-verify-ddc918/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-ddc918/screenshot-end.ppm, with type of image/png
+[22:23:18.131] $ ip netns del gaia-verify-ddc918
+

@@ -1,0 +1,122 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t8-linux-20261115T222254Z-ddc918",
+  "vm": "gaia-t8-linux",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.00017865,
+      "detail": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 9e-8,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.0000044,
+      "detail": "3 files to read, all in [datastore1] gaia-t8-linux"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 25.881360078,
+      "detail": "3 files, 3221226471 bytes in 25.9 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 33.35482119,
+      "detail": "gaia-t8-linux-sda (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:01) in 33.4 s"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 17.076162371,
+      "attempts": 18,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t8-linux login:\""
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "OK",
+      "seconds": 17.551196337,
+      "attempts": 1,
+      "detail": "connected to 10.254.0.86:22"
+    },
+    {
+      "name": "http-health",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 17.571658954,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.86:8080/health: 200"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/libvirt/images/gaia-migrate/gaia-t8-linux/gaia-t8-linux-sda",
+    "format": "qcow2",
+    "bytes": 1253507072,
+    "sha256_before": "a051ac1f9cb9b94c142dcce85c627c295e7899302b5ace4015119350fdcf622c",
+    "sha256_after": "a051ac1f9cb9b94c142dcce85c627c295e7899302b5ace4015119350fdcf622c",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-ddc918",
+    "network": "gaia-verify-ddc918",
+    "bridge": "gvb-ddc918",
+    "netns": "gaia-verify-ddc918",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "10.254.0.86",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-ddc918 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-ddc918 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-ddc918 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-ddc918 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-ddc918 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 17.076162371,
+    "image_hash": 0.802748452,
+    "ready": 33.35482119,
+    "sandbox_setup": 1.563495793,
+    "shutdown": 3.018497524,
+    "total": 24.515241262
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-15T22:22:54.804212181Z",
+  "finished": "2026-11-15T22:23:19.319453443Z"
+}

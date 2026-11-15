@@ -1,0 +1,119 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t8-broken-20261115T222418Z-381a35",
+  "vm": "gaia-t8-broken",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.00009547,
+      "detail": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 9e-8,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000461,
+      "detail": "3 files to read, all in [datastore1] gaia-t8-broken"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 23.644461796,
+      "detail": "3 files, 3221226474 bytes in 23.6 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 35.222422605,
+      "detail": "gaia-t8-broken-sda (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:02) in 35.2 s"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "CRITICAL",
+      "seconds": 180.097585195,
+      "attempts": 181,
+      "detail": "no match for \"(?m)login: *$\" on the serial console within 180 s"
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "http-health",
+      "type": "http",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/libvirt/images/gaia-migrate/gaia-t8-broken/gaia-t8-broken-sda",
+    "format": "qcow2",
+    "bytes": 1253507072,
+    "sha256_before": "7f1d6ed4224c50d9da98c1c4dceeec679a45c918cba91ad562863dfd9b8f2304",
+    "sha256_after": "7f1d6ed4224c50d9da98c1c4dceeec679a45c918cba91ad562863dfd9b8f2304",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-381a35",
+    "network": "gaia-verify-381a35",
+    "bridge": "gvb-381a35",
+    "netns": "gaia-verify-381a35",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-381a35 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-381a35 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-381a35 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-381a35 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "local fe80::1ca3:59ff:fe5d:9015 dev gvn-381a35 table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-381a35 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "image_hash": 0.780865596,
+    "sandbox_setup": 1.423919882,
+    "shutdown": 0.392202248,
+    "total": 184.609976397
+  },
+  "shutdown": "forced (not booted)",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-15T22:24:18.190874851Z",
+  "finished": "2026-11-15T22:27:22.800851248Z"
+}

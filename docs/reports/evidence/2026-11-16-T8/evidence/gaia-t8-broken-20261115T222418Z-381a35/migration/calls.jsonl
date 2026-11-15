@@ -1,0 +1,9 @@
+{"time":"2026-11-15T22:21:55.522020111Z","method":"POST","path":"/sdk","op":"RetrieveServiceContent","allowed":true,"status":200}
+{"time":"2026-11-15T22:21:55.531634044Z","method":"POST","path":"/sdk","op":"Login","allowed":true,"status":200}
+{"time":"2026-11-15T22:21:55.5572965Z","method":"POST","path":"/sdk","op":"RetrievePropertiesEx","allowed":true,"status":200}
+{"time":"2026-11-15T22:21:55.568020653Z","method":"GET","path":"/folder/gaia-t8-linux/gaia-t8-linux.vmx","allowed":true,"status":200}
+{"time":"2026-11-15T22:21:55.584270538Z","method":"GET","path":"/folder/gaia-t8-linux/gaia-t8-linux.vmdk","allowed":true,"status":200}
+{"time":"2026-11-15T22:21:55.599221271Z","method":"GET","path":"/folder/gaia-t8-linux/gaia-t8-linux-flat.vmdk","allowed":true,"status":200}
+{"time":"2026-11-15T22:23:19.323990241Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken.vmx","allowed":true,"status":200}
+{"time":"2026-11-15T22:23:19.392857701Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken.vmdk","allowed":true,"status":200}
+{"time":"2026-11-15T22:23:19.404064054Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken-flat.vmdk","allowed":true,"status":200}

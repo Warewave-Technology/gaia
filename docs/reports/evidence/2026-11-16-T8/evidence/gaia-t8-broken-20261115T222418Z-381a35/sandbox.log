@@ -1,0 +1,43 @@
+[22:24:18.972] image /var/lib/libvirt/images/gaia-migrate/gaia-t8-broken/gaia-t8-broken-sda: sha256 7f1d6ed4224c50d9da98c1c4dceeec679a45c918cba91ad562863dfd9b8f2304 (1253507072 bytes)
+[22:24:19.033] $ sysctl -q -w net.ipv6.conf.gvb-381a35.disable_ipv6=1
+
+[22:24:19.037] $ ip netns add gaia-verify-381a35
+
+[22:24:19.040] $ ip link add gvh-381a35 type veth peer name gvn-381a35
+
+[22:24:19.041] $ sysctl -q -w net.ipv6.conf.gvh-381a35.disable_ipv6=1
+
+[22:24:19.058] $ ip link set gvh-381a35 master gvb-381a35 up
+
+[22:24:19.083] $ ip link set gvn-381a35 netns gaia-verify-381a35
+
+[22:24:19.085] $ ip -n gaia-verify-381a35 addr add 10.254.0.1/24 dev gvn-381a35
+
+[22:24:19.092] $ ip -n gaia-verify-381a35 link set gvn-381a35 up
+
+[22:24:19.093] $ ip -n gaia-verify-381a35 link set lo up
+
+[22:24:19.093] $ ip netns exec gaia-verify-381a35 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-381a35 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-381a35/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-381a35/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-381a35/dnsmasq.log --user=root --group=root
+[22:24:19.138] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/gaia-migrate/gaia-t8-broken/gaia-t8-broken-sda /var/lib/libvirt/images/gaia-verify-381a35/overlay.qcow2
+
+[22:24:20.395] $ ip -o addr show dev gvb-381a35
+
+[22:24:20.396] $ ip -n gaia-verify-381a35 route show table all
+10.254.0.0/24 dev gvn-381a35 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-381a35 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-381a35 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-381a35 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::1ca3:59ff:fe5d:9015 dev gvn-381a35 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-381a35 table local proto kernel metric 256 pref medium
+[22:24:20.397] guest started (kvm)
+[22:27:20.495] boot not reached within 180 s
+[22:27:20.867] $ virsh screenshot gaia-verify-381a35 --file /var/lib/libvirt/images/gaia-verify-381a35/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-381a35/screenshot-boot.ppm, with type of image/png
+[22:27:21.214] $ virsh screenshot gaia-verify-381a35 --file /var/lib/libvirt/images/gaia-verify-381a35/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-381a35/screenshot-end.ppm, with type of image/png
+[22:27:21.608] $ ip netns del gaia-verify-381a35
+
