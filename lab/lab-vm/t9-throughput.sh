@@ -18,7 +18,8 @@
 # Usage (on gaia-lab, as root, after setup.sh and t5-disk2.sh):  lab/lab-vm/t9-throughput.sh
 #   systemd-run --unit=gaia-t9 --collect -E HOME=/root lab/lab-vm/t9-throughput.sh
 # Env: IMAGE (/var/lib/gaia/test.img), DISK2 (/mnt/gaia-t5), CONFIGS ("4/4/s2-default 8/8/s2-default 4/4/none"),
-#      REPEAT (3), REF_STREAMS ("1 4 8"), CONTEXT_RUN (1), OUT_DIR (/root/t9-<UTC timestamp>), KEEP=1.
+#      REPEAT (3), REF_STREAMS ("1 4 8"), CONTEXT_RUN (1: same-disk runs of the first config, plus one profiled),
+#      ONLY_CONTEXT=1 (skip the main rounds; context runs and their profile only), OUT_DIR (/root/t9-<UTC timestamp>), KEEP=1.
 # Exit: 0 OK / 2 CRITICAL (no config passes, or a restore differs) / 3 UNKNOWN (not checked, also harness failure).
 set -euo pipefail
 
@@ -175,6 +176,7 @@ run_once() {
 }
 
 section "runs (repository on $DISK2)"
+((${ONLY_CONTEXT:-0})) && REPEAT=0 && echo "ONLY_CONTEXT=1: skipped"
 for ((round = 1; round <= REPEAT; round++)); do
 	for cfg in $CONFIGS; do
 		IFS=/ read -r readers writers comp <<<"$cfg"
@@ -186,12 +188,19 @@ if ((CONTEXT_RUN > 0)); then
 	section "context: repository on the source disk ($WORK)"
 	cfg=${CONFIGS%% *}
 	IFS=/ read -r readers writers comp <<<"$cfg"
-	run_once "$cfg same-disk" "$WORK/t9-repo" "$readers" "$writers" "$comp" 1
+	for ((round = 1; round <= CONTEXT_RUN; round++)); do
+		run_once "$cfg same-disk" "$WORK/t9-repo" "$readers" "$writers" "$comp" "$round"
+	done
+	mkdir -p "$OUT_DIR/profiles"
+	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}-same-disk.pprof"
+	run_once "$cfg same-disk profile" "$WORK/t9-repo" "$readers" "$writers" "$comp" 0 "$p" >/dev/null
+	echo "-- $cfg same-disk (profile)"
+	go tool pprof -top -nodecount=25 "$BIN/gaia-backup" "$p" 2>/dev/null | tee "${p%.pprof}.top.txt" | sed -n '1,32p'
 fi
 
 section "CPU profiles (one extra, uncounted backup per config)"
 mkdir -p "$OUT_DIR/profiles"
-for cfg in $CONFIGS; do
+((${ONLY_CONTEXT:-0})) || for cfg in $CONFIGS; do
 	IFS=/ read -r readers writers comp <<<"$cfg"
 	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}.pprof"
 	run_once "$cfg profile" "$DISK2/t9-repo" "$readers" "$writers" "$comp" 0 "$p" >/dev/null
@@ -220,9 +229,15 @@ jq -s --argjson repeat "$REPEAT" '
 section "gate (ADR-004 A1)"
 jq '{rule: "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
 	configs: map({config, median_ratio, gate}),
-	best: (map(select(.median_ratio != null)) | min_by(.median_ratio) | {config, median_ratio, gate}),
+	best: (map(select(.median_ratio != null and (.config | test("same-disk") | not))) | min_by(.median_ratio) // null | if . then {config, median_ratio, gate} else null end),
 	verdict: (if any(.[]; .identical == false) then "CRITICAL" elif any(.[]; .gate == "OK" and (.config | test("same-disk") | not)) then "OK"
 	          elif all(.[]; .gate == "UNKNOWN") then "UNKNOWN" else "CRITICAL" end)}' "$OUT_DIR/summary.json" | tee "$OUT_DIR/gate.json"
+
+if ((${ONLY_CONTEXT:-0})); then # same-disk runs are context, never the T9 gate
+	jq '. + {verdict: "UNKNOWN", note: "ONLY_CONTEXT=1: same-disk context runs only, not the T9 gate"}' "$OUT_DIR/gate.json" >"$OUT_DIR/gate.tmp"
+	mv "$OUT_DIR/gate.tmp" "$OUT_DIR/gate.json"
+	jq -c '{verdict, note}' "$OUT_DIR/gate.json"
+fi
 
 section "result"
 verdict=$(jq -r .verdict "$OUT_DIR/gate.json")
