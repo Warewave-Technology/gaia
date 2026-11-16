@@ -162,6 +162,11 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 		srv.Shutdown(sctx)
 	}()
 	log.Info("sandbox helper listening", "socket", c.Socket, "group", c.Group, "images", c.ImagesDir)
+	// Only now does systemd start gaia.service (After=, Type=notify): its ReadWritePaths needs the images directory
+	// to exist when its namespace is made, or the directory stays read-only for the server.
+	if err := notifyReady(); err != nil {
+		log.Warn("telling systemd the helper is ready", "error", err)
+	}
 	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
@@ -265,4 +270,22 @@ func (c *Client) Verify(ctx context.Context, req Request, dest string) (string, 
 		return dir, nil, fmt.Errorf("sandbox helper: bundle %s: result.json: %w", id, err)
 	}
 	return dir, &res, nil
+}
+
+// notifyReady sends READY=1 to systemd's notification socket ($NOTIFY_SOCKET), if there is one (sd_notify(3)).
+func notifyReady() error {
+	path := os.Getenv("NOTIFY_SOCKET")
+	if path == "" {
+		return nil
+	}
+	if path[0] == '@' {
+		path = "\x00" + path[1:] // an abstract socket
+	}
+	conn, err := net.DialUnix("unixgram", nil, &net.UnixAddr{Name: path, Net: "unixgram"})
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_, err = conn.Write([]byte("READY=1"))
+	return err
 }

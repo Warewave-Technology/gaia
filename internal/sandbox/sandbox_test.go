@@ -91,3 +91,30 @@ func TestClientRefusal(t *testing.T) {
 		t.Fatalf("refusal: %v", err)
 	}
 }
+
+func TestNotifyReady(t *testing.T) {
+	dir, err := os.MkdirTemp("", "gn") // unix socket paths are short on macOS
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	t.Setenv("NOTIFY_SOCKET", "")
+	if err := notifyReady(); err != nil {
+		t.Fatalf("without systemd: %v", err)
+	}
+	p := filepath.Join(dir, "n.sock")
+	conn, err := net.ListenUnixgram("unixgram", &net.UnixAddr{Name: p, Net: "unixgram"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	t.Setenv("NOTIFY_SOCKET", p)
+	if err := notifyReady(); err != nil {
+		t.Fatal(err)
+	}
+	b := make([]byte, 64)
+	n, _, err := conn.ReadFromUnix(b)
+	if err != nil || string(b[:n]) != "READY=1" {
+		t.Fatalf("got %q %v", b[:n], err)
+	}
+}

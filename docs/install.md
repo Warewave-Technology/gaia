@@ -376,10 +376,11 @@ gaia api GET /api/v1/hosts
 ## 12. Upgrading
 
 1. Make and copy a new package (step 2) and unpack it (step 3, first command).
-2. On the server, as root, replace the program and restart:
+2. On the server, as root, in the unpacked package's directory, replace the program and the service files, and
+   restart:
 
    ```bash
-   install -m 0755 gaia /usr/local/bin/gaia && systemctl try-restart gaia-sandbox && systemctl restart gaia && gaia system
+   install -m 0755 gaia /usr/local/bin/gaia && install -m 0644 gaia.service gaia-sandbox.service /etc/systemd/system/ && systemctl daemon-reload && systemctl try-restart gaia-sandbox && systemctl restart gaia && gaia system
    ```
 
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the

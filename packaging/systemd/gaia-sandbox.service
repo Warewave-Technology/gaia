@@ -8,7 +8,9 @@ After=libvirtd.service
 Wants=libvirtd.service
 
 [Service]
-Type=simple
+# notify: ready once its directories and socket exist, so gaia.service (After=) starts after that.
+Type=notify
+NotifyAccess=main
 ExecStart=/usr/local/bin/gaia sandbox serve
 Restart=on-failure
 RestartSec=5

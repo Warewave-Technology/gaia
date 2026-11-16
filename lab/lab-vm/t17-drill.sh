@@ -278,6 +278,10 @@ chown gaia /tmp/admin.pw
 runuser -u gaia -- gaia server init -config /etc/gaia/server.json -data-dir /var/lib/gaia -hostname $A -admin admin -password-file /tmp/admin.pw -json
 rm -f /tmp/admin.pw
 systemctl daemon-reload && systemctl enable --now gaia-sandbox gaia
+# M1's units start gaia before the helper has made its images directory (found in T17, fixed by Type=notify), so
+# that directory stays read-only for the server: an M1 operator restarts gaia once the helper's socket is there.
+for i in \$(seq 30); do [ -S /run/gaia-sandbox/sandbox.sock ] && break; sleep 1; done
+systemctl restart gaia
 EOF
 	fp=$(jq -r '.result.tls_certificate_sha256' "$OUT/a-init.txt")
 	workstation_cli "$OLD"
@@ -311,8 +315,8 @@ EOF
 	snapshot a-m1
 
 	section "upgrade A to this version (guide step 12), first recovery kit (step 8b)"
-	install_gaia "$A" "$NEW" # unpacks and installs the program; the units are the same
-	on "$A" <<<'systemctl try-restart gaia-sandbox && systemctl restart gaia && sleep 3 && systemctl is-active gaia-sandbox gaia'
+	install_gaia "$A" "$NEW" # unpacks the package and installs the program and the units
+	on "$A" <<<'systemctl daemon-reload && systemctl try-restart gaia-sandbox && systemctl restart gaia && sleep 3 && systemctl is-active gaia-sandbox gaia && systemctl show -p Type gaia-sandbox'
 	workstation_cli "$NEW"
 	api system | tee "$OUT/a-system-upgraded.json" | jq -c '{version, schema_version, recovery_kit}'
 	ws status | tee "$OUT/a-status-before-kit.txt" || true
