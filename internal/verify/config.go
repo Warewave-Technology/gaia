@@ -26,6 +26,7 @@ const (
 	CheckBootSerial = "boot_serial" // the serial console shows Pattern: the guest booted
 	CheckTCP        = "tcp"         // a TCP connect to Port succeeds
 	CheckHTTP       = "http"        // GET http://guest:Port/Path answers ExpectStatus (and contains ExpectBody)
+	CheckRDP        = "rdp"         // an RDP server on Port answers the X.224 Connection Request (MS-RDPBCGR 1.3.1.1)
 )
 
 // Check is one declared health check.
@@ -37,7 +38,13 @@ type Check struct {
 	Path         string `json:"path,omitempty"`
 	ExpectStatus int    `json:"expect_status,omitempty"`
 	ExpectBody   string `json:"expect_body,omitempty"`
+	// Boot makes a tcp, http or rdp check the boot check, for guests without a serial console
+	// (Windows): it runs from the moment the guest takes a DHCP lease, within the boot timeout.
+	Boot bool `json:"boot,omitempty"`
 }
+
+// IsBoot reports whether k is the check that decides that the guest booted.
+func (k Check) IsBoot() bool { return k.Type == CheckBootSerial || k.Boot }
 
 // Machine is the virtual hardware of the sandbox guest. It should match the source VM,
 // MAC address included: guests often bind their network configuration to it.
@@ -72,6 +79,12 @@ var Templates = map[string][]Check{
 	// Only that the guest boots to a serial login prompt.
 	"linux-boot": {
 		{Name: "boot", Type: CheckBootSerial, Pattern: `(?m)login: *$`},
+	},
+	// A Windows guest has no serial login prompt: it booted when Remote Desktop answers the RDP
+	// handshake on the address it leased, and WinRM's HTTP listener answers on /wsman.
+	"windows-basic": {
+		{Name: "boot", Type: CheckRDP, Port: 3389, Boot: true},
+		{Name: "winrm", Type: CheckHTTP, Port: 5985, Path: "/wsman", ExpectStatus: 405},
 	},
 }
 
@@ -147,13 +160,15 @@ func (c *Config) resolve() error {
 			return fmt.Errorf("check %d: name %q missing or duplicate", i, k.Name)
 		}
 		seen[k.Name] = true
+		if k.IsBoot() {
+			boots++
+		}
 		switch k.Type {
 		case CheckBootSerial:
-			boots++
 			if _, err := regexp.Compile(k.Pattern); err != nil || k.Pattern == "" {
 				return fmt.Errorf("check %s: pattern: %v", k.Name, err)
 			}
-		case CheckTCP, CheckHTTP:
+		case CheckTCP, CheckHTTP, CheckRDP:
 			if k.Port < 1 || k.Port > 65535 {
 				return fmt.Errorf("check %s: port %d", k.Name, k.Port)
 			}
@@ -170,7 +185,7 @@ func (c *Config) resolve() error {
 		}
 	}
 	if boots != 1 {
-		return fmt.Errorf("exactly one %s check is required, have %d", CheckBootSerial, boots)
+		return fmt.Errorf("exactly one boot check (%s, or a probe with boot: true) is required, have %d", CheckBootSerial, boots)
 	}
 	return nil
 }

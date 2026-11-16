@@ -124,3 +124,14 @@ func TestToMiB(t *testing.T) {
 		t.Fatal("toMiB")
 	}
 }
+
+func TestDefaultTemplate(t *testing.T) {
+	for id, want := range map[string]string{
+		"windows2019srvNext_64Guest": "windows-basic", "windows9Server64Guest": "windows-basic",
+		"debian12_64Guest": "linux-basic", "": "linux-basic",
+	} {
+		if got := defaultTemplate(id); got != want {
+			t.Errorf("defaultTemplate(%q) = %s, want %s", id, got, want)
+		}
+	}
+}

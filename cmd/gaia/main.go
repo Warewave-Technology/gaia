@@ -250,6 +250,7 @@ func cmdMigrateCheck(ctx context.Context, args []string) int {
 	sandboxDir := fs.String("sandbox-dir", "/var/lib/libvirt/images", "directory for the sandbox's copy-on-write overlay")
 	serialDir := fs.String("serial-dir", "/var/log/libvirt/qemu", "directory for the serial console log while the guest runs")
 	v2vTimeout := fs.Duration("v2v-timeout", 30*time.Minute, "virt-v2v timeout per VM")
+	virtioWin := fs.String("virtio-win", os.Getenv("VIRTIO_WIN"), "virtio-win ISO for Windows guests (virt-v2v's VIRTIO_WIN)")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
 	if *rawURL == "" || *keyPath == "" || *evDir == "" || *ledger == "" {
@@ -304,7 +305,7 @@ func cmdMigrateCheck(ctx context.Context, args []string) int {
 		}
 	}
 	rep, err := migrate.Run(ctx, migrate.Options{Source: src, VMs: names, Checks: checks, WorkDir: *workDir, ImageDir: *imageDir,
-		CallLog: *calls, V2VTimeout: *v2vTimeout, Log: os.Stderr,
+		CallLog: *calls, V2VTimeout: *v2vTimeout, VirtioWin: *virtioWin, Log: os.Stderr,
 		Verify: verify.Options{Key: key, EvidenceDir: *evDir, Ledger: *ledger, WorkDir: *sandboxDir, SerialDir: *serialDir,
 			Socket: "/run/libvirt/libvirt-sock", Self: self, Log: os.Stderr}})
 	if err != nil {

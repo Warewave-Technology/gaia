@@ -9,6 +9,8 @@ package migrate
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -60,8 +62,13 @@ type Options struct {
 	ImageDir   string // converted images go to ImageDir/<vm>/ (qemu must be able to read them)
 	CallLog    string // the guard's call log file, copied into each bundle as it is at that point
 	V2VTimeout time.Duration
-	Verify     verify.Options // Key, EvidenceDir, Ledger, WorkDir, SerialDir, Socket, Self, Log
-	Log        io.Writer
+	// VirtioWin is the virtio-win ISO that virt-v2v takes Windows drivers from (VIRTIO_WIN);
+	// without it, virt-v2v cannot give a Windows guest virtio storage and network.
+	VirtioWin string
+	Verify    verify.Options // Key, EvidenceDir, Ledger, WorkDir, SerialDir, Socket, Self, Log
+	Log       io.Writer
+
+	virtioWin *Input // hashed once per run
 }
 
 // Readiness is the outcome for one VM.
@@ -74,11 +81,19 @@ type Readiness struct {
 	Timings   map[string]float64   `json:"timings_s"`
 }
 
+// Input is a local file the conversion used, identified by its hash.
+type Input struct {
+	Path   string `json:"path"`
+	Bytes  int64  `json:"bytes"`
+	SHA256 string `json:"sha256"`
+}
+
 // Report is the outcome of a run.
 type Report struct {
 	Source    string           `json:"source"`
 	Product   string           `json:"product"`
 	Inventory []vsphereread.VM `json:"inventory"`
+	VirtioWin *Input           `json:"virtio_win,omitempty"`
 	VMs       []Readiness      `json:"vms"`
 	Verdict   string           `json:"verdict"` // worst readiness; UNKNOWN when no VM was checked
 	Calls     int              `json:"calls"`
@@ -102,6 +117,15 @@ func Run(ctx context.Context, o Options) (*Report, error) {
 		return nil, err
 	}
 	rep.Inventory = inv
+	if o.VirtioWin != "" {
+		sum, n, err := fileSHA256(o.VirtioWin)
+		if err != nil {
+			return nil, fmt.Errorf("virtio-win: %w", err)
+		}
+		rep.VirtioWin = &Input{Path: o.VirtioWin, Bytes: n, SHA256: sum}
+		o.logf("virtio-win: %s, %d bytes, sha256 %s", o.VirtioWin, n, sum)
+		o.virtioWin = rep.VirtioWin
+	}
 	o.logf("inventory: %d VMs on %s (%s)", len(inv), rep.Source, rep.Product)
 	byName := map[string]vsphereread.VM{}
 	for _, v := range inv {
@@ -328,6 +352,10 @@ func (x *vmRun) convert(ctx context.Context, vmx string) (disk, domXML string, e
 	fmt.Fprintf(lf, "$ virt-v2v %s\n", strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, "virt-v2v", args...)
 	cmd.Env = append(os.Environ(), "LIBGUESTFS_BACKEND=direct")
+	if x.o.VirtioWin != "" {
+		cmd.Env = append(cmd.Env, "VIRTIO_WIN="+x.o.VirtioWin)
+		fmt.Fprintf(lf, "VIRTIO_WIN=%s (sha256 %s)\n", x.o.VirtioWin, x.o.virtioWin.SHA256)
+	}
 	cmd.Stdout, cmd.Stderr = lf, lf
 	if err := cmd.Start(); err != nil {
 		return "", "", fmt.Errorf("%w: %v", errNotRun, err)
@@ -411,11 +439,34 @@ func (x *vmRun) config(domXMLPath string) (*verify.Config, error) {
 		ch = x.o.Checks["*"]
 	}
 	if ch.Template == "" && len(ch.Checks) == 0 {
-		ch.Template = "linux-basic"
+		ch.Template = defaultTemplate(x.vm.GuestID)
 	}
 	cfg := &verify.Config{VM: x.name, Template: ch.Template, Machine: m, Checks: ch.Checks,
 		BootTimeoutS: ch.BootTimeoutS, ProbeTimeoutS: ch.ProbeTimeoutS}
 	return cfg, resolveConfig(cfg)
+}
+
+// defaultTemplate picks the built-in checks from the source's guest OS identifier
+// (vSphere guestId, e.g. windows2019srvNext_64Guest or debian12_64Guest).
+func defaultTemplate(guestID string) string {
+	if strings.HasPrefix(strings.ToLower(guestID), "win") {
+		return "windows-basic"
+	}
+	return "linux-basic"
+}
+
+func fileSHA256(p string) (string, int64, error) {
+	f, err := os.Open(p)
+	if err != nil {
+		return "", 0, err
+	}
+	defer f.Close()
+	h := sha256.New()
+	n, err := io.Copy(h, f)
+	if err != nil {
+		return "", 0, err
+	}
+	return hex.EncodeToString(h.Sum(nil)), n, nil
 }
 
 func toMiB(v int64, unit string) int64 {

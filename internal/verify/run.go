@@ -318,11 +318,16 @@ func (x *run) verify(ctx context.Context) error {
 	x.logf("guest started (%s)", sb.Virt)
 	var boot Check
 	for _, k := range c.Checks {
-		if k.Type == CheckBootSerial {
+		if k.IsBoot() {
 			boot = k
 		}
 	}
-	br := x.waitBoot(ctx, boot)
+	var br CheckResult
+	if boot.Type == CheckBootSerial {
+		br = x.waitBoot(ctx, boot)
+	} else {
+		br = x.waitNetBoot(ctx, boot)
+	}
 	r.Checks = append(r.Checks, br)
 	if br.Verdict == OK {
 		r.Timings["boot"] = br.Seconds
@@ -330,7 +335,7 @@ func (x *run) verify(ctx context.Context) error {
 	x.screenshot("boot")
 
 	// Probes, from inside the sandbox network.
-	probes := slices.DeleteFunc(slices.Clone(c.Checks), func(k Check) bool { return k.Type == CheckBootSerial })
+	probes := slices.DeleteFunc(slices.Clone(c.Checks), func(k Check) bool { return k.IsBoot() })
 	if br.Verdict != OK {
 		for _, k := range probes {
 			r.Checks = append(r.Checks, CheckResult{Name: k.Name, Type: k.Type, Verdict: Unknown, Detail: "not run: the guest did not boot"})
@@ -342,7 +347,7 @@ func (x *run) verify(ctx context.Context) error {
 				r.Checks = append(r.Checks, CheckResult{Name: k.Name, Type: k.Type, Verdict: Critical, Seconds: time.Since(x.t0).Seconds(), Detail: err.Error()})
 				continue
 			}
-			r.Checks = append(r.Checks, x.probe(ctx, k, ip))
+			r.Checks = append(r.Checks, x.probe(ctx, k, ip, x.c.ProbeTimeoutS))
 		}
 	}
 	if Worst(checkVerdicts(r.Checks)...) == OK {
@@ -514,10 +519,45 @@ func (x *run) waitBoot(ctx context.Context, k Check) CheckResult {
 	}
 }
 
+// waitNetBoot decides boot with a probe (a guest without a serial console, e.g. Windows): the guest
+// must take a DHCP lease and then pass the probe, both within the boot timeout. Firmware takes no
+// lease (the NIC's option ROM is off), so the lease already comes from the booted OS.
+func (x *run) waitNetBoot(ctx context.Context, k Check) CheckResult {
+	res := CheckResult{Name: k.Name, Type: k.Type, Verdict: Critical}
+	deadline := x.t0.Add(time.Duration(x.c.BootTimeoutS) * time.Second)
+	ip, err := x.leaseBy(ctx, deadline, func() error {
+		if st, _, err := x.l.DomainGetState(x.dom, 0); err != nil || libvirt.DomainState(st) == libvirt.DomainShutoff ||
+			libvirt.DomainState(st) == libvirt.DomainCrashed {
+			x.domUp = err == nil
+			return fmt.Errorf("the guest stopped before boot was reached (state %d, %v)", st, err)
+		}
+		return nil
+	})
+	if err != nil {
+		res.Seconds, res.Detail = time.Since(x.t0).Seconds(), err.Error()
+		x.logf("boot not reached: %v", err)
+		return res
+	}
+	left := max(1, int(time.Until(deadline).Seconds()))
+	res = x.probe(ctx, k, ip, left)
+	if res.Verdict == OK {
+		res.Detail = fmt.Sprintf("%s (DHCP lease %s, then the probe)", res.Detail, ip)
+		x.logf("boot reached after %.3f s", res.Seconds)
+	}
+	return res
+}
+
 // waitLease waits for the guest's DHCP lease (by its MAC) in dnsmasq's lease file.
 func (x *run) waitLease(ctx context.Context) (string, error) {
+	return x.leaseBy(ctx, time.Now().Add(time.Duration(x.c.ProbeTimeoutS)*time.Second), nil)
+}
+
+// leaseBy waits until deadline for the lease; alive, if set, stops the wait early with its error.
+func (x *run) leaseBy(ctx context.Context, deadline time.Time, alive func() error) (string, error) {
 	mac := strings.ToLower(x.c.Machine.MAC)
-	deadline := time.Now().Add(time.Duration(x.c.ProbeTimeoutS) * time.Second)
+	if ip := x.r.Sandbox.GuestIP; ip != "" {
+		return ip, nil
+	}
 	for {
 		if b, err := os.ReadFile(x.leases); err == nil {
 			for _, ln := range strings.Split(string(b), "\n") {
@@ -528,18 +568,26 @@ func (x *run) waitLease(ctx context.Context) (string, error) {
 				}
 			}
 		}
+		if alive != nil {
+			if err := alive(); err != nil {
+				return "", err
+			}
+		}
 		if time.Now().After(deadline) || ctx.Err() != nil {
+			if alive != nil {
+				return "", fmt.Errorf("the guest took no DHCP lease within the %d s boot timeout", x.c.BootTimeoutS)
+			}
 			return "", fmt.Errorf("the guest took no DHCP lease within %d s of booting", x.c.ProbeTimeoutS)
 		}
 		time.Sleep(time.Second)
 	}
 }
 
-func (x *run) probe(ctx context.Context, k Check, ip string) CheckResult {
+func (x *run) probe(ctx context.Context, k Check, ip string, timeoutS int) CheckResult {
 	res := CheckResult{Name: k.Name, Type: k.Type, Verdict: Unknown}
 	kj, _ := json.Marshal(k)
 	args := []string{"netns", "exec", x.r.Sandbox.Netns, x.o.Self, "probe", "-check", string(kj), "-host", ip,
-		"-timeout", fmt.Sprint(x.c.ProbeTimeoutS)}
+		"-timeout", fmt.Sprint(timeoutS)}
 	out, err := exec.CommandContext(ctx, "ip", args...).Output()
 	x.logf("$ ip %s\n%s", strings.Join(args, " "), strings.TrimSpace(string(out)))
 	var pr ProbeResult

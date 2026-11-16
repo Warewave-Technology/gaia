@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"image/png"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -59,6 +60,79 @@ func TestConfigRejects(t *testing.T) {
 		_, err := LoadConfig(writeConfig(t, body))
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: error %v", want, err)
+		}
+	}
+}
+
+func TestConfigWindowsBootProbe(t *testing.T) {
+	c, err := LoadConfig(writeConfig(t, `{"vm":"win1","template":"windows-basic","machine":{"mac":"00:50:56:aa:bb:cc"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Checks) != 2 || !c.Checks[0].IsBoot() || c.Checks[0].Type != CheckRDP || c.Checks[1].IsBoot() || c.Checks[1].ExpectStatus != 405 {
+		t.Fatalf("checks %+v", c.Checks)
+	}
+	mac := `"machine":{"mac":"52:54:00:aa:bb:cc"}`
+	if _, err := LoadConfig(writeConfig(t, `{"vm":"a",`+mac+`,"checks":[{"name":"up","type":"tcp","port":22,"boot":true}]}`)); err != nil {
+		t.Fatalf("a tcp boot check: %v", err)
+	}
+	if _, err := LoadConfig(writeConfig(t, `{"vm":"a","template":"linux-boot",`+mac+`,"checks":[{"name":"up","type":"rdp","port":3389,"boot":true}]}`)); err == nil ||
+		!strings.Contains(err.Error(), "exactly one") {
+		t.Fatalf("two boot checks: %v", err)
+	}
+}
+
+// fakeRDP serves one canned reply per connection after reading the Connection Request.
+func fakeRDP(t *testing.T, reply []byte) int {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer c.Close()
+				req := make([]byte, len(rdpConnectionRequest))
+				if _, err := io.ReadFull(c, req); err != nil || !bytes.Equal(req, rdpConnectionRequest) {
+					return
+				}
+				if reply != nil {
+					c.Write(reply)
+				}
+				time.Sleep(200 * time.Millisecond)
+			}()
+		}
+	}()
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+func TestRDPProbe(t *testing.T) {
+	ctx := context.Background()
+	cc := func(neg ...byte) []byte {
+		x224 := append([]byte{6, 0xd0, 0, 0, 0x12, 0x34, 0}, neg...)
+		return append([]byte{3, 0, 0, byte(4 + len(x224))}, x224...)
+	}
+	for _, tc := range []struct {
+		reply []byte
+		ok    bool
+		want  string
+	}{
+		{cc(0x02, 0x1f, 0x08, 0x00, 0x02, 0, 0, 0), true, "selected protocol CredSSP"},
+		{cc(0x03, 0x00, 0x08, 0x00, 0x05, 0, 0, 0), true, "RDP_NEG_FAILURE code 5"},
+		{cc(), true, "standard RDP security"},
+		{[]byte("HTTP/1.1 400 Bad Request\r\n\r\n"), false, "not a TPKT reply"},
+		{[]byte{3, 0, 0, 11, 6, 0xe0, 0, 0, 0, 0, 0}, false, "not an X.224 Connection Confirm"},
+		{nil, false, "no TPKT header"},
+	} {
+		r := Probe(ctx, Check{Type: CheckRDP, Port: fakeRDP(t, tc.reply)}, "127.0.0.1", 1500*time.Millisecond)
+		if r.OK != tc.ok || !strings.Contains(r.Detail, tc.want) {
+			t.Errorf("reply % x: %+v, want ok=%v and %q", tc.reply, r, tc.ok, tc.want)
 		}
 	}
 }
