@@ -1,0 +1,45 @@
+[22:49:47.426] image /var/lib/gaia-sandbox/images/vm1-test3-vda.raw (vda): sha256 6773ccdb47be1f87e9c777956f4b0dc66d5813a07552acf1afab47ce3fb14d61 (4294967296 bytes)
+[22:49:48.263] image /var/lib/gaia-sandbox/images/vm1-test3-vdb.raw (vdb): sha256 b62a33b9eacaaabbe96b2a64bee1c324d90ada9aeac91caaf6f2282dc1b9e877 (1073741824 bytes)
+[22:49:50.165] $ sysctl -q -w net.ipv6.conf.gvb-0d35e6.disable_ipv6=1
+
+[22:49:50.169] $ ip netns add gaia-verify-0d35e6
+
+[22:49:50.177] $ ip link add gvh-0d35e6 type veth peer name gvn-0d35e6
+
+[22:49:50.178] $ sysctl -q -w net.ipv6.conf.gvh-0d35e6.disable_ipv6=1
+
+[22:49:50.190] $ ip link set gvh-0d35e6 master gvb-0d35e6 up
+
+[22:49:50.225] $ ip link set gvn-0d35e6 netns gaia-verify-0d35e6
+
+[22:49:50.228] $ ip -n gaia-verify-0d35e6 addr add 10.254.0.1/24 dev gvn-0d35e6
+
+[22:49:50.234] $ ip -n gaia-verify-0d35e6 link set gvn-0d35e6 up
+
+[22:49:50.236] $ ip -n gaia-verify-0d35e6 link set lo up
+
+[22:49:50.236] $ ip netns exec gaia-verify-0d35e6 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-0d35e6 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/dnsmasq.log --user=root --group=root
+[22:49:50.264] $ qemu-img create -q -f qcow2 -F raw -b /var/lib/gaia-sandbox/images/vm1-test3-vda.raw /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/overlay.qcow2
+
+[22:49:50.281] $ qemu-img create -q -f qcow2 -F raw -b /var/lib/gaia-sandbox/images/vm1-test3-vdb.raw /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/overlay-vdb.qcow2
+
+[22:49:51.828] $ ip -o addr show dev gvb-0d35e6
+
+[22:49:51.830] $ ip -n gaia-verify-0d35e6 route show table all
+10.254.0.0/24 dev gvn-0d35e6 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-0d35e6 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-0d35e6 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-0d35e6 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-0d35e6 table local proto kernel metric 256 pref medium
+[22:49:51.832] guest started (kvm)
+[22:50:00.864] boot reached after 9.033 s
+[22:50:01.320] $ virsh screenshot gaia-verify-0d35e6 --file /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/screenshot-boot.ppm, with type of image/png
+[22:50:01.781] $ virsh screenshot gaia-verify-0d35e6 --file /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-sandbox/gaia-verify-0d35e6/screenshot-end.ppm, with type of image/png
+[22:50:03.786] $ ip netns del gaia-verify-0d35e6
+

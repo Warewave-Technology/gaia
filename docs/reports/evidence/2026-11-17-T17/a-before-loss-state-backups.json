@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "repository_id": 1,
+    "state": "ok",
+    "reason": "after jobs",
+    "started_at": "2026-11-16T22:39:17.734413077Z",
+    "finished_at": "2026-11-16T22:39:18.164544468Z",
+    "error": "",
+    "snapshot_id": "f080c78a3bb0894820b314d6de00f3a7",
+    "bytes": 179712,
+    "sha256": "9c751edf47a386dc5a669005d8c22465353616c02dc11b820c274fe896c2adc2"
+  }
+]

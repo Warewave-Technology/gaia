@@ -1,0 +1,4 @@
+VM            STATUS  SINCE                         THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t17-web  OK      2026-11-16T22:29:48.2589812Z  16s              5m16s       14s         4m31s      point 1 is proven by test 1: proven RPO 5m16s <= 20m0s, proven RTO 14s <= 10m0s, proof age 4m31s <= 30m0s
+
+WARNING recovery kit: there is no recovery kit: without one, a lost server cannot be rebuilt (gaia kit regenerate)

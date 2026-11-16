@@ -1,0 +1,73 @@
+{
+  "command": "server restore-state",
+  "result": {
+    "verdict": "OK",
+    "problems": [],
+    "config": "/etc/gaia/server.json",
+    "data_dir": "/var/lib/gaia",
+    "recovery_kit_generation_used": 1,
+    "recovery_kit": "/var/lib/gaia/recovery/gaia-recovery-kit.age",
+    "recovery_kit_generation": 2,
+    "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "tls_certificate_sha256": "35:B8:1E:26:46:D4:3E:AC:35:01:F2:76:9A:4C:25:F0:00:86:62:D0:E9:D9:42:31:27:24:87:F3:2E:FB:A6:EA",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-t17-b",
+      "192.168.1.120"
+    ],
+    "state_backup": {
+      "id": "59fe25f954f1e36b8ce350ffa91f0e1b",
+      "backup_id": "2",
+      "created": "2026-11-16T22:44:18Z",
+      "hostname": "gaia-t17-a",
+      "gaia_version": "402bd65e5f13",
+      "schema_version": 5,
+      "available": 2,
+      "bytes": 188416,
+      "sha256": "bd9c217974bcd3e4bbe1742fcfd3a5070e17e09332e65870d14589af30bae6e1"
+    },
+    "repositories": [
+      {
+        "name": "main",
+        "location": "/srv/gaia/main",
+        "moved": false,
+        "connected": true,
+        "points_not_in_catalog": []
+      }
+    ],
+    "catalog": {
+      "hosts": 1,
+      "vms": 1,
+      "repositories": 1,
+      "policies": 1,
+      "jobs": 6,
+      "points": 4,
+      "present_points": 4,
+      "restore_tests": 2,
+      "evidence_bundles": 2,
+      "users": 1,
+      "audit_entries": 25,
+      "state_changes": 49
+    },
+    "evidence": {
+      "restored": 2,
+      "missing_from_repository": [],
+      "not_in_catalog": []
+    },
+    "ledger": {
+      "verdict": "OK",
+      "entries": 3,
+      "keys": [
+        "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+      ],
+      "problems": []
+    },
+    "interrupted_jobs": 0,
+    "sessions_ended": 1,
+    "restore_tag": "9c43dc",
+    "migrated_versions": []
+  },
+  "verdict": "OK"
+}

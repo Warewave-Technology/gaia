@@ -1,0 +1,68 @@
+[
+  {
+    "id": 6,
+    "kind": "backup",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s",
+    "error": "",
+    "created_at": "2026-11-16T22:44:15.82315442Z",
+    "started_at": "2026-11-16T22:44:15.827093764Z",
+    "finished_at": "2026-11-16T22:44:17.568220833Z"
+  },
+  {
+    "id": 5,
+    "kind": "restore_test",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 600 s",
+    "error": "",
+    "created_at": "2026-11-16T22:39:30.821344499Z",
+    "started_at": "2026-11-16T22:39:30.826311551Z",
+    "finished_at": "2026-11-16T22:39:57.461412265Z"
+  },
+  {
+    "id": 4,
+    "kind": "backup",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s",
+    "error": "",
+    "created_at": "2026-11-16T22:39:15.821818378Z",
+    "started_at": "2026-11-16T22:39:15.82890729Z",
+    "finished_at": "2026-11-16T22:39:17.719374609Z"
+  },
+  {
+    "id": 3,
+    "kind": "backup",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s",
+    "error": "",
+    "created_at": "2026-11-16T22:34:02.326865836Z",
+    "started_at": "2026-11-16T22:34:02.332236822Z",
+    "finished_at": "2026-11-16T22:34:03.958148236Z"
+  },
+  {
+    "id": 2,
+    "kind": "restore_test",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 600 s",
+    "error": "",
+    "created_at": "2026-11-16T22:29:17.328267338Z",
+    "started_at": "2026-11-16T22:29:17.331827011Z",
+    "finished_at": "2026-11-16T22:29:48.247799361Z"
+  },
+  {
+    "id": 1,
+    "kind": "backup",
+    "vm_id": 1,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s",
+    "error": "",
+    "created_at": "2026-11-16T22:29:02.328478618Z",
+    "started_at": "2026-11-16T22:29:02.332567691Z",
+    "finished_at": "2026-11-16T22:29:07.234571685Z"
+  }
+]

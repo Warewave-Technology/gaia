@@ -1,0 +1,114 @@
+{"event":"part1-start","at":"2026-11-16T22:25:42Z"}
+
+== server A (192.168.1.119): M1 package gaia-4d95f1a-linux-amd64.tar.gz, repository on its own disk
+/dev/sdb         20G   24K   19G   1% /srv/gaia
+gaia: OK
+gaia.service: OK
+gaia-sandbox.service: OK
+install.md: OK
+LICENSE: OK
+{
+  "command": "server init",
+  "result": {
+    "config": {
+      "listen": ":8443",
+      "data_dir": "/var/lib/gaia",
+      "tls_cert": "/var/lib/gaia/tls/cert.pem",
+      "tls_key": "/var/lib/gaia/tls/key.pem",
+      "session_ttl": "12h",
+      "state_backup_at": "02:30",
+      "state_backup_repository": "",
+      "host_socket_dir": "/var/lib/libvirt/qemu",
+      "host_scratch_dir": "/var/lib/libvirt/images",
+      "nbd_connections": 2,
+      "max_parallel_backups": 2,
+      "verify_at": "03:30",
+      "full_verify_day": "sunday",
+      "verify_sample": 0.02,
+      "sandbox_socket": "/run/gaia-sandbox/sandbox.sock",
+      "sandbox_images_dir": "/var/lib/gaia-sandbox/images"
+    },
+    "tls_certificate_sha256": "BE:0B:B0:21:0A:12:C5:73:34:C9:1D:C9:6C:0E:8D:6B:D2:5A:BD:FC:21:E2:46:AB:A1:64:9D:F4:DB:D0:46:2F",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-t17-a",
+      "192.168.1.119"
+    ],
+    "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "admin": "admin"
+  },
+  "verdict": "OK"
+}
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia-sandbox.service → /etc/systemd/system/gaia-sandbox.service.
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia.service → /etc/systemd/system/gaia.service.
+logged in to https://192.168.1.119:8443 as admin (admin) until 2026-11-17T10:26:35.863650617Z; saved in /root/t17/ws/.config/gaia/cli.json
+{"version":"devel","schema_version":4}
+{"event":"a-installed-m1","at":"2026-11-16T22:26:36Z"}
+
+== repository, host, VM (guide steps 7 and 10)
+[22:28:52] guest gaia-t17-web ready
+{"libvirt":"9.0.0","qemu":"7.2.22","domains":["gaia-t17-web"],"seconds":0.270454845}
+[22:28:53] status UNKNOWN: there is no backup point that passed its post-backup check
+[22:29:54] status OK: point 1 is proven by test 1: proven RPO 52s <= 20m0s, proven RTO 14s <= 10m0s, proof age 7s <= 30m0s
+{"event":"a-ok-on-m1","at":"2026-11-16T22:34:10Z"}
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/README.txt: time stamp 2026-11-16 22:34:12 is 0.180960945 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/anchor.pub: time stamp 2026-11-16 22:34:12 is 0.180844915 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/ledger.jsonl: time stamp 2026-11-16 22:34:12 is 0.180810765 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/config.json: time stamp 2026-11-16 22:34:12 is 0.180719676 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/dnsmasq.leases: time stamp 2026-11-16 22:34:12 is 0.180690736 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/dnsmasq.log: time stamp 2026-11-16 22:34:12 is 0.180657696 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/domain.xml: time stamp 2026-11-16 22:34:12 is 0.180626067 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/manifest.json: time stamp 2026-11-16 22:34:12 is 0.180585287 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/manifest.sig: time stamp 2026-11-16 22:34:12 is 0.180547277 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/network.xml: time stamp 2026-11-16 22:34:12 is 0.180510407 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/result.json: time stamp 2026-11-16 22:34:12 is 0.180479428 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/sandbox.log: time stamp 2026-11-16 22:34:12 is 0.180438808 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/screenshot-boot.png: time stamp 2026-11-16 22:34:12 is 0.180406988 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/screenshot-end.png: time stamp 2026-11-16 22:34:12 is 0.180375868 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T222922Z-dfe7e1/bundles/gaia-t17-web-20261116T222922Z-dfe7e1/serial.log: time stamp 2026-11-16 22:34:12 is 0.180281999 s in the future
+
+== upgrade A to this version (guide step 12), first recovery kit (step 8b)
+gaia: OK
+gaia.service: OK
+gaia-sandbox.service: OK
+install.md: OK
+LICENSE: OK
+active
+active
+Type=notify
+{"version":"402bd65e5f13","schema_version":5,"recovery_kit":{"state":"missing","generation":0,"text":"there is no recovery kit: without one, a lost server cannot be rebuilt (gaia kit regenerate)"}}
+VM            STATUS  SINCE                         THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t17-web  OK      2026-11-16T22:29:48.2589812Z  16s              5m16s       14s         4m31s      point 1 is proven by test 1: proven RPO 5m16s <= 20m0s, proven RTO 14s <= 10m0s, proof age 4m31s <= 30m0s
+
+WARNING recovery kit: there is no recovery kit: without one, a lost server cannot be rebuilt (gaia kit regenerate)
+wrote gaia-recovery-kit-1.age (recovery kit 1)
+Recovery kit 1 opens with the passphrase and is the server's newest: confirmed.
+Keep gaia-recovery-kit-1.age off the server (a password manager, an encrypted vault, a USB stick in a safe) and delete any other copy
+on the server itself. Keep the passphrase separately.
+{"state":"confirmed","generation":1,"text":"recovery kit 1 was saved off the server on 2026-11-16T22:34:21.557992422Z by admin"}
+{"event":"a-upgraded-kit-saved","at":"2026-11-16T22:34:21Z"}
+
+== A on this version: backups and restore tests go on
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/README.txt: time stamp 2026-11-16 22:40:01 is 0.32869795 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/anchor.pub: time stamp 2026-11-16 22:40:01 is 0.328606661 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/ledger.jsonl: time stamp 2026-11-16 22:40:01 is 0.328572722 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/config.json: time stamp 2026-11-16 22:40:01 is 0.328461071 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/dnsmasq.leases: time stamp 2026-11-16 22:40:01 is 0.328429461 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/dnsmasq.log: time stamp 2026-11-16 22:40:01 is 0.328399602 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/domain.xml: time stamp 2026-11-16 22:40:01 is 0.328369222 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/manifest.json: time stamp 2026-11-16 22:40:01 is 0.328329552 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/manifest.sig: time stamp 2026-11-16 22:40:01 is 0.328290192 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/network.xml: time stamp 2026-11-16 22:40:01 is 0.328254703 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/result.json: time stamp 2026-11-16 22:40:01 is 0.328224563 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/sandbox.log: time stamp 2026-11-16 22:40:01 is 0.328178713 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/screenshot-boot.png: time stamp 2026-11-16 22:40:01 is 0.328138103 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/screenshot-end.png: time stamp 2026-11-16 22:40:01 is 0.328094004 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/serial.log: time stamp 2026-11-16 22:40:01 is 0.327916885 s in the future
+
+== power cut right after the next backup ends
+{"event":"a-power-cut","at":"2026-11-16T22:44:26Z"}
+jq: error (at /dev/fd/63:5): Cannot index string with string "kind"
+{"id":null,"state":null,"finished_at":null}
+[22:45:33] A is off. Next, on Proxmox: t17-servers.sh create 9105 gaia-t17-b <keys>; move-disk 9104 9105; lose 9104; start 9105

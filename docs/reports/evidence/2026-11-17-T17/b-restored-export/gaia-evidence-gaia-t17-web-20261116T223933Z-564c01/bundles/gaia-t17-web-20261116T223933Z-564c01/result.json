@@ -1,0 +1,101 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t17-web-20261116T223933Z-564c01",
+  "vm": "gaia-t17-web",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 10.031680155,
+      "attempts": 11,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+    },
+    {
+      "name": "image_unchanged_vda",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    },
+    {
+      "name": "image_unchanged_vdb",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia-sandbox/images/vm1-test2-vda.raw",
+    "format": "raw",
+    "target": "vda",
+    "bytes": 4294967296,
+    "sha256_before": "f53aced75dde9f68d6a58d8c613f6f4ae61478df598ecb47a954f2242e5cd9b6",
+    "sha256_after": "f53aced75dde9f68d6a58d8c613f6f4ae61478df598ecb47a954f2242e5cd9b6",
+    "unchanged": true
+  },
+  "images": [
+    {
+      "path": "/var/lib/gaia-sandbox/images/vm1-test2-vda.raw",
+      "format": "raw",
+      "target": "vda",
+      "bytes": 4294967296,
+      "sha256_before": "f53aced75dde9f68d6a58d8c613f6f4ae61478df598ecb47a954f2242e5cd9b6",
+      "sha256_after": "f53aced75dde9f68d6a58d8c613f6f4ae61478df598ecb47a954f2242e5cd9b6",
+      "unchanged": true
+    },
+    {
+      "path": "/var/lib/gaia-sandbox/images/vm1-test2-vdb.raw",
+      "format": "raw",
+      "target": "vdb",
+      "bytes": 1073741824,
+      "sha256_before": "a86fa4ff572e3d13671a8969a92ed9b77574f4f9f53081b4589a525f02c9edc6",
+      "sha256_after": "a86fa4ff572e3d13671a8969a92ed9b77574f4f9f53081b4589a525f02c9edc6",
+      "unchanged": true
+    }
+  ],
+  "sandbox": {
+    "domain": "gaia-verify-564c01",
+    "network": "gaia-verify-564c01",
+    "bridge": "gvb-564c01",
+    "netns": "gaia-verify-564c01",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-564c01 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-564c01 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-564c01 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-564c01 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-564c01 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 10.031680155,
+    "image_hash": 4.382314496,
+    "proven_rto": 12.035850101000001,
+    "ready": 10.031680155,
+    "restore": 2.004169946,
+    "sandbox_setup": 1.7179089360000002,
+    "shutdown": 2.002164259,
+    "total": 24.102397316
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-16T22:39:33.082381791Z",
+  "finished": "2026-11-16T22:39:57.184779107Z"
+}

@@ -1,0 +1,36 @@
+{
+  "version": "devel",
+  "schema_version": 4,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "0001_init.sql",
+      "sha256": "15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427",
+      "applied_at": "2026-11-16T22:26:30.371771074Z"
+    },
+    {
+      "version": 2,
+      "name": "0002_state_backups.sql",
+      "sha256": "4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546",
+      "applied_at": "2026-11-16T22:26:30.386806233Z"
+    },
+    {
+      "version": 3,
+      "name": "0003_backups.sql",
+      "sha256": "299eb8b7ee024822dcbcb14547ae4728f21ddc7d371d6078a6c10bd128630206",
+      "applied_at": "2026-11-16T22:26:30.401811954Z"
+    },
+    {
+      "version": 4,
+      "name": "0004_status.sql",
+      "sha256": "4a6ff0331088426b6fa6976bc4977b0636a77ad061dd85dee03dc89b8ac113cd",
+      "applied_at": "2026-11-16T22:26:30.411034271Z"
+    }
+  ],
+  "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "ssh_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDyl/DFPcqWr9UrI3IIprhzn67gEYZdmYiZPi1aWcfCN gaia@gaia-t17-a",
+  "ssh_authorized_keys_line": "restrict,port-forwarding,command=\"/usr/bin/false\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDyl/DFPcqWr9UrI3IIprhzn67gEYZdmYiZPi1aWcfCN gaia@gaia-t17-a",
+  "started_at": "2026-11-16T22:26:32Z",
+  "state_backup_at": "02:30",
+  "state_backup_repository": ""
+}

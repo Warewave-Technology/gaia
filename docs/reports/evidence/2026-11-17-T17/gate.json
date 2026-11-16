@@ -1,0 +1,102 @@
+{
+  "restore": {
+    "verdict": "OK",
+    "problems": [],
+    "state_backup": {
+      "id": "59fe25f954f1e36b8ce350ffa91f0e1b",
+      "backup_id": "2",
+      "created": "2026-11-16T22:44:18Z",
+      "hostname": "gaia-t17-a",
+      "gaia_version": "402bd65e5f13",
+      "schema_version": 5,
+      "available": 2,
+      "bytes": 188416,
+      "sha256": "bd9c217974bcd3e4bbe1742fcfd3a5070e17e09332e65870d14589af30bae6e1"
+    },
+    "catalog": {
+      "hosts": 1,
+      "vms": 1,
+      "repositories": 1,
+      "policies": 1,
+      "jobs": 6,
+      "points": 4,
+      "present_points": 4,
+      "restore_tests": 2,
+      "evidence_bundles": 2,
+      "users": 1,
+      "audit_entries": 25,
+      "state_changes": 49
+    },
+    "evidence": {
+      "restored": 2,
+      "missing_from_repository": [],
+      "not_in_catalog": []
+    },
+    "ledger": {
+      "verdict": "OK",
+      "entries": 3,
+      "keys": [
+        "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+      ],
+      "problems": []
+    },
+    "kit_used": 1,
+    "kit_new": 2,
+    "migrated": [],
+    "sessions_ended": 1
+  },
+  "catalog_back": {
+    "points_on_a_at_last_look": 3,
+    "points_restored": 4,
+    "hosts": 1,
+    "vms": 1,
+    "restore_tests": 2,
+    "status_before": [
+      {
+        "vm": "gaia-t17-web",
+        "status": "OK",
+        "changed_at": "2026-11-16T22:29:48.2589812Z"
+      }
+    ],
+    "status_after": [
+      {
+        "vm": "gaia-t17-web",
+        "status": "OK",
+        "changed_at": "2026-11-16T22:29:48.2589812Z"
+      }
+    ],
+    "same_status": true
+  },
+  "next_backup": {
+    "id": 7,
+    "state": "ok",
+    "kind": "incremental",
+    "reason": "incremental from point 4 (checkpoint gaia-1-6)",
+    "parent_point": 4,
+    "checkpoint": "gaia-1-7-9c43dc",
+    "error": ""
+  },
+  "ledger": {
+    "verdict": "OK",
+    "intact": true,
+    "entries": 4,
+    "keys": [
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    ],
+    "entries_seen_on_a": 3,
+    "entries_restored": 3,
+    "entries_on_b": 4,
+    "a_and_b_agree": true
+  },
+  "age": {
+    "opened": true,
+    "generation": 1
+  },
+  "kit_after": {
+    "state": "confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 was saved off the server on 2026-11-16T22:47:43.781926976Z by admin"
+  },
+  "pass": true,
+  "verdict": "OK"
+}

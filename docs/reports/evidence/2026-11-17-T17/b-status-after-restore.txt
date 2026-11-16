@@ -1,0 +1,4 @@
+VM            STATUS  SINCE                         THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t17-web  OK      2026-11-16T22:29:48.2589812Z  3m26s            8m26s       12s         7m45s      point 3 is proven by test 2: proven RPO 8m26s <= 20m0s, proven RTO 12s <= 10m0s, proof age 7m45s <= 30m0s
+
+WARNING recovery kit: recovery kit 2 (server rebuilt from state backup 59fe25f954f1e36b8ce350ffa91f0e1b) is not confirmed as stored off this server: run gaia kit save on another machine

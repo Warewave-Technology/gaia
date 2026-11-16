@@ -1,0 +1,10 @@
+{"event":"part1-start","at":"2026-11-16T22:25:42Z"}
+{"event":"a-installed-m1","at":"2026-11-16T22:26:36Z"}
+{"event":"a-ok-on-m1","at":"2026-11-16T22:34:10Z"}
+{"event":"a-upgraded-kit-saved","at":"2026-11-16T22:34:21Z"}
+{"event":"a-power-cut","at":"2026-11-16T22:44:26Z"}
+{"event":"part2-start","at":"2026-11-16T22:46:31Z"}
+{"event":"b-restored","at":"2026-11-16T22:47:37Z"}
+{"event":"b-running","at":"2026-11-16T22:47:45Z"}
+{"event":"b-verified","at":"2026-11-16T22:50:11Z"}
+{"event":"part2-end","at":"2026-11-16T22:50:15Z"}

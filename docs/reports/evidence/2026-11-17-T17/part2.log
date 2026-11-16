@@ -1,0 +1,255 @@
+{"event":"part2-start","at":"2026-11-16T22:46:31Z"}
+
+== server B (192.168.1.120): guide step 13 (install, repository, recovery kit)
+gaia: OK
+gaia.service: OK
+gaia-sandbox.service: OK
+install.md: OK
+LICENSE: OK
+/dev/sda         20G  403M   19G   3% /srv/gaia
+/srv/gaia:
+total 28
+drwxr-x--- 4 gaia gaia  4096 Nov 16 22:26 .
+drwxr-xr-x 3 root root  4096 Nov 16 22:46 ..
+drwx------ 2 root root 16384 Nov 16 22:25 lost+found
+drwx------ 7 gaia gaia  4096 Nov 16 22:29 main
+
+/srv/gaia/main:
+{
+  "command": "server restore-state",
+  "result": {
+    "verdict": "OK",
+    "problems": [],
+    "config": "/etc/gaia/server.json",
+    "data_dir": "/var/lib/gaia",
+    "recovery_kit_generation_used": 1,
+    "recovery_kit": "/var/lib/gaia/recovery/gaia-recovery-kit.age",
+    "recovery_kit_generation": 2,
+    "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "tls_certificate_sha256": "35:B8:1E:26:46:D4:3E:AC:35:01:F2:76:9A:4C:25:F0:00:86:62:D0:E9:D9:42:31:27:24:87:F3:2E:FB:A6:EA",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-t17-b",
+      "192.168.1.120"
+    ],
+    "state_backup": {
+      "id": "59fe25f954f1e36b8ce350ffa91f0e1b",
+      "backup_id": "2",
+      "created": "2026-11-16T22:44:18Z",
+      "hostname": "gaia-t17-a",
+      "gaia_version": "402bd65e5f13",
+      "schema_version": 5,
+      "available": 2,
+      "bytes": 188416,
+      "sha256": "bd9c217974bcd3e4bbe1742fcfd3a5070e17e09332e65870d14589af30bae6e1"
+    },
+    "repositories": [
+      {
+        "name": "main",
+        "location": "/srv/gaia/main",
+        "moved": false,
+        "connected": true,
+        "points_not_in_catalog": []
+      }
+    ],
+    "catalog": {
+      "hosts": 1,
+      "vms": 1,
+      "repositories": 1,
+      "policies": 1,
+      "jobs": 6,
+      "points": 4,
+      "present_points": 4,
+      "restore_tests": 2,
+      "evidence_bundles": 2,
+      "users": 1,
+      "audit_entries": 25,
+      "state_changes": 49
+    },
+    "evidence": {
+      "restored": 2,
+      "missing_from_repository": [],
+      "not_in_catalog": []
+    },
+    "ledger": {
+      "verdict": "OK",
+      "entries": 3,
+      "keys": [
+        "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+      ],
+      "problems": []
+    },
+    "interrupted_jobs": 0,
+    "sessions_ended": 1,
+    "restore_tag": "9c43dc",
+    "migrated_versions": []
+  },
+  "verdict": "OK"
+}
+{"event":"b-restored","at":"2026-11-16T22:47:37Z"}
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia-sandbox.service → /etc/systemd/system/gaia-sandbox.service.
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia.service → /etc/systemd/system/gaia.service.
+active
+active
+logged in to https://192.168.1.120:8443 as admin (admin) until 2026-11-17T10:47:42.164069353Z; saved in /root/t17/ws/.config/gaia/cli.json
+{"version":"402bd65e5f13","schema_version":5,"recovery_kit":{"state":"not confirmed","generation":2,"text":"recovery kit 2 (server rebuilt from state backup 59fe25f954f1e36b8ce350ffa91f0e1b) is not confirmed as stored off this server: run gaia kit save on another machine"}}
+VM            STATUS  SINCE                         THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t17-web  OK      2026-11-16T22:29:48.2589812Z  3m26s            8m26s       12s         7m45s      point 3 is proven by test 2: proven RPO 8m26s <= 20m0s, proven RTO 12s <= 10m0s, proof age 7m45s <= 30m0s
+
+WARNING recovery kit: recovery kit 2 (server rebuilt from state backup 59fe25f954f1e36b8ce350ffa91f0e1b) is not confirmed as stored off this server: run gaia kit save on another machine
+wrote gaia-recovery-kit-2.age (recovery kit 2)
+Recovery kit 2 opens with the passphrase and is the server's newest: confirmed.
+Keep gaia-recovery-kit-2.age off the server (a password manager, an encrypted vault, a USB stick in a safe) and delete any other copy
+on the server itself. Keep the passphrase separately.
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/README.txt: time stamp 2026-11-16 22:47:46 is 0.206699876 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/anchor.pub: time stamp 2026-11-16 22:47:46 is 0.206628836 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/ledger.jsonl: time stamp 2026-11-16 22:47:46 is 0.206602525 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/config.json: time stamp 2026-11-16 22:47:46 is 0.206527537 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/dnsmasq.leases: time stamp 2026-11-16 22:47:46 is 0.206500117 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/dnsmasq.log: time stamp 2026-11-16 22:47:46 is 0.206468926 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/domain.xml: time stamp 2026-11-16 22:47:46 is 0.206439266 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/manifest.json: time stamp 2026-11-16 22:47:46 is 0.206403497 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/manifest.sig: time stamp 2026-11-16 22:47:46 is 0.206375017 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/network.xml: time stamp 2026-11-16 22:47:46 is 0.206347318 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/result.json: time stamp 2026-11-16 22:47:46 is 0.206302398 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/sandbox.log: time stamp 2026-11-16 22:47:46 is 0.206255478 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/screenshot-boot.png: time stamp 2026-11-16 22:47:46 is 0.206219577 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/screenshot-end.png: time stamp 2026-11-16 22:47:46 is 0.206182357 s in the future
+tar: gaia-evidence-gaia-t17-web-20261116T223933Z-564c01/bundles/gaia-t17-web-20261116T223933Z-564c01/serial.log: time stamp 2026-11-16 22:47:46 is 0.206052778 s in the future
+{"event":"b-running","at":"2026-11-16T22:47:45Z"}
+
+== the next backup and restore test on B
+{"id":7,"state":"ok","error":"","reason":"incremental from point 4 (checkpoint gaia-1-6)","parent":4,"checkpoint":"gaia-1-7-9c43dc"}
+[22:50:09] status OK: point 5 is proven by test 3: proven RPO 45s <= 20m0s, proven RTO 14s <= 10m0s, proof age 0s <= 30m0s
+{"verdict":"OK","entries":4,"intact":true,"keys":["2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"]}
+{"event":"b-verified","at":"2026-11-16T22:50:11Z"}
+
+== the saved kit, opened with the standalone age tool
+1.1.1
+{
+  "file": "gaia-recovery-kit-1.age",
+  "format": "gaia-recovery-kit/1",
+  "generation": 1,
+  "created_at": "2026-11-16T22:34:19Z",
+  "reason": "written again by admin",
+  "hostname": "gaia-t17-a",
+  "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "state_repository": "main",
+  "repositories": [
+    {
+      "name": "main",
+      "kind": "filesystem",
+      "location": "/srv/gaia/main",
+      "password": "<present>"
+    }
+  ],
+  "evidence_private_key": "<PEM present>",
+  "ssh_private_key": "<present>"
+}
+
+== gate (CLAUDE.md T17)
+{
+  "restore": {
+    "verdict": "OK",
+    "problems": [],
+    "state_backup": {
+      "id": "59fe25f954f1e36b8ce350ffa91f0e1b",
+      "backup_id": "2",
+      "created": "2026-11-16T22:44:18Z",
+      "hostname": "gaia-t17-a",
+      "gaia_version": "402bd65e5f13",
+      "schema_version": 5,
+      "available": 2,
+      "bytes": 188416,
+      "sha256": "bd9c217974bcd3e4bbe1742fcfd3a5070e17e09332e65870d14589af30bae6e1"
+    },
+    "catalog": {
+      "hosts": 1,
+      "vms": 1,
+      "repositories": 1,
+      "policies": 1,
+      "jobs": 6,
+      "points": 4,
+      "present_points": 4,
+      "restore_tests": 2,
+      "evidence_bundles": 2,
+      "users": 1,
+      "audit_entries": 25,
+      "state_changes": 49
+    },
+    "evidence": {
+      "restored": 2,
+      "missing_from_repository": [],
+      "not_in_catalog": []
+    },
+    "ledger": {
+      "verdict": "OK",
+      "entries": 3,
+      "keys": [
+        "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+      ],
+      "problems": []
+    },
+    "kit_used": 1,
+    "kit_new": 2,
+    "migrated": [],
+    "sessions_ended": 1
+  },
+  "catalog_back": {
+    "points_on_a_at_last_look": 3,
+    "points_restored": 4,
+    "hosts": 1,
+    "vms": 1,
+    "restore_tests": 2,
+    "status_before": [
+      {
+        "vm": "gaia-t17-web",
+        "status": "OK",
+        "changed_at": "2026-11-16T22:29:48.2589812Z"
+      }
+    ],
+    "status_after": [
+      {
+        "vm": "gaia-t17-web",
+        "status": "OK",
+        "changed_at": "2026-11-16T22:29:48.2589812Z"
+      }
+    ],
+    "same_status": true
+  },
+  "next_backup": {
+    "id": 7,
+    "state": "ok",
+    "kind": "incremental",
+    "reason": "incremental from point 4 (checkpoint gaia-1-6)",
+    "parent_point": 4,
+    "checkpoint": "gaia-1-7-9c43dc",
+    "error": ""
+  },
+  "ledger": {
+    "verdict": "OK",
+    "intact": true,
+    "entries": 4,
+    "keys": [
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    ],
+    "entries_seen_on_a": 3,
+    "entries_restored": 3,
+    "entries_on_b": 4,
+    "a_and_b_agree": true
+  },
+  "age": {
+    "opened": true,
+    "generation": 1
+  },
+  "kit_after": {
+    "state": "confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 was saved off the server on 2026-11-16T22:47:43.781926976Z by admin"
+  },
+  "pass": true,
+  "verdict": "OK"
+}
+{"event":"part2-end","at":"2026-11-16T22:50:15Z"}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 2,
+    "repository_id": 1,
+    "state": "ok",
+    "reason": "after jobs",
+    "started_at": "2026-11-16T22:44:17.734558699Z",
+    "finished_at": "2026-11-16T22:47:37.061060657Z",
+    "error": "",
+    "snapshot_id": "59fe25f954f1e36b8ce350ffa91f0e1b",
+    "bytes": 188416,
+    "sha256": "bd9c217974bcd3e4bbe1742fcfd3a5070e17e09332e65870d14589af30bae6e1"
+  },
+  {
+    "id": 1,
+    "repository_id": 1,
+    "state": "ok",
+    "reason": "after jobs",
+    "started_at": "2026-11-16T22:39:17.734413077Z",
+    "finished_at": "2026-11-16T22:39:18.164544468Z",
+    "error": "",
+    "snapshot_id": "f080c78a3bb0894820b314d6de00f3a7",
+    "bytes": 179712,
+    "sha256": "9c751edf47a386dc5a669005d8c22465353616c02dc11b820c274fe896c2adc2"
+  }
+]

@@ -1,0 +1,34 @@
+{
+  "command": "server init",
+  "result": {
+    "config": {
+      "listen": ":8443",
+      "data_dir": "/var/lib/gaia",
+      "tls_cert": "/var/lib/gaia/tls/cert.pem",
+      "tls_key": "/var/lib/gaia/tls/key.pem",
+      "session_ttl": "12h",
+      "state_backup_at": "02:30",
+      "state_backup_repository": "",
+      "host_socket_dir": "/var/lib/libvirt/qemu",
+      "host_scratch_dir": "/var/lib/libvirt/images",
+      "nbd_connections": 2,
+      "max_parallel_backups": 2,
+      "verify_at": "03:30",
+      "full_verify_day": "sunday",
+      "verify_sample": 0.02,
+      "sandbox_socket": "/run/gaia-sandbox/sandbox.sock",
+      "sandbox_images_dir": "/var/lib/gaia-sandbox/images"
+    },
+    "tls_certificate_sha256": "BE:0B:B0:21:0A:12:C5:73:34:C9:1D:C9:6C:0E:8D:6B:D2:5A:BD:FC:21:E2:46:AB:A1:64:9D:F4:DB:D0:46:2F",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-t17-a",
+      "192.168.1.119"
+    ],
+    "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "admin": "admin"
+  },
+  "verdict": "OK"
+}

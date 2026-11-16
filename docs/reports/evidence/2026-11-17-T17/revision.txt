@@ -1,0 +1,1 @@
+402bd65 restore-state finishes the state backup it restored from; interrupted state backups end failed (found in the T17 drill)

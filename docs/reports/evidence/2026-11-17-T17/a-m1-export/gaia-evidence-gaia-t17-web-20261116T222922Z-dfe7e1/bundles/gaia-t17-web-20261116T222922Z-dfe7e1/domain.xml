@@ -1,0 +1,19 @@
+<domain type='kvm'>
+  <name>gaia-verify-dfe7e1</name>
+  <description>Gaia verification sandbox for gaia-t17-web (transient)</description>
+  <memory unit='MiB'>1024</memory>
+  <vcpu>2</vcpu>
+  <os><type arch='x86_64' machine='q35'>hvm</type><boot dev='hd'/></os><features><acpi/><apic/></features>
+  <cpu mode='host-passthrough'/>
+  <on_poweroff>destroy</on_poweroff><on_reboot>restart</on_reboot><on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    
+    <disk type='file' device='disk'><driver name='qemu' type='qcow2'/><source file='/var/lib/libvirt/images/gaia-sandbox/gaia-verify-dfe7e1/overlay.qcow2'/><target dev='vda' bus='virtio'/></disk>
+    <disk type='file' device='disk'><driver name='qemu' type='qcow2'/><source file='/var/lib/libvirt/images/gaia-sandbox/gaia-verify-dfe7e1/overlay-vdb.qcow2'/><target dev='vdb' bus='virtio'/></disk>
+    <interface type='network'><source network='gaia-verify-dfe7e1'/><mac address='52:54:00:0b:ee:5b'/><model type='virtio'/><rom enabled='no'/></interface>
+    <serial type='file'><source path='/var/log/libvirt/qemu/gaia-verify-dfe7e1-serial.log'/><target port='0'/></serial>
+    <graphics type='vnc'><listen type='none'/></graphics>
+    <video><model type='vga'/></video>
+  </devices>
+</domain>
