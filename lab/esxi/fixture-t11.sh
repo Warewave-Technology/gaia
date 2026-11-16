@@ -301,7 +301,7 @@ echo "$sha" >"$WORK/$VM.raw.sha256"
 echo "disk: $(stat -c %s "$raw") bytes, $(du -h "$raw" | cut -f1) allocated, sha256 $sha"
 esxi "$DATASTORE" <<'EOF'
 [ -d "/vmfs/volumes/$1" ] || { echo "no datastore $1"; ls /vmfs/volumes; exit 1; }
-command -v python >/dev/null || { echo "no python on the host"; exit 1; }
+[ -x /bin/python ] || { echo "no python on the host"; exit 1; } # BusyBox sh: no `command` builtin
 EOF
 delete_vm >/dev/null
 dir="/vmfs/volumes/$DATASTORE/$VM"
