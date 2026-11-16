@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -31,7 +32,15 @@ func migrated(t *testing.T) *DB {
 
 func TestMigrationsFromEmpty(t *testing.T) {
 	ctx := context.Background()
-	d := open(t)
+	dir := t.TempDir()
+	d, err := Open(filepath.Join(dir, "gaia.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	if fi, err := os.Stat(filepath.Join(dir, "gaia.db")); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("database mode %v %v", fi.Mode(), err)
+	}
 	done, err := d.Migrate(ctx, 0)
 	if err != nil || !slices.Equal(done, []int{1, 2}) || Latest() != 2 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())

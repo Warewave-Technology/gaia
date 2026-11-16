@@ -29,7 +29,7 @@ VERSION := $(shell git describe --always --dirty 2>/dev/null || echo devel)
 ARCH ?= amd64
 PKG = gaia-$(VERSION)-linux-$(ARCH)
 dist:
-	rm -rf dist/$(PKG) && mkdir -p dist/$(PKG)
+	rm -rf dist && mkdir -p dist/$(PKG) # only the newest package: an older one cannot be copied by mistake
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -trimpath -o dist/$(PKG)/gaia ./cmd/gaia
 	cp packaging/systemd/gaia.service docs/install.md LICENSE dist/$(PKG)/
 	cd dist/$(PKG) && (sha256sum gaia gaia.service install.md LICENSE 2>/dev/null || shasum -a 256 gaia gaia.service install.md LICENSE) > SHA256SUMS

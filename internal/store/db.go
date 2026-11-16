@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -60,6 +61,11 @@ func Open(path string) (*DB, error) {
 	if err := db.QueryRow("PRAGMA journal_mode").Scan(&mode); err != nil || mode != "wal" {
 		db.Close()
 		return nil, fmt.Errorf("open %s: journal mode %q, want wal (%v)", path, mode, err)
+	}
+	// The database holds password hashes: owner only. SQLite gives its -wal and -shm files the same mode.
+	if err := os.Chmod(path, 0o600); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	return &DB{db: db, now: func() time.Time { return time.Now().UTC() }}, nil
 }
