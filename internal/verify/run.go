@@ -70,21 +70,32 @@ type Options struct {
 	Config      *Config
 	Image       string // the restored image; never written
 	ImageFormat string // raw (default) or qcow2
-	RestoreJSON string // optional: gaia-backup restore -json output, for the restore time (Proven RTO)
-	WorkDir     string // for the overlay; qemu must be able to use it (e.g. /var/lib/libvirt/images/gaia-verify)
-	SerialDir   string // for the serial log (e.g. /var/log/libvirt/qemu)
-	EvidenceDir string // bundles go to EvidenceDir/<bundle id>
+	// Disks, for a guest with several disks, replaces Image: every restored disk, the boot disk first. None is
+	// ever written.
+	Disks       []DiskImage
+	RestoreJSON string  // optional: gaia-backup restore -json output, for the restore time (Proven RTO)
+	RestoreS    float64 // optional: the restore time in seconds, when the caller restored the disks itself
+	WorkDir     string  // for the overlay; qemu must be able to use it (e.g. /var/lib/libvirt/images/gaia-verify)
+	SerialDir   string  // for the serial log (e.g. /var/log/libvirt/qemu)
+	EvidenceDir string  // bundles go to EvidenceDir/<bundle id>
 	Ledger      string
-	Key         ed25519.PrivateKey
-	Socket      string    // libvirtd socket
-	Self        string    // this binary, run as `Self probe ...` inside the sandbox's network namespace
-	Log         io.Writer // progress lines
+	Key         ed25519.PrivateKey // nil: the bundle is written but not sealed; the caller seals it (gaia server)
+	Socket      string             // libvirtd socket
+	Self        string             // this binary, run as `Self probe ...` inside the sandbox's network namespace
+	Log         io.Writer          // progress lines
 	// For callers that do more than verify (the migration check): steps that ran before,
 	// recorded as checks ahead of the VM's own; files to add to the bundle (bundle path ->
 	// local file); and, when there is no image (Image == ""), why the guest was not started.
 	PreChecks  []CheckResult
 	Extra      map[string]string
 	SkipReason string
+}
+
+// DiskImage is one restored disk of the guest.
+type DiskImage struct {
+	Path   string `json:"path"`
+	Format string `json:"format"` // raw (default) or qcow2
+	Target string `json:"target"` // the guest's device name (vda, vdb, sda...); default from the disk bus and order
 }
 
 // CheckResult is the outcome of one check. Seconds counts from the moment the guest's vCPUs started.
@@ -101,6 +112,7 @@ type CheckResult struct {
 type Image struct {
 	Path         string `json:"path"`
 	Format       string `json:"format"`
+	Target       string `json:"target,omitempty"`
 	Bytes        int64  `json:"bytes"`
 	SHA256Before string `json:"sha256_before"`
 	SHA256After  string `json:"sha256_after"`
@@ -130,7 +142,8 @@ type Result struct {
 	VM          string             `json:"vm"`
 	Verdict     string             `json:"verdict"`
 	Checks      []CheckResult      `json:"checks"`
-	Image       Image              `json:"image"`
+	Image       Image              `json:"image"`            // the boot disk
+	Images      []Image            `json:"images,omitempty"` // every disk, when the guest has more than one
 	Sandbox     Sandbox            `json:"sandbox"`
 	Timings     map[string]float64 `json:"timings_s"`
 	Shutdown    string             `json:"shutdown"`
@@ -151,23 +164,24 @@ const (
 )
 
 type run struct {
-	o       Options
-	c       *Config
-	r       *Result
-	dir     string // bundle dir
-	l       *libvirt.Libvirt
-	dom     libvirt.Domain
-	domUp   bool
-	net     libvirt.Network
-	netUp   bool
-	nsUp    bool
-	dnsmasq *exec.Cmd
-	overlay string
-	serial  string
-	leases  string
-	work    string
-	log     bytes.Buffer // sandbox.log: every command and its output
-	t0      time.Time    // vCPUs started
+	o        Options
+	c        *Config
+	r        *Result
+	dir      string // bundle dir
+	l        *libvirt.Libvirt
+	dom      libvirt.Domain
+	domUp    bool
+	net      libvirt.Network
+	netUp    bool
+	nsUp     bool
+	dnsmasq  *exec.Cmd
+	disks    []DiskImage
+	overlays []string
+	serial   string
+	leases   string
+	work     string
+	log      bytes.Buffer // sandbox.log: every command and its output
+	t0       time.Time    // vCPUs started
 }
 
 // Run verifies one image and seals the evidence. A harness failure still produces a
@@ -183,7 +197,24 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		return nil, err
 	}
 	x.work = filepath.Join(o.WorkDir, "gaia-verify-"+short)
-	x.overlay = filepath.Join(x.work, "overlay.qcow2")
+	x.disks = o.Disks
+	if len(x.disks) == 0 && o.Image != "" {
+		x.disks = []DiskImage{{Path: o.Image, Format: o.ImageFormat}}
+	}
+	for i := range x.disks {
+		d := &x.disks[i]
+		if d.Format == "" {
+			d.Format = "raw"
+		}
+		if d.Target == "" {
+			d.Target = defaultTarget(o.Config.Machine.DiskBus, i)
+		}
+		name := "overlay.qcow2"
+		if i > 0 {
+			name = fmt.Sprintf("overlay-%s.qcow2", d.Target)
+		}
+		x.overlays = append(x.overlays, filepath.Join(x.work, name))
+	}
 	x.leases = filepath.Join(x.work, "dnsmasq.leases")
 	x.serial = filepath.Join(o.SerialDir, "gaia-verify-"+short+"-serial.log")
 	sb := &r.Sandbox
@@ -242,11 +273,14 @@ func (x *run) verify(ctx context.Context) error {
 			return err
 		}
 	}
-	if x.o.Image == "" {
+	if len(x.disks) == 0 {
 		for _, k := range c.Checks {
 			r.Checks = append(r.Checks, CheckResult{Name: k.Name, Type: k.Type, Verdict: Unknown, Detail: "not run: " + x.o.SkipReason})
 		}
 		return nil
+	}
+	if x.o.RestoreS > 0 {
+		r.Timings["restore"] = x.o.RestoreS
 	}
 	if x.o.RestoreJSON != "" {
 		b, err := os.ReadFile(x.o.RestoreJSON)
@@ -264,19 +298,21 @@ func (x *run) verify(ctx context.Context) error {
 		}
 	}
 
-	// The image: hashed now and again at the end; it is only ever a read-only backing file.
-	r.Image.Path, r.Image.Format = x.o.Image, x.o.ImageFormat
-	if r.Image.Format == "" {
-		r.Image.Format = "raw"
-	}
+	// The images: hashed now and again at the end; each is only ever a read-only backing file.
 	t := time.Now()
-	sum, n, err := fileSHA256(x.o.Image)
-	if err != nil {
-		return fmt.Errorf("image: %w", err)
+	for _, d := range x.disks {
+		sum, n, err := fileSHA256(d.Path)
+		if err != nil {
+			return fmt.Errorf("image %s: %w", d.Target, err)
+		}
+		r.Images = append(r.Images, Image{Path: d.Path, Format: d.Format, Target: d.Target, Bytes: n, SHA256Before: sum})
+		x.logf("image %s (%s): sha256 %s (%d bytes)", d.Path, d.Target, sum, n)
 	}
-	r.Image.SHA256Before, r.Image.Bytes = sum, n
+	r.Image = r.Images[0]
+	if len(x.disks) == 1 {
+		r.Image.Target, r.Images = "", nil // one disk: result.json as before
+	}
 	r.Timings["image_hash"] = time.Since(t).Seconds()
-	x.logf("image %s: sha256 %s (%d bytes)", x.o.Image, sum, n)
 
 	t = time.Now()
 	l := libvirt.NewWithDialer(dialers.NewLocal(dialers.WithSocket(x.o.Socket)))
@@ -296,11 +332,14 @@ func (x *run) verify(ctx context.Context) error {
 	if err := os.MkdirAll(x.work, 0o755); err != nil {
 		return err
 	}
-	if _, err := x.cmd("qemu-img", "create", "-q", "-f", "qcow2", "-F", r.Image.Format, "-b", absPath(x.o.Image), x.overlay); err != nil {
-		return err
+	for i, d := range x.disks {
+		if _, err := x.cmd("qemu-img", "create", "-q", "-f", "qcow2", "-F", d.Format, "-b", absPath(d.Path), x.overlays[i]); err != nil {
+			return err
+		}
 	}
 	domXML := x.domainXML()
 	os.WriteFile(filepath.Join(x.dir, "domain.xml"), []byte(domXML), 0o644)
+	var err error
 	if x.dom, err = l.DomainCreateXML(domXML, libvirt.DomainStartPaused); err != nil {
 		return fmt.Errorf("create sandbox domain: %w", err)
 	}
@@ -458,7 +497,11 @@ func (x *run) domainXML() string {
 		osXML = fmt.Sprintf("<os%s><type arch='aarch64' machine='virt'>hvm</type><boot dev='hd'/></os><features><acpi/><gic version='3'/></features>", firmware)
 		emulator, video = "/usr/bin/qemu-system-aarch64", "virtio"
 	}
-	target := map[string]string{"virtio": "vda", "sata": "sda", "scsi": "sda"}[m.DiskBus]
+	var disks strings.Builder
+	for i, d := range x.disks {
+		fmt.Fprintf(&disks, "<disk type='file' device='disk'><driver name='qemu' type='qcow2'/><source file='%s'/><target dev='%s' bus='%s'/></disk>\n    ",
+			x.overlays[i], d.Target, m.DiskBus)
+	}
 	controller := ""
 	if m.DiskBus == "scsi" {
 		controller = "<controller type='scsi' model='virtio-scsi'/>"
@@ -474,14 +517,13 @@ func (x *run) domainXML() string {
   <devices>
     <emulator>%s</emulator>
     %s
-    <disk type='file' device='disk'><driver name='qemu' type='qcow2'/><source file='%s'/><target dev='%s' bus='%s'/></disk>
-    <interface type='network'><source network='%s'/><mac address='%s'/><model type='%s'/><rom enabled='no'/></interface>
+    %s<interface type='network'><source network='%s'/><mac address='%s'/><model type='%s'/><rom enabled='no'/></interface>
     <serial type='file'><source path='%s'/><target port='0'/></serial>
     <graphics type='vnc'><listen type='none'/></graphics>
     <video><model type='%s'/></video>
   </devices>
 </domain>
-`, sb.Virt, sb.Domain, xmlText(c.VM), m.MemoryMiB, m.VCPUs, osXML, cpu, emulator, controller, x.overlay, target, m.DiskBus,
+`, sb.Virt, sb.Domain, xmlText(c.VM), m.MemoryMiB, m.VCPUs, osXML, cpu, emulator, controller, disks.String(),
 		sb.Network, m.MAC, m.NICModel, x.serial, video)
 }
 
@@ -701,25 +743,42 @@ func (x *run) teardown() {
 
 func (x *run) finish() {
 	r := x.r
-	if r.Image.SHA256Before != "" {
-		if sum, _, err := fileSHA256(x.o.Image); err != nil {
+	imgs := []*Image{&r.Image}
+	if len(r.Images) > 0 {
+		imgs = nil
+		for i := range r.Images {
+			imgs = append(imgs, &r.Images[i])
+		}
+	}
+	for _, im := range imgs {
+		if im.SHA256Before == "" {
+			continue
+		}
+		name := "image_unchanged"
+		if im.Target != "" {
+			name += "_" + im.Target
+		}
+		if sum, _, err := fileSHA256(im.Path); err != nil {
 			r.Errors = append(r.Errors, fmt.Sprintf("image after: %v", err))
 		} else {
-			r.Image.SHA256After = sum
-			same := sum == r.Image.SHA256Before
-			r.Image.Unchanged = &same
+			im.SHA256After = sum
+			same := sum == im.SHA256Before
+			im.Unchanged = &same
 			v, d := OK, "sha256 before and after are equal"
 			if !same {
 				v, d = Critical, "the restored image changed during verification"
 			}
-			r.Checks = append(r.Checks, CheckResult{Name: "image_unchanged", Type: "image_hash", Verdict: v, Detail: d})
+			r.Checks = append(r.Checks, CheckResult{Name: name, Type: "image_hash", Verdict: v, Detail: d})
 		}
+	}
+	if len(r.Images) > 0 {
+		r.Image = r.Images[0]
 	}
 	verdicts := checkVerdicts(r.Checks)
 	if len(r.Errors) > 0 && len(verdicts) > 0 {
 		verdicts = append(verdicts, Unknown) // a harness error: what was not checked is not OK
 	}
-	if len(r.Checks) < len(x.o.PreChecks)+len(x.c.Checks)+1 { // + image_unchanged
+	if len(r.Checks) < len(x.o.PreChecks)+len(x.c.Checks)+max(1, len(x.disks)) { // + image_unchanged per disk
 		verdicts = append(verdicts, Unknown)
 	}
 	r.Verdict = Worst(verdicts...)
@@ -737,6 +796,10 @@ func (x *run) seal() error {
 	if err := os.WriteFile(filepath.Join(x.dir, "result.json"), append(b, '\n'), 0o644); err != nil {
 		return err
 	}
+	if x.o.Key == nil {
+		r.BundleDir = x.dir // the caller seals it
+		return nil
+	}
 	h, err := evidence.Seal(x.dir, r.BundleID, map[string]string{"vm": r.VM, "verdict": r.Verdict}, x.o.Key)
 	if err != nil {
 		return err
@@ -747,6 +810,15 @@ func (x *run) seal() error {
 	}
 	r.BundleDir, r.BundleSHA256, r.LedgerSeq = x.dir, h, e.Seq
 	return nil
+}
+
+// defaultTarget names the i-th disk on a bus the way libvirt does: vda, vdb... or sda, sdb...
+func defaultTarget(bus string, i int) string {
+	prefix := "vd"
+	if bus == "sata" || bus == "scsi" {
+		prefix = "sd"
+	}
+	return prefix + string(rune('a'+i))
 }
 
 func checkVerdicts(cs []CheckResult) []string {

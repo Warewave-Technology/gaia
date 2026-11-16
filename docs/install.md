@@ -11,6 +11,9 @@ versions.
 
 - **Server:** Debian 12 (bookworm), amd64, 2 vCPU, 4 GiB RAM, and enough disk for the repository (start with 50 GiB
   under `/srv/gaia`). It must be reachable on TCP port 8443 from wherever you will run the `gaia` command.
+- **For restore tests** (step 10): the server boots restored VMs itself, so it needs KVM (`ls /dev/kvm` shows the
+  device; in a VM, nested virtualisation must be on), 1–2 GiB RAM more per test VM, and free disk under
+  `/var/lib/gaia-sandbox` for the largest VM's disks.
 - **Build machine:** any machine with this repository and Go (the version in `go.mod`). This is where you make the
   package. Your Mac is fine.
 
@@ -48,6 +51,16 @@ install -m 0755 gaia /usr/local/bin/gaia
 install -m 0644 gaia.service /etc/systemd/system/gaia.service
 ```
 
+For restore tests, install KVM and libvirt, and the sandbox helper. The helper is a second, small service that runs
+as root: booting a restored VM in an isolated network needs root, and the main service has no privileges at all.
+It only boots disks the main service puts into `/var/lib/gaia-sandbox/images`, and only members of the group `gaia`
+can talk to it.
+
+```bash
+apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients dnsmasq-base iproute2
+install -m 0644 gaia-sandbox.service /etc/systemd/system/gaia-sandbox.service
+```
+
 ## 4. Set up Gaia (on the server, as root)
 
 Replace `<names>` with the DNS name and IP address you will use to reach the server, separated by commas (for
@@ -69,10 +82,12 @@ It then prints two values. **Write both down now**, for example in your password
 ## 5. Start the service (on the server, as root)
 
 ```bash
-systemctl daemon-reload && systemctl enable --now gaia && systemctl status gaia --no-pager
+systemctl daemon-reload && systemctl enable --now gaia-sandbox gaia && systemctl status gaia-sandbox gaia --no-pager
 ```
 
-The status should say `active (running)`. The log is in the journal:
+Both should say `active (running)`. Without restore tests, leave `gaia-sandbox` out of the first command.
+
+The log is in the journal:
 
 ```bash
 journalctl -u gaia --no-pager -n 20
@@ -104,7 +119,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`3`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`4`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -269,6 +284,46 @@ To prove a point restores, without touching the VM: `gaia points restore-check <
 scratch file on the Gaia server, prints its sha256, and deletes it. It needs free space for the largest disk under
 `/var/lib/gaia`.
 
+## 10b. Restore tests and the VM status
+
+Gaia proves that backups can be restored: every `test_interval_s` seconds of a VM's policy it restores the newest
+checked point into `/var/lib/gaia-sandbox/images`, boots it in an isolated network (no way out, and no way to the
+server or the host) and runs the policy's checks. `check_template` names them:
+
+| Template | Checks |
+|---|---|
+| `linux-basic` | The serial console shows a login prompt, and SSH (TCP 22) answers. |
+| `linux-boot` | The serial console shows a login prompt. |
+| `windows-basic` | Remote Desktop (3389) answers, and WinRM (5985) answers on `/wsman`. |
+
+Every test is sealed as signed evidence. To run one now and see the result:
+
+```bash
+gaia vms test <vm id>
+gaia tests list vm_id=<vm id>
+```
+
+The VM's **status** answers "which point can I go back to right now, and is that proven?":
+
+```bash
+gaia status
+gaia status <vm id>
+```
+
+| Status | Meaning |
+|---|---|
+| `OK` | The newest proven point is within the RPO target, the proven restore time within the RTO target, and the proof is not older than `max_proof_age_s`. |
+| `WARNING` | Backups are on time, but the proof misses a target (too old, or the restore was too slow). |
+| `CRITICAL` | The newest checked backup is older than the RPO target, or the latest restore test failed, or a backup point was found damaged. |
+| `UNKNOWN` | No restore test of the VM has passed yet, or something it needs is missing (no policy, no checked backup). |
+
+`gaia status` exits with 0, 1, 2 or 3 for the worst status, so a monitoring system can run it. `gaia status <vm id>`
+also lists every other reason. Every change of status is recorded with its time and reason:
+
+```bash
+gaia state-changes list entity=vm_status entity_id=<vm id>
+```
+
 ## 11. What else the command line does
 
 ```bash
@@ -320,4 +375,6 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `host key ... is not the pinned one` | The host's SSH key changed. If that was on purpose (the host was reinstalled), run `scan` and `trust` again. |
 | A backup job fails with `permission denied` on a socket | The host user is not in the groups `libvirt` and `libvirt-qemu` (step 10). |
 | A backup job fails with `... is not running` | Gaia backs up running VMs only (libvirt pull-mode backup). Start the VM. |
+| Restore tests stay `UNKNOWN` with `sandbox helper ... connect` | `gaia-sandbox` is not running: `systemctl status gaia-sandbox`. |
+| A restore test is `CRITICAL` with `boot ... no login prompt` | The restored VM did not boot. The evidence (`gaia evidence export`) has its screenshots and serial log. |
 | The service does not start | `journalctl -u gaia -n 50` shows why: a wrong config, missing files, or a database from a newer version. |

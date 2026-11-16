@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -128,6 +129,11 @@ func (s *Server) runBackup(ctx context.Context, j store.Job) {
 	if _, err := s.db.SetJobState(context.WithoutCancel(ctx), "system", j.ID, to, d.Reason, msg); err != nil {
 		s.log.Error("job state", "job", j.ID, "error", err)
 	}
+	if j.VMID != nil {
+		if _, err := s.refreshStatus(context.WithoutCancel(ctx), *j.VMID); err != nil {
+			s.log.Error("status", "vm", *j.VMID, "error", err)
+		}
+	}
 }
 
 func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error {
@@ -182,6 +188,14 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 		return err
 	}
 	disks, uuid, err := lv.Disks(vm.Name)
+	if err != nil {
+		return err
+	}
+	machine, err := lv.Machine(vm.Name)
+	if err != nil {
+		return err
+	}
+	machineJSON, err := json.Marshal(machine)
 	if err != nil {
 		return err
 	}
@@ -299,7 +313,7 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 		}
 	}
 	pt, err := s.db.CreateBackupPoint(ctx, "system", store.Point{VMID: vm.ID, JobID: j.ID, RepositoryID: repo.ID, Kind: d.Kind,
-		TakenAt: takenAt.Format(time.RFC3339Nano), Checkpoint: d.Checkpoint, ParentID: d.Parent, Reason: d.Reason}, pdisks)
+		TakenAt: takenAt.Format(time.RFC3339Nano), Checkpoint: d.Checkpoint, ParentID: d.Parent, Reason: d.Reason, Machine: machineJSON}, pdisks)
 	if err != nil {
 		return err
 	}

@@ -248,3 +248,28 @@ func TestRunWithoutImageSealsPreChecks(t *testing.T) {
 		t.Fatalf("ledger %+v %v", lr, err)
 	}
 }
+
+// A guest with two disks gets one overlay per disk, in order, on the configured bus.
+func TestDomainXMLTwoDisks(t *testing.T) {
+	c := &Config{VM: "vm", Template: "linux-boot", Machine: Machine{MAC: "52:54:00:00:00:01"}}
+	if err := c.resolve(); err != nil {
+		t.Fatal(err)
+	}
+	x := &run{o: Options{Config: c}, c: c, r: &Result{}}
+	x.disks = []DiskImage{{Path: "/i/a.raw", Format: "raw", Target: "vda"}, {Path: "/i/b.raw", Format: "raw"}}
+	x.disks[1].Target = defaultTarget(c.Machine.DiskBus, 1)
+	x.overlays = []string{"/w/overlay.qcow2", "/w/overlay-vdb.qcow2"}
+	xml := x.domainXML()
+	for _, want := range []string{"<source file='/w/overlay.qcow2'/><target dev='vda' bus='virtio'/>",
+		"<source file='/w/overlay-vdb.qcow2'/><target dev='vdb' bus='virtio'/>"} {
+		if !strings.Contains(xml, want) {
+			t.Fatalf("missing %q in\n%s", want, xml)
+		}
+	}
+	if strings.Index(xml, "overlay.qcow2") > strings.Index(xml, "overlay-vdb.qcow2") {
+		t.Fatal("the boot disk must come first")
+	}
+	if defaultTarget("sata", 2) != "sdc" {
+		t.Fatal(defaultTarget("sata", 2))
+	}
+}

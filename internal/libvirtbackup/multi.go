@@ -92,6 +92,95 @@ func (c *Conn) Disks(domain string) ([]Disk, string, error) {
 	return out, d.UUID, nil
 }
 
+// Machine is a domain's virtual hardware, as far as a restore test must copy it (JSON as in verify.Machine).
+type Machine struct {
+	Arch      string `json:"arch"`
+	Firmware  string `json:"firmware"` // bios or efi
+	MemoryMiB int    `json:"memory_mib"`
+	VCPUs     int    `json:"vcpus"`
+	DiskBus   string `json:"disk_bus"`  // the first backed-up disk's bus
+	NICModel  string `json:"nic_model"` // the first interface's; "" without one
+	MAC       string `json:"mac"`       // the first interface's; "" without one
+}
+
+// Machine reads the domain's virtual hardware from its XML.
+func (c *Conn) Machine(domain string) (Machine, error) {
+	dom, err := c.l.DomainLookupByName(domain)
+	if err != nil {
+		return Machine{}, fmt.Errorf("domain %q: %w", domain, err)
+	}
+	x, err := c.l.DomainGetXMLDesc(dom, 0)
+	if err != nil {
+		return Machine{}, err
+	}
+	return parseMachine(x)
+}
+
+func parseMachine(x string) (Machine, error) {
+	var d struct {
+		Memory struct {
+			Unit  string `xml:"unit,attr"`
+			Value uint64 `xml:",chardata"`
+		} `xml:"memory"`
+		VCPU int `xml:"vcpu"`
+		OS   struct {
+			Firmware string `xml:"firmware,attr"`
+			Type     struct {
+				Arch string `xml:"arch,attr"`
+			} `xml:"type"`
+			Loader *struct {
+				Type string `xml:"type,attr"`
+			} `xml:"loader"`
+		} `xml:"os"`
+		Disks []struct {
+			Type     string    `xml:"type,attr"`
+			Device   string    `xml:"device,attr"`
+			ReadOnly *struct{} `xml:"readonly"`
+			Target   struct {
+				Bus string `xml:"bus,attr"`
+			} `xml:"target"`
+		} `xml:"devices>disk"`
+		Interfaces []struct {
+			MAC struct {
+				Address string `xml:"address,attr"`
+			} `xml:"mac"`
+			Model struct {
+				Type string `xml:"type,attr"`
+			} `xml:"model"`
+		} `xml:"devices>interface"`
+	}
+	if err := xml.Unmarshal([]byte(x), &d); err != nil {
+		return Machine{}, fmt.Errorf("domain XML: %w", err)
+	}
+	m := Machine{Arch: d.OS.Type.Arch, Firmware: "bios", VCPUs: d.VCPU}
+	if d.OS.Firmware == "efi" || d.OS.Loader != nil && d.OS.Loader.Type == "pflash" {
+		m.Firmware = "efi"
+	}
+	kib := d.Memory.Value // libvirt reports KiB unless it says otherwise
+	switch d.Memory.Unit {
+	case "", "KiB", "k":
+	case "MiB", "M":
+		kib *= 1024
+	case "GiB", "G":
+		kib *= 1024 * 1024
+	case "b", "bytes":
+		kib /= 1024
+	default:
+		return Machine{}, fmt.Errorf("domain XML: memory unit %q", d.Memory.Unit)
+	}
+	m.MemoryMiB = int(kib / 1024)
+	for _, k := range d.Disks {
+		if k.Device == "disk" && k.Type == "file" && k.ReadOnly == nil {
+			m.DiskBus = k.Target.Bus
+			break
+		}
+	}
+	if len(d.Interfaces) > 0 {
+		m.MAC, m.NICModel = d.Interfaces[0].MAC.Address, d.Interfaces[0].Model.Type
+	}
+	return m, nil
+}
+
 // Checkpoints lists the domain's checkpoint names.
 func (c *Conn) Checkpoints(domain string) ([]string, error) {
 	dom, err := c.l.DomainLookupByName(domain)

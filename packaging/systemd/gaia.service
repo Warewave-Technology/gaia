@@ -3,7 +3,7 @@
 [Unit]
 Description=Gaia backup and recoverability server
 Documentation=https://github.com/Warewave-Technology/gaia/blob/main/docs/install.md
-After=network-online.target
+After=network-online.target gaia-sandbox.service
 Wants=network-online.target
 
 [Service]
@@ -18,7 +18,7 @@ UMask=0027
 # Hardening: the server writes only its data directory and its repositories.
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/var/lib/gaia /srv/gaia
+ReadWritePaths=/var/lib/gaia /srv/gaia -/var/lib/gaia-sandbox/images
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

@@ -176,24 +176,32 @@ func (g *schemaGen) schema(t reflect.Type) map[string]any {
 		g.defs[name] = map[string]any{} // placeholder against recursion
 		props := map[string]any{}
 		var required []string
-		for i := range t.NumField() {
-			f := t.Field(i)
-			if !f.IsExported() {
-				continue
-			}
-			tagv := f.Tag.Get("json")
-			if tagv == "-" {
-				continue
-			}
-			jname, opts, _ := strings.Cut(tagv, ",")
-			if jname == "" {
-				jname = f.Name
-			}
-			props[jname] = g.schema(f.Type)
-			if !strings.Contains(opts, "omitempty") {
-				required = append(required, jname)
+		var fields func(t reflect.Type)
+		fields = func(t reflect.Type) {
+			for i := range t.NumField() {
+				f := t.Field(i)
+				tagv := f.Tag.Get("json")
+				if tagv == "-" {
+					continue
+				}
+				jname, opts, _ := strings.Cut(tagv, ",")
+				if f.Anonymous && jname == "" && f.Type.Kind() == reflect.Struct {
+					fields(f.Type) // embedded: its fields are the outer object's, as encoding/json does
+					continue
+				}
+				if !f.IsExported() {
+					continue
+				}
+				if jname == "" {
+					jname = f.Name
+				}
+				props[jname] = g.schema(f.Type)
+				if !strings.Contains(opts, "omitempty") {
+					required = append(required, jname)
+				}
 			}
 		}
+		fields(t)
 		slices.Sort(required)
 		def := map[string]any{"type": "object", "properties": props, "additionalProperties": false}
 		if len(required) > 0 {

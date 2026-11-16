@@ -45,10 +45,16 @@ func (s *Server) tick(ctx context.Context, now time.Time) error {
 	if err := s.queueDueBackups(ctx, now); err != nil {
 		return err
 	}
+	if err := s.queueDueTests(ctx, now); err != nil {
+		return err
+	}
 	if err := s.dispatch(ctx); err != nil {
 		return err
 	}
-	return s.startDueVerifications(ctx, now)
+	if err := s.startDueVerifications(ctx, now); err != nil {
+		return err
+	}
+	return s.refreshAllStatuses(ctx)
 }
 
 // queueDueBackups queues a backup for every VM with a policy whose last backup job is at least its interval old.
@@ -92,13 +98,29 @@ func (s *Server) queueDueBackups(ctx context.Context, now time.Time) error {
 	return nil
 }
 
-// dispatch starts queued backups: at most max_parallel_backups at once, one per VM.
+// dispatch starts queued jobs: backups, at most max_parallel_backups at once and one per VM; restore tests one at a
+// time (the sandbox boots one guest at a time).
 func (s *Server) dispatch(ctx context.Context) error {
 	qs, err := s.db.QueuedJobs(ctx)
 	if err != nil {
 		return err
 	}
 	for _, j := range qs {
+		if j.Kind == "restore_test" && j.VMID != nil {
+			n := 0
+			s.testing.Range(func(_, _ any) bool { n++; return true })
+			if n > 0 {
+				continue
+			}
+			s.testing.Store(*j.VMID, j.ID)
+			s.jobsWG.Add(1)
+			go func(j store.Job) {
+				defer s.jobsWG.Done()
+				defer s.testing.Delete(*j.VMID)
+				s.runTest(ctx, j)
+			}(j)
+			continue
+		}
 		if j.Kind != "backup" || j.VMID == nil {
 			continue
 		}
@@ -240,6 +262,9 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 	for _, a := range affected {
 		if _, err := s.db.SetPointCheck(ctx, actor, a.PointID, false, fmt.Sprintf("repository verification %d (%s): disk %s: %s", v.ID, v.Mode, a.Disk, a.Problems[0])); err != nil {
 			s.log.Error("marking a damaged point", "point", a.PointID, "error", err)
+		}
+		if _, err := s.refreshStatus(ctx, a.VMID); err != nil {
+			s.log.Error("status", "vm", a.VMID, "error", err)
 		}
 	}
 	if _, err := s.db.FinishVerification(ctx, actor, v); err != nil {

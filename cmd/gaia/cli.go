@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/client"
 )
@@ -24,7 +25,8 @@ import (
 //	gaia RESOURCE add key=value ...                      a JSON body; values that parse as JSON are typed
 //	gaia RESOURCE set ID key=value ...
 //	gaia RESOURCE rm ID
-//	gaia vms disks ID | add-disk ID target=vda size_bytes=N | backup ID
+//	gaia status [VM ID]                                  every VM's status (exit code: the worst status)
+//	gaia vms disks ID | add-disk ID target=vda size_bytes=N | backup ID | test ID | status ID
 //	gaia hosts scan ID | trust ID fingerprint=SHA256:... | check ID
 //	gaia points disks ID | restore-check ID
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
@@ -41,7 +43,7 @@ type resource struct {
 var resources = map[string]resource{
 	"users":         {"/api/v1/users", []string{"list", "get", "add", "set"}},
 	"hosts":         {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
-	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup"}},
+	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status"}},
 	"repositories":  {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
 	"policies":      {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
 	"jobs":          {"/api/v1/jobs", []string{"list", "get"}},
@@ -57,7 +59,7 @@ var resources = map[string]resource{
 // isCLICommand reports whether args[0] is handled by runCLI.
 func isCLICommand(name string) bool {
 	_, ok := resources[name]
-	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "api"}, name)
+	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "api", "status"}, name)
 }
 
 // stripJSON removes -json / --json from args.
@@ -105,6 +107,8 @@ func runCLI(ctx context.Context, args []string) int {
 		return 0
 	case "whoami":
 		return call("GET", "/api/v1/me", nil)
+	case "status":
+		return cliStatus(ctx, c, args[1:], asJSON)
 	case "system":
 		return call("GET", "/api/v1/system", nil)
 	case "password":
@@ -190,6 +194,10 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("POST", res.path+"/"+id+"/"+verb, nil)
 	case "backup":
 		return call("POST", res.path+"/"+id+"/backups", nil)
+	case "test":
+		return call("POST", res.path+"/"+id+"/tests", nil)
+	case "status":
+		return call("GET", res.path+"/"+id+"/status", nil)
 	case "trust", "verify", "maintenance":
 		body, err := keyValues(rest)
 		if err != nil {
@@ -441,4 +449,90 @@ func cell(v json.RawMessage, max int) string {
 		s = s[:max-1] + "…"
 	}
 	return s
+}
+
+// cliStatus prints every VM's status (or one VM's, with all its reasons) and exits with the worst status's code:
+// 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN (no VMs is UNKNOWN: nothing is proven).
+func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool) int {
+	type vmStatus struct {
+		VMID           int64    `json:"vm_id"`
+		VM             string   `json:"vm"`
+		Status         string   `json:"status"`
+		ChangedAt      string   `json:"changed_at"`
+		TheoreticalRPO *float64 `json:"theoretical_rpo_s"`
+		ProvenRPO      *float64 `json:"proven_rpo_s"`
+		ProvenRTO      *float64 `json:"proven_rto_s"`
+		ProofAge       *float64 `json:"proof_age_s"`
+		Reasons        []struct {
+			Status string `json:"status"`
+			Text   string `json:"text"`
+		} `json:"reasons"`
+		Notes []string `json:"notes"`
+	}
+	path := "/api/v1/status"
+	if len(args) > 0 {
+		path = "/api/v1/vms/" + url.PathEscape(args[0]) + "/status"
+	}
+	b, _, err := c.Do(ctx, "GET", path, nil)
+	if err != nil {
+		return fail(asJSON, "status", err)
+	}
+	var vs []vmStatus
+	if len(args) > 0 {
+		var v vmStatus
+		err = json.Unmarshal(b, &v)
+		vs = []vmStatus{v}
+	} else {
+		err = json.Unmarshal(b, &vs)
+	}
+	if err != nil {
+		return fail(asJSON, "status", err)
+	}
+	worst := "OK"
+	if len(vs) == 0 {
+		worst = "UNKNOWN"
+	}
+	rank := map[string]int{"OK": 0, "WARNING": 1, "UNKNOWN": 2, "CRITICAL": 3}
+	for _, v := range vs {
+		if r, ok := rank[v.Status]; !ok || r > rank[worst] {
+			worst = v.Status
+			if !ok {
+				worst = "UNKNOWN"
+			}
+		}
+	}
+	code := map[string]int{"OK": 0, "WARNING": 1, "CRITICAL": 2}[worst]
+	if worst == "UNKNOWN" {
+		code = 3
+	}
+	if asJSON {
+		os.Stdout.Write(b)
+		return code
+	}
+	d := func(s *float64) string {
+		if s == nil {
+			return "-"
+		}
+		return time.Duration(*s * float64(time.Second)).Round(time.Second).String()
+	}
+	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "VM\tSTATUS\tSINCE\tTHEORETICAL RPO\tPROVEN RPO\tPROVEN RTO\tPROOF AGE\tREASON")
+	for _, v := range vs {
+		reason := "-"
+		if len(v.Reasons) > 0 {
+			reason = v.Reasons[0].Text
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", v.VM, v.Status, v.ChangedAt, d(v.TheoreticalRPO), d(v.ProvenRPO),
+			d(v.ProvenRTO), d(v.ProofAge), reason)
+	}
+	tw.Flush()
+	if len(args) > 0 && len(vs) == 1 {
+		for _, r := range vs[0].Reasons[min(1, len(vs[0].Reasons)):] {
+			fmt.Printf("  also %s: %s\n", r.Status, r.Text)
+		}
+		for _, n := range vs[0].Notes {
+			fmt.Printf("  note: %s\n", n)
+		}
+	}
+	return code
 }

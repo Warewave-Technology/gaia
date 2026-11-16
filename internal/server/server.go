@@ -27,6 +27,7 @@ import (
 	"github.com/kopia/kopia/repo/maintenance"
 
 	"github.com/Warewave-Technology/gaia/internal/hostconn"
+	"github.com/Warewave-Technology/gaia/internal/sandbox"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -47,6 +48,9 @@ type Config struct {
 	VerifyAt           string  `json:"verify_at"`            // HH:MM local time of the daily sampled verification, default 03:30
 	FullVerifyDay      string  `json:"full_verify_day"`      // weekday of the weekly full verification, default sunday
 	VerifySample       float64 `json:"verify_sample"`        // fraction of each point's blocks the sampled verification reads, default 0.02
+	// Restore tests (T16).
+	SandboxSocket    string `json:"sandbox_socket"`     // the sandbox helper (gaia sandbox serve); default /run/gaia-sandbox/sandbox.sock
+	SandboxImagesDir string `json:"sandbox_images_dir"` // where restore tests restore disks for the helper; default /var/lib/gaia-sandbox/images
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -106,9 +110,17 @@ func (c *Config) resolve() error {
 	if c.VerifySample == 0 {
 		c.VerifySample = 0.02
 	}
+	if c.SandboxSocket == "" {
+		c.SandboxSocket = "/run/gaia-sandbox/sandbox.sock"
+	}
+	if c.SandboxImagesDir == "" {
+		c.SandboxImagesDir = "/var/lib/gaia-sandbox/images"
+	}
 	switch {
 	case !filepath.IsAbs(c.HostSocketDir) || !filepath.IsAbs(c.HostScratchDir):
 		return fmt.Errorf("host_socket_dir and host_scratch_dir must be absolute paths")
+	case !filepath.IsAbs(c.SandboxSocket) || !filepath.IsAbs(c.SandboxImagesDir):
+		return fmt.Errorf("sandbox_socket and sandbox_images_dir must be absolute paths")
 	case c.NBDConnections < 1 || c.NBDConnections > 16 || c.MaxParallelBackups < 1 || c.MaxParallelBackups > 16:
 		return fmt.Errorf("nbd_connections and max_parallel_backups: 1-16")
 	case !hhmm.MatchString(c.VerifyAt):
@@ -162,6 +174,9 @@ type Server struct {
 	maintenanceSafety maintenance.SafetyParameters
 	jobsWG            sync.WaitGroup
 	running           sync.Map // VM ID -> ID of its running backup job
+	testing           sync.Map // VM ID -> ID of its running restore test job
+	sandbox           *sandbox.Client
+	now               func() time.Time // the clock of the status model
 }
 
 func weekday(s string) time.Weekday {
@@ -191,7 +206,7 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		log.Info("migrated the state database", "versions", done, "schema", store.Latest())
 	}
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
-		maintenanceSafety: maintenance.SafetyFull}
+		maintenanceSafety: maintenance.SafetyFull, sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now}
 	host, _ := os.Hostname()
 	if s.sshKey, err = hostconn.LoadOrCreateKey(cfg.sshKeyPath(), "gaia@"+host); err != nil {
 		db.Close()

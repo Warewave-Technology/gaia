@@ -31,8 +31,8 @@ PKG = gaia-$(VERSION)-linux-$(ARCH)
 dist:
 	rm -rf dist && mkdir -p dist/$(PKG) # only the newest package: an older one cannot be copied by mistake
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -trimpath -o dist/$(PKG)/gaia ./cmd/gaia
-	cp packaging/systemd/gaia.service docs/install.md LICENSE dist/$(PKG)/
-	cd dist/$(PKG) && (sha256sum gaia gaia.service install.md LICENSE 2>/dev/null || shasum -a 256 gaia gaia.service install.md LICENSE) > SHA256SUMS
+	cp packaging/systemd/gaia.service packaging/systemd/gaia-sandbox.service docs/install.md LICENSE dist/$(PKG)/
+	cd dist/$(PKG) && (sha256sum gaia gaia.service gaia-sandbox.service install.md LICENSE 2>/dev/null || shasum -a 256 gaia gaia.service gaia-sandbox.service install.md LICENSE) > SHA256SUMS
 	COPYFILE_DISABLE=1 tar --no-xattrs -C dist -czf dist/$(PKG).tar.gz $(PKG)
 	@echo dist/$(PKG).tar.gz
 

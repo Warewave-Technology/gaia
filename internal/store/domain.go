@@ -667,26 +667,29 @@ func (d *DB) Jobs(ctx context.Context, vmID int64, limit int) ([]Job, error) {
 
 // Point is a backup point of a VM: one checkpoint on the host, one diskstore point per disk (point_disks).
 type Point struct {
-	ID           int64  `json:"id"`
-	VMID         int64  `json:"vm_id"`
-	JobID        int64  `json:"job_id"`
-	RepositoryID int64  `json:"repository_id"`
-	Kind         string `json:"kind"`
-	TakenAt      string `json:"taken_at"`
-	CheckState   string `json:"check_state"` // unchecked, ok, failed (post-backup check, or a repository verification)
-	Bytes        int64  `json:"bytes"`
-	State        string `json:"state"` // present, pruned
-	Checkpoint   string `json:"checkpoint"`
-	ParentID     *int64 `json:"parent_id"`
-	Reason       string `json:"reason"`
+	ID           int64           `json:"id"`
+	VMID         int64           `json:"vm_id"`
+	JobID        int64           `json:"job_id"`
+	RepositoryID int64           `json:"repository_id"`
+	Kind         string          `json:"kind"`
+	TakenAt      string          `json:"taken_at"`
+	CheckState   string          `json:"check_state"` // unchecked, ok, failed (post-backup check, or a repository verification)
+	Bytes        int64           `json:"bytes"`
+	State        string          `json:"state"` // present, pruned
+	Checkpoint   string          `json:"checkpoint"`
+	ParentID     *int64          `json:"parent_id"`
+	Reason       string          `json:"reason"`
+	Machine      json.RawMessage `json:"machine"` // the VM's virtual hardware at backup time
 }
 
-const pointCols = `id, vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, parent_id, reason`
+const pointCols = `id, vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, parent_id, reason, machine`
 
 func scanPoint(s interface{ Scan(...any) error }) (Point, error) {
 	var p Point
 	var parent sql.NullInt64
-	err := s.Scan(&p.ID, &p.VMID, &p.JobID, &p.RepositoryID, &p.Kind, &p.TakenAt, &p.CheckState, &p.Bytes, &p.State, &p.Checkpoint, &parent, &p.Reason)
+	var machine string
+	err := s.Scan(&p.ID, &p.VMID, &p.JobID, &p.RepositoryID, &p.Kind, &p.TakenAt, &p.CheckState, &p.Bytes, &p.State, &p.Checkpoint, &parent, &p.Reason, &machine)
+	p.Machine = json.RawMessage(machine)
 	if parent.Valid {
 		p.ParentID = &parent.Int64
 	}
@@ -728,22 +731,27 @@ func (d *DB) Points(ctx context.Context, vmID int64, limit int) ([]Point, error)
 
 // RestoreTest is one restore test of a point.
 type RestoreTest struct {
-	ID         int64    `json:"id"`
-	VMID       int64    `json:"vm_id"`
-	PointID    int64    `json:"point_id"`
-	JobID      int64    `json:"job_id"`
-	Verdict    string   `json:"verdict"`
-	ProvenRTOS *float64 `json:"proven_rto_s"`
-	StartedAt  string   `json:"started_at"`
-	FinishedAt string   `json:"finished_at"`
+	ID         int64           `json:"id"`
+	VMID       int64           `json:"vm_id"`
+	PointID    int64           `json:"point_id"`
+	JobID      int64           `json:"job_id"`
+	Verdict    string          `json:"verdict"`
+	ProvenRTOS *float64        `json:"proven_rto_s"`
+	StartedAt  string          `json:"started_at"`
+	FinishedAt string          `json:"finished_at"`
+	Reason     string          `json:"reason"`    // why the verdict
+	BundleID   string          `json:"bundle_id"` // the sealed evidence bundle
+	Detail     json.RawMessage `json:"detail"`    // restore, checks and timings
 }
 
-const testCols = `id, vm_id, point_id, job_id, verdict, proven_rto_s, started_at, finished_at`
+const testCols = `id, vm_id, point_id, job_id, verdict, proven_rto_s, started_at, finished_at, reason, bundle_id, detail`
 
 func scanTest(s interface{ Scan(...any) error }) (RestoreTest, error) {
 	var t RestoreTest
 	var rto sql.NullFloat64
-	err := s.Scan(&t.ID, &t.VMID, &t.PointID, &t.JobID, &t.Verdict, &rto, &t.StartedAt, &t.FinishedAt)
+	var detail string
+	err := s.Scan(&t.ID, &t.VMID, &t.PointID, &t.JobID, &t.Verdict, &rto, &t.StartedAt, &t.FinishedAt, &t.Reason, &t.BundleID, &detail)
+	t.Detail = json.RawMessage(detail)
 	if rto.Valid {
 		t.ProvenRTOS = &rto.Float64
 	}

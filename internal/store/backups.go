@@ -31,8 +31,12 @@ func (d *DB) CreateBackupPoint(ctx context.Context, actor string, p Point, disks
 		for _, k := range disks {
 			total += k.WrittenBytes
 		}
-		r, err := tx.ExecContext(ctx, `INSERT INTO points (vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, parent_id, reason)
-			VALUES (?, ?, ?, ?, ?, 'unchecked', ?, 'present', ?, ?, ?)`, p.VMID, p.JobID, p.RepositoryID, p.Kind, p.TakenAt, total, p.Checkpoint, p.ParentID, p.Reason)
+		machine := string(p.Machine)
+		if machine == "" {
+			machine = "{}"
+		}
+		r, err := tx.ExecContext(ctx, `INSERT INTO points (vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, parent_id, reason, machine)
+			VALUES (?, ?, ?, ?, ?, 'unchecked', ?, 'present', ?, ?, ?, ?)`, p.VMID, p.JobID, p.RepositoryID, p.Kind, p.TakenAt, total, p.Checkpoint, p.ParentID, p.Reason, machine)
 		if err != nil {
 			return err
 		}

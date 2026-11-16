@@ -106,6 +106,10 @@ func LoadConfig(path string) (*Config, error) {
 	return &c, nil
 }
 
+// Validate applies defaults and the template to a config as declared, and checks it (what LoadConfig does after
+// reading the file). Call it once: the template's checks are added to Checks.
+func (c *Config) Validate() error { return c.resolve() }
+
 func (c *Config) resolve() error {
 	m := &c.Machine
 	def := func(s *string, v string) {

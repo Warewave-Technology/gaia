@@ -17,6 +17,8 @@
 // one signed readiness bundle per VM.
 //
 // `gaia probe` is internal: verify runs it inside the sandbox's network namespace.
+//
+// `gaia sandbox serve` is the root helper that runs gaia server's restore tests in the sandbox (internal/sandbox).
 package main
 
 import (
@@ -26,6 +28,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -36,6 +39,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/evidence"
 	"github.com/Warewave-Technology/gaia/internal/migrate"
+	"github.com/Warewave-Technology/gaia/internal/sandbox"
 	"github.com/Warewave-Technology/gaia/internal/verify"
 	"github.com/Warewave-Technology/gaia/internal/vsphereread"
 )
@@ -74,6 +78,10 @@ func main() {
 		os.Exit(cmdMigrateCheck(ctx, os.Args[2:]))
 	case "probe":
 		os.Exit(cmdProbe(ctx, os.Args[2:]))
+	case "sandbox":
+		if len(os.Args) > 2 && os.Args[2] == "serve" {
+			os.Exit(cmdSandboxServe(ctx, os.Args[3:]))
+		}
 	}
 	usage()
 }
@@ -81,9 +89,10 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   gaia server init | run | migrate           the server (ADR-007)
-  gaia login | logout | whoami | system | password
+  gaia login | logout | whoami | system | password | status
   gaia users | hosts | vms | repositories | policies | jobs | points | tests | evidence | audit | state-changes | state-backups VERB ...
   gaia api METHOD PATH [JSON]
+  gaia sandbox serve                         the restore-test sandbox helper (root; ADR-007 §5)
   gaia verify | migrate-check | evidence keygen | seal | verify | rotate   (lab tools)
 (-h on a server or lab command shows its flags)`)
 	os.Exit(3)
@@ -436,4 +445,33 @@ func envOr(k, def string) string {
 		return v
 	}
 	return def
+}
+
+func cmdSandboxServe(ctx context.Context, args []string) int {
+	fs := flag.NewFlagSet("sandbox serve", flag.ExitOnError)
+	c := sandbox.Config{}
+	fs.StringVar(&c.Socket, "socket", "/run/gaia-sandbox/sandbox.sock", "unix socket gaia server connects to")
+	fs.StringVar(&c.Group, "group", "gaia", "group allowed to use the socket (gaia server's)")
+	fs.StringVar(&c.ImagesDir, "images", "/var/lib/gaia-sandbox/images", "the only directory restored disks are read from")
+	fs.StringVar(&c.WorkDir, "work-dir", "/var/lib/libvirt/images/gaia-sandbox", "overlays (qemu must reach it)")
+	fs.StringVar(&c.SerialDir, "serial-dir", "/var/log/libvirt/qemu", "serial logs")
+	fs.StringVar(&c.BundleDir, "bundle-dir", "/var/lib/gaia-sandbox/bundles", "unsigned bundles while they are sent")
+	fs.StringVar(&c.LibvirtSocket, "libvirt-socket", "/run/libvirt/libvirt-sock", "libvirtd socket")
+	fs.Parse(args)
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	if os.Geteuid() != 0 {
+		log.Error("gaia sandbox serve runs as root (network namespaces, dnsmasq)")
+		return 3
+	}
+	self, err := os.Executable()
+	if err != nil {
+		log.Error("own path", "error", err)
+		return 3
+	}
+	c.Self = self
+	if err := sandbox.Serve(ctx, c, log); err != nil {
+		log.Error("sandbox helper stopped", "error", err)
+		return 3
+	}
+	return 0
 }

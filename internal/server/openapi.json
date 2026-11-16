@@ -382,20 +382,55 @@
       "JobInfo": {
         "additionalProperties": false,
         "properties": {
-          "Job": {
-            "$ref": "#/components/schemas/Job"
-          },
           "checkpoint": {
+            "type": "string"
+          },
+          "created_at": {
             "type": "string"
           },
           "detail": {
             "description": "any JSON value"
+          },
+          "error": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
-          "Job",
           "checkpoint",
-          "detail"
+          "created_at",
+          "detail",
+          "error",
+          "finished_at",
+          "id",
+          "kind",
+          "reason",
+          "started_at",
+          "state",
+          "vm_id"
         ],
         "type": "object"
       },
@@ -515,6 +550,9 @@
           "kind": {
             "type": "string"
           },
+          "machine": {
+            "description": "any JSON value"
+          },
           "parent_id": {
             "type": [
               "integer",
@@ -544,6 +582,7 @@
           "id",
           "job_id",
           "kind",
+          "machine",
           "parent_id",
           "reason",
           "repository_id",
@@ -789,6 +828,26 @@
         },
         "type": "object"
       },
+      "Reason": {
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "status",
+          "text"
+        ],
+        "type": "object"
+      },
       "Repository": {
         "additionalProperties": false,
         "properties": {
@@ -848,6 +907,12 @@
       "RestoreTest": {
         "additionalProperties": false,
         "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "detail": {
+            "description": "any JSON value"
+          },
           "finished_at": {
             "type": "string"
           },
@@ -866,6 +931,9 @@
               "null"
             ]
           },
+          "reason": {
+            "type": "string"
+          },
           "started_at": {
             "type": "string"
           },
@@ -877,11 +945,14 @@
           }
         },
         "required": [
+          "bundle_id",
+          "detail",
           "finished_at",
           "id",
           "job_id",
           "point_id",
           "proven_rto_s",
+          "reason",
           "started_at",
           "verdict",
           "vm_id"
@@ -1313,6 +1384,72 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "VMStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "proof_age_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "proven_rpo_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "theoretical_rpo_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "changed_at",
+          "notes",
+          "proof_age_s",
+          "proven_rpo_s",
+          "proven_rto_s",
+          "reasons",
+          "status",
+          "theoretical_rpo_s",
+          "vm",
+          "vm_id"
+        ],
         "type": "object"
       },
       "Verification": {
@@ -4970,6 +5107,75 @@
         ]
       }
     },
+    "/api/v1/status": {
+      "get": {
+        "operationId": "get_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VMStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Every VM's status, computed now",
+        "tags": [
+          "status"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/system": {
       "get": {
         "operationId": "get_system",
@@ -6343,6 +6549,199 @@
           }
         },
         "summary": "Add a disk to a VM",
+        "tags": [
+          "vms"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/vms/{id}/status": {
+      "get": {
+        "operationId": "get_vms_by_id_status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMStatus"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "A VM's status, computed now, with its reasons",
+        "tags": [
+          "vms"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/vms/{id}/tests": {
+      "post": {
+        "operationId": "post_vms_by_id_tests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Queue a restore test of the VM's newest checked point now",
         "tags": [
           "vms"
         ],

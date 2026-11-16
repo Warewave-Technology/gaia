@@ -9,6 +9,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/diskstore"
 	"github.com/Warewave-Technology/gaia/internal/hostconn"
+	"github.com/Warewave-Technology/gaia/internal/status"
 
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -103,6 +104,31 @@ type MaintenanceRequest struct {
 	Force bool `json:"force"` // full maintenance even if not due
 }
 
+// VMStatus is a VM's status with everything behind it (ADR-007 "The status model").
+type VMStatus struct {
+	VMID      int64  `json:"vm_id"`
+	VM        string `json:"vm"`
+	ChangedAt string `json:"changed_at"` // when the status last changed
+	status.Result
+}
+
+// vmStatus computes a VM's status now, stores it (a change is recorded) and returns it.
+func (s *Server) vmStatus(ctx context.Context, vm store.VM) (VMStatus, error) {
+	r, err := s.refreshStatus(ctx, vm.ID)
+	if err != nil {
+		return VMStatus{}, err
+	}
+	st, err := s.db.VMStatuses(ctx, vm.ID)
+	if err != nil {
+		return VMStatus{}, err
+	}
+	out := VMStatus{VMID: vm.ID, VM: vm.Name, Result: r}
+	if len(st) == 1 {
+		out.ChangedAt = st[0].ChangedAt
+	}
+	return out, nil
+}
+
 // SystemInfo describes the installation.
 type SystemInfo struct {
 	Version          string                   `json:"version"`
@@ -174,6 +200,22 @@ func (s *Server) table() []route {
 				c.w.WriteHeader(http.StatusOK)
 				_, err := c.w.Write(s.openapi)
 				return http.StatusOK, nil, err
+			}},
+		{method: "GET", path: "/api/v1/status", summary: "Every VM's status, computed now", roles: anyRole, out: []VMStatus{},
+			h: func(c *call) (int, any, error) {
+				vms, err := s.db.VMs(c.r.Context(), 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				out := []VMStatus{}
+				for _, vm := range vms {
+					v, err := s.vmStatus(c.r.Context(), vm)
+					if err != nil {
+						return 0, nil, fmt.Errorf("VM %s: %w", vm.Name, err)
+					}
+					out = append(out, v)
+				}
+				return http.StatusOK, out, nil
 			}},
 		{method: "GET", path: "/api/v1/system", summary: "Version, schema and the evidence trust anchor", roles: anyRole, out: SystemInfo{}, h: s.systemInfo},
 
@@ -379,6 +421,47 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				c.detail = fmt.Sprintf("queued backup job %d", j.ID)
+				return http.StatusAccepted, j, nil
+			}},
+		{method: "GET", path: "/api/v1/vms/{id}/status", summary: "A VM's status, computed now, with its reasons", roles: anyRole, out: VMStatus{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				vm, err := s.db.VM(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.vmStatus(c.r.Context(), vm))
+			}},
+		{method: "POST", path: "/api/v1/vms/{id}/tests", summary: "Queue a restore test of the VM's newest checked point now", roles: writers,
+			out: store.Job{}, status: http.StatusAccepted,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				vm, err := s.db.VM(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				if vm.PolicyID == nil {
+					return 0, nil, fmt.Errorf("%w: VM %s has no policy (it says which checks to run)", store.ErrConflict, vm.Name)
+				}
+				if j, open, err := s.db.OpenJob(c.r.Context(), id, "restore_test"); err != nil {
+					return 0, nil, err
+				} else if open {
+					return 0, nil, fmt.Errorf("%w: VM %s already has restore test job %d (%s)", store.ErrConflict, vm.Name, j.ID, j.State)
+				}
+				if _, err := s.db.LatestPoint(c.r.Context(), id); err != nil {
+					return 0, nil, fmt.Errorf("%w: VM %s has no checked point to test", store.ErrConflict, vm.Name)
+				}
+				j, err := s.db.CreateJob(c.r.Context(), c.user.Username, "restore_test", &id, "requested by "+c.user.Username)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = fmt.Sprintf("queued restore test job %d", j.ID)
 				return http.StatusAccepted, j, nil
 			}},
 		{method: "GET", path: "/api/v1/vms/{id}/disks", summary: "A VM's disks", roles: anyRole, out: []store.Disk{},

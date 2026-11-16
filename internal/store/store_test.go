@@ -60,14 +60,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3}) || Latest() != 3 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4}) || Latest() != 4 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 3 || applied[2].Name != "0003_backups.sql" {
+	if err != nil || len(applied) != 4 || applied[3].Name != "0004_status.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -117,7 +117,7 @@ func TestMigrationGuards(t *testing.T) {
 		t.Fatalf("an edited migration: %v", err)
 	}
 	e := migrated(t)
-	if _, err := e.SQL().ExecContext(ctx, `INSERT INTO schema_migrations VALUES (4, '0004_future.sql', 'x', 'now')`); err != nil {
+	if _, err := e.SQL().ExecContext(ctx, `INSERT INTO schema_migrations VALUES (5, '0005_future.sql', 'x', 'now')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := e.Migrate(ctx, 0); err == nil || !strings.Contains(err.Error(), "newer than this binary") {
