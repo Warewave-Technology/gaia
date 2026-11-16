@@ -9,7 +9,7 @@
 # broken boot loader would) and FIX (put it back).
 #
 # Timeline (gate b): the VM is added -> UNKNOWN until its first passing test -> OK; BREAK, the next backup and test
-# -> CRITICAL with the reason; FIX, the next backup and test -> OK; the policy stops testing (test_interval_s 1 day)
+# -> CRITICAL with the reason; FIX, the next backup and test -> OK; the sandbox helper stops, tests cannot run
 # -> WARNING once the proof is older than max_proof_age_s. Every status change comes from state_changes with its time.
 # Gate (a), the truth table, is the unit test run at the start.
 #
@@ -359,9 +359,11 @@ ctl FIX
 jq -nc '{injected: "FIX", at: (now | todate)}' >>"$OUT_DIR/phases.jsonl"
 wait_status OK repaired
 
-section "phase 4: no more restore tests -> WARNING once the proof is older than $MAX_PROOF_S s"
-api policies set "$policy_id" test_interval_s=86400 | jq -c '{id, test_interval_s}'
-jq -nc '{injected: "test_interval_s 86400", at: (now | todate)}' >>"$OUT_DIR/phases.jsonl"
+# A policy cannot stop testing (the API refuses test_interval_s > max_proof_age_s), so the proof ages the way it does
+# in practice: the sandbox helper is down, the tests cannot run (UNKNOWN, a note), backups go on.
+section "phase 4: restore tests cannot run -> WARNING once the proof is older than $MAX_PROOF_S s"
+systemctl stop "$SB_UNIT"
+jq -nc '{injected: "sandbox helper stopped", at: (now | todate)}' >>"$OUT_DIR/phases.jsonl"
 wait_status WARNING stale-proof
 status_now | tee "$OUT_DIR/status-end.json" | jq -c '{status, reasons: [.reasons[].rule], notes}'
 gaia status || true
