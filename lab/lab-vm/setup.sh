@@ -14,6 +14,10 @@ GOVC_VERSION="v0.56.2"
 GOVC_SHA256="12889f30e42e868487041f6628e9789606c80e13a194fb37c099abffc92d5a59"
 KOPIA_VERSION="0.23.1"
 KOPIA_SHA256="3998c96b2db3410880ec8f6723f3c127248915896c22e6b882b352693230253a"
+# T11: virt-v2v needs rhsrvany.exe to convert Windows guests (its first-boot service); Debian does not package it.
+# Fedora's mingw32-srvany build, approved by Yiğit (2026-11-16); the checksum was taken on the first download.
+SRVANY_URL="https://kojipkgs.fedoraproject.org/packages/mingw-srvany/1.1/9.fc41/noarch/mingw32-srvany-1.1-9.fc41.noarch.rpm"
+SRVANY_SHA256="db19119adcf9f89aa2dd04c79206ba652c7dc8d96c721da10e4630910254cf15"
 
 [[ $EUID -eq 0 ]] || { echo "must run as root"; exit 1; }
 tmp="$(mktemp -d)"
@@ -35,6 +39,8 @@ aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients
 # T8: virt-v2v converts the downloaded VMware VMs for KVM; virt-customize (libguestfs-tools) prepares the
 # ESXi test fixtures (lab only).
 aptq install -y -q --no-install-recommends virt-v2v libguestfs-tools nbdkit libnbd-bin
+# T11: the Windows fixture's unattended install (genisoimage, socat for the QEMU monitor), rhsrvany from its RPM.
+aptq install -y -q --no-install-recommends genisoimage socat rpm2cpio cpio
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
@@ -60,6 +66,13 @@ aptq install -y -q "$tmp/kopia.deb"
 curl -fsSL "https://github.com/vmware/govmomi/releases/download/${GOVC_VERSION}/govc_Linux_x86_64.tar.gz" -o "$tmp/govc.tgz"
 echo "$GOVC_SHA256  $tmp/govc.tgz" | sha256sum -c --quiet
 tar -C /usr/local/bin -xzf "$tmp/govc.tgz" govc
+
+# rhsrvany.exe and pnp_wait.exe for virt-v2v's Windows conversions, where virt-v2v looks for them.
+curl -fsSL "$SRVANY_URL" -o "$tmp/srvany.rpm"
+echo "$SRVANY_SHA256  $tmp/srvany.rpm" | sha256sum -c --quiet
+(cd "$tmp" && rpm2cpio srvany.rpm | cpio -idm --quiet)
+install -D -m 0644 -t /usr/share/virt-tools "$tmp/usr/i686-w64-mingw32/sys-root/mingw/bin/rhsrvany.exe" \
+	"$tmp/usr/i686-w64-mingw32/sys-root/mingw/bin/pnp_wait.exe"
 
 # Gaia tools, built against the committed go.sum (never regenerated here). Build as the
 # checkout's owner: go build stamps the git revision, and git refuses repos owned by another user.
