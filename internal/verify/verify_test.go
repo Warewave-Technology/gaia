@@ -124,6 +124,8 @@ func TestRDPProbe(t *testing.T) {
 		want  string
 	}{
 		{cc(0x02, 0x1f, 0x08, 0x00, 0x02, 0, 0, 0), true, "selected protocol CredSSP (reply 03 00 00 13 0e d0"},
+		// Windows Server 2022's reply, as the T11 lab run recorded it (bundle detail, 2026-11-16).
+		{[]byte{0x03, 0x00, 0x00, 0x13, 0x0e, 0xd0, 0x00, 0x00, 0x12, 0x34, 0x00, 0x02, 0x1f, 0x08, 0x00, 0x02, 0x00, 0x00, 0x00}, true, "selected protocol CredSSP"},
 		{cc(0x03, 0x00, 0x08, 0x00, 0x05, 0, 0, 0), true, "RDP_NEG_FAILURE code 5"},
 		{cc(), true, "standard RDP security"},
 		{[]byte("HTTP/1.1 400 Bad Request\r\n\r\n"), false, "not a TPKT reply"},

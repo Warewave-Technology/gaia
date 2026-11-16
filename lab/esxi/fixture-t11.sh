@@ -12,9 +12,10 @@
 # The result is cached in $IMAGES/gaia-t11-win.qcow2 (REBUILD=1 rebuilds). VMware Tools is not installed: its
 # installer only runs inside a VM on VMware.
 #
-# Usage (on gaia-lab, as root):  lab/esxi/fixture-t11.sh info|build|create|delete ESXI_IP
+# Usage (on gaia-lab, as root):  lab/esxi/fixture-t11.sh info|build|inspect|create|delete ESXI_IP
 #   info    ESXi version, datastore space, python on the host (read-only)
 #   build   download the ISO and install Windows (no ESXi access)
+#   inspect read the built disk's registry (read-only): setup finished, Remote Desktop and WinRM firewall rules
 #   create  build if needed, then upload the disk and register the VM
 # Env: PASSWORD_FILE (/root/.gaia-esxi-password; the ESXi root password, never printed), DATASTORE (datastore1),
 #      IMAGES (/var/lib/gaia/images), WORK (/var/lib/gaia/t11-fixture), INSTALL_TIMEOUT_S (7200).
@@ -197,6 +198,32 @@ EOF
 	rm -rf "$WORK/unattend"
 }
 
+inspect() { # the built disk's own record that setup finished and which firewall rules are active (JSON)
+	local reg
+	reg=$(mktemp -d)
+	LIBGUESTFS_BACKEND=direct virt-win-reg "$BUILT" 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\State' >"$reg/state.reg"
+	LIBGUESTFS_BACKEND=direct virt-win-reg "$BUILT" 'HKLM\SYSTEM\ControlSet001\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules' >"$reg/fw.reg"
+	python3 -I - "$reg/state.reg" "$reg/fw.reg" <<'EOF'
+import json, re, sys
+
+def values(path):  # .reg hex(1) values (REG_SZ, UTF-16) by name
+    t = open(path, "rb").read().decode("latin-1")
+    for m in re.finditer(r'"([^"]+)"=hex\(1\):([0-9a-f,\\\s]+)', t):
+        b = bytes(int(x, 16) for x in re.findall(r"[0-9a-f]{2}", m.group(2)))
+        yield m.group(1), b.decode("utf-16le").rstrip("\0")
+
+state = dict(values(sys.argv[1])).get("ImageState")
+rules = {}
+for name, v in values(sys.argv[2]):
+    if name.startswith(("RemoteDesktop-UserMode-In-TCP", "WINRM-HTTP-In-TCP")):
+        f = v.split("|")
+        rules[name] = {"active": "Active=TRUE" in f, "profiles": [x[8:] for x in f if x.startswith("Profile=")] or ["all"],
+                       "remote": [x[4:] for x in f if x.startswith("RA4=")] or ["any"]}
+print(json.dumps({"image_state": state, "firewall_rules": rules}))
+EOF
+	rm -rf "$reg"
+}
+
 monitor() { # monitor COMMAND: one line to the build VM's QEMU monitor
 	printf '%s\n' "$1" | socat -t2 - "UNIX-CONNECT:$WORK/monitor.sock" >/dev/null 2>&1 || true
 }
@@ -255,6 +282,9 @@ build() {
 		  hardware: "pc (i440FX) + AHCI disk + e1000e (82574L), as VMware sata0 + e1000e"}' >"$BUILT.json"
 	echo "installed in $secs s: $BUILT ($(du -h "$BUILT" | cut -f1))"
 	jq -c . "$BUILT.json"
+	inspect | tee "$BUILT.inspect.json"
+	jq -e '.image_state == "IMAGE_STATE_COMPLETE" and .firewall_rules["RemoteDesktop-UserMode-In-TCP"].active' "$BUILT.inspect.json" >/dev/null ||
+		{ echo "UNKNOWN: setup did not finish, or Remote Desktop is closed in the firewall"; exit 3; }
 }
 
 case "$ACTION" in
@@ -270,6 +300,10 @@ EOF
 	;;
 build)
 	build
+	exit 0
+	;;
+inspect)
+	inspect
 	exit 0
 	;;
 delete)
