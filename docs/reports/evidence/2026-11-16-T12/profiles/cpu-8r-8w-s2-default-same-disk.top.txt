@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: beef2138f290bc9b6b41aca61ad09cf018774513
+Type: cpu
+Time: 2026-11-16 09:34:05 UTC
+Duration: 27.17s, Total samples = 65.62s (241.51%)
+Showing nodes accounting for 61.88s, 94.30% of 65.62s total
+Dropped 454 nodes (cum <= 0.33s)
+Showing top 25 nodes out of 94
+      flat  flat%   sum%        cum   cum%
+    14.25s 21.72% 21.72%     14.25s 21.72%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    13.66s 20.82% 42.53%     13.66s 20.82%  runtime.memmove
+    13.59s 20.71% 63.24%     13.59s 20.71%  internal/runtime/syscall.Syscall6
+    12.81s 19.52% 82.76%     12.81s 19.52%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     3.23s  4.92% 87.69%      3.23s  4.92%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.03s  3.09% 90.78%      2.03s  3.09%  runtime.memclrNoHeapPointers
+     1.88s  2.86% 93.65%      1.88s  2.86%  hash/crc32.castagnoliSSE42Triple
+     0.05s 0.076% 93.72%      8.12s 12.37%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.04s 0.061% 93.78%      1.98s  3.02%  hash/crc32.archUpdateCastagnoli
+     0.03s 0.046% 93.83%      7.12s 10.85%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).read
+     0.03s 0.046% 93.87%     12.86s 19.60%  github.com/klauspost/compress/s2.encodeBlock
+     0.03s 0.046% 93.92%     10.28s 15.67%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.03s 0.046% 93.97%      3.42s  5.21%  internal/poll.(*FD).Read
+     0.03s 0.046% 94.01%      8.57s 13.06%  os.(*File).Write
+     0.02s  0.03% 94.04%     40.53s 61.76%  github.com/Warewave-Technology/gaia/internal/diskstore.storeBlock
+     0.02s  0.03% 94.07%      5.37s  8.18%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).readChunk
+     0.02s  0.03% 94.10%         7s 10.67%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.02s  0.03% 94.13%     36.94s 56.29%  github.com/kopia/kopia/repo/object.(*objectWriter).prepareAndWriteContentChunk
+     0.02s  0.03% 94.16%      8.64s 13.17%  internal/poll.(*FD).Write
+     0.02s  0.03% 94.19%      0.73s  1.11%  runtime.mcall
+     0.02s  0.03% 94.22%      0.69s  1.05%  runtime.schedule
+     0.02s  0.03% 94.25%     13.40s 20.42%  syscall.Syscall
+     0.01s 0.015% 94.27%      2.43s  3.70%  bytes.(*Buffer).Write
+     0.01s 0.015% 94.29%      7.20s 10.97%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.2
+     0.01s 0.015% 94.30%     40.57s 61.83%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.3

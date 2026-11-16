@@ -1,0 +1,72 @@
+[
+  {
+    "config": "8/8/s2-default",
+    "runs": 3,
+    "ratios": [
+      1.2576337375899636,
+      1.2490573542288332,
+      1.2445149946739633
+    ],
+    "median_ratio": 1.2490573542288332,
+    "reference_bound": [
+      "repository write",
+      "repository write",
+      "repository write"
+    ],
+    "ratios_a1": [
+      3.3601069798389793,
+      3.916472089052101,
+      3.8232457629088614
+    ],
+    "median_ratio_a1": 3.8232457629088614,
+    "median_full_backup_s": 34.052,
+    "median_fastest_plain_read_s": 8.842225192,
+    "median_repository_write_s": 27.262158847,
+    "median_reference_s": 27.262158847,
+    "median_cpu_s_per_gb": 4.285814380994903,
+    "median_backup_mib_s": 438.5690221939974,
+    "median_repository_bytes": 9832067788,
+    "median_restore_s": 32.33,
+    "median_cpu_busy_pct": 58.2,
+    "median_iowait_pct": 31.5,
+    "median_write_busy_per_s": 6.517516222594452,
+    "median_reader_wait_per_s": 3.9712830965673946,
+    "identical": true,
+    "gate": "OK"
+  },
+  {
+    "config": "8/8/s2-default same-disk",
+    "runs": 3,
+    "ratios": [
+      2.4799281308708396,
+      2.697169578156496,
+      2.698877228151835
+    ],
+    "median_ratio": 2.697169578156496,
+    "reference_bound": [
+      "source read",
+      "source read",
+      "source read"
+    ],
+    "ratios_a1": [
+      2.4799281308708396,
+      2.697169578156496,
+      2.698877228151835
+    ],
+    "median_ratio_a1": 2.697169578156496,
+    "median_full_backup_s": 23.852,
+    "median_fastest_plain_read_s": 8.902590955,
+    "median_repository_write_s": 8.614865552,
+    "median_reference_s": 8.902590955,
+    "median_cpu_s_per_gb": 4.292384666392285,
+    "median_backup_mib_s": 626.1174049870032,
+    "median_repository_bytes": 9832091312,
+    "median_restore_s": 28.42,
+    "median_cpu_busy_pct": 84,
+    "median_iowait_pct": 4.4,
+    "median_write_busy_per_s": 3.4294828815072123,
+    "median_reader_wait_per_s": 0.021661742675763363,
+    "identical": true,
+    "gate": "CRITICAL"
+  }
+]

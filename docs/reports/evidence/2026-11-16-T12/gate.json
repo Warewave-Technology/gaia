@@ -1,0 +1,21 @@
+{
+  "rule": "per config: median(full_backup_s / max(fastest hash-free read of the same bytes, hash-free write of repository_bytes to the repository disk)) <= 2 over >= 3 runs, every restore identical; passes if a config passes",
+  "configs": [
+    {
+      "config": "8/8/s2-default",
+      "median_ratio": 1.2490573542288332,
+      "gate": "OK"
+    },
+    {
+      "config": "8/8/s2-default same-disk",
+      "median_ratio": 2.697169578156496,
+      "gate": "CRITICAL"
+    }
+  ],
+  "best": {
+    "config": "8/8/s2-default",
+    "median_ratio": 1.2490573542288332,
+    "gate": "OK"
+  },
+  "verdict": "OK"
+}
