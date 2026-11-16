@@ -196,7 +196,11 @@ func checkVM(ctx context.Context, o Options, name string, v vsphereread.VM, foun
 	}
 	image, cfg, skip := x.prepare(ctx, found)
 	if cfg == nil { // nothing to build a sandbox from: a minimal config so the bundle still records every step
-		cfg = &verify.Config{VM: name, Template: "linux-boot", Machine: verify.Machine{MAC: "52:54:00:00:00:00"}}
+		tmpl := "linux-boot"
+		if defaultTemplate(v.GuestID) == "windows-basic" {
+			tmpl = "windows-basic"
+		}
+		cfg = &verify.Config{VM: name, Template: tmpl, Machine: verify.Machine{MAC: "52:54:00:00:00:00"}}
 		if err := resolveConfig(cfg); err != nil {
 			return nil, err
 		}
@@ -363,7 +367,7 @@ func (x *vmRun) convert(ctx context.Context, vmx string) (disk, domXML string, e
 	runErr := cmd.Wait()
 	disk, domXML = filepath.Join(x.images, x.name+"-sda"), filepath.Join(x.images, x.name+".xml")
 	if runErr != nil {
-		return "", "", fmt.Errorf("virt-v2v: %v (last line: %s)", runErr, lastLine(logPath))
+		return "", "", fmt.Errorf("virt-v2v: %v (%s)", runErr, errorLine(logPath))
 	}
 	if _, err := os.Stat(disk); err != nil {
 		return "", "", fmt.Errorf("virt-v2v finished but %s is missing", filepath.Base(disk))
@@ -374,10 +378,17 @@ func (x *vmRun) convert(ctx context.Context, vmx string) (disk, domXML string, e
 
 var errNotRun = errors.New("virt-v2v could not be started")
 
-func lastLine(p string) string {
+// errorLine returns virt-v2v's own error message from its log, or the last line when there is none
+// (after an error virt-v2v prints how to report a bug, so the last line is rarely the reason).
+func errorLine(p string) string {
 	b, _ := os.ReadFile(p)
 	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-	return lines[len(lines)-1]
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.HasPrefix(lines[i], "virt-v2v: error:") {
+			return strings.TrimSpace(lines[i])
+		}
+	}
+	return "last line: " + lines[len(lines)-1]
 }
 
 // config builds the sandbox config from virt-v2v's domain XML and the VM's checks.

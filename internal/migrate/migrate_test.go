@@ -135,3 +135,15 @@ func TestDefaultTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestErrorLine(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "v2v.log")
+	os.WriteFile(p, []byte("[   7.7] Converting Windows Server 2022\nvirt-v2v: error: One of rhsrvany.exe or pvvxsvc.exe is missing\n\nIf reporting bugs, run virt-v2v with debugging enabled:\n  virt-v2v -v -x [...]\n"), 0o644)
+	if got := errorLine(p); got != "virt-v2v: error: One of rhsrvany.exe or pvvxsvc.exe is missing" {
+		t.Fatalf("errorLine = %q", got)
+	}
+	os.WriteFile(p, []byte("killed\n"), 0o644)
+	if got := errorLine(p); got != "last line: killed" {
+		t.Fatalf("errorLine = %q", got)
+	}
+}
