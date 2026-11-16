@@ -1,9 +1,9 @@
 === RUN   TestRoleMatrix
---- PASS: TestRoleMatrix (1.23s)
+--- PASS: TestRoleMatrix (1.20s)
 === RUN   TestOpenAPIFile
 --- PASS: TestOpenAPIFile (0.29s)
 === RUN   TestSessionsAndAudit
 --- PASS: TestSessionsAndAudit (0.39s)
 === RUN   TestStateBackupAndExport
---- PASS: TestStateBackupAndExport (0.72s)
-ok  	github.com/Warewave-Technology/gaia/internal/server	2.989s
+--- PASS: TestStateBackupAndExport (0.75s)
+ok  	github.com/Warewave-Technology/gaia/internal/server	2.990s

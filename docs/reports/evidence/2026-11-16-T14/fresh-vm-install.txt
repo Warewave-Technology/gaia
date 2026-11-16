@@ -1,0 +1,109 @@
+# gaia-install-test (VMID 9103), 2026-11-16T11:47:05Z
+12.15
+x86_64
+
+● gaia.service - Gaia backup and recoverability server
+     Loaded: loaded (/etc/systemd/system/gaia.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-11-16 11:46:49 UTC; 15s ago
+       Docs: https://github.com/Warewave-Technology/gaia/blob/main/docs/install.md
+   Main PID: 9797 (gaia)
+      Tasks: 9 (limit: 4686)
+     Memory: 74.5M
+        CPU: 325ms
+     CGroup: /system.slice/gaia.service
+
+2026-11-16T11:40:33+0000 gaia-install-test systemd[1]: Started gaia.service - Gaia backup and recoverability server.
+2026-11-16T11:40:34+0000 gaia-install-test gaia[9507]: time=2026-11-16T11:40:34.022Z level=INFO msg="gaia server is listening" address=[::]:8443 version=b2c12e5ddfb9+modified schema=2
+2026-11-16T11:40:34+0000 gaia-install-test gaia[9507]: time=2026-11-16T11:40:34.022Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T11:42:56+0000 gaia-install-test gaia[9507]: time=2026-11-16T11:42:56.467Z level=INFO msg="state backup stored" id=1 repository=main snapshot=2ff743655e4bf34c306e3e1919943ca6 bytes=119808
+2026-11-16T11:45:27+0000 gaia-install-test systemd[1]: Started gaia.service - Gaia backup and recoverability server.
+2026-11-16T11:45:27+0000 gaia-install-test gaia[9676]: time=2026-11-16T11:45:27.491Z level=INFO msg="gaia server is listening" address=[::]:8443 version=54e7538e741f schema=2
+2026-11-16T11:45:27+0000 gaia-install-test gaia[9676]: time=2026-11-16T11:45:27.492Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T11:46:26+0000 gaia-install-test systemd[1]: Started gaia.service - Gaia backup and recoverability server.
+2026-11-16T11:46:26+0000 gaia-install-test gaia[9741]: time=2026-11-16T11:46:26.525Z level=INFO msg="gaia server is listening" address=[::]:8443 version=6cf7cb329757 schema=2
+2026-11-16T11:46:26+0000 gaia-install-test gaia[9741]: time=2026-11-16T11:46:26.525Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T11:46:49+0000 gaia-install-test systemd[1]: Started gaia.service - Gaia backup and recoverability server.
+2026-11-16T11:46:49+0000 gaia-install-test gaia[9797]: time=2026-11-16T11:46:49.861Z level=INFO msg="gaia server is listening" address=[::]:8443 version=f4ba289490be schema=2
+2026-11-16T11:46:49+0000 gaia-install-test gaia[9797]: time=2026-11-16T11:46:49.861Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+
+{
+  "version": "f4ba289490be",
+  "schema_version": 2,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "0001_init.sql",
+      "sha256": "15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427",
+      "applied_at": "2026-11-16T11:39:34.958792146Z"
+    },
+    {
+      "version": 2,
+      "name": "0002_state_backups.sql",
+      "sha256": "4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546",
+      "applied_at": "2026-11-16T11:39:34.967775803Z"
+    }
+  ],
+  "evidence_key_id": "ec8d4c3f5b32528b1435dfbca17de1763013a0d430d07e97a1caf3ceafccaef4",
+  "started_at": "2026-11-16T11:46:49Z",
+  "state_backup_at": "02:30",
+  "state_backup_repository": ""
+}
+[
+  {
+    "id": 1,
+    "repository_id": 1,
+    "state": "ok",
+    "reason": "requested by admin",
+    "started_at": "2026-11-16T11:42:56.20070753Z",
+    "finished_at": "2026-11-16T11:42:56.467946251Z",
+    "error": "",
+    "snapshot_id": "2ff743655e4bf34c306e3e1919943ca6",
+    "bytes": 119808,
+    "sha256": "c6856273e8c39e20dddebc0198a62b9d71115ce1181d8eab3fbbfed9e2cca341"
+  }
+]
+{
+  "entries": 5,
+  "intact": true,
+  "head_sha256": "ba4dcebb57bc42a6c26e25cfd837ab5011ab4cad40ad48ac2e176594aba9148f",
+  "first_broken_seq": 0
+}
+1 2026-11-16T11:41:31.383648028Z admin POST /api/v1/login user:admin 200 logged in (session 1)
+2 2026-11-16T11:42:02.562546494Z admin POST /api/v1/repositories /api/v1/repositories 0 attempt
+3 2026-11-16T11:42:03.00713098Z admin POST /api/v1/repositories /api/v1/repositories/1 201 created repository main at /srv/gaia/main
+4 2026-11-16T11:42:56.19861714Z admin POST /api/v1/state-backups /api/v1/state-backups 0 attempt
+5 2026-11-16T11:42:56.471365765Z admin POST /api/v1/state-backups /api/v1/state-backups 201 state backup 1: ok
+
+-rw------- 1 gaia gaia 114688 Nov 16 11:46 /var/lib/gaia/gaia.db
+-rw------- 1 gaia gaia  32768 Nov 16 11:47 /var/lib/gaia/gaia.db-shm
+-rw------- 1 gaia gaia  28872 Nov 16 11:47 /var/lib/gaia/gaia.db-wal
+
+/etc/gaia:
+total 12
+drwxr-x---  2 gaia gaia 4096 Nov 16 11:39 .
+drwxr-xr-x 65 root root 4096 Nov 16 11:37 ..
+-rw-r-----  1 gaia gaia  228 Nov 16 11:39 server.json
+
+/var/lib/gaia:
+total 216
+drwxr-x---  9 gaia gaia   4096 Nov 16 11:46 .
+drwxr-xr-x 23 root root   4096 Nov 16 11:37 ..
+drwx------  3 gaia gaia   4096 Nov 16 11:42 cache
+drwxr-x---  3 gaia gaia   4096 Nov 16 11:39 evidence
+-rw-------  1 gaia gaia 114688 Nov 16 11:46 gaia.db
+-rw-------  1 gaia gaia  32768 Nov 16 11:47 gaia.db-shm
+-rw-------  1 gaia gaia  28872 Nov 16 11:47 gaia.db-wal
+drwx------  2 gaia gaia   4096 Nov 16 11:39 keys
+drwx------  2 gaia gaia   4096 Nov 16 11:42 kopia
+drwx------  2 gaia gaia   4096 Nov 16 11:42 secrets
+drwx------  2 gaia gaia   4096 Nov 16 11:39 tls
+drwx------  2 gaia gaia   4096 Nov 16 11:42 tmp
+
+/var/lib/gaia/secrets:
+total 12
+drwx------ 2 gaia gaia 4096 Nov 16 11:42 .
+drwxr-x--- 9 gaia gaia 4096 Nov 16 11:46 ..
+-rw------- 1 gaia gaia   44 Nov 16 11:42 repository-main.password
+
+→ Overall exposure level for gaia.service: 4.6 OK 🙂
+LISTEN 0      4096               *:8443            *:*          

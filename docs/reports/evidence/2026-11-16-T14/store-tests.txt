@@ -7,7 +7,7 @@
 === RUN   TestAuditIsAppendOnly
 --- PASS: TestAuditIsAppendOnly (0.00s)
 === RUN   TestUsersAndSessions
---- PASS: TestUsersAndSessions (0.35s)
+--- PASS: TestUsersAndSessions (0.34s)
 === RUN   TestJobStates
 --- PASS: TestJobStates (0.00s)
 === RUN   TestDomainConstraints

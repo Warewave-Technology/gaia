@@ -46,7 +46,6 @@ func TestMigrationsFromEmpty(t *testing.T) {
 	// Files left with a wider mode (an older install) are narrowed on the next open.
 	d.Close()
 	for _, f := range []string{"gaia.db", "gaia.db-wal", "gaia.db-shm"} {
-		os.WriteFile(filepath.Join(dir, f+".probe"), nil, 0o644)
 		if _, err := os.Stat(filepath.Join(dir, f)); err == nil {
 			os.Chmod(filepath.Join(dir, f), 0o644)
 		}
