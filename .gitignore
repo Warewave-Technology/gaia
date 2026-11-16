@@ -4,3 +4,4 @@ bin/
 *.qcow2
 *.raw
 report.json
+dist/

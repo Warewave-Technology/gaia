@@ -27,6 +27,8 @@ isolated sandbox and issues a signed readiness report per VM.
 | Path | What it is |
 |---|---|
 | [`docs/adr/`](docs/adr) | Architecture decision records |
+| [`docs/install.md`](docs/install.md) | Installing `gaia server` on Debian 12 |
+| [`internal/server`](internal/server), [`internal/store`](internal/store) | `gaia server` (ADR-007): REST API ([`openapi.json`](internal/server/openapi.json)), users and roles, append-only audit log, SQLite state with migrations, daily self-backup |
 | [`docs/spec/evidence-v1.md`](docs/spec/evidence-v1.md) | Restore Evidence Format v1: the open, CC0-licensed specification of Gaia's signed evidence bundles and ledger, with conformance vectors ([ADR-006](docs/adr/006-open-evidence-specification.md)) |
 | [`CLAUDE.md`](CLAUDE.md) | Current tasks, rules and reporting format for the implementation agent |
 | [`docs/reports/`](docs/reports) | Task reports (template: `TEMPLATE.md`) |

@@ -1,4 +1,5 @@
-// Command gaia is Gaia's verification CLI (T7, ADR-002 #3–4):
+// Command gaia is Gaia's server and CLI. `gaia server` runs the API (ADR-007, internal/server); the commands in
+// cli.go are its client. The verification and evidence tools from T7 onwards are below:
 //
 //	gaia verify -config VM.json -image RESTORED.raw -key KEY.pem -evidence-dir DIR -ledger LEDGER [-restore-json R.json]
 //	gaia evidence keygen -key KEY.pem -pub PUB.pem
@@ -28,6 +29,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -44,7 +46,14 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	// "evidence" is the API resource (list, get, export) and the local tool (keygen, seal, verify, rotate).
+	localEvidence := os.Args[1] == "evidence" && len(os.Args) > 2 && slices.Contains([]string{"keygen", "seal", "verify", "rotate"}, os.Args[2])
+	if isCLICommand(os.Args[1]) && !localEvidence {
+		os.Exit(runCLI(ctx, os.Args[1:]))
+	}
 	switch os.Args[1] {
+	case "server":
+		os.Exit(cmdServer(ctx, os.Args[2:]))
 	case "verify":
 		os.Exit(cmdVerify(ctx, os.Args[2:]))
 	case "evidence":
@@ -70,7 +79,13 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gaia verify | migrate-check | evidence keygen | evidence seal | evidence verify | evidence rotate [flags]  (-h for flags)")
+	fmt.Fprintln(os.Stderr, `usage:
+  gaia server init | run | migrate           the server (ADR-007)
+  gaia login | logout | whoami | system | password
+  gaia users | hosts | vms | repositories | policies | jobs | points | tests | evidence | audit | state-changes | state-backups VERB ...
+  gaia api METHOD PATH [JSON]
+  gaia verify | migrate-check | evidence keygen | seal | verify | rotate   (lab tools)
+(-h on a server or lab command shows its flags)`)
 	os.Exit(3)
 }
 

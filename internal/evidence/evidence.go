@@ -7,6 +7,7 @@
 package evidence
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -1155,4 +1156,35 @@ func mapKeys[V any](m map[string]V) func(func(string) bool) {
 			}
 		}
 	}
+}
+
+// GenesisKey returns the key a ledger's first entry declares: the key a verifier must already trust (§6.4). It does
+// not verify the ledger; VerifyLedger does.
+func GenesisKey(ledger string) (ed25519.PublicKey, error) {
+	f, err := os.Open(ledger)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	first, err := bufio.NewReader(f).ReadBytes('\n')
+	if err != nil {
+		return nil, fmt.Errorf("ledger %s: no first line: %w", ledger, err)
+	}
+	var w line
+	if err := json.Unmarshal(first, &w); err != nil {
+		return nil, fmt.Errorf("ledger %s: line 1: %w", ledger, err)
+	}
+	p, err := parseObject([]byte(w.Payload))
+	if err != nil {
+		return nil, fmt.Errorf("ledger %s: line 1: %w", ledger, err)
+	}
+	e, _, err := parsePayload(p)
+	if err != nil || e.typ != "key" || e.event != "genesis" {
+		return nil, fmt.Errorf("ledger %s: line 1 is not a genesis entry (%v)", ledger, err)
+	}
+	pk, ok := decodeKey(e.publicKey)
+	if !ok {
+		return nil, fmt.Errorf("ledger %s: line 1: bad public_key", ledger)
+	}
+	return pk, nil
 }
