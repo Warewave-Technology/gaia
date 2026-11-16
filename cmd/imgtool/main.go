@@ -6,6 +6,7 @@
 //	imgtool mutate -file IMG -percent 1 [-block 64KiB] [-seed N]
 //	imgtool hash   -file IMG
 //	imgtool cmp    -a IMG -b IMG
+//	imgtool write  -dir DIR -bytes N   (hash-free sequential write reference, ADR-004 A6)
 package main
 
 import (
@@ -40,6 +41,8 @@ func main() {
 		err = cmdHash(os.Args[2:])
 	case "cmp":
 		err = cmdCmp(os.Args[2:])
+	case "write":
+		err = cmdWrite(os.Args[2:])
 	default:
 		usage()
 	}
@@ -50,7 +53,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: imgtool gen|mutate|hash|cmp [flags]  (run a subcommand with -h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: imgtool gen|mutate|hash|cmp|write [flags]  (run a subcommand with -h for flags)")
 	os.Exit(2)
 }
 
@@ -274,6 +277,66 @@ func cmdHash(args []string) error {
 	}
 	emit(r)
 	return nil
+}
+
+// ---- write ----------------------------------------------------------------
+
+type writeResult struct {
+	Dir     string  `json:"dir"`
+	Bytes   int64   `json:"bytes"`
+	Seconds float64 `json:"seconds"` // until the data is on disk: the writes and the fsync
+	FsyncS  float64 `json:"fsync_seconds"`
+	MBps    float64 `json:"mib_s"`
+}
+
+// cmdWrite is ADR-004 A6's repository-write reference: N bytes written sequentially into one new
+// file in DIR, in 4 MiB writes of incompressible data, then fsync; no hashing. The file is removed.
+func cmdWrite(args []string) error {
+	fs := flag.NewFlagSet("write", flag.ExitOnError)
+	dir := fs.String("dir", "", "directory on the disk to measure (e.g. the repository's parent)")
+	size := fs.String("bytes", "", "bytes to write (or KiB/MiB/GiB)")
+	_ = fs.Parse(args)
+	if *dir == "" || *size == "" {
+		return errors.New("write: -dir and -bytes are required")
+	}
+	n, err := parseSize(*size)
+	if err != nil {
+		return err
+	}
+	r, err := writeRef(*dir, n)
+	if err != nil {
+		return err
+	}
+	emit(r)
+	return nil
+}
+
+func writeRef(dir string, n int64) (writeResult, error) {
+	buf := make([]byte, 4<<20)
+	rng := rand.New(rand.NewPCG(1, 2))
+	for i := range buf {
+		buf[i] = byte(rng.Uint32())
+	}
+	f, err := os.CreateTemp(dir, ".gaia-write-ref-*")
+	if err != nil {
+		return writeResult{}, err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	start := time.Now()
+	for left := n; left > 0; {
+		w, err := f.Write(buf[:min(left, int64(len(buf)))])
+		if err != nil {
+			return writeResult{}, err
+		}
+		left -= int64(w)
+	}
+	t := time.Now()
+	if err := f.Sync(); err != nil {
+		return writeResult{}, err
+	}
+	sec := time.Since(start).Seconds()
+	return writeResult{Dir: dir, Bytes: n, Seconds: sec, FsyncS: time.Since(t).Seconds(), MBps: float64(n) / (1 << 20) / max(sec, 1e-9)}, nil
 }
 
 // cmdCmp exits non-zero unless both files are byte-identical. It reports the

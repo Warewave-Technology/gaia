@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs T9 on gaia-lab: full-backup throughput through the product path (internal/nbd -> internal/diskstore ->
-# Kopia Go library), gated by ADR-004 A1.
+# Runs T9/T12 on gaia-lab: full-backup throughput through the product path (internal/nbd -> internal/diskstore ->
+# Kopia Go library), gated by ADR-004 A6 (T12; T9 used A1, still reported as context).
 #
 # Source: the 30 GiB test image exported read-only by qemu-nbd (--cache=none, so no run reads from the page cache).
 # Repository: the second disk (DISK2, scsi2 from T5); one context run with the repository on the source disk.
@@ -8,15 +8,18 @@
 #   reference  gaia-backup nbd-read: exactly the bytes the backup reads (the allocated extents), hash-free,
 #              with 1, 4 and 8 NBD connections; the gate uses the fastest (A1);
 #   backup     gaia-backup backup-nbd into a fresh repository, then sync of the repository's filesystem:
-#              full_backup_s = backup + sync, so the data is on disk;
+#              full_backup_s = backup + sync, so the data is on disk; its CPU time (user + sys) per GB read is
+#              ADR-004 A7's budget figure;
+#   write ref  imgtool write: repository_bytes written sequentially to the repository's disk, incompressible,
+#              hash-free, until fsync (A6); the gate's reference is max(fastest plain read, this write);
 #   restore    gaia-backup restore (A2: 4 readers, cache on tmpfs with a 1 GiB hard limit, holes), sha256 vs source.
 # Configs (CONFIGS, "readers/writers/compressor[/hash[/splitter]]"): tuning per CLAUDE.md T9; not the splitter (T10).
 # The optional hash (e.g. BLAKE3-256-128) is the repository's content hash; T10 measures it (approved 2026-11-16).
 # The optional splitter (FIXED-4M, FIXED-1M, FIXED-256K) is T10's: the point's block size follows it, and so does
-# the reference read (same blocks); T9 itself leaves it at the default.
+# the reference read (same blocks); the default is ADR-004 A8's FIXED-1M (T9 ran with FIXED-4M).
 # Each config REPEAT times, in rounds. Afterwards one extra, uncounted backup per config with a CPU profile (pprof).
-# Gate per config: median(full_backup_s / fastest plain read) <= 2 over >= 3 runs, every restore identical.
-# T9 passes when at least one config passes; all configs are reported.
+# Gate per config (A6): median(full_backup_s / max(fastest plain read, repository write)) <= 2 over >= 3 runs, every
+# restore identical. The gate passes when at least one config passes; all configs are reported.
 #
 # Usage (on gaia-lab, as root, after setup.sh and t5-disk2.sh):  lab/lab-vm/t9-throughput.sh
 #   systemd-run --unit=gaia-t9 --collect -E HOME=/root lab/lab-vm/t9-throughput.sh
@@ -110,11 +113,11 @@ df -h "$(dirname "$IMAGE")" "$DISK2"
 
 section "free space"
 img_alloc=$(($(stat -c %b "$IMAGE") * $(stat -c %B "$IMAGE")))
-need2=$((img_alloc * 13 / 10)) # a repository with compression none is about the allocated size
+need2=$((img_alloc * 26 / 10)) # a repository with compression none is about the allocated size; the write ref as much again
 free2=$(($(df -Pk "$DISK2" | awk 'NR == 2 { print $4 }') * 1024))
 ((free2 >= need2)) || { echo "UNKNOWN: $DISK2 has $((free2 >> 30)) GiB free, needs $((need2 >> 30)) GiB"; exit 3; }
 free1=$(($(df -Pk "$WORK" | awk 'NR == 2 { print $4 }') * 1024))
-((free1 >= 3 * need2)) || { echo "UNKNOWN: $WORK has $((free1 >> 30)) GiB free, needs $((3 * need2 >> 30)) GiB"; exit 3; }
+((free1 >= 2 * need2)) || { echo "UNKNOWN: $WORK has $((free1 >> 30)) GiB free, needs $((2 * need2 >> 30)) GiB"; exit 3; }
 echo "image $(stat -c %s "$IMAGE") bytes, $img_alloc allocated; $DISK2 free $free2; $WORK free $free1"
 
 section "source: qemu-nbd -r --cache=none, sha256 of the image"
@@ -131,9 +134,9 @@ export GAIA_REPO_PASSWORD
 gb() { "$BIN/gaia-backup" "$@"; }
 
 : >"$OUT_DIR/runs.jsonl"
-# run_once LABEL REPO_DIR READERS WRITERS COMPRESSOR HASH SPLITTER ROUND [PROFILE]  ("" = Kopia's default / FIXED-4M)
+# run_once LABEL REPO_DIR READERS WRITERS COMPRESSOR HASH SPLITTER ROUND [PROFILE]  ("" = Kopia's default / FIXED-1M)
 run_once() {
-	local label=$1 repodir=$2 readers=$3 writers=$4 comp=$5 hash=$6 splitter=${7:-FIXED-4M} round=$8 profile=${9:-} refs=() n c d t0 out bs
+	local label=$1 repodir=$2 readers=$3 writers=$4 comp=$5 hash=$6 splitter=${7:-FIXED-1M} round=$8 profile=${9:-} refs=() n c d t0 out bs
 	case $splitter in
 	FIXED-*K) bs=$((${splitter//[!0-9]/} * 1024)) ;;
 	FIXED-*M) bs=$((${splitter//[!0-9]/} * 1048576)) ;;
@@ -158,9 +161,11 @@ run_once() {
 	sync -f "$repodir"
 	sync_s=$(elapsed "$t1")
 	cpu=$(cpu_json "$c") disk=$(disk_json "$d")
-	local repo_bytes restore='null' identical=null
+	local repo_bytes restore='null' identical=null write_ref='null'
 	repo_bytes=$(du -sb "$repodir" | cut -f1)
 	if [[ -z "$profile" ]]; then
+		drop_caches
+		write_ref=$("$BIN/imgtool" write -dir "$(dirname "$repodir")" -bytes "$repo_bytes" | jq -c '{bytes, seconds, fsync_seconds, mib_s}')
 		rm -rf "${CACHE:?}"/*
 		drop_caches
 		t1=$(now)
@@ -171,18 +176,24 @@ run_once() {
 	fi
 	out=$(jq -nc --arg cfg "$label" --argjson round "$round" --arg repo "$repodir" --argjson readers "$readers" --argjson writers "$writers" \
 		--arg comp "$comp" --argjson backup_s "$backup_s" --argjson sync_s "$sync_s" --argjson cpu "$cpu" --argjson disk "$disk" \
-		--argjson repo_bytes "$repo_bytes" --argjson restore "$restore" --argjson identical "$identical" \
+		--argjson repo_bytes "$repo_bytes" --argjson restore "$restore" --argjson identical "$identical" --argjson write_ref "$write_ref" \
 		--slurpfile b "$WORK/backup.json" --argjson refs "[$(IFS=,; echo "${refs[*]:-}")]" --arg profile "$profile" '
 		($refs | map(.seconds) | min) as $ref
+		| ($write_ref.seconds // null) as $w
+		| (if $ref and $w then [$ref, $w] | max else null end) as $reference
 		| {config: $cfg, round: $round, repository: $repo, readers: $readers, writers: $writers, compressor: $comp,
 		   full_backup_s: (($backup_s + $sync_s) * 1000 | round / 1000), backup_cmd_s: $backup_s, sync_s: $sync_s,
-		   plain_read: $refs, fastest_plain_read_s: $ref,
-		   ratio: (if $ref then ($backup_s + $sync_s) / $ref else null end),
+		   plain_read: $refs, fastest_plain_read_s: $ref, repository_write: $write_ref,
+		   reference_s: $reference, reference_bound: (if $reference == null then null elif $reference == $ref then "source read" else "repository write" end),
+		   ratio: (if $reference then ($backup_s + $sync_s) / $reference else null end),
+		   ratio_a1: (if $ref then ($backup_s + $sync_s) / $ref else null end),
+		   process_cpu_s: $b[0].process_cpu_s,
+		   cpu_s_per_gb: (if $b[0].process_cpu_s.total then $b[0].process_cpu_s.total / ($b[0].point.stats.source_read_bytes / 1e9) else null end),
 		   bytes_read: $b[0].point.stats.source_read_bytes, repository_bytes: $repo_bytes, pipeline: ($b[0].point.stats | {readers, writers, compressor,
 		     seconds, read_busy_seconds, write_busy_seconds, reader_wait_seconds, blocks_written, blocks_zero}),
 		   cpu: $cpu, disk_io: $disk, restore: $restore, identical: $identical, cpuprofile: (if $profile == "" then null else $profile end)}')
 	echo "$out" >>"$OUT_DIR/runs.jsonl"
-	jq -c '{config, round, full_backup_s, fastest_plain_read_s, ratio, identical, cpu, write_busy: .pipeline.write_busy_seconds, reader_wait: .pipeline.reader_wait_seconds}' <<<"$out"
+	jq -c '{config, round, full_backup_s, fastest_plain_read_s, repository_write_s: .repository_write.seconds, ratio, ratio_a1, identical, cpu_s_per_gb, cpu, write_busy: .pipeline.write_busy_seconds, reader_wait: .pipeline.reader_wait_seconds}' <<<"$out"
 	rm -rf "$repodir"
 }
 
@@ -225,8 +236,11 @@ jq -s --argjson repeat "$REPEAT" '
 	def median: map(select(. != null)) | sort | length as $n | if $n == 0 then null elif $n % 2 == 1 then .[($n - 1) / 2] else (.[$n / 2 - 1] + .[$n / 2]) / 2 end;
 	map(select(.round > 0)) | group_by(.config) | map({
 	  config: .[0].config, runs: length,
-	  ratios: map(.ratio), median_ratio: (map(.ratio) | median),
+	  ratios: map(.ratio), median_ratio: (map(.ratio) | median), reference_bound: map(.reference_bound),
+	  ratios_a1: map(.ratio_a1), median_ratio_a1: (map(.ratio_a1) | median),
 	  median_full_backup_s: (map(.full_backup_s) | median), median_fastest_plain_read_s: (map(.fastest_plain_read_s) | median),
+	  median_repository_write_s: (map(.repository_write.seconds) | median), median_reference_s: (map(.reference_s) | median),
+	  median_cpu_s_per_gb: (map(.cpu_s_per_gb) | median),
 	  median_backup_mib_s: (map(.bytes_read / 1048576 / .full_backup_s) | median),
 	  median_repository_bytes: (map(.repository_bytes) | median),
 	  median_restore_s: (map(.restore.seconds_wall) | median),
@@ -237,8 +251,8 @@ jq -s --argjson repeat "$REPEAT" '
 	} | . + {gate: (if .identical == false then "CRITICAL" elif .runs < 3 or .identical == null or .median_ratio == null then "UNKNOWN"
 	                elif .median_ratio <= 2 then "OK" else "CRITICAL" end)})' "$OUT_DIR/runs.jsonl" | tee "$OUT_DIR/summary.json"
 
-section "gate (ADR-004 A1)"
-jq '{rule: "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
+section "gate (ADR-004 A6)"
+jq '{rule: "per config: median(full_backup_s / max(fastest hash-free read of the same bytes, hash-free write of repository_bytes to the repository disk)) <= 2 over >= 3 runs, every restore identical; passes if a config passes",
 	configs: map({config, median_ratio, gate}),
 	best: (map(select(.median_ratio != null and (.config | test("same-disk") | not))) | min_by(.median_ratio) // null | if . then {config, median_ratio, gate} else null end),
 	verdict: (if any(.[]; .identical == false) then "CRITICAL" elif any(.[]; .gate == "OK" and (.config | test("same-disk") | not)) then "OK"

@@ -4,8 +4,8 @@
 // written into a Kopia repository through the Kopia Go library (internal/diskstore).
 // Every point restores to a complete raw image on its own.
 //
-//	gaia-backup repo-create -repo DIR -config FILE [-cache-dir DIR -cache-limit-mb N] [-splitter FIXED-4M] [-hash NAME]
-//	gaia-backup backup  -config FILE -domain NAME [-disk vda] [-full] [-nbd tcp:127.0.0.1:10809] [-conns 4] [-writers N] [-block-size 4M] [-scratch-dir DIR] [-resume]
+//	gaia-backup repo-create -repo DIR -config FILE [-cache-dir DIR -cache-limit-mb N] [-splitter FIXED-1M] [-hash NAME]
+//	gaia-backup backup  -config FILE -domain NAME [-disk vda] [-full] [-nbd tcp:127.0.0.1:10809] [-conns 4] [-writers N] [-block-size 1M] [-scratch-dir DIR] [-resume]
 //	gaia-backup restore -config FILE (-point ID | -domain NAME [-disk vda]) -out FILE [-workers 4]
 //	gaia-backup points  -config FILE [-domain NAME] [-disk vda]
 //	gaia-backup backup-nbd -config FILE -nbd unix:/path [-export NAME] -domain NAME [-disk vda] [-conns 4] [-writers 4] [-compression s2-default|none] [-cpuprofile F]
@@ -166,7 +166,7 @@ func cmdBackup(ctx context.Context, args []string) (any, bool, error) {
 	conns := fs.Int("conns", 4, "parallel NBD connections (each reads one block at a time)")
 	writers := fs.Int("writers", 0, "goroutines that compress, encrypt and store (0: as many as -conns)")
 	comp := fs.String("compression", diskstore.Compression, "Kopia compressor for the blocks, or none")
-	blockSize := sizeFlag(fs, "block-size", "block size of the point, e.g. 4M, 1M, 256K (an incremental must use its parent's)")
+	blockSize := sizeFlag(fs, "block-size", "block size of the point, e.g. 4M, 1M, 256K (default: 1M for a full, the parent's for an incremental)")
 	sock := fs.String("libvirt-socket", libvirtbackup.DefaultSocket, "libvirtd socket")
 	scratch := fs.String("scratch-dir", "/var/lib/libvirt/images", "directory for qemu's copy-before-write scratch file (libvirt creates and removes it)")
 	resume := fs.Bool("resume", false, "resume the domain once the job has started, if it is paused (pull mode keeps the export at the checkpoint)")
@@ -543,8 +543,19 @@ func cmdBackupNBD(ctx context.Context, args []string) (any, bool, error) {
 	}
 	return map[string]any{"command": "backup-nbd", "verdict": "OK", "nbd": *server, "export": *export, "disk_bytes": size,
 		"allocated_bytes": sumBytes(changed), "nbd_payload_bytes": payload, "nbd_read_commands": cmds, "point": pt,
-		"timings_s":  map[string]float64{"extents": extents, "backup": time.Since(t1).Seconds(), "total": time.Since(t0).Seconds()},
-		"cpuprofile": *cpuprofile}, *asJSON, nil
+		"timings_s":     map[string]float64{"extents": extents, "backup": time.Since(t1).Seconds(), "total": time.Since(t0).Seconds()},
+		"process_cpu_s": processCPU(), "cpuprofile": *cpuprofile}, *asJSON, nil
+}
+
+// processCPU is this process's CPU time so far (getrusage): ADR-004 A7's CPU-seconds, per GB read by the caller.
+func processCPU() map[string]float64 {
+	var ru syscall.Rusage
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &ru); err != nil {
+		return nil
+	}
+	sec := func(tv syscall.Timeval) float64 { return float64(tv.Sec) + float64(tv.Usec)/1e6 }
+	u, s := sec(ru.Utime), sec(ru.Stime)
+	return map[string]float64{"user": u, "sys": s, "total": u + s}
 }
 
 func cmdNBDRead(ctx context.Context, args []string) (any, bool, error) {

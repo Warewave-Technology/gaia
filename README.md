@@ -17,8 +17,8 @@ Design rule: **an unchecked state is never green.** Unknown is shown as UNKNOWN 
 
 ## Status
 
-Phase 2: building the data path and verification core on KVM/libvirt. Phase 1 (feasibility) is closed; its
-reports are in [`docs/reports/`](docs/reports). Nothing here is production software yet.
+Phase 3: building the MVP on KVM/libvirt ([ADR-007](docs/adr/007-mvp-architecture.md)). The feasibility study
+(Phases 1–2) ended with GO on 2026-11-16; its reports are in [`docs/reports/`](docs/reports). Not released yet.
 
 VMware is a migration source only ([ADR-003](docs/adr/003-vmware-as-migration-source-and-platform-order.md)): the
 **migration check** copies powered-off vSphere VMs with read-only API calls, converts them for KVM, boots them in an

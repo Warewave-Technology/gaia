@@ -1,7 +1,7 @@
 // Package diskstore keeps disk images in a Kopia repository through the Kopia Go
 // library (ADR-004 §4), as points in time that are each a complete image.
 //
-// A point is a list of fixed 4 MiB blocks (ADR-004 §2: FIXED-4M, s2-default), each a
+// A point is a list of fixed 1 MiB blocks (ADR-004 A8: FIXED-1M, s2-default), each a
 // Kopia object, or "" for a block of zeroes (stored as nothing). A full backup writes
 // the blocks that hold data. An incremental backup reads only the changed ranges
 // from the source; blocks it does not touch reuse the parent's objects, and a partly
@@ -34,11 +34,11 @@ import (
 	"github.com/kopia/kopia/repo/object"
 )
 
-// ADR-004 §2 defaults. BlockSize is the default block of a point; a backup may choose another
-// (T10 measures them), and an incremental must use its parent's.
+// ADR-004 A8 defaults. BlockSize is the default block of a full backup's point; a backup may choose
+// another, and an incremental uses its parent's (points made before A8 keep their 4 MiB blocks).
 const (
-	BlockSize   = 4 << 20
-	Splitter    = "FIXED-4M"
+	BlockSize   = 1 << 20
+	Splitter    = "FIXED-1M"
 	Compression = "s2-default"
 	pointType   = "gaia-disk-point"
 )
@@ -184,7 +184,8 @@ type BackupRequest struct {
 	Parent  *Point   // nil: full backup
 	Sources []Source // one per parallel reader (an NBD connection serves one request at a time)
 	Writers int      // goroutines that compress, encrypt and store blocks; 0: one per source
-	// BlockSize of the new point (0: BlockSize). An incremental must use its parent's.
+	// BlockSize of the new point (0: the parent's for an incremental, BlockSize for a full). An incremental
+	// must use its parent's.
 	BlockSize uint64
 	// Compressor overrides Compression; "none" stores blocks uncompressed.
 	Compressor string
@@ -201,20 +202,26 @@ func (s *Store) Backup(ctx context.Context, req BackupRequest) (*Point, error) {
 	if len(req.Sources) == 0 {
 		return nil, errors.New("no source")
 	}
-	bs := req.BlockSize
-	if bs == 0 {
-		bs = BlockSize
-	}
-	if bs < 64<<10 || bs%4096 != 0 || bs > 64<<20 {
-		return nil, fmt.Errorf("block size %d: want a multiple of 4096 between 64 KiB and 64 MiB", bs)
-	}
-	n := int((req.Size + bs - 1) / bs)
 	var parent *blockIndex
 	if req.Parent != nil {
 		var err error
 		if parent, err = s.loadIndex(ctx, req.Parent); err != nil {
 			return nil, err
 		}
+	}
+	bs := req.BlockSize
+	switch {
+	case bs != 0:
+	case parent != nil:
+		bs = parent.BlockSize
+	default:
+		bs = BlockSize
+	}
+	if bs < 64<<10 || bs%4096 != 0 || bs > 64<<20 {
+		return nil, fmt.Errorf("block size %d: want a multiple of 4096 between 64 KiB and 64 MiB", bs)
+	}
+	n := int((req.Size + bs - 1) / bs)
+	if parent != nil {
 		if parent.Size != req.Size || parent.BlockSize != bs {
 			return nil, fmt.Errorf("disk is %d bytes, parent point %d bytes (block %d): a full backup is needed",
 				req.Size, parent.Size, parent.BlockSize)

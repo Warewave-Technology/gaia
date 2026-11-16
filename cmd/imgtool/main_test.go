@@ -93,3 +93,17 @@ func TestMutateDeterministic(t *testing.T) {
 		t.Fatalf("same seed, different result: %s vs %s", sums[0], sums[1])
 	}
 }
+
+func TestWriteRef(t *testing.T) {
+	dir := t.TempDir()
+	r, err := writeRef(dir, 10<<20+123)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Bytes != 10<<20+123 || r.Seconds <= 0 || r.FsyncS < 0 {
+		t.Fatalf("result %+v", r)
+	}
+	if left, _ := os.ReadDir(dir); len(left) != 0 {
+		t.Fatalf("the reference file was left behind: %v", left)
+	}
+}

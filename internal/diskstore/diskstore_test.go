@@ -337,8 +337,14 @@ func TestBlockSizesSplittersAndHashes(t *testing.T) {
 				t.Fatalf("incremental stats %+v", inc.Stats)
 			}
 			restoreAndCompare(t, s, inc, d.data)
-			if _, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c3", Size: size, Changed: dirty,
-				Parent: inc, Sources: []Source{d}, BlockSize: BlockSize}); err == nil || !strings.Contains(err.Error(), "full backup is needed") {
+			// No block size given: an incremental keeps its parent's (points made before ADR-004 A8 stay 4 MiB).
+			inc2, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c3", Size: size, Changed: dirty,
+				Parent: inc, Sources: []Source{d}})
+			if err != nil || inc2.BlockSize != tc.bs {
+				t.Fatalf("incremental without a block size: %+v %v", inc2, err)
+			}
+			if _, err := s.Backup(ctx, BackupRequest{Domain: "vm", Disk: "vda", Checkpoint: "c4", Size: size, Changed: dirty,
+				Parent: inc2, Sources: []Source{d}, BlockSize: 4 << 20}); err == nil || !strings.Contains(err.Error(), "full backup is needed") {
 				t.Fatalf("block size change accepted: %v", err)
 			}
 			if _, err := s.Backup(ctx, BackupRequest{Size: size, Sources: []Source{d}, BlockSize: 1000}); err == nil {
