@@ -1,6 +1,7 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16). The feasibility study ended with **GO** (2026-11-16).
+Status: accepted (2026-11-16), amended 2026-11-16 (see "Amendments"; they win over the text above them).
+The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
 
@@ -65,3 +66,50 @@ Rules: `UNKNOWN` is never shown as healthy; when several rows apply, the worst w
 | 3 | Was a restore tested? | Scheduled `gaia verify` per policy |
 | 4 | Does the operator know? | The status model above, on the operator screen |
 | 5 | Can it be proven? | Evidence spec v1 (ADR-006), auditor export, ledger head in the daily report |
+
+## Amendments (2026-11-16, after M1)
+
+Decisions on the `ONAY GEREKİYOR` items of reports T14–T16, approved by the product owner.
+
+### B1. Two units, one binary (amends §1 and §5)
+
+The sandbox needs root (network namespace, veth, dnsmasq). Gaia runs as **two systemd units of the same binary**:
+`gaia.service` (API, UI, scheduler, workers; unprivileged, no capabilities) and `gaia-sandbox.service`
+(root; no network listener; one unix socket `0660 root:gaia`; one endpoint; opens only plain files in its image
+directory; holds no keys; returns unsigned bundles, the server signs). The process that faces the network never
+has root, and the root process never faces the network. Giving `gaia.service` capabilities is rejected.
+
+### B2. One SSH connection per job (amends §3)
+
+"One authenticated SSH connection per host" becomes: **every job uses one authenticated SSH connection** that
+carries both its libvirt RPC and all its NBD streams. Parallel jobs on a host use separate connections. A
+connection pool per host is a later optimisation, not a requirement.
+
+### B3. Damaged repository contents are quarantined (core matrix #1, #2)
+
+T15 showed a damaged content stays in Kopia's index and is silently reused by deduplication, so new points can
+pass the post-backup check and still be unreadable. When repository verification finds damage:
+1. the damaged content IDs are removed from the index (the pack stays until GC, for inspection);
+2. every affected point is marked `failed` with the content IDs as the reason;
+3. the next backup of every affected VM is a full backup, recording the reason;
+4. the event is an audit entry and, from M2, a notification.
+
+### B4. Status model: three readings made explicit (refines "The status model")
+
+1. "The latest restore test" means the latest test that reached a verdict (`OK`, `WARNING`, `CRITICAL`). A test
+   that could not run (`UNKNOWN`, e.g. the sandbox was down) is shown as a note; it never clears `CRITICAL` and
+   never counts as a pass. Otherwise breaking the sandbox would turn a red VM green.
+2. A passed test counts toward Proven RPO only while its point still exists and is not `failed`.
+   A pruned or damaged point proves nothing.
+3. "Chain/integrity verification failed" means the VM has an existing point whose check `failed`
+   (post-backup check or repository verification). Pruning that point clears it.
+
+### B5. Recovery kit and state restore (amends §2)
+
+Gaia's self-backup deliberately contains no secrets, so it is useless without the repository password and the
+evidence signing key. Therefore:
+- `gaia server init` (and every repository creation) writes a **recovery kit**: repository passwords and the
+  evidence signing key, encrypted with a passphrase the operator chooses, in the **age** format
+  (`filippo.io/age`, scrypt recipient). An operator can open it with the standalone `age` tool, without Gaia.
+- `gaia server restore-state` rebuilds a server from a recovery kit and the repository alone.
+- The install guide makes storing the kit off the server a step that cannot be skipped silently.

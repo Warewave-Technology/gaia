@@ -21,3 +21,10 @@ difference — and Gaia is not a vendor. An auditor is best served by one eviden
 4. Key identifiers and a `format_version` field are added now, before the MVP has users, even though this changes
    the T7 format. After v1 is published, changes are versioned and v1 stays verifiable.
 5. Once v1 is stable and the MVP uses it, we invite other projects (starting with PBP) to adopt it. No sooner.
+
+## Note (2026-11-16)
+
+Report T13: v1 is published in `docs/spec/evidence-v1.md` with 41 conformance vectors, and an independent verifier
+written only from the specification matches all of them. Decision #5 is applied as written: the invitation to
+other projects is sent **after the MVP acceptance (package M2)**, when the format has run under real use and
+the ledger head is anchored outside Gaia (ADR-007 §10), which closes the truncation limit in spec §11.1.
