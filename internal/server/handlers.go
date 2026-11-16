@@ -20,7 +20,10 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
-var errUnauthorized = errors.New("unauthorized")
+var (
+	errUnauthorized = errors.New("unauthorized")
+	errHost         = errors.New("host")
+)
 
 func (s *Server) login(c *call) (int, any, error) {
 	var in LoginRequest
@@ -76,6 +79,7 @@ func (s *Server) systemInfo(c *call) (int, any, error) {
 		return 0, nil, fmt.Errorf("the evidence key: %w", err)
 	}
 	return http.StatusOK, SystemInfo{Version: s.version, SchemaVersion: len(applied), Migrations: applied, EvidenceKeyID: evidence.KeyID(pub),
+		SSHPublicKey: s.sshKey.AuthorizedKey, SSHAuthorizedKey: `restrict,port-forwarding,command="/usr/bin/false" ` + s.sshKey.AuthorizedKey,
 		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository}, nil
 }
 

@@ -4,6 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
+	"github.com/Warewave-Technology/gaia/internal/diskstore"
+	"github.com/Warewave-Technology/gaia/internal/hostconn"
 
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -75,15 +80,40 @@ type Health struct {
 	Status string `json:"status"`
 }
 
+// TrustRequest pins a host's SSH key: the fingerprint the operator confirmed (ssh-keygen -lf on the host).
+type TrustRequest struct {
+	Fingerprint string `json:"fingerprint"`
+}
+
+// HostCheck is what Gaia sees on a host over its SSH connection.
+type HostCheck struct {
+	Libvirt string   `json:"libvirt"`
+	QEMU    string   `json:"qemu"`
+	Domains []string `json:"domains"`
+	Seconds float64  `json:"seconds"`
+}
+
+// VerifyRequest starts a repository verification.
+type VerifyRequest struct {
+	Mode string `json:"mode"` // sampled or full
+}
+
+// MaintenanceRequest runs a repository's maintenance now.
+type MaintenanceRequest struct {
+	Force bool `json:"force"` // full maintenance even if not due
+}
+
 // SystemInfo describes the installation.
 type SystemInfo struct {
-	Version         string                   `json:"version"`
-	SchemaVersion   int                      `json:"schema_version"`
-	Migrations      []store.AppliedMigration `json:"migrations"`
-	EvidenceKeyID   string                   `json:"evidence_key_id"` // the evidence trust anchor (ADR-006)
-	StartedAt       string                   `json:"started_at"`
-	StateBackupAt   string                   `json:"state_backup_at"`
-	StateBackupRepo string                   `json:"state_backup_repository"`
+	Version          string                   `json:"version"`
+	SchemaVersion    int                      `json:"schema_version"`
+	Migrations       []store.AppliedMigration `json:"migrations"`
+	EvidenceKeyID    string                   `json:"evidence_key_id"` // the evidence trust anchor (ADR-006)
+	SSHPublicKey     string                   `json:"ssh_public_key"`  // Gaia's key, for a host's authorized_keys
+	SSHAuthorizedKey string                   `json:"ssh_authorized_keys_line"`
+	StartedAt        string                   `json:"started_at"`
+	StateBackupAt    string                   `json:"state_backup_at"`
+	StateBackupRepo  string                   `json:"state_backup_repository"`
 }
 
 func list[T any](v []T, err error) (int, any, error) {
@@ -218,6 +248,68 @@ func (s *Server) table() []route {
 			}},
 		{method: "DELETE", path: "/api/v1/hosts/{id}", summary: "Remove a host without VMs", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "host", s.db.DeleteHost) }},
+		{method: "POST", path: "/api/v1/hosts/{id}/scan", summary: "Read the host's SSH key without trusting it", roles: writers, out: hostconn.Scanned{},
+			h: func(c *call) (int, any, error) {
+				h, err := s.hostOf(c)
+				if err != nil {
+					return 0, nil, err
+				}
+				sc, err := hostconn.Scan(c.r.Context(), h.Address, h.SSHPort)
+				if err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				c.detail = "scanned " + sc.Fingerprint
+				return http.StatusOK, sc, nil
+			}},
+		{method: "POST", path: "/api/v1/hosts/{id}/trust", summary: "Pin the host's SSH key if it has the fingerprint given", roles: writers,
+			in: TrustRequest{}, out: store.Host{}, example: `{"fingerprint":"SHA256:none"}`,
+			h: func(c *call) (int, any, error) {
+				h, err := s.hostOf(c)
+				if err != nil {
+					return 0, nil, err
+				}
+				var in TrustRequest
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				sc, err := hostconn.Scan(c.r.Context(), h.Address, h.SSHPort)
+				if err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				if sc.Fingerprint != strings.TrimSpace(in.Fingerprint) {
+					return 0, nil, fmt.Errorf("%w: the host's key is %s, not %s: not trusted", store.ErrConflict, sc.Fingerprint, in.Fingerprint)
+				}
+				c.detail = "trusted " + sc.Fingerprint
+				return one(s.db.PinHostKey(c.r.Context(), c.user.Username, h.ID, sc.Key, sc.Fingerprint))
+			}},
+		{method: "POST", path: "/api/v1/hosts/{id}/check", summary: "Connect over SSH and list the host's libvirt domains", roles: writers, out: HostCheck{},
+			h: func(c *call) (int, any, error) {
+				h, err := s.hostOf(c)
+				if err != nil {
+					return 0, nil, err
+				}
+				t := time.Now()
+				hc, err := hostconn.Dial(c.r.Context(), hostTarget(h), s.sshKey)
+				if err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				defer hc.Close()
+				lv, err := hc.Libvirt()
+				if err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				defer lv.Close()
+				var out HostCheck
+				if out.Libvirt, out.QEMU, err = lv.Versions(); err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				if out.Domains, err = lv.Domains(); err != nil {
+					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
+				}
+				out.Seconds = time.Since(t).Seconds()
+				c.detail = fmt.Sprintf("libvirt %s, %d domains", out.Libvirt, len(out.Domains))
+				return http.StatusOK, out, nil
+			}},
 
 		// --- VMs and disks ---
 		{method: "GET", path: "/api/v1/vms", summary: "List VMs", roles: anyRole, out: []store.VM{},
@@ -264,6 +356,31 @@ func (s *Server) table() []route {
 			}},
 		{method: "DELETE", path: "/api/v1/vms/{id}", summary: "Remove a VM without points", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "VM", s.db.DeleteVM) }},
+		{method: "POST", path: "/api/v1/vms/{id}/backups", summary: "Queue a backup of the VM now", roles: writers, out: store.Job{}, status: http.StatusAccepted,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				vm, err := s.db.VM(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				if vm.PolicyID == nil {
+					return 0, nil, fmt.Errorf("%w: VM %s has no policy (it says which repository to use)", store.ErrConflict, vm.Name)
+				}
+				if j, open, err := s.db.OpenJob(c.r.Context(), id, "backup"); err != nil {
+					return 0, nil, err
+				} else if open {
+					return 0, nil, fmt.Errorf("%w: VM %s already has backup job %d (%s)", store.ErrConflict, vm.Name, j.ID, j.State)
+				}
+				j, err := s.db.CreateJob(c.r.Context(), c.user.Username, "backup", &id, "requested by "+c.user.Username)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = fmt.Sprintf("queued backup job %d", j.ID)
+				return http.StatusAccepted, j, nil
+			}},
 		{method: "GET", path: "/api/v1/vms/{id}/disks", summary: "A VM's disks", roles: anyRole, out: []store.Disk{},
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
@@ -306,6 +423,79 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				return one(s.db.Repository(c.r.Context(), id))
+			}},
+		{method: "POST", path: "/api/v1/repositories/{id}/verify", summary: "Start a verification of the repository (sampled or full)", roles: writers,
+			in: VerifyRequest{}, out: store.Verification{}, status: http.StatusAccepted, example: `{"mode":"sampled"}`,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				var in VerifyRequest
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				r, err := s.db.Repository(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				v, err := s.StartVerification(context.WithoutCancel(c.r.Context()), c.user.Username, r, in.Mode, "requested by "+c.user.Username)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = fmt.Sprintf("verification %d (%s)", v.ID, v.Mode)
+				return http.StatusAccepted, v, nil
+			}},
+		{method: "POST", path: "/api/v1/repositories/{id}/maintenance", summary: "Run the repository's maintenance now (Gaia's GC, then Kopia's)", roles: adminOnly,
+			in: MaintenanceRequest{}, out: diskstore.MaintenanceResult{}, example: `{"force":false}`,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				var in MaintenanceRequest
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				r, err := s.db.Repository(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				lock := s.repoLocks.get(r.ID)
+				lock.Lock()
+				defer lock.Unlock()
+				st, err := s.OpenRepository(c.r.Context(), r)
+				if err != nil {
+					return 0, nil, err
+				}
+				defer st.Close(c.r.Context())
+				m, err := st.Maintain(c.r.Context(), in.Force, s.maintenanceSafety)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = "maintenance " + m.Mode
+				return http.StatusOK, m, nil
+			}},
+		{method: "GET", path: "/api/v1/verifications", summary: "Repository verifications, newest first", roles: anyRole, out: []store.Verification{},
+			query: append([]param{{"repository_id", "integer", "only this repository's"}}, limit...),
+			h: func(c *call) (int, any, error) {
+				rid, err := c.intQuery("repository_id", 0, 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				n, err := c.intQuery("limit", 100, 1000)
+				if err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.Verifications(c.r.Context(), rid, int(n)))
+			}},
+		{method: "GET", path: "/api/v1/verifications/{id}", summary: "One verification, with the points it found damaged", roles: anyRole, out: store.Verification{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.db.Verification(c.r.Context(), id))
 			}},
 		{method: "GET", path: "/api/v1/policies", summary: "List policies", roles: anyRole, out: []store.Policy{},
 			h: func(c *call) (int, any, error) { return list(s.db.Policies(c.r.Context())) }},
@@ -352,13 +542,13 @@ func (s *Server) table() []route {
 				}
 				return list(s.db.Jobs(c.r.Context(), vmID, n))
 			}},
-		{method: "GET", path: "/api/v1/jobs/{id}", summary: "One job", roles: anyRole, out: store.Job{},
+		{method: "GET", path: "/api/v1/jobs/{id}", summary: "One job, with its checkpoint and what it did", roles: anyRole, out: store.JobInfo{},
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
 					return 0, nil, err
 				}
-				return one(s.db.Job(c.r.Context(), id))
+				return one(s.db.JobInfo(c.r.Context(), id))
 			}},
 		{method: "GET", path: "/api/v1/points", summary: "List backup points, newest first", roles: anyRole, out: []store.Point{}, query: vmFilter,
 			h: func(c *call) (int, any, error) {
@@ -375,6 +565,38 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				return one(s.db.Point(c.r.Context(), id))
+			}},
+		{method: "GET", path: "/api/v1/points/{id}/disks", summary: "A point's disks", roles: anyRole, out: []store.PointDisk{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				if _, err := s.db.Point(c.r.Context(), id); err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.PointDisks(c.r.Context(), id))
+			}},
+		{method: "POST", path: "/api/v1/points/{id}/restore-check", summary: "Restore the point's disks to scratch files, hash them, remove them", roles: writers,
+			out: []RestoredDisk{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				p, err := s.db.Point(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				if p.State != "present" {
+					return 0, nil, fmt.Errorf("%w: point %d is %s", store.ErrConflict, id, p.State)
+				}
+				out, err := s.restoreCheck(c.r.Context(), p)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = fmt.Sprintf("restored and hashed %d disks", len(out))
+				return http.StatusOK, out, nil
 			}},
 		{method: "GET", path: "/api/v1/restore-tests", summary: "List restore tests, newest first", roles: anyRole, out: []store.RestoreTest{}, query: vmFilter,
 			h: func(c *call) (int, any, error) {
@@ -481,6 +703,15 @@ func (c *call) filter() (int64, int, error) {
 }
 
 // remove deletes the record named by the path's {id}.
+// hostOf loads the host named by the path's {id}.
+func (s *Server) hostOf(c *call) (store.Host, error) {
+	id, err := c.id("id")
+	if err != nil {
+		return store.Host{}, err
+	}
+	return s.db.Host(c.r.Context(), id)
+}
+
 func (s *Server) remove(c *call, what string, del func(context.Context, int64) error) (int, any, error) {
 	id, err := c.id("id")
 	if err != nil {

@@ -24,7 +24,10 @@ import (
 //	gaia RESOURCE add key=value ...                      a JSON body; values that parse as JSON are typed
 //	gaia RESOURCE set ID key=value ...
 //	gaia RESOURCE rm ID
-//	gaia vms disks ID | add-disk ID target=vda size_bytes=N
+//	gaia vms disks ID | add-disk ID target=vda size_bytes=N | backup ID
+//	gaia hosts scan ID | trust ID fingerprint=SHA256:... | check ID
+//	gaia points disks ID | restore-check ID
+//	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
 //	gaia api METHOD PATH [JSON]                          any API call
 //
@@ -37,12 +40,13 @@ type resource struct {
 
 var resources = map[string]resource{
 	"users":         {"/api/v1/users", []string{"list", "get", "add", "set"}},
-	"hosts":         {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm"}},
-	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk"}},
-	"repositories":  {"/api/v1/repositories", []string{"list", "get", "add"}},
+	"hosts":         {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
+	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup"}},
+	"repositories":  {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
 	"policies":      {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
 	"jobs":          {"/api/v1/jobs", []string{"list", "get"}},
-	"points":        {"/api/v1/points", []string{"list", "get"}},
+	"points":        {"/api/v1/points", []string{"list", "get", "disks", "restore-check"}},
+	"verifications": {"/api/v1/verifications", []string{"list", "get"}},
 	"tests":         {"/api/v1/restore-tests", []string{"list", "get"}},
 	"evidence":      {"/api/v1/evidence", []string{"list", "get", "export"}},
 	"audit":         {"/api/v1/audit", []string{"list", "verify"}},
@@ -158,8 +162,6 @@ func runCLI(ctx context.Context, args []string) int {
 			p += "?" + q.Encode()
 		}
 		return call("GET", p, nil)
-	case "verify":
-		return call("GET", res.path+"/verify", nil)
 	case "run":
 		return call("POST", res.path, nil)
 	case "add":
@@ -174,6 +176,9 @@ func runCLI(ctx context.Context, args []string) int {
 		}
 		return call("POST", res.path, body)
 	}
+	if verb == "verify" && cmd == "audit" {
+		return call("GET", res.path+"/verify", nil)
+	}
 	id, rest, err := needID()
 	if err != nil {
 		return fail(asJSON, cmd, err)
@@ -181,6 +186,16 @@ func runCLI(ctx context.Context, args []string) int {
 	switch verb {
 	case "get":
 		return call("GET", res.path+"/"+id, nil)
+	case "scan", "check", "restore-check":
+		return call("POST", res.path+"/"+id+"/"+verb, nil)
+	case "backup":
+		return call("POST", res.path+"/"+id+"/backups", nil)
+	case "trust", "verify", "maintenance":
+		body, err := keyValues(rest)
+		if err != nil {
+			return fail(asJSON, cmd, err)
+		}
+		return call("POST", res.path+"/"+id+"/"+verb, body)
 	case "rm":
 		if _, _, err := c.Do(ctx, "DELETE", res.path+"/"+id, nil); err != nil {
 			return fail(asJSON, cmd, err)

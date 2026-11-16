@@ -125,7 +125,7 @@ func (f *fixture) seed() {
 		t.Fatalf("repository: %d", st)
 	}
 	var h store.Host
-	if st := f.do(admin, "POST", "/api/v1/hosts", `{"name":"seed-host","address":"10.0.0.5","ssh_user":"gaia"}`, &h); st != http.StatusCreated {
+	if st := f.do(admin, "POST", "/api/v1/hosts", `{"name":"seed-host","address":"127.0.0.1","ssh_port":1,"ssh_user":"gaia"}` /* nothing listens: host calls fail fast with 502 */, &h); st != http.StatusCreated {
 		t.Fatalf("host: %d", st)
 	}
 	var p store.Policy

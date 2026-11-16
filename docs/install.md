@@ -104,7 +104,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`2`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`3`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -182,13 +182,96 @@ gaia password
 
 The last admin cannot be disabled or demoted.
 
-## 10. What else the command line does
+## 10. Back up VMs on a KVM host
+
+Gaia reaches a host only over SSH (ADR-007 §3): libvirt and the disk reads (NBD) both go through that one
+connection to unix sockets on the host. Nothing on the host listens on a network port for Gaia.
+
+What the host needs: Debian 12 or newer (libvirt ≥ 9.0, QEMU ≥ 7.2), OpenSSH, and VMs whose disks are qcow2 files.
+
+**On the host, as root.** Create a user for Gaia. Membership in `libvirt` lets it control every VM on the host, so
+treat its key like a root key. `libvirt-qemu` lets it open the disk export socket QEMU creates during a backup.
 
 ```bash
-gaia hosts add name=<host> address=<address> ssh_user=<user>
-gaia vms add host_id=<id> name=<libvirt domain name>
+useradd -m -s /usr/sbin/nologin -G libvirt,libvirt-qemu gaia-backup && install -d -m 700 -o gaia-backup -g gaia-backup /home/gaia-backup/.ssh
+```
+
+**On the Gaia server.** Print the line for the host's `authorized_keys`:
+
+```bash
+gaia system -json | python3 -c 'import json,sys; print(json.load(sys.stdin)["ssh_authorized_keys_line"])'
+```
+
+It starts with `restrict,port-forwarding,command="/usr/bin/false"`: the key gets no shell, no terminal and no
+TCP forwarding to other machines; it may only open unix sockets the user can open.
+
+**On the host, as root.** Put that one line into the file (replace `<line>` with it, keep the single quotes):
+
+```bash
+echo '<line>' > /home/gaia-backup/.ssh/authorized_keys && chown gaia-backup: /home/gaia-backup/.ssh/authorized_keys && chmod 600 /home/gaia-backup/.ssh/authorized_keys && ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+The last command prints the host's key fingerprint (`SHA256:...`). Gaia trusts a host only after you confirm it.
+
+**On the Gaia server.** Register the host, compare the fingerprint, trust it, and check the connection:
+
+```bash
+gaia hosts add name=<host> address=<address> ssh_user=gaia-backup
+gaia hosts scan <host id>
+gaia hosts trust <host id> fingerprint=SHA256:<the value printed on the host>
+gaia hosts check <host id>
+```
+
+- `scan` shows the fingerprint the server sees. It must be the one printed on the host. If it is not, stop: something
+  is between the server and the host.
+- `trust` pins the key. From then on Gaia refuses the host if its key changes.
+- `check` lists the VMs (libvirt domains) on the host.
+
+Add a VM and a policy, and give the VM the policy. Gaia then backs it up every `backup_interval_s` seconds:
+
+```bash
 gaia policies add name=gold repository_id=1 backup_interval_s=900 test_interval_s=86400 keep_last=8 keep_daily=7 keep_weekly=4 rpo_target_s=3600 rto_target_s=1800 max_proof_age_s=172800 check_template=linux-basic
+gaia vms add host_id=<host id> name=<libvirt domain name> policy_id=<policy id>
+```
+
+To back up now, and to follow it:
+
+```bash
+gaia vms backup <vm id>
+gaia jobs get <job id>
+gaia points list vm_id=<vm id>
+```
+
+- The first backup of a VM is full. Later ones are incremental: they read only what changed since the last point.
+  Gaia makes a full backup again, and records why in the job, when the last point's checkpoint is no longer on the
+  host, when a disk was added, removed or resized, or when the policy's repository changed.
+- After each backup Gaia checks that every block of the new point is in the repository.
+- Gaia keeps two checkpoints per VM on the host (the newest and the one before) and deletes older Gaia checkpoints.
+  It does not touch checkpoints it did not make.
+- Retention (`keep_last`, `keep_daily`, `keep_weekly`) removes old points after each backup. Their data is freed by
+  the repository maintenance, at the earliest 24 hours later.
+
+Repository verification reads the stored data back without the cache: every day at 03:30 a sample (2 % of the
+blocks of every point), on Sundays all of it (`verify_at`, `full_verify_day`, `verify_sample` in
+`/etc/gaia/server.json`). To run one now and see the result:
+
+```bash
+gaia repositories verify <repository id> mode=sampled
+gaia verifications list
+gaia verifications get <verification id>
+```
+
+A verification that finds damage is `critical` and lists the affected points; those points are marked failed.
+
+To prove a point restores, without touching the VM: `gaia points restore-check <point id>` restores each disk to a
+scratch file on the Gaia server, prints its sha256, and deletes it. It needs free space for the largest disk under
+`/var/lib/gaia`.
+
+## 11. What else the command line does
+
+```bash
 gaia vms set <vm id> policy_id=<policy id>
+gaia repositories maintenance <repository id>
 gaia audit list
 gaia audit verify
 gaia api GET /api/v1/hosts
@@ -200,7 +283,7 @@ gaia api GET /api/v1/hosts
 - Every command takes `-json`.
 - Exit code: 0 on success, 3 when something failed (the message says what).
 
-## 11. Upgrading
+## 12. Upgrading
 
 1. Make and copy a new package (step 2) and unpack it (step 3, first command).
 2. On the server, as root, replace the program and restart:
@@ -212,7 +295,7 @@ gaia api GET /api/v1/hosts
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the
 new schema version. Gaia refuses to start on a database written by a newer version: do not downgrade.
 
-## 12. Removing Gaia
+## 13. Removing Gaia
 
 This deletes everything Gaia wrote. The repository and its backups are deleted too if they are under `/srv/gaia`.
 
@@ -231,4 +314,7 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `403 forbidden` | Your role may not do that (step 9). |
 | `503 ... the audit log cannot be written` | The disk under `/var/lib/gaia` is full or read-only. Gaia does nothing it cannot record. |
 | `state-backups run` says `failed` | The message says why; the journal has details (`journalctl -u gaia`). |
+| `hosts scan` or `check` says `502 host: ...` | The server cannot reach the host's SSH (address, port, firewall), or the key is not in the host user's `authorized_keys`. |
+| `host key ... is not the pinned one` | The host's SSH key changed. If that was on purpose (the host was reinstalled), run `scan` and `trust` again. |
+| A backup job fails with `permission denied` on a socket | The host user is not in the groups `libvirt` and `libvirt-qemu` (step 10). |
 | The service does not start | `journalctl -u gaia -n 50` shows why: a wrong config, missing files, or a database from a newer version. |

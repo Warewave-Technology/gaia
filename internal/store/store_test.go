@@ -60,14 +60,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2}) || Latest() != 2 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3}) || Latest() != 3 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 2 || applied[1].Name != "0002_state_backups.sql" {
+	if err != nil || len(applied) != 3 || applied[2].Name != "0003_backups.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -117,7 +117,7 @@ func TestMigrationGuards(t *testing.T) {
 		t.Fatalf("an edited migration: %v", err)
 	}
 	e := migrated(t)
-	if _, err := e.SQL().ExecContext(ctx, `INSERT INTO schema_migrations VALUES (3, '0003_future.sql', 'x', 'now')`); err != nil {
+	if _, err := e.SQL().ExecContext(ctx, `INSERT INTO schema_migrations VALUES (4, '0004_future.sql', 'x', 'now')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := e.Migrate(ctx, 0); err == nil || !strings.Contains(err.Error(), "newer than this binary") {
@@ -313,5 +313,96 @@ func TestDomainConstraints(t *testing.T) {
 	}
 	if ks, _ := d.Disks(ctx, v.ID); len(ks) != 0 {
 		t.Fatalf("disks of a deleted VM: %+v", ks)
+	}
+}
+
+func TestBackupPointsDisksVerifications(t *testing.T) {
+	ctx := context.Background()
+	d := migrated(t)
+	h, _ := d.CreateHost(ctx, HostInput{Name: "kvm1", Address: "kvm1.lab", SSHUser: "gaia-backup"})
+	if h, err := d.PinHostKey(ctx, "admin", h.ID, "ssh-ed25519 AAAA", "SHA256:x"); err != nil || h.SSHHostKey != "ssh-ed25519 AAAA" {
+		t.Fatalf("pin %+v %v", h, err)
+	}
+	v, _ := d.CreateVM(ctx, "admin", VMInput{HostID: h.ID, Name: "web1"})
+	r, _ := d.CreateRepository(ctx, Repository{Name: "main", Kind: "filesystem", Location: "/r", Splitter: "FIXED-1M", Hash: "BLAKE2B-256-128"})
+
+	if err := d.SyncDisks(ctx, "system", v.ID, []DiskInput{{"vda", 100}, {"vdb", 200}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.SyncDisks(ctx, "system", v.ID, []DiskInput{{"vda", 100}, {"vdb", 300}, {"vdc", 50}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.SyncDisks(ctx, "system", v.ID, []DiskInput{{"vda", 100}, {"vdb", 300}}); err != nil {
+		t.Fatal(err)
+	}
+	ks, _ := d.Disks(ctx, v.ID)
+	if len(ks) != 2 || ks[1].SizeBytes != 300 {
+		t.Fatalf("disks %+v", ks)
+	}
+	all, _ := d.StateChanges(ctx, "", 0, 0, 1000)
+	var diskEvents []string
+	for _, c := range all {
+		if c.Entity == "disk" {
+			diskEvents = append(diskEvents, c.From+">"+c.To)
+		}
+	}
+	if !slices.Equal(diskEvents, []string{">100", ">200", "200>300", ">50", "50>"}) {
+		t.Fatalf("disk history %v", diskEvents)
+	}
+
+	if _, err := d.LatestPoint(ctx, v.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("no point yet: %v", err)
+	}
+	j, _ := d.CreateJob(ctx, "system", "backup", &v.ID, "schedule")
+	if _, ok, _ := d.OpenJob(ctx, v.ID, "backup"); !ok {
+		t.Fatal("open job not found")
+	}
+	if err := d.SetJobCheckpoint(ctx, "system", j.ID, "gaia-1"); err != nil {
+		t.Fatal(err)
+	}
+	p, err := d.CreateBackupPoint(ctx, "system", Point{VMID: v.ID, JobID: j.ID, RepositoryID: r.ID, Kind: "full", TakenAt: "2026-11-16T12:00:00Z",
+		Checkpoint: "gaia-1", Reason: "first backup"}, []PointDisk{{Target: "vda", SizeBytes: 100, BlockSize: 1 << 20, StoreID: "m1", WrittenBytes: 10},
+		{Target: "vdb", SizeBytes: 300, BlockSize: 1 << 20, StoreID: "m2", WrittenBytes: 20}})
+	if err != nil || p.Bytes != 30 || p.State != "present" || p.CheckState != "unchecked" {
+		t.Fatalf("point %+v %v", p, err)
+	}
+	if _, err := d.LatestPoint(ctx, v.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatal("an unchecked point became a parent")
+	}
+	if _, err := d.SetPointCheck(ctx, "system", p.ID, true, "post-backup check"); err != nil {
+		t.Fatal(err)
+	}
+	if lp, err := d.LatestPoint(ctx, v.ID); err != nil || lp.ID != p.ID {
+		t.Fatalf("latest %+v %v", lp, err)
+	}
+	if pd, _ := d.PointDisks(ctx, p.ID); len(pd) != 2 || pd[1].StoreID != "m2" {
+		t.Fatalf("point disks %+v", pd)
+	}
+	if err := d.PrunePoint(ctx, "system", p.ID, "keep_last"); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.PrunePoint(ctx, "system", p.ID, "again"); !errors.Is(err, ErrConflict) {
+		t.Fatalf("pruned twice: %v", err)
+	}
+	if _, err := d.LatestPoint(ctx, v.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatal("a pruned point became a parent")
+	}
+	if ji, err := d.JobInfo(ctx, j.ID); err != nil || ji.Checkpoint != "gaia-1" {
+		t.Fatalf("job info %+v %v", ji, err)
+	}
+
+	ver, err := d.StartVerification(ctx, "system", r.ID, "full", "requested")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ver.State, ver.PointsChecked, ver.Affected = "critical", 3, []byte(`[{"point_id":1}]`)
+	if ver, err = d.FinishVerification(ctx, "system", ver); err != nil || ver.State != "critical" || ver.FinishedAt == "" {
+		t.Fatalf("verification %+v %v", ver, err)
+	}
+	if last, ok, _ := d.LastVerification(ctx, r.ID, "full"); !ok || last.ID != ver.ID {
+		t.Fatalf("last verification %+v", last)
+	}
+	if n, err := d.FailInterruptedJobs(ctx, "server restarted"); err != nil || n != 0 {
+		t.Fatalf("interrupted %d %v", n, err)
 	}
 }

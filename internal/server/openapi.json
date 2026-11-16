@@ -257,6 +257,33 @@
         ],
         "type": "object"
       },
+      "HostCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "libvirt": {
+            "type": "string"
+          },
+          "qemu": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "domains",
+          "libvirt",
+          "qemu",
+          "seconds"
+        ],
+        "type": "object"
+      },
       "HostInput": {
         "additionalProperties": false,
         "properties": {
@@ -352,6 +379,26 @@
         ],
         "type": "object"
       },
+      "JobInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "Job": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "checkpoint": {
+            "type": "string"
+          },
+          "detail": {
+            "description": "any JSON value"
+          }
+        },
+        "required": [
+          "Job",
+          "checkpoint",
+          "detail"
+        ],
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -388,6 +435,49 @@
         ],
         "type": "object"
       },
+      "MaintenanceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "force": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "force"
+        ],
+        "type": "object"
+      },
+      "MaintenanceResult": {
+        "additionalProperties": false,
+        "properties": {
+          "gc": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotGCStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "string"
+          },
+          "referenced_contents": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "gc",
+          "mode",
+          "referenced_contents",
+          "seconds"
+        ],
+        "type": "object"
+      },
       "PasswordChange": {
         "additionalProperties": false,
         "properties": {
@@ -413,6 +503,9 @@
           "check_state": {
             "type": "string"
           },
+          "checkpoint": {
+            "type": "string"
+          },
           "id": {
             "type": "integer"
           },
@@ -422,8 +515,20 @@
           "kind": {
             "type": "string"
           },
+          "parent_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
           "repository_id": {
             "type": "integer"
+          },
+          "state": {
+            "type": "string"
           },
           "taken_at": {
             "type": "string"
@@ -435,12 +540,60 @@
         "required": [
           "bytes",
           "check_state",
+          "checkpoint",
           "id",
           "job_id",
           "kind",
+          "parent_id",
+          "reason",
           "repository_id",
+          "state",
           "taken_at",
           "vm_id"
+        ],
+        "type": "object"
+      },
+      "PointDisk": {
+        "additionalProperties": false,
+        "properties": {
+          "block_size": {
+            "type": "integer"
+          },
+          "changed_bytes": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "point_id": {
+            "type": "integer"
+          },
+          "read_bytes": {
+            "type": "integer"
+          },
+          "size_bytes": {
+            "type": "integer"
+          },
+          "store_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "written_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "block_size",
+          "changed_bytes",
+          "id",
+          "point_id",
+          "read_bytes",
+          "size_bytes",
+          "store_id",
+          "target",
+          "written_bytes"
         ],
         "type": "object"
       },
@@ -735,6 +888,118 @@
         ],
         "type": "object"
       },
+      "RestoredDisk": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "seconds",
+          "sha256",
+          "target"
+        ],
+        "type": "object"
+      },
+      "Scanned": {
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint",
+          "key",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SnapshotGCStats": {
+        "additionalProperties": false,
+        "properties": {
+          "deletedContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "deletedContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inUseContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inUseContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inUseSystemContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inUseSystemContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "recoveredContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "recoveredContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unreferencedContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unreferencedContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unreferencedRecentContentCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unreferencedRecentContentSize": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deletedContentCount",
+          "deletedContentSize",
+          "inUseContentCount",
+          "inUseContentSize",
+          "inUseSystemContentCount",
+          "inUseSystemContentSize",
+          "recoveredContentCount",
+          "recoveredContentSize",
+          "unreferencedContentCount",
+          "unreferencedContentSize",
+          "unreferencedRecentContentCount",
+          "unreferencedRecentContentSize"
+        ],
+        "type": "object"
+      },
       "StateBackup": {
         "additionalProperties": false,
         "properties": {
@@ -838,6 +1103,12 @@
           "schema_version": {
             "type": "integer"
           },
+          "ssh_authorized_keys_line": {
+            "type": "string"
+          },
+          "ssh_public_key": {
+            "type": "string"
+          },
           "started_at": {
             "type": "string"
           },
@@ -855,10 +1126,24 @@
           "evidence_key_id",
           "migrations",
           "schema_version",
+          "ssh_authorized_keys_line",
+          "ssh_public_key",
           "started_at",
           "state_backup_at",
           "state_backup_repository",
           "version"
+        ],
+        "type": "object"
+      },
+      "TrustRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint"
         ],
         "type": "object"
       },
@@ -1028,6 +1313,74 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "Verification": {
+        "additionalProperties": false,
+        "properties": {
+          "affected": {
+            "description": "any JSON value"
+          },
+          "blocks_read": {
+            "type": "integer"
+          },
+          "bytes_read": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "points_checked": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "affected",
+          "blocks_read",
+          "bytes_read",
+          "error",
+          "finished_at",
+          "id",
+          "mode",
+          "points_checked",
+          "reason",
+          "repository_id",
+          "started_at",
+          "state"
+        ],
+        "type": "object"
+      },
+      "VerifyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
         "type": "object"
       },
       "apiError": {
@@ -1994,6 +2347,334 @@
         ]
       }
     },
+    "/api/v1/hosts/{id}/check": {
+      "post": {
+        "operationId": "post_hosts_by_id_check",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Connect over SSH and list the host's libvirt domains",
+        "tags": [
+          "hosts"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/hosts/{id}/scan": {
+      "post": {
+        "operationId": "post_hosts_by_id_scan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scanned"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Read the host's SSH key without trusting it",
+        "tags": [
+          "hosts"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/hosts/{id}/trust": {
+      "post": {
+        "operationId": "post_hosts_by_id_trust",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrustRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Host"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Pin the host's SSH key if it has the fingerprint given",
+        "tags": [
+          "hosts"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "operationId": "get_jobs",
@@ -2102,7 +2783,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "$ref": "#/components/schemas/JobInfo"
                 }
               }
             },
@@ -2159,7 +2840,7 @@
             "description": "Internal error"
           }
         },
-        "summary": "One job",
+        "summary": "One job, with its checkpoint and what it did",
         "tags": [
           "jobs"
         ],
@@ -2693,6 +3374,205 @@
           "admin",
           "operator",
           "auditor"
+        ]
+      }
+    },
+    "/api/v1/points/{id}/disks": {
+      "get": {
+        "operationId": "get_points_by_id_disks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PointDisk"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "A point's disks",
+        "tags": [
+          "points"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/points/{id}/restore-check": {
+      "post": {
+        "operationId": "post_points_by_id_restore_check",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RestoredDisk"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Restore the point's disks to scratch files, hash them, remove them",
+        "tags": [
+          "points"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
         ]
       }
     },
@@ -3411,6 +4291,237 @@
           "admin",
           "operator",
           "auditor"
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/maintenance": {
+      "post": {
+        "operationId": "post_repositories_by_id_maintenance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Run the repository's maintenance now (Gaia's GC, then Kopia's)",
+        "tags": [
+          "repositories"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/repositories/{id}/verify": {
+      "post": {
+        "operationId": "post_repositories_by_id_verify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Verification"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Start a verification of the repository (sampled or full)",
+        "tags": [
+          "repositories"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
         ]
       }
     },
@@ -4284,6 +5395,182 @@
         ]
       }
     },
+    "/api/v1/verifications": {
+      "get": {
+        "operationId": "get_verifications",
+        "parameters": [
+          {
+            "description": "only this repository's",
+            "in": "query",
+            "name": "repository_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Verification"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Repository verifications, newest first",
+        "tags": [
+          "verifications"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/verifications/{id}": {
+      "get": {
+        "operationId": "get_verifications_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Verification"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One verification, with the points it found damaged",
+        "tags": [
+          "verifications"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/vms": {
       "get": {
         "operationId": "get_vms",
@@ -4746,6 +6033,112 @@
           }
         },
         "summary": "Assign a policy (policy_id 0 removes it) or set the UUID",
+        "tags": [
+          "vms"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/vms/{id}/backups": {
+      "post": {
+        "operationId": "post_vms_by_id_backups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Queue a backup of the VM now",
         "tags": [
           "vms"
         ],

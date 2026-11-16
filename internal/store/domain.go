@@ -33,8 +33,14 @@ func notFound(kind string, id int64, err error) error {
 	return err
 }
 
+// querier is a *sql.DB or, inside a transaction, its *sql.Tx (with one connection, querying the DB from inside a
+// transaction would wait for itself).
+type querier interface {
+	QueryContext(ctx context.Context, q string, args ...any) (*sql.Rows, error)
+}
+
 // rowsOf runs a query and scans every row.
-func rowsOf[T any](ctx context.Context, db *sql.DB, scan func(interface{ Scan(...any) error }) (T, error), q string, args ...any) ([]T, error) {
+func rowsOf[T any](ctx context.Context, db querier, scan func(interface{ Scan(...any) error }) (T, error), q string, args ...any) ([]T, error) {
 	rows, err := db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
@@ -659,7 +665,7 @@ func (d *DB) Jobs(ctx context.Context, vmID int64, limit int) ([]Job, error) {
 
 // --- points, restore tests, evidence ---
 
-// Point is a backup point of a VM.
+// Point is a backup point of a VM: one checkpoint on the host, one diskstore point per disk (point_disks).
 type Point struct {
 	ID           int64  `json:"id"`
 	VMID         int64  `json:"vm_id"`
@@ -667,15 +673,23 @@ type Point struct {
 	RepositoryID int64  `json:"repository_id"`
 	Kind         string `json:"kind"`
 	TakenAt      string `json:"taken_at"`
-	CheckState   string `json:"check_state"`
+	CheckState   string `json:"check_state"` // unchecked, ok, failed (post-backup check, or a repository verification)
 	Bytes        int64  `json:"bytes"`
+	State        string `json:"state"` // present, pruned
+	Checkpoint   string `json:"checkpoint"`
+	ParentID     *int64 `json:"parent_id"`
+	Reason       string `json:"reason"`
 }
 
-const pointCols = `id, vm_id, job_id, repository_id, kind, taken_at, check_state, bytes`
+const pointCols = `id, vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, parent_id, reason`
 
 func scanPoint(s interface{ Scan(...any) error }) (Point, error) {
 	var p Point
-	err := s.Scan(&p.ID, &p.VMID, &p.JobID, &p.RepositoryID, &p.Kind, &p.TakenAt, &p.CheckState, &p.Bytes)
+	var parent sql.NullInt64
+	err := s.Scan(&p.ID, &p.VMID, &p.JobID, &p.RepositoryID, &p.Kind, &p.TakenAt, &p.CheckState, &p.Bytes, &p.State, &p.Checkpoint, &parent, &p.Reason)
+	if parent.Valid {
+		p.ParentID = &parent.Int64
+	}
 	return p, err
 }
 

@@ -24,6 +24,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kopia/kopia/repo/maintenance"
+
+	"github.com/Warewave-Technology/gaia/internal/hostconn"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -36,6 +39,14 @@ type Config struct {
 	SessionTTL            string `json:"session_ttl"`             // Go duration, default 12h
 	StateBackupAt         string `json:"state_backup_at"`         // HH:MM local time, default 02:30
 	StateBackupRepository string `json:"state_backup_repository"` // repository name; "" = the first repository
+	// Backups (T15).
+	HostSocketDir      string  `json:"host_socket_dir"`      // where qemu puts the NBD sockets on a host; default /var/lib/libvirt/qemu
+	HostScratchDir     string  `json:"host_scratch_dir"`     // qemu's copy-before-write scratch files on a host; default /var/lib/libvirt/images
+	NBDConnections     int     `json:"nbd_connections"`      // per disk, default 2
+	MaxParallelBackups int     `json:"max_parallel_backups"` // default 2
+	VerifyAt           string  `json:"verify_at"`            // HH:MM local time of the daily sampled verification, default 03:30
+	FullVerifyDay      string  `json:"full_verify_day"`      // weekday of the weekly full verification, default sunday
+	VerifySample       float64 `json:"verify_sample"`        // fraction of each point's blocks the sampled verification reads, default 0.02
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -74,6 +85,39 @@ func (c *Config) resolve() error {
 	if ttl, err := time.ParseDuration(c.SessionTTL); err != nil || ttl < time.Minute {
 		return fmt.Errorf("session_ttl %q: want a duration of at least 1m", c.SessionTTL)
 	}
+	if c.HostSocketDir == "" {
+		c.HostSocketDir = "/var/lib/libvirt/qemu"
+	}
+	if c.HostScratchDir == "" {
+		c.HostScratchDir = "/var/lib/libvirt/images"
+	}
+	if c.NBDConnections == 0 {
+		c.NBDConnections = 2
+	}
+	if c.MaxParallelBackups == 0 {
+		c.MaxParallelBackups = 2
+	}
+	if c.VerifyAt == "" {
+		c.VerifyAt = "03:30"
+	}
+	if c.FullVerifyDay == "" {
+		c.FullVerifyDay = "sunday"
+	}
+	if c.VerifySample == 0 {
+		c.VerifySample = 0.02
+	}
+	switch {
+	case !filepath.IsAbs(c.HostSocketDir) || !filepath.IsAbs(c.HostScratchDir):
+		return fmt.Errorf("host_socket_dir and host_scratch_dir must be absolute paths")
+	case c.NBDConnections < 1 || c.NBDConnections > 16 || c.MaxParallelBackups < 1 || c.MaxParallelBackups > 16:
+		return fmt.Errorf("nbd_connections and max_parallel_backups: 1-16")
+	case !hhmm.MatchString(c.VerifyAt):
+		return fmt.Errorf("verify_at %q: want HH:MM", c.VerifyAt)
+	case weekday(c.FullVerifyDay) < 0:
+		return fmt.Errorf("full_verify_day %q: a weekday, e.g. sunday", c.FullVerifyDay)
+	case c.VerifySample <= 0 || c.VerifySample > 1:
+		return fmt.Errorf("verify_sample %v: a fraction in (0, 1]", c.VerifySample)
+	}
 	if c.TLSCert == "" {
 		c.TLSCert = filepath.Join(c.DataDir, "tls", "cert.pem")
 	}
@@ -93,6 +137,7 @@ func (c Config) secretsDir() string     { return filepath.Join(c.DataDir, "secre
 func (c Config) kopiaDir() string       { return filepath.Join(c.DataDir, "kopia") }
 func (c Config) cacheDir() string       { return filepath.Join(c.DataDir, "cache") }
 func (c Config) tmpDir() string         { return filepath.Join(c.DataDir, "tmp") }
+func (c Config) sshKeyPath() string     { return filepath.Join(c.DataDir, "keys", "ssh-key") }
 func (c Config) ttl() time.Duration     { d, _ := time.ParseDuration(c.SessionTTL); return d }
 func (c Config) DBPath() string         { return c.dbPath() }
 func (c Config) EvidenceKey() string    { return c.keyPath() }
@@ -101,16 +146,31 @@ func (c Config) EvidenceLedger() string { return c.ledgerPath() }
 
 // Server is a running gaia server.
 type Server struct {
-	cfg      Config
-	cfgPath  string
-	db       *store.DB
-	log      *slog.Logger
-	routes   []route
-	handler  http.Handler
-	started  time.Time
-	backupMu sync.Mutex
-	version  string
-	openapi  []byte
+	cfg       Config
+	cfgPath   string
+	db        *store.DB
+	log       *slog.Logger
+	routes    []route
+	handler   http.Handler
+	started   time.Time
+	backupMu  sync.Mutex
+	version   string
+	openapi   []byte
+	sshKey    hostconn.Key
+	repoLocks repoLocks
+	// Kopia's full safety (24 h before an unreferenced content may go); tests use none.
+	maintenanceSafety maintenance.SafetyParameters
+	jobsWG            sync.WaitGroup
+	running           sync.Map // VM ID -> ID of its running backup job
+}
+
+func weekday(s string) time.Weekday {
+	for d := time.Sunday; d <= time.Saturday; d++ {
+		if strings.EqualFold(d.String(), s) {
+			return d
+		}
+	}
+	return -1
 }
 
 // New opens the state database, migrates it to the latest schema and builds the API.
@@ -130,7 +190,19 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 	if len(done) > 0 {
 		log.Info("migrated the state database", "versions", done, "schema", store.Latest())
 	}
-	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion()}
+	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
+		maintenanceSafety: maintenance.SafetyFull}
+	host, _ := os.Hostname()
+	if s.sshKey, err = hostconn.LoadOrCreateKey(cfg.sshKeyPath(), "gaia@"+host); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("SSH key: %w", err)
+	}
+	if n, err := db.FailInterruptedJobs(ctx, "the server stopped while the job ran"); err != nil {
+		db.Close()
+		return nil, err
+	} else if n > 0 {
+		log.Warn("jobs interrupted by the last stop were marked failed", "count", n)
+	}
 	s.routes = s.table()
 	if s.openapi, err = OpenAPI(s.routes, s.version); err != nil {
 		db.Close()
@@ -154,8 +226,11 @@ func (s *Server) DB() *store.DB { return s.db }
 // Handler is the HTTP API.
 func (s *Server) Handler() http.Handler { return s.handler }
 
-// Close closes the state database.
-func (s *Server) Close() error { return s.db.Close() }
+// Close waits for background work (backups, verifications) and closes the state database.
+func (s *Server) Close() error {
+	s.jobsWG.Wait()
+	return s.db.Close()
+}
 
 func buildVersion() string {
 	bi, ok := debug.ReadBuildInfo()
@@ -199,6 +274,7 @@ func (s *Server) Run(ctx context.Context) error {
 	errc := make(chan error, 1)
 	go func() { errc <- hs.ServeTLS(ln, "", "") }()
 	go s.scheduleStateBackups(ctx)
+	go s.schedule(ctx)
 	s.log.Info("gaia server is listening", "address", ln.Addr().String(), "version", s.version, "schema", store.Latest())
 	select {
 	case err := <-errc:
@@ -207,7 +283,9 @@ func (s *Server) Run(ctx context.Context) error {
 		sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		s.log.Info("shutting down")
-		return hs.Shutdown(sctx)
+		err := hs.Shutdown(sctx)
+		s.jobsWG.Wait() // running backups end their libvirt jobs before the process goes
+		return err
 	}
 }
 
@@ -287,6 +365,8 @@ func statusOf(err error) (int, string) {
 		return http.StatusBadRequest, "invalid"
 	case errors.Is(err, errNotImplemented):
 		return http.StatusNotImplemented, "not_implemented"
+	case errors.Is(err, errHost):
+		return http.StatusBadGateway, "host"
 	}
 	return http.StatusInternalServerError, "internal"
 }
@@ -363,7 +443,7 @@ func (s *Server) serve(rt *route) http.Handler {
 				s.log.Error("request failed", "route", rt.method+" "+rt.path, "user", c.user.Username, "error", err)
 			}
 			msg := err.Error()
-			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented} {
+			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost} {
 				msg = strings.TrimPrefix(msg, e.Error()+": ") // the code says it already
 			}
 			if code == http.StatusInternalServerError {

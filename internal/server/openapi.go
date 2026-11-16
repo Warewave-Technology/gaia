@@ -151,6 +151,8 @@ func (g *schemaGen) schema(t reflect.Type) map[string]any {
 		return map[string]any{"type": "boolean"}
 	case reflect.Int, reflect.Int64, reflect.Int32:
 		return map[string]any{"type": "integer"}
+	case reflect.Uint, reflect.Uint64, reflect.Uint32:
+		return map[string]any{"type": "integer", "minimum": 0}
 	case reflect.Float64, reflect.Float32:
 		return map[string]any{"type": "number"}
 	case reflect.Slice:
