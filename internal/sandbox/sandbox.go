@@ -97,9 +97,6 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 	if err := os.MkdirAll(c.WorkDir, 0o755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(c.BundleDir, 0o700); err != nil {
-		return err
-	}
 	g, err := user.LookupGroup(c.Group)
 	if err != nil {
 		return fmt.Errorf("group %s: %w", c.Group, err)
@@ -107,8 +104,14 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 	gid, _ := strconv.Atoi(g.Gid)
 	// The images directory: gaia server writes it (group), qemu reads the files in it through libvirt (others may
 	// only traverse it), nobody else lists it.
-	if err := os.MkdirAll(filepath.Dir(c.ImagesDir), 0o711); err != nil {
+	parent := filepath.Dir(c.ImagesDir)
+	if err := os.MkdirAll(parent, 0o711); err != nil {
 		return err
+	}
+	if fi, err := os.Stat(parent); err != nil {
+		return err
+	} else if fi.Mode().Perm()&0o001 == 0 {
+		return fmt.Errorf("%s is %v: gaia server and qemu must be able to pass through it to %s (chmod o+x)", parent, fi.Mode().Perm(), c.ImagesDir)
 	}
 	if err := os.MkdirAll(c.ImagesDir, 0o771); err != nil {
 		return err
@@ -117,6 +120,9 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 		return err
 	}
 	if err := os.Chmod(c.ImagesDir, 0o771); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(c.BundleDir, 0o700); err != nil { // after the images directory: it may share its parent
 		return err
 	}
 	dir := filepath.Dir(c.Socket)
