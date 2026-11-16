@@ -10,8 +10,10 @@
 #   backup     gaia-backup backup-nbd into a fresh repository, then sync of the repository's filesystem:
 #              full_backup_s = backup + sync, so the data is on disk;
 #   restore    gaia-backup restore (A2: 4 readers, cache on tmpfs with a 1 GiB hard limit, holes), sha256 vs source.
-# Configs (CONFIGS, "readers/writers/compressor[/hash]"): tuning per CLAUDE.md T9; not the splitter (T10).
+# Configs (CONFIGS, "readers/writers/compressor[/hash[/splitter]]"): tuning per CLAUDE.md T9; not the splitter (T10).
 # The optional hash (e.g. BLAKE3-256-128) is the repository's content hash; T10 measures it (approved 2026-11-16).
+# The optional splitter (FIXED-4M, FIXED-1M, FIXED-256K) is T10's: the point's block size follows it, and so does
+# the reference read (same blocks); T9 itself leaves it at the default.
 # Each config REPEAT times, in rounds. Afterwards one extra, uncounted backup per config with a CPU profile (pprof).
 # Gate per config: median(full_backup_s / fastest plain read) <= 2 over >= 3 runs, every restore identical.
 # T9 passes when at least one config passes; all configs are reported.
@@ -129,21 +131,26 @@ export GAIA_REPO_PASSWORD
 gb() { "$BIN/gaia-backup" "$@"; }
 
 : >"$OUT_DIR/runs.jsonl"
-# run_once LABEL REPO_DIR READERS WRITERS COMPRESSOR HASH ROUND [PROFILE]  (HASH "" = Kopia's default)
+# run_once LABEL REPO_DIR READERS WRITERS COMPRESSOR HASH SPLITTER ROUND [PROFILE]  ("" = Kopia's default / FIXED-4M)
 run_once() {
-	local label=$1 repodir=$2 readers=$3 writers=$4 comp=$5 hash=$6 round=$7 profile=${8:-} refs=() n c d t0 out
+	local label=$1 repodir=$2 readers=$3 writers=$4 comp=$5 hash=$6 splitter=${7:-FIXED-4M} round=$8 profile=${9:-} refs=() n c d t0 out bs
+	case $splitter in
+	FIXED-*K) bs=$((${splitter//[!0-9]/} * 1024)) ;;
+	FIXED-*M) bs=$((${splitter//[!0-9]/} * 1048576)) ;;
+	*) echo "UNKNOWN: splitter $splitter"; exit 3 ;;
+	esac
 	rm -rf "$repodir" "$WORK/kopia.config" "${CACHE:?}"/* "$WORK/restored.raw"
 	if [[ -z "$profile" ]]; then
 		for n in $REF_STREAMS; do
 			drop_caches
-			gb nbd-read -nbd "unix:$SOCK" -export test -conns "$n" -json >"$WORK/ref.json"
+			gb nbd-read -nbd "unix:$SOCK" -export test -conns "$n" -block-size "$bs" -json >"$WORK/ref.json"
 			refs+=("$(jq -c --argjson n "$n" '{streams: $n, seconds: .read.seconds, bytes: .read.bytes, mib_s}' "$WORK/ref.json")")
 		done
 	fi
-	gb repo-create -repo "$repodir" -config "$WORK/kopia.config" -cache-dir "$CACHE" -cache-limit-mb 1024 ${hash:+-hash "$hash"} >/dev/null
+	gb repo-create -repo "$repodir" -config "$WORK/kopia.config" -cache-dir "$CACHE" -cache-limit-mb 1024 ${hash:+-hash "$hash"} -splitter "$splitter" >/dev/null
 	drop_caches
 	c=$(cpu_sample) d=$(disk_sample) t0=$(now)
-	gb backup-nbd -config "$WORK/kopia.config" -nbd "unix:$SOCK" -export test -domain t9 -conns "$readers" -writers "$writers" \
+	gb backup-nbd -config "$WORK/kopia.config" -nbd "unix:$SOCK" -export test -domain t9 -conns "$readers" -writers "$writers" -block-size "$bs" \
 		-compression "$comp" ${profile:+-cpuprofile "$profile"} -json >"$WORK/backup.json"
 	local backup_s sync_s cpu disk t1
 	backup_s=$(elapsed "$t0")
@@ -183,21 +190,21 @@ section "runs (repository on $DISK2)"
 ((${ONLY_CONTEXT:-0})) && REPEAT=0 && echo "ONLY_CONTEXT=1: skipped"
 for ((round = 1; round <= REPEAT; round++)); do
 	for cfg in $CONFIGS; do
-		IFS=/ read -r readers writers comp hash <<<"$cfg"
+		IFS=/ read -r readers writers comp hash splitter <<<"$cfg"
 		log "round $round/$REPEAT: $cfg"
-		run_once "$cfg" "$DISK2/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "$round"
+		run_once "$cfg" "$DISK2/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "${splitter:-}" "$round"
 	done
 done
 if ((CONTEXT_RUN > 0)); then
 	section "context: repository on the source disk ($WORK)"
 	cfg=${CONFIGS%% *}
-	IFS=/ read -r readers writers comp hash <<<"$cfg"
+	IFS=/ read -r readers writers comp hash splitter <<<"$cfg"
 	for ((round = 1; round <= CONTEXT_RUN; round++)); do
-		run_once "$cfg same-disk" "$WORK/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "$round"
+		run_once "$cfg same-disk" "$WORK/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "${splitter:-}" "$round"
 	done
 	mkdir -p "$OUT_DIR/profiles"
-	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}${hash:+-$hash}-same-disk.pprof"
-	run_once "$cfg same-disk profile" "$WORK/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" 0 "$p" >/dev/null
+	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}${hash:+-$hash}${splitter:+-$splitter}-same-disk.pprof"
+	run_once "$cfg same-disk profile" "$WORK/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "${splitter:-}" 0 "$p" >/dev/null
 	echo "-- $cfg same-disk (profile)"
 	go tool pprof -top -nodecount=25 "$BIN/gaia-backup" "$p" 2>/dev/null | tee "${p%.pprof}.top.txt" | sed -n '1,32p'
 fi
@@ -205,9 +212,9 @@ fi
 section "CPU profiles (one extra, uncounted backup per config)"
 mkdir -p "$OUT_DIR/profiles"
 ((${ONLY_CONTEXT:-0})) || for cfg in $CONFIGS; do
-	IFS=/ read -r readers writers comp hash <<<"$cfg"
-	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}${hash:+-$hash}.pprof"
-	run_once "$cfg profile" "$DISK2/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" 0 "$p" >/dev/null
+	IFS=/ read -r readers writers comp hash splitter <<<"$cfg"
+	p="$OUT_DIR/profiles/cpu-${readers}r-${writers}w-${comp}${hash:+-$hash}${splitter:+-$splitter}.pprof"
+	run_once "$cfg profile" "$DISK2/t9-repo" "$readers" "$writers" "$comp" "${hash:-}" "${splitter:-}" 0 "$p" >/dev/null
 	echo "-- $cfg"
 	go tool pprof -top -nodecount=25 "$BIN/gaia-backup" "$p" 2>/dev/null | tee "${p%.pprof}.top.txt" | sed -n '1,32p'
 done
