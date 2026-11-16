@@ -15,15 +15,18 @@
 #
 # Usage (on gaia-lab, as root, after setup.sh):
 #   systemd-run --unit=gaia-t16 --collect -E HOME=/root lab/lab-vm/t16-status.sh
-# Env: INTERVAL_S (300: backup and test interval), RPO_S (900), RTO_S (600), MAX_PROOF_S (900), DISK_GB (4),
+# Env: INTERVAL_S (300: backup and test interval), RPO_S (1200), RTO_S (600), MAX_PROOF_S (720), DISK_GB (4),
 #      DATA_GB (1), PHASE_TIMEOUT_S (1800), HOST_ADDR, OUT_DIR (/root/t16-<UTC timestamp>), KEEP=1 keeps everything.
 # Exit: 0 OK / 2 CRITICAL (a gate failed) / 3 UNKNOWN (not checked, also when the harness failed).
 set -euo pipefail
 
 INTERVAL_S="${INTERVAL_S:-300}"
-RPO_S="${RPO_S:-900}"
+RPO_S="${RPO_S:-1200}"
 RTO_S="${RTO_S:-600}"
-MAX_PROOF_S="${MAX_PROOF_S:-900}"
+# The maximum proof age is below the RPO target, so in phase 4 the proof's age crosses its limit while the proven
+# point is still within the RPO target (the rule under test is proof_too_old alone), and above the ~600 s a broken
+# guest's test takes, so phase 2 reaches CRITICAL before the earlier proof expires.
+MAX_PROOF_S="${MAX_PROOF_S:-720}"
 DISK_GB="${DISK_GB:-4}"
 DATA_GB="${DATA_GB:-1}"
 PHASE_TIMEOUT_S="${PHASE_TIMEOUT_S:-1800}"
@@ -382,7 +385,7 @@ for t in $(jq -r '.[] | select(.verdict == "CRITICAL") | .id' "$OUT_DIR/tests.js
 done
 "$BIN/gaia" evidence verify -pubkey "$SRV_HOME/data/keys/evidence-key.pub" -ledger "$SRV_HOME/data/evidence/ledger.jsonl" -evidence-dir "$SRV_HOME/data/evidence/bundles" -json \
 	>"$OUT_DIR/ledger-verify.json" || true
-jq -c '{verdict, entries, intact, bundles: (.bundles | length)}' "$OUT_DIR/ledger-verify.json"
+jq -c '{verdict, entries: .report.entries, intact: .report.intact, bundles: (.report.bundles | length)}' "$OUT_DIR/ledger-verify.json"
 api audit verify | jq -c . | tee "$OUT_DIR/audit-verify.json"
 crit_bundle=$(jq -r '[.[] | select(.verdict == "CRITICAL")][0].bundle_id // ""' "$OUT_DIR/tests.json")
 if [[ -n "$crit_bundle" ]]; then
@@ -405,11 +408,12 @@ jq -n --slurpfile h "$OUT_DIR/status-history.json" --slurpfile t "$OUT_DIR/tests
 	    expected: ["UNKNOWN", "OK", "CRITICAL", "OK", "WARNING"], recorded: $seq, transitions: $hist,
 	    critical_reason_names_the_test: ([$hist[] | select(.to == "CRITICAL") | .reason | test("restore test .* CRITICAL")] | all),
 	    warning_reason: ([$hist[] | select(.to == "WARNING") | .reason][0]),
+	    warning_is_proof_age: ($e[0].status == "WARNING" and ([$e[0].reasons[].rule] == ["proof_too_old"])),
 	    phases: $p,
-	    pass: ($seq == ["UNKNOWN", "OK", "CRITICAL", "OK", "WARNING"])},
+	    pass: ($seq == ["UNKNOWN", "OK", "CRITICAL", "OK", "WARNING"] and $e[0].status == "WARNING" and ([$e[0].reasons[].rule] == ["proof_too_old"]))},
 	  tests: [$t[0][] | {id, point_id, verdict, proven_rto_s}] | reverse,
 	  status_at_end: {status: $e[0].status, rules: [$e[0].reasons[].rule]},
-	  ledger: {verdict: $l[0].verdict, intact: $l[0].intact, entries: $l[0].entries}
+	  ledger: {verdict: $l[0].verdict, intact: $l[0].report.intact, entries: $l[0].report.entries, bundles: ($l[0].report.bundles | length)}
 	}
 	| . + {verdict: (if (.a_truth_table.passed | not) or (.b_timeline.pass | not) or (.b_timeline.critical_reason_names_the_test | not) then "CRITICAL"
 	                 elif .ledger.intact != true then "CRITICAL" else "OK" end)}' | tee "$OUT_DIR/gate.json"
