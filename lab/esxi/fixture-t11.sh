@@ -5,7 +5,7 @@
 #
 # gaia-t11-win: Windows Server 2022 Standard Evaluation (Desktop Experience), unattended install, powered off.
 #   VMware virtual hardware: SATA (AHCI) disk, e1000e NIC with a static VMware MAC, BIOS, guestOS
-#   windows2019srvNext-64, 2 vCPU, 4 GiB, 32 GiB thin disk. Remote Desktop on (firewall group open); WinRM as
+#   windows2019srvNext-64, 2 vCPU, 4 GiB, 32 GiB thin disk. Remote Desktop on (its firewall rules enabled); WinRM as
 #   Windows Server ships it.
 # The install runs once on gaia-lab under KVM on the same device models VMware presents (AHCI controller, Intel
 # 82574L = e1000e), so the installed drivers are the ones the guest uses on ESXi; nested ESXi does not run it.
@@ -19,7 +19,9 @@
 # Env: PASSWORD_FILE (/root/.gaia-esxi-password; the ESXi root password, never printed), DATASTORE (datastore1),
 #      IMAGES (/var/lib/gaia/images), WORK (/var/lib/gaia/t11-fixture), INSTALL_TIMEOUT_S (7200).
 # The Administrator password of the guest is random, lives only in the install media while Windows installs,
-# and is never printed or kept: nothing ever logs on to the fixture.
+# and is never printed or kept: nothing ever logs on to the fixture (Windows masks it in its own unattend copy).
+# The Remote Desktop firewall rules are opened by SetupComplete.cmd: the unattend FirewallGroups setting left
+# them inactive on Server 2022 (first T11 build, read from the image's registry).
 set -euo pipefail
 
 ACTION="${1:?info, build, create or delete}"
@@ -170,19 +172,10 @@ unattend() { # autounattend.xml on a small second CD; Windows Setup finds it at 
     <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <fDenyTSConnections>false</fDenyTSConnections>
     </component>
-    <component name="Microsoft-Windows-Networking-MPSSVC-Svc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-      <FirewallGroups>
-        <FirewallGroup wcm:action="add" wcm:keyValue="RemoteDesktop">
-          <Active>true</Active>
-          <Group>Remote Desktop</Group>
-          <Profile>all</Profile>
-        </FirewallGroup>
-      </FirewallGroups>
-    </component>
     <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <RunSynchronous>
         <RunSynchronousCommand wcm:action="add"><Order>1</Order><Path>cmd /c mkdir %WINDIR%\Setup\Scripts</Path></RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add"><Order>2</Order><Path>cmd /c echo del /q /f %WINDIR%\Panther\unattend.xml %WINDIR%\Panther\Unattend\unattend.xml&gt;%WINDIR%\Setup\Scripts\SetupComplete.cmd</Path></RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add"><Order>2</Order><Path>cmd /c echo netsh advfirewall firewall set rule group="Remote Desktop" new enable=Yes&gt;%WINDIR%\Setup\Scripts\SetupComplete.cmd</Path></RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add"><Order>3</Order><Path>cmd /c echo shutdown /s /t 10 /f&gt;&gt;%WINDIR%\Setup\Scripts\SetupComplete.cmd</Path></RunSynchronousCommand>
       </RunSynchronous>
     </component>
