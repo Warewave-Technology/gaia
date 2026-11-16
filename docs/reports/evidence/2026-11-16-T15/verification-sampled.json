@@ -1,0 +1,14 @@
+{
+  "id": 3,
+  "repository_id": 1,
+  "mode": "sampled",
+  "state": "ok",
+  "reason": "requested by admin",
+  "started_at": "2026-11-16T14:43:18.704415704Z",
+  "finished_at": "2026-11-16T14:43:19.665483372Z",
+  "points_checked": 6,
+  "blocks_read": 379,
+  "bytes_read": 397410304,
+  "affected": [],
+  "error": ""
+}

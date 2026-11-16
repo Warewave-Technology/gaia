@@ -1,0 +1,6 @@
+Connected to repository.
+
+NOTICE: Kopia will check for updates on GitHub every 7 days, starting 24 hours after first use.
+To disable this behavior, set environment variable KOPIA_CHECK_FOR_UPDATES=false
+Alternatively you can remove the file "/var/lib/gaia/t15/kopia-cli/k.config.update-info.json".
+

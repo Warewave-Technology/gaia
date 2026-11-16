@@ -1,0 +1,45 @@
+2026-11-16T12:19:49.655872+0000 gaia-lab systemd[1]: Started gaia-t15-server.service - Gaia backup and recoverability server.
+2026-11-16T12:19:49.879762+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:19:49.879Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=e54ce91a5f35 schema=3
+2026-11-16T12:19:49.880334+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:19:49.879Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T12:22:20.466213+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:22:20.466Z level=INFO msg="repository verification" id=1 repository=main mode=full state=ok points=0 affected=0
+2026-11-16T12:22:36.610704+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:22:36.610Z level=ERROR msg="backup failed" job=1 error="backup begin: internal error: unable to execute QEMU command 'nbd-server-start': Failed to bind socket to /var/lib/libvirt/qemu/gaia-1.sock: Permission denied"
+2026-11-16T12:23:05.117726+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:23:05.117Z level=INFO msg="repository verification" id=2 repository=main mode=full state=ok points=0 affected=0
+2026-11-16T12:24:51.248098+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:24:51.248Z level=ERROR msg="backup failed" job=2 error="backup begin: internal error: unable to execute QEMU command 'nbd-server-start': Failed to bind socket to /var/lib/libvirt/qemu/gaia-2.sock: Permission denied"
+2026-11-16T12:27:06.341105+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:27:06.341Z level=ERROR msg="backup failed" job=3 error="backup begin: internal error: unable to execute QEMU command 'nbd-server-start': Failed to bind socket to /var/lib/libvirt/qemu/gaia-3.sock: Permission denied"
+2026-11-16T12:27:07.736843+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:27:07.736Z level=INFO msg="repository verification" id=3 repository=main mode=sampled state=ok points=0 affected=0
+2026-11-16T12:27:10.510329+0000 gaia-lab gaia-t15[88383]: time=2026-11-16T12:27:10.510Z level=INFO msg="shutting down"
+2026-11-16T12:27:10.510584+0000 gaia-lab systemd[1]: Stopping gaia-t15-server.service - Gaia backup and recoverability server...
+2026-11-16T12:27:10.539760+0000 gaia-lab systemd[1]: gaia-t15-server.service: Deactivated successfully.
+2026-11-16T12:27:10.540053+0000 gaia-lab systemd[1]: Stopped gaia-t15-server.service - Gaia backup and recoverability server.
+2026-11-16T12:27:10.540494+0000 gaia-lab systemd[1]: gaia-t15-server.service: Consumed 3.526s CPU time.
+2026-11-16T12:30:05.411700+0000 gaia-lab systemd[1]: Started gaia-t15-server.service - Gaia backup and recoverability server.
+2026-11-16T12:30:05.626848+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:30:05.626Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=43265ff2f70e schema=3
+2026-11-16T12:30:05.626848+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:30:05.626Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T12:32:36.132162+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:32:36.132Z level=INFO msg="repository verification" id=1 repository=main mode=full state=ok points=0 affected=0
+2026-11-16T12:33:01.986072+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:33:01.985Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=11.321074548
+2026-11-16T12:34:10.147832+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:34:10.147Z level=INFO msg="repository verification" id=2 repository=main mode=full state=ok points=1 affected=0
+2026-11-16T12:35:14.192737+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:35:14.192Z level=INFO msg="backup done" job=2 point=2 kind=full seconds=8.548072725
+2026-11-16T12:37:30.165786+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:37:30.162Z level=INFO msg="backup done" job=3 point=3 kind=full seconds=9.523290537
+2026-11-16T12:38:07.460517+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:38:07.460Z level=INFO msg="repository verification" id=3 repository=main mode=sampled state=ok points=2 affected=0
+2026-11-16T12:38:19.663892+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:38:19.663Z level=INFO msg="repository verification" id=4 repository=main mode=full state=critical points=2 affected=1
+2026-11-16T12:38:22.659501+0000 gaia-lab systemd[1]: Stopping gaia-t15-server.service - Gaia backup and recoverability server...
+2026-11-16T12:38:22.660409+0000 gaia-lab gaia-t15[92548]: time=2026-11-16T12:38:22.660Z level=INFO msg="shutting down"
+2026-11-16T12:38:22.691639+0000 gaia-lab systemd[1]: gaia-t15-server.service: Deactivated successfully.
+2026-11-16T12:38:22.691853+0000 gaia-lab systemd[1]: Stopped gaia-t15-server.service - Gaia backup and recoverability server.
+2026-11-16T12:38:22.692171+0000 gaia-lab systemd[1]: gaia-t15-server.service: Consumed 1min 51.074s CPU time.
+2026-11-16T12:39:40.323609+0000 gaia-lab systemd[1]: Started gaia-t15-server.service - Gaia backup and recoverability server.
+2026-11-16T12:39:40.593329+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T12:39:40.593Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=4642d1185d91 schema=3
+2026-11-16T12:39:40.593717+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T12:39:40.593Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T12:42:11.320084+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T12:42:11.320Z level=INFO msg="repository verification" id=1 repository=main mode=full state=ok points=0 affected=0
+2026-11-16T12:42:37.565099+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T12:42:37.565Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=11.933811067
+2026-11-16T12:57:38.328764+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T12:57:38.328Z level=INFO msg="backup done" job=2 point=2 kind=incremental seconds=12.71992444
+2026-11-16T13:12:38.398645+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T13:12:38.398Z level=INFO msg="backup done" job=3 point=3 kind=incremental seconds=12.786209376
+2026-11-16T13:19:26.139054+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T13:19:26.138Z level=INFO msg="repository verification" id=2 repository=main mode=full state=ok points=3 affected=0
+2026-11-16T13:27:56.789057+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T13:27:56.788Z level=INFO msg="backup done" job=4 point=4 kind=incremental seconds=31.092247786
+2026-11-16T13:42:37.982725+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T13:42:37.981Z level=INFO msg="backup done" job=5 point=5 kind=full seconds=12.377977476
+2026-11-16T13:57:38.535845+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T13:57:38.535Z level=INFO msg="backup done" job=6 point=6 kind=incremental seconds=12.913057155
+2026-11-16T14:12:34.914911+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T14:12:34.914Z level=INFO msg="backup done" job=7 point=7 kind=full seconds=9.312682206
+2026-11-16T14:27:39.302304+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T14:27:39.302Z level=INFO msg="backup done" job=8 point=8 kind=incremental seconds=13.70041638
+2026-11-16T14:42:39.489741+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T14:42:39.489Z level=INFO msg="backup done" job=9 point=9 kind=incremental seconds=13.879647347
+2026-11-16T14:43:19.672616+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T14:43:19.672Z level=INFO msg="repository verification" id=3 repository=main mode=sampled state=ok points=6 affected=0
+2026-11-16T14:43:49.693767+0000 gaia-lab gaia-t15[95909]: time=2026-11-16T14:43:49.693Z level=INFO msg="repository verification" id=4 repository=main mode=full state=critical points=6 affected=1

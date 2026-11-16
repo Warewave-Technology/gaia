@@ -1,0 +1,6 @@
+{
+  "command": "hosts",
+  "error": "502 host: the host's SSH key is not trusted yet (scan it and trust its fingerprint first)",
+  "verdict": "UNKNOWN"
+}
+UNKNOWN: hosts: 502 host: the host's SSH key is not trusted yet (scan it and trust its fingerprint first)

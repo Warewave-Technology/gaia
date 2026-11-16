@@ -1,0 +1,30 @@
+[
+  {
+    "id": 2,
+    "repository_id": 1,
+    "mode": "full",
+    "state": "ok",
+    "reason": "schedule",
+    "started_at": "2026-11-16T13:19:10.595053704Z",
+    "finished_at": "2026-11-16T13:19:26.134632274Z",
+    "points_checked": 3,
+    "blocks_read": 8334,
+    "bytes_read": 8738832384,
+    "affected": [],
+    "error": ""
+  },
+  {
+    "id": 1,
+    "repository_id": 1,
+    "mode": "full",
+    "state": "ok",
+    "reason": "schedule",
+    "started_at": "2026-11-16T12:42:10.594537478Z",
+    "finished_at": "2026-11-16T12:42:11.218260508Z",
+    "points_checked": 0,
+    "blocks_read": 0,
+    "bytes_read": 0,
+    "affected": [],
+    "error": ""
+  }
+]

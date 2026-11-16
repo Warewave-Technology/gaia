@@ -1,0 +1,78 @@
+{
+  "id": 1,
+  "kind": "backup",
+  "vm_id": 1,
+  "state": "ok",
+  "reason": "schedule: policy t15, every 900 s",
+  "error": "",
+  "created_at": "2026-11-16T12:42:25.596612383Z",
+  "started_at": "2026-11-16T12:42:25.645602038Z",
+  "finished_at": "2026-11-16T12:42:37.565307215Z",
+  "checkpoint": "gaia-1-1",
+  "detail": {
+    "kind": "full",
+    "reason": "full: no earlier checked point of this VM",
+    "checkpoint": "gaia-1-1",
+    "point": 1,
+    "disks": [
+      {
+        "target": "vda",
+        "size_bytes": 8589934592,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1581514752,
+        "read_bytes": 1581514752,
+        "nbd_payload_bytes": 1581514752,
+        "repo_read_bytes": 0,
+        "written_bytes": 1685061632,
+        "store_id": "572b46e753a40ed34693939bc22e9a19"
+      },
+      {
+        "target": "vdb",
+        "size_bytes": 4294967296,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1077084160,
+        "read_bytes": 1077084160,
+        "nbd_payload_bytes": 1077084160,
+        "repo_read_bytes": 0,
+        "written_bytes": 1088421888,
+        "store_id": "6a833b5f7d6fe69432978fd91fe6dc42"
+      }
+    ],
+    "check_problems": [],
+    "checkpoints_kept": [
+      "gaia-1-1"
+    ],
+    "checkpoints_deleted": [],
+    "points_pruned": [],
+    "maintenance": {
+      "mode": "full",
+      "gc": {
+        "unreferencedContentCount": 0,
+        "unreferencedContentSize": 0,
+        "deletedContentCount": 0,
+        "deletedContentSize": 0,
+        "unreferencedRecentContentCount": 0,
+        "unreferencedRecentContentSize": 0,
+        "inUseContentCount": 2591,
+        "inUseContentSize": 1990234724,
+        "inUseSystemContentCount": 3,
+        "inUseSystemContentSize": 1239,
+        "recoveredContentCount": 0,
+        "recoveredContentSize": 0
+      },
+      "referenced_contents": 2591,
+      "seconds": 0.260810954
+    },
+    "timings_s": {
+      "begin": 0.816335186,
+      "check": 0.031989035,
+      "connect": 0.363762164,
+      "disk_vda": 6.444564943,
+      "disk_vdb": 3.326980023,
+      "retention_maintenance": 0.261107223,
+      "total": 11.933811067
+    },
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22"
+  }
+}

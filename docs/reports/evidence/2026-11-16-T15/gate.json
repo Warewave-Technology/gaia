@@ -1,0 +1,155 @@
+{
+  "cycles_planned": 9,
+  "cycles_ok": 9,
+  "scheduled_jobs": 9,
+  "schedule_gaps_s": [
+    900,
+    900,
+    900,
+    900,
+    900,
+    900,
+    900,
+    900
+  ],
+  "a_sampled_points_identical": {
+    "points": [
+      {
+        "cycle": 1,
+        "point": 1,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 3,
+        "point": 3,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 5,
+        "point": 5,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 7,
+        "point": 7,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 9,
+        "point": 9,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "b1_checkpoint_deleted_full": {
+    "cycle": 5,
+    "kind": "full",
+    "backup_reason": "full: checkpoint gaia-1-4 of point 4 is not on the host",
+    "pass": true
+  },
+  "b2_corruption_critical": {
+    "verification": 4,
+    "state": "critical",
+    "affected": [
+      {
+        "point_id": 9,
+        "vm_id": 1,
+        "disk": "vdb",
+        "problems": [
+          "block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed"
+        ]
+      }
+    ],
+    "newest_point": 9,
+    "affected_points_failed": [
+      {
+        "id": 9,
+        "check_state": "failed"
+      }
+    ],
+    "pass": true
+  },
+  "b3_resize_full": {
+    "cycle": 7,
+    "kind": "full",
+    "backup_reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "pass": true
+  },
+  "c_no_tcp_nbd_listener": {
+    "backups_caught_running": 9,
+    "qemu_tcp_listeners": 0,
+    "pass": true
+  },
+  "also": {
+    "incrementals_otherwise": true,
+    "max_gaia_checkpoints_on_host": 2,
+    "points_pruned": 3,
+    "scheduled_verifications": [
+      {
+        "id": 2,
+        "mode": "full",
+        "state": "ok",
+        "reason": "schedule",
+        "points_checked": 3
+      },
+      {
+        "id": 1,
+        "mode": "full",
+        "state": "ok",
+        "reason": "schedule",
+        "points_checked": 0
+      }
+    ],
+    "sampled_verification_before_corruption": {
+      "state": "ok",
+      "points_checked": 6
+    }
+  },
+  "verdict": "OK"
+}

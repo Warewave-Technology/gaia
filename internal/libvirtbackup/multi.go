@@ -31,7 +31,7 @@ func (c *Conn) Domains() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out []string
+	out := []string{} // none is an empty list, not null, in the API
 	for _, d := range ds {
 		out = append(out, d.Name)
 	}

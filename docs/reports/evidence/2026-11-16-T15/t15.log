@@ -1,0 +1,408 @@
+
+== date / commit
+2026-11-16T12:39:30Z
+4642d1185d9174bb90fccbac683a7dbe64c1b6c5
+output: /root/t15-20261116T123930Z
+cycles: 9 every 900 s; references in cycles: 1 3 5 7 9; checkpoint deleted after 4; vdb resized after 6; keep_last 6; host gaia-backup@192.168.1.30
+
+== build
+	dep	github.com/digitalocean/go-libvirt	v0.0.0-20261013170128-efbbdf578ac8	h1:ZQhCuAXz9mLpTkBCwtS7ajWp3lU7pqiaOM0fxzIyQFc=
+	dep	github.com/kopia/kopia	v0.23.1	h1:0+V5Au8fD+190vQbklG0DaWD6I4clmbwlmJTqtI0y0Q=
+	dep	golang.org/x/crypto	v0.59.0	h1:xS2jhqYbzNrpvkWP2YTDf4TJwBy3ykR03i8vFDxEc7c=
+	build	vcs.revision=4642d1185d9174bb90fccbac683a7dbe64c1b6c5
+	build	vcs.modified=false
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+
+== free space
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G   35G  155G  19% /
+/dev/sda1       197G   35G  155G  19% /
+
+== guest image
+debian-12-genericcloud-amd64.qcow2: OK
+
+== gaia server
+{
+  "command": "server init",
+  "result": {
+    "config": {
+      "listen": "127.0.0.1:8443",
+      "data_dir": "/var/lib/gaia-t15/data",
+      "tls_cert": "/var/lib/gaia-t15/data/tls/cert.pem",
+      "tls_key": "/var/lib/gaia-t15/data/tls/key.pem",
+      "session_ttl": "12h",
+      "state_backup_at": "02:30",
+      "state_backup_repository": "",
+      "host_socket_dir": "/var/lib/libvirt/qemu",
+      "host_scratch_dir": "/var/lib/libvirt/images",
+      "nbd_connections": 2,
+      "max_parallel_backups": 2,
+      "verify_at": "03:30",
+      "full_verify_day": "sunday",
+      "verify_sample": 0.02
+    },
+    "tls_certificate_sha256": "11:94:AB:1C:28:95:57:38:46:B6:5F:41:88:32:AF:12:E7:6A:A3:74:FD:3B:A7:6C:20:11:51:E2:94:3F:59:D3",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-lab"
+    ],
+    "evidence_key_id": "5e2045834497a36cc399f155375b8c54bc248ba8d61902011279df7236122178",
+    "admin": "admin"
+  },
+  "verdict": "OK"
+}
+{
+  "listen": "127.0.0.1:8443",
+  "data_dir": "/var/lib/gaia-t15/data",
+  "tls_cert": "/var/lib/gaia-t15/data/tls/cert.pem",
+  "tls_key": "/var/lib/gaia-t15/data/tls/key.pem",
+  "session_ttl": "12h",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "host_socket_dir": "/var/lib/libvirt/qemu",
+  "host_scratch_dir": "/var/lib/libvirt/images",
+  "nbd_connections": 2,
+  "max_parallel_backups": 2,
+  "verify_at": "13:19",
+  "full_verify_day": "monday",
+  "verify_sample": 0.02
+}
+11,13c11,13
+< User=gaia
+< Group=gaia
+< ExecStart=/usr/local/bin/gaia server run -config /etc/gaia/server.json
+---
+> User=gaia-t15
+> Group=gaia-t15
+> ExecStart=/usr/local/sbin/gaia-t15 server run -config /var/lib/gaia-t15/server.json
+21c21
+< ReadWritePaths=/var/lib/gaia /srv/gaia
+---
+> ReadWritePaths=/var/lib/gaia-t15
+{"version":"4642d1185d91","schema_version":3,"ssh_public_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKqccXB29klrxrktCz4xzzzchGN9H4iIFQvv+6PzE05l gaia@gaia-lab"}
+
+== host: user gaia-backup, authorized_keys, host key
+restrict,port-forwarding,command="/usr/bin/false" ssh-ed25519 AAAAC3NzaC1lZDI1NT
+uid=1001(gaia-backup) gid=1001(gaia-backup) groups=1001(gaia-backup),110(libvirt),64055(libvirt-qemu)
+host key fingerprint (read on the host): SHA256:vRXdLPRRiRHa2N7qkwJoH2fW1b88+CGZ1ZbphczUzVI
+passwordauthentication no
+allowtcpforwarding yes
+allowstreamlocalforwarding yes
+
+== register the host
+{"id":1,"name":"gaia-lab","address":"192.168.1.30","ssh_port":22,"ssh_user":"gaia-backup","ssh_host_key":"","created_at":"2026-11-16T12:39:42.195896144Z","updated_at":"2026-11-16T12:39:42.195896144Z"}
+{"fingerprint":"SHA256:vRXdLPRRiRHa2N7qkwJoH2fW1b88+CGZ1ZbphczUzVI","type":"ssh-ed25519","key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINVyInK2SeMKRtwXaefePjEtXE5+2qajYXVNpDOKsViy"}
+check before trust: exit 3 {"command":"hosts","error":"502 host: the host's SSH key is not trusted yet (scan it and trust its fingerprint first)","verdict":"UNKNOWN"}
+{
+  "command": "hosts",
+  "error": "502 host: the host's SSH key is not trusted yet (scan it and trust its fingerprint first)",
+  "verdict": "UNKNOWN"
+}
+UNKNOWN: hosts: 502 host: the host's SSH key is not trusted yet (scan it and trust its fingerprint first)
+{"id":1,"name":"gaia-lab","ssh_host_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINVyInK2SeMKRtwXaefePjEtXE5+2qajYXVNpDOKsViy"}
+{"libvirt":"9.0.0","qemu":"7.2.22","domains":null,"seconds":0.21352346}
+
+== guest (gaia-t15: vda 8 GiB system, vdb 4 GiB data)
+[12:39:47] guest started, waiting for the workload (GAIA-READY on the serial console)
+[12:42:08] guest ready
+
+== repository and policy
+{"id":1,"name":"main","kind":"filesystem","location":"/var/lib/gaia-t15/repo","splitter":"FIXED-1M","hash":"BLAKE2B-256-128","created_at":"2026-11-16T12:42:08.771991113Z"}
+{"id":1,"name":"t15","repository_id":1,"backup_interval_s":900,"test_interval_s":86400,"keep_last":6,"keep_daily":0,"keep_weekly":0,"rpo_target_s":1800,"rto_target_s":1800,"max_proof_age_s":172800,"check_template":"linux-basic","checks":[],"created_at":"2026-11-16T12:42:09.030536921Z","updated_at":"2026-11-16T12:42:09.030536921Z"}
+
+== cycles
+[12:42:25] cycle 1: references captured while paused (15.9 s)
+{"id":1,"host_id":1,"name":"gaia-t15","uuid":"","policy_id":1,"created_at":"2026-11-16T12:42:25.347028966Z","updated_at":"2026-11-16T12:42:25.347028966Z"}
+{"cycle":1,"job":1,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T12:42:25.596612383Z","finished_at":"2026-11-16T12:42:37.565307215Z","kind":"full","backup_reason":"full: no earlier checked point of this VM","point":1,"parent_point":null,"checkpoint":"gaia-1-1","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581514752,"read_bytes":1581514752,"nbd_payload_bytes":1581514752,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":4294967296,"changed_bytes":1077084160,"read_bytes":1077084160,"nbd_payload_bytes":1077084160,"repo_read_bytes":0,"written_bytes":1088421888}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":{"mode":"full","gc":{"unreferencedContentCount":0,"unreferencedContentSize":0,"deletedContentCount":0,"deletedContentSize":0,"unreferencedRecentContentCount":0,"unreferencedRecentContentSize":0,"inUseContentCount":2591,"inUseContentSize":1990234724,"inUseSystemContentCount":3,"inUseSystemContentSize":1239,"recoveredContentCount":0,"recoveredContentSize":0},"referenced_contents":2591,"seconds":0.260810954},"host_gaia_checkpoints":["gaia-1-1"],"timings_s":{"begin":0.816335186,"check":0.031989035,"connect":0.363762164,"disk_vda":6.444564943,"disk_vdb":3.326980023,"retention_maintenance":0.261107223,"total":11.933811067},"reference":true,"guest_workload_bytes_total":2883584}
+{"cycle":1,"point":1,"disks":[{"disk":"vda","reference_sha256":"3affdf2a025c0c799e712f0c7f6003f40e69d34956cbae01e15e131dbd403d49","restored_sha256":"3affdf2a025c0c799e712f0c7f6003f40e69d34956cbae01e15e131dbd403d49","bytes":8589934592,"seconds":29.577261781,"identical":true},{"disk":"vdb","reference_sha256":"157fc8df20ac8a93159d5aca5c82ad2ee546fcd5e478e7db9fe8c661be432b92","restored_sha256":"157fc8df20ac8a93159d5aca5c82ad2ee546fcd5e478e7db9fe8c661be432b92","bytes":4294967296,"seconds":27.268377098,"identical":true}]}
+[12:43:36] cycle 2: backup due 12:57:25
+{"cycle":2,"job":2,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T12:57:25.59433086Z","finished_at":"2026-11-16T12:57:38.328880296Z","kind":"incremental","backup_reason":"incremental from point 1 (checkpoint gaia-1-1)","point":2,"parent_point":1,"checkpoint":"gaia-1-2","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":363462656,"read_bytes":363462656,"nbd_payload_bytes":363462656,"repo_read_bytes":244318208,"written_bytes":562036736},{"target":"vdb","size_bytes":4294967296,"changed_bytes":562692096,"read_bytes":562692096,"nbd_payload_bytes":562692096,"repo_read_bytes":576716800,"written_bytes":1071644672}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-1","gaia-1-2"],"timings_s":{"begin":0.69544953,"check":0.017207311,"connect":0.266070412,"disk_vda":3.459708045,"disk_vdb":7.818089387,"retention_maintenance":0.001204789,"total":12.71992444},"reference":false,"guest_workload_bytes_total":80740352}
+[12:57:39] cycle 3: pausing the guest in 796 s (backup due 13:12:25)
+[13:11:09] cycle 3: references captured while paused (13.7 s)
+{"cycle":3,"job":3,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T13:12:25.603175103Z","finished_at":"2026-11-16T13:12:38.398265088Z","kind":"incremental","backup_reason":"incremental from point 2 (checkpoint gaia-1-2)","point":3,"parent_point":2,"checkpoint":"gaia-1-3","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":350879744,"read_bytes":350879744,"nbd_payload_bytes":350879744,"repo_read_bytes":248512512,"written_bytes":554696704},{"target":"vdb","size_bytes":4294967296,"changed_bytes":528285696,"read_bytes":528285696,"nbd_payload_bytes":528285696,"repo_read_bytes":556793856,"written_bytes":1020264448}],"check_problems":[],"checkpoints_deleted":["gaia-1-1"],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-2","gaia-1-3"],"timings_s":{"begin":0.5339319,"check":0.020745747,"connect":0.298110072,"disk_vda":3.649339705,"disk_vdb":7.576168891,"retention_maintenance":0.007308467,"total":12.786209376},"reference":true,"guest_workload_bytes_total":2289565696}
+{"cycle":3,"point":3,"disks":[{"disk":"vda","reference_sha256":"19d1f3f153efdb876afe931e945af3bd2e39bb6ecad9c3cd9fdce2746bd15ecc","restored_sha256":"19d1f3f153efdb876afe931e945af3bd2e39bb6ecad9c3cd9fdce2746bd15ecc","bytes":8589934592,"seconds":15.357086967,"identical":true},{"disk":"vdb","reference_sha256":"86e84bd0a8fa9419a0d670a54ac51cd552db56c8743d9b5bc72228200e333444","restored_sha256":"86e84bd0a8fa9419a0d670a54ac51cd552db56c8743d9b5bc72228200e333444","bytes":4294967296,"seconds":16.102169354,"identical":true}]}
+[13:13:11] cycle 4: backup due 13:27:25
+{"cycle":4,"job":4,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T13:27:25.59405391Z","finished_at":"2026-11-16T13:27:56.789158738Z","kind":"incremental","backup_reason":"incremental from point 3 (checkpoint gaia-1-3)","point":4,"parent_point":3,"checkpoint":"gaia-1-4","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":369623040,"read_bytes":369623040,"nbd_payload_bytes":369623040,"repo_read_bytes":234881024,"written_bytes":558891008},{"target":"vdb","size_bytes":4294967296,"changed_bytes":591790080,"read_bytes":591790080,"nbd_payload_bytes":591790080,"repo_read_bytes":584056832,"written_bytes":1107296256}],"check_problems":[],"checkpoints_deleted":["gaia-1-2"],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-3","gaia-1-4"],"timings_s":{"begin":1.263928212,"check":0.076375865,"connect":0.403319116,"disk_vda":8.582245838,"disk_vdb":19.628467001,"retention_maintenance":0.020598372,"total":31.092247786},"reference":false,"guest_workload_bytes_total":2347237376}
+[13:27:57] injection: deleting checkpoint gaia-1-4 on the host (virsh checkpoint-delete)
+Domain checkpoint gaia-1-4 deleted
+
+[13:27:57] cycle 5: pausing the guest in 778 s (backup due 13:42:25)
+[13:41:11] cycle 5: references captured while paused (15.7 s)
+{"cycle":5,"job":5,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T13:42:25.594681719Z","finished_at":"2026-11-16T13:42:37.982165065Z","kind":"full","backup_reason":"full: checkpoint gaia-1-4 of point 4 is not on the host","point":5,"parent_point":null,"checkpoint":"gaia-1-5","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581514752,"read_bytes":1581514752,"nbd_payload_bytes":1581514752,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":4294967296,"changed_bytes":1562443776,"read_bytes":1562443776,"nbd_payload_bytes":1562443776,"repo_read_bytes":0,"written_bytes":1574961152}],"check_problems":[],"checkpoints_deleted":["gaia-1-3"],"points_pruned":[],"maintenance":{"mode":"quick","gc":null,"referenced_contents":0,"seconds":0.016113469},"host_gaia_checkpoints":["gaia-1-5"],"timings_s":{"begin":0.654467748,"check":0.040600256,"connect":0.295073411,"disk_vda":5.127661547,"disk_vdb":5.484005616,"retention_maintenance":0.016490637,"total":12.377977476},"reference":true,"guest_workload_bytes_total":4605083648}
+{"cycle":5,"point":5,"disks":[{"disk":"vda","reference_sha256":"3b9d111fdf7ff336c57fb50d0a3b3d0ad870698327d1903e2c838cb1e65e570c","restored_sha256":"3b9d111fdf7ff336c57fb50d0a3b3d0ad870698327d1903e2c838cb1e65e570c","bytes":8589934592,"seconds":16.997051218,"identical":true},{"disk":"vdb","reference_sha256":"a6fb61908e24850e41a58e49ddd95e8b9188361516bb1cec9d4dd15f9aa0e7b5","restored_sha256":"a6fb61908e24850e41a58e49ddd95e8b9188361516bb1cec9d4dd15f9aa0e7b5","bytes":4294967296,"seconds":32.652210995,"identical":true}]}
+[13:43:29] cycle 6: backup due 13:57:25
+{"cycle":6,"job":6,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T13:57:25.59491123Z","finished_at":"2026-11-16T13:57:38.53600244Z","kind":"incremental","backup_reason":"incremental from point 5 (checkpoint gaia-1-5)","point":6,"parent_point":5,"checkpoint":"gaia-1-6","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":370278400,"read_bytes":370278400,"nbd_payload_bytes":370278400,"repo_read_bytes":228589568,"written_bytes":554696704},{"target":"vdb","size_bytes":4294967296,"changed_bytes":566231040,"read_bytes":566231040,"nbd_payload_bytes":566231040,"repo_read_bytes":580911104,"written_bytes":1076887552}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-5","gaia-1-6"],"timings_s":{"begin":0.776994049,"check":0.034930367,"connect":0.318987575,"disk_vda":3.332810543,"disk_vdb":7.949718487,"retention_maintenance":0.001553281,"total":12.913057155},"reference":false,"guest_workload_bytes_total":4682940416}
+[13:57:39] injection: growing vdb from 4294967296 bytes by 1 GiB (virsh blockresize)
+Block device 'vdb' is resized
+[13:57:39] cycle 7: pausing the guest in 796 s (backup due 14:12:25)
+[14:11:11] cycle 7: references captured while paused (15.2 s)
+{"cycle":7,"job":7,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T14:12:25.595038958Z","finished_at":"2026-11-16T14:12:34.915120449Z","kind":"full","backup_reason":"full: disk vdb was resized from 4294967296 to 5368709120 bytes","point":7,"parent_point":null,"checkpoint":"gaia-1-7","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581514752,"read_bytes":1581514752,"nbd_payload_bytes":1581514752,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":5368709120,"changed_bytes":1680670720,"read_bytes":1680670720,"nbd_payload_bytes":1680670720,"repo_read_bytes":0,"written_bytes":1692401664}],"check_problems":[],"checkpoints_deleted":["gaia-1-5"],"points_pruned":[1],"maintenance":null,"host_gaia_checkpoints":["gaia-1-6","gaia-1-7"],"timings_s":{"begin":0.540067929,"check":0.040924887,"connect":0.250676371,"disk_vda":3.724427852,"disk_vdb":4.095813582,"retention_maintenance":0.073074915,"total":9.312682206},"reference":true,"guest_workload_bytes_total":6920601600}
+{"cycle":7,"point":7,"disks":[{"disk":"vda","reference_sha256":"a56cb3d6915f33d9b1ab449866ca828968d8028baa3a00630bcadd6ac6d16919","restored_sha256":"a56cb3d6915f33d9b1ab449866ca828968d8028baa3a00630bcadd6ac6d16919","bytes":8589934592,"seconds":15.362815888,"identical":true},{"disk":"vdb","reference_sha256":"afbf8004d2438eff9d40eecb4c9c06b72afaf71699d7001ff31b0ba2ed096659","restored_sha256":"afbf8004d2438eff9d40eecb4c9c06b72afaf71699d7001ff31b0ba2ed096659","bytes":5368709120,"seconds":18.466668007,"identical":true}]}
+[14:13:10] cycle 8: backup due 14:27:25
+{"cycle":8,"job":8,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T14:27:25.594604003Z","finished_at":"2026-11-16T14:27:39.302611453Z","kind":"incremental","backup_reason":"incremental from point 7 (checkpoint gaia-1-7)","point":8,"parent_point":7,"checkpoint":"gaia-1-8","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":370016256,"read_bytes":370016256,"nbd_payload_bytes":370016256,"repo_read_bytes":239075328,"written_bytes":562036736},{"target":"vdb","size_bytes":5368709120,"changed_bytes":586547200,"read_bytes":586547200,"nbd_payload_bytes":586547200,"repo_read_bytes":572522496,"written_bytes":1087373312}],"check_problems":[],"checkpoints_deleted":["gaia-1-6"],"points_pruned":[2],"maintenance":null,"host_gaia_checkpoints":["gaia-1-7","gaia-1-8"],"timings_s":{"begin":0.678333961,"check":0.069710335,"connect":0.31631813,"disk_vda":3.6980978860000002,"disk_vdb":8.256902094,"retention_maintenance":0.060069844,"total":13.70041638},"reference":false,"guest_workload_bytes_total":6978273280}
+[14:27:40] cycle 9: pausing the guest in 795 s (backup due 14:42:25)
+[14:41:10] cycle 9: references captured while paused (14.9 s)
+{"cycle":9,"job":9,"reason":"schedule: policy t15, every 900 s","state":"ok","error":"","created_at":"2026-11-16T14:42:25.594090828Z","finished_at":"2026-11-16T14:42:39.491039968Z","kind":"incremental","backup_reason":"incremental from point 8 (checkpoint gaia-1-8)","point":9,"parent_point":8,"checkpoint":"gaia-1-9","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":339673088,"read_bytes":339673088,"nbd_payload_bytes":339673088,"repo_read_bytes":257949696,"written_bytes":550502400},{"target":"vdb","size_bytes":5368709120,"changed_bytes":541458432,"read_bytes":541458432,"nbd_payload_bytes":541458432,"repo_read_bytes":572522496,"written_bytes":1048576000}],"check_problems":[],"checkpoints_deleted":["gaia-1-7"],"points_pruned":[3],"maintenance":{"mode":"quick","gc":null,"referenced_contents":0,"seconds":0.01939354},"host_gaia_checkpoints":["gaia-1-8","gaia-1-9"],"timings_s":{"begin":0.508925632,"check":0.0373887,"connect":0.280111405,"disk_vda":4.22688971,"disk_vdb":8.145147121,"retention_maintenance":0.069995331,"total":13.879647347},"reference":true,"guest_workload_bytes_total":9259188224}
+{"cycle":9,"point":9,"disks":[{"disk":"vda","reference_sha256":"921370cf00726e36de66b80b367e1526c248e43700bb9df50f80a74e7d96a177","restored_sha256":"921370cf00726e36de66b80b367e1526c248e43700bb9df50f80a74e7d96a177","bytes":8589934592,"seconds":17.671263263,"identical":true},{"disk":"vdb","reference_sha256":"6a79b2847451ed8b352dc9522344f40eb8ab611d78b34320be518c284886685e","restored_sha256":"6a79b2847451ed8b352dc9522344f40eb8ab611d78b34320be518c284886685e","bytes":5368709120,"seconds":19.95590201,"identical":true}]}
+gaia-1-8
+gaia-1-9
+
+== verifications
+{"id":2,"mode":"full","state":"ok","reason":"schedule","started_at":"2026-11-16T13:19:10.595053704Z","points_checked":3,"blocks_read":8334,"bytes_read":8738832384}
+{"id":1,"mode":"full","state":"ok","reason":"schedule","started_at":"2026-11-16T12:42:10.594537478Z","points_checked":0,"blocks_read":0,"bytes_read":0}
+{"id":3,"repository_id":1,"mode":"sampled","state":"ok","reason":"requested by admin","started_at":"2026-11-16T14:43:18.704415704Z","finished_at":"2026-11-16T14:43:19.665483372Z","points_checked":6,"blocks_read":379,"bytes_read":397410304,"affected":[],"error":""}
+-rw------- 1 gaia-t15 gaia-t15 3499385 2026-11-16 14:42:39.017500946 +0000 /var/lib/gaia-t15/repo/p/1c4/42cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147.f
+[14:43:21] injection: pack p/1c4/42cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147.f (3499385 bytes) byte 1749692 d6 -> 29
+{"contents_in_pack":36,"first":["192ae7e73cc42aef63b0c892d0b77de6","3b1ba7c560fbe3c8c563ad295e27bb6e","4294e363638c3159e1f051f68e824915","4643099cfe3aa461fef9967259b2196f","4749bf3bd30f981e4ce8a569c3a92345"]}
+{"id":4,"repository_id":1,"mode":"full","state":"critical","reason":"requested by admin","started_at":"2026-11-16T14:43:22.346756792Z","finished_at":"2026-11-16T14:43:49.686861801Z","points_checked":6,"blocks_read":19033,"bytes_read":19956498432,"affected":[{"point_id":9,"vm_id":1,"disk":"vdb","problems":["block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed"]}],"error":""}
+{"id":9,"kind":"incremental","state":"present","check_state":"failed","checkpoint":"gaia-1-9","parent_id":8,"reason":"incremental from point 8 (checkpoint gaia-1-8)"}
+{"id":8,"kind":"incremental","state":"present","check_state":"ok","checkpoint":"gaia-1-8","parent_id":7,"reason":"incremental from point 7 (checkpoint gaia-1-7)"}
+{"id":7,"kind":"full","state":"present","check_state":"ok","checkpoint":"gaia-1-7","parent_id":null,"reason":"full: disk vdb was resized from 4294967296 to 5368709120 bytes"}
+{"id":6,"kind":"incremental","state":"present","check_state":"ok","checkpoint":"gaia-1-6","parent_id":5,"reason":"incremental from point 5 (checkpoint gaia-1-5)"}
+{"id":5,"kind":"full","state":"present","check_state":"ok","checkpoint":"gaia-1-5","parent_id":null,"reason":"full: checkpoint gaia-1-4 of point 4 is not on the host"}
+{"id":4,"kind":"incremental","state":"present","check_state":"ok","checkpoint":"gaia-1-4","parent_id":3,"reason":"incremental from point 3 (checkpoint gaia-1-3)"}
+{"id":3,"kind":"incremental","state":"pruned","check_state":"ok","checkpoint":"gaia-1-3","parent_id":2,"reason":"incremental from point 2 (checkpoint gaia-1-2)"}
+{"id":2,"kind":"incremental","state":"pruned","check_state":"ok","checkpoint":"gaia-1-2","parent_id":1,"reason":"incremental from point 1 (checkpoint gaia-1-1)"}
+{"id":1,"kind":"full","state":"pruned","check_state":"ok","checkpoint":"gaia-1-1","parent_id":null,"reason":"full: no earlier checked point of this VM"}
+
+== state changes and audit
+2026-11-16T12:42:37.565438626Z	job	1	running	ok	full: no earlier checked point of this VM
+2026-11-16T12:57:25.59443415Z	job	2		queued	schedule: policy t15, every 900 s
+2026-11-16T12:57:25.597964747Z	job	2	queued	running	worker started
+2026-11-16T12:57:26.875521691Z	job	2	running	running	checkpoint gaia-1-2 created on the host
+2026-11-16T12:57:38.2127299Z	point	2		unchecked	incremental point of job 2: incremental from point 1 (checkpoint gaia-1-1)
+2026-11-16T12:57:38.234611247Z	point_check	2	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T12:57:38.328940946Z	job	2	running	ok	incremental from point 1 (checkpoint gaia-1-1)
+2026-11-16T13:12:25.603290352Z	job	3		queued	schedule: policy t15, every 900 s
+2026-11-16T13:12:25.607572623Z	job	3	queued	running	worker started
+2026-11-16T13:12:26.771198205Z	job	3	running	running	checkpoint gaia-1-3 created on the host
+2026-11-16T13:12:38.054549299Z	point	3		unchecked	incremental point of job 3: incremental from point 2 (checkpoint gaia-1-2)
+2026-11-16T13:12:38.077881124Z	point_check	3	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T13:12:38.398334668Z	job	3	running	ok	incremental from point 2 (checkpoint gaia-1-2)
+2026-11-16T13:19:10.595142824Z	verification	2		running	full: schedule
+2026-11-16T13:19:26.134816284Z	verification	2	running	ok	3 points, 8334 blocks read
+2026-11-16T13:27:25.594168919Z	job	4		queued	schedule: policy t15, every 900 s
+2026-11-16T13:27:25.610699691Z	job	4	queued	running	worker started
+2026-11-16T13:27:27.694418779Z	job	4	running	running	checkpoint gaia-1-4 created on the host
+2026-11-16T13:27:56.013448842Z	point	4		unchecked	incremental point of job 4: incremental from point 3 (checkpoint gaia-1-3)
+2026-11-16T13:27:56.124414816Z	point_check	4	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T13:27:56.789572665Z	job	4	running	ok	incremental from point 3 (checkpoint gaia-1-3)
+2026-11-16T13:42:25.595874101Z	job	5		queued	schedule: policy t15, every 900 s
+2026-11-16T13:42:25.601867353Z	job	5	queued	running	worker started
+2026-11-16T13:42:26.931706458Z	job	5	running	running	checkpoint gaia-1-5 created on the host
+2026-11-16T13:42:37.591443519Z	point	5		unchecked	full point of job 5: full: checkpoint gaia-1-4 of point 4 is not on the host
+2026-11-16T13:42:37.636135619Z	point_check	5	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T13:42:37.982267974Z	job	5	running	ok	full: checkpoint gaia-1-4 of point 4 is not on the host
+2026-11-16T13:57:25.595053489Z	job	6		queued	schedule: policy t15, every 900 s
+2026-11-16T13:57:25.606017954Z	job	6	queued	running	worker started
+2026-11-16T13:57:27.056324938Z	job	6	running	running	checkpoint gaia-1-6 created on the host
+2026-11-16T13:57:38.355862168Z	point	6		unchecked	incremental point of job 6: incremental from point 5 (checkpoint gaia-1-5)
+2026-11-16T13:57:38.397501426Z	point_check	6	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T13:57:38.53609431Z	job	6	running	ok	incremental from point 5 (checkpoint gaia-1-5)
+2026-11-16T14:12:25.595143108Z	job	7		queued	schedule: policy t15, every 900 s
+2026-11-16T14:12:25.599969435Z	job	7	queued	running	worker started
+2026-11-16T14:12:25.865592916Z	disk	2	4294967296	5368709120	disk vdb resized on the host
+2026-11-16T14:12:26.664564176Z	job	7	running	running	checkpoint gaia-1-7 created on the host
+2026-11-16T14:12:34.53569802Z	point	7		unchecked	full point of job 7: full: disk vdb was resized from 4294967296 to 5368709120 bytes
+2026-11-16T14:12:34.580518099Z	point_check	7	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T14:12:34.897327874Z	point	1	present	pruned	retention: keep_last 6, keep_daily 0, keep_weekly 0
+2026-11-16T14:12:34.91523548Z	job	7	running	ok	full: disk vdb was resized from 4294967296 to 5368709120 bytes
+2026-11-16T14:27:25.594719142Z	job	8		queued	schedule: policy t15, every 900 s
+2026-11-16T14:27:25.599232488Z	job	8	queued	running	worker started
+2026-11-16T14:27:26.891308669Z	job	8	running	running	checkpoint gaia-1-8 created on the host
+2026-11-16T14:27:38.898876182Z	point	8		unchecked	incremental point of job 8: incremental from point 7 (checkpoint gaia-1-7)
+2026-11-16T14:27:38.972441247Z	point_check	8	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T14:27:39.288798746Z	point	2	present	pruned	retention: keep_last 6, keep_daily 0, keep_weekly 0
+2026-11-16T14:27:39.302699772Z	job	8	running	ok	incremental from point 7 (checkpoint gaia-1-7)
+2026-11-16T14:42:25.594191928Z	job	9		queued	schedule: policy t15, every 900 s
+2026-11-16T14:42:25.606666534Z	job	9	queued	running	worker started
+2026-11-16T14:42:26.666498437Z	job	9	running	running	checkpoint gaia-1-9 created on the host
+2026-11-16T14:42:39.092167459Z	point	9		unchecked	incremental point of job 9: incremental from point 8 (checkpoint gaia-1-8)
+2026-11-16T14:42:39.132879596Z	point_check	9	unchecked	ok	post-backup check: manifest and block index read back, every block present, sizes match
+2026-11-16T14:42:39.457241774Z	point	3	present	pruned	retention: keep_last 6, keep_daily 0, keep_weekly 0
+2026-11-16T14:42:39.491303997Z	job	9	running	ok	incremental from point 8 (checkpoint gaia-1-8)
+2026-11-16T14:43:18.704469064Z	verification	3		running	sampled: requested by admin
+2026-11-16T14:43:19.665618231Z	verification	3	running	ok	6 points, 379 blocks read
+2026-11-16T14:43:22.346807811Z	verification	4		running	full: requested by admin
+2026-11-16T14:43:49.680175525Z	point_check	9	ok	failed	repository verification 4 (full): disk vdb: block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed
+2026-11-16T14:43:49.68697692Z	verification	4	running	critical	6 points, 19033 blocks read
+{"entries":31,"intact":true,"head_sha256":"4057d15346365d99c6900ca76897ad3e6e7de6c3c625e72261cd9752894fbbd4","first_broken_seq":0}
+14428037801	/var/lib/gaia-t15/repo
+
+== gate (CLAUDE.md T15)
+{
+  "cycles_planned": 9,
+  "cycles_ok": 9,
+  "scheduled_jobs": 9,
+  "schedule_gaps_s": [
+    900,
+    900,
+    900,
+    900,
+    900,
+    900,
+    900,
+    900
+  ],
+  "a_sampled_points_identical": {
+    "points": [
+      {
+        "cycle": 1,
+        "point": 1,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 3,
+        "point": 3,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 5,
+        "point": 5,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 7,
+        "point": 7,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 9,
+        "point": 9,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "b1_checkpoint_deleted_full": {
+    "cycle": 5,
+    "kind": "full",
+    "backup_reason": "full: checkpoint gaia-1-4 of point 4 is not on the host",
+    "pass": true
+  },
+  "b2_corruption_critical": {
+    "verification": 4,
+    "state": "critical",
+    "affected": [
+      {
+        "point_id": 9,
+        "vm_id": 1,
+        "disk": "vdb",
+        "problems": [
+          "block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed"
+        ]
+      }
+    ],
+    "newest_point": 9,
+    "affected_points_failed": [
+      {
+        "id": 9,
+        "check_state": "failed"
+      }
+    ],
+    "pass": true
+  },
+  "b3_resize_full": {
+    "cycle": 7,
+    "kind": "full",
+    "backup_reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "pass": true
+  },
+  "c_no_tcp_nbd_listener": {
+    "backups_caught_running": 9,
+    "qemu_tcp_listeners": 0,
+    "pass": true
+  },
+  "also": {
+    "incrementals_otherwise": true,
+    "max_gaia_checkpoints_on_host": 2,
+    "points_pruned": 3,
+    "scheduled_verifications": [
+      {
+        "id": 2,
+        "mode": "full",
+        "state": "ok",
+        "reason": "schedule",
+        "points_checked": 3
+      },
+      {
+        "id": 1,
+        "mode": "full",
+        "state": "ok",
+        "reason": "schedule",
+        "points_checked": 0
+      }
+    ],
+    "sampled_verification_before_corruption": {
+      "state": "ok",
+      "points_checked": 6
+    }
+  },
+  "verdict": "OK"
+}
+
+== summary
+cycle job   kind        state     vda_changed    vdb_changed  total_s host_checkpoints
+1     1     full        ok         1581514752     1077084160     11.9 gaia-1-1
+2     2     incremental ok          363462656      562692096     12.7 gaia-1-1,gaia-1-2
+3     3     incremental ok          350879744      528285696     12.8 gaia-1-2,gaia-1-3
+4     4     incremental ok          369623040      591790080     31.1 gaia-1-3,gaia-1-4
+5     5     full        ok         1581514752     1562443776     12.4 gaia-1-5
+6     6     incremental ok          370278400      566231040     12.9 gaia-1-5,gaia-1-6
+7     7     full        ok         1581514752     1680670720      9.3 gaia-1-6,gaia-1-7
+8     8     incremental ok          370016256      586547200     13.7 gaia-1-7,gaia-1-8
+9     9     incremental ok          339673088      541458432     13.9 gaia-1-8,gaia-1-9
+
+== result
+OK
+(gate.json, cycles.jsonl, restore-checks.jsonl, ss.txt, verification-*.json, server.journal in /root/t15-20261116T123930Z)

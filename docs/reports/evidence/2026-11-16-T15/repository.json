@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "name": "main",
+  "kind": "filesystem",
+  "location": "/var/lib/gaia-t15/repo",
+  "splitter": "FIXED-1M",
+  "hash": "BLAKE2B-256-128",
+  "created_at": "2026-11-16T12:42:08.771991113Z"
+}

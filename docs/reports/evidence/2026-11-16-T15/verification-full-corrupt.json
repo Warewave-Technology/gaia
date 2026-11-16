@@ -1,0 +1,23 @@
+{
+  "id": 4,
+  "repository_id": 1,
+  "mode": "full",
+  "state": "critical",
+  "reason": "requested by admin",
+  "started_at": "2026-11-16T14:43:22.346756792Z",
+  "finished_at": "2026-11-16T14:43:49.686861801Z",
+  "points_checked": 6,
+  "blocks_read": 19033,
+  "bytes_read": 19956498432,
+  "affected": [
+    {
+      "point_id": 9,
+      "vm_id": 1,
+      "disk": "vdb",
+      "problems": [
+        "block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed"
+      ]
+    }
+  ],
+  "error": ""
+}

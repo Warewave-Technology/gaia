@@ -1,0 +1,6 @@
+{
+  "libvirt": "9.0.0",
+  "qemu": "7.2.22",
+  "domains": null,
+  "seconds": 0.21352346
+}

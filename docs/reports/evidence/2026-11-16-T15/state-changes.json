@@ -1,0 +1,722 @@
+[
+  {
+    "seq": 1,
+    "at": "2026-11-16T12:39:39.970784914Z",
+    "entity": "user",
+    "entity_id": 1,
+    "from": "",
+    "to": "enabled",
+    "reason": "created with role admin",
+    "actor": "gaia server init"
+  },
+  {
+    "seq": 2,
+    "at": "2026-11-16T12:39:42.896309194Z",
+    "entity": "host_key",
+    "entity_id": 1,
+    "from": "untrusted",
+    "to": "trusted",
+    "reason": "host key SHA256:vRXdLPRRiRHa2N7qkwJoH2fW1b88+CGZ1ZbphczUzVI trusted by admin",
+    "actor": "admin"
+  },
+  {
+    "seq": 3,
+    "at": "2026-11-16T12:42:10.594660077Z",
+    "entity": "verification",
+    "entity_id": 1,
+    "from": "",
+    "to": "running",
+    "reason": "full: schedule",
+    "actor": "system"
+  },
+  {
+    "seq": 4,
+    "at": "2026-11-16T12:42:11.218355828Z",
+    "entity": "verification",
+    "entity_id": 1,
+    "from": "running",
+    "to": "ok",
+    "reason": "0 points, 0 blocks read",
+    "actor": "system"
+  },
+  {
+    "seq": 5,
+    "at": "2026-11-16T12:42:25.349754669Z",
+    "entity": "vm",
+    "entity_id": 1,
+    "from": "",
+    "to": "registered",
+    "reason": "registered",
+    "actor": "admin"
+  },
+  {
+    "seq": 6,
+    "at": "2026-11-16T12:42:25.596727571Z",
+    "entity": "job",
+    "entity_id": 1,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 7,
+    "at": "2026-11-16T12:42:25.645673257Z",
+    "entity": "job",
+    "entity_id": 1,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 8,
+    "at": "2026-11-16T12:42:26.055841501Z",
+    "entity": "disk",
+    "entity_id": 1,
+    "from": "",
+    "to": "8589934592",
+    "reason": "disk vda found on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 9,
+    "at": "2026-11-16T12:42:26.055909652Z",
+    "entity": "disk",
+    "entity_id": 2,
+    "from": "",
+    "to": "4294967296",
+    "reason": "disk vdb found on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 10,
+    "at": "2026-11-16T12:42:27.26089936Z",
+    "entity": "job",
+    "entity_id": 1,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-1 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 11,
+    "at": "2026-11-16T12:42:37.10839249Z",
+    "entity": "point",
+    "entity_id": 1,
+    "from": "",
+    "to": "unchecked",
+    "reason": "full point of job 1: full: no earlier checked point of this VM",
+    "actor": "system"
+  },
+  {
+    "seq": 12,
+    "at": "2026-11-16T12:42:37.153861338Z",
+    "entity": "point_check",
+    "entity_id": 1,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 13,
+    "at": "2026-11-16T12:42:37.565438626Z",
+    "entity": "job",
+    "entity_id": 1,
+    "from": "running",
+    "to": "ok",
+    "reason": "full: no earlier checked point of this VM",
+    "actor": "system"
+  },
+  {
+    "seq": 14,
+    "at": "2026-11-16T12:57:25.59443415Z",
+    "entity": "job",
+    "entity_id": 2,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 15,
+    "at": "2026-11-16T12:57:25.597964747Z",
+    "entity": "job",
+    "entity_id": 2,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 16,
+    "at": "2026-11-16T12:57:26.875521691Z",
+    "entity": "job",
+    "entity_id": 2,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-2 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 17,
+    "at": "2026-11-16T12:57:38.2127299Z",
+    "entity": "point",
+    "entity_id": 2,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 2: incremental from point 1 (checkpoint gaia-1-1)",
+    "actor": "system"
+  },
+  {
+    "seq": 18,
+    "at": "2026-11-16T12:57:38.234611247Z",
+    "entity": "point_check",
+    "entity_id": 2,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 19,
+    "at": "2026-11-16T12:57:38.328940946Z",
+    "entity": "job",
+    "entity_id": 2,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 1 (checkpoint gaia-1-1)",
+    "actor": "system"
+  },
+  {
+    "seq": 20,
+    "at": "2026-11-16T13:12:25.603290352Z",
+    "entity": "job",
+    "entity_id": 3,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 21,
+    "at": "2026-11-16T13:12:25.607572623Z",
+    "entity": "job",
+    "entity_id": 3,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 22,
+    "at": "2026-11-16T13:12:26.771198205Z",
+    "entity": "job",
+    "entity_id": 3,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-3 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 23,
+    "at": "2026-11-16T13:12:38.054549299Z",
+    "entity": "point",
+    "entity_id": 3,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 3: incremental from point 2 (checkpoint gaia-1-2)",
+    "actor": "system"
+  },
+  {
+    "seq": 24,
+    "at": "2026-11-16T13:12:38.077881124Z",
+    "entity": "point_check",
+    "entity_id": 3,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 25,
+    "at": "2026-11-16T13:12:38.398334668Z",
+    "entity": "job",
+    "entity_id": 3,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 2 (checkpoint gaia-1-2)",
+    "actor": "system"
+  },
+  {
+    "seq": 26,
+    "at": "2026-11-16T13:19:10.595142824Z",
+    "entity": "verification",
+    "entity_id": 2,
+    "from": "",
+    "to": "running",
+    "reason": "full: schedule",
+    "actor": "system"
+  },
+  {
+    "seq": 27,
+    "at": "2026-11-16T13:19:26.134816284Z",
+    "entity": "verification",
+    "entity_id": 2,
+    "from": "running",
+    "to": "ok",
+    "reason": "3 points, 8334 blocks read",
+    "actor": "system"
+  },
+  {
+    "seq": 28,
+    "at": "2026-11-16T13:27:25.594168919Z",
+    "entity": "job",
+    "entity_id": 4,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 29,
+    "at": "2026-11-16T13:27:25.610699691Z",
+    "entity": "job",
+    "entity_id": 4,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 30,
+    "at": "2026-11-16T13:27:27.694418779Z",
+    "entity": "job",
+    "entity_id": 4,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-4 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 31,
+    "at": "2026-11-16T13:27:56.013448842Z",
+    "entity": "point",
+    "entity_id": 4,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 4: incremental from point 3 (checkpoint gaia-1-3)",
+    "actor": "system"
+  },
+  {
+    "seq": 32,
+    "at": "2026-11-16T13:27:56.124414816Z",
+    "entity": "point_check",
+    "entity_id": 4,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 33,
+    "at": "2026-11-16T13:27:56.789572665Z",
+    "entity": "job",
+    "entity_id": 4,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 3 (checkpoint gaia-1-3)",
+    "actor": "system"
+  },
+  {
+    "seq": 34,
+    "at": "2026-11-16T13:42:25.595874101Z",
+    "entity": "job",
+    "entity_id": 5,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 35,
+    "at": "2026-11-16T13:42:25.601867353Z",
+    "entity": "job",
+    "entity_id": 5,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 36,
+    "at": "2026-11-16T13:42:26.931706458Z",
+    "entity": "job",
+    "entity_id": 5,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-5 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 37,
+    "at": "2026-11-16T13:42:37.591443519Z",
+    "entity": "point",
+    "entity_id": 5,
+    "from": "",
+    "to": "unchecked",
+    "reason": "full point of job 5: full: checkpoint gaia-1-4 of point 4 is not on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 38,
+    "at": "2026-11-16T13:42:37.636135619Z",
+    "entity": "point_check",
+    "entity_id": 5,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 39,
+    "at": "2026-11-16T13:42:37.982267974Z",
+    "entity": "job",
+    "entity_id": 5,
+    "from": "running",
+    "to": "ok",
+    "reason": "full: checkpoint gaia-1-4 of point 4 is not on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 40,
+    "at": "2026-11-16T13:57:25.595053489Z",
+    "entity": "job",
+    "entity_id": 6,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 41,
+    "at": "2026-11-16T13:57:25.606017954Z",
+    "entity": "job",
+    "entity_id": 6,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 42,
+    "at": "2026-11-16T13:57:27.056324938Z",
+    "entity": "job",
+    "entity_id": 6,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-6 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 43,
+    "at": "2026-11-16T13:57:38.355862168Z",
+    "entity": "point",
+    "entity_id": 6,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 6: incremental from point 5 (checkpoint gaia-1-5)",
+    "actor": "system"
+  },
+  {
+    "seq": 44,
+    "at": "2026-11-16T13:57:38.397501426Z",
+    "entity": "point_check",
+    "entity_id": 6,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 45,
+    "at": "2026-11-16T13:57:38.53609431Z",
+    "entity": "job",
+    "entity_id": 6,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 5 (checkpoint gaia-1-5)",
+    "actor": "system"
+  },
+  {
+    "seq": 46,
+    "at": "2026-11-16T14:12:25.595143108Z",
+    "entity": "job",
+    "entity_id": 7,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 47,
+    "at": "2026-11-16T14:12:25.599969435Z",
+    "entity": "job",
+    "entity_id": 7,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 48,
+    "at": "2026-11-16T14:12:25.865592916Z",
+    "entity": "disk",
+    "entity_id": 2,
+    "from": "4294967296",
+    "to": "5368709120",
+    "reason": "disk vdb resized on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 49,
+    "at": "2026-11-16T14:12:26.664564176Z",
+    "entity": "job",
+    "entity_id": 7,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-7 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 50,
+    "at": "2026-11-16T14:12:34.53569802Z",
+    "entity": "point",
+    "entity_id": 7,
+    "from": "",
+    "to": "unchecked",
+    "reason": "full point of job 7: full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "actor": "system"
+  },
+  {
+    "seq": 51,
+    "at": "2026-11-16T14:12:34.580518099Z",
+    "entity": "point_check",
+    "entity_id": 7,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 52,
+    "at": "2026-11-16T14:12:34.897327874Z",
+    "entity": "point",
+    "entity_id": 1,
+    "from": "present",
+    "to": "pruned",
+    "reason": "retention: keep_last 6, keep_daily 0, keep_weekly 0",
+    "actor": "system"
+  },
+  {
+    "seq": 53,
+    "at": "2026-11-16T14:12:34.91523548Z",
+    "entity": "job",
+    "entity_id": 7,
+    "from": "running",
+    "to": "ok",
+    "reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "actor": "system"
+  },
+  {
+    "seq": 54,
+    "at": "2026-11-16T14:27:25.594719142Z",
+    "entity": "job",
+    "entity_id": 8,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 55,
+    "at": "2026-11-16T14:27:25.599232488Z",
+    "entity": "job",
+    "entity_id": 8,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 56,
+    "at": "2026-11-16T14:27:26.891308669Z",
+    "entity": "job",
+    "entity_id": 8,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-8 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 57,
+    "at": "2026-11-16T14:27:38.898876182Z",
+    "entity": "point",
+    "entity_id": 8,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 8: incremental from point 7 (checkpoint gaia-1-7)",
+    "actor": "system"
+  },
+  {
+    "seq": 58,
+    "at": "2026-11-16T14:27:38.972441247Z",
+    "entity": "point_check",
+    "entity_id": 8,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 59,
+    "at": "2026-11-16T14:27:39.288798746Z",
+    "entity": "point",
+    "entity_id": 2,
+    "from": "present",
+    "to": "pruned",
+    "reason": "retention: keep_last 6, keep_daily 0, keep_weekly 0",
+    "actor": "system"
+  },
+  {
+    "seq": 60,
+    "at": "2026-11-16T14:27:39.302699772Z",
+    "entity": "job",
+    "entity_id": 8,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 7 (checkpoint gaia-1-7)",
+    "actor": "system"
+  },
+  {
+    "seq": 61,
+    "at": "2026-11-16T14:42:25.594191928Z",
+    "entity": "job",
+    "entity_id": 9,
+    "from": "",
+    "to": "queued",
+    "reason": "schedule: policy t15, every 900 s",
+    "actor": "system"
+  },
+  {
+    "seq": 62,
+    "at": "2026-11-16T14:42:25.606666534Z",
+    "entity": "job",
+    "entity_id": 9,
+    "from": "queued",
+    "to": "running",
+    "reason": "worker started",
+    "actor": "system"
+  },
+  {
+    "seq": 63,
+    "at": "2026-11-16T14:42:26.666498437Z",
+    "entity": "job",
+    "entity_id": 9,
+    "from": "running",
+    "to": "running",
+    "reason": "checkpoint gaia-1-9 created on the host",
+    "actor": "system"
+  },
+  {
+    "seq": 64,
+    "at": "2026-11-16T14:42:39.092167459Z",
+    "entity": "point",
+    "entity_id": 9,
+    "from": "",
+    "to": "unchecked",
+    "reason": "incremental point of job 9: incremental from point 8 (checkpoint gaia-1-8)",
+    "actor": "system"
+  },
+  {
+    "seq": 65,
+    "at": "2026-11-16T14:42:39.132879596Z",
+    "entity": "point_check",
+    "entity_id": 9,
+    "from": "unchecked",
+    "to": "ok",
+    "reason": "post-backup check: manifest and block index read back, every block present, sizes match",
+    "actor": "system"
+  },
+  {
+    "seq": 66,
+    "at": "2026-11-16T14:42:39.457241774Z",
+    "entity": "point",
+    "entity_id": 3,
+    "from": "present",
+    "to": "pruned",
+    "reason": "retention: keep_last 6, keep_daily 0, keep_weekly 0",
+    "actor": "system"
+  },
+  {
+    "seq": 67,
+    "at": "2026-11-16T14:42:39.491303997Z",
+    "entity": "job",
+    "entity_id": 9,
+    "from": "running",
+    "to": "ok",
+    "reason": "incremental from point 8 (checkpoint gaia-1-8)",
+    "actor": "system"
+  },
+  {
+    "seq": 68,
+    "at": "2026-11-16T14:43:18.704469064Z",
+    "entity": "verification",
+    "entity_id": 3,
+    "from": "",
+    "to": "running",
+    "reason": "sampled: requested by admin",
+    "actor": "admin"
+  },
+  {
+    "seq": 69,
+    "at": "2026-11-16T14:43:19.665618231Z",
+    "entity": "verification",
+    "entity_id": 3,
+    "from": "running",
+    "to": "ok",
+    "reason": "6 points, 379 blocks read",
+    "actor": "admin"
+  },
+  {
+    "seq": 70,
+    "at": "2026-11-16T14:43:22.346807811Z",
+    "entity": "verification",
+    "entity_id": 4,
+    "from": "",
+    "to": "running",
+    "reason": "full: requested by admin",
+    "actor": "admin"
+  },
+  {
+    "seq": 71,
+    "at": "2026-11-16T14:43:49.680175525Z",
+    "entity": "point_check",
+    "entity_id": 9,
+    "from": "ok",
+    "to": "failed",
+    "reason": "repository verification 4 (full): disk vdb: block 1452 (a8a31a4629055bdd2fd3ceeb2775395b): unexpected content error: invalid checksum at p1c442cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147 offset 1048636 length 1048604/1048604: decrypt: unable to decrypt content: cipher: message authentication failed",
+    "actor": "admin"
+  },
+  {
+    "seq": 72,
+    "at": "2026-11-16T14:43:49.68697692Z",
+    "entity": "verification",
+    "entity_id": 4,
+    "from": "running",
+    "to": "critical",
+    "reason": "6 points, 19033 blocks read",
+    "actor": "admin"
+  }
+]

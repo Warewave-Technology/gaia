@@ -1,0 +1,64 @@
+{
+  "id": 7,
+  "kind": "backup",
+  "vm_id": 1,
+  "state": "ok",
+  "reason": "schedule: policy t15, every 900 s",
+  "error": "",
+  "created_at": "2026-11-16T14:12:25.595038958Z",
+  "started_at": "2026-11-16T14:12:25.599872706Z",
+  "finished_at": "2026-11-16T14:12:34.915120449Z",
+  "checkpoint": "gaia-1-7",
+  "detail": {
+    "kind": "full",
+    "reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "checkpoint": "gaia-1-7",
+    "point": 7,
+    "disks": [
+      {
+        "target": "vda",
+        "size_bytes": 8589934592,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1581514752,
+        "read_bytes": 1581514752,
+        "nbd_payload_bytes": 1581514752,
+        "repo_read_bytes": 0,
+        "written_bytes": 1685061632,
+        "store_id": "cbec291ce753cc9629421f5490be6df9"
+      },
+      {
+        "target": "vdb",
+        "size_bytes": 5368709120,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1680670720,
+        "read_bytes": 1680670720,
+        "nbd_payload_bytes": 1680670720,
+        "repo_read_bytes": 0,
+        "written_bytes": 1692401664,
+        "store_id": "6c3beac5e5e8164836384386e158adf4"
+      }
+    ],
+    "check_problems": [],
+    "checkpoints_kept": [
+      "gaia-1-6",
+      "gaia-1-7"
+    ],
+    "checkpoints_deleted": [
+      "gaia-1-5"
+    ],
+    "points_pruned": [
+      1
+    ],
+    "timings_s": {
+      "begin": 0.540067929,
+      "check": 0.040924887,
+      "connect": 0.250676371,
+      "disk_vda": 3.724427852,
+      "disk_vdb": 4.095813582,
+      "retention_maintenance": 0.073074915,
+      "total": 9.312682206
+    },
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22"
+  }
+}

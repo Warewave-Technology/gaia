@@ -1,0 +1,3 @@
+{"after_cycle": 4, "injected": "checkpoint-delete", "checkpoint": "gaia-1-4"}
+{"after_cycle": 6, "injected": "blockresize", "disk": "vdb", "from": 4294967296, "to": 5368709120}
+{"after_cycle":"last","injected":"pack byte flip","pack":"p/1c4/42cbc5c2e42d8ff0c9e7735eba675-s15f1c84767eadce0147.f","pack_bytes":3499385,"offset":1749692,"before":"d6","after":"29"}
