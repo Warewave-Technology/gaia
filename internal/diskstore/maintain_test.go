@@ -150,6 +150,12 @@ func TestMaintainKeepsReferencedData(t *testing.T) {
 	if _, err := s.ReadArchive(ctx, as[0].ID, &buf); err != nil || buf.String() != "state archive" {
 		t.Fatalf("archive after GC: %q %v", buf.String(), err)
 	}
+	if err := s.DeleteArchive(ctx, as[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if as, err := s.Archives(ctx, "test"); err != nil || len(as) != 0 {
+		t.Fatalf("archives after delete %v %v", as, err)
+	}
 	_ = content.ID{}
 }
 

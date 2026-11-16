@@ -248,6 +248,9 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	defer st.Close(ctx)
 
 	d.Checkpoint = fmt.Sprintf("gaia-%d-%d", vm.ID, j.ID)
+	if s.restoreTag != "" {
+		d.Checkpoint += "-" + s.restoreTag
+	}
 	req := libvirtbackup.MultiRequest{Domain: vm.Name, Disks: targets, Checkpoint: d.Checkpoint,
 		Server:     libvirtbackup.Server{Network: "unix", Addr: fmt.Sprintf("%s%d.sock", socketPrefix, j.ID)},
 		ScratchDir: s.cfg.HostScratchDir}

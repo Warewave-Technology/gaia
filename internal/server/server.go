@@ -177,6 +177,17 @@ type Server struct {
 	testing           sync.Map // VM ID -> ID of its running restore test job
 	sandbox           *sandbox.Client
 	now               func() time.Time // the clock of the status model
+	kitMu             sync.Mutex       // one recovery kit write at a time
+	stateDirty        chan struct{}    // a job ended: back Gaia's state up soon
+	// Set by gaia server restore-state: the lost server may have made checkpoints after its last state backup with
+	// the job IDs this one issues again, so names made on hosts after a rebuild carry the rebuild's tag.
+	restoreTag string
+}
+
+// loadSSHKey is the key Gaia logs in to hosts with (created on first use).
+func loadSSHKey(cfg Config) (hostconn.Key, error) {
+	host, _ := os.Hostname()
+	return hostconn.LoadOrCreateKey(cfg.sshKeyPath(), "gaia@"+host)
 }
 
 func weekday(s string) time.Weekday {
@@ -206,9 +217,9 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		log.Info("migrated the state database", "versions", done, "schema", store.Latest())
 	}
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
-		maintenanceSafety: maintenance.SafetyFull, sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now}
-	host, _ := os.Hostname()
-	if s.sshKey, err = hostconn.LoadOrCreateKey(cfg.sshKeyPath(), "gaia@"+host); err != nil {
+		maintenanceSafety: maintenance.SafetyFull, sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
+		stateDirty: make(chan struct{}, 1)}
+	if s.sshKey, err = loadSSHKey(cfg); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("SSH key: %w", err)
 	}
@@ -217,6 +228,16 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		return nil, err
 	} else if n > 0 {
 		log.Warn("jobs interrupted by the last stop were marked failed", "count", n)
+	}
+	if s.restoreTag, err = db.RestoreTag(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if sum, err := kitSummary(ctx, cfg, db); err != nil {
+		db.Close()
+		return nil, err
+	} else if sum.State != "confirmed" {
+		log.Warn("recovery kit: "+sum.Text, "state", sum.State)
 	}
 	s.routes = s.table()
 	if s.openapi, err = OpenAPI(s.routes, s.version); err != nil {
@@ -289,6 +310,11 @@ func (s *Server) Run(ctx context.Context) error {
 	errc := make(chan error, 1)
 	go func() { errc <- hs.ServeTLS(ln, "", "") }()
 	go s.scheduleStateBackups(ctx)
+	s.jobsWG.Add(1)
+	go func() {
+		defer s.jobsWG.Done()
+		s.backupStateAfterChanges(ctx)
+	}()
 	go s.schedule(ctx)
 	s.log.Info("gaia server is listening", "address", ln.Addr().String(), "version", s.version, "schema", store.Latest())
 	select {

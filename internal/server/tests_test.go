@@ -80,7 +80,7 @@ func TestRestoreTestAndStatus(t *testing.T) {
 	s.now = func() time.Time { return clock }
 
 	var repo store.Repository
-	if st := f.do(f.tokens[store.RoleAdmin], "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q}`, filepath.Join(f.dir, "repo")), &repo); st != 201 {
+	if st := f.do(f.tokens[store.RoleAdmin], "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`, filepath.Join(f.dir, "repo"), kitPassphrase), &repo); st != 201 {
 		t.Fatalf("repository: %d", st)
 	}
 	h, _ := s.db.CreateHost(ctx, store.HostInput{Name: "kvm", Address: "kvm", SSHUser: "gaia-backup"})

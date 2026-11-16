@@ -116,6 +116,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 			s.jobsWG.Add(1)
 			go func(j store.Job) {
 				defer s.jobsWG.Done()
+				defer s.stateChanged()
 				defer s.testing.Delete(*j.VMID)
 				s.runTest(ctx, j)
 			}(j)
@@ -135,6 +136,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 		s.jobsWG.Add(1)
 		go func(j store.Job) {
 			defer s.jobsWG.Done()
+			defer s.stateChanged()
 			defer s.running.Delete(*j.VMID)
 			s.runBackup(ctx, j)
 		}(j)
@@ -198,6 +200,7 @@ func (s *Server) StartVerification(ctx context.Context, actor string, r store.Re
 	s.jobsWG.Add(1)
 	go func() {
 		defer s.jobsWG.Done()
+		defer s.stateChanged()
 		s.verify(ctx, actor, r, v)
 	}()
 	return v, nil

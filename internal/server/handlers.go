@@ -78,20 +78,30 @@ func (s *Server) systemInfo(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("the evidence key: %w", err)
 	}
+	kit, err := kitSummary(ctx, s.cfg, s.db)
+	if err != nil {
+		return 0, nil, err
+	}
 	return http.StatusOK, SystemInfo{Version: s.version, SchemaVersion: len(applied), Migrations: applied, EvidenceKeyID: evidence.KeyID(pub),
 		SSHPublicKey: s.sshKey.AuthorizedKey, SSHAuthorizedKey: `restrict,port-forwarding,command="/usr/bin/false" ` + s.sshKey.AuthorizedKey,
-		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository}, nil
+		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository, RecoveryKit: kit}, nil
 }
 
 // repoOptions are where Gaia keeps a repository's client config, password and cache (A2: 1 GiB hard limit).
 func (s *Server) repoOptions(name, location, password string) diskstore.RepoOptions {
-	return diskstore.RepoOptions{Path: location, ConfigFile: filepath.Join(s.cfg.kopiaDir(), name+".config"), Password: password,
-		CacheDir: filepath.Join(s.cfg.cacheDir(), name), ContentCacheMB: 512, ContentCacheLimitMB: 1024, MetadataCacheMB: 256,
+	return s.cfg.repoOptions(name, location, password)
+}
+
+func (c Config) repoOptions(name, location, password string) diskstore.RepoOptions {
+	return diskstore.RepoOptions{Path: location, ConfigFile: filepath.Join(c.kopiaDir(), name+".config"), Password: password,
+		CacheDir: filepath.Join(c.cacheDir(), name), ContentCacheMB: 512, ContentCacheLimitMB: 1024, MetadataCacheMB: 256,
 		MetadataCacheLimitMB: 512, Splitter: diskstore.Splitter}
 }
 
-func (s *Server) repoPasswordFile(name string) string {
-	return filepath.Join(s.cfg.secretsDir(), "repository-"+name+".password")
+func (s *Server) repoPasswordFile(name string) string { return s.cfg.repoPasswordFile(name) }
+
+func (c Config) repoPasswordFile(name string) string {
+	return filepath.Join(c.secretsDir(), "repository-"+name+".password")
 }
 
 func (s *Server) createRepository(c *call) (int, any, error) {
@@ -124,6 +134,12 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 	if !store.ValidName(in.Name) {
 		return 0, nil, fmt.Errorf("%w: a repository name is 1-128 of A-Z a-z 0-9 . _ - and starts with a letter or digit", store.ErrInvalid)
 	}
+	// The new kit must open the new repository: check its passphrase before anything is made.
+	s.kitMu.Lock()
+	defer s.kitMu.Unlock()
+	if err := checkKitPassphrase(s.cfg, in.KitPassphrase); err != nil {
+		return 0, nil, err
+	}
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return 0, nil, err
@@ -151,7 +167,11 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("the repository at %s was created but not recorded: %w", in.Location, err)
 	}
-	return created(c, "repository "+in.Name+" at "+in.Location, r, r.ID, nil)
+	kit, err := writeKit(ctx, s.cfg, s.cfgPath, s.db, c.user.Username, "repository "+in.Name+" created", in.KitPassphrase, s.version)
+	if err != nil {
+		return 0, nil, fmt.Errorf("repository %s was created, but the recovery kit could not be written (gaia kit regenerate): %w", in.Name, err)
+	}
+	return created(c, fmt.Sprintf("repository %s at %s; recovery kit %d", in.Name, in.Location, kit.Generation), r, r.ID, nil)
 }
 
 func writeExclusive(path string, data []byte, mode os.FileMode) error {

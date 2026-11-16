@@ -104,3 +104,10 @@ func (s *Store) ReadArchive(ctx context.Context, id string, w io.Writer) (Archiv
 	}
 	return a, nil
 }
+
+// DeleteArchive removes an archive's manifest. Its contents stay until garbage collection finds them unreferenced.
+func (s *Store) DeleteArchive(ctx context.Context, id string) error {
+	return repo.WriteSession(ctx, s.r, repo.WriteSessionOptions{Purpose: "gaia-archive-retention"}, func(wctx context.Context, w repo.RepositoryWriter) error {
+		return w.DeleteManifest(wctx, manifest.ID(id))
+	})
+}

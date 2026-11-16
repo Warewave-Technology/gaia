@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/Warewave-Technology/gaia/internal/recoverykit"
 	"github.com/Warewave-Technology/gaia/internal/server"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
@@ -22,23 +23,34 @@ func cmdServer(ctx context.Context, args []string) int {
 	// The database holds password hashes: nothing Gaia writes is readable by others (the unit sets the same).
 	syscall.Umask(0o027)
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate [flags]  (-h for flags)")
+		fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state [flags]  (-h for flags)")
 		return 3
 	}
 	switch args[0] {
 	case "init":
 		return cmdServerInit(ctx, args[1:])
+	case "restore-state":
+		return cmdServerRestoreState(ctx, args[1:])
 	case "run":
 		return cmdServerRun(ctx, args[1:])
 	case "migrate":
 		return cmdServerMigrate(ctx, args[1:])
 	}
-	fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state [flags]")
 	return 3
 }
 
 // readPassword reads a password from a file, $GAIA_PASSWORD, or the terminal without echo (twice when confirm).
 func readPassword(file, prompt string, confirm bool) (string, error) {
+	return readSecret(file, "GAIA_PASSWORD", prompt, confirm)
+}
+
+// readKitPassphrase reads the recovery kit's passphrase from a file, $GAIA_KIT_PASSPHRASE, or the terminal.
+func readKitPassphrase(file, prompt string, confirm bool) (string, error) {
+	return readSecret(file, "GAIA_KIT_PASSPHRASE", prompt, confirm)
+}
+
+func readSecret(file, env, prompt string, confirm bool) (string, error) {
 	if file != "" {
 		b, err := os.ReadFile(file)
 		if err != nil {
@@ -46,14 +58,14 @@ func readPassword(file, prompt string, confirm bool) (string, error) {
 		}
 		return strings.TrimRight(string(b), "\r\n"), nil
 	}
-	if p := os.Getenv("GAIA_PASSWORD"); p != "" {
+	if p := os.Getenv(env); p != "" {
 		return p, nil
 	}
 	fd := int(os.Stdin.Fd())
 	if !term.IsTerminal(fd) {
 		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil && line == "" {
-			return "", errors.New("no password: give -password-file, set GAIA_PASSWORD, or run in a terminal")
+			return "", fmt.Errorf("no input: give the file flag, set %s, or run in a terminal", env)
 		}
 		return strings.TrimRight(line, "\r\n"), nil
 	}
@@ -85,14 +97,19 @@ func cmdServerInit(ctx context.Context, args []string) int {
 	names := fs.String("hostname", "", "comma-separated names or addresses clients use to reach this server (for the TLS certificate)")
 	admin := fs.String("admin", "admin", "the first admin's username")
 	pwFile := fs.String("password-file", "", "file holding the first admin's password (default: ask)")
+	kitFile := fs.String("kit-passphrase-file", "", "file holding the recovery kit's passphrase (default: $GAIA_KIT_PASSPHRASE, or ask)")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
 	pw, err := readPassword(*pwFile, fmt.Sprintf("Password for %s (at least %d characters): ", *admin, store.MinPasswordLength), true)
 	if err != nil {
 		return fail(*asJSON, "server init", err)
 	}
+	pass, err := readKitPassphrase(*kitFile, fmt.Sprintf("Passphrase for the recovery kit (at least %d characters; Gaia does not store it): ", recoverykit.MinPassphrase), true)
+	if err != nil {
+		return fail(*asJSON, "server init", err)
+	}
 	r, err := server.Init(ctx, server.InitOptions{ConfigPath: *config, DataDir: *dataDir, Listen: *listen, Hostnames: strings.Split(*names, ","),
-		AdminUser: *admin, AdminPassword: pw})
+		AdminUser: *admin, AdminPassword: pw, KitPassphrase: pass})
 	if err != nil {
 		return fail(*asJSON, "server init", err)
 	}
@@ -115,8 +132,13 @@ Write these two down; you will need them:
       (the key_id that signs every evidence bundle; an auditor checks evidence against it)
 
 The certificate is valid for: %s
+
+The recovery kit (generation %d) is %s.
+It is encrypted with the passphrase you chose; keep that passphrase in your password manager. Every new
+repository writes a new kit: save it off this server after creating the repository (gaia kit save).
+
 Next: start the service (systemctl enable --now gaia), then gaia login -server https://<host>:<port> -user %s
-`, *config, r.Config.DataDir, r.Config.Listen, r.Admin, r.CertSHA256, r.EvidenceKeyID, strings.Join(r.CertNames, ", "), r.Admin)
+`, *config, r.Config.DataDir, r.Config.Listen, r.Admin, r.CertSHA256, r.EvidenceKeyID, strings.Join(r.CertNames, ", "), r.KitGeneration, r.Kit, r.Admin)
 	return 0
 }
 

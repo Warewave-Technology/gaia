@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/recoverykit"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -32,6 +33,7 @@ type InitOptions struct {
 	Hostnames     []string // names and addresses clients use; the host name, localhost and loopback are added
 	AdminUser     string
 	AdminPassword string
+	KitPassphrase string // encrypts the recovery kit (ADR-007 B5)
 }
 
 // InitResult is what the operator must write down.
@@ -41,6 +43,8 @@ type InitResult struct {
 	CertNames     []string `json:"tls_certificate_names"`
 	EvidenceKeyID string   `json:"evidence_key_id"` // the evidence trust anchor (ADR-006, spec §3)
 	Admin         string   `json:"admin"`
+	Kit           string   `json:"recovery_kit"` // the file; it must be stored off the server
+	KitGeneration int64    `json:"recovery_kit_generation"`
 }
 
 // Init creates the data directory, the TLS certificate, the evidence signing key, the database and the first
@@ -52,6 +56,9 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 	}
 	if _, err := os.Stat(o.ConfigPath); err == nil {
 		return InitResult{}, fmt.Errorf("%s exists: this host is already set up", o.ConfigPath)
+	}
+	if err := recoverykit.CheckPassphrase(o.KitPassphrase); err != nil {
+		return InitResult{}, err
 	}
 	if _, err := os.Stat(cfg.dbPath()); err == nil {
 		return InitResult{}, fmt.Errorf("%s exists: this data directory is already in use", cfg.dbPath())
@@ -74,6 +81,9 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 	if err != nil {
 		return InitResult{}, fmt.Errorf("evidence key: %w", err)
 	}
+	if _, err := loadSSHKey(cfg); err != nil {
+		return InitResult{}, fmt.Errorf("SSH key: %w", err)
+	}
 	db, err := store.Open(cfg.dbPath())
 	if err != nil {
 		return InitResult{}, err
@@ -95,7 +105,12 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 	if err := writeExclusive(o.ConfigPath, append(b, '\n'), 0o640); err != nil {
 		return InitResult{}, err
 	}
-	return InitResult{Config: cfg, CertSHA256: fp, CertNames: names, EvidenceKeyID: keyID, Admin: o.AdminUser}, nil
+	kit, err := writeKit(ctx, cfg, o.ConfigPath, db, "gaia server init", "server init", o.KitPassphrase, buildVersion())
+	if err != nil {
+		return InitResult{}, fmt.Errorf("recovery kit: %w", err)
+	}
+	return InitResult{Config: cfg, CertSHA256: fp, CertNames: names, EvidenceKeyID: keyID, Admin: o.AdminUser, Kit: cfg.kitPath(),
+		KitGeneration: kit.Generation}, nil
 }
 
 func certNames(extra []string) []string {

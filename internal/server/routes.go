@@ -74,6 +74,8 @@ type RepositoryCreate struct {
 	Name     string `json:"name"`
 	Kind     string `json:"kind"`     // filesystem (s3: not yet)
 	Location string `json:"location"` // an absolute path for filesystem
+	// The passphrase of the recovery kit: a new repository means a new kit, which must open it (ADR-007 B5).
+	KitPassphrase string `json:"kit_passphrase"`
 }
 
 // Health is the unauthenticated liveness answer.
@@ -140,6 +142,7 @@ type SystemInfo struct {
 	StartedAt        string                   `json:"started_at"`
 	StateBackupAt    string                   `json:"state_backup_at"`
 	StateBackupRepo  string                   `json:"state_backup_repository"`
+	RecoveryKit      KitSummary               `json:"recovery_kit"`
 }
 
 func list[T any](v []T, err error) (int, any, error) {
@@ -772,6 +775,16 @@ func (s *Server) table() []route {
 				}
 				return status, b, nil
 			}},
+
+		// --- recovery kit (ADR-007 B5) ---
+		{method: "GET", path: "/api/v1/recovery-kit", summary: "Whether the recovery kit can rebuild this server, and every kit written", roles: anyRole,
+			out: KitInfo{}, h: s.kitInfo},
+		{method: "GET", path: "/api/v1/recovery-kit/file", summary: "The newest recovery kit (age, encrypted with its passphrase)", roles: adminOnly,
+			auditRead: true, h: s.kitFile},
+		{method: "POST", path: "/api/v1/recovery-kit", summary: "Write a new recovery kit (also to change its passphrase)", roles: adminOnly,
+			in: KitPassphrase{}, out: store.RecoveryKit{}, status: http.StatusCreated, example: `{"passphrase":"not the passphrase"}`, h: s.regenerateKit},
+		{method: "POST", path: "/api/v1/recovery-kit/confirm", summary: "Record that a copy of the newest kit, opened with its passphrase, is stored off the server",
+			roles: adminOnly, in: KitConfirm{}, out: store.RecoveryKit{}, example: `{"generation":99,"sha256":"00"}`, h: s.confirmKit},
 	}
 }
 

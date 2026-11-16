@@ -31,6 +31,7 @@ import (
 //	gaia points disks ID | restore-check ID
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
+//	gaia kit status | save | confirm | regenerate | show  the recovery kit (kit.go)
 //	gaia api METHOD PATH [JSON]                          any API call
 //
 // -json anywhere prints the server's JSON instead of a table.
@@ -59,7 +60,7 @@ var resources = map[string]resource{
 // isCLICommand reports whether args[0] is handled by runCLI.
 func isCLICommand(name string) bool {
 	_, ok := resources[name]
-	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "api", "status"}, name)
+	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "api", "status", "kit"}, name)
 }
 
 // stripJSON removes -json / --json from args.
@@ -81,6 +82,9 @@ func runCLI(ctx context.Context, args []string) int {
 	cmd := args[0]
 	if cmd == "login" {
 		return cliLogin(ctx, args[1:], asJSON)
+	}
+	if cmd == "kit" {
+		return cliKit(ctx, args[1:], asJSON)
 	}
 	cfg, err := client.Load()
 	if err != nil {
@@ -175,6 +179,11 @@ func runCLI(ctx context.Context, args []string) int {
 		}
 		if cmd == "users" {
 			if err := askPassword(body, "Password for the new user: "); err != nil {
+				return fail(asJSON, cmd, err)
+			}
+		}
+		if cmd == "repositories" {
+			if err := repoKitPassphrase(ctx, c, body); err != nil {
 				return fail(asJSON, cmd, err)
 			}
 		}
@@ -532,6 +541,17 @@ func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool
 		}
 		for _, n := range vs[0].Notes {
 			fmt.Printf("  note: %s\n", n)
+		}
+	}
+	// The recovery kit is not a VM's status, but an operator looking here must see when the server cannot be rebuilt.
+	if kb, _, err := c.Do(ctx, "GET", "/api/v1/recovery-kit", nil); err != nil {
+		fmt.Printf("\nrecovery kit: UNKNOWN (%v)\n", err)
+	} else {
+		var info struct {
+			Summary kitSummary `json:"summary"`
+		}
+		if err := json.Unmarshal(kb, &info); err != nil || info.Summary.State != "confirmed" {
+			fmt.Printf("\nWARNING recovery kit: %s\n", info.Summary.Text)
 		}
 	}
 	return code

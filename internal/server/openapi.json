@@ -434,6 +434,76 @@
         ],
         "type": "object"
       },
+      "KitConfirm": {
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "generation",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "KitInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "kits": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryKit"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/KitSummary"
+          }
+        },
+        "required": [
+          "kits",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "KitPassphrase": {
+        "additionalProperties": false,
+        "properties": {
+          "new_passphrase": {
+            "type": "string"
+          },
+          "passphrase": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "passphrase"
+        ],
+        "type": "object"
+      },
+      "KitSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "generation",
+          "state",
+          "text"
+        ],
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -848,6 +918,49 @@
         ],
         "type": "object"
       },
+      "RecoveryKit": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_at": {
+            "type": "string"
+          },
+          "confirmed_by": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "repositories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmed_at",
+          "confirmed_by",
+          "created_at",
+          "created_by",
+          "generation",
+          "reason",
+          "repositories",
+          "sha256"
+        ],
+        "type": "object"
+      },
       "Repository": {
         "additionalProperties": false,
         "properties": {
@@ -890,6 +1003,9 @@
           "kind": {
             "type": "string"
           },
+          "kit_passphrase": {
+            "type": "string"
+          },
           "location": {
             "type": "string"
           },
@@ -899,6 +1015,7 @@
         },
         "required": [
           "kind",
+          "kit_passphrase",
           "location",
           "name"
         ],
@@ -1171,6 +1288,9 @@
             },
             "type": "array"
           },
+          "recovery_kit": {
+            "$ref": "#/components/schemas/KitSummary"
+          },
           "schema_version": {
             "type": "integer"
           },
@@ -1196,6 +1316,7 @@
         "required": [
           "evidence_key_id",
           "migrations",
+          "recovery_kit",
           "schema_version",
           "ssh_authorized_keys_line",
           "ssh_public_key",
@@ -4170,6 +4291,325 @@
         "x-gaia-roles": [
           "admin",
           "operator"
+        ]
+      }
+    },
+    "/api/v1/recovery-kit": {
+      "get": {
+        "operationId": "get_recovery_kit",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Whether the recovery kit can rebuild this server, and every kit written",
+        "tags": [
+          "recovery-kit"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      },
+      "post": {
+        "operationId": "post_recovery_kit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KitPassphrase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryKit"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Write a new recovery kit (also to change its passphrase)",
+        "tags": [
+          "recovery-kit"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/recovery-kit/confirm": {
+      "post": {
+        "operationId": "post_recovery_kit_confirm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KitConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryKit"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Record that a copy of the newest kit, opened with its passphrase, is stored off the server",
+        "tags": [
+          "recovery-kit"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/recovery-kit/file": {
+      "get": {
+        "operationId": "get_recovery_kit_file",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "The newest recovery kit (age, encrypted with its passphrase)",
+        "tags": [
+          "recovery-kit"
+        ],
+        "x-gaia-roles": [
+          "admin"
         ]
       }
     },

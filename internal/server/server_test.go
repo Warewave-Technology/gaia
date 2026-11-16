@@ -20,6 +20,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/diskstore"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/recoverykit"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -28,7 +29,15 @@ var (
 	matrixOut     = flag.String("matrix", "", "write the role × endpoint matrix (markdown) to this file")
 )
 
-const adminPassword = "the admin password for tests"
+const (
+	adminPassword = "the admin password for tests"
+	kitPassphrase = "the recovery kit passphrase for tests"
+)
+
+func TestMain(m *testing.M) {
+	recoverykit.SetWorkFactor(10) // age's default costs 256 MiB and a second per kit
+	os.Exit(m.Run())
+}
 
 type fixture struct {
 	t       *testing.T
@@ -45,10 +54,10 @@ func newFixture(t *testing.T) *fixture {
 	ctx := context.Background()
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "etc", "server.json")
-	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword}); err != nil {
+	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword, KitPassphrase: kitPassphrase}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword}); err == nil {
+	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword, KitPassphrase: kitPassphrase}); err == nil {
 		t.Fatal("Init ran twice on the same installation")
 	}
 	cfg, err := LoadConfig(cfgPath)
@@ -121,7 +130,7 @@ func (f *fixture) do(token, method, path, body string, out any) int {
 func (f *fixture) seed() {
 	t, ctx, admin := f.t, context.Background(), f.tokens[store.RoleAdmin]
 	var repo store.Repository
-	if st := f.do(admin, "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q}`, filepath.Join(f.dir, "repo")), &repo); st != http.StatusCreated {
+	if st := f.do(admin, "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`, filepath.Join(f.dir, "repo"), kitPassphrase), &repo); st != http.StatusCreated {
 		t.Fatalf("repository: %d", st)
 	}
 	var h store.Host

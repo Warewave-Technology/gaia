@@ -3,6 +3,7 @@ module github.com/Warewave-Technology/gaia
 go 1.26.0
 
 require (
+	filippo.io/age v1.3.2
 	github.com/digitalocean/go-libvirt v0.0.0-20261013170128-efbbdf578ac8
 	github.com/kopia/kopia v0.23.1
 	github.com/vmware/govmomi v0.56.2
@@ -12,6 +13,7 @@ require (
 )
 
 require (
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.12.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.7.0 // indirect
