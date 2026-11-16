@@ -321,6 +321,8 @@ ss_capture() {
 		ss -ltnp
 		echo "# ss -xlp (unix listeners of qemu)"
 		ss -xlp | grep -E 'qemu|gaia-' || true
+		echo "# ss -xp (connected unix sockets: the NBD export and who holds the other end)"
+		ss -xp | grep -E 'gaia-[0-9]+\.sock|sshd' | grep -v LISTEN || true
 	} >>"$OUT_DIR/ss.txt"
 	ss -ltnp | awk 'NR > 1' | grep -c qemu-system || true
 }
@@ -465,11 +467,12 @@ blob=${blob//\//}
 blob=${blob%.f}
 mkdir -p "$WORK/kopia-cli"
 if KOPIA_PASSWORD="$(cat "$SRV_HOME/data/secrets/repository-main.password")" kopia --config-file="$WORK/kopia-cli/k.config" \
-	--cache-directory="$WORK/kopia-cli/cache" repository connect filesystem --path="$SRV_HOME/repo" --readonly >/dev/null 2>&1; then
+	repository connect filesystem --path="$SRV_HOME/repo" --cache-directory="$WORK/kopia-cli/cache" --readonly >"$OUT_DIR/kopia-connect.log" 2>&1; then
 	KOPIA_PASSWORD="$(cat "$SRV_HOME/data/secrets/repository-main.password")" kopia --config-file="$WORK/kopia-cli/k.config" \
 		content list --json 2>/dev/null | jq -c --arg b "$blob" '[.[] | select(.packFile == $b) | .contentID]' |
 		tee "$OUT_DIR/corrupt-pack-contents.json" | jq -c '{contents_in_pack: length, first: .[0:5]}'
 else
+	tail -5 "$OUT_DIR/kopia-connect.log"
 	echo "WARNING: kopia CLI could not open the repository; no cross-check" | tee "$OUT_DIR/corrupt-pack-contents.json"
 fi
 v=$(api repositories verify "$repo_id" mode=full | jq .id)

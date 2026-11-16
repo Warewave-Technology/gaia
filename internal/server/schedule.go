@@ -16,10 +16,18 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
+// tick is how often the scheduler looks; tickSlack lets a backup that falls due a few milliseconds after a tick
+// start at that tick (a job's created_at is written just after its tick, so the next one would otherwise slip a whole
+// tick every cycle).
+const (
+	tick      = 15 * time.Second
+	tickSlack = time.Second
+)
+
 // schedule queues backups as policies say, starts queued backups, and starts the daily sampled and weekly full
 // repository verifications, until ctx ends.
 func (s *Server) schedule(ctx context.Context) {
-	t := time.NewTicker(15 * time.Second)
+	t := time.NewTicker(tick)
 	defer t.Stop()
 	for {
 		if err := s.tick(ctx, time.Now()); err != nil && ctx.Err() == nil {
@@ -72,7 +80,7 @@ func (s *Server) queueDueBackups(ctx context.Context, now time.Time) error {
 			if err != nil {
 				return err
 			}
-			if now.Sub(t) < time.Duration(pol.BackupIntervalS)*time.Second {
+			if now.Sub(t) < time.Duration(pol.BackupIntervalS)*time.Second-tickSlack {
 				continue
 			}
 		}
