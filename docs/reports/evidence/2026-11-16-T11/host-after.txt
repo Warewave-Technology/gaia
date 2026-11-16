@@ -1,0 +1,5 @@
+gaia-t11-win vmid=13 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-16 08:24:18 +0000 gaia-t11-win-flat.vmdk
+  -rw-------    1 root     root           478 2026-11-16 08:22:26 +0000 gaia-t11-win.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-16 08:24:20 +0000 gaia-t11-win.vmsd
+  -rw-r--r--    1 root     root           435 2026-11-16 08:24:19 +0000 gaia-t11-win.vmx

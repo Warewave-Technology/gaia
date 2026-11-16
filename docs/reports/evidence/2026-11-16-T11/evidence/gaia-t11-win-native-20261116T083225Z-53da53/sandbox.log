@@ -1,0 +1,49 @@
+[08:32:41.802] image /var/lib/gaia/images/gaia-t11-win.qcow2: sha256 e72bd7a126ecca978fff4388fbd85614da769e4f98ed68c42c6b5e0cedaf19ec (9274851328 bytes)
+[08:32:41.856] $ sysctl -q -w net.ipv6.conf.gvb-53da53.disable_ipv6=1
+
+[08:32:41.862] $ ip netns add gaia-verify-53da53
+
+[08:32:41.866] $ ip link add gvh-53da53 type veth peer name gvn-53da53
+
+[08:32:41.867] $ sysctl -q -w net.ipv6.conf.gvh-53da53.disable_ipv6=1
+
+[08:32:41.879] $ ip link set gvh-53da53 master gvb-53da53 up
+
+[08:32:41.915] $ ip link set gvn-53da53 netns gaia-verify-53da53
+
+[08:32:41.917] $ ip -n gaia-verify-53da53 addr add 10.254.0.1/24 dev gvn-53da53
+
+[08:32:41.922] $ ip -n gaia-verify-53da53 link set gvn-53da53 up
+
+[08:32:41.924] $ ip -n gaia-verify-53da53 link set lo up
+
+[08:32:41.924] $ ip netns exec gaia-verify-53da53 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-53da53 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-53da53/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-53da53/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-53da53/dnsmasq.log --user=root --group=root
+[08:32:41.990] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia/images/gaia-t11-win.qcow2 /var/lib/libvirt/images/gaia-verify-53da53/overlay.qcow2
+
+[08:32:43.474] $ ip -o addr show dev gvb-53da53
+
+[08:32:43.477] $ ip -n gaia-verify-53da53 route show table all
+10.254.0.0/24 dev gvn-53da53 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-53da53 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-53da53 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-53da53 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-53da53 table local proto kernel metric 256 pref medium
+[08:32:43.478] guest started (kvm)
+[08:33:15.506] guest 00:50:56:3f:b1:01 has 10.254.0.77 after 32.028 s
+[08:33:16.667] $ ip netns exec gaia-verify-53da53 /root/gaia/bin/gaia probe -check {"name":"boot","type":"rdp","port":3389,"boot":true} -host 10.254.0.77 -timeout 867
+{"ok":true,"attempts":1,"seconds":1.151870889,"detail":"10.254.0.77:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00)"}
+[08:33:16.667] check boot: OK (10.254.0.77:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00))
+[08:33:16.667] boot reached after 33.189 s
+[08:33:17.178] $ virsh screenshot gaia-verify-53da53 --file /var/lib/libvirt/images/gaia-verify-53da53/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-53da53/screenshot-boot.ppm, with type of image/png
+[08:33:17.237] $ ip netns exec gaia-verify-53da53 /root/gaia/bin/gaia probe -check {"name":"winrm","type":"http","port":5985,"path":"/wsman","expect_status":405} -host 10.254.0.77 -timeout 300
+{"ok":true,"attempts":1,"seconds":0.052289075,"detail":"GET http://10.254.0.77:5985/wsman: 405","status":405}
+[08:33:17.237] check winrm: OK (GET http://10.254.0.77:5985/wsman: 405)
+[08:33:17.658] $ virsh screenshot gaia-verify-53da53 --file /var/lib/libvirt/images/gaia-verify-53da53/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-53da53/screenshot-end.ppm, with type of image/png
+[08:33:29.667] $ ip netns del gaia-verify-53da53
+

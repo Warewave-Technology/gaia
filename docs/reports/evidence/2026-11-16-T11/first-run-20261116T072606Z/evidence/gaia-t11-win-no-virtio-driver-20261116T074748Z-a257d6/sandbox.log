@@ -1,0 +1,42 @@
+[07:47:58.758] image /var/lib/gaia/images/gaia-t11-win.qcow2: sha256 58c21b564e10eeac8713ea32493606ee544bc502f5f43dea92f1dacd48643f3b (9300410368 bytes)
+[07:47:58.812] $ sysctl -q -w net.ipv6.conf.gvb-a257d6.disable_ipv6=1
+
+[07:47:58.819] $ ip netns add gaia-verify-a257d6
+
+[07:47:58.823] $ ip link add gvh-a257d6 type veth peer name gvn-a257d6
+
+[07:47:58.824] $ sysctl -q -w net.ipv6.conf.gvh-a257d6.disable_ipv6=1
+
+[07:47:58.838] $ ip link set gvh-a257d6 master gvb-a257d6 up
+
+[07:47:58.871] $ ip link set gvn-a257d6 netns gaia-verify-a257d6
+
+[07:47:58.874] $ ip -n gaia-verify-a257d6 addr add 10.254.0.1/24 dev gvn-a257d6
+
+[07:47:58.880] $ ip -n gaia-verify-a257d6 link set gvn-a257d6 up
+
+[07:47:58.881] $ ip -n gaia-verify-a257d6 link set lo up
+
+[07:47:58.881] $ ip netns exec gaia-verify-a257d6 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-a257d6 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-a257d6/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-a257d6/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-a257d6/dnsmasq.log --user=root --group=root
+[07:47:58.918] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia/images/gaia-t11-win.qcow2 /var/lib/libvirt/images/gaia-verify-a257d6/overlay.qcow2
+
+[07:48:00.111] $ ip -o addr show dev gvb-a257d6
+
+[07:48:00.114] $ ip -n gaia-verify-a257d6 route show table all
+10.254.0.0/24 dev gvn-a257d6 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-a257d6 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-a257d6 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-a257d6 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-a257d6 table local proto kernel metric 256 pref medium
+[07:48:00.116] guest started (kvm)
+[07:53:00.375] boot not reached: the guest took no DHCP lease within the 300 s boot timeout
+[07:53:00.779] $ virsh screenshot gaia-verify-a257d6 --file /var/lib/libvirt/images/gaia-verify-a257d6/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-a257d6/screenshot-boot.ppm, with type of image/png
+[07:53:01.120] $ virsh screenshot gaia-verify-a257d6 --file /var/lib/libvirt/images/gaia-verify-a257d6/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-a257d6/screenshot-end.ppm, with type of image/png
+[07:53:01.872] $ ip netns del gaia-verify-a257d6
+

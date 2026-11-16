@@ -1,0 +1,146 @@
+{
+  "source": "192.168.1.29",
+  "product": "VMware ESXi 8.0.3 build-24677879",
+  "inventory": [
+    {
+      "name": "gaia-t11-win",
+      "uuid": "",
+      "power_state": "poweredOff",
+      "guest_id": "windows2019srvNext_64Guest",
+      "guest_full_name": "Microsoft Windows Server 2022 (64-bit)",
+      "firmware": "bios",
+      "cpus": 2,
+      "memory_mib": 4096,
+      "vmx": "[datastore1] gaia-t11-win/gaia-t11-win.vmx",
+      "datacenter": "ha-datacenter",
+      "disks": [
+        {
+          "label": "Hard disk 1",
+          "file": "[datastore1] gaia-t11-win/gaia-t11-win.vmdk",
+          "capacity_bytes": 34359738368,
+          "thin": true
+        }
+      ],
+      "nics": [
+        {
+          "label": "Network adapter 1",
+          "type": "VirtualE1000e",
+          "mac": "00:50:56:3f:b1:01"
+        }
+      ],
+      "files": [
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmx",
+          "type": "config",
+          "size": 435
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmsd",
+          "type": "snapshotList",
+          "size": 0
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmdk",
+          "type": "diskDescriptor",
+          "size": 478
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win-flat.vmdk",
+          "type": "diskExtent",
+          "size": 9251586048
+        }
+      ],
+      "has_snapshots": false,
+      "template": false,
+      "moref": "13"
+    }
+  ],
+  "virtio_win": {
+    "path": "/var/lib/gaia/images/virtio-win-0.1.302.iso",
+    "bytes": 877373440,
+    "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d"
+  },
+  "vms": [
+    {
+      "vm": "gaia-t11-win",
+      "readiness": "OK",
+      "bundle_id": "gaia-t11-win-20261116T083108Z-568763",
+      "ledger_seq": 1,
+      "checks": [
+        {
+          "name": "source_vm",
+          "type": "inventory",
+          "verdict": "OK",
+          "seconds": 0.000359258,
+          "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "type": "power_state",
+          "verdict": "OK",
+          "seconds": 1.4e-7,
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "type": "files",
+          "verdict": "OK",
+          "seconds": 0.000005169,
+          "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+        },
+        {
+          "name": "download",
+          "type": "datastore_http",
+          "verdict": "OK",
+          "seconds": 335.728450558,
+          "detail": "3 files, 34359739281 bytes in 335.7 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "type": "virt-v2v",
+          "verdict": "OK",
+          "seconds": 56.035014464,
+          "detail": "gaia-t11-win-sda (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01) in 56.0 s"
+        },
+        {
+          "name": "boot",
+          "type": "rdp",
+          "verdict": "OK",
+          "seconds": 42.350589727,
+          "attempts": 1,
+          "detail": "10.254.0.77:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00) (DHCP lease 10.254.0.77, then the probe)"
+        },
+        {
+          "name": "winrm",
+          "type": "http",
+          "verdict": "OK",
+          "seconds": 43.026783624,
+          "attempts": 1,
+          "detail": "GET http://10.254.0.77:5985/wsman: 405"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 42.350589727,
+        "conversion": 56.034495156,
+        "download": 335.728440878,
+        "image_hash": 10.733822937,
+        "ready": 43.026783624,
+        "sandbox_setup": 1.665659633,
+        "shutdown": 7.005243657,
+        "total": 75.063210425
+      }
+    }
+  ],
+  "verdict": "OK",
+  "calls": 6,
+  "blocked_calls": 0,
+  "started": "2026-11-16T08:24:24.98288993Z",
+  "finished": "2026-11-16T08:32:24.049941934Z"
+}

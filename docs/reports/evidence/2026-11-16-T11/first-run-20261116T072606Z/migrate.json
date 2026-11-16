@@ -1,0 +1,125 @@
+{
+  "source": "192.168.1.29",
+  "product": "VMware ESXi 8.0.3 build-24677879",
+  "inventory": [
+    {
+      "name": "gaia-t11-win",
+      "uuid": "",
+      "power_state": "poweredOff",
+      "guest_id": "windows2019srvNext_64Guest",
+      "guest_full_name": "Microsoft Windows Server 2022 (64-bit)",
+      "firmware": "bios",
+      "cpus": 2,
+      "memory_mib": 4096,
+      "vmx": "[datastore1] gaia-t11-win/gaia-t11-win.vmx",
+      "datacenter": "ha-datacenter",
+      "disks": [
+        {
+          "label": "Hard disk 1",
+          "file": "[datastore1] gaia-t11-win/gaia-t11-win.vmdk",
+          "capacity_bytes": 34359738368,
+          "thin": true
+        }
+      ],
+      "nics": [
+        {
+          "label": "Network adapter 1",
+          "type": "VirtualE1000e",
+          "mac": "00:50:56:3f:b1:01"
+        }
+      ],
+      "files": [
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmx",
+          "type": "config",
+          "size": 435
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmsd",
+          "type": "snapshotList",
+          "size": 0
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win.vmdk",
+          "type": "diskDescriptor",
+          "size": 478
+        },
+        {
+          "name": "[datastore1] gaia-t11-win/gaia-t11-win-flat.vmdk",
+          "type": "diskExtent",
+          "size": 9291431936
+        }
+      ],
+      "has_snapshots": false,
+      "template": false,
+      "moref": "11"
+    }
+  ],
+  "virtio_win": {
+    "path": "/var/lib/gaia/images/virtio-win-0.1.302.iso",
+    "bytes": 877373440,
+    "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d"
+  },
+  "vms": [
+    {
+      "vm": "gaia-t11-win",
+      "readiness": "CRITICAL",
+      "bundle_id": "gaia-t11-win-20261116T073222Z-ddf989",
+      "ledger_seq": 1,
+      "checks": [
+        {
+          "name": "source_vm",
+          "type": "inventory",
+          "verdict": "OK",
+          "seconds": 0.000158319,
+          "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "type": "power_state",
+          "verdict": "OK",
+          "seconds": 7e-8,
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "type": "files",
+          "verdict": "OK",
+          "seconds": 0.00000309,
+          "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+        },
+        {
+          "name": "download",
+          "type": "datastore_http",
+          "verdict": "OK",
+          "seconds": 150.102588658,
+          "detail": "3 files, 34359739281 bytes in 150.1 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "type": "virt-v2v",
+          "verdict": "CRITICAL",
+          "seconds": 14.07680804,
+          "detail": "virt-v2v: exit status 1 (last line:   virt-v2v -v -x [...])"
+        },
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "UNKNOWN",
+          "seconds": 0,
+          "detail": "not run: the conversion failed"
+        }
+      ],
+      "timings_s": {
+        "conversion": 14.07680414,
+        "download": 150.102579838,
+        "total": 0.001349241
+      }
+    }
+  ],
+  "verdict": "CRITICAL",
+  "calls": 6,
+  "blocked_calls": 0,
+  "started": "2026-11-16T07:29:37.585980563Z",
+  "finished": "2026-11-16T07:32:22.618280285Z"
+}

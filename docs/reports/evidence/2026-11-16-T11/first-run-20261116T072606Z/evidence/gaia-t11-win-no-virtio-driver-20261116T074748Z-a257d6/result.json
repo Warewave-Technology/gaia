@@ -1,0 +1,75 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t11-win-no-virtio-driver-20261116T074748Z-a257d6",
+  "vm": "gaia-t11-win-no-virtio-driver",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "rdp",
+      "verdict": "CRITICAL",
+      "seconds": 300.259092599,
+      "detail": "the guest took no DHCP lease within the 300 s boot timeout"
+    },
+    {
+      "name": "winrm",
+      "type": "http",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia/images/gaia-t11-win.qcow2",
+    "format": "qcow2",
+    "bytes": 9300410368,
+    "sha256_before": "58c21b564e10eeac8713ea32493606ee544bc502f5f43dea92f1dacd48643f3b",
+    "sha256_after": "58c21b564e10eeac8713ea32493606ee544bc502f5f43dea92f1dacd48643f3b",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-a257d6",
+    "network": "gaia-verify-a257d6",
+    "bridge": "gvb-a257d6",
+    "netns": "gaia-verify-a257d6",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-a257d6 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-a257d6 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-a257d6 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-a257d6 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-a257d6 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "image_hash": 10.679583144,
+    "sandbox_setup": 1.355706743,
+    "shutdown": 0.750217296,
+    "total": 324.156860076
+  },
+  "shutdown": "forced (not booted)",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-16T07:47:48.078938873Z",
+  "finished": "2026-11-16T07:53:12.235798949Z"
+}

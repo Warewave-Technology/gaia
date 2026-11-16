@@ -1,0 +1,2 @@
+fe369ec fixture-t11: inspect the built disk's registry (setup state, RDP and WinRM firewall rules); recorded RDP reply as a test
+{"image_state": "IMAGE_STATE_COMPLETE", "firewall_rules": {"RemoteDesktop-UserMode-In-TCP": {"active": true, "profiles": ["all"], "remote": ["any"]}, "WINRM-HTTP-In-TCP": {"active": true, "profiles": ["Domain", "Private"], "remote": ["any"]}, "WINRM-HTTP-In-TCP-PUBLIC": {"active": true, "profiles": ["Public"], "remote": ["LocalSubnet"]}}}

@@ -1,0 +1,45 @@
+Nov 16 08:31:20 dnsmasq[80795]: started, version 2.90 DNS disabled
+Nov 16 08:31:20 dnsmasq[80795]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua TFTP conntrack ipset nftset auth cryptohash DNSSEC loop-detect inotify dumpfile
+Nov 16 08:31:20 dnsmasq-dhcp[80795]: DHCP, IP range 10.254.0.10 -- 10.254.0.99, lease time 1h
+Nov 16 08:31:20 dnsmasq-dhcp[80795]: DHCP, sockets bound exclusively to interface gvn-568763
+Nov 16 08:32:00 dnsmasq-dhcp[80795]: 2990676976 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 16 08:32:00 dnsmasq-dhcp[80795]: 2990676976 vendor class: MSFT 5.0
+Nov 16 08:32:00 dnsmasq-dhcp[80795]: 2990676976 client provides name: GAIA-T11-WIN
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 DHCPDISCOVER(gvn-568763) 00:50:56:3f:b1:01 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 tags: gvn-568763
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 DHCPOFFER(gvn-568763) 10.254.0.77 00:50:56:3f:b1:01 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 1:netmask, 3:router, 6:dns-server, 15:domain-name, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 31:router-discovery, 33:static-route, 43:vendor-encap, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 44:netbios-ns, 46:netbios-nodetype, 47:netbios-scope, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 119:domain-search, 121:classless-static-route, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 249, 252
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 next server: 10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  1 option: 53 message-type  2
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 51 lease-time  1h
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 58 T1  30m
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 59 T2  52m30s
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option:  3 router  10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 vendor class: MSFT 5.0
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 client provides name: GAIA-T11-WIN
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 DHCPREQUEST(gvn-568763) 10.254.0.77 00:50:56:3f:b1:01 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 tags: gvn-568763
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 DHCPACK(gvn-568763) 10.254.0.77 00:50:56:3f:b1:01 GAIA-T11-WIN
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 1:netmask, 3:router, 6:dns-server, 15:domain-name, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 31:router-discovery, 33:static-route, 43:vendor-encap, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 44:netbios-ns, 46:netbios-nodetype, 47:netbios-scope, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 119:domain-search, 121:classless-static-route, 
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 requested options: 249, 252
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 next server: 10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  1 option: 53 message-type  5
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 51 lease-time  1h
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 58 T1  30m
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 59 T2  52m30s
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size:  4 option:  3 router  10.254.0.1
+Nov 16 08:32:03 dnsmasq-dhcp[80795]: 2990676976 sent size: 15 option: 81 FQDN  03:ff:ff:47:41:49:41:2d:54:31:31:2d:57:49...

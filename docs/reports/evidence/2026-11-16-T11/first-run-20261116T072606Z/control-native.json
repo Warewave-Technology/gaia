@@ -1,0 +1,14 @@
+{
+  "vm": "gaia-t11-win-native",
+  "template": "windows-basic",
+  "boot_timeout_s": 900,
+  "probe_timeout_s": 300,
+  "machine": {
+    "firmware": "bios",
+    "memory_mib": 4096,
+    "vcpus": 2,
+    "disk_bus": "sata",
+    "nic_model": "e1000e",
+    "mac": "00:50:56:3f:b1:01"
+  }
+}

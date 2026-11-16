@@ -1,0 +1,6 @@
+{
+  "gaia-t11-win": {
+    "boot_timeout_s": 900,
+    "probe_timeout_s": 300
+  }
+}

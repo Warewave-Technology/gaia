@@ -1,0 +1,80 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t11-win-20261116T073222Z-ddf989",
+  "vm": "gaia-t11-win",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000158319,
+      "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 7e-8,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000309,
+      "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 150.102588658,
+      "detail": "3 files, 34359739281 bytes in 150.1 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "CRITICAL",
+      "seconds": 14.07680804,
+      "detail": "virt-v2v: exit status 1 (last line:   virt-v2v -v -x [...])"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the conversion failed"
+    }
+  ],
+  "image": {
+    "path": "",
+    "format": "",
+    "bytes": 0,
+    "sha256_before": "",
+    "sha256_after": "",
+    "unchanged": null
+  },
+  "sandbox": {
+    "domain": "gaia-verify-ddf989",
+    "network": "gaia-verify-ddf989",
+    "bridge": "gvb-ddf989",
+    "netns": "gaia-verify-ddf989",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "",
+    "libvirt": "",
+    "qemu": "",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [],
+    "isolated": false
+  },
+  "timings_s": {
+    "total": 0.001349241
+  },
+  "shutdown": "",
+  "screenshots": [],
+  "errors": [],
+  "started": "2026-11-16T07:32:22.611916195Z",
+  "finished": "2026-11-16T07:32:22.613265436Z"
+}

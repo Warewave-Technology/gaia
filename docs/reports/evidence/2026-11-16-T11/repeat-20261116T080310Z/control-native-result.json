@@ -1,0 +1,82 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t11-win-native-20261116T081111Z-3356a7",
+  "vm": "gaia-t11-win-native",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "rdp",
+      "verdict": "OK",
+      "seconds": 27.661562325,
+      "attempts": 1,
+      "detail": "10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security) (DHCP lease 10.254.0.77, then the probe)"
+    },
+    {
+      "name": "winrm",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 28.149356488,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.77:5985/wsman: 405"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia/images/gaia-t11-win.qcow2",
+    "format": "qcow2",
+    "bytes": 9274851328,
+    "sha256_before": "e72bd7a126ecca978fff4388fbd85614da769e4f98ed68c42c6b5e0cedaf19ec",
+    "sha256_after": "e72bd7a126ecca978fff4388fbd85614da769e4f98ed68c42c6b5e0cedaf19ec",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-3356a7",
+    "network": "gaia-verify-3356a7",
+    "bridge": "gvb-3356a7",
+    "netns": "gaia-verify-3356a7",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "10.254.0.77",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-3356a7 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-3356a7 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-3356a7 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-3356a7 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-3356a7 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 27.661562325,
+    "image_hash": 10.608911616,
+    "ready": 28.149356488,
+    "sandbox_setup": 1.449752083,
+    "shutdown": 60.807439673,
+    "total": 113.357419716
+  },
+  "shutdown": "forced",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-16T08:11:11.445448554Z",
+  "finished": "2026-11-16T08:13:04.80286827Z",
+  "bundle_dir": "/root/t11-20261116T080310Z/evidence/gaia-t11-win-native-20261116T081111Z-3356a7",
+  "bundle_sha256": "fd0e407a6d399a9b72e368b60c88a8c0b0632d87d43d1ec17edbc9fb9d75466e",
+  "ledger_seq": 2
+}

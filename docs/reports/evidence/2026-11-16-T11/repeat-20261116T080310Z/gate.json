@@ -1,0 +1,46 @@
+{
+  "a_windows_ready": {
+    "readiness": "OK",
+    "bundle": "gaia-t11-win-20261116T081001Z-8114c5",
+    "evidence_verify": "OK",
+    "pass": true
+  },
+  "b_zero_writes": {
+    "allowlist_tests_pass": true,
+    "calls": 7,
+    "blocked": 0,
+    "ops": [
+      "GET /folder",
+      "Login",
+      "Logout",
+      "RetrievePropertiesEx",
+      "RetrieveServiceContent"
+    ],
+    "non_read": 0,
+    "hostd_write_tasks_during_check": 0,
+    "hostd_read_tasks_during_check": 3,
+    "get_folder_calls": 3,
+    "hostd_write_tasks_by_fixture_positive_control": 1,
+    "fixture_vm_unchanged": true,
+    "pass": true
+  },
+  "c_boot_check": {
+    "check": "boot",
+    "type": "rdp",
+    "verdict": "OK",
+    "seconds": 37.841645287,
+    "detail": "10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security) (DHCP lease 10.254.0.77, then the probe)",
+    "control_native": {
+      "verdict": "OK",
+      "boot": "OK"
+    },
+    "control_no_virtio_driver": {
+      "verdict": "CRITICAL",
+      "boot": "CRITICAL",
+      "detail": "the guest took no DHCP lease within the 300 s boot timeout"
+    },
+    "pass": true
+  },
+  "downloaded_disk_is_fixture_disk": true,
+  "verdict": "OK"
+}

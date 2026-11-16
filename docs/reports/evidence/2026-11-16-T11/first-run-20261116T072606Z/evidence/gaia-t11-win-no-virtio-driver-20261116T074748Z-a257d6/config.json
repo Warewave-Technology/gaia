@@ -1,0 +1,31 @@
+{
+  "vm": "gaia-t11-win-no-virtio-driver",
+  "template": "windows-basic",
+  "machine": {
+    "arch": "x86_64",
+    "firmware": "bios",
+    "memory_mib": 4096,
+    "vcpus": 2,
+    "disk_bus": "virtio",
+    "nic_model": "e1000e",
+    "mac": "00:50:56:3f:b1:01"
+  },
+  "boot_timeout_s": 300,
+  "probe_timeout_s": 300,
+  "shutdown_timeout_s": 60,
+  "checks": [
+    {
+      "name": "boot",
+      "type": "rdp",
+      "port": 3389,
+      "boot": true
+    },
+    {
+      "name": "winrm",
+      "type": "http",
+      "port": 5985,
+      "path": "/wsman",
+      "expect_status": 405
+    }
+  ]
+}

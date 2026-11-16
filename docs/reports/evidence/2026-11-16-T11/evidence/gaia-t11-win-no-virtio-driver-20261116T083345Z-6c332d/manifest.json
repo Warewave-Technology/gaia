@@ -1,0 +1,62 @@
+{
+  "format": "gaia-evidence/v1",
+  "bundle_id": "gaia-t11-win-no-virtio-driver-20261116T083345Z-6c332d",
+  "created": "2026-11-16T08:39:16.343210032Z",
+  "subject": {
+    "verdict": "CRITICAL",
+    "vm": "gaia-t11-win-no-virtio-driver"
+  },
+  "key_fingerprint": "5b8107d8ec2a27b035895c5569ce641c925252249519df3cd55cc2ed49beea27",
+  "files": [
+    {
+      "path": "config.json",
+      "sha256": "90893232d7aed5aff97f603b48bd4e04a35973dcffccad2dd0a7af8ad4035817",
+      "bytes": 586
+    },
+    {
+      "path": "dnsmasq.leases",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dnsmasq.log",
+      "sha256": "69dbe5ae8c9a96747464b0a7a767eeeed598f8d6eb7dfc38024e72e2025a7f11",
+      "bytes": 446
+    },
+    {
+      "path": "domain.xml",
+      "sha256": "4d8400d53a3f72b825edadd63648d66feb477012011cadca4844c3214db07976",
+      "bytes": 1091
+    },
+    {
+      "path": "network.xml",
+      "sha256": "470e43b5129f2411d6e28fd4c77ae27a5aa3ea4bdcbf202403bd6b86f66a67f2",
+      "bytes": 97
+    },
+    {
+      "path": "result.json",
+      "sha256": "f40701ca5a65b37f4ebbf8d1c5ed9e1d63abd1ef09b7604d1659895735c1b65e",
+      "bytes": 2622
+    },
+    {
+      "path": "sandbox.log",
+      "sha256": "f4ba8233853dec995b7f956110d78c8f378fdbc5bb760974dfd70df6ec4a9ef8",
+      "bytes": 2925
+    },
+    {
+      "path": "screenshot-boot.png",
+      "sha256": "c5e73a28a6119ee7b50eba6c0b8aeb41bdb16bca076839b216ef0bea49dacf9a",
+      "bytes": 34689
+    },
+    {
+      "path": "screenshot-end.png",
+      "sha256": "c5e73a28a6119ee7b50eba6c0b8aeb41bdb16bca076839b216ef0bea49dacf9a",
+      "bytes": 34689
+    },
+    {
+      "path": "serial.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

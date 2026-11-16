@@ -1,0 +1,290 @@
+
+== date / commit
+2026-11-16T08:03:10Z
+6ca404cb37d4ee891f3db0c0170d3abc0a72d735
+output: /root/t11-20261116T080310Z
+
+== build
+	build	vcs.revision=6ca404cb37d4ee891f3db0c0170d3abc0a72d735
+	build	vcs.modified=false
+
+== tools
+virt-v2v 2.2.0
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G   34G  156G  18% /
+
+== virtio-win (Fedora)
+{"url":"https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso","bytes":877373440,"sha256":"303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d","volume_id":"virtio-win-0.1.302"}
+
+== read-only guard: allowlist tests (go test, against vcsim)
+=== RUN   TestSOAPOperation
+--- PASS: TestSOAPOperation (0.00s)
+=== RUN   TestInventoryThroughGuard
+--- PASS: TestInventoryThroughGuard (0.11s)
+=== RUN   TestWritesAreBlocked
+--- PASS: TestWritesAreBlocked (0.11s)
+=== RUN   TestDownload
+--- PASS: TestDownload (0.15s)
+PASS
+ok  	github.com/Warewave-Technology/gaia/internal/vsphereread	0.373s
+
+== fixture (lab only: install on gaia-lab, ESXi host shell)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+fixture disk cached: /var/lib/gaia/images/gaia-t11-win.qcow2 (8.7G); REBUILD=1 rebuilds
+{"iso":{"link":"https://go.microsoft.com/fwlink/p/?LinkID=2195280&clcid=0x409&culture=en-us&country=US","url":"https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso","bytes":5044094976,"sha256":"3e4fa6d8507b554856fc9ca6079cc402df11a8b79344871669f0251535255325","downloaded":"2026-11-16T07:12:59Z"},"image_index":2,"install_seconds":510,"built":"2026-11-16T08:02:16Z","disk_gib":32,"mac":"00:50:56:3f:b1:01","qemu":"QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)","hardware":"pc (i440FX) + AHCI disk + e1000e (82574L), as VMware sata0 + e1000e"}
+disk: 34359738368 bytes, 8.6G allocated, sha256 1ac8bc4544d227d763f1111a5ff084def0f9fc814a4a237ba6f88e3f0380873e
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+wrote 9164959744 bytes
+gaia-t11-win: vmid 12, Powered off
+total 9034760
+-rw-------    1 root     root     34359738368 Nov 16 08:06 gaia-t11-win-flat.vmdk
+-rw-------    1 root     root           478 Nov 16 08:05 gaia-t11-win.vmdk
+-rw-r--r--    1 root     root             0 Nov 16 08:06 gaia-t11-win.vmsd
+-rw-r--r--    1 root     root           435 Nov 16 08:06 gaia-t11-win.vmx
+8.6G	/vmfs/volumes/datastore1/gaia-t11-win
+hostd.log while the fixture was made (positive control): 1 write task(s)
+      1   haTask-ha-folder-vm-vim.Folder.registerVm-1747
+gaia-t11-win vmid=12 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-16 08:06:33 +0000 gaia-t11-win-flat.vmdk
+  -rw-------    1 root     root           478 2026-11-16 08:05:31 +0000 gaia-t11-win.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-16 08:06:35 +0000 gaia-t11-win.vmsd
+  -rw-r--r--    1 root     root           435 2026-11-16 08:06:34 +0000 gaia-t11-win.vmx
+
+== gaia migrate-check (read-only vSphere API)
+{"fingerprint":"c06e2f8f4f8b09a44d42d218e9cf6efed33801db3019ef13d0b618ba508ef67d"}
+[08:06:43] virtio-win: /var/lib/gaia/images/virtio-win-0.1.302.iso, 877373440 bytes, sha256 303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d
+[08:06:43] inventory: 1 VMs on 192.168.1.29 (VMware ESXi 8.0.3 build-24677879)
+[08:06:43] gaia-t11-win: source_vm OK: [datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)
+[08:06:43] gaia-t11-win: cold OK: poweredOff
+[08:06:43] gaia-t11-win: layout OK: 3 files to read, all in [datastore1] gaia-t11-win
+[08:09:10] gaia-t11-win: download OK: 3 files, 34359739281 bytes in 146.6 s (GET /folder, sha256 in downloads.json)
+[08:10:01] gaia-t11-win: conversion OK: gaia-t11-win-sda (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01) in 51.7 s
+[08:10:10.790] image /var/lib/libvirt/images/gaia-migrate/gaia-t11-win/gaia-t11-win-sda: sha256 1e2c76cbe53fc7cec4b1dab5679b576700826e4dc2a2c5fb9923160eb6db6ab4 (9162326016 bytes)
+[08:10:11.025] $ sysctl -q -w net.ipv6.conf.gvb-8114c5.disable_ipv6=1
+
+[08:10:11.030] $ ip netns add gaia-verify-8114c5
+
+[08:10:11.033] $ ip link add gvh-8114c5 type veth peer name gvn-8114c5
+
+[08:10:11.034] $ sysctl -q -w net.ipv6.conf.gvh-8114c5.disable_ipv6=1
+
+[08:10:11.046] $ ip link set gvh-8114c5 master gvb-8114c5 up
+
+[08:10:11.075] $ ip link set gvn-8114c5 netns gaia-verify-8114c5
+
+[08:10:11.076] $ ip -n gaia-verify-8114c5 addr add 10.254.0.1/24 dev gvn-8114c5
+
+[08:10:11.082] $ ip -n gaia-verify-8114c5 link set gvn-8114c5 up
+
+[08:10:11.084] $ ip -n gaia-verify-8114c5 link set lo up
+
+[08:10:11.084] $ ip netns exec gaia-verify-8114c5 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-8114c5 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-8114c5/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-8114c5/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-8114c5/dnsmasq.log --user=root --group=root
+[08:10:11.131] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/gaia-migrate/gaia-t11-win/gaia-t11-win-sda /var/lib/libvirt/images/gaia-verify-8114c5/overlay.qcow2
+
+[08:10:12.371] $ ip -o addr show dev gvb-8114c5
+
+[08:10:12.374] $ ip -n gaia-verify-8114c5 route show table all
+10.254.0.0/24 dev gvn-8114c5 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-8114c5 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-8114c5 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-8114c5 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-8114c5 table local proto kernel metric 256 pref medium
+[08:10:12.376] guest started (kvm)
+[08:10:49.408] guest 00:50:56:3f:b1:01 has 10.254.0.77 after 37.033 s
+[08:10:50.217] $ ip netns exec gaia-verify-8114c5 /root/gaia/bin/gaia probe -check {"name":"boot","type":"rdp","port":3389,"boot":true} -host 10.254.0.77 -timeout 862
+{"ok":true,"attempts":1,"seconds":0.79130828,"detail":"10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security)"}
+[08:10:50.217] check boot: OK (10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security))
+[08:10:50.217] boot reached after 37.842 s
+[08:10:50.803] $ virsh screenshot gaia-verify-8114c5 --file /var/lib/libvirt/images/gaia-verify-8114c5/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-8114c5/screenshot-boot.ppm, with type of image/png
+[08:10:51.955] $ ip netns exec gaia-verify-8114c5 /root/gaia/bin/gaia probe -check {"name":"winrm","type":"http","port":5985,"path":"/wsman","expect_status":405} -host 10.254.0.77 -timeout 300
+{"ok":true,"attempts":1,"seconds":1.14419544,"detail":"GET http://10.254.0.77:5985/wsman: 405","status":405}
+[08:10:51.955] check winrm: OK (GET http://10.254.0.77:5985/wsman: 405)
+[08:10:52.510] $ virsh screenshot gaia-verify-8114c5 --file /var/lib/libvirt/images/gaia-verify-8114c5/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-8114c5/screenshot-end.ppm, with type of image/png
+[08:10:59.884] $ ip netns del gaia-verify-8114c5
+
+exit 0
+{"verdict":"OK","calls":6,"blocked_calls":0,"virtio_win":{"path":"/var/lib/gaia/images/virtio-win-0.1.302.iso","bytes":877373440,"sha256":"303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d"},"vms":[{"vm":"gaia-t11-win","readiness":"OK","bundle_id":"gaia-t11-win-20261116T081001Z-8114c5","checks":[{"name":"source_vm","verdict":"OK","seconds":0.000149948,"detail":"[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"},{"name":"cold","verdict":"OK","seconds":8e-08,"detail":"poweredOff"},{"name":"layout","verdict":"OK","seconds":3.02e-06,"detail":"3 files to read, all in [datastore1] gaia-t11-win"},{"name":"download","verdict":"OK","seconds":146.573672803,"detail":"3 files, 34359739281 bytes in 146.6 s (GET /folder, sha256 in downloads.json)"},{"name":"conversion","verdict":"OK","seconds":51.700434088,"detail":"gaia-t11-win-sda (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01) in 51.7 s"},{"name":"boot","verdict":"OK","seconds":37.841645287,"detail":"10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security) (DHCP lease 10.254.0.77, then the probe)"},{"name":"winrm","verdict":"OK","seconds":39.579595422,"detail":"GET http://10.254.0.77:5985/wsman: 405"},{"name":"image_unchanged","verdict":"OK","seconds":0,"detail":"sha256 before and after are equal"}],"timings_s":{"boot":37.841645287,"conversion":51.699885702,"download":146.573664623,"image_hash":8.830358807,"ready":39.579595422,"sandbox_setup":1.584378147,"shutdown":7.370423113,"total":68.099545958}}]}
+
+== read-only proof
+Gaia's call log (method path op allowed status):
+      1 GET	/folder/gaia-t11-win/gaia-t11-win-flat.vmdk	-	true	200
+      1 GET	/folder/gaia-t11-win/gaia-t11-win.vmdk	-	true	200
+      1 GET	/folder/gaia-t11-win/gaia-t11-win.vmx	-	true	200
+      1 POST	/sdk	Login	true	200
+      1 POST	/sdk	Logout	true	200
+      1 POST	/sdk	RetrievePropertiesEx	true	200
+      1 POST	/sdk	RetrieveServiceContent	true	200
+hostd.log while the check ran: 34 lines; write tasks: 0; read tasks: 3 (GET /folder calls: 3)
+2026-11-16T08:06:42.403Z In(166) Hostd[263209]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1673aad0-e7b0 sid=527b55ca user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-1758
+2026-11-16T08:06:42.488Z In(166) Hostd[263207]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1673aad0-e7b9 sid=527b55ca user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-1761
+2026-11-16T08:06:42.504Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b15354080-e7c1 sid=527b55ca user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-1764
+fixture VM (power state, folder listing) unchanged: true
+[datastore1] gaia-t11-win/gaia-t11-win.vmx 435 f35716aa7f79ac3a28cbb45e2fe10a8cbf8a233ded4c7b9e13478c8ba74e4eb9
+[datastore1] gaia-t11-win/gaia-t11-win.vmdk 478 75edcffb83565e33a3744310c266159327658d20cd826928d392aa1c95209735
+[datastore1] gaia-t11-win/gaia-t11-win-flat.vmdk 34359738368 1ac8bc4544d227d763f1111a5ff084def0f9fc814a4a237ba6f88e3f0380873e
+fixture disk sha256 1ac8bc4544d227d763f1111a5ff084def0f9fc814a4a237ba6f88e3f0380873e, downloaded extent sha256 1ac8bc4544d227d763f1111a5ff084def0f9fc814a4a237ba6f88e3f0380873e
+
+== what the boot check proves: the same Windows disk, unconverted, on two sandboxes
+[08:11:22.054] image /var/lib/gaia/images/gaia-t11-win.qcow2: sha256 e72bd7a126ecca978fff4388fbd85614da769e4f98ed68c42c6b5e0cedaf19ec (9274851328 bytes)
+[08:11:22.103] $ sysctl -q -w net.ipv6.conf.gvb-3356a7.disable_ipv6=1
+
+[08:11:22.109] $ ip netns add gaia-verify-3356a7
+
+[08:11:22.113] $ ip link add gvh-3356a7 type veth peer name gvn-3356a7
+
+[08:11:22.114] $ sysctl -q -w net.ipv6.conf.gvh-3356a7.disable_ipv6=1
+
+[08:11:22.136] $ ip link set gvh-3356a7 master gvb-3356a7 up
+
+[08:11:22.175] $ ip link set gvn-3356a7 netns gaia-verify-3356a7
+
+[08:11:22.177] $ ip -n gaia-verify-3356a7 addr add 10.254.0.1/24 dev gvn-3356a7
+
+[08:11:22.184] $ ip -n gaia-verify-3356a7 link set gvn-3356a7 up
+
+[08:11:22.185] $ ip -n gaia-verify-3356a7 link set lo up
+
+[08:11:22.185] $ ip netns exec gaia-verify-3356a7 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-3356a7 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-3356a7/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-3356a7/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-3356a7/dnsmasq.log --user=root --group=root
+[08:11:22.218] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia/images/gaia-t11-win.qcow2 /var/lib/libvirt/images/gaia-verify-3356a7/overlay.qcow2
+
+[08:11:23.502] $ ip -o addr show dev gvb-3356a7
+
+[08:11:23.504] $ ip -n gaia-verify-3356a7 route show table all
+10.254.0.0/24 dev gvn-3356a7 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-3356a7 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-3356a7 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-3356a7 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-3356a7 table local proto kernel metric 256 pref medium
+[08:11:23.506] guest started (kvm)
+[08:11:49.521] guest 00:50:56:3f:b1:01 has 10.254.0.77 after 26.015 s
+[08:11:51.167] $ ip netns exec gaia-verify-3356a7 /root/gaia/bin/gaia probe -check {"name":"boot","type":"rdp","port":3389,"boot":true} -host 10.254.0.77 -timeout 873
+{"ok":true,"attempts":1,"seconds":1.635268502,"detail":"10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security)"}
+[08:11:51.167] check boot: OK (10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security))
+[08:11:51.167] boot reached after 27.662 s
+[08:11:51.554] $ virsh screenshot gaia-verify-3356a7 --file /var/lib/libvirt/images/gaia-verify-3356a7/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-3356a7/screenshot-boot.ppm, with type of image/png
+[08:11:51.655] $ ip netns exec gaia-verify-3356a7 /root/gaia/bin/gaia probe -check {"name":"winrm","type":"http","port":5985,"path":"/wsman","expect_status":405} -host 10.254.0.77 -timeout 300
+{"ok":true,"attempts":1,"seconds":0.094429223,"detail":"GET http://10.254.0.77:5985/wsman: 405","status":405}
+[08:11:51.655] check winrm: OK (GET http://10.254.0.77:5985/wsman: 405)
+[08:11:52.058] $ virsh screenshot gaia-verify-3356a7 --file /var/lib/libvirt/images/gaia-verify-3356a7/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-3356a7/screenshot-end.ppm, with type of image/png
+[08:12:52.867] $ ip netns del gaia-verify-3356a7
+
+control native (sata disk, e1000e NIC): exit 0
+{"vm":"gaia-t11-win-native","verdict":"OK","bundle_id":"gaia-t11-win-native-20261116T081111Z-3356a7","checks":[{"name":"boot","verdict":"OK","seconds":27.661562325,"detail":"10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security) (DHCP lease 10.254.0.77, then the probe)"},{"name":"winrm","verdict":"OK","seconds":28.149356488,"detail":"GET http://10.254.0.77:5985/wsman: 405"},{"name":"image_unchanged","verdict":"OK","seconds":0,"detail":"sha256 before and after are equal"}],"screenshots":["screenshot-boot.png","screenshot-end.png"],"timings_s":{"boot":27.661562325,"image_hash":10.608911616,"ready":28.149356488,"sandbox_setup":1.449752083,"shutdown":60.807439673,"total":113.357419716}}
+[08:13:15.783] image /var/lib/gaia/images/gaia-t11-win.qcow2: sha256 e72bd7a126ecca978fff4388fbd85614da769e4f98ed68c42c6b5e0cedaf19ec (9274851328 bytes)
+[08:13:15.827] $ sysctl -q -w net.ipv6.conf.gvb-049c7e.disable_ipv6=1
+
+[08:13:15.830] $ ip netns add gaia-verify-049c7e
+
+[08:13:15.835] $ ip link add gvh-049c7e type veth peer name gvn-049c7e
+
+[08:13:15.836] $ sysctl -q -w net.ipv6.conf.gvh-049c7e.disable_ipv6=1
+
+[08:13:15.854] $ ip link set gvh-049c7e master gvb-049c7e up
+
+[08:13:15.887] $ ip link set gvn-049c7e netns gaia-verify-049c7e
+
+[08:13:15.889] $ ip -n gaia-verify-049c7e addr add 10.254.0.1/24 dev gvn-049c7e
+
+[08:13:15.893] $ ip -n gaia-verify-049c7e link set gvn-049c7e up
+
+[08:13:15.894] $ ip -n gaia-verify-049c7e link set lo up
+
+[08:13:15.895] $ ip netns exec gaia-verify-049c7e dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-049c7e --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-049c7e/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-049c7e/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-049c7e/dnsmasq.log --user=root --group=root
+[08:13:15.921] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia/images/gaia-t11-win.qcow2 /var/lib/libvirt/images/gaia-verify-049c7e/overlay.qcow2
+
+[08:13:17.195] $ ip -o addr show dev gvb-049c7e
+
+[08:13:17.198] $ ip -n gaia-verify-049c7e route show table all
+10.254.0.0/24 dev gvn-049c7e proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-049c7e table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-049c7e table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-049c7e proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-049c7e table local proto kernel metric 256 pref medium
+[08:13:17.200] guest started (kvm)
+[08:18:17.387] boot not reached: the guest took no DHCP lease within the 300 s boot timeout
+[08:18:17.831] $ virsh screenshot gaia-verify-049c7e --file /var/lib/libvirt/images/gaia-verify-049c7e/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-049c7e/screenshot-boot.ppm, with type of image/png
+[08:18:18.289] $ virsh screenshot gaia-verify-049c7e --file /var/lib/libvirt/images/gaia-verify-049c7e/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-049c7e/screenshot-end.ppm, with type of image/png
+[08:18:19.410] $ ip netns del gaia-verify-049c7e
+
+control no-virtio-driver (virtio disk, e1000e NIC): exit 2
+{"vm":"gaia-t11-win-no-virtio-driver","verdict":"CRITICAL","bundle_id":"gaia-t11-win-no-virtio-driver-20261116T081304Z-049c7e","checks":[{"name":"boot","verdict":"CRITICAL","seconds":300.187115709,"detail":"the guest took no DHCP lease within the 300 s boot timeout"},{"name":"winrm","verdict":"UNKNOWN","seconds":0,"detail":"not run: the guest did not boot"},{"name":"image_unchanged","verdict":"OK","seconds":0,"detail":"sha256 before and after are equal"}],"screenshots":["screenshot-boot.png","screenshot-end.png"],"timings_s":{"image_hash":10.879784231,"sandbox_setup":1.414467663,"shutdown":1.113973625,"total":331.6603723}}
+
+== gaia evidence verify
+exit 0
+{"verdict":"OK","entries":3,"bundles":[{"bundle_id":"gaia-t11-win-20261116T081001Z-8114c5","files":16,"problems":[]},{"bundle_id":"gaia-t11-win-native-20261116T081111Z-3356a7","files":10,"problems":[]},{"bundle_id":"gaia-t11-win-no-virtio-driver-20261116T081304Z-049c7e","files":10,"problems":[]}],"problems":[]}
+
+== gate (CLAUDE.md T11)
+{
+  "a_windows_ready": {
+    "readiness": "OK",
+    "bundle": "gaia-t11-win-20261116T081001Z-8114c5",
+    "evidence_verify": "OK",
+    "pass": true
+  },
+  "b_zero_writes": {
+    "allowlist_tests_pass": true,
+    "calls": 7,
+    "blocked": 0,
+    "ops": [
+      "GET /folder",
+      "Login",
+      "Logout",
+      "RetrievePropertiesEx",
+      "RetrieveServiceContent"
+    ],
+    "non_read": 0,
+    "hostd_write_tasks_during_check": 0,
+    "hostd_read_tasks_during_check": 3,
+    "get_folder_calls": 3,
+    "hostd_write_tasks_by_fixture_positive_control": 1,
+    "fixture_vm_unchanged": true,
+    "pass": true
+  },
+  "c_boot_check": {
+    "check": "boot",
+    "type": "rdp",
+    "verdict": "OK",
+    "seconds": 37.841645287,
+    "detail": "10.254.0.77:3389: X.224 Connection Confirm (no RDP negotiation response: standard RDP security) (DHCP lease 10.254.0.77, then the probe)",
+    "control_native": {
+      "verdict": "OK",
+      "boot": "OK"
+    },
+    "control_no_virtio_driver": {
+      "verdict": "CRITICAL",
+      "boot": "CRITICAL",
+      "detail": "the guest took no DHCP lease within the 300 s boot timeout"
+    },
+    "pass": true
+  },
+  "downloaded_disk_is_fixture_disk": true,
+  "verdict": "OK"
+}
+
+== result
+OK
+(gate.json, migrate.json, calls.jsonl, control-*.json, evidence/, ledger.jsonl in /root/t11-20261116T080310Z)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t11-win (vmid 12)

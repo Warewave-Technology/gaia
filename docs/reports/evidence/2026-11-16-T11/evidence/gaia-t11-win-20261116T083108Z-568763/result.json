@@ -1,0 +1,114 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t11-win-20261116T083108Z-568763",
+  "vm": "gaia-t11-win",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000359258,
+      "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 1.4e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.000005169,
+      "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 335.728450558,
+      "detail": "3 files, 34359739281 bytes in 335.7 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 56.035014464,
+      "detail": "gaia-t11-win-sda (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01) in 56.0 s"
+    },
+    {
+      "name": "boot",
+      "type": "rdp",
+      "verdict": "OK",
+      "seconds": 42.350589727,
+      "attempts": 1,
+      "detail": "10.254.0.77:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00) (DHCP lease 10.254.0.77, then the probe)"
+    },
+    {
+      "name": "winrm",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 43.026783624,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.77:5985/wsman: 405"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/libvirt/images/gaia-migrate/gaia-t11-win/gaia-t11-win-sda",
+    "format": "qcow2",
+    "bytes": 9162326016,
+    "sha256_before": "96f0780f09c47a688de9d8032a815fc66eba25e2f6b2961ee5488a16fd1f60d5",
+    "sha256_after": "96f0780f09c47a688de9d8032a815fc66eba25e2f6b2961ee5488a16fd1f60d5",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-568763",
+    "network": "gaia-verify-568763",
+    "bridge": "gvb-568763",
+    "netns": "gaia-verify-568763",
+    "probe_address": "10.254.0.1",
+    "guest_ip": "10.254.0.77",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-568763 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-568763 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-568763 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-568763 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-568763 table local proto kernel metric 256 pref medium"
+    ],
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 42.350589727,
+    "image_hash": 10.733822937,
+    "ready": 43.026783624,
+    "sandbox_setup": 1.665659633,
+    "shutdown": 7.005243657,
+    "total": 75.063210425
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-16T08:31:08.967301173Z",
+  "finished": "2026-11-16T08:32:24.030511598Z"
+}

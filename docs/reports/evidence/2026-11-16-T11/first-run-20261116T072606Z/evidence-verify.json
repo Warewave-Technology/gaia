@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-11-16T07:53:12.300932624Z",
+  "command": "evidence verify",
+  "key_fingerprint": "f12e1aee9bddd3c76fad29df11276ba5d2c9c23af2ca1194bcb2cfb191d141ec",
+  "report": {
+    "ledger": "/root/t11-20261116T072606Z/ledger.jsonl",
+    "entries": 3,
+    "problems": [],
+    "bundles": [
+      {
+        "dir": "/root/t11-20261116T072606Z/evidence/gaia-t11-win-20261116T073222Z-ddf989",
+        "bundle_id": "gaia-t11-win-20261116T073222Z-ddf989",
+        "bundle_sha256": "f76f287cc33f635f56e9ffd6b0752ee167300606575f2900ec7e0c63d3261b76",
+        "files": 8,
+        "problems": []
+      },
+      {
+        "dir": "/root/t11-20261116T072606Z/evidence/gaia-t11-win-native-20261116T073223Z-67cf6c",
+        "bundle_id": "gaia-t11-win-native-20261116T073223Z-67cf6c",
+        "bundle_sha256": "90216d4326b5cd19ad305ed79e4c094d397c2beb1f80d3c4092e5b2c5dcb8d5a",
+        "files": 10,
+        "problems": []
+      },
+      {
+        "dir": "/root/t11-20261116T072606Z/evidence/gaia-t11-win-no-virtio-driver-20261116T074748Z-a257d6",
+        "bundle_id": "gaia-t11-win-no-virtio-driver-20261116T074748Z-a257d6",
+        "bundle_sha256": "c24fa8b149f61753fda55357fe0e24dbcdcea624137893f46f5045047360904c",
+        "files": 10,
+        "problems": []
+      }
+    ],
+    "intact": true
+  },
+  "verdict": "OK"
+}

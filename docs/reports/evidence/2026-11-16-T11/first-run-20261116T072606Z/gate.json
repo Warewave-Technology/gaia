@@ -1,0 +1,46 @@
+{
+  "a_windows_ready": {
+    "readiness": "CRITICAL",
+    "bundle": "gaia-t11-win-20261116T073222Z-ddf989",
+    "evidence_verify": "OK",
+    "pass": false
+  },
+  "b_zero_writes": {
+    "allowlist_tests_pass": true,
+    "calls": 7,
+    "blocked": 0,
+    "ops": [
+      "GET /folder",
+      "Login",
+      "Logout",
+      "RetrievePropertiesEx",
+      "RetrieveServiceContent"
+    ],
+    "non_read": 0,
+    "hostd_write_tasks_during_check": 0,
+    "hostd_read_tasks_during_check": 3,
+    "get_folder_calls": 3,
+    "hostd_write_tasks_by_fixture_positive_control": 1,
+    "fixture_vm_unchanged": true,
+    "pass": true
+  },
+  "c_boot_check": {
+    "check": "boot",
+    "type": "boot_serial",
+    "verdict": "UNKNOWN",
+    "seconds": 0,
+    "detail": "not run: the conversion failed",
+    "control_native": {
+      "verdict": "CRITICAL",
+      "boot": "CRITICAL"
+    },
+    "control_no_virtio_driver": {
+      "verdict": "CRITICAL",
+      "boot": "CRITICAL",
+      "detail": "the guest took no DHCP lease within the 300 s boot timeout"
+    },
+    "pass": false
+  },
+  "downloaded_disk_is_fixture_disk": true,
+  "verdict": "CRITICAL"
+}

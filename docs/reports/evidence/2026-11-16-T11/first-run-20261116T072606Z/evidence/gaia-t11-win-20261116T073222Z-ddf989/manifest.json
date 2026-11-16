@@ -1,0 +1,52 @@
+{
+  "format": "gaia-evidence/v1",
+  "bundle_id": "gaia-t11-win-20261116T073222Z-ddf989",
+  "created": "2026-11-16T07:32:22.613727304Z",
+  "subject": {
+    "verdict": "CRITICAL",
+    "vm": "gaia-t11-win"
+  },
+  "key_fingerprint": "f12e1aee9bddd3c76fad29df11276ba5d2c9c23af2ca1194bcb2cfb191d141ec",
+  "files": [
+    {
+      "path": "config.json",
+      "sha256": "571c922402f4c2dacff27056b0679379b3acf8e47ac8f24eeba5c528e2e5a10c",
+      "bytes": 439
+    },
+    {
+      "path": "migration/calls.jsonl",
+      "sha256": "ad1fca1f054706336288d70cf3b309b3d3054e764672fe83512485a08c6d49a1",
+      "bytes": 773
+    },
+    {
+      "path": "migration/downloads.json",
+      "sha256": "3ecb32449afe10265107965c793a2b10c18d19aca02639e745c1bf9618966290",
+      "bytes": 813
+    },
+    {
+      "path": "migration/inventory.json",
+      "sha256": "439cb772a8d10524c4ef0c467d3c5ca8e5480f7391046b2560b4a2be4cd266c8",
+      "bytes": 1204
+    },
+    {
+      "path": "migration/source.vmx",
+      "sha256": "f35716aa7f79ac3a28cbb45e2fe10a8cbf8a233ded4c7b9e13478c8ba74e4eb9",
+      "bytes": 435
+    },
+    {
+      "path": "migration/virt-v2v.log",
+      "sha256": "059eae7b5e2351135bd43daa7602bbbfde58e3e6686001c8eda475655704920d",
+      "bytes": 990
+    },
+    {
+      "path": "result.json",
+      "sha256": "e0eb3f56f94d3956e3d8ff5d2af0818748658849ddf34658b2459c858d36b3f4",
+      "bytes": 2017
+    },
+    {
+      "path": "sandbox.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

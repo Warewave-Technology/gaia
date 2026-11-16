@@ -1,0 +1,10 @@
+=== RUN   TestSOAPOperation
+--- PASS: TestSOAPOperation (0.00s)
+=== RUN   TestInventoryThroughGuard
+--- PASS: TestInventoryThroughGuard (0.11s)
+=== RUN   TestWritesAreBlocked
+--- PASS: TestWritesAreBlocked (0.11s)
+=== RUN   TestDownload
+--- PASS: TestDownload (0.15s)
+PASS
+ok  	github.com/Warewave-Technology/gaia/internal/vsphereread	0.383s

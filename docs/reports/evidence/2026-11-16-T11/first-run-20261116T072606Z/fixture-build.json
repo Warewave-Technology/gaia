@@ -1,0 +1,16 @@
+{
+  "iso": {
+    "link": "https://go.microsoft.com/fwlink/p/?LinkID=2195280&clcid=0x409&culture=en-us&country=US",
+    "url": "https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso",
+    "bytes": 5044094976,
+    "sha256": "3e4fa6d8507b554856fc9ca6079cc402df11a8b79344871669f0251535255325",
+    "downloaded": "2026-11-16T07:12:59Z"
+  },
+  "image_index": 2,
+  "install_seconds": 450,
+  "built": "2026-11-16T07:20:29Z",
+  "disk_gib": 32,
+  "mac": "00:50:56:3f:b1:01",
+  "qemu": "QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)",
+  "hardware": "pc (i440FX) + AHCI disk + e1000e (82574L), as VMware sata0 + e1000e"
+}

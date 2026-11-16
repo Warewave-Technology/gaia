@@ -1,0 +1,45 @@
+[07:32:34.185] image /var/lib/gaia/images/gaia-t11-win.qcow2: sha256 58c21b564e10eeac8713ea32493606ee544bc502f5f43dea92f1dacd48643f3b (9300410368 bytes)
+[07:32:34.412] $ sysctl -q -w net.ipv6.conf.gvb-67cf6c.disable_ipv6=1
+
+[07:32:34.417] $ ip netns add gaia-verify-67cf6c
+
+[07:32:34.421] $ ip link add gvh-67cf6c type veth peer name gvn-67cf6c
+
+[07:32:34.422] $ sysctl -q -w net.ipv6.conf.gvh-67cf6c.disable_ipv6=1
+
+[07:32:34.433] $ ip link set gvh-67cf6c master gvb-67cf6c up
+
+[07:32:34.463] $ ip link set gvn-67cf6c netns gaia-verify-67cf6c
+
+[07:32:34.466] $ ip -n gaia-verify-67cf6c addr add 10.254.0.1/24 dev gvn-67cf6c
+
+[07:32:34.470] $ ip -n gaia-verify-67cf6c link set gvn-67cf6c up
+
+[07:32:34.473] $ ip -n gaia-verify-67cf6c link set lo up
+
+[07:32:34.473] $ ip netns exec gaia-verify-67cf6c dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-67cf6c --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-leasefile=/var/lib/libvirt/images/gaia-verify-67cf6c/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-verify-67cf6c/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-verify-67cf6c/dnsmasq.log --user=root --group=root
+[07:32:34.507] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia/images/gaia-t11-win.qcow2 /var/lib/libvirt/images/gaia-verify-67cf6c/overlay.qcow2
+
+[07:32:35.702] $ ip -o addr show dev gvb-67cf6c
+
+[07:32:35.706] $ ip -n gaia-verify-67cf6c route show table all
+10.254.0.0/24 dev gvn-67cf6c proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-67cf6c table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-67cf6c table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-67cf6c proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-67cf6c table local proto kernel metric 256 pref medium
+[07:32:35.707] guest started (kvm)
+[07:33:00.725] guest 00:50:56:3f:b1:01 has 10.254.0.77 after 25.017 s
+[07:47:34.736] $ ip netns exec gaia-verify-67cf6c /root/gaia/bin/gaia probe -check {"name":"boot","type":"rdp","port":3389,"boot":true} -host 10.254.0.77 -timeout 874
+{"ok":false,"attempts":125,"seconds":874.000086245,"detail":"gave up after 14m34s: dial tcp 10.254.0.77:3389: i/o timeout"}
+[07:47:34.736] check boot: CRITICAL (gave up after 14m34s: dial tcp 10.254.0.77:3389: i/o timeout)
+[07:47:35.135] $ virsh screenshot gaia-verify-67cf6c --file /var/lib/libvirt/images/gaia-verify-67cf6c/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-67cf6c/screenshot-boot.ppm, with type of image/png
+[07:47:35.485] $ virsh screenshot gaia-verify-67cf6c --file /var/lib/libvirt/images/gaia-verify-67cf6c/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-verify-67cf6c/screenshot-end.ppm, with type of image/png
+[07:47:36.260] $ ip netns del gaia-verify-67cf6c
+

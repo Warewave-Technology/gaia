@@ -1,0 +1,116 @@
+2026-11-16T08:22:22.266Z Er(163) Hostd[263208]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-16T08:22:22.274Z Wa(164) Hostd[263208]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-16T08:22:25.421Z In(166) Hostd[263205]: [Originator@6876 sub=Hostsvc.VmkVprobSource] VmkVprobSource::Post event: (vim.event.EventEx) {
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    key = 91, 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    chainId = -1, 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    createdTime = "1970-01-01T00:00:00Z", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    userName = "", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    host = (vim.event.HostEventArgument) {
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       name = "gaia-esxi.", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       host = 'vim.HostSystem:ha-host'
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    }, 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    eventTypeId = "esx.audit.ssh.session.opened", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    arguments = (vmodl.KeyAnyValue) [
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->          key = "1", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->          value = "root"
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       }, 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->          key = "2", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->          value = "192.168.1.30"
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->       }
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    ], 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    objectId = "ha-host", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: -->    objectType = "vim.HostSystem", 
+2026-11-16T08:22:25.421Z In(166) Hostd[263192]: --> }
+2026-11-16T08:22:25.422Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 1844 : SSH session was opened for 'root@192.168.1.30'.
+2026-11-16T08:22:26.238Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=vim-cmd-bc-e807 sid=5237e431] Accepted password for user root from 127.0.0.1 - session=5237e431-c5ab-bcee-6640-bce4c602798d
+2026-11-16T08:22:26.238Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc opID=vim-cmd-bc-e807 sid=5237e431] [Auth]: User root
+2026-11-16T08:22:26.239Z Wa(164) Hostd[263205]: [Originator@6876 sub=Vimsvc opID=vim-cmd-bc-e807 sid=5237e431] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-16T08:22:26.239Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-bc-e807 sid=5237e431] Event 1845 : User root@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-16T08:22:26.245Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-bc-e80a sid=5237e431 user=root] Event 1846 : User root@127.0.0.1 logged out (login time: Monday, 16 November, 2026 08:22:26 AM, number of API invocations: 2, user agent: VMware-client/8.0.3)
+2026-11-16T08:22:56.336Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-16T08:22:56.336Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:1408875136]BeginTransaction invoked.
+2026-11-16T08:22:56.336Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:1408875136]Transaction started, level = 1
+2026-11-16T08:22:56.337Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-16T08:22:56.338Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:1408875136]CommitTransaction invoked.
+2026-11-16T08:22:56.338Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:1408875136]Transaction committed,level = 1
+2026-11-16T08:23:14.488Z In(166) Hostd[263223]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad98e80d sid=5292398e] Accepted password for user vpxuser from 127.0.0.1 - session=5292398e-c23a-bb85-9d76-e24c18eb5c6d
+2026-11-16T08:23:14.488Z In(166) Hostd[263223]: [Originator@6876 sub=Vimsvc opID=ad98e80d sid=5292398e] [Auth]: User vpxuser
+2026-11-16T08:23:14.488Z Wa(164) Hostd[263223]: [Originator@6876 sub=Vimsvc opID=ad98e80d sid=5292398e] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-16T08:23:14.488Z In(166) Hostd[263223]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad98e80d sid=5292398e] Event 1847 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-16T08:23:14.586Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad98e80e sid=5292398e user=vpxuser] Event 1848 : User vpxuser@127.0.0.1 logged out (login time: Monday, 16 November, 2026 08:23:14 AM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-16T08:24:03.881Z In(166) Hostd[263214]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14afc970, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 31684'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14afc970, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 31684'>>, duration: 00:00:49.294383 (hh:mm:ss.us))
+2026-11-16T08:24:03.882Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-16T08:24:03.881Z In(166) Hostd[263222]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b143ae660, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 34995'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b143ae660, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 34995'>>, duration: 00:00:49.392576 (hh:mm:ss.us))
+2026-11-16T08:24:03.883Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-16T08:24:20.435Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=vim-cmd-d4-e811 sid=52bafed0] Accepted password for user root from 127.0.0.1 - session=52bafed0-395c-aadc-4413-018ebbcd8a0c
+2026-11-16T08:24:20.435Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc opID=vim-cmd-d4-e811 sid=52bafed0] [Auth]: User root
+2026-11-16T08:24:20.435Z Wa(164) Hostd[263215]: [Originator@6876 sub=Vimsvc opID=vim-cmd-d4-e811 sid=52bafed0] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-16T08:24:20.435Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-d4-e811 sid=52bafed0] Event 1849 : User root@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-16T08:24:20.439Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.TaskManager opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Task Created : haTask-ha-folder-vm-vim.Folder.registerVm-1789
+2026-11-16T08:24:20.439Z In(166) Hostd[263230]: [Originator@6876 sub=MetadataTagExtractor opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Applied tag : id [Tag rule id=rule[CreatingVm], tag=creatingVm, regex=vim\.Folder\.(createVm|registerVm)|vim\.Host\.LowLevelProvisioningManager\.(createVm|reconfigVm)|vim\.ResourcePool\.importVApp - Identifies operations that create a virtual machine] to operation: vim.Folder.registerVm
+2026-11-16T08:24:20.440Z In(166) Hostd[263234]: [Originator@6876 sub=Solo.HaVMFolder opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Register called: []/vmfs/volumes/datastore1/gaia-t11-win/gaia-t11-win.vmx
+2026-11-16T08:24:20.441Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Registering virtual machine [13]: /vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx
+2026-11-16T08:24:20.443Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Disk cache flushed
+2026-11-16T08:24:20.454Z In(166) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Setting failover status to false
+2026-11-16T08:24:20.478Z In(166) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] SetVmxVersion: switching environment browser to vmx version 'vmx-19'
+2026-11-16T08:24:20.487Z In(166) Hostd[263234]: [Originator@6876 sub=Libs opID=vim-cmd-d4-e813 sid=52bafed0 user=root] SNAPSHOT: SnapshotConfigInfoOpenVmsd: Creating new snapshot dictionary, '/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmsd'.
+2026-11-16T08:24:20.524Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Time to gather snapshot information: 43 msecs. needConsolidate is false.
+2026-11-16T08:24:20.553Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Time to gather snapshot file layout: 0 (msecs)
+2026-11-16T08:24:20.630Z In(166) Hostd[263234]: [Originator@6876 sub=Libs opID=vim-cmd-d4-e813 sid=52bafed0 user=root] DeviceSwapIsLSISwapNeeded: GetVMAdapterUpdate status is 0, adapterList for device swapping <unset>
+2026-11-16T08:24:20.642Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Time to gather config: 88 (msecs)
+2026-11-16T08:24:20.689Z Wa(164) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] File - failed to get objectId, '/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx': Operation not supported (11)
+2026-11-16T08:24:20.695Z In(166) Hostd[263234]: [Originator@6876 sub=Hbrsvc opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Replicator: VmFileProviderCallback failed to look up VM (id=13)
+2026-11-16T08:24:20.706Z Db(167) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Fault Tolerance state callback received
+2026-11-16T08:24:20.706Z In(166) Hostd[263234]: [Originator@6876 sub=Libs opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Error getting extended config name from config file.
+2026-11-16T08:24:20.707Z In(166) Hostd[263234]: [Originator@6876 sub=Libs opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Error getting extended config file path.
+2026-11-16T08:24:20.707Z In(166) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Initial tools version: 7:guestToolsNotInstalled
+2026-11-16T08:24:20.707Z In(166) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] State Transition (VM_STATE_INITIALIZING -> VM_STATE_OFF)
+2026-11-16T08:24:20.707Z In(166) Hostd[263234]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Initialized virtual machine /vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx
+2026-11-16T08:24:20.708Z In(166) Hostd[263239]: [Originator@6876 sub=Hbrsvc] Replicator: ReconfigListener triggered for config VM 13
+2026-11-16T08:24:20.709Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Event 1850 : Registered gaia-t11-win on gaia-esxi. in ha-datacenter
+2026-11-16T08:24:20.710Z In(166) Hostd[263234]: [Originator@6876 sub=Libs opID=vim-cmd-d4-e813 sid=52bafed0 user=root] FCDLIB-Util:Adding OPEN_PARENT flag
+2026-11-16T08:24:20.713Z Wa(164) Hostd[263234]: [Originator@6876 sub=Vslmsvc opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Disk /vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmdk is not vstorage object. Legacy disks are not considered for state change consumed. Skip this disk.
+2026-11-16T08:24:20.713Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.TaskManager opID=vim-cmd-d4-e813 sid=52bafed0 user=root] Task Completed : haTask-ha-folder-vm-vim.Folder.registerVm-1789 Status success
+2026-11-16T08:24:20.714Z In(166) Hostd[263218]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx] Skip a duplicate transition to: VM_STATE_OFF
+2026-11-16T08:24:20.716Z In(166) Hostd[263218]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx] Send config update invoked
+2026-11-16T08:24:20.716Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEOaG9zdGQAAD20VGxpYnZtYWNvcmUuc28AALL9OwCHhD0BFwv5aG9zdGQAAYHV+QET3fkBz+T5AYolsQFVFnUAHtssAOD/LABLUFICUngAbGlicHRocmVhZC5zby4wAAM/Ug9saWJjLnNvLjYA[/context]
+2026-11-16T08:24:20.762Z In(166) Hostd[263218]: [Originator@6876 sub=Libs] DeviceSwapIsLSISwapNeeded: GetVMAdapterUpdate status is 0, adapterList for device swapping <unset>
+2026-11-16T08:24:20.770Z Db(167) Hostd[263218]: [Originator@6876 sub=Vmsvc.vm:/vmfs/volumes/6af79b09-111d926d-d3be-bc2411a82581/gaia-t11-win/gaia-t11-win.vmx] Time to gather config: 54 (msecs)
+2026-11-16T08:24:20.787Z In(166) Hostd[263211]: [Originator@6876 sub=Hbrsvc] Replicator: ReconfigListener triggered for config VM 13
+2026-11-16T08:24:20.854Z In(166) Hostd[263239]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-d4-e818 sid=52bafed0 user=root] Event 1851 : User root@127.0.0.1 logged out (login time: Monday, 16 November, 2026 08:24:20 AM, number of API invocations: 3, user agent: VMware-client/8.0.3)
+2026-11-16T08:24:21.437Z In(166) Hostd[263235]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=vim-cmd-6e-e81b sid=52739e26] Accepted password for user root from 127.0.0.1 - session=52739e26-a549-90e5-c892-eb128eec3cb4
+2026-11-16T08:24:21.437Z In(166) Hostd[263235]: [Originator@6876 sub=Vimsvc opID=vim-cmd-6e-e81b sid=52739e26] [Auth]: User root
+2026-11-16T08:24:21.438Z Wa(164) Hostd[263235]: [Originator@6876 sub=Vimsvc opID=vim-cmd-6e-e81b sid=52739e26] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-16T08:24:21.438Z In(166) Hostd[263235]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-6e-e81b sid=52739e26] Event 1852 : User root@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-16T08:24:21.447Z In(166) Hostd[263212]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-6e-e81f sid=52739e26 user=root] Event 1853 : User root@127.0.0.1 logged out (login time: Monday, 16 November, 2026 08:24:21 AM, number of API invocations: 2, user agent: VMware-client/8.0.3)
+2026-11-16T08:24:22.101Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=vim-cmd-1e-e822 sid=525c1a14] Accepted password for user root from 127.0.0.1 - session=525c1a14-664e-2c4d-9ccb-564ee72c36a7
+2026-11-16T08:24:22.101Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc opID=vim-cmd-1e-e822 sid=525c1a14] [Auth]: User root
+2026-11-16T08:24:22.101Z Wa(164) Hostd[263205]: [Originator@6876 sub=Vimsvc opID=vim-cmd-1e-e822 sid=525c1a14] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-16T08:24:22.101Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-1e-e822 sid=525c1a14] Event 1854 : User root@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-16T08:24:22.112Z In(166) Hostd[263218]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=vim-cmd-1e-e826 sid=525c1a14 user=root] Event 1855 : User root@127.0.0.1 logged out (login time: Monday, 16 November, 2026 08:24:22 AM, number of API invocations: 2, user agent: VMware-client/8.0.3)
+2026-11-16T08:24:22.177Z In(166) Hostd[263227]: [Originator@6876 sub=Hostsvc.VmkVprobSource] VmkVprobSource::Post event: (vim.event.EventEx) {
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    key = 91, 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    chainId = -1147352376, 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    createdTime = "1970-01-01T00:00:00Z", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    userName = "", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    host = (vim.event.HostEventArgument) {
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       name = "gaia-esxi.", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       host = 'vim.HostSystem:ha-host'
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    }, 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    eventTypeId = "esx.audit.ssh.session.closed", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    arguments = (vmodl.KeyAnyValue) [
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->          key = "1", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->          value = "root"
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       }, 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->          key = "2", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->          value = "192.168.1.30"
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->       }
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    ], 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    objectId = "ha-host", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: -->    objectType = "vim.HostSystem", 
+2026-11-16T08:24:22.177Z In(166) Hostd[263192]: --> }
+2026-11-16T08:24:22.177Z In(166) Hostd[263227]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 1856 : SSH session was closed for 'root@192.168.1.30'.

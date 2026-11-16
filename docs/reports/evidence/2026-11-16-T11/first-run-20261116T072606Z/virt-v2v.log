@@ -1,0 +1,13 @@
+$ virt-v2v -i vmx /var/lib/gaia/migrate/gaia-t11-win/gaia-t11-win.vmx -o local -os /var/lib/libvirt/images/gaia-migrate/gaia-t11-win -of qcow2 -on gaia-t11-win
+VIRTIO_WIN=/var/lib/gaia/images/virtio-win-0.1.302.iso (sha256 303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d)
+[   0.0] Setting up the source: -i vmx /var/lib/gaia/migrate/gaia-t11-win/gaia-t11-win.vmx
+virt-v2v: warning: unknown firmware value 'bios', assuming BIOS
+[   1.0] Opening the source
+[   4.3] Inspecting the source
+[   7.7] Checking for sufficient free disk space in the guest
+[   7.7] Converting Windows Server 2022 Standard Evaluation to run on KVM
+virt-v2v: error: One of rhsrvany.exe or pvvxsvc.exe is missing in /usr/share/virt-tools.  One of them is required in order to install Windows firstboot scripts.  You can get one by building rhsrvany (https://github.com/rwmjones/rhsrvany)
+
+If reporting bugs, run virt-v2v with debugging enabled and include the complete output:
+
+  virt-v2v -v -x [...]
