@@ -125,12 +125,14 @@ func rdpHandshake(conn net.Conn) (bool, string) {
 	if _, err := io.ReadFull(conn, body); err != nil {
 		return false, "short TPKT reply: " + err.Error()
 	}
+	// X.224 CC: LI, code 0xd0, dst-ref, src-ref, class (7 bytes), then the RDP negotiation response, which LI counts.
 	if int(body[0]) < 6 || int(body[0]) >= len(body) || body[1] != 0xd0 {
 		return false, fmt.Sprintf("not an X.224 Connection Confirm: % x", body[:min(len(body), 16)])
 	}
-	neg := body[1+int(body[0]):]
+	reply := fmt.Sprintf(" (reply % x)", append(hdr, body...)) // the server's own bytes, as evidence
+	neg := body[7 : 1+int(body[0])]
 	if len(neg) < 8 {
-		return true, "X.224 Connection Confirm (no RDP negotiation response: standard RDP security)"
+		return true, "X.224 Connection Confirm, no RDP negotiation response: standard RDP security" + reply
 	}
 	v := binary.LittleEndian.Uint32(neg[4:8])
 	switch neg[0] {
@@ -140,9 +142,9 @@ func rdpHandshake(conn net.Conn) (bool, string) {
 		if !ok {
 			name = fmt.Sprintf("0x%x", v)
 		}
-		return true, "X.224 Connection Confirm, RDP_NEG_RSP selected protocol " + name
+		return true, "X.224 Connection Confirm, RDP_NEG_RSP selected protocol " + name + reply
 	case 0x03: // RDP_NEG_FAILURE: an RDP server that refused the requested security
-		return true, fmt.Sprintf("X.224 Connection Confirm, RDP_NEG_FAILURE code %d", v)
+		return true, fmt.Sprintf("X.224 Connection Confirm, RDP_NEG_FAILURE code %d%s", v, reply)
 	}
-	return false, fmt.Sprintf("X.224 Connection Confirm with an unknown negotiation type 0x%02x", neg[0])
+	return false, fmt.Sprintf("X.224 Connection Confirm with an unknown negotiation type 0x%02x%s", neg[0], reply)
 }

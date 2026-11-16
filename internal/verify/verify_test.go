@@ -114,8 +114,8 @@ func fakeRDP(t *testing.T, reply []byte) int {
 
 func TestRDPProbe(t *testing.T) {
 	ctx := context.Background()
-	cc := func(neg ...byte) []byte {
-		x224 := append([]byte{6, 0xd0, 0, 0, 0x12, 0x34, 0}, neg...)
+	cc := func(neg ...byte) []byte { // LI counts the negotiation response (MS-RDPBCGR 2.2.1.2)
+		x224 := append([]byte{byte(6 + len(neg)), 0xd0, 0, 0, 0x12, 0x34, 0}, neg...)
 		return append([]byte{3, 0, 0, byte(4 + len(x224))}, x224...)
 	}
 	for _, tc := range []struct {
@@ -123,7 +123,7 @@ func TestRDPProbe(t *testing.T) {
 		ok    bool
 		want  string
 	}{
-		{cc(0x02, 0x1f, 0x08, 0x00, 0x02, 0, 0, 0), true, "selected protocol CredSSP"},
+		{cc(0x02, 0x1f, 0x08, 0x00, 0x02, 0, 0, 0), true, "selected protocol CredSSP (reply 03 00 00 13 0e d0"},
 		{cc(0x03, 0x00, 0x08, 0x00, 0x05, 0, 0, 0), true, "RDP_NEG_FAILURE code 5"},
 		{cc(), true, "standard RDP security"},
 		{[]byte("HTTP/1.1 400 Bad Request\r\n\r\n"), false, "not a TPKT reply"},
