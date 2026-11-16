@@ -1,0 +1,285 @@
+
+== date / commit
+2026-11-16T00:25:25Z
+97c77f8e93ff3282aaeaf17f5b719681391d1369
+output: /root/t10-hash-20261116T002525Z
+
+== build
+	build	vcs.revision=97c77f8e93ff3282aaeaf17f5b719681391d1369
+	build	vcs.modified=false
+
+== machine
+model name	: AMD Ryzen 7 2700X Eight-Core Processor
+4
+aes: yes
+sha_ni: yes
+avx2: yes
+avx512f: no
+               total        used        free      shared  buff/cache   available
+Mem:            7953         432        7527           0         229        7520
+Swap:              0           0           0
+qemu-nbd 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+0.23.1 build: 72ec08fd8edb86c67ed27099bf1b955e1f308ffa from: kopia/kopia
+kopia benchmark hashing (4 MiB blocks, single goroutine; context for the hash configs):
+Benchmarking hash 'BLAKE2B-256' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'BLAKE2B-256-128' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'BLAKE2S-128' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'BLAKE2S-256' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'BLAKE3-256' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'BLAKE3-256-128' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'HMAC-SHA224' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'HMAC-SHA256' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'HMAC-SHA256-128' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'HMAC-SHA3-224' (20 x 4194304 bytes, parallelism 1)
+Benchmarking hash 'HMAC-SHA3-256' (20 x 4194304 bytes, parallelism 1)
+     Hash                 Throughput
+-----------------------------------------------------------------
+  0. BLAKE3-256           2.5 GB / second
+  1. BLAKE3-256-128       2.5 GB / second
+  2. HMAC-SHA256          2 GB / second
+  3. HMAC-SHA256-128      2 GB / second
+  4. HMAC-SHA224          2 GB / second
+  5. BLAKE2B-256-128      1.2 GB / second
+  6. BLAKE2B-256          1 GB / second
+NAME      SIZE ROTA MOUNTPOINT
+sda       200G    1 
+├─sda1  199.9G    1 /
+├─sda14     3M    1 
+└─sda15   124M    1 /boot/efi
+sdb        64G    0 /mnt/gaia-t5
+sr0         4M    1 
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G   19G  170G  10% /
+/dev/sda1       197G   19G  170G  10% /
+
+== free space
+image 32212254720 bytes, 15756468224 allocated; /var/lib/gaia/t10-hash free 182394851328; /var/lib/gaia/t9 free 182394851328
+
+== source: qemu-nbd -r --cache=none, sha256 of the image
+{
+  "file": "/var/lib/gaia/test.img",
+  "sha256": "7d2eabc0433c8f63060a1841c41fcee66d80c9e1ff30b314f75d251c545d34af",
+  "bytes": 32212254720,
+  "seconds": 29.624861928,
+  "mb_per_s": 1036.9668582645756
+}
+
+== runs (repository on /var/lib/gaia/t10-hash)
+[00:25:57] round 1/3: 4/4/s2-default/BLAKE2B-256-128
+{"config":"4/4/s2-default/BLAKE2B-256-128","round":1,"full_backup_s":26.124,"fastest_plain_read_s":9.82169012,"ratio":2.6598273495519322,"identical":true,"cpu":{"cpus":4,"busy_pct":85,"iowait_pct":3.1},"write_busy":75.84078077600005,"reader_wait":4.495078987000006}
+[00:28:12] round 1/3: 4/4/s2-default/BLAKE3-256-128
+{"config":"4/4/s2-default/BLAKE3-256-128","round":1,"full_backup_s":31.813,"fastest_plain_read_s":14.929923716,"ratio":2.1308213360733292,"identical":true,"cpu":{"cpus":4,"busy_pct":80.6,"iowait_pct":5.9},"write_busy":94.35874295400002,"reader_wait":11.92394912700001}
+[00:31:00] round 1/3: 4/4/s2-default/HMAC-SHA256-128
+{"config":"4/4/s2-default/HMAC-SHA256-128","round":1,"full_backup_s":29.884,"fastest_plain_read_s":12.331167168,"ratio":2.4234526702022565,"identical":true,"cpu":{"cpus":4,"busy_pct":84.7,"iowait_pct":3.1},"write_busy":80.78901582700009,"reader_wait":3.013383605000002}
+[00:33:40] round 2/3: 4/4/s2-default/BLAKE2B-256-128
+{"config":"4/4/s2-default/BLAKE2B-256-128","round":2,"full_backup_s":29.375,"fastest_plain_read_s":11.506675689,"ratio":2.552865900972731,"identical":true,"cpu":{"cpus":4,"busy_pct":83.2,"iowait_pct":4.5},"write_busy":88.2923114380003,"reader_wait":7.663246367999994}
+[00:36:08] round 2/3: 4/4/s2-default/BLAKE3-256-128
+{"config":"4/4/s2-default/BLAKE3-256-128","round":2,"full_backup_s":30.419,"fastest_plain_read_s":12.649338239,"ratio":2.4047898336857805,"identical":true,"cpu":{"cpus":4,"busy_pct":80.7,"iowait_pct":5.8},"write_busy":89.53152990100008,"reader_wait":9.20479195399999}
+[00:38:39] round 2/3: 4/4/s2-default/HMAC-SHA256-128
+{"config":"4/4/s2-default/HMAC-SHA256-128","round":2,"full_backup_s":30.975,"fastest_plain_read_s":13.111635442,"ratio":2.3624055242398647,"identical":true,"cpu":{"cpus":4,"busy_pct":83,"iowait_pct":4.4},"write_busy":89.26324127799994,"reader_wait":6.683168450000014}
+[00:41:37] round 3/3: 4/4/s2-default/BLAKE2B-256-128
+{"config":"4/4/s2-default/BLAKE2B-256-128","round":3,"full_backup_s":32.054,"fastest_plain_read_s":13.287369069,"ratio":2.4123661978189013,"identical":true,"cpu":{"cpus":4,"busy_pct":84.7,"iowait_pct":3.5},"write_busy":94.2928004769998,"reader_wait":6.166090646999994}
+[00:44:33] round 3/3: 4/4/s2-default/BLAKE3-256-128
+{"config":"4/4/s2-default/BLAKE3-256-128","round":3,"full_backup_s":29.476,"fastest_plain_read_s":11.874868106,"ratio":2.482217043329239,"identical":true,"cpu":{"cpus":4,"busy_pct":84,"iowait_pct":3.8},"write_busy":84.05105051099996,"reader_wait":4.938122542000003}
+[00:47:17] round 3/3: 4/4/s2-default/HMAC-SHA256-128
+{"config":"4/4/s2-default/HMAC-SHA256-128","round":3,"full_backup_s":30.759,"fastest_plain_read_s":13.079018389,"ratio":2.3517819980947197,"identical":true,"cpu":{"cpus":4,"busy_pct":82.4,"iowait_pct":4.6},"write_busy":89.34902123499992,"reader_wait":6.657943639999997}
+
+== CPU profiles (one extra, uncounted backup per config)
+-- 4/4/s2-default/BLAKE2B-256-128
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:49:49 UTC
+Duration: 31.91s, Total samples = 84.19s (263.80%)
+Showing nodes accounting for 81.12s, 96.35% of 84.19s total
+Dropped 411 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 93
+      flat  flat%   sum%        cum   cum%
+    20.72s 24.61% 24.61%     20.72s 24.61%  runtime.memmove
+    18.32s 21.76% 46.37%     18.32s 21.76%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    16.78s 19.93% 66.30%     16.78s 19.93%  internal/runtime/syscall.Syscall6
+       14s 16.63% 82.93%        14s 16.63%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     4.23s  5.02% 87.96%      4.23s  5.02%  hash/crc32.castagnoliSSE42Triple
+     3.72s  4.42% 92.37%      3.72s  4.42%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.85s  3.39% 95.76%      2.85s  3.39%  runtime.memclrNoHeapPointers
+     0.06s 0.071% 95.83%     11.77s 13.98%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.06s 0.071% 95.90%      1.01s  1.20%  runtime.findRunnable
+     0.04s 0.048% 95.95%     31.39s 37.28%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.048% 96.00%     16.30s 19.36%  syscall.RawSyscall6
+     0.03s 0.036% 96.03%      9.33s 11.08%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.03s 0.036% 96.07%     18.37s 21.82%  golang.org/x/crypto/blake2b.(*digest).Write
+     0.03s 0.036% 96.10%     18.35s 21.80%  golang.org/x/crypto/blake2b.hashBlocks
+     0.03s 0.036% 96.14%      8.12s  9.64%  io.ReadAtLeast
+     0.03s 0.036% 96.18%      1.15s  1.37%  runtime.schedule
+     0.02s 0.024% 96.20%      4.10s  4.87%  github.com/kopia/kopia/internal/gather.(*Bytes).AppendSectionTo
+     0.02s 0.024% 96.22%     29.55s 35.10%  github.com/kopia/kopia/repo/content.(*WriteManager).addToPackUnlocked
+     0.02s 0.024% 96.25%     18.43s 21.89%  github.com/kopia/kopia/repo/hashing.init.1.truncatedKeyedHashFuncFactory.func3.2
+     0.02s 0.024% 96.27%     48.22s 57.28%  github.com/kopia/kopia/repo/object.(*objectWriter).prepareAndWriteContentChunk
+     0.02s 0.024% 96.29%      4.32s  5.13%  hash/crc32.archUpdateCastagnoli
+     0.02s 0.024% 96.32%      1.11s  1.32%  runtime.park_m
+     0.01s 0.012% 96.33%      4.08s  4.85%  bytes.(*Buffer).Write
+-- 4/4/s2-default/BLAKE3-256-128
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:50:24 UTC
+Duration: 30.62s, Total samples = 84.02s (274.42%)
+Showing nodes accounting for 80.46s, 95.76% of 84.02s total
+Dropped 401 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 101
+      flat  flat%   sum%        cum   cum%
+    22.91s 27.27% 27.27%     22.91s 27.27%  runtime.memmove
+    18.25s 21.72% 48.99%     18.25s 21.72%  internal/runtime/syscall.Syscall6
+    14.96s 17.81% 66.79%     14.96s 17.81%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+    11.50s 13.69% 80.48%     11.50s 13.69%  github.com/zeebo/blake3/internal/alg/hash/hash_avx2.HashF
+     4.80s  5.71% 86.19%      4.80s  5.71%  hash/crc32.castagnoliSSE42Triple
+     3.81s  4.53% 90.73%      3.81s  4.53%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     3.13s  3.73% 94.45%      3.13s  3.73%  runtime.memclrNoHeapPointers
+     0.47s  0.56% 95.01%      0.47s  0.56%  github.com/zeebo/blake3/internal/alg/hash/hash_avx2.HashP
+     0.11s  0.13% 95.14%      0.46s  0.55%  runtime.netpoll
+     0.08s 0.095% 95.24%      0.87s  1.04%  github.com/zeebo/blake3.(*cvstack).pushN
+     0.05s  0.06% 95.30%     12.85s 15.29%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.04s 0.048% 95.35%     26.71s 31.79%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.048% 95.39%      0.70s  0.83%  github.com/zeebo/blake3.(*cvstack).flush
+     0.03s 0.036% 95.43%     20.07s 23.89%  github.com/klauspost/compress/s2.(*Writer).writeFull.func1
+     0.03s 0.036% 95.47%     15.01s 17.86%  github.com/klauspost/compress/s2.encodeBlock
+     0.03s 0.036% 95.50%     44.63s 53.12%  github.com/kopia/kopia/repo/object.(*objectWriter).prepareAndWriteContentChunk
+     0.03s 0.036% 95.54%      9.21s 10.96%  io.ReadAtLeast
+     0.03s 0.036% 95.57%      0.90s  1.07%  runtime.findRunnable
+     0.03s 0.036% 95.61%      3.61s  4.30%  runtime.mallocgc
+     0.03s 0.036% 95.64%      0.62s  0.74%  runtime.systemstack
+     0.02s 0.024% 95.67%     14.80s 17.61%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.02s 0.024% 95.69%     12.85s 15.29%  github.com/kopia/kopia/repo/hashing.init.0.truncatedKeyedHashFuncFactory.func2.2
+     0.02s 0.024% 95.72%     12.73s 15.15%  github.com/zeebo/blake3.(*hasher).updateString
+-- 4/4/s2-default/HMAC-SHA256-128
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:51:00 UTC
+Duration: 30.70s, Total samples = 83.73s (272.70%)
+Showing nodes accounting for 80.07s, 95.63% of 83.73s total
+Dropped 463 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 94
+      flat  flat%   sum%        cum   cum%
+       23s 27.47% 27.47%        23s 27.47%  runtime.memmove
+    19.16s 22.88% 50.35%     19.16s 22.88%  internal/runtime/syscall.Syscall6
+    14.49s 17.31% 67.66%     14.49s 17.31%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+    10.02s 11.97% 79.62%     10.02s 11.97%  crypto/internal/fips140/sha256.blockSHANI
+     5.35s  6.39% 86.01%      5.35s  6.39%  hash/crc32.castagnoliSSE42Triple
+     4.18s  4.99% 91.01%      4.18s  4.99%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     3.30s  3.94% 94.95%      3.30s  3.94%  runtime.memclrNoHeapPointers
+     0.08s 0.096% 95.04%     12.96s 15.48%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.05s  0.06% 95.10%     24.78s 29.60%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.05s  0.06% 95.16%     15.93s 19.03%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.05s  0.06% 95.22%      5.45s  6.51%  hash/crc32.archUpdateCastagnoli
+     0.04s 0.048% 95.27%         1s  1.19%  runtime.findRunnable
+     0.03s 0.036% 95.31%     10.35s 12.36%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.03s 0.036% 95.34%      4.72s  5.64%  internal/poll.(*FD).Read
+     0.03s 0.036% 95.38%      0.48s  0.57%  runtime.netpoll
+     0.03s 0.036% 95.41%      1.07s  1.28%  runtime.schedule
+     0.03s 0.036% 95.45%     11.97s 14.30%  syscall.write
+     0.02s 0.024% 95.47%      0.44s  0.53%  internal/runtime/syscall.EpollWait
+     0.02s 0.024% 95.50%      4.75s  5.67%  net.(*conn).Read
+     0.02s 0.024% 95.52%      3.37s  4.02%  runtime.makeslice
+     0.02s 0.024% 95.55%      1.16s  1.39%  runtime.mcall
+     0.02s 0.024% 95.57%      0.96s  1.15%  runtime.park_m
+     0.02s 0.024% 95.59%      4.59s  5.48%  syscall.Read (inline)
+
+== summary (median of the counted runs per config)
+[
+  {
+    "config": "4/4/s2-default/BLAKE2B-256-128",
+    "runs": 3,
+    "ratios": [
+      2.6598273495519322,
+      2.552865900972731,
+      2.4123661978189013
+    ],
+    "median_ratio": 2.552865900972731,
+    "median_full_backup_s": 29.375,
+    "median_fastest_plain_read_s": 11.506675689,
+    "median_backup_mib_s": 508.39667553191487,
+    "median_repository_bytes": 9830380323,
+    "median_restore_s": 33.91,
+    "median_cpu_busy_pct": 84.7,
+    "median_iowait_pct": 3.5,
+    "median_write_busy_per_s": 2.979002692874217,
+    "median_reader_wait_per_s": 0.19480597191935223,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default/BLAKE3-256-128",
+    "runs": 3,
+    "ratios": [
+      2.1308213360733292,
+      2.4047898336857805,
+      2.482217043329239
+    ],
+    "median_ratio": 2.4047898336857805,
+    "median_full_backup_s": 30.419,
+    "median_fastest_plain_read_s": 12.649338239,
+    "median_backup_mib_s": 490.94816870212696,
+    "median_repository_bytes": 9830405044,
+    "median_restore_s": 36.629,
+    "median_cpu_busy_pct": 80.7,
+    "median_iowait_pct": 5.8,
+    "median_write_busy_per_s": 2.9805389543193845,
+    "median_reader_wait_per_s": 0.3064310530115956,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default/HMAC-SHA256-128",
+    "runs": 3,
+    "ratios": [
+      2.4234526702022565,
+      2.3624055242398647,
+      2.3517819980947197
+    ],
+    "median_ratio": 2.3624055242398647,
+    "median_full_backup_s": 30.759,
+    "median_fastest_plain_read_s": 13.079018389,
+    "median_backup_mib_s": 485.5213870330635,
+    "median_repository_bytes": 9830396910,
+    "median_restore_s": 36.013,
+    "median_cpu_busy_pct": 83,
+    "median_iowait_pct": 4.4,
+    "median_write_busy_per_s": 2.9196211097662914,
+    "median_reader_wait_per_s": 0.21859299984385808,
+    "identical": true,
+    "gate": "CRITICAL"
+  }
+]
+
+== gate (ADR-004 A1)
+{
+  "rule": "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
+  "configs": [
+    {
+      "config": "4/4/s2-default/BLAKE2B-256-128",
+      "median_ratio": 2.552865900972731,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default/BLAKE3-256-128",
+      "median_ratio": 2.4047898336857805,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default/HMAC-SHA256-128",
+      "median_ratio": 2.3624055242398647,
+      "gate": "CRITICAL"
+    }
+  ],
+  "best": {
+    "config": "4/4/s2-default/HMAC-SHA256-128",
+    "median_ratio": 2.3624055242398647,
+    "gate": "CRITICAL"
+  },
+  "verdict": "CRITICAL"
+}
+
+== result
+CRITICAL
+(gate.json, summary.json, runs.jsonl, profiles/ in /root/t10-hash-20261116T002525Z)

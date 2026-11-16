@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: 855d4ae12f7d1567748a17f640eac6aaa4a85eb5
+Type: cpu
+Time: 2026-11-16 01:15:36 UTC
+Duration: 27.72s, Total samples = 63.53s (229.23%)
+Showing nodes accounting for 60.08s, 94.57% of 63.53s total
+Dropped 452 nodes (cum <= 0.32s)
+Showing top 25 nodes out of 97
+      flat  flat%   sum%        cum   cum%
+    14.01s 22.05% 22.05%     14.01s 22.05%  internal/runtime/syscall.Syscall6
+    13.62s 21.44% 43.49%     13.62s 21.44%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    12.61s 19.85% 63.34%     12.61s 19.85%  runtime.memmove
+    12.35s 19.44% 82.78%     12.35s 19.44%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     3.10s  4.88% 87.66%      3.10s  4.88%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.19s  3.45% 91.11%      2.19s  3.45%  runtime.memclrNoHeapPointers
+     1.45s  2.28% 93.39%      1.45s  2.28%  hash/crc32.castagnoliSSE42Triple
+     0.36s  0.57% 93.96%      0.36s  0.57%  runtime.futex
+     0.06s 0.094% 94.05%      0.32s   0.5%  runtime.netpoll
+     0.05s 0.079% 94.13%      7.79s 12.26%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.05s 0.079% 94.21%      1.58s  2.49%  hash/crc32.archUpdateCastagnoli
+     0.02s 0.031% 94.24%      0.34s  0.54%  compress/gzip.(*Writer).Write
+     0.02s 0.031% 94.27%      7.30s 11.49%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.2
+     0.02s 0.031% 94.30%      7.15s 11.25%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).ReadAt
+     0.02s 0.031% 94.33%     12.39s 19.50%  github.com/klauspost/compress/s2.encodeBlock
+     0.02s 0.031% 94.36%      9.28s 14.61%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.02s 0.031% 94.40%     21.43s 33.73%  github.com/kopia/kopia/repo/content.(*WriteManager).addToPackUnlocked
+     0.02s 0.031% 94.43%     13.68s 21.53%  github.com/kopia/kopia/repo/hashing.init.1.truncatedKeyedHashFuncFactory.func3.2
+     0.02s 0.031% 94.46%      3.20s  5.04%  internal/poll.(*FD).Read
+     0.02s 0.031% 94.49%     13.82s 21.75%  syscall.Syscall
+     0.01s 0.016% 94.51%     38.83s 61.12%  github.com/Warewave-Technology/gaia/internal/diskstore.storeBlock
+     0.01s 0.016% 94.52%      7.13s 11.22%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).read
+     0.01s 0.016% 94.54%      5.27s  8.30%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).readChunk
+     0.01s 0.016% 94.55%     12.40s 19.52%  github.com/klauspost/compress/s2.(*Writer).encodeBlock
+     0.01s 0.016% 94.57%     14.11s 22.21%  github.com/klauspost/compress/s2.(*Writer).writeFull.func1

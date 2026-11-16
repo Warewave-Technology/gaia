@@ -1,0 +1,26 @@
+{
+  "rule": "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
+  "configs": [
+    {
+      "config": "4/4/s2-default//FIXED-1M",
+      "median_ratio": 3.4539211329906436,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default//FIXED-256K",
+      "median_ratio": 2.9505449877027035,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default//FIXED-4M",
+      "median_ratio": 2.521862204133856,
+      "gate": "CRITICAL"
+    }
+  ],
+  "best": {
+    "config": "4/4/s2-default//FIXED-4M",
+    "median_ratio": 2.521862204133856,
+    "gate": "CRITICAL"
+  },
+  "verdict": "CRITICAL"
+}

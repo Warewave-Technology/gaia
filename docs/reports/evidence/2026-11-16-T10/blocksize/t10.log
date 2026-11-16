@@ -1,0 +1,257 @@
+
+== date / commit
+2026-11-15T23:49:22Z
+97c77f8e93ff3282aaeaf17f5b719681391d1369
+output: /root/t10-20261115T234922Z
+
+== build
+	build	vcs.revision=97c77f8e93ff3282aaeaf17f5b719681391d1369
+	build	vcs.modified=false
+
+== virtualisation
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+
+== splitters Kopia offers (kopia benchmark splitter)
+0.23.1 build: 72ec08fd8edb86c67ed27099bf1b955e1f308ffa from: kopia/kopia
+FIXED-128K FIXED-1M FIXED-256K FIXED-2M FIXED-4M FIXED-512K FIXED-8M 
+FIXED-4M: block size 4194304
+FIXED-1M: block size 1048576
+FIXED-256K: block size 262144
+
+== free space
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb         63G   24K   60G   1% /mnt/gaia-t5
+/dev/sda1       197G   19G  170G  10% /
+
+== guest image
+485a390d1c5e3a9f57ebb903654c21044c5d5b5b94de126d28b9d0cd960112dc0536afd1217c45036c331659543c8c8acb5f56dff706c9530f9fe39e2908e512  debian-12-genericcloud-amd64.qcow2
+debian-12-genericcloud-amd64.qcow2: OK
+[23:49:26] preparing the random image
+virt-customize: warning: random seed could not be set for this type of guest
+[23:49:33] preparing the sequential image
+virt-customize: warning: random seed could not be set for this type of guest
+[23:49:39] preparing the pgbench image
+virt-customize: warning: random seed could not be set for this type of guest
+
+== measurements
+[23:50:04] random x FIXED-4M (block 4194304): guest
+{"workload":"random","splitter":"FIXED-4M","block_size":4194304,"cycle":0,"kind":"full","dirty_bytes":2116812800,"nbd_requested_bytes":2116812800,"repo_growth_bytes":1465491639,"repo_bytes_after":1465496942,"growth_per_dirty":0.6923104579677523,"repo_read_back_bytes":0,"blocks_written":551,"blocks_reused":0,"backup_s":6.176910843,"data_s":5.706415585,"guest_workload_bytes_total":9437184,"point_id":"b2d84958b48ac566de07454d3bfdc0a3"}
+{"workload":"random","splitter":"FIXED-4M","block_size":4194304,"cycle":1,"kind":"incremental","dirty_bytes":226230272,"nbd_requested_bytes":226230272,"repo_growth_bytes":725297441,"repo_bytes_after":2190794383,"growth_per_dirty":3.206014096115307,"repo_read_back_bytes":645922816,"blocks_written":185,"blocks_reused":1845,"backup_s":3.446677343,"data_s":2.9858495229999997,"guest_workload_bytes_total":160432128,"point_id":"ad7ab084cae6667cb92b24c42d3dd2df"}
+{"workload":"random","splitter":"FIXED-4M","block_size":4194304,"cycle":2,"kind":"incremental","dirty_bytes":138936320,"nbd_requested_bytes":138936320,"repo_growth_bytes":700822213,"repo_bytes_after":2891616596,"growth_per_dirty":5.044197320038418,"repo_read_back_bytes":587202560,"blocks_written":169,"blocks_reused":1879,"backup_s":3.194006647,"data_s":2.7293165310000003,"guest_workload_bytes_total":306708480,"point_id":"2871b607f9144ee3a6117a1b80e8c783"}
+{"workload":"random","splitter":"FIXED-4M","block_size":4194304,"cycle":3,"kind":"incremental","dirty_bytes":142868480,"nbd_requested_bytes":142868480,"repo_growth_bytes":692478619,"repo_bytes_after":3584095215,"growth_per_dirty":4.8469656778038095,"repo_read_back_bytes":578813952,"blocks_written":168,"blocks_reused":1880,"backup_s":6.497744024,"data_s":5.840589846,"guest_workload_bytes_total":448266240,"point_id":"faacc3275f90b1eb26e2cc2a29789178"}
+{"workload":"random","splitter":"FIXED-4M","restore_s":5.478,"identical":true,"restored_sha256":"4c04d269711588a80cb2d0db44ff60e62ba16dae153669d7dda89597f9a7ca32","reference_sha256":"4c04d269711588a80cb2d0db44ff60e62ba16dae153669d7dda89597f9a7ca32","stats":{"repo_read_bytes":2311061504,"written_bytes":2311061504,"blocks_written":551,"blocks_hole":1497,"seconds":5.174239238}}
+[23:54:07] random x FIXED-1M (block 1048576): guest
+{"workload":"random","splitter":"FIXED-1M","block_size":1048576,"cycle":0,"kind":"full","dirty_bytes":2118909952,"nbd_requested_bytes":2118909952,"repo_growth_bytes":1453786564,"repo_bytes_after":1453791867,"growth_per_dirty":0.6861011543354155,"repo_read_back_bytes":0,"blocks_written":2118,"blocks_reused":0,"backup_s":6.407314169,"data_s":5.928557828,"guest_workload_bytes_total":9437184,"point_id":"a5c4f406612bdbee95b3c6f77cf6a9f1"}
+{"workload":"random","splitter":"FIXED-1M","block_size":1048576,"cycle":1,"kind":"incremental","dirty_bytes":191430656,"nbd_requested_bytes":191430656,"repo_growth_bytes":331397089,"repo_bytes_after":1785188956,"growth_per_dirty":1.7311599715773842,"repo_read_back_bytes":217055232,"blocks_written":326,"blocks_reused":7817,"backup_s":1.9021015129999999,"data_s":1.3969022770000001,"guest_workload_bytes_total":160432128,"point_id":"4c1383272613827934205aad65df53b9"}
+{"workload":"random","splitter":"FIXED-1M","block_size":1048576,"cycle":2,"kind":"incremental","dirty_bytes":139001856,"nbd_requested_bytes":139001856,"repo_growth_bytes":320119444,"repo_bytes_after":2105308400,"growth_per_dirty":2.3029868320607174,"repo_read_back_bytes":201326592,"blocks_written":311,"blocks_reused":7881,"backup_s":1.8593222169999999,"data_s":1.4080461610000001,"guest_workload_bytes_total":301989888,"point_id":"47b34ec359c18c4a0c34530729bc876e"}
+{"workload":"random","splitter":"FIXED-1M","block_size":1048576,"cycle":3,"kind":"incremental","dirty_bytes":142737408,"nbd_requested_bytes":142737408,"repo_growth_bytes":320102982,"repo_bytes_after":2425411382,"growth_per_dirty":2.2426004961502453,"repo_read_back_bytes":197132288,"blocks_written":310,"blocks_reused":7882,"backup_s":3.508698298,"data_s":2.872174733,"guest_workload_bytes_total":443547648,"point_id":"c8588277f71d82922b0b1391ccd8975a"}
+{"workload":"random","splitter":"FIXED-1M","restore_s":5.562,"identical":true,"restored_sha256":"40a6f2d5289a5e2ce54db34c43ffb9fe12f3b7099418f6afb076481d55bec39f","reference_sha256":"40a6f2d5289a5e2ce54db34c43ffb9fe12f3b7099418f6afb076481d55bec39f","stats":{"repo_read_bytes":2220883968,"written_bytes":2220883968,"blocks_written":2118,"blocks_hole":6074,"seconds":5.25188615}}
+[23:58:08] random x FIXED-256K (block 262144): guest
+{"workload":"random","splitter":"FIXED-256K","block_size":262144,"cycle":0,"kind":"full","dirty_bytes":2116878336,"nbd_requested_bytes":2116878336,"repo_growth_bytes":1457938167,"repo_bytes_after":1457943474,"growth_per_dirty":0.6887208122479458,"repo_read_back_bytes":0,"blocks_written":8250,"blocks_reused":0,"backup_s":6.36413462,"data_s":5.855978899,"guest_workload_bytes_total":14155776,"point_id":"ca21b7eb64f645de4bc278136eb44e8f"}
+{"workload":"random","splitter":"FIXED-256K","block_size":262144,"cycle":1,"kind":"incremental","dirty_bytes":149094400,"nbd_requested_bytes":149094400,"repo_growth_bytes":187457286,"repo_bytes_after":1645400760,"growth_per_dirty":1.2573060155176854,"repo_read_back_bytes":58982400,"blocks_written":734,"blocks_reused":32034,"backup_s":1.314588792,"data_s":0.85112546,"guest_workload_bytes_total":160432128,"point_id":"2ca4181616199c8e48113b1c2353d61a"}
+{"workload":"random","splitter":"FIXED-256K","block_size":262144,"cycle":2,"kind":"incremental","dirty_bytes":130613248,"nbd_requested_bytes":130613248,"repo_growth_bytes":166322326,"repo_bytes_after":1811723086,"growth_per_dirty":1.273395528759839,"repo_read_back_bytes":53739520,"blocks_written":650,"blocks_reused":32118,"backup_s":1.429745429,"data_s":0.929720969,"guest_workload_bytes_total":301989888,"point_id":"7c5deca0825a4964c9a03e520675113f"}
+{"workload":"random","splitter":"FIXED-256K","block_size":262144,"cycle":3,"kind":"incremental","dirty_bytes":141426688,"nbd_requested_bytes":141426688,"repo_growth_bytes":178083582,"repo_bytes_after":1989806668,"growth_per_dirty":1.2591936113217896,"repo_read_back_bytes":60555264,"blocks_written":708,"blocks_reused":32060,"backup_s":2.139360146,"data_s":1.482954995,"guest_workload_bytes_total":443547648,"point_id":"63eeb0bf1bd887bbb38f73d9f6e62191"}
+{"workload":"random","splitter":"FIXED-256K","restore_s":5.865,"identical":true,"restored_sha256":"1360784090eb4aa5069204d3d161695f2011f7e74d3c7b251cb7592df99505d5","reference_sha256":"1360784090eb4aa5069204d3d161695f2011f7e74d3c7b251cb7592df99505d5","stats":{"repo_read_bytes":2162950144,"written_bytes":2162950144,"blocks_written":8251,"blocks_hole":24517,"seconds":5.592275701}}
+[00:02:05] sequential x FIXED-4M (block 4194304): guest
+{"workload":"sequential","splitter":"FIXED-4M","block_size":4194304,"cycle":0,"kind":"full","dirty_bytes":1093468160,"nbd_requested_bytes":1093468160,"repo_growth_bytes":408614477,"repo_bytes_after":408619780,"growth_per_dirty":0.3736866714070577,"repo_read_back_bytes":0,"blocks_written":307,"blocks_reused":0,"backup_s":2.787979285,"data_s":2.299868946,"guest_workload_bytes_total":12582912,"point_id":"b8c2187fbad627e200b7538b01f92d53"}
+{"workload":"sequential","splitter":"FIXED-4M","block_size":4194304,"cycle":1,"kind":"incremental","dirty_bytes":261881856,"nbd_requested_bytes":261881856,"repo_growth_bytes":130189579,"repo_bytes_after":538809359,"growth_per_dirty":0.4971309619861561,"repo_read_back_bytes":29360128,"blocks_written":37,"blocks_reused":1980,"backup_s":1.166713015,"data_s":0.703170704,"guest_workload_bytes_total":138412032,"point_id":"62fb9e24024686280f0a3d5c1ba4017b"}
+{"workload":"sequential","splitter":"FIXED-4M","block_size":4194304,"cycle":2,"kind":"incremental","dirty_bytes":126877696,"nbd_requested_bytes":126877696,"repo_growth_bytes":126711874,"repo_bytes_after":665521233,"growth_per_dirty":0.9986930563430155,"repo_read_back_bytes":20971520,"blocks_written":35,"blocks_reused":2013,"backup_s":1.151796401,"data_s":0.656953612,"guest_workload_bytes_total":264241152,"point_id":"0aecf1672321224a0f0df92b20079c30"}
+{"workload":"sequential","splitter":"FIXED-4M","block_size":4194304,"cycle":3,"kind":"incremental","dirty_bytes":126943232,"nbd_requested_bytes":126943232,"repo_growth_bytes":126507066,"repo_bytes_after":792028299,"growth_per_dirty":0.9965640862208393,"repo_read_back_bytes":20971520,"blocks_written":35,"blocks_reused":2013,"backup_s":1.357017644,"data_s":0.66448184,"guest_workload_bytes_total":390070272,"point_id":"7599ccdc613cf019118d245fea18dbd2"}
+{"workload":"sequential","splitter":"FIXED-4M","restore_s":3.718,"identical":true,"restored_sha256":"bc1bd5bf8e6125642fc1941ae5af6542fb79fc9846575f5a631a71271f937b4d","reference_sha256":"bc1bd5bf8e6125642fc1941ae5af6542fb79fc9846575f5a631a71271f937b4d","stats":{"repo_read_bytes":1619001344,"written_bytes":1619001344,"blocks_written":386,"blocks_hole":1662,"seconds":3.400972796}}
+[00:05:51] sequential x FIXED-1M (block 1048576): guest
+{"workload":"sequential","splitter":"FIXED-1M","block_size":1048576,"cycle":0,"kind":"full","dirty_bytes":1093664768,"nbd_requested_bytes":1093664768,"repo_growth_bytes":396698933,"repo_bytes_after":396704236,"growth_per_dirty":0.36272443312355107,"repo_read_back_bytes":0,"blocks_written":1142,"blocks_reused":0,"backup_s":2.774631951,"data_s":2.2628258,"guest_workload_bytes_total":12582912,"point_id":"87c440fe8f2767702cb106a6ac5abbd9"}
+{"workload":"sequential","splitter":"FIXED-1M","block_size":1048576,"cycle":1,"kind":"incremental","dirty_bytes":259784704,"nbd_requested_bytes":259784704,"repo_growth_bytes":127138278,"repo_bytes_after":523842514,"growth_per_dirty":0.4893986291048144,"repo_read_back_bytes":10485760,"blocks_written":130,"blocks_reused":7937,"backup_s":1.092169043,"data_s":0.577959217,"guest_workload_bytes_total":138412032,"point_id":"63ca2865483d8fc20daeb540b1df155a"}
+{"workload":"sequential","splitter":"FIXED-1M","block_size":1048576,"cycle":2,"kind":"incremental","dirty_bytes":126943232,"nbd_requested_bytes":126943232,"repo_growth_bytes":126130274,"repo_bytes_after":649972788,"growth_per_dirty":0.993595893320252,"repo_read_back_bytes":6291456,"blocks_written":126,"blocks_reused":8066,"backup_s":1.094298503,"data_s":0.612608974,"guest_workload_bytes_total":264241152,"point_id":"0d26b8548c5eb035865c0049f0aae2fa"}
+{"workload":"sequential","splitter":"FIXED-1M","block_size":1048576,"cycle":3,"kind":"incremental","dirty_bytes":126943232,"nbd_requested_bytes":126943232,"repo_growth_bytes":126122062,"repo_bytes_after":776094850,"growth_per_dirty":0.9935312029868595,"repo_read_back_bytes":6291456,"blocks_written":126,"blocks_reused":8066,"backup_s":1.1601229690000001,"data_s":0.586715729,"guest_workload_bytes_total":390070272,"point_id":"09b03f24e8e73900fa87452884e38d2b"}
+{"workload":"sequential","splitter":"FIXED-1M","restore_s":3.616,"identical":true,"restored_sha256":"b82532071731ec90ebda3ff4676e9ce7e67a6e9276fae2f84aced339b37df861","reference_sha256":"b82532071731ec90ebda3ff4676e9ce7e67a6e9276fae2f84aced339b37df861","stats":{"repo_read_bytes":1528823808,"written_bytes":1528823808,"blocks_written":1458,"blocks_hole":6734,"seconds":3.193845956}}
+[00:09:38] sequential x FIXED-256K (block 262144): guest
+{"workload":"sequential","splitter":"FIXED-256K","block_size":262144,"cycle":0,"kind":"full","dirty_bytes":1093468160,"nbd_requested_bytes":1093468160,"repo_growth_bytes":400695817,"repo_bytes_after":400701124,"growth_per_dirty":0.3664448876133714,"repo_read_back_bytes":0,"blocks_written":4346,"blocks_reused":0,"backup_s":2.5794862849999998,"data_s":2.128679774,"guest_workload_bytes_total":12582912,"point_id":"f8816364f829a57dcb371aa8ac13c32b"}
+{"workload":"sequential","splitter":"FIXED-256K","block_size":262144,"cycle":1,"kind":"incremental","dirty_bytes":266141696,"nbd_requested_bytes":266141696,"repo_growth_bytes":130735837,"repo_bytes_after":531436961,"growth_per_dirty":0.4912264367624681,"repo_read_back_bytes":3145728,"blocks_written":511,"blocks_reused":31746,"backup_s":1.082153147,"data_s":0.598410873,"guest_workload_bytes_total":142606336,"point_id":"8bd9eaba2ee1e81db8908737daaadb1b"}
+{"workload":"sequential","splitter":"FIXED-256K","block_size":262144,"cycle":2,"kind":"incremental","dirty_bytes":126877696,"nbd_requested_bytes":126877696,"repo_growth_bytes":126195319,"repo_bytes_after":657632280,"growth_per_dirty":0.9946217733966417,"repo_read_back_bytes":1572864,"blocks_written":488,"blocks_reused":32280,"backup_s":1.167903941,"data_s":0.657438331,"guest_workload_bytes_total":264241152,"point_id":"68773400794fc281f451191b501d43d1"}
+{"workload":"sequential","splitter":"FIXED-256K","block_size":262144,"cycle":3,"kind":"incremental","dirty_bytes":122683392,"nbd_requested_bytes":122683392,"repo_growth_bytes":122015882,"repo_bytes_after":779648162,"growth_per_dirty":0.994559084248339,"repo_read_back_bytes":1572864,"blocks_written":472,"blocks_reused":32296,"backup_s":1.632589414,"data_s":0.681633286,"guest_workload_bytes_total":390070272,"point_id":"095aaa5cae71ce0a54dfaab14368862a"}
+{"workload":"sequential","splitter":"FIXED-256K","restore_s":3.943,"identical":true,"restored_sha256":"7aad06d5813905bb1c7dc3291dac58e5b7b0cf3f2f4df06bfb8bdc5103afb19e","reference_sha256":"7aad06d5813905bb1c7dc3291dac58e5b7b0cf3f2f4df06bfb8bdc5103afb19e","stats":{"repo_read_bytes":1470627840,"written_bytes":1470627840,"blocks_written":5610,"blocks_hole":27158,"seconds":3.247107079}}
+[00:13:25] pgbench x FIXED-4M (block 4194304): guest
+{"workload":"pgbench","splitter":"FIXED-4M","block_size":4194304,"cycle":0,"kind":"full","dirty_bytes":2384330752,"nbd_requested_bytes":2384330752,"repo_growth_bytes":754380312,"repo_bytes_after":754385615,"growth_per_dirty":0.31639079912349344,"repo_read_back_bytes":0,"blocks_written":616,"blocks_reused":0,"backup_s":4.834900159,"data_s":4.3507440410000005,"guest_workload_bytes_total":0,"point_id":"866d57e567dd05ca7331074b7e5c3d9b"}
+{"workload":"pgbench","splitter":"FIXED-4M","block_size":4194304,"cycle":1,"kind":"incremental","dirty_bytes":819200000,"nbd_requested_bytes":819200000,"repo_growth_bytes":138046221,"repo_bytes_after":892431836,"growth_per_dirty":0.16851345336914061,"repo_read_back_bytes":255852544,"blocks_written":212,"blocks_reused":1836,"backup_s":2.342689238,"data_s":1.7256773189999999,"guest_workload_bytes_total":0,"point_id":"0803e42d2e41502bcceddc09029c7b2a"}
+{"workload":"pgbench","splitter":"FIXED-4M","block_size":4194304,"cycle":2,"kind":"incremental","dirty_bytes":772276224,"nbd_requested_bytes":772276224,"repo_growth_bytes":124835530,"repo_bytes_after":1017267366,"growth_per_dirty":0.16164621688521644,"repo_read_back_bytes":260046848,"blocks_written":204,"blocks_reused":1843,"backup_s":2.080307583,"data_s":1.520437448,"guest_workload_bytes_total":0,"point_id":"e51b61606d21e28d7868a0657b2d9b80"}
+{"workload":"pgbench","splitter":"FIXED-4M","block_size":4194304,"cycle":3,"kind":"incremental","dirty_bytes":755761152,"nbd_requested_bytes":755761152,"repo_growth_bytes":114283614,"repo_bytes_after":1131550980,"growth_per_dirty":0.15121657642439923,"repo_read_back_bytes":268435456,"blocks_written":198,"blocks_reused":1849,"backup_s":2.190529083,"data_s":1.584537959,"guest_workload_bytes_total":0,"point_id":"9a23f9b06365ef9e2831b3c533544c8a"}
+{"workload":"pgbench","splitter":"FIXED-4M","restore_s":4.059,"identical":true,"restored_sha256":"2728c73cd9bdbe7e45ddc3c61c9aeb7ed27e462a173a0a3e5ffe61fb6c7281ba","reference_sha256":"2728c73cd9bdbe7e45ddc3c61c9aeb7ed27e462a173a0a3e5ffe61fb6c7281ba","stats":{"repo_read_bytes":2592079872,"written_bytes":2592079872,"blocks_written":618,"blocks_hole":1430,"seconds":3.626574014}}
+[00:17:27] pgbench x FIXED-1M (block 1048576): guest
+{"workload":"pgbench","splitter":"FIXED-1M","block_size":1048576,"cycle":0,"kind":"full","dirty_bytes":2382561280,"nbd_requested_bytes":2382561280,"repo_growth_bytes":739072771,"repo_bytes_after":739078074,"growth_per_dirty":0.31020094937495163,"repo_read_back_bytes":0,"blocks_written":2377,"blocks_reused":0,"backup_s":4.099022161,"data_s":3.658921608,"guest_workload_bytes_total":0,"point_id":"ebb19fe8c2c35064c9f924ab2d79e67c"}
+{"workload":"pgbench","splitter":"FIXED-1M","block_size":1048576,"cycle":1,"kind":"incremental","dirty_bytes":817102848,"nbd_requested_bytes":817102848,"repo_growth_bytes":132707905,"repo_bytes_after":871785979,"growth_per_dirty":0.1624127309369016,"repo_read_back_bytes":108003328,"blocks_written":806,"blocks_reused":7384,"backup_s":1.887778828,"data_s":1.43682732,"guest_workload_bytes_total":0,"point_id":"89f3a5bf5623fb35cb539a3d1535e09f"}
+{"workload":"pgbench","splitter":"FIXED-1M","block_size":1048576,"cycle":2,"kind":"incremental","dirty_bytes":779026432,"nbd_requested_bytes":779026432,"repo_growth_bytes":117970721,"repo_bytes_after":989756700,"growth_per_dirty":0.15143352799613352,"repo_read_back_bytes":89128960,"blocks_written":770,"blocks_reused":7421,"backup_s":1.6185058300000001,"data_s":1.099318872,"guest_workload_bytes_total":0,"point_id":"1f2150a8748d90198480dfdd06509063"}
+{"workload":"pgbench","splitter":"FIXED-1M","block_size":1048576,"cycle":3,"kind":"incremental","dirty_bytes":746979328,"nbd_requested_bytes":746979328,"repo_growth_bytes":107424967,"repo_bytes_after":1097181667,"growth_per_dirty":0.14381250320223052,"repo_read_back_bytes":89128960,"blocks_written":740,"blocks_reused":7451,"backup_s":1.887856353,"data_s":1.2359863899999999,"guest_workload_bytes_total":0,"point_id":"f60be37b7a6e73de030bad5bd510875c"}
+{"workload":"pgbench","splitter":"FIXED-1M","restore_s":3.713,"identical":true,"restored_sha256":"0f114c07ba2114d2c38461e7f0edc8402a1dd4ca70577807e8c4d8991b510b0a","reference_sha256":"0f114c07ba2114d2c38461e7f0edc8402a1dd4ca70577807e8c4d8991b510b0a","stats":{"repo_read_bytes":2501902336,"written_bytes":2501902336,"blocks_written":2386,"blocks_hole":5806,"seconds":3.2730094530000002}}
+[00:21:25] pgbench x FIXED-256K (block 262144): guest
+{"workload":"pgbench","splitter":"FIXED-256K","block_size":262144,"cycle":0,"kind":"full","dirty_bytes":2384330752,"nbd_requested_bytes":2384330752,"repo_growth_bytes":730580634,"repo_bytes_after":730585941,"growth_per_dirty":0.3064090975579549,"repo_read_back_bytes":0,"blocks_written":9289,"blocks_reused":0,"backup_s":4.202423967,"data_s":3.695820534,"guest_workload_bytes_total":0,"point_id":"3ffb80c67f1018f821da68ac332ffe27"}
+{"workload":"pgbench","splitter":"FIXED-256K","block_size":262144,"cycle":1,"kind":"incremental","dirty_bytes":819527680,"nbd_requested_bytes":819527680,"repo_growth_bytes":136702568,"repo_bytes_after":867288509,"growth_per_dirty":0.16680652934138845,"repo_read_back_bytes":40370176,"blocks_written":3172,"blocks_reused":29588,"backup_s":1.867614966,"data_s":1.400860614,"guest_workload_bytes_total":0,"point_id":"196dd65017240bca37e1e365800bee8e"}
+{"workload":"pgbench","splitter":"FIXED-256K","block_size":262144,"cycle":2,"kind":"incremental","dirty_bytes":778240000,"nbd_requested_bytes":778240000,"repo_growth_bytes":119486734,"repo_bytes_after":986775243,"growth_per_dirty":0.1535345574629934,"repo_read_back_bytes":27000832,"blocks_written":3003,"blocks_reused":29757,"backup_s":1.7037181609999998,"data_s":1.172313772,"guest_workload_bytes_total":0,"point_id":"cb6998879b48857fe8bed5ae98d85bac"}
+{"workload":"pgbench","splitter":"FIXED-256K","block_size":262144,"cycle":3,"kind":"incremental","dirty_bytes":751435776,"nbd_requested_bytes":751435776,"repo_growth_bytes":108904547,"repo_bytes_after":1095679790,"growth_per_dirty":0.14492861596198475,"repo_read_back_bytes":20709376,"blocks_written":2894,"blocks_reused":29869,"backup_s":1.848915029,"data_s":1.204048513,"guest_workload_bytes_total":0,"point_id":"6386b6c5bafa16f4e5e3e5d6364db08d"}
+{"workload":"pgbench","splitter":"FIXED-256K","restore_s":3.958,"identical":true,"restored_sha256":"0f9f11ddb94400c0953ade73fc18f02daeca93f601475986bd9f1f35e8992316","reference_sha256":"0f9f11ddb94400c0953ade73fc18f02daeca93f601475986bd9f1f35e8992316","stats":{"repo_read_bytes":2444230656,"written_bytes":2444230656,"blocks_written":9324,"blocks_hole":23444,"seconds":3.5387119460000003}}
+
+== summary (medians over the incrementals of each splitter x workload)
+{
+  "combinations": [
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 754385615,
+        "backup_s": 4.834900159
+      },
+      "median_dirty_bytes": 772276224,
+      "median_repo_growth_bytes": 124835530,
+      "median_growth_per_dirty": 0.16164621688521644,
+      "median_repo_read_back_bytes": 260046848,
+      "median_incremental_backup_s": 2.190529083,
+      "restore_latest_s": 4.059,
+      "restore_identical": true
+    },
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 739078074,
+        "backup_s": 4.099022161
+      },
+      "median_dirty_bytes": 779026432,
+      "median_repo_growth_bytes": 117970721,
+      "median_growth_per_dirty": 0.15143352799613352,
+      "median_repo_read_back_bytes": 89128960,
+      "median_incremental_backup_s": 1.887778828,
+      "restore_latest_s": 3.713,
+      "restore_identical": true
+    },
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 730585941,
+        "backup_s": 4.202423967
+      },
+      "median_dirty_bytes": 778240000,
+      "median_repo_growth_bytes": 119486734,
+      "median_growth_per_dirty": 0.1535345574629934,
+      "median_repo_read_back_bytes": 27000832,
+      "median_incremental_backup_s": 1.848915029,
+      "restore_latest_s": 3.958,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1465496942,
+        "backup_s": 6.176910843
+      },
+      "median_dirty_bytes": 142868480,
+      "median_repo_growth_bytes": 700822213,
+      "median_growth_per_dirty": 4.8469656778038095,
+      "median_repo_read_back_bytes": 587202560,
+      "median_incremental_backup_s": 3.446677343,
+      "restore_latest_s": 5.478,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1453791867,
+        "backup_s": 6.407314169
+      },
+      "median_dirty_bytes": 142737408,
+      "median_repo_growth_bytes": 320119444,
+      "median_growth_per_dirty": 2.2426004961502453,
+      "median_repo_read_back_bytes": 201326592,
+      "median_incremental_backup_s": 1.9021015129999999,
+      "restore_latest_s": 5.562,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1457943474,
+        "backup_s": 6.36413462
+      },
+      "median_dirty_bytes": 141426688,
+      "median_repo_growth_bytes": 178083582,
+      "median_growth_per_dirty": 1.2591936113217896,
+      "median_repo_read_back_bytes": 58982400,
+      "median_incremental_backup_s": 1.429745429,
+      "restore_latest_s": 5.865,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 408619780,
+        "backup_s": 2.787979285
+      },
+      "median_dirty_bytes": 126943232,
+      "median_repo_growth_bytes": 126711874,
+      "median_growth_per_dirty": 0.9965640862208393,
+      "median_repo_read_back_bytes": 20971520,
+      "median_incremental_backup_s": 1.166713015,
+      "restore_latest_s": 3.718,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 396704236,
+        "backup_s": 2.774631951
+      },
+      "median_dirty_bytes": 126943232,
+      "median_repo_growth_bytes": 126130274,
+      "median_growth_per_dirty": 0.9935312029868595,
+      "median_repo_read_back_bytes": 6291456,
+      "median_incremental_backup_s": 1.094298503,
+      "restore_latest_s": 3.616,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 400701124,
+        "backup_s": 2.5794862849999998
+      },
+      "median_dirty_bytes": 126877696,
+      "median_repo_growth_bytes": 126195319,
+      "median_growth_per_dirty": 0.994559084248339,
+      "median_repo_read_back_bytes": 1572864,
+      "median_incremental_backup_s": 1.167903941,
+      "restore_latest_s": 3.943,
+      "restore_identical": true
+    }
+  ],
+  "complete": true,
+  "all_identical": true
+}
+
+== result
+OK: every combination measured, every restore identical (gate N/A: the numbers are the decision input)

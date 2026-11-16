@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:51:00 UTC
+Duration: 30.70s, Total samples = 83.73s (272.70%)
+Showing nodes accounting for 80.07s, 95.63% of 83.73s total
+Dropped 463 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 94
+      flat  flat%   sum%        cum   cum%
+       23s 27.47% 27.47%        23s 27.47%  runtime.memmove
+    19.16s 22.88% 50.35%     19.16s 22.88%  internal/runtime/syscall.Syscall6
+    14.49s 17.31% 67.66%     14.49s 17.31%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+    10.02s 11.97% 79.62%     10.02s 11.97%  crypto/internal/fips140/sha256.blockSHANI
+     5.35s  6.39% 86.01%      5.35s  6.39%  hash/crc32.castagnoliSSE42Triple
+     4.18s  4.99% 91.01%      4.18s  4.99%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     3.30s  3.94% 94.95%      3.30s  3.94%  runtime.memclrNoHeapPointers
+     0.08s 0.096% 95.04%     12.96s 15.48%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.05s  0.06% 95.10%     24.78s 29.60%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.05s  0.06% 95.16%     15.93s 19.03%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.05s  0.06% 95.22%      5.45s  6.51%  hash/crc32.archUpdateCastagnoli
+     0.04s 0.048% 95.27%         1s  1.19%  runtime.findRunnable
+     0.03s 0.036% 95.31%     10.35s 12.36%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.03s 0.036% 95.34%      4.72s  5.64%  internal/poll.(*FD).Read
+     0.03s 0.036% 95.38%      0.48s  0.57%  runtime.netpoll
+     0.03s 0.036% 95.41%      1.07s  1.28%  runtime.schedule
+     0.03s 0.036% 95.45%     11.97s 14.30%  syscall.write
+     0.02s 0.024% 95.47%      0.44s  0.53%  internal/runtime/syscall.EpollWait
+     0.02s 0.024% 95.50%      4.75s  5.67%  net.(*conn).Read
+     0.02s 0.024% 95.52%      3.37s  4.02%  runtime.makeslice
+     0.02s 0.024% 95.55%      1.16s  1.39%  runtime.mcall
+     0.02s 0.024% 95.57%      0.96s  1.15%  runtime.park_m
+     0.02s 0.024% 95.59%      4.59s  5.48%  syscall.Read (inline)
+     0.02s 0.024% 95.62%     18.86s 22.52%  syscall.Syscall
+     0.01s 0.012% 95.63%      4.19s  5.00%  crypto/internal/fips140/aes/gcm.seal

@@ -1,0 +1,65 @@
+[
+  {
+    "config": "4/4/s2-default/BLAKE2B-256-128",
+    "runs": 3,
+    "ratios": [
+      2.6598273495519322,
+      2.552865900972731,
+      2.4123661978189013
+    ],
+    "median_ratio": 2.552865900972731,
+    "median_full_backup_s": 29.375,
+    "median_fastest_plain_read_s": 11.506675689,
+    "median_backup_mib_s": 508.39667553191487,
+    "median_repository_bytes": 9830380323,
+    "median_restore_s": 33.91,
+    "median_cpu_busy_pct": 84.7,
+    "median_iowait_pct": 3.5,
+    "median_write_busy_per_s": 2.979002692874217,
+    "median_reader_wait_per_s": 0.19480597191935223,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default/BLAKE3-256-128",
+    "runs": 3,
+    "ratios": [
+      2.1308213360733292,
+      2.4047898336857805,
+      2.482217043329239
+    ],
+    "median_ratio": 2.4047898336857805,
+    "median_full_backup_s": 30.419,
+    "median_fastest_plain_read_s": 12.649338239,
+    "median_backup_mib_s": 490.94816870212696,
+    "median_repository_bytes": 9830405044,
+    "median_restore_s": 36.629,
+    "median_cpu_busy_pct": 80.7,
+    "median_iowait_pct": 5.8,
+    "median_write_busy_per_s": 2.9805389543193845,
+    "median_reader_wait_per_s": 0.3064310530115956,
+    "identical": true,
+    "gate": "CRITICAL"
+  },
+  {
+    "config": "4/4/s2-default/HMAC-SHA256-128",
+    "runs": 3,
+    "ratios": [
+      2.4234526702022565,
+      2.3624055242398647,
+      2.3517819980947197
+    ],
+    "median_ratio": 2.3624055242398647,
+    "median_full_backup_s": 30.759,
+    "median_fastest_plain_read_s": 13.079018389,
+    "median_backup_mib_s": 485.5213870330635,
+    "median_repository_bytes": 9830396910,
+    "median_restore_s": 36.013,
+    "median_cpu_busy_pct": 83,
+    "median_iowait_pct": 4.4,
+    "median_write_busy_per_s": 2.9196211097662914,
+    "median_reader_wait_per_s": 0.21859299984385808,
+    "identical": true,
+    "gate": "CRITICAL"
+  }
+]

@@ -1,0 +1,159 @@
+{
+  "combinations": [
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 754385615,
+        "backup_s": 4.834900159
+      },
+      "median_dirty_bytes": 772276224,
+      "median_repo_growth_bytes": 124835530,
+      "median_growth_per_dirty": 0.16164621688521644,
+      "median_repo_read_back_bytes": 260046848,
+      "median_incremental_backup_s": 2.190529083,
+      "restore_latest_s": 4.059,
+      "restore_identical": true
+    },
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 739078074,
+        "backup_s": 4.099022161
+      },
+      "median_dirty_bytes": 779026432,
+      "median_repo_growth_bytes": 117970721,
+      "median_growth_per_dirty": 0.15143352799613352,
+      "median_repo_read_back_bytes": 89128960,
+      "median_incremental_backup_s": 1.887778828,
+      "restore_latest_s": 3.713,
+      "restore_identical": true
+    },
+    {
+      "workload": "pgbench",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 730585941,
+        "backup_s": 4.202423967
+      },
+      "median_dirty_bytes": 778240000,
+      "median_repo_growth_bytes": 119486734,
+      "median_growth_per_dirty": 0.1535345574629934,
+      "median_repo_read_back_bytes": 27000832,
+      "median_incremental_backup_s": 1.848915029,
+      "restore_latest_s": 3.958,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1465496942,
+        "backup_s": 6.176910843
+      },
+      "median_dirty_bytes": 142868480,
+      "median_repo_growth_bytes": 700822213,
+      "median_growth_per_dirty": 4.8469656778038095,
+      "median_repo_read_back_bytes": 587202560,
+      "median_incremental_backup_s": 3.446677343,
+      "restore_latest_s": 5.478,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1453791867,
+        "backup_s": 6.407314169
+      },
+      "median_dirty_bytes": 142737408,
+      "median_repo_growth_bytes": 320119444,
+      "median_growth_per_dirty": 2.2426004961502453,
+      "median_repo_read_back_bytes": 201326592,
+      "median_incremental_backup_s": 1.9021015129999999,
+      "restore_latest_s": 5.562,
+      "restore_identical": true
+    },
+    {
+      "workload": "random",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 1457943474,
+        "backup_s": 6.36413462
+      },
+      "median_dirty_bytes": 141426688,
+      "median_repo_growth_bytes": 178083582,
+      "median_growth_per_dirty": 1.2591936113217896,
+      "median_repo_read_back_bytes": 58982400,
+      "median_incremental_backup_s": 1.429745429,
+      "restore_latest_s": 5.865,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-4M",
+      "block_size": 4194304,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 408619780,
+        "backup_s": 2.787979285
+      },
+      "median_dirty_bytes": 126943232,
+      "median_repo_growth_bytes": 126711874,
+      "median_growth_per_dirty": 0.9965640862208393,
+      "median_repo_read_back_bytes": 20971520,
+      "median_incremental_backup_s": 1.166713015,
+      "restore_latest_s": 3.718,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-1M",
+      "block_size": 1048576,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 396704236,
+        "backup_s": 2.774631951
+      },
+      "median_dirty_bytes": 126943232,
+      "median_repo_growth_bytes": 126130274,
+      "median_growth_per_dirty": 0.9935312029868595,
+      "median_repo_read_back_bytes": 6291456,
+      "median_incremental_backup_s": 1.094298503,
+      "restore_latest_s": 3.616,
+      "restore_identical": true
+    },
+    {
+      "workload": "sequential",
+      "splitter": "FIXED-256K",
+      "block_size": 262144,
+      "incrementals": 3,
+      "full": {
+        "repo_bytes": 400701124,
+        "backup_s": 2.5794862849999998
+      },
+      "median_dirty_bytes": 126877696,
+      "median_repo_growth_bytes": 126195319,
+      "median_growth_per_dirty": 0.994559084248339,
+      "median_repo_read_back_bytes": 1572864,
+      "median_incremental_backup_s": 1.167903941,
+      "restore_latest_s": 3.943,
+      "restore_identical": true
+    }
+  ],
+  "complete": true,
+  "all_identical": true
+}

@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:50:24 UTC
+Duration: 30.62s, Total samples = 84.02s (274.42%)
+Showing nodes accounting for 80.46s, 95.76% of 84.02s total
+Dropped 401 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 101
+      flat  flat%   sum%        cum   cum%
+    22.91s 27.27% 27.27%     22.91s 27.27%  runtime.memmove
+    18.25s 21.72% 48.99%     18.25s 21.72%  internal/runtime/syscall.Syscall6
+    14.96s 17.81% 66.79%     14.96s 17.81%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+    11.50s 13.69% 80.48%     11.50s 13.69%  github.com/zeebo/blake3/internal/alg/hash/hash_avx2.HashF
+     4.80s  5.71% 86.19%      4.80s  5.71%  hash/crc32.castagnoliSSE42Triple
+     3.81s  4.53% 90.73%      3.81s  4.53%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     3.13s  3.73% 94.45%      3.13s  3.73%  runtime.memclrNoHeapPointers
+     0.47s  0.56% 95.01%      0.47s  0.56%  github.com/zeebo/blake3/internal/alg/hash/hash_avx2.HashP
+     0.11s  0.13% 95.14%      0.46s  0.55%  runtime.netpoll
+     0.08s 0.095% 95.24%      0.87s  1.04%  github.com/zeebo/blake3.(*cvstack).pushN
+     0.05s  0.06% 95.30%     12.85s 15.29%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.04s 0.048% 95.35%     26.71s 31.79%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.048% 95.39%      0.70s  0.83%  github.com/zeebo/blake3.(*cvstack).flush
+     0.03s 0.036% 95.43%     20.07s 23.89%  github.com/klauspost/compress/s2.(*Writer).writeFull.func1
+     0.03s 0.036% 95.47%     15.01s 17.86%  github.com/klauspost/compress/s2.encodeBlock
+     0.03s 0.036% 95.50%     44.63s 53.12%  github.com/kopia/kopia/repo/object.(*objectWriter).prepareAndWriteContentChunk
+     0.03s 0.036% 95.54%      9.21s 10.96%  io.ReadAtLeast
+     0.03s 0.036% 95.57%      0.90s  1.07%  runtime.findRunnable
+     0.03s 0.036% 95.61%      3.61s  4.30%  runtime.mallocgc
+     0.03s 0.036% 95.64%      0.62s  0.74%  runtime.systemstack
+     0.02s 0.024% 95.67%     14.80s 17.61%  github.com/kopia/kopia/repo/content.(*SharedManager).maybeCompressAndEncryptDataForPacking
+     0.02s 0.024% 95.69%     12.85s 15.29%  github.com/kopia/kopia/repo/hashing.init.0.truncatedKeyedHashFuncFactory.func2.2
+     0.02s 0.024% 95.72%     12.73s 15.15%  github.com/zeebo/blake3.(*hasher).updateString
+     0.02s 0.024% 95.74%      4.89s  5.82%  hash/crc32.archUpdateCastagnoli
+     0.02s 0.024% 95.76%      4.93s  5.87%  hash/crc32.update

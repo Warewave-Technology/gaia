@@ -1,0 +1,34 @@
+File: gaia-backup
+Build ID: 7c5976005f0f44601139be5b7bf90eaba732648d
+Type: cpu
+Time: 2026-11-16 00:49:49 UTC
+Duration: 31.91s, Total samples = 84.19s (263.80%)
+Showing nodes accounting for 81.12s, 96.35% of 84.19s total
+Dropped 411 nodes (cum <= 0.42s)
+Showing top 25 nodes out of 93
+      flat  flat%   sum%        cum   cum%
+    20.72s 24.61% 24.61%     20.72s 24.61%  runtime.memmove
+    18.32s 21.76% 46.37%     18.32s 21.76%  golang.org/x/crypto/blake2b.hashBlocksAVX2
+    16.78s 19.93% 66.30%     16.78s 19.93%  internal/runtime/syscall.Syscall6
+       14s 16.63% 82.93%        14s 16.63%  github.com/klauspost/compress/s2.encodeBlockAsm4MB
+     4.23s  5.02% 87.96%      4.23s  5.02%  hash/crc32.castagnoliSSE42Triple
+     3.72s  4.42% 92.37%      3.72s  4.42%  crypto/internal/fips140/aes/gcm.gcmAesEnc
+     2.85s  3.39% 95.76%      2.85s  3.39%  runtime.memclrNoHeapPointers
+     0.06s 0.071% 95.83%     11.77s 13.98%  github.com/kopia/kopia/internal/gather.(*WriteBuffer).Append
+     0.06s 0.071% 95.90%      1.01s  1.20%  runtime.findRunnable
+     0.04s 0.048% 95.95%     31.39s 37.28%  github.com/kopia/kopia/internal/gather.Bytes.WriteTo
+     0.04s 0.048% 96.00%     16.30s 19.36%  syscall.RawSyscall6
+     0.03s 0.036% 96.03%      9.33s 11.08%  github.com/kopia/kopia/repo/encryption.aeadSealWithRandomNonce
+     0.03s 0.036% 96.07%     18.37s 21.82%  golang.org/x/crypto/blake2b.(*digest).Write
+     0.03s 0.036% 96.10%     18.35s 21.80%  golang.org/x/crypto/blake2b.hashBlocks
+     0.03s 0.036% 96.14%      8.12s  9.64%  io.ReadAtLeast
+     0.03s 0.036% 96.18%      1.15s  1.37%  runtime.schedule
+     0.02s 0.024% 96.20%      4.10s  4.87%  github.com/kopia/kopia/internal/gather.(*Bytes).AppendSectionTo
+     0.02s 0.024% 96.22%     29.55s 35.10%  github.com/kopia/kopia/repo/content.(*WriteManager).addToPackUnlocked
+     0.02s 0.024% 96.25%     18.43s 21.89%  github.com/kopia/kopia/repo/hashing.init.1.truncatedKeyedHashFuncFactory.func3.2
+     0.02s 0.024% 96.27%     48.22s 57.28%  github.com/kopia/kopia/repo/object.(*objectWriter).prepareAndWriteContentChunk
+     0.02s 0.024% 96.29%      4.32s  5.13%  hash/crc32.archUpdateCastagnoli
+     0.02s 0.024% 96.32%      1.11s  1.32%  runtime.park_m
+     0.01s 0.012% 96.33%      4.08s  4.85%  bytes.(*Buffer).Write
+     0.01s 0.012% 96.34%      9.26s 11.00%  github.com/Warewave-Technology/gaia/internal/diskstore.(*Store).Backup.func1.2
+     0.01s 0.012% 96.35%      9.16s 10.88%  github.com/Warewave-Technology/gaia/internal/nbd.(*Client).ReadAt

@@ -1,0 +1,26 @@
+{
+  "rule": "per config: median(full_backup_s / fastest hash-free read of the same bytes) <= 2 over >= 3 runs, every restore identical; T9 passes if a config passes",
+  "configs": [
+    {
+      "config": "4/4/s2-default/BLAKE2B-256-128",
+      "median_ratio": 2.552865900972731,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default/BLAKE3-256-128",
+      "median_ratio": 2.4047898336857805,
+      "gate": "CRITICAL"
+    },
+    {
+      "config": "4/4/s2-default/HMAC-SHA256-128",
+      "median_ratio": 2.3624055242398647,
+      "gate": "CRITICAL"
+    }
+  ],
+  "best": {
+    "config": "4/4/s2-default/HMAC-SHA256-128",
+    "median_ratio": 2.3624055242398647,
+    "gate": "CRITICAL"
+  },
+  "verdict": "CRITICAL"
+}
