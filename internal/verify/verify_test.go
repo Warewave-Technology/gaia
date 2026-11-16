@@ -237,7 +237,7 @@ func TestRunWithoutImageSealsPreChecks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Verdict != Critical || len(res.Checks) != 3 || res.Checks[1].Verdict != Unknown || res.LedgerSeq != 1 {
+	if res.Verdict != Critical || len(res.Checks) != 3 || res.Checks[1].Verdict != Unknown || res.LedgerSeq != 2 { // seq 1: the genesis key entry
 		t.Fatalf("result %+v", res)
 	}
 	if b, _ := os.ReadFile(filepath.Join(res.BundleDir, "migration", "v2v.log")); !strings.Contains(string(b), "no root device") {

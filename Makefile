@@ -1,4 +1,4 @@
-.PHONY: build test vet fmt shellcheck check clean
+.PHONY: build test vet fmt shellcheck evidence check clean
 
 build:
 	go build -o bin/imgtool ./cmd/imgtool
@@ -18,7 +18,11 @@ fmt:
 shellcheck:
 	shellcheck scripts/*.sh spikes/*/*.sh lab/*/*.sh
 
-check: fmt vet test build shellcheck
+# The evidence specification's conformance vectors, v0 evidence and a key rotation, through the CLI (T13).
+evidence: build
+	scripts/check-evidence.sh bin/gaia
+
+check: fmt vet test build shellcheck evidence
 
 clean:
 	rm -rf bin

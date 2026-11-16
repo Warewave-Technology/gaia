@@ -1,0 +1,8 @@
+{
+  "description": "directory b1 holds a bundle sealed as b9, and the entry recorded its manifest hash",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_id_mismatch"
+  ]
+}

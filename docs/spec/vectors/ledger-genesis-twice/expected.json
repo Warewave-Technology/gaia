@@ -1,0 +1,8 @@
+{
+  "description": "a second genesis entry",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "key_entry_invalid"
+  ]
+}

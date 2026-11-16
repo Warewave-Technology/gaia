@@ -1,0 +1,8 @@
+{
+  "description": "a validly signed entry lacks bundle_sha256",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "entry_malformed"
+  ]
+}

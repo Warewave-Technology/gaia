@@ -1,0 +1,8 @@
+{
+  "description": "one byte of result.json was changed",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "file_modified"
+  ]
+}

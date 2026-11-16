@@ -1,0 +1,8 @@
+{
+  "description": "the last entry (validly signed) has format_version 2",
+  "mode": "ledger",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "format_unsupported"
+  ]
+}

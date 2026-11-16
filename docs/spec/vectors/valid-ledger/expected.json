@@ -1,0 +1,6 @@
+{
+  "description": "a genesis entry for key A and two bundles signed by A",
+  "mode": "ledger",
+  "verdict": "OK",
+  "findings": []
+}

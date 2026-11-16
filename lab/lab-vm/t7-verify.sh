@@ -303,8 +303,9 @@ tamper result-verdict "evidence/$broken_id/result.json" "$(offset_of "$EVIDENCE/
 tamper serial-log "evidence/$healthy_id/serial.log" "$(mid "$EVIDENCE/$healthy_id/serial.log")"
 tamper manifest "evidence/$healthy_id/manifest.json" "$(mid "$EVIDENCE/$healthy_id/manifest.json")"
 tamper signature "evidence/$broken_id/manifest.sig" 10
-tamper ledger-verdict ledger.jsonl "$(offset_of "$LEDGER" '"verdict":"' 1)"
-tamper ledger-prev ledger.jsonl "$(offset_of "$LEDGER" '"prev":"' 2)"
+# Evidence format v1 (T13): line 1 is the genesis key entry, and each payload is a JSON string (quotes escaped).
+tamper ledger-verdict ledger.jsonl "$(offset_of "$LEDGER" '\"verdict\":\"' 2)"
+tamper ledger-prev ledger.jsonl "$(offset_of "$LEDGER" '\"prev\":\"' 3)"
 
 section "gate (CLAUDE.md T7)"
 jq -n --slurpfile h "$OUT_DIR/verify-healthy-result.json" --slurpfile b "$OUT_DIR/verify-broken-result.json" \

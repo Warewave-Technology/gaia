@@ -1,0 +1,8 @@
+{
+  "description": "a validly signed bundle b3 was added without an entry",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_unlisted"
+  ]
+}

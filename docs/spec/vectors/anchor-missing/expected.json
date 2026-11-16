@@ -1,0 +1,8 @@
+{
+  "description": "a valid ledger, but no trust anchor is given",
+  "mode": "ledger",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "anchor_missing"
+  ]
+}

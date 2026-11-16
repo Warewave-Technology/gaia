@@ -1,0 +1,8 @@
+{
+  "description": "format_version 2 (validly signed): a v1 verifier cannot judge it",
+  "mode": "bundle",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "format_unsupported"
+  ]
+}

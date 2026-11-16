@@ -1,0 +1,8 @@
+{
+  "description": "the second entry (validly signed) says seq 5",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "seq_invalid"
+  ]
+}

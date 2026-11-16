@@ -1,0 +1,9 @@
+{
+  "description": "the last line was cut in half: its bundle has no readable entry",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_unlisted",
+    "entry_malformed"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "the subject's verdict was changed from CRITICAL to OK in manifest.json, which was not signed again",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "signature_invalid"
+  ]
+}

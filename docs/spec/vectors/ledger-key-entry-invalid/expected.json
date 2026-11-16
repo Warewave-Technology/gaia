@@ -1,0 +1,8 @@
+{
+  "description": "a rotation (signed by A) whose new_key_id is not the hash of its public_key",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "key_entry_invalid"
+  ]
+}

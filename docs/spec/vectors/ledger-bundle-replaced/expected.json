@@ -1,0 +1,8 @@
+{
+  "description": "bundle b2 was replaced by another bundle b2, validly signed by A",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_hash_mismatch"
+  ]
+}

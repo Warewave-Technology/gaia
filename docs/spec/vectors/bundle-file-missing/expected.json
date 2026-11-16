@@ -1,0 +1,8 @@
+{
+  "description": "serial.log was deleted",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "file_missing"
+  ]
+}

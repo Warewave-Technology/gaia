@@ -1,0 +1,8 @@
+{
+  "description": "the last entry's verdict was changed from OK to CRITICAL without signing it again",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "entry_signature_invalid"
+  ]
+}

@@ -1,131 +1,332 @@
-// Package evidence seals verification artefacts (ADR-002 #3): every file of a bundle
-// is sha256-hashed into manifest.json, the manifest is signed with ed25519
-// (manifest.sig), and the manifest's hash is appended to an append-only ledger in
-// which every entry carries the hash of the previous one and its own signature.
-// Changing one byte of an artefact, a manifest, a signature or a ledger line is
-// detected by Verify*: the hashes no longer match, and without the private key the
-// signatures cannot be redone.
+// Package evidence implements the Restore Evidence Format v1 (docs/spec/evidence-v1.md, ADR-006):
+// bundles whose files are sha256-hashed into a manifest signed with ed25519, and an append-only ledger in
+// which every entry is signed and carries the hash of the one before. The ledger also carries the signing
+// keys: its first entry declares the key a verifier must already trust (the trust anchor), and a rotation
+// entry, signed by the current key, hands over to a new one. Bundles and ledgers written before the
+// specification (v0) are still verified, read-only (v0.go).
 package evidence
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 )
 
-// Names of the files a bundle's seal consists of.
+// Names and identifiers from the specification.
 const (
-	ManifestFile  = "manifest.json"
-	SignatureFile = "manifest.sig"
-	formatV1      = "gaia-evidence/v1"
-	ledgerFormat  = "gaia-ledger/v1"
-	zeroHash      = "0000000000000000000000000000000000000000000000000000000000000000"
+	ManifestFile   = "manifest.json"
+	SignatureFile  = "manifest.sig"
+	FormatV1       = "restore-evidence"
+	LedgerFormatV1 = "restore-evidence-ledger"
+	FormatVersion  = 1
 )
 
-// --- keys ---
+// Finding codes (specification §8.3).
+const (
+	CodeManifestMissing       = "manifest_missing"
+	CodeManifestMalformed     = "manifest_malformed"
+	CodeFormatUnsupported     = "format_unsupported"
+	CodeKeyMismatch           = "key_mismatch"
+	CodeSignatureMissing      = "signature_missing"
+	CodeSignatureMalformed    = "signature_malformed"
+	CodeSignatureInvalid      = "signature_invalid"
+	CodePathInvalid           = "path_invalid"
+	CodeFileMissing           = "file_missing"
+	CodeFileModified          = "file_modified"
+	CodeFileUnlisted          = "file_unlisted"
+	CodeFileTypeInvalid       = "file_type_invalid"
+	CodeAnchorMissing         = "anchor_missing"
+	CodeLedgerMissing         = "ledger_missing"
+	CodeLedgerEmpty           = "ledger_empty"
+	CodeEntryMalformed        = "entry_malformed"
+	CodeSeqInvalid            = "seq_invalid"
+	CodeChainBroken           = "chain_broken"
+	CodeEntrySignatureInvalid = "entry_signature_invalid"
+	CodeAnchorMismatch        = "anchor_mismatch"
+	CodeSignerInvalid         = "signer_invalid"
+	CodeKeyEntryInvalid       = "key_entry_invalid"
+	CodeBundleMissing         = "bundle_missing"
+	CodeBundleUnlisted        = "bundle_unlisted"
+	CodeBundleDuplicate       = "bundle_duplicate"
+	CodeBundleHashMismatch    = "bundle_hash_mismatch"
+	CodeBundleIDMismatch      = "bundle_id_mismatch"
+	CodeV0Integrity           = "v0_integrity" // v0 only: the free-text problems of Gaia's pre-specification check
+)
 
-// GenerateKey writes a new ed25519 key pair: the private key as PKCS#8 PEM (mode 0600), the public key as PKIX PEM.
-func GenerateKey(privPath, pubPath string) (fingerprint string, err error) {
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return "", err
+// Verdicts of a verification.
+const (
+	OK       = "OK"
+	Critical = "CRITICAL"
+	Unknown  = "UNKNOWN"
+)
+
+// Severity of a finding: what was not checked is UNKNOWN; everything else is a failed check.
+func Severity(code string) string {
+	if code == CodeFormatUnsupported || code == CodeAnchorMissing {
+		return Unknown
 	}
-	privDER, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		return "", err
-	}
-	pubDER, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		return "", err
-	}
-	if err := writeNew(privPath, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privDER}), 0o600); err != nil {
-		return "", err
-	}
-	if err := writeNew(pubPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubDER}), 0o644); err != nil {
-		return "", err
-	}
-	return Fingerprint(pub), nil
+	return Critical
 }
 
-func writeNew(path string, data []byte, mode os.FileMode) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+// Finding is one result of a verification that is not OK.
+type Finding struct {
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+	Where    string `json:"where,omitempty"` // e.g. "line 3", a file path
+	Detail   string `json:"detail"`
+}
+
+// Verdict combines findings: CRITICAL if any is, else UNKNOWN if any is, else OK.
+func Verdict(fs []Finding) string {
+	v := OK
+	for _, f := range fs {
+		switch f.Severity {
+		case Critical:
+			return Critical
+		case Unknown:
+			v = Unknown
+		}
+	}
+	return v
+}
+
+// --- reports ---
+
+// BundleReport is the outcome of checking one bundle.
+type BundleReport struct {
+	Dir      string    `json:"dir"`
+	Format   string    `json:"format"` // v1, v0, or "" when the manifest is unreadable
+	BundleID string    `json:"bundle_id,omitempty"`
+	SHA256   string    `json:"bundle_sha256,omitempty"` // sha256 of manifest.json as found
+	KeyID    string    `json:"key_id,omitempty"`
+	Files    int       `json:"files"`
+	Verdict  string    `json:"verdict"`
+	Findings []Finding `json:"findings"`
+	Problems []string  `json:"problems"` // the findings as text (empty = intact)
+}
+
+func newBundleReport(dir, format string) *BundleReport {
+	return &BundleReport{Dir: dir, Format: format, Findings: []Finding{}, Problems: []string{}}
+}
+
+func (r *BundleReport) add(code, where, detail string) {
+	r.Findings = append(r.Findings, Finding{Code: code, Severity: Severity(code), Where: where, Detail: detail})
+}
+
+func (r *BundleReport) done() BundleReport {
+	r.Verdict = Verdict(r.Findings)
+	r.Problems = findingText(r.Findings)
+	return *r
+}
+
+// LedgerReport is the outcome of checking a ledger and the bundles it lists.
+type LedgerReport struct {
+	Ledger   string         `json:"ledger"`
+	Format   string         `json:"format"`
+	Entries  int            `json:"entries"`
+	Keys     []string       `json:"keys"` // key_ids in the order they became current
+	Verdict  string         `json:"verdict"`
+	Findings []Finding      `json:"findings"` // ledger-level
+	Problems []string       `json:"problems"` // the ledger-level findings as text
+	Bundles  []BundleReport `json:"bundles"`
+	Intact   bool           `json:"intact"` // verdict OK
+}
+
+func (r *LedgerReport) add(code, where, detail string) {
+	r.Findings = append(r.Findings, Finding{Code: code, Severity: Severity(code), Where: where, Detail: detail})
+}
+
+// unlisted reports every directory in bundlesDir that no entry names.
+func (r *LedgerReport) unlisted(bundlesDir string, listed map[string]bool) {
+	des, err := os.ReadDir(bundlesDir)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		r.add(CodeBundleMissing, bundlesDir, fmt.Sprintf("bundles directory: %v", err))
+		return
+	}
+	for _, d := range des {
+		if d.IsDir() && !listed[d.Name()] {
+			r.add(CodeBundleUnlisted, d.Name(), "a bundle directory that no ledger entry names")
+		}
+	}
+}
+
+func (r *LedgerReport) done() LedgerReport {
+	all := slices.Clone(r.Findings)
+	for _, b := range r.Bundles {
+		all = append(all, b.Findings...)
+	}
+	r.Verdict = Verdict(all)
+	r.Intact = r.Verdict == OK
+	r.Problems = findingText(r.Findings)
+	if r.Keys == nil {
+		r.Keys = []string{}
+	}
+	return *r
+}
+
+// AllFindings returns the ledger's findings and those of its bundles.
+func (r LedgerReport) AllFindings() []Finding {
+	all := slices.Clone(r.Findings)
+	for _, b := range r.Bundles {
+		for _, f := range b.Findings {
+			if f.Where == "" {
+				f.Where = b.BundleID
+			} else {
+				f.Where = b.BundleID + "/" + f.Where
+			}
+			all = append(all, f)
+		}
+	}
+	return all
+}
+
+func findingText(fs []Finding) []string {
+	out := []string{}
+	for _, f := range fs {
+		s := f.Code + ": " + f.Detail
+		if f.Where != "" {
+			s = f.Where + ": " + s
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// --- syntax ---
+
+var (
+	hex64Re    = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	timeRe     = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?Z$`)
+	bundleIDRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,255}$`)
+	intRe      = regexp.MustCompile(`^(0|[1-9][0-9]{0,15})$`)
+)
+
+func validTime(s string) bool {
+	if !timeRe.MatchString(s) {
+		return false
+	}
+	_, err := time.Parse(time.RFC3339Nano, s)
+	return err == nil
+}
+
+func validBundleID(s string) bool { return bundleIDRe.MatchString(s) && s != "." && s != ".." }
+
+// validPath is the specification's rule for a manifest path (§5.3).
+func validPath(p string) bool {
+	if p == "" || len(p) > 4096 || !utf8.ValidString(p) || strings.ContainsAny(p, "\\\x00") || p == ManifestFile || p == SignatureFile {
+		return false
+	}
+	for _, seg := range strings.Split(p, "/") {
+		if seg == "" || seg == "." || seg == ".." {
+			return false
+		}
+	}
+	return true
+}
+
+// parseObject parses b as exactly one JSON object with no duplicate member names at any depth;
+// numbers stay json.Number.
+func parseObject(b []byte) (map[string]any, error) {
+	if !utf8.Valid(b) {
+		return nil, errors.New("not UTF-8")
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	if err := noDuplicates(dec); err != nil {
+		return nil, err
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, errors.New("data after the JSON value")
+	}
+	var m map[string]any
+	dec = json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	if err := dec.Decode(&m); err != nil {
+		return nil, err
+	}
+	if m == nil {
+		return nil, errors.New("not a JSON object")
+	}
+	return m, nil
+}
+
+// noDuplicates reads one JSON value from dec and fails on a repeated member name in any object.
+func noDuplicates(dec *json.Decoder) error {
+	t, err := dec.Token()
 	if err != nil {
 		return err
 	}
-	if _, err := f.Write(data); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
-}
-
-// Fingerprint is the hex sha256 of the raw public key.
-func Fingerprint(pub ed25519.PublicKey) string {
-	h := sha256.Sum256(pub)
-	return hex.EncodeToString(h[:])
-}
-
-// LoadPrivateKey reads a PKCS#8 PEM ed25519 private key.
-func LoadPrivateKey(path string) (ed25519.PrivateKey, error) {
-	der, err := readPEM(path, "PRIVATE KEY")
-	if err != nil {
-		return nil, err
-	}
-	k, err := x509.ParsePKCS8PrivateKey(der)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	priv, ok := k.(ed25519.PrivateKey)
+	d, ok := t.(json.Delim)
 	if !ok {
-		return nil, fmt.Errorf("%s: not an ed25519 key", path)
+		return nil
 	}
-	return priv, nil
+	switch d {
+	case '{':
+		seen := map[string]bool{}
+		for dec.More() {
+			k, err := dec.Token()
+			if err != nil {
+				return err
+			}
+			name := k.(string)
+			if seen[name] {
+				return fmt.Errorf("member %q appears twice", name)
+			}
+			seen[name] = true
+			if err := noDuplicates(dec); err != nil {
+				return err
+			}
+		}
+	case '[':
+		for dec.More() {
+			if err := noDuplicates(dec); err != nil {
+				return err
+			}
+		}
+	}
+	_, err = dec.Token() // the closing delimiter
+	return err
 }
 
-// LoadPublicKey reads a PKIX PEM ed25519 public key.
-func LoadPublicKey(path string) (ed25519.PublicKey, error) {
-	der, err := readPEM(path, "PUBLIC KEY")
-	if err != nil {
-		return nil, err
-	}
-	k, err := x509.ParsePKIXPublicKey(der)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	pub, ok := k.(ed25519.PublicKey)
+// field helpers: a missing member or one of the wrong type is an error naming it.
+func str(m map[string]any, k string) (string, error) {
+	v, ok := m[k].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: not an ed25519 key", path)
+		return "", fmt.Errorf("%q: missing or not a string", k)
 	}
-	return pub, nil
+	return v, nil
 }
 
-func readPEM(path, typ string) ([]byte, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+func integer(m map[string]any, k string) (int64, error) {
+	n, ok := m[k].(json.Number)
+	if !ok || !intRe.MatchString(string(n)) {
+		return 0, fmt.Errorf("%q: missing or not a non-negative integer", k)
 	}
-	blk, _ := pem.Decode(b)
-	if blk == nil || blk.Type != typ {
-		return nil, fmt.Errorf("%s: no %s PEM block", path, typ)
+	v, err := n.Int64()
+	return v, err
+}
+
+func hex64(m map[string]any, k string) (string, error) {
+	v, err := str(m, k)
+	if err == nil && !hex64Re.MatchString(v) {
+		err = fmt.Errorf("%q: not 64 lowercase hex digits", k)
 	}
-	return blk.Bytes, nil
+	return v, err
 }
 
 // --- bundles ---
@@ -137,25 +338,45 @@ type File struct {
 	Bytes  int64  `json:"bytes"`
 }
 
-// Manifest lists a bundle's artefacts.
+// Manifest is manifest.json of a v1 bundle.
 type Manifest struct {
-	Format         string            `json:"format"`
-	BundleID       string            `json:"bundle_id"`
-	Created        time.Time         `json:"created"`
-	Subject        map[string]string `json:"subject"` // e.g. vm, verdict
-	KeyFingerprint string            `json:"key_fingerprint"`
-	Files          []File            `json:"files"`
+	Format        string            `json:"format"`
+	FormatVersion int               `json:"format_version"`
+	BundleID      string            `json:"bundle_id"`
+	Created       string            `json:"created"`
+	KeyID         string            `json:"key_id"`
+	Subject       map[string]string `json:"subject"`
+	Files         []File            `json:"files"`
 }
 
-// Seal hashes every file under dir into manifest.json and signs it. It returns the
-// bundle hash: the sha256 of manifest.json, which is what goes into the ledger.
+// Seal hashes every file under dir into manifest.json and signs it (manifest.sig). It returns the bundle
+// hash: the sha256 of manifest.json, which goes into the ledger.
 func Seal(dir, bundleID string, subject map[string]string, key ed25519.PrivateKey) (string, error) {
-	files, err := hashTree(dir)
+	return SealAt(dir, bundleID, subject, key, time.Now())
+}
+
+// SealAt is Seal with a given creation time (for reproducible test vectors).
+func SealAt(dir, bundleID string, subject map[string]string, key ed25519.PrivateKey, created time.Time) (string, error) {
+	if !validBundleID(bundleID) {
+		return "", fmt.Errorf("bundle id %q: want 1-255 of A-Z a-z 0-9 . _ -", bundleID)
+	}
+	files, odd, err := walkBundle(dir)
 	if err != nil {
 		return "", err
 	}
-	m := Manifest{Format: formatV1, BundleID: bundleID, Created: time.Now().UTC(), Subject: subject,
-		KeyFingerprint: Fingerprint(key.Public().(ed25519.PublicKey)), Files: files}
+	if len(odd) > 0 {
+		return "", fmt.Errorf("%s: not a regular file", odd[0])
+	}
+	for _, f := range files {
+		if !validPath(f.Path) {
+			return "", fmt.Errorf("%q: not a valid bundle path", f.Path)
+		}
+	}
+	if subject == nil {
+		subject = map[string]string{}
+	}
+	m := Manifest{Format: FormatV1, FormatVersion: FormatVersion, BundleID: bundleID, Created: created.UTC().Format(time.RFC3339Nano),
+		KeyID: KeyID(key.Public().(ed25519.PublicKey)), Subject: subject, Files: files}
 	b, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return "", err
@@ -171,20 +392,23 @@ func Seal(dir, bundleID string, subject map[string]string, key ed25519.PrivateKe
 	return sha256Hex(b), nil
 }
 
-// hashTree hashes the regular files under dir, except the seal files, in path order.
-func hashTree(dir string) ([]File, error) {
-	var out []File
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+// walkBundle hashes the regular files under dir, except the seal files at its root, sorted by path (byte
+// order); odd lists everything else that is not a directory (symlinks, devices, ...).
+func walkBundle(dir string) (files []File, odd []string, err error) {
+	err = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		rel, _ := filepath.Rel(dir, p)
 		rel = filepath.ToSlash(rel)
-		if d.IsDir() || rel == ManifestFile || rel == SignatureFile {
+		switch {
+		case p == dir || rel == ManifestFile || rel == SignatureFile:
 			return nil
-		}
-		if !d.Type().IsRegular() {
-			return fmt.Errorf("%s: not a regular file", rel)
+		case d.IsDir():
+			return nil
+		case !d.Type().IsRegular():
+			odd = append(odd, rel)
+			return nil
 		}
 		f, err := os.Open(p)
 		if err != nil {
@@ -196,250 +420,677 @@ func hashTree(dir string) ([]File, error) {
 		if err != nil {
 			return err
 		}
-		out = append(out, File{Path: rel, SHA256: hex.EncodeToString(h.Sum(nil)), Bytes: n})
+		files = append(files, File{Path: rel, SHA256: hex.EncodeToString(h.Sum(nil)), Bytes: n})
 		return nil
 	})
-	slices.SortFunc(out, func(a, b File) int { return strings.Compare(a.Path, b.Path) })
-	return out, err
+	slices.SortFunc(files, func(a, b File) int { return strings.Compare(a.Path, b.Path) })
+	slices.Sort(odd)
+	return files, odd, err
 }
 
-// BundleReport is the outcome of checking one bundle.
-type BundleReport struct {
-	Dir      string   `json:"dir"`
-	BundleID string   `json:"bundle_id,omitempty"`
-	SHA256   string   `json:"bundle_sha256,omitempty"` // sha256 of manifest.json as found
-	Files    int      `json:"files"`
-	Problems []string `json:"problems"` // empty = intact
-}
-
-// VerifyBundle checks the signature of manifest.json and every listed file, and that no file was added or removed.
+// VerifyBundle checks one bundle against the key that should have signed it (nil: no trust anchor, and
+// the signature is not checked).
 func VerifyBundle(dir string, pub ed25519.PublicKey) BundleReport {
-	r := BundleReport{Dir: dir, Problems: []string{}}
-	bad := func(f string, a ...any) { r.Problems = append(r.Problems, fmt.Sprintf(f, a...)) }
+	return verifyBundle(dir, pub)
+}
+
+func verifyBundle(dir string, key ed25519.PublicKey) BundleReport {
 	mb, err := os.ReadFile(filepath.Join(dir, ManifestFile))
 	if err != nil {
-		bad("manifest: %v", err)
-		return r
+		r := newBundleReport(dir, "")
+		r.add(CodeManifestMissing, ManifestFile, err.Error())
+		return r.done()
 	}
+	m, err := parseObject(mb)
+	if err != nil {
+		r := newBundleReport(dir, "")
+		r.SHA256 = sha256Hex(mb)
+		r.add(CodeManifestMalformed, ManifestFile, err.Error())
+		return r.done()
+	}
+	if f, _ := m["format"].(string); f == formatV0 {
+		return verifyBundleV0(dir, mb, key)
+	}
+	r := newBundleReport(dir, "v1")
 	r.SHA256 = sha256Hex(mb)
-	sb, err := os.ReadFile(filepath.Join(dir, SignatureFile))
+	man, code, err := parseManifest(m)
 	if err != nil {
-		bad("signature: %v", err)
-	} else if sig, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(sb))); err != nil {
-		bad("signature: %v", err)
-	} else if !ed25519.Verify(pub, mb, sig) {
-		bad("signature does not match manifest.json for key %s", Fingerprint(pub))
+		r.add(code, ManifestFile, err.Error())
+		return r.done()
 	}
-	var m Manifest
-	if err := json.Unmarshal(mb, &m); err != nil {
-		bad("manifest: %v", err)
-		return r
+	r.BundleID, r.KeyID = man.BundleID, man.KeyID
+
+	// The signature, by the key that should have signed this bundle.
+	switch {
+	case key == nil:
+		r.add(CodeAnchorMissing, "", "no public key given: the signature is not checked")
+	case man.KeyID != KeyID(key):
+		r.add(CodeKeyMismatch, ManifestFile, fmt.Sprintf("signed by key %s, expected %s", man.KeyID, KeyID(key)))
+	default:
+		sb, err := os.ReadFile(filepath.Join(dir, SignatureFile))
+		if err != nil {
+			r.add(CodeSignatureMissing, SignatureFile, err.Error())
+			break
+		}
+		sig, ok := decodeSignature(sb)
+		if !ok {
+			r.add(CodeSignatureMalformed, SignatureFile, "not the base64 of 64 bytes, optionally followed by one line feed")
+		} else if !ed25519.Verify(key, mb, sig) {
+			r.add(CodeSignatureInvalid, SignatureFile, "the signature does not match manifest.json's bytes")
+		}
 	}
-	r.BundleID = m.BundleID
-	if m.Format != formatV1 {
-		bad("manifest format %q", m.Format)
+
+	// The files.
+	listed := map[string]File{}
+	prev := ""
+	for i, f := range man.Files {
+		switch {
+		case !validPath(f.Path):
+			r.add(CodePathInvalid, f.Path, "not a valid bundle path")
+			continue
+		case i > 0 && f.Path <= prev:
+			r.add(CodePathInvalid, f.Path, "files are not in strictly ascending path order (or a path repeats)")
+		}
+		prev = f.Path
+		listed[f.Path] = f
 	}
-	actual, err := hashTree(dir)
+	actual, odd, err := walkBundle(dir)
 	if err != nil {
-		bad("reading files: %v", err)
-		return r
+		r.add(CodeFileMissing, "", fmt.Sprintf("reading the bundle: %v", err))
+		return r.done()
 	}
 	r.Files = len(actual)
+	for _, p := range odd {
+		r.add(CodeFileTypeInvalid, p, "not a regular file")
+	}
 	have := map[string]File{}
 	for _, f := range actual {
 		have[f.Path] = f
 	}
-	for _, f := range m.Files {
-		a, ok := have[f.Path]
+	for _, p := range slices.Sorted(mapKeys(listed)) {
+		want := listed[p]
+		got, ok := have[p]
 		switch {
 		case !ok:
-			bad("%s: listed but missing", f.Path)
-		case a.SHA256 != f.SHA256 || a.Bytes != f.Bytes:
-			bad("%s: sha256 %s (%d bytes), manifest says %s (%d bytes)", f.Path, a.SHA256, a.Bytes, f.SHA256, f.Bytes)
+			r.add(CodeFileMissing, p, "listed in the manifest, not in the bundle")
+		case got.SHA256 != want.SHA256 || got.Bytes != want.Bytes:
+			r.add(CodeFileModified, p, fmt.Sprintf("sha256 %s (%d bytes), manifest says %s (%d bytes)", got.SHA256, got.Bytes, want.SHA256, want.Bytes))
 		}
-		delete(have, f.Path)
 	}
-	for p := range have {
-		bad("%s: not in the manifest", p)
+	for _, f := range actual {
+		if _, ok := listed[f.Path]; !ok && !slices.Contains(odd, f.Path) {
+			r.add(CodeFileUnlisted, f.Path, "in the bundle, not in the manifest")
+		}
 	}
-	slices.Sort(r.Problems)
-	return r
+	return r.done()
+}
+
+// parseManifest validates a v1 manifest's members (§5.2).
+func parseManifest(m map[string]any) (Manifest, string, error) {
+	var man Manifest
+	f, err := str(m, "format")
+	if err != nil {
+		return man, CodeManifestMalformed, err
+	}
+	if f != FormatV1 {
+		return man, CodeFormatUnsupported, fmt.Errorf("format %q", f)
+	}
+	v, err := integer(m, "format_version")
+	if err != nil {
+		return man, CodeManifestMalformed, err
+	}
+	if v != FormatVersion {
+		return man, CodeFormatUnsupported, fmt.Errorf("format_version %d", v)
+	}
+	man.Format, man.FormatVersion = f, int(v)
+	if man.BundleID, err = str(m, "bundle_id"); err == nil && !validBundleID(man.BundleID) {
+		err = fmt.Errorf("bundle_id %q", man.BundleID)
+	}
+	if err != nil {
+		return man, CodeManifestMalformed, err
+	}
+	if man.Created, err = str(m, "created"); err == nil && !validTime(man.Created) {
+		err = fmt.Errorf("created %q: not an RFC 3339 UTC time", man.Created)
+	}
+	if err != nil {
+		return man, CodeManifestMalformed, err
+	}
+	if man.KeyID, err = hex64(m, "key_id"); err != nil {
+		return man, CodeManifestMalformed, err
+	}
+	subj, ok := m["subject"].(map[string]any)
+	if !ok {
+		return man, CodeManifestMalformed, errors.New(`"subject": missing or not an object`)
+	}
+	man.Subject = map[string]string{}
+	for k, v := range subj {
+		s, ok := v.(string)
+		if !ok {
+			return man, CodeManifestMalformed, fmt.Errorf("subject %q: not a string", k)
+		}
+		man.Subject[k] = s
+	}
+	files, ok := m["files"].([]any)
+	if !ok {
+		return man, CodeManifestMalformed, errors.New(`"files": missing or not an array`)
+	}
+	for i, x := range files {
+		fo, ok := x.(map[string]any)
+		if !ok {
+			return man, CodeManifestMalformed, fmt.Errorf("files[%d]: not an object", i)
+		}
+		var f File
+		if f.Path, err = str(fo, "path"); err != nil {
+			return man, CodeManifestMalformed, fmt.Errorf("files[%d]: %w", i, err)
+		}
+		if f.SHA256, err = hex64(fo, "sha256"); err != nil {
+			return man, CodeManifestMalformed, fmt.Errorf("files[%d]: %w", i, err)
+		}
+		if f.Bytes, err = integer(fo, "bytes"); err != nil {
+			return man, CodeManifestMalformed, fmt.Errorf("files[%d]: %w", i, err)
+		}
+		man.Files = append(man.Files, f)
+	}
+	return man, "", nil
+}
+
+// decodeSignature accepts the base64 (standard alphabet, padded) of exactly 64 bytes and at most one line feed after it.
+func decodeSignature(b []byte) ([]byte, bool) {
+	b = bytes.TrimSuffix(b, []byte("\n"))
+	sig, err := base64.StdEncoding.Strict().DecodeString(string(b))
+	return sig, err == nil && len(sig) == ed25519.SignatureSize
 }
 
 // --- ledger ---
 
-// Entry is one ledger line. EntrySHA256 is the sha256 of the line's JSON with EntrySHA256
-// and Sig empty; Sig is the ed25519 signature of EntrySHA256's hex string.
+// Entry describes a bundle entry for Append, and the entry written.
 type Entry struct {
-	Format       string    `json:"format"`
 	Seq          int       `json:"seq"`
 	Time         time.Time `json:"time"`
 	BundleID     string    `json:"bundle_id"`
 	BundleSHA256 string    `json:"bundle_sha256"`
 	Subject      string    `json:"subject"`
 	Verdict      string    `json:"verdict"`
+	KeyID        string    `json:"key_id"`
 	Prev         string    `json:"prev"`
-	EntrySHA256  string    `json:"entry_sha256,omitempty"`
-	Sig          string    `json:"sig,omitempty"`
+	EntrySHA256  string    `json:"entry_sha256"`
 }
 
-func (e Entry) hash() string {
-	e.EntrySHA256, e.Sig = "", ""
-	b, _ := json.Marshal(e)
-	return sha256Hex(b)
+type payloadCommon struct {
+	Format        string `json:"format"`
+	FormatVersion int    `json:"format_version"`
+	Seq           int    `json:"seq"`
+	Time          string `json:"time"`
+	Type          string `json:"type"`
+	KeyID         string `json:"key_id"`
+	Prev          string `json:"prev"`
 }
 
-// Append adds an entry for a sealed bundle to the ledger file (created if missing), under an exclusive lock.
+type keyPayload struct {
+	payloadCommon
+	Event     string `json:"event"`
+	PublicKey string `json:"public_key"`
+	NewKeyID  string `json:"new_key_id,omitempty"`
+}
+
+type bundlePayload struct {
+	payloadCommon
+	BundleID     string `json:"bundle_id"`
+	BundleSHA256 string `json:"bundle_sha256"`
+	Subject      string `json:"subject"`
+	Verdict      string `json:"verdict"`
+}
+
+type line struct {
+	Payload string `json:"payload"`
+	Sig     string `json:"sig"`
+}
+
+// signLine returns the ledger line for a payload: the payload's JSON as a string, and the signature of its bytes.
+func signLine(p any, key ed25519.PrivateKey) ([]byte, string, error) {
+	pb, err := json.Marshal(p)
+	if err != nil {
+		return nil, "", err
+	}
+	b, err := json.Marshal(line{Payload: string(pb), Sig: base64.StdEncoding.EncodeToString(ed25519.Sign(key, pb))})
+	if err != nil {
+		return nil, "", err
+	}
+	return append(b, '\n'), sha256Hex(pb), nil
+}
+
+func common(seq int, t time.Time, typ, keyID, prev string) payloadCommon {
+	return payloadCommon{Format: LedgerFormatV1, FormatVersion: FormatVersion, Seq: seq, Time: t.UTC().Format(time.RFC3339Nano),
+		Type: typ, KeyID: keyID, Prev: prev}
+}
+
+// openLedger opens (creating) and locks the ledger and checks what is in it, for a writer signing with key.
+func openLedger(path string) (*os.File, *ledgerScan, error) {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	if len(data) == 0 {
+		return f, nil, nil
+	}
+	if isV0Ledger(data) {
+		f.Close()
+		return nil, nil, fmt.Errorf("ledger %s is a v0 ledger: read-only, start a new ledger", path)
+	}
+	s := scanLedger(data, nil, false)
+	if len(s.findings) > 0 {
+		f.Close()
+		return nil, nil, fmt.Errorf("ledger %s is not intact, not appending: %s", path, strings.Join(findingText(s.findings), "; "))
+	}
+	return f, s, nil
+}
+
+func writeLines(f *os.File, lines ...[]byte) error {
+	for _, l := range lines {
+		if _, err := f.Write(l); err != nil {
+			return err
+		}
+	}
+	return f.Sync()
+}
+
+// Append adds a bundle entry, signed with key, to the ledger (created with a genesis entry for key if new),
+// under an exclusive lock. key must be the ledger's current key.
 func Append(ledger string, e Entry, key ed25519.PrivateKey) (Entry, error) {
-	f, err := os.OpenFile(ledger, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644)
+	if e.Time.IsZero() {
+		e.Time = time.Now()
+	}
+	if !validBundleID(e.BundleID) {
+		return e, fmt.Errorf("bundle id %q: want 1-255 of A-Z a-z 0-9 . _ -", e.BundleID)
+	}
+	if !hex64Re.MatchString(e.BundleSHA256) {
+		return e, fmt.Errorf("bundle sha256 %q: want 64 lowercase hex digits", e.BundleSHA256)
+	}
+	f, s, err := openLedger(ledger)
 	if err != nil {
 		return e, err
 	}
 	defer f.Close()
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		return e, err
+	pub := key.Public().(ed25519.PublicKey)
+	var lines [][]byte
+	seq, prev := 1, zeroHash
+	if s == nil { // a new ledger starts with the key that signs it
+		g, h, err := signLine(keyPayload{payloadCommon: common(1, e.Time, "key", KeyID(pub), zeroHash), Event: "genesis",
+			PublicKey: base64.StdEncoding.EncodeToString(pub)}, key)
+		if err != nil {
+			return e, err
+		}
+		lines, seq, prev = append(lines, g), 2, h
+	} else {
+		if !s.current.Equal(pub) {
+			return e, fmt.Errorf("ledger %s: the current key is %s, not %s (rotate first)", ledger, KeyID(s.current), KeyID(pub))
+		}
+		seq, prev = s.lines+1, s.last
 	}
-	entries, problems := readLedger(f, nil)
-	if len(problems) > 0 {
-		return e, fmt.Errorf("ledger %s is not intact, not appending: %s", ledger, strings.Join(problems, "; "))
+	if _, dup := s.bundleIDs()[e.BundleID]; dup {
+		return e, fmt.Errorf("ledger %s already has bundle %s", ledger, e.BundleID)
 	}
-	e.Format, e.Seq, e.Prev = ledgerFormat, len(entries)+1, zeroHash
-	if len(entries) > 0 {
-		e.Prev = entries[len(entries)-1].EntrySHA256
-	}
-	if e.Time.IsZero() {
-		e.Time = time.Now().UTC()
-	}
-	e.EntrySHA256 = e.hash()
-	e.Sig = base64.StdEncoding.EncodeToString(ed25519.Sign(key, []byte(e.EntrySHA256)))
-	b, err := json.Marshal(e)
+	l, h, err := signLine(bundlePayload{payloadCommon: common(seq, e.Time, "bundle", KeyID(pub), prev), BundleID: e.BundleID,
+		BundleSHA256: e.BundleSHA256, Subject: e.Subject, Verdict: e.Verdict}, key)
 	if err != nil {
 		return e, err
 	}
-	if _, err := f.Write(append(b, '\n')); err != nil {
+	if err := writeLines(f, append(lines, l)...); err != nil {
 		return e, err
 	}
-	return e, f.Sync()
+	e.Seq, e.KeyID, e.Prev, e.EntrySHA256 = seq, KeyID(pub), prev, h
+	return e, nil
 }
 
-// readLedger parses and checks the chain; with pub set it also checks every signature.
-func readLedger(r io.Reader, pub ed25519.PublicKey) ([]Entry, []string) {
-	var (
-		out      []Entry
-		problems []string
-	)
-	prev := zeroHash
-	sc := bufio.NewScanner(r)
-	sc.Buffer(make([]byte, 64<<10), 1<<20)
-	for line := 1; sc.Scan(); line++ {
-		raw := sc.Bytes()
-		var e Entry
-		dec := json.NewDecoder(bytes.NewReader(raw))
-		dec.DisallowUnknownFields()
-		err := dec.Decode(&e)
-		if err == nil && dec.Decode(&struct{}{}) != io.EOF {
-			err = errors.New("data after the entry")
+// Rotate appends a key rotation, signed by the current key old, that makes next the ledger's current key.
+func Rotate(ledger string, old ed25519.PrivateKey, next ed25519.PublicKey) (Entry, error) {
+	return RotateAt(ledger, old, next, time.Now())
+}
+
+// RotateAt is Rotate with a given time (for reproducible test vectors).
+func RotateAt(ledger string, old ed25519.PrivateKey, next ed25519.PublicKey, t time.Time) (Entry, error) {
+	f, s, err := openLedger(ledger)
+	if err != nil {
+		return Entry{}, err
+	}
+	defer f.Close()
+	if s == nil {
+		return Entry{}, fmt.Errorf("ledger %s is empty: there is no key to rotate", ledger)
+	}
+	pub := old.Public().(ed25519.PublicKey)
+	switch {
+	case !s.current.Equal(pub):
+		return Entry{}, fmt.Errorf("ledger %s: the current key is %s, not %s", ledger, KeyID(s.current), KeyID(pub))
+	case next.Equal(pub):
+		return Entry{}, errors.New("the new key is the current key")
+	}
+	seq := s.lines + 1
+	l, h, err := signLine(keyPayload{payloadCommon: common(seq, t, "key", KeyID(pub), s.last), Event: "rotate",
+		PublicKey: base64.StdEncoding.EncodeToString(next), NewKeyID: KeyID(next)}, old)
+	if err != nil {
+		return Entry{}, err
+	}
+	if err := writeLines(f, l); err != nil {
+		return Entry{}, err
+	}
+	return Entry{Seq: seq, Time: t, KeyID: KeyID(pub), Prev: s.last, EntrySHA256: h}, nil
+}
+
+func isV0Ledger(data []byte) bool {
+	first, _, _ := bytes.Cut(data, []byte("\n"))
+	var probe struct {
+		Format string `json:"format"`
+	}
+	return json.Unmarshal(first, &probe) == nil && probe.Format == ledgerFormatV0
+}
+
+// bundleRef is a bundle entry found in the ledger, with the key that was current when it was written.
+type bundleRef struct {
+	seq                    int
+	id, sha, subject, verd string
+	signer                 ed25519.PublicKey
+}
+
+type ledgerScan struct {
+	findings []Finding
+	lines    int    // entries read (whether or not they passed)
+	last     string // hash of the last entry read
+	current  ed25519.PublicKey
+	keys     []string
+	bundles  []bundleRef
+}
+
+func (s *ledgerScan) bundleIDs() map[string]bool {
+	m := map[string]bool{}
+	if s != nil {
+		for _, b := range s.bundles {
+			m[b.id] = true
 		}
+	}
+	return m
+}
+
+func (s *ledgerScan) add(code string, n int, detail string) {
+	s.findings = append(s.findings, Finding{Code: code, Severity: Severity(code), Where: fmt.Sprintf("line %d", n), Detail: detail})
+}
+
+// scanLedger is the specification's ledger procedure (§8.2, steps L2–L4) over the ledger's bytes. With anchor
+// nil the genesis key is taken as given, and reported as anchor_missing if reportAnchor.
+func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledgerScan {
+	s := &ledgerScan{}
+	raw := bytes.Split(data, []byte("\n"))
+	truncated := len(raw[len(raw)-1]) > 0
+	if !truncated {
+		raw = raw[:len(raw)-1]
+	}
+	for i, l := range raw {
+		n := i + 1
+		if truncated && i == len(raw)-1 {
+			s.add(CodeEntryMalformed, n, "the last line has no line feed: the ledger is truncated")
+			return s
+		}
+		var w struct {
+			Payload *string `json:"payload"`
+			Sig     *string `json:"sig"`
+		}
+		if wm, err := parseObject(l); err != nil {
+			s.add(CodeEntryMalformed, n, err.Error())
+			return s
+		} else if _, ok := wm["payload"].(string); !ok {
+			s.add(CodeEntryMalformed, n, `"payload": missing or not a string`)
+			return s
+		} else if _, ok := wm["sig"].(string); !ok {
+			s.add(CodeEntryMalformed, n, `"sig": missing or not a string`)
+			return s
+		}
+		json.Unmarshal(l, &w)
+		pb := []byte(*w.Payload)
+		p, err := parseObject(pb)
 		if err != nil {
-			problems = append(problems, fmt.Sprintf("line %d: %v", line, err))
-			prev = "" // the chain is broken from here on
-			continue
+			s.add(CodeEntryMalformed, n, "payload: "+err.Error())
+			return s
 		}
-		switch {
-		case e.Format != ledgerFormat:
-			problems = append(problems, fmt.Sprintf("line %d: format %q", line, e.Format))
-		case e.Seq != line:
-			problems = append(problems, fmt.Sprintf("line %d: seq %d", line, e.Seq))
+		e, code, err := parsePayload(p)
+		if err != nil {
+			s.add(code, n, err.Error())
+			return s
 		}
-		if e.Prev != prev {
-			problems = append(problems, fmt.Sprintf("line %d: prev %s does not match the entry before (%s)", line, e.Prev, orNone(prev)))
+		h := sha256Hex(pb)
+		before := len(s.findings)
+		if e.seq != int64(n) {
+			s.add(CodeSeqInvalid, n, fmt.Sprintf("seq %d on line %d", e.seq, n))
 		}
-		if h := e.hash(); h != e.EntrySHA256 {
-			problems = append(problems, fmt.Sprintf("line %d: entry hash %s, recorded %s", line, h, e.EntrySHA256))
+		wantPrev := zeroHash
+		if n > 1 {
+			wantPrev = s.last
 		}
-		if pub != nil {
-			sig, err := base64.StdEncoding.DecodeString(e.Sig)
-			if err != nil || !ed25519.Verify(pub, []byte(e.EntrySHA256), sig) {
-				problems = append(problems, fmt.Sprintf("line %d: signature invalid for key %s", line, Fingerprint(pub)))
+		if e.prev != wantPrev {
+			s.add(CodeChainBroken, n, fmt.Sprintf("prev %s, the entry before hashes to %s", e.prev, wantPrev))
+		}
+		if n == 1 {
+			if e.typ != "key" || e.event != "genesis" {
+				s.add(CodeAnchorMismatch, n, "the first entry is not the genesis key entry")
+				return s
 			}
+			pk, ok := decodeKey(e.publicKey)
+			if !ok || KeyID(pk) != e.keyID {
+				s.add(CodeKeyEntryInvalid, n, "public_key is not a base64 32-byte key whose key_id is key_id")
+				return s
+			}
+			switch {
+			case anchor == nil:
+				if reportAnchor {
+					s.add(CodeAnchorMissing, n, "no trust anchor given: the genesis key "+e.keyID+" is not checked against one")
+				}
+				anchor = pk
+			case !anchor.Equal(pk):
+				s.add(CodeAnchorMismatch, n, fmt.Sprintf("genesis key %s, trust anchor %s", e.keyID, KeyID(anchor)))
+				return s
+			}
+			s.current, s.keys = anchor, []string{KeyID(anchor)}
+		} else if e.keyID != KeyID(s.current) {
+			s.add(CodeSignerInvalid, n, fmt.Sprintf("key_id %s, the current key is %s", e.keyID, KeyID(s.current)))
 		}
-		out = append(out, e)
-		prev = e.EntrySHA256
-	}
-	if err := sc.Err(); err != nil {
-		problems = append(problems, err.Error())
-	}
-	return out, problems
-}
-
-func orNone(s string) string {
-	if s == "" {
-		return "unreadable"
+		if sig, ok := decodeSig64(*w.Sig); !ok || !ed25519.Verify(s.current, pb, sig) {
+			s.add(CodeEntrySignatureInvalid, n, "sig is not the current key's signature of the payload's bytes")
+		}
+		var next ed25519.PublicKey
+		switch {
+		case e.typ == "key" && e.event == "genesis" && n > 1:
+			s.add(CodeKeyEntryInvalid, n, "a genesis entry after line 1")
+		case e.typ == "key" && e.event == "rotate":
+			pk, ok := decodeKey(e.publicKey)
+			switch {
+			case !ok || KeyID(pk) != e.newKeyID:
+				s.add(CodeKeyEntryInvalid, n, "public_key is not a base64 32-byte key whose key_id is new_key_id")
+			case pk.Equal(s.current):
+				s.add(CodeKeyEntryInvalid, n, "the new key is the current key")
+			default:
+				next = pk
+			}
+		case e.typ == "bundle":
+			if s.bundleIDs()[e.bundleID] {
+				s.add(CodeBundleDuplicate, n, "bundle "+e.bundleID+" has an earlier entry")
+			}
+			s.bundles = append(s.bundles, bundleRef{seq: n, id: e.bundleID, sha: e.bundleSHA, subject: e.subject, verd: e.verdict, signer: s.current})
+		}
+		if next != nil && len(s.findings) == before { // a rotation counts only when its entry passed every check
+			s.current, s.keys = next, append(s.keys, KeyID(next))
+		}
+		s.lines, s.last = n, h
 	}
 	return s
 }
 
-// LedgerReport is the outcome of checking a ledger and the bundles it lists.
-type LedgerReport struct {
-	Ledger   string         `json:"ledger"`
-	Entries  int            `json:"entries"`
-	Problems []string       `json:"problems"` // ledger-level problems
-	Bundles  []BundleReport `json:"bundles"`
-	Intact   bool           `json:"intact"`
+type payloadFields struct {
+	seq                                    int64
+	typ, keyID, prev, event, publicKey     string
+	newKeyID, bundleID, bundleSHA, subject string
+	verdict                                string
 }
 
-// VerifyLedger checks the hash chain and signatures of the ledger and, for every entry,
-// that the bundle in bundlesDir/<bundle_id> is intact and is the one the entry recorded,
-// and that every bundle directory in bundlesDir has an entry. (A ledger cut off together
-// with its newest bundles still verifies: that needs an anchor outside, e.g. RFC 3161.)
-func VerifyLedger(ledger, bundlesDir string, pub ed25519.PublicKey) (LedgerReport, error) {
-	r := LedgerReport{Ledger: ledger, Problems: []string{}, Bundles: []BundleReport{}}
-	f, err := os.Open(ledger)
+// parsePayload validates an entry payload's members (§6.3).
+func parsePayload(p map[string]any) (payloadFields, string, error) {
+	var e payloadFields
+	f, err := str(p, "format")
 	if err != nil {
-		return r, err
+		return e, CodeEntryMalformed, err
 	}
-	defer f.Close()
-	entries, problems := readLedger(f, pub)
-	r.Entries, r.Problems = len(entries), append(r.Problems, problems...)
-	if len(entries) == 0 && len(problems) == 0 {
-		r.Problems = append(r.Problems, "ledger is empty")
+	if f != LedgerFormatV1 {
+		return e, CodeEntryMalformed, fmt.Errorf("format %q", f)
 	}
-	for _, e := range entries {
-		if e.BundleID == "" || strings.ContainsAny(e.BundleID, `/\`) || e.BundleID == "." || e.BundleID == ".." {
-			r.Problems = append(r.Problems, fmt.Sprintf("seq %d: bad bundle id %q", e.Seq, e.BundleID))
+	v, err := integer(p, "format_version")
+	if err != nil {
+		return e, CodeEntryMalformed, err
+	}
+	if v != FormatVersion {
+		return e, CodeFormatUnsupported, fmt.Errorf("format_version %d", v)
+	}
+	bad := func(err error) (payloadFields, string, error) { return e, CodeEntryMalformed, err }
+	if e.seq, err = integer(p, "seq"); err != nil {
+		return bad(err)
+	}
+	if e.seq < 1 {
+		return bad(errors.New(`"seq": less than 1`))
+	}
+	t, err := str(p, "time")
+	if err == nil && !validTime(t) {
+		err = fmt.Errorf("time %q: not an RFC 3339 UTC time", t)
+	}
+	if err != nil {
+		return bad(err)
+	}
+	if e.typ, err = str(p, "type"); err != nil {
+		return bad(err)
+	}
+	if e.keyID, err = hex64(p, "key_id"); err != nil {
+		return bad(err)
+	}
+	if e.prev, err = hex64(p, "prev"); err != nil {
+		return bad(err)
+	}
+	switch e.typ {
+	case "key":
+		if e.event, err = str(p, "event"); err != nil {
+			return bad(err)
+		}
+		if e.publicKey, err = str(p, "public_key"); err != nil {
+			return bad(err)
+		}
+		switch e.event {
+		case "genesis":
+		case "rotate":
+			if e.newKeyID, err = hex64(p, "new_key_id"); err != nil {
+				return bad(err)
+			}
+		default:
+			return bad(fmt.Errorf("event %q", e.event))
+		}
+	case "bundle":
+		if e.bundleID, err = str(p, "bundle_id"); err == nil && !validBundleID(e.bundleID) {
+			err = fmt.Errorf("bundle_id %q", e.bundleID)
+		}
+		if err != nil {
+			return bad(err)
+		}
+		if e.bundleSHA, err = hex64(p, "bundle_sha256"); err != nil {
+			return bad(err)
+		}
+		if e.subject, err = str(p, "subject"); err != nil {
+			return bad(err)
+		}
+		if e.verdict, err = str(p, "verdict"); err != nil {
+			return bad(err)
+		}
+	default:
+		return bad(fmt.Errorf("type %q", e.typ))
+	}
+	return e, "", nil
+}
+
+func decodeKey(s string) (ed25519.PublicKey, bool) {
+	b, err := base64.StdEncoding.Strict().DecodeString(s)
+	return ed25519.PublicKey(b), err == nil && len(b) == ed25519.PublicKeySize
+}
+
+func decodeSig64(s string) ([]byte, bool) {
+	b, err := base64.StdEncoding.Strict().DecodeString(s)
+	return b, err == nil && len(b) == ed25519.SignatureSize
+}
+
+// VerifyLedger checks a ledger against a trust anchor (nil: none, which leaves the verdict at best UNKNOWN),
+// every bundle it lists in bundlesDir/<bundle_id>, and that no bundle directory lacks an entry (§8.2).
+// (A ledger cut off together with its newest bundles still verifies: that needs an anchor outside.)
+func VerifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey) (LedgerReport, error) {
+	r := &LedgerReport{Ledger: ledger, Format: "v1", Findings: []Finding{}, Bundles: []BundleReport{}}
+	data, err := os.ReadFile(ledger)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		r.add(CodeLedgerMissing, "", err.Error())
+		r.unlisted(bundlesDir, nil)
+		return r.done(), nil
+	case err != nil:
+		return r.done(), err
+	case len(data) == 0:
+		r.add(CodeLedgerEmpty, "", "the ledger has no entries")
+		r.unlisted(bundlesDir, nil)
+		return r.done(), nil
+	case isV0Ledger(data):
+		verifyLedgerV0(r, data, bundlesDir, anchor)
+		return r.done(), nil
+	}
+	s := scanLedger(data, anchor, true)
+	r.Entries, r.Keys, r.Findings = s.lines, s.keys, append(r.Findings, s.findings...)
+	listed := map[string]bool{}
+	for _, b := range s.bundles {
+		listed[b.id] = true
+		dir := filepath.Join(bundlesDir, b.id)
+		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
+			r.add(CodeBundleMissing, b.id, fmt.Sprintf("line %d names bundle %s; there is no such directory", b.seq, b.id))
 			continue
 		}
-		br := VerifyBundle(filepath.Join(bundlesDir, e.BundleID), pub)
-		if br.SHA256 != "" && br.SHA256 != e.BundleSHA256 {
-			br.Problems = append(br.Problems, fmt.Sprintf("manifest sha256 %s, ledger seq %d recorded %s", br.SHA256, e.Seq, e.BundleSHA256))
-		}
-		if br.BundleID != "" && br.BundleID != e.BundleID {
-			br.Problems = append(br.Problems, fmt.Sprintf("manifest names bundle %q, ledger seq %d %q", br.BundleID, e.Seq, e.BundleID))
-		}
-		r.Bundles = append(r.Bundles, br)
-	}
-	// A bundle without a ledger entry: the ledger lost its tail, or the bundle was slipped in.
-	listed := map[string]bool{}
-	for _, e := range entries {
-		listed[e.BundleID] = true
-	}
-	if des, err := os.ReadDir(bundlesDir); err != nil {
-		r.Problems = append(r.Problems, fmt.Sprintf("bundles directory: %v", err))
-	} else {
-		for _, d := range des {
-			if d.IsDir() && !listed[d.Name()] {
-				r.Problems = append(r.Problems, fmt.Sprintf("bundle %s is not in the ledger", d.Name()))
+		br := verifyBundle(dir, b.signer)
+		switch {
+		case br.Format == "v0":
+			br = *newBundleReport(dir, "v0")
+			br.add(CodeFormatUnsupported, ManifestFile, "a v0 bundle in a v1 ledger")
+		case br.SHA256 != "": // manifest.json was read: it must be the one the entry recorded
+			if br.SHA256 != b.sha {
+				br.add(CodeBundleHashMismatch, ManifestFile, fmt.Sprintf("manifest.json hashes to %s, line %d recorded %s", br.SHA256, b.seq, b.sha))
+			}
+			if br.BundleID != "" && br.BundleID != b.id {
+				br.add(CodeBundleIDMismatch, ManifestFile, fmt.Sprintf("manifest names bundle %s, line %d %s", br.BundleID, b.seq, b.id))
 			}
 		}
+		if br.BundleID == "" {
+			br.BundleID = b.id
+		}
+		r.Bundles = append(r.Bundles, br.done())
 	}
-	r.Intact = len(r.Problems) == 0
-	for _, b := range r.Bundles {
-		r.Intact = r.Intact && len(b.Problems) == 0
-	}
-	return r, nil
+	r.unlisted(bundlesDir, listed)
+	return r.done(), nil
 }
 
 func sha256Hex(b []byte) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
+}
+
+func mapKeys[V any](m map[string]V) func(func(string) bool) {
+	return func(yield func(string) bool) {
+		for k := range m {
+			if !yield(k) {
+				return
+			}
+		}
+	}
 }

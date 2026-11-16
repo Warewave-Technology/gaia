@@ -1,0 +1,8 @@
+{
+  "description": "the directory of bundle b2 was deleted",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_missing"
+  ]
+}

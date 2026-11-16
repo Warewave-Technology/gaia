@@ -97,7 +97,7 @@ func TestRunAgainstSimulator(t *testing.T) {
 		t.Errorf("missing VM: %+v", byName["nope"])
 	}
 	lr, err := evidence.VerifyLedger(filepath.Join(dir, "ledger.jsonl"), filepath.Join(dir, "ev"), pub)
-	if err != nil || !lr.Intact || lr.Entries != 3 {
+	if err != nil || !lr.Intact || lr.Entries != 4 { // the genesis key entry and three bundles
 		t.Fatalf("ledger %+v %v", lr, err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, "ev", byName[off].BundleID, "migration", "calls.jsonl"))

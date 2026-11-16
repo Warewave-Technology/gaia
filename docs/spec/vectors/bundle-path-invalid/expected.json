@@ -1,0 +1,8 @@
+{
+  "description": "the manifest (validly signed) lists a path outside the bundle",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "path_invalid"
+  ]
+}

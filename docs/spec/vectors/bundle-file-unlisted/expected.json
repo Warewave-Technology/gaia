@@ -1,0 +1,8 @@
+{
+  "description": "a file was added after sealing",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "file_unlisted"
+  ]
+}

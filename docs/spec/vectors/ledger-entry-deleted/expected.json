@@ -1,0 +1,10 @@
+{
+  "description": "the entry of bundle b1 was deleted from the ledger",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_unlisted",
+    "chain_broken",
+    "seq_invalid"
+  ]
+}

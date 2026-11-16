@@ -1,0 +1,9 @@
+{
+  "description": "a rotation to B is signed by B instead of the current key A",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "entry_signature_invalid",
+    "signer_invalid"
+  ]
+}

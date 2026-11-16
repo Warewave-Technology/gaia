@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -55,6 +56,10 @@ func main() {
 			os.Exit(cmdKeygen(os.Args[3:]))
 		case "verify":
 			os.Exit(cmdEvidenceVerify(os.Args[3:]))
+		case "rotate":
+			os.Exit(cmdEvidenceRotate(os.Args[3:]))
+		case "seal":
+			os.Exit(cmdEvidenceSeal(os.Args[3:]))
 		}
 	case "migrate-check":
 		os.Exit(cmdMigrateCheck(ctx, os.Args[2:]))
@@ -65,7 +70,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gaia verify | migrate-check | evidence keygen | evidence verify [flags]  (-h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: gaia verify | migrate-check | evidence keygen | evidence seal | evidence verify | evidence rotate [flags]  (-h for flags)")
 	os.Exit(3)
 }
 
@@ -156,62 +161,143 @@ func cmdKeygen(args []string) int {
 		return fail(*asJSON, "evidence keygen", err)
 	}
 	if *asJSON {
-		emit(map[string]any{"command": "evidence keygen", "verdict": verify.OK, "key": *priv, "pub": *pub, "fingerprint": fp})
+		emit(map[string]any{"command": "evidence keygen", "verdict": verify.OK, "key": *priv, "pub": *pub, "key_id": fp, "fingerprint": fp})
 	} else {
-		fmt.Printf("ed25519 key %s, public key %s, fingerprint %s\n", *priv, *pub, fp)
+		fmt.Printf("ed25519 key %s, public key %s, key_id %s\n", *priv, *pub, fp)
 	}
 	return 0
 }
 
+// cmdEvidenceVerify checks a bundle or a ledger with its bundles (Restore Evidence Format v1, docs/spec/evidence-v1.md;
+// v0 read-only). The verdict is the specification's: OK, CRITICAL, or UNKNOWN when something could not be checked
+// (no trust anchor, an unsupported format).
 func cmdEvidenceVerify(args []string) int {
 	fs := flag.NewFlagSet("evidence verify", flag.ExitOnError)
-	pubPath := fs.String("pubkey", "", "ed25519 public key (PEM)")
+	pubPath := fs.String("pubkey", "", "trust anchor: the ledger's genesis key, or the key that signed -bundle (PEM, or base64 of the raw 32 bytes); without it the verdict is at best UNKNOWN")
 	bundle := fs.String("bundle", "", "check one bundle directory")
 	ledger := fs.String("ledger", "", "check the ledger and every bundle it lists")
 	evDir := fs.String("evidence-dir", "", "the bundles' directory (with -ledger)")
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
-	if *pubPath == "" || (*bundle == "") == (*ledger == "") || (*ledger != "" && *evDir == "") {
-		return fail(*asJSON, "evidence verify", errors.New("-pubkey and either -bundle or -ledger with -evidence-dir are required"))
+	if (*bundle == "") == (*ledger == "") || (*ledger != "" && *evDir == "") {
+		return fail(*asJSON, "evidence verify", errors.New("either -bundle or -ledger with -evidence-dir is required"))
 	}
-	pub, err := evidence.LoadPublicKey(*pubPath)
-	if err != nil {
-		return fail(*asJSON, "evidence verify", err)
+	var pub ed25519.PublicKey
+	if *pubPath != "" {
+		var err error
+		if pub, err = evidence.LoadPublicKey(*pubPath); err != nil {
+			return fail(*asJSON, "evidence verify", err)
+		}
 	}
 	var (
-		problems []string
+		verdict  string
+		findings []evidence.Finding
 		report   any
 	)
 	if *bundle != "" {
 		r := evidence.VerifyBundle(*bundle, pub)
-		problems, report = r.Problems, r
+		verdict, findings, report = r.Verdict, r.Findings, r
 	} else {
 		r, err := evidence.VerifyLedger(*ledger, *evDir, pub)
 		if err != nil {
 			return fail(*asJSON, "evidence verify", err)
 		}
-		problems = append(problems, r.Problems...)
-		for _, b := range r.Bundles {
-			for _, p := range b.Problems {
-				problems = append(problems, b.BundleID+": "+p)
-			}
-		}
-		report = r
+		verdict, findings, report = r.Verdict, r.AllFindings(), r
 	}
-	verdict := verify.OK
-	if len(problems) > 0 {
-		verdict = verify.Critical
+	anchor := ""
+	if pub != nil {
+		anchor = evidence.KeyID(pub)
 	}
 	if *asJSON {
-		emit(map[string]any{"command": "evidence verify", "verdict": verdict, "key_fingerprint": evidence.Fingerprint(pub),
-			"checked_at": time.Now().UTC(), "report": report})
+		emit(map[string]any{"command": "evidence verify", "verdict": verdict, "anchor_key_id": anchor, "key_fingerprint": anchor,
+			"checked_at": time.Now().UTC(), "findings": findings, "report": report})
 	} else {
-		fmt.Printf("evidence: %s (key %s)\n", verdict, evidence.Fingerprint(pub))
-		for _, p := range problems {
-			fmt.Printf("  %s\n", p)
+		fmt.Printf("evidence: %s (trust anchor %s)\n", verdict, orNone(anchor))
+		for _, f := range findings {
+			where := ""
+			if f.Where != "" {
+				where = f.Where + ": "
+			}
+			fmt.Printf("  %-9s %s%s: %s\n", f.Severity, where, f.Code, f.Detail)
 		}
 	}
 	return verify.ExitCode(verdict)
+}
+
+func orNone(s string) string {
+	if s == "" {
+		return "none"
+	}
+	return s
+}
+
+// cmdEvidenceSeal seals a directory of artefacts as a bundle and appends it to a ledger (a new ledger starts
+// with the signing key's genesis entry). The directory's name is the bundle id.
+func cmdEvidenceSeal(args []string) int {
+	fs := flag.NewFlagSet("evidence seal", flag.ExitOnError)
+	dir := fs.String("dir", "", "the bundle directory (its name is the bundle id)")
+	keyPath := fs.String("key", "", "the ledger's current private key (PEM)")
+	ledger := fs.String("ledger", "", "the ledger to append to")
+	subject := fs.String("subject", "", "what the evidence is about (e.g. a VM name)")
+	verdict := fs.String("verdict", verify.Unknown, "the verdict the evidence supports")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	if *dir == "" || *keyPath == "" || *ledger == "" {
+		return fail(*asJSON, "evidence seal", errors.New("-dir, -key and -ledger are required"))
+	}
+	key, err := evidence.LoadPrivateKey(*keyPath)
+	if err != nil {
+		return fail(*asJSON, "evidence seal", err)
+	}
+	id := filepath.Base(filepath.Clean(*dir))
+	h, err := evidence.Seal(*dir, id, map[string]string{"subject": *subject, "verdict": *verdict}, key)
+	if err != nil {
+		return fail(*asJSON, "evidence seal", err)
+	}
+	e, err := evidence.Append(*ledger, evidence.Entry{BundleID: id, BundleSHA256: h, Subject: *subject, Verdict: *verdict}, key)
+	if err != nil {
+		return fail(*asJSON, "evidence seal", fmt.Errorf("bundle sealed but not in the ledger: %w", err))
+	}
+	if *asJSON {
+		emit(map[string]any{"command": "evidence seal", "verdict": verify.OK, "bundle_id": id, "bundle_sha256": h, "ledger": *ledger,
+			"seq": e.Seq, "key_id": e.KeyID})
+	} else {
+		fmt.Printf("bundle %s sealed (manifest sha256 %s), ledger %s entry %d, key %s\n", id, h, *ledger, e.Seq, e.KeyID)
+	}
+	return 0
+}
+
+// cmdEvidenceRotate hands a ledger over to a new signing key: the current key signs an entry that names the new one.
+func cmdEvidenceRotate(args []string) int {
+	fs := flag.NewFlagSet("evidence rotate", flag.ExitOnError)
+	ledger := fs.String("ledger", "", "the ledger")
+	keyPath := fs.String("key", "", "the ledger's current private key (PEM)")
+	newPub := fs.String("new-pub", "", "the new public key (PEM, or base64 of the raw 32 bytes)")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	if *ledger == "" || *keyPath == "" || *newPub == "" {
+		return fail(*asJSON, "evidence rotate", errors.New("-ledger, -key and -new-pub are required"))
+	}
+	key, err := evidence.LoadPrivateKey(*keyPath)
+	if err != nil {
+		return fail(*asJSON, "evidence rotate", err)
+	}
+	next, err := evidence.LoadPublicKey(*newPub)
+	if err != nil {
+		return fail(*asJSON, "evidence rotate", err)
+	}
+	e, err := evidence.Rotate(*ledger, key, next)
+	if err != nil {
+		return fail(*asJSON, "evidence rotate", err)
+	}
+	old := evidence.KeyID(key.Public().(ed25519.PublicKey))
+	if *asJSON {
+		emit(map[string]any{"command": "evidence rotate", "verdict": verify.OK, "ledger": *ledger, "seq": e.Seq,
+			"old_key_id": old, "new_key_id": evidence.KeyID(next), "entry_sha256": e.EntrySHA256})
+	} else {
+		fmt.Printf("ledger %s: entry %d hands over from key %s to %s\n", *ledger, e.Seq, old, evidence.KeyID(next))
+	}
+	return 0
 }
 
 func cmdProbe(ctx context.Context, args []string) int {

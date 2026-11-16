@@ -1,0 +1,8 @@
+{
+  "description": "one byte of a file in bundle b1 was changed",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "file_modified"
+  ]
+}

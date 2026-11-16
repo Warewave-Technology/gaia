@@ -15,7 +15,7 @@ jobs:
       - name: go.sum is tidy
         run: go mod tidy && git diff --exit-code go.mod go.sum
       - name: shellcheck, qemu-utils (internal/nbd is tested against qemu-nbd)
-        run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck qemu-utils
+        run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck qemu-utils jq
       - run: make check
         env:
           GAIA_REQUIRE_QEMU: "1"

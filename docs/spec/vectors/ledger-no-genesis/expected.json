@@ -1,0 +1,8 @@
+{
+  "description": "the first entry is a bundle entry, not the genesis key entry",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "anchor_mismatch"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "one bundle signed by A, checked against A",
+  "mode": "bundle",
+  "verdict": "OK",
+  "findings": []
+}

@@ -1,0 +1,8 @@
+{
+  "description": "ledger.jsonl is empty",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "ledger_empty"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "format": "restore-evidence",
+  "format_version": 1,
+  "bundle_id": "b1",
+  "created": "2026-11-16T12:00:00Z",
+  "key_id": "59e1f9e806d8177ddb1e00536b129c25bb779040fe10a1d366954a99502b9574",
+  "subject": {
+    "verdict": "CRITICAL",
+    "vm": "web1"
+  },
+  "files": [
+    {
+      "path": "result.json",
+      "sha256": "7119d07b1dac612396298c4bc1c96b3105317051993a1990590df20b2d6d0ee2",
+      "bytes": 35
+    },
+    {
+      "path": "screenshots/boot.png",
+      "sha256": "ad7c6b0c5d923c778871850b713daf882c2e10716c80cfabbb44d23e0b0ae0bd",
+      "bytes": 20
+    },
+    {
+      "path": "serial.log",
+      "sha256": "0c866018627ea8ff964896afd4341b372f27f7fc490791635259949c68ba5835",
+      "bytes": 21
+    }
+  ]
+}

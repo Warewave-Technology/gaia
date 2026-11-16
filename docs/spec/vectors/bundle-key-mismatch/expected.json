@@ -1,0 +1,8 @@
+{
+  "description": "the bundle is signed by B, the key given is A",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "key_mismatch"
+  ]
+}

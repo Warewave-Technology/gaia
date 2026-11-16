@@ -1,0 +1,8 @@
+{
+  "description": "manifest.json was deleted",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "manifest_missing"
+  ]
+}

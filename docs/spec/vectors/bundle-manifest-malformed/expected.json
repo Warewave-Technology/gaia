@@ -1,0 +1,8 @@
+{
+  "description": "manifest.json is not JSON",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "manifest_malformed"
+  ]
+}

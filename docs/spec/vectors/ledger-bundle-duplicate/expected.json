@@ -1,0 +1,8 @@
+{
+  "description": "two entries name bundle b1",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_duplicate"
+  ]
+}

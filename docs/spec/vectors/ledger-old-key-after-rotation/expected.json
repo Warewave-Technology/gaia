@@ -1,0 +1,10 @@
+{
+  "description": "after A handed over to B, a bundle and its entry are still signed by A",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "entry_signature_invalid",
+    "key_mismatch",
+    "signer_invalid"
+  ]
+}

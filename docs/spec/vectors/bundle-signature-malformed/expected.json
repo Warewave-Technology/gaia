@@ -1,0 +1,8 @@
+{
+  "description": "manifest.sig is not the base64 of 64 bytes",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "signature_malformed"
+  ]
+}

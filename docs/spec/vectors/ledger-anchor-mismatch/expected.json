@@ -1,0 +1,8 @@
+{
+  "description": "the genesis key is A, the trust anchor given is B",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "anchor_mismatch"
+  ]
+}

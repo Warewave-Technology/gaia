@@ -1,0 +1,6 @@
+{
+  "description": "key A signs a bundle, hands over to key B, B signs the next bundle; the anchor is A",
+  "mode": "ledger",
+  "verdict": "OK",
+  "findings": []
+}

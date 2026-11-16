@@ -1,0 +1,8 @@
+{
+  "description": "the second entry (validly signed) names the wrong previous entry",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "chain_broken"
+  ]
+}

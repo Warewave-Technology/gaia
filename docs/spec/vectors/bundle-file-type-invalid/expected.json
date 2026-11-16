@@ -1,0 +1,8 @@
+{
+  "description": "a symbolic link was added after sealing",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "file_type_invalid"
+  ]
+}

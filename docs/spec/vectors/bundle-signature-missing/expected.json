@@ -1,0 +1,8 @@
+{
+  "description": "manifest.sig was deleted",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "signature_missing"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "there is no ledger.jsonl",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "ledger_missing"
+  ]
+}
