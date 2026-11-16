@@ -206,6 +206,13 @@ var vectors = []vector{
 		g.bundle("bundle", "b1", "OK", keyB, t0)
 		g.anchor(keyA)
 	}},
+	{"bundle-manifest-symlink", "bundle", Critical, "manifest.json is a symbolic link to a valid manifest outside the bundle",
+		[]string{CodeManifestMissing}, func(g vgen) {
+			g.bundle("bundle", "b1", "OK", keyA, t0)
+			g.must(os.Rename(filepath.Join(g.dir, "bundle", ManifestFile), filepath.Join(g.dir, "manifest.real")))
+			g.must(os.Symlink("../manifest.real", filepath.Join(g.dir, "bundle", ManifestFile)))
+			g.anchor(keyA)
+		}},
 	{"bundle-signature-missing", "bundle", Critical, "manifest.sig was deleted", []string{CodeSignatureMissing}, func(g vgen) {
 		g.bundle("bundle", "b1", "OK", keyA, t0)
 		g.must(os.Remove(filepath.Join(g.dir, "bundle", SignatureFile)))
@@ -277,6 +284,14 @@ var vectors = []vector{
 		g.write("bundles/.keep", nil)
 		g.anchor(keyA)
 	}},
+	{"ledger-entry-surrogate", "ledger", Critical, "an entry's payload holds an unpaired UTF-16 surrogate escape (\\ud800), which has no UTF-8 bytes",
+		[]string{CodeEntryMalformed}, func(g vgen) {
+			g.line(genesis(keyA, t0), keyA)
+			g.line(bundleEntry(2, keyA, strings.Repeat("4", 64), "b1", strings.Repeat("5", 64), t0), keyA)
+			g.replace("ledger.jsonl", `\"subject\":\"web1\"`, `\"subject\":\"web\ud8001\"`)
+			g.write("bundles/.keep", nil)
+			g.anchor(keyA)
+		}},
 	{"ledger-format-unsupported", "ledger", Unknown, "the last entry (validly signed) has format_version 2",
 		[]string{CodeFormatUnsupported}, func(g vgen) {
 			h := g.line(genesis(keyA, t0), keyA)
@@ -355,6 +370,12 @@ var vectors = []vector{
 		g.okLedger()
 		g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b2")))
 	}},
+	{"ledger-bundle-symlink", "ledger", Critical, "bundles/b2 is a symbolic link to the real bundle, kept outside the bundles directory",
+		[]string{CodeBundleMissing}, func(g vgen) {
+			g.okLedger()
+			g.must(os.Rename(filepath.Join(g.dir, "bundles", "b2"), filepath.Join(g.dir, "b2.real")))
+			g.must(os.Symlink("../b2.real", filepath.Join(g.dir, "bundles", "b2")))
+		}},
 	{"ledger-bundle-unlisted", "ledger", Critical, "a validly signed bundle b3 was added without an entry", []string{CodeBundleUnlisted}, func(g vgen) {
 		g.okLedger()
 		g.bundle("bundles/b3", "b3", "OK", keyA, t0.Add(2*time.Minute))

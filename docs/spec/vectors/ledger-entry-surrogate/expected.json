@@ -1,0 +1,8 @@
+{
+  "description": "an entry's payload holds an unpaired UTF-16 surrogate escape (\\ud800), which has no UTF-8 bytes",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "entry_malformed"
+  ]
+}

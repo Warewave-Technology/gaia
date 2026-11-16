@@ -243,3 +243,15 @@ func TestV0Evidence(t *testing.T) {
 		t.Fatalf("appended to a v0 ledger: %v", err)
 	}
 }
+
+func TestSurrogates(t *testing.T) {
+	for in, ok := range map[string]bool{
+		`{"a":"x\\ud800y"}`: true, // an escaped backslash, then text
+		`{"a":"\ud83d\ude00"}`: true, `{"a":"\u00e9"}`: true, `{"a":"\"\\"}`: true,
+		`{"a":"\ud800"}`: false, `{"a":"\ude00"}`: false, `{"a":"\ud800\u0041"}`: false, `{"a":"\ud800\ud800\udc00"}`: false,
+	} {
+		if err := surrogates([]byte(in)); (err == nil) != ok {
+			t.Errorf("%s: %v", in, err)
+		}
+	}
+}

@@ -27,14 +27,15 @@ isolated sandbox and issues a signed readiness report per VM.
 | Path | What it is |
 |---|---|
 | [`docs/adr/`](docs/adr) | Architecture decision records |
-| [`CLAUDE.md`](CLAUDE.md) | Phase 2 tasks, rules and reporting format for the implementation agent |
+| [`docs/spec/evidence-v1.md`](docs/spec/evidence-v1.md) | Restore Evidence Format v1: the open, CC0-licensed specification of Gaia's signed evidence bundles and ledger, with conformance vectors ([ADR-006](docs/adr/006-open-evidence-specification.md)) |
+| [`CLAUDE.md`](CLAUDE.md) | Current tasks, rules and reporting format for the implementation agent |
 | [`docs/reports/`](docs/reports) | Task reports (template: `TEMPLATE.md`) |
 | [`lab/`](lab) | Fully automated lab: nested ESXi on Proxmox, Debian lab runner VM |
 | [`cmd/vsphere-probe`](cmd/vsphere-probe) | Diagnostic: checks which backup APIs a vSphere host allows (feeds the migration check's pre-flight) |
 | [`cmd/imgtool`](cmd/imgtool) | Test-image generation, mutation and verification (stdlib only) |
 | [`cmd/gaia-backup`](cmd/gaia-backup) | Spike (T6): incremental KVM backup — libvirt checkpoint + pull-mode backup, changed extents over NBD, into Kopia; restore to a raw image |
 | [`internal/nbd`](internal/nbd) | Minimal pure-Go NBD client (read, block status, dirty bitmaps), tested against `qemu-nbd` |
-| [`cmd/gaia`](cmd/gaia) | Verification engine v0 (T7): `gaia verify` boots a restored image in an isolated sandbox and runs its checks; `gaia evidence verify` checks signed evidence bundles and the hash-chain ledger |
+| [`cmd/gaia`](cmd/gaia) | Verification engine v0 (T7): `gaia verify` boots a restored image in an isolated sandbox and runs its checks; `gaia evidence seal`, `verify` and `rotate` implement the evidence format |
 | [`spikes/kopia`](spikes/kopia) | Track B: Kopia as the repository for VM disk images |
 
 ## Freedom

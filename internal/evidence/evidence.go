@@ -435,7 +435,7 @@ func VerifyBundle(dir string, pub ed25519.PublicKey) BundleReport {
 }
 
 func verifyBundle(dir string, key ed25519.PublicKey) BundleReport {
-	mb, err := os.ReadFile(filepath.Join(dir, ManifestFile))
+	mb, err := readRegular(filepath.Join(dir, ManifestFile))
 	if err != nil {
 		r := newBundleReport(dir, "")
 		r.add(CodeManifestMissing, ManifestFile, err.Error())
@@ -467,7 +467,7 @@ func verifyBundle(dir string, key ed25519.PublicKey) BundleReport {
 	case man.KeyID != KeyID(key):
 		r.add(CodeKeyMismatch, ManifestFile, fmt.Sprintf("signed by key %s, expected %s", man.KeyID, KeyID(key)))
 	default:
-		sb, err := os.ReadFile(filepath.Join(dir, SignatureFile))
+		sb, err := readRegular(filepath.Join(dir, SignatureFile))
 		if err != nil {
 			r.add(CodeSignatureMissing, SignatureFile, err.Error())
 			break
@@ -523,6 +523,18 @@ func verifyBundle(dir string, key ed25519.PublicKey) BundleReport {
 		}
 	}
 	return r.done()
+}
+
+// readRegular reads a file that must be a regular file: a symbolic link is not followed.
+func readRegular(p string) ([]byte, error) {
+	fi, err := os.Lstat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s: not a regular file", filepath.Base(p))
+	}
+	return os.ReadFile(p)
 }
 
 // parseManifest validates a v1 manifest's members (§5.2).
@@ -852,6 +864,10 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 			s.add(CodeEntryMalformed, n, `"sig": missing or not a string`)
 			return s
 		}
+		if err := surrogates(l); err != nil {
+			s.add(CodeEntryMalformed, n, err.Error())
+			return s
+		}
 		json.Unmarshal(l, &w)
 		pb := []byte(*w.Payload)
 		p, err := parseObject(pb)
@@ -929,6 +945,52 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 		s.lines, s.last = n, h
 	}
 	return s
+}
+
+// surrogates rejects a \u escape of a UTF-16 surrogate that is not part of a pair: it has no UTF-8 encoding,
+// so the payload bytes it stands for would depend on the JSON library (§6.2).
+func surrogates(b []byte) error {
+	high := false
+	for i := 0; i < len(b); i++ {
+		if b[i] != '\\' {
+			if high {
+				return errors.New("a high surrogate escape without a low one")
+			}
+			continue
+		}
+		i++
+		if i >= len(b) || b[i] != 'u' || i+4 >= len(b) {
+			if high {
+				return errors.New("a high surrogate escape without a low one")
+			}
+			continue
+		}
+		var v uint16
+		if _, err := fmt.Sscanf(string(b[i+1:i+5]), "%04x", &v); err != nil {
+			return errors.New("a bad \\u escape")
+		}
+		i += 4
+		switch {
+		case v >= 0xd800 && v <= 0xdbff:
+			if high {
+				return errors.New("two high surrogate escapes in a row")
+			}
+			high = true
+		case v >= 0xdc00 && v <= 0xdfff:
+			if !high {
+				return errors.New("a low surrogate escape without a high one")
+			}
+			high = false
+		default:
+			if high {
+				return errors.New("a high surrogate escape without a low one")
+			}
+		}
+	}
+	if high {
+		return errors.New("a high surrogate escape at the end")
+	}
+	return nil
 }
 
 type payloadFields struct {
@@ -1054,7 +1116,7 @@ func VerifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey) (LedgerRe
 	for _, b := range s.bundles {
 		listed[b.id] = true
 		dir := filepath.Join(bundlesDir, b.id)
-		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
+		if fi, err := os.Lstat(dir); err != nil || !fi.IsDir() { // a symbolic link is not a bundle
 			r.add(CodeBundleMissing, b.id, fmt.Sprintf("line %d names bundle %s; there is no such directory", b.seq, b.id))
 			continue
 		}

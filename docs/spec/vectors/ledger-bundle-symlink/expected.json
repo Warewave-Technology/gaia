@@ -1,0 +1,8 @@
+{
+  "description": "bundles/b2 is a symbolic link to the real bundle, kept outside the bundles directory",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_missing"
+  ]
+}

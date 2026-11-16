@@ -1,0 +1,8 @@
+{
+  "description": "manifest.json is a symbolic link to a valid manifest outside the bundle",
+  "mode": "bundle",
+  "verdict": "CRITICAL",
+  "findings": [
+    "manifest_missing"
+  ]
+}
