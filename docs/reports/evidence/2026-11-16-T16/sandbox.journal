@@ -1,0 +1,52 @@
+2026-11-16T15:14:02.147551+0000 gaia-lab systemd[1]: Started gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:14:02.318566+0000 gaia-lab gaia-t16[146450]: time=2026-11-16T15:14:02.318Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t16-sandbox/sandbox.sock group=gaia-t16 images=/var/lib/gaia-t16-sandbox/images
+2026-11-16T15:19:51.889815+0000 gaia-lab systemd[1]: Stopping gaia-t16-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-16T15:19:51.891116+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Deactivated successfully.
+2026-11-16T15:19:51.891316+0000 gaia-lab systemd[1]: Stopped gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:20:22.567556+0000 gaia-lab systemd[1]: Started gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:20:22.728057+0000 gaia-lab gaia-t16[147365]: time=2026-11-16T15:20:22.727Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t16-sandbox/sandbox.sock group=gaia-t16 images=/var/lib/gaia-t16-sandbox/images
+2026-11-16T15:27:42.462309+0000 gaia-lab systemd[1]: Stopping gaia-t16-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-16T15:27:42.464325+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Deactivated successfully.
+2026-11-16T15:27:42.464584+0000 gaia-lab systemd[1]: Stopped gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:27:51.639602+0000 gaia-lab systemd[1]: Started gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:27:51.774322+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:27:51.774Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t16-sandbox/sandbox.sock group=gaia-t16 images=/var/lib/gaia-t16-sandbox/images
+2026-11-16T15:30:43.093230+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:30:43.093Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T15:31:07.514843+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:31:07.514Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T153043Z-2d8976 verdict=OK
+2026-11-16T15:35:39.954678+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:35:39.954Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T15:40:51.502681+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:40:51.502Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T153539Z-3cf179 verdict=CRITICAL
+2026-11-16T15:40:59.796946+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:40:59.796Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T15:46:12.624348+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:46:12.624Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T154059Z-673ba3 verdict=CRITICAL
+2026-11-16T15:46:26.405739+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:46:26.405Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T15:46:53.071382+0000 gaia-lab gaia-t16[148333]: time=2026-11-16T15:46:53.071Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T154626Z-3f78a0 verdict=OK
+2026-11-16T15:46:55.998631+0000 gaia-lab systemd[1]: Stopping gaia-t16-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-16T15:46:56.000304+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Deactivated successfully.
+2026-11-16T15:46:56.000444+0000 gaia-lab systemd[1]: Stopped gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:46:56.000656+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Consumed 37.171s CPU time.
+2026-11-16T15:56:48.095601+0000 gaia-lab systemd[1]: Started gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T15:56:48.274910+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T15:56:48.274Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t16-sandbox/sandbox.sock group=gaia-t16 images=/var/lib/gaia-t16-sandbox/images
+2026-11-16T15:59:41.588657+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T15:59:41.588Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:00:08.507944+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:00:08.507Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T155941Z-0e992d verdict=OK
+2026-11-16T16:04:36.513793+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:04:36.513Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:09:49.283717+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:09:49.283Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T160436Z-370de9 verdict=CRITICAL
+2026-11-16T16:10:11.373767+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:10:11.373Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:15:24.932756+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:15:24.932Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T161011Z-993c26 verdict=CRITICAL
+2026-11-16T16:15:36.852050+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:15:36.852Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:16:01.308780+0000 gaia-lab gaia-t16[151507]: time=2026-11-16T16:16:01.308Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T161536Z-b57e51 verdict=OK
+2026-11-16T16:16:07.551115+0000 gaia-lab systemd[1]: Stopping gaia-t16-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-16T16:16:07.553163+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Deactivated successfully.
+2026-11-16T16:16:07.553310+0000 gaia-lab systemd[1]: Stopped gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T16:16:07.553522+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Consumed 40.126s CPU time.
+2026-11-16T16:30:19.171307+0000 gaia-lab systemd[1]: Started gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T16:30:19.354938+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:30:19.354Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t16-sandbox/sandbox.sock group=gaia-t16 images=/var/lib/gaia-t16-sandbox/images
+2026-11-16T16:33:10.871453+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:33:10.871Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:33:35.933629+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:33:35.933Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T163310Z-c038e0 verdict=OK
+2026-11-16T16:38:07.575691+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:38:07.575Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:43:19.683387+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:43:19.683Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T163807Z-0ab1b0 verdict=CRITICAL
+2026-11-16T16:43:27.566929+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:43:27.566Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:48:40.482931+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:48:40.482Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T164327Z-d60907 verdict=CRITICAL
+2026-11-16T16:48:52.923817+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:48:52.923Z level=INFO msg=verifying vm=gaia-t16 disks=2
+2026-11-16T16:49:17.064599+0000 gaia-lab gaia-t16[156274]: time=2026-11-16T16:49:17.064Z level=INFO msg=verified vm=gaia-t16 bundle=gaia-t16-20261116T164852Z-e93234 verdict=OK
+2026-11-16T16:49:22.065068+0000 gaia-lab systemd[1]: Stopping gaia-t16-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-16T16:49:22.066761+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Deactivated successfully.
+2026-11-16T16:49:22.066881+0000 gaia-lab systemd[1]: Stopped gaia-t16-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-16T16:49:22.067045+0000 gaia-lab systemd[1]: gaia-t16-sandbox.service: Consumed 37.665s CPU time.

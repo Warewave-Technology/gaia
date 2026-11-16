@@ -1,0 +1,87 @@
+2026-11-16T15:14:03.191450+0000 gaia-lab systemd[1]: Started gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:14:03.403381+0000 gaia-lab gaia-t16[146463]: time=2026-11-16T15:14:03.403Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=ae0e2f36362f schema=4
+2026-11-16T15:14:03.403979+0000 gaia-lab gaia-t16[146463]: time=2026-11-16T15:14:03.403Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T15:19:51.846857+0000 gaia-lab gaia-t16[146463]: time=2026-11-16T15:19:51.846Z level=INFO msg="shutting down"
+2026-11-16T15:19:51.846785+0000 gaia-lab systemd[1]: Stopping gaia-t16-server.service - Gaia backup and recoverability server...
+2026-11-16T15:19:51.887597+0000 gaia-lab systemd[1]: gaia-t16-server.service: Deactivated successfully.
+2026-11-16T15:19:51.888019+0000 gaia-lab systemd[1]: Stopped gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:20:23.603461+0000 gaia-lab systemd[1]: Started gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:20:23.828788+0000 gaia-lab gaia-t16[147378]: time=2026-11-16T15:20:23.828Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=a2005e03bb85 schema=4
+2026-11-16T15:20:23.836115+0000 gaia-lab gaia-t16[147378]: time=2026-11-16T15:20:23.828Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T15:27:42.404048+0000 gaia-lab gaia-t16[147378]: time=2026-11-16T15:27:42.403Z level=INFO msg="shutting down"
+2026-11-16T15:27:42.404141+0000 gaia-lab systemd[1]: Stopping gaia-t16-server.service - Gaia backup and recoverability server...
+2026-11-16T15:27:42.459609+0000 gaia-lab systemd[1]: gaia-t16-server.service: Deactivated successfully.
+2026-11-16T15:27:42.459946+0000 gaia-lab systemd[1]: Stopped gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:27:52.683471+0000 gaia-lab systemd[1]: Started gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:27:52.889047+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:27:52.888Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=bbc083263250 schema=4
+2026-11-16T15:27:52.889363+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:27:52.889Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T15:30:10.275309+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:30:10.275Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-16T15:30:23.402143+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:30:23.401Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0
+2026-11-16T15:30:27.302739+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:30:27.302Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=4.394613905
+2026-11-16T15:31:07.885031+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:31:07.884Z level=INFO msg="restore test" vm=gaia-t16 test=1 point=1 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 15.9 s = restore 4.9 s + ready 11.0 s"
+2026-11-16T15:31:07.930364+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:31:07.930Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 44s <= 15m0s, proven RTO 16s <= 10m0s, proof age 0s <= 15m0s"
+2026-11-16T15:35:24.889664+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:35:24.889Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=1.984274433
+2026-11-16T15:40:24.922288+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:40:24.922Z level=INFO msg="backup done" job=5 point=3 kind=incremental seconds=2.018414651
+2026-11-16T15:40:51.861554+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:40:51.861Z level=INFO msg="restore test" vm=gaia-t16 test=2 point=2 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T15:40:51.910196+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:40:51.910Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="the latest restore test (2, point 2) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T15:45:25.194122+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:45:25.194Z level=INFO msg="backup done" job=7 point=4 kind=incremental seconds=2.295071638
+2026-11-16T15:46:13.183299+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:46:13.183Z level=INFO msg="restore test" vm=gaia-t16 test=3 point=3 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T15:46:53.494356+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:46:53.494Z level=INFO msg="restore test" vm=gaia-t16 test=4 point=4 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 14.2 s = restore 3.1 s + ready 11.0 s"
+2026-11-16T15:46:53.568570+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:46:53.568Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 4 is proven by test 4: proven RPO 1m30s <= 15m0s, proven RTO 14s <= 10m0s, proof age 0s <= 15m0s"
+2026-11-16T15:46:55.951301+0000 gaia-lab gaia-t16[148346]: time=2026-11-16T15:46:55.951Z level=INFO msg="shutting down"
+2026-11-16T15:46:55.951302+0000 gaia-lab systemd[1]: Stopping gaia-t16-server.service - Gaia backup and recoverability server...
+2026-11-16T15:46:55.997396+0000 gaia-lab systemd[1]: gaia-t16-server.service: Deactivated successfully.
+2026-11-16T15:46:55.997573+0000 gaia-lab systemd[1]: Stopped gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:46:55.997792+0000 gaia-lab systemd[1]: gaia-t16-server.service: Consumed 35.394s CPU time.
+2026-11-16T15:56:49.139669+0000 gaia-lab systemd[1]: Started gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T15:56:49.352402+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T15:56:49.352Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=e6e69b9e3a79 schema=4
+2026-11-16T15:56:49.352402+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T15:56:49.352Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T15:59:12.808264+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T15:59:12.808Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-16T15:59:19.969400+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T15:59:19.969Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0
+2026-11-16T15:59:25.553501+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T15:59:25.552Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=6.189650919
+2026-11-16T16:00:08.923692+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:00:08.923Z level=INFO msg="restore test" vm=gaia-t16 test=1 point=1 verdict=OK reason="every check passed (boot 12.0 s); proven RTO 19.0 s = restore 6.9 s + ready 12.0 s"
+2026-11-16T16:00:08.987873+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:00:08.987Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 48s <= 15m0s, proven RTO 19s <= 10m0s, proof age 0s <= 15m0s"
+2026-11-16T16:04:21.608578+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:04:21.608Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=2.236803184
+2026-11-16T16:09:21.402608+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:09:21.402Z level=INFO msg="backup done" job=5 point=3 kind=incremental seconds=2.041228488
+2026-11-16T16:09:49.644038+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:09:49.643Z level=INFO msg="restore test" vm=gaia-t16 test=2 point=2 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:09:49.686785+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:09:49.686Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="the latest restore test (2, point 2) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:14:21.515880+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:14:21.514Z level=INFO msg="backup done" job=7 point=4 kind=incremental seconds=2.149871742
+2026-11-16T16:15:25.271158+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:15:25.271Z level=INFO msg="restore test" vm=gaia-t16 test=3 point=3 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:16:01.704314+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:16:01.704Z level=INFO msg="restore test" vm=gaia-t16 test=4 point=4 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 13.2 s = restore 2.2 s + ready 11.0 s"
+2026-11-16T16:16:01.737625+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:16:01.737Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 4 is proven by test 4: proven RPO 1m41s <= 15m0s, proven RTO 13s <= 10m0s, proof age 0s <= 15m0s"
+2026-11-16T16:19:21.416074+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:19:21.415Z level=INFO msg="backup done" job=9 point=5 kind=incremental seconds=2.054759877
+2026-11-16T16:20:41.079839+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:20:41.079Z level=INFO msg="restore test" vm=gaia-t16 test=5 point=5 verdict=UNKNOWN reason="not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:20:41.089348+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:20:41.089Z level=ERROR msg="restore test failed" job=10 error="sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:24:21.424318+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:24:21.424Z level=INFO msg="backup done" job=11 point=6 kind=incremental seconds=2.063938466
+2026-11-16T16:25:36.643598+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:25:36.643Z level=INFO msg="restore test" vm=gaia-t16 test=6 point=6 verdict=UNKNOWN reason="not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:25:36.651637+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:25:36.651Z level=ERROR msg="restore test failed" job=12 error="sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:29:21.545226+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:29:21.545Z level=INFO msg="backup done" job=13 point=7 kind=incremental seconds=2.181063509
+2026-11-16T16:29:21.551942+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:29:21.551Z level=INFO msg="VM status changed" vm=1 status=WARNING reason="the newest proven point (4, test 4) is 15m1s old, over the RPO target 15m0s"
+2026-11-16T16:29:28.363331+0000 gaia-lab gaia-t16[151520]: time=2026-11-16T16:29:28.363Z level=INFO msg="shutting down"
+2026-11-16T16:29:28.363311+0000 gaia-lab systemd[1]: Stopping gaia-t16-server.service - Gaia backup and recoverability server...
+2026-11-16T16:29:28.403690+0000 gaia-lab systemd[1]: gaia-t16-server.service: Deactivated successfully.
+2026-11-16T16:29:28.403937+0000 gaia-lab systemd[1]: Stopped gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T16:29:28.404263+0000 gaia-lab systemd[1]: gaia-t16-server.service: Consumed 52.356s CPU time.
+2026-11-16T16:30:20.255636+0000 gaia-lab systemd[1]: Started gaia-t16-server.service - Gaia backup and recoverability server.
+2026-11-16T16:30:20.470868+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:30:20.470Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=e04be6e93784 schema=4
+2026-11-16T16:30:20.471261+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:30:20.470Z level=INFO msg="next state backup" at=2026-11-17T02:30:00Z
+2026-11-16T16:32:38.060071+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:32:38.060Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-16T16:32:50.931097+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:32:50.930Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0
+2026-11-16T16:32:55.238949+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:32:55.238Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=4.753697308
+2026-11-16T16:33:36.321408+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:33:36.321Z level=INFO msg="restore test" vm=gaia-t16 test=1 point=1 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 16.2 s = restore 5.1 s + ready 11.0 s"
+2026-11-16T16:33:36.355561+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:33:36.355Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 45s <= 20m0s, proven RTO 16s <= 10m0s, proof age 0s <= 12m0s"
+2026-11-16T16:37:52.473470+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:37:52.473Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=1.981074877
+2026-11-16T16:42:52.571143+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:42:52.571Z level=INFO msg="backup done" job=5 point=3 kind=incremental seconds=2.084124859
+2026-11-16T16:43:20.063078+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:43:20.063Z level=INFO msg="restore test" vm=gaia-t16 test=2 point=2 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:43:20.102765+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:43:20.102Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="the latest restore test (2, point 2) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:47:52.588129+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:47:52.588Z level=INFO msg="backup done" job=7 point=4 kind=incremental seconds=2.098360046
+2026-11-16T16:48:40.838309+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:48:40.838Z level=INFO msg="restore test" vm=gaia-t16 test=3 point=3 verdict=CRITICAL reason="boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+2026-11-16T16:49:17.428938+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:49:17.428Z level=INFO msg="restore test" vm=gaia-t16 test=4 point=4 verdict=OK reason="every check passed (boot 10.0 s); proven RTO 12.2 s = restore 2.1 s + ready 10.0 s"
+2026-11-16T16:49:17.461377+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:49:17.461Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 4 is proven by test 4: proven RPO 1m26s <= 20m0s, proven RTO 12s <= 10m0s, proof age 0s <= 12m0s"
+2026-11-16T16:52:52.456740+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:52:52.456Z level=INFO msg="backup done" job=9 point=5 kind=incremental seconds=1.9666645759999999
+2026-11-16T16:53:57.291819+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:53:57.291Z level=INFO msg="restore test" vm=gaia-t16 test=5 point=5 verdict=UNKNOWN reason="not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:53:57.299644+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:53:57.299Z level=ERROR msg="restore test failed" job=10 error="sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:57:52.399973+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:57:52.399Z level=INFO msg="backup done" job=11 point=6 kind=incremental seconds=1.9147976519999999
+2026-11-16T16:58:52.721912+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:58:52.721Z level=INFO msg="restore test" vm=gaia-t16 test=6 point=6 verdict=UNKNOWN reason="not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T16:58:52.730019+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T16:58:52.729Z level=ERROR msg="restore test failed" job=12 error="sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+2026-11-16T17:01:18.991235+0000 gaia-lab gaia-t16[156287]: time=2026-11-16T17:01:18.991Z level=INFO msg="VM status changed" vm=1 status=WARNING reason="the proof (test 4) is 12m2s old, over the maximum 12m0s"

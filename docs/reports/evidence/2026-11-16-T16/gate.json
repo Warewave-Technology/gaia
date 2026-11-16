@@ -1,0 +1,153 @@
+{
+  "a_truth_table": {
+    "passed": true,
+    "combinations": 936
+  },
+  "b_timeline": {
+    "expected": [
+      "UNKNOWN",
+      "OK",
+      "CRITICAL",
+      "OK",
+      "WARNING"
+    ],
+    "recorded": [
+      "UNKNOWN",
+      "OK",
+      "CRITICAL",
+      "OK",
+      "WARNING"
+    ],
+    "transitions": [
+      {
+        "at": "2026-11-16T16:32:38.057716301Z",
+        "from": "",
+        "to": "UNKNOWN",
+        "reason": "there is no backup point that passed its post-backup check"
+      },
+      {
+        "at": "2026-11-16T16:33:36.34133534Z",
+        "from": "UNKNOWN",
+        "to": "OK",
+        "reason": "point 1 is proven by test 1: proven RPO 45s <= 20m0s, proven RTO 16s <= 10m0s, proof age 0s <= 12m0s"
+      },
+      {
+        "at": "2026-11-16T16:43:20.086035762Z",
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "the latest restore test (2, point 2) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+      },
+      {
+        "at": "2026-11-16T16:49:17.451143394Z",
+        "from": "CRITICAL",
+        "to": "OK",
+        "reason": "point 4 is proven by test 4: proven RPO 1m26s <= 20m0s, proven RTO 12s <= 10m0s, proof age 0s <= 12m0s"
+      },
+      {
+        "at": "2026-11-16T17:01:18.988736861Z",
+        "from": "OK",
+        "to": "WARNING",
+        "reason": "the proof (test 4) is 12m2s old, over the maximum 12m0s"
+      }
+    ],
+    "critical_reason_names_the_test": true,
+    "warning_reason": "the proof (test 4) is 12m2s old, over the maximum 12m0s",
+    "warning_is_proof_age": true,
+    "phases": [
+      {
+        "phase": "added",
+        "reached": "UNKNOWN",
+        "after_s": 1,
+        "at": "2026-11-16T16:32:38Z"
+      },
+      {
+        "phase": "healthy",
+        "reached": "OK",
+        "after_s": 61,
+        "at": "2026-11-16T16:33:39Z"
+      },
+      {
+        "injected": "BREAK",
+        "at": "2026-11-16T16:33:40Z"
+      },
+      {
+        "phase": "broken",
+        "reached": "CRITICAL",
+        "after_s": 583,
+        "at": "2026-11-16T16:43:23Z"
+      },
+      {
+        "injected": "FIX",
+        "at": "2026-11-16T16:43:23Z"
+      },
+      {
+        "phase": "repaired",
+        "reached": "OK",
+        "after_s": 359,
+        "at": "2026-11-16T16:49:22Z"
+      },
+      {
+        "injected": "sandbox helper stopped",
+        "at": "2026-11-16T16:49:22Z"
+      },
+      {
+        "phase": "stale-proof",
+        "reached": "WARNING",
+        "after_s": 717,
+        "at": "2026-11-16T17:01:19Z"
+      }
+    ],
+    "pass": true
+  },
+  "tests": [
+    {
+      "id": 1,
+      "point_id": 1,
+      "verdict": "OK",
+      "proven_rto_s": 16.152919211
+    },
+    {
+      "id": 2,
+      "point_id": 2,
+      "verdict": "CRITICAL",
+      "proven_rto_s": null
+    },
+    {
+      "id": 3,
+      "point_id": 3,
+      "verdict": "CRITICAL",
+      "proven_rto_s": null
+    },
+    {
+      "id": 4,
+      "point_id": 4,
+      "verdict": "OK",
+      "proven_rto_s": 12.155552127
+    },
+    {
+      "id": 5,
+      "point_id": 5,
+      "verdict": "UNKNOWN",
+      "proven_rto_s": null
+    },
+    {
+      "id": 6,
+      "point_id": 6,
+      "verdict": "UNKNOWN",
+      "proven_rto_s": null
+    }
+  ],
+  "status_at_end": {
+    "status": "WARNING",
+    "rules": [
+      "proof_too_old"
+    ]
+  },
+  "ledger": {
+    "verdict": "OK",
+    "intact": true,
+    "entries": 5,
+    "bundles": 4
+  },
+  "verdict": "OK"
+}

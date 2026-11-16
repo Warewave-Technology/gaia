@@ -1,0 +1,7 @@
+=== RUN   TestTruthTableExhaustive
+    status_test.go:211: 936 combinations: map[CRITICAL:676 OK:4 UNKNOWN:228 WARNING:28]; rules applied: map[integrity_failed:468 latest_test_critical:312 no_checked_point:312 no_passing_test:72 no_policy:468 no_proven_rto:288 proof_too_old:48 proven:12 proven_rpo_over_target:48 proven_rto_over_target:48 theoretical_rpo_over_target:156]
+--- PASS: TestTruthTableExhaustive (0.00s)
+=== RUN   TestTruthTableExamples
+--- PASS: TestTruthTableExamples (0.00s)
+PASS
+ok  	github.com/Warewave-Technology/gaia/internal/status	0.005s

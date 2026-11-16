@@ -1,0 +1,66 @@
+{
+  "anchor_key_id": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+  "checked_at": "2026-11-16T17:01:20.571655781Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+  "report": {
+    "ledger": "/var/lib/gaia-t16/data/evidence/ledger.jsonl",
+    "format": "v1",
+    "entries": 5,
+    "keys": [
+      "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4"
+    ],
+    "verdict": "OK",
+    "findings": [],
+    "problems": [],
+    "bundles": [
+      {
+        "dir": "/var/lib/gaia-t16/data/evidence/bundles/gaia-t16-20261116T163310Z-c038e0",
+        "format": "v1",
+        "bundle_id": "gaia-t16-20261116T163310Z-c038e0",
+        "bundle_sha256": "d0fc1e5ed2e80aa3dc9b289645e4a297c762bfee0415d70b8dd37268aa70d3b9",
+        "key_id": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      },
+      {
+        "dir": "/var/lib/gaia-t16/data/evidence/bundles/gaia-t16-20261116T163807Z-0ab1b0",
+        "format": "v1",
+        "bundle_id": "gaia-t16-20261116T163807Z-0ab1b0",
+        "bundle_sha256": "88b1d3193831f3526518d6f14f3a5cfc54f82b57886ad392c169214dc8e40e84",
+        "key_id": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      },
+      {
+        "dir": "/var/lib/gaia-t16/data/evidence/bundles/gaia-t16-20261116T164327Z-d60907",
+        "format": "v1",
+        "bundle_id": "gaia-t16-20261116T164327Z-d60907",
+        "bundle_sha256": "1f60a5fb029ce0f3d3b19e0e6ade522a2c44997b3bb304fb5ad6df0f007726de",
+        "key_id": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      },
+      {
+        "dir": "/var/lib/gaia-t16/data/evidence/bundles/gaia-t16-20261116T164852Z-e93234",
+        "format": "v1",
+        "bundle_id": "gaia-t16-20261116T164852Z-e93234",
+        "bundle_sha256": "1c31face1dd026b73135b964f13d05b63ae1c3614d14f52c0cfe4c1955f8bcfe",
+        "key_id": "892467502935ede6126ae702d08d50830dc064b3417dbca61dc3640bfbea9aa4",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      }
+    ],
+    "intact": true
+  },
+  "verdict": "OK"
+}

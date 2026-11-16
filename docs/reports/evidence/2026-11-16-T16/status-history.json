@@ -1,0 +1,52 @@
+[
+  {
+    "seq": 4,
+    "at": "2026-11-16T16:32:38.057716301Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "",
+    "to": "UNKNOWN",
+    "reason": "there is no backup point that passed its post-backup check",
+    "actor": "system"
+  },
+  {
+    "seq": 20,
+    "at": "2026-11-16T16:33:36.34133534Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "UNKNOWN",
+    "to": "OK",
+    "reason": "point 1 is proven by test 1: proven RPO 45s \u003c= 20m0s, proven RTO 16s \u003c= 10m0s, proof age 0s \u003c= 12m0s",
+    "actor": "system"
+  },
+  {
+    "seq": 38,
+    "at": "2026-11-16T16:43:20.086035762Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "OK",
+    "to": "CRITICAL",
+    "reason": "the latest restore test (2, point 2) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s",
+    "actor": "system"
+  },
+  {
+    "seq": 55,
+    "at": "2026-11-16T16:49:17.451143394Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "CRITICAL",
+    "to": "OK",
+    "reason": "point 4 is proven by test 4: proven RPO 1m26s \u003c= 20m0s, proven RTO 12s \u003c= 10m0s, proof age 0s \u003c= 12m0s",
+    "actor": "system"
+  },
+  {
+    "seq": 78,
+    "at": "2026-11-16T17:01:18.988736861Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "OK",
+    "to": "WARNING",
+    "reason": "the proof (test 4) is 12m2s old, over the maximum 12m0s",
+    "actor": "system"
+  }
+]

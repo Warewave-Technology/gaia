@@ -1,0 +1,140 @@
+[
+  {
+    "id": 6,
+    "vm_id": 1,
+    "job_id": 11,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-16T16:57:51.407381418Z",
+    "check_state": "ok",
+    "bytes": 118489088,
+    "state": "present",
+    "checkpoint": "gaia-1-11",
+    "parent_id": 5,
+    "reason": "incremental from point 5 (checkpoint gaia-1-9)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 5,
+    "vm_id": 1,
+    "job_id": 9,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-16T16:52:51.480401075Z",
+    "check_state": "ok",
+    "bytes": 115343360,
+    "state": "present",
+    "checkpoint": "gaia-1-9",
+    "parent_id": 4,
+    "reason": "incremental from point 4 (checkpoint gaia-1-7)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 4,
+    "vm_id": 1,
+    "job_id": 7,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-16T16:47:51.512707841Z",
+    "check_state": "ok",
+    "bytes": 120586240,
+    "state": "present",
+    "checkpoint": "gaia-1-7",
+    "parent_id": 3,
+    "reason": "incremental from point 3 (checkpoint gaia-1-5)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 3,
+    "vm_id": 1,
+    "job_id": 5,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-16T16:42:51.486355774Z",
+    "check_state": "ok",
+    "bytes": 114294784,
+    "state": "present",
+    "checkpoint": "gaia-1-5",
+    "parent_id": 2,
+    "reason": "incremental from point 2 (checkpoint gaia-1-3)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 2,
+    "vm_id": 1,
+    "job_id": 3,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-16T16:37:51.52759352Z",
+    "check_state": "ok",
+    "bytes": 122683392,
+    "state": "present",
+    "checkpoint": "gaia-1-3",
+    "parent_id": 1,
+    "reason": "incremental from point 1 (checkpoint gaia-1-1)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 1,
+    "vm_id": 1,
+    "job_id": 1,
+    "repository_id": 1,
+    "kind": "full",
+    "taken_at": "2026-11-16T16:32:51.641608947Z",
+    "check_state": "ok",
+    "bytes": 1286602752,
+    "state": "present",
+    "checkpoint": "gaia-1-1",
+    "parent_id": null,
+    "reason": "full: no earlier checked point of this VM",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  }
+]

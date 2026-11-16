@@ -1,0 +1,8 @@
+{"phase":"added","reached":"UNKNOWN","after_s":1,"at":"2026-11-16T16:32:38Z"}
+{"phase":"healthy","reached":"OK","after_s":61,"at":"2026-11-16T16:33:39Z"}
+{"injected":"BREAK","at":"2026-11-16T16:33:40Z"}
+{"phase":"broken","reached":"CRITICAL","after_s":583,"at":"2026-11-16T16:43:23Z"}
+{"injected":"FIX","at":"2026-11-16T16:43:23Z"}
+{"phase":"repaired","reached":"OK","after_s":359,"at":"2026-11-16T16:49:22Z"}
+{"injected":"sandbox helper stopped","at":"2026-11-16T16:49:22Z"}
+{"phase":"stale-proof","reached":"WARNING","after_s":717,"at":"2026-11-16T17:01:19Z"}

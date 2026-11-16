@@ -1,0 +1,17 @@
+{
+  "id": 1,
+  "name": "t16",
+  "repository_id": 1,
+  "backup_interval_s": 300,
+  "test_interval_s": 300,
+  "keep_last": 8,
+  "keep_daily": 0,
+  "keep_weekly": 0,
+  "rpo_target_s": 1200,
+  "rto_target_s": 600,
+  "max_proof_age_s": 720,
+  "check_template": "linux-boot",
+  "checks": [],
+  "created_at": "2026-11-16T16:32:37.670772453Z",
+  "updated_at": "2026-11-16T16:32:37.670772453Z"
+}

@@ -1,0 +1,20 @@
+{
+  "vm_id": 1,
+  "vm": "gaia-t16",
+  "changed_at": "2026-11-16T17:01:18.988683421Z",
+  "status": "WARNING",
+  "theoretical_rpo_s": 207.869746443,
+  "proven_rpo_s": 807.76442002,
+  "proven_rto_s": 12.155552127,
+  "proof_age_s": 721.851428092,
+  "reasons": [
+    {
+      "status": "WARNING",
+      "rule": "proof_too_old",
+      "text": "the proof (test 4) is 12m2s old, over the maximum 12m0s"
+    }
+  ],
+  "notes": [
+    "restore test 6 (point 6) could not run: not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory"
+  ]
+}
