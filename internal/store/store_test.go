@@ -38,8 +38,27 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer d.Close()
-	if fi, err := os.Stat(filepath.Join(dir, "gaia.db")); err != nil || fi.Mode().Perm() != 0o600 {
-		t.Fatalf("database mode %v %v", fi.Mode(), err)
+	for _, f := range []string{"gaia.db", "gaia.db-wal", "gaia.db-shm"} {
+		if fi, err := os.Stat(filepath.Join(dir, f)); err == nil && fi.Mode().Perm() != 0o600 {
+			t.Fatalf("%s mode %v", f, fi.Mode())
+		}
+	}
+	// Files left with a wider mode (an older install) are narrowed on the next open.
+	d.Close()
+	for _, f := range []string{"gaia.db", "gaia.db-wal", "gaia.db-shm"} {
+		os.WriteFile(filepath.Join(dir, f+".probe"), nil, 0o644)
+		if _, err := os.Stat(filepath.Join(dir, f)); err == nil {
+			os.Chmod(filepath.Join(dir, f), 0o644)
+		}
+	}
+	if d, err = Open(filepath.Join(dir, "gaia.db")); err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	for _, f := range []string{"gaia.db", "gaia.db-wal", "gaia.db-shm"} {
+		if fi, err := os.Stat(filepath.Join(dir, f)); err == nil && fi.Mode().Perm() != 0o600 {
+			t.Fatalf("%s mode %v after reopening", f, fi.Mode())
+		}
 	}
 	done, err := d.Migrate(ctx, 0)
 	if err != nil || !slices.Equal(done, []int{1, 2}) || Latest() != 2 {

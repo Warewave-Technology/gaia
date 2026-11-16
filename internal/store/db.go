@@ -62,10 +62,13 @@ func Open(path string) (*DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("open %s: journal mode %q, want wal (%v)", path, mode, err)
 	}
-	// The database holds password hashes: owner only. SQLite gives its -wal and -shm files the same mode.
-	if err := os.Chmod(path, 0o600); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("open %s: %w", path, err)
+	// The database holds password hashes: owner only. SQLite gives new -wal and -shm files the database's mode, but
+	// leaves existing ones as they are (an install made before this check had 0644 files), so all three are set.
+	for _, p := range []string{path, path + "-wal", path + "-shm"} {
+		if err := os.Chmod(p, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
+			db.Close()
+			return nil, fmt.Errorf("open %s: %w", path, err)
+		}
 	}
 	return &DB{db: db, now: func() time.Time { return time.Now().UTC() }}, nil
 }
