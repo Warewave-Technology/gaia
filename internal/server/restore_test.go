@@ -261,6 +261,9 @@ func TestRestoreState(t *testing.T) {
 	if r.KitGenerationIn != 2 || r.KitGeneration != 3 || r.SessionsEnded != 3 || len(r.Tag) != 6 || r.StateBackup.SchemaVersion != store.Latest() || r.EvidenceKeyID == "" {
 		t.Fatalf("rebuild record %+v", r)
 	}
+	if sb, err := s2probe(t, o.ConfigPath); err != nil || sb.State != "ok" || sb.SnapshotID != r.StateBackup.ID || sb.SHA256 != r.StateBackup.SHA256 {
+		t.Fatalf("the state backup the server was rebuilt from: %+v %v", sb, err)
+	}
 	if fp, _ := CertFileFingerprint(f.s.cfg.TLSCert); fp != r.CertSHA256 {
 		t.Fatal("the rebuilt server does not keep the lost server's certificate")
 	}
@@ -380,4 +383,27 @@ func TestStateBackupAfterJobs(t *testing.T) {
 	if len(bs) != 1 || bs[0].State != "ok" || bs[0].Reason != "after jobs" {
 		t.Fatalf("state backups after five job ends: %+v", bs)
 	}
+}
+
+// s2probe reads the rebuilt server's record of the state backup it was rebuilt from, without starting it.
+func s2probe(t *testing.T, cfgPath string) (store.StateBackup, error) {
+	cfg, err := LoadConfig(cfgPath)
+	if err != nil {
+		return store.StateBackup{}, err
+	}
+	db, err := store.Open(cfg.dbPath())
+	if err != nil {
+		return store.StateBackup{}, err
+	}
+	defer db.Close()
+	bs, err := db.StateBackups(context.Background(), 10)
+	if err != nil || len(bs) == 0 {
+		return store.StateBackup{}, fmt.Errorf("state backups %v %v", bs, err)
+	}
+	for _, b := range bs {
+		if b.State == "running" {
+			return b, fmt.Errorf("state backup %d is still running", b.ID)
+		}
+	}
+	return bs[0], nil
 }

@@ -256,3 +256,17 @@ func (d *DB) EndAllSessions(ctx context.Context) (int64, error) {
 	}
 	return r.RowsAffected()
 }
+
+// FailInterruptedStateBackups marks state backups still running as failed: the process that ran them is gone.
+func (d *DB) FailInterruptedStateBackups(ctx context.Context, actor, reason string) (int, error) {
+	bs, err := rowsOf(ctx, d.db, scanSB, `SELECT `+sbCols+` FROM state_backups WHERE state = 'running'`)
+	if err != nil {
+		return 0, err
+	}
+	for _, b := range bs {
+		if _, err := d.FinishStateBackup(ctx, actor, b.ID, "", 0, "", reason); err != nil {
+			return 0, err
+		}
+	}
+	return len(bs), nil
+}

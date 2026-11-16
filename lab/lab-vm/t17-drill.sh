@@ -387,7 +387,8 @@ EOF
 	since=$(api jobs list vm_id="$vm_id" limit=200 | jq --arg t "$t_start" '[.[] | select(.created_at < $t) | .id] | max // 0')
 	state since_b "$since"
 	wait_jobs backup 1
-	api jobs list vm_id="$vm_id" limit=200 | jq --argjson s "$since" '[.[] | select(.kind == "backup" and .id > $s)] | last' >"$OUT/b-next-backup.json"
+	nb=$(api jobs list vm_id="$vm_id" limit=200 | jq --argjson s "$since" '[.[] | select(.kind == "backup" and .id > $s)] | last | .id')
+	api jobs get "$nb" >"$OUT/b-next-backup.json" # the list leaves out a job's detail
 	jq -c '{id, state, error, reason: .detail.reason, parent: .detail.parent_point, checkpoint: .detail.checkpoint}' "$OUT/b-next-backup.json"
 	wait_jobs restore_test 1
 	wait_status OK "B after its first test"

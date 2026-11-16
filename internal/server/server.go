@@ -223,6 +223,10 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		db.Close()
 		return nil, fmt.Errorf("SSH key: %w", err)
 	}
+	if _, err := db.FailInterruptedStateBackups(ctx, "system", "the server stopped while it ran"); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if n, err := db.FailInterruptedJobs(ctx, "the server stopped while the job ran"); err != nil {
 		db.Close()
 		return nil, err

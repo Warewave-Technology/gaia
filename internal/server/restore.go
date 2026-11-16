@@ -67,6 +67,8 @@ type RestoredState struct {
 	GaiaVersion   string `json:"gaia_version"`
 	SchemaVersion int    `json:"schema_version"`
 	Available     int    `json:"available"` // state archives in the repository
+	Bytes         int64  `json:"bytes"`
+	SHA256        string `json:"sha256"`
 }
 
 // RestoredRepository is one repository of the kit, as the rebuilt server reaches it.
@@ -262,6 +264,18 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 		}
 	}
 	if res.InterruptedJobs, err = db.FailInterruptedJobs(ctx, "the server was lost while the job ran; rebuilt from state backup "+res.StateBackup.ID); err != nil {
+		return res, err
+	}
+	// The database was copied while its own state backup ran: that one did end, as the archive restored here.
+	var sbID int64
+	if _, err := fmt.Sscan(res.StateBackup.BackupID, &sbID); err == nil {
+		if b, err := db.StateBackup(ctx, sbID); err == nil && b.State == "running" {
+			if _, err := db.FinishStateBackup(ctx, restoreActor, sbID, res.StateBackup.ID, res.StateBackup.Bytes, res.StateBackup.SHA256, ""); err != nil {
+				return res, err
+			}
+		}
+	}
+	if _, err := db.FailInterruptedStateBackups(ctx, restoreActor, "the server was lost while it ran"); err != nil {
 		return res, err
 	}
 	if res.SessionsEnded, err = db.EndAllSessions(ctx); err != nil {
@@ -465,7 +479,7 @@ func readStateArchive(ctx context.Context, st *diskstore.Store, want string, out
 		}
 	}
 	*out = RestoredState{ID: a.ID, BackupID: a.Labels["backup_id"], Created: a.Created.UTC().Format("2006-01-02T15:04:05Z"), Hostname: a.Labels["hostname"],
-		GaiaVersion: man.GaiaVersion, SchemaVersion: man.SchemaVersion, Available: len(as)}
+		GaiaVersion: man.GaiaVersion, SchemaVersion: man.SchemaVersion, Available: len(as), Bytes: a.Bytes, SHA256: a.SHA256}
 	return files, man, nil
 }
 
