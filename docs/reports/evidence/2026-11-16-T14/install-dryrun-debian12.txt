@@ -1,0 +1,160 @@
+== step 3
+gaia: OK
+gaia.service: OK
+install.md: OK
+LICENSE: OK
+== step 4
+Gaia is set up.
+
+  config                 /etc/gaia/server.json
+  data directory         /var/lib/gaia
+  listens on             :8443 (HTTPS)
+  admin user             admin
+
+Write these two down; you will need them:
+
+  TLS certificate sha256 03:FC:DC:E8:D6:4D:43:0A:54:7F:DB:22:53:9F:E1:5F:15:D8:2B:C3:D6:67:8F:DF:7E:21:96:72:A7:CC:E0:D1
+      (gaia login shows it; log in only if it matches)
+  evidence trust anchor  58d5cf64ad6160bccef515b8acf20bb9e66f0b7922cda7b0d0797c9ebf5768ea
+      (the key_id that signs every evidence bundle; an auditor checks evidence against it)
+
+The certificate is valid for: localhost, 127.0.0.1, ::1, c884163e8dbf, gaia.dryrun, 10.9.9.9
+Next: start the service (systemctl enable --now gaia), then gaia login -server https://<host>:<port> -user admin
+== step 5 (in the background instead of systemd)
+time=2026-11-16T11:26:02.259Z level=INFO msg="gaia server is listening" address=[::]:8443 version=b2c12e5ddfb9+modified schema=2
+== step 6
+logged in to https://localhost:8443 as admin (admin) until 2026-11-16T23:26:05.325106638Z; saved in /root/.config/gaia/cli.json
+id:                   1
+username:             admin
+role:                 admin
+disabled:             false
+created_at:           2026-11-16T11:26:02.16717369Z
+updated_at:           2026-11-16T11:26:02.16717369Z
+password_changed_at:  2026-11-16T11:26:02.16717369Z
+last_login_at:        2026-11-16T11:26:05.325106638Z
+version:                  b2c12e5ddfb9+modified
+schema_version:           2
+migrations:               [{"version":1,"name":"0001_init.sql","sha256":"15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427","applied_at":"2026-11-16T11:26:02.09126687Z"},{"version":2,"name":"0002_state_backups.sql","sha256":"4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546","applied_at":"2026-11-16T11:26:02.09346002Z"}]
+evidence_key_id:          58d5cf64ad6160bccef515b8acf20bb9e66f0b7922cda7b0d0797c9ebf5768ea
+started_at:               2026-11-16T11:26:02Z
+state_backup_at:          02:30
+state_backup_repository:  -
+== step 7
+id:          1
+name:        main
+kind:        filesystem
+location:    /srv/gaia/main
+splitter:    FIXED-1M
+hash:        BLAKE2B-256-128
+created_at:  2026-11-16T11:26:05.736954601Z
+== step 8
+id:             1
+repository_id:  1
+state:          ok
+reason:         requested by admin
+started_at:     2026-11-16T11:26:05.815110863Z
+finished_at:    2026-11-16T11:26:05.93843522Z
+error:          -
+snapshot_id:    bcb50bdf748a6b0eff62d0cd551aabbf
+bytes:          119808
+sha256:         87c2ea7e58b7245e975cf2569cd9e8e526c3f67b7c6ee9f1f960723d6de24603
+ID  REPOSITORY_ID  STATE  REASON              STARTED_AT                      FINISHED_AT                    ERROR  SNAPSHOT_ID                       BYTES   SHA256
+1   1              ok     requested by admin  2026-11-16T11:26:05.815110863Z  2026-11-16T11:26:05.93843522Z  -      bcb50bdf748a6b0eff62d0cd551aabbf  119808  87c2ea7e58b7245e975cf2569cd9e8e526c3f67b7c6ee9f…
+secrets/
+secrets/repository-main.password
+keys/evidence-key.pem
+== step 9
+id:                   2
+username:             op1
+role:                 operator
+disabled:             false
+created_at:           2026-11-16T11:26:06.146690916Z
+updated_at:           2026-11-16T11:26:06.146690916Z
+password_changed_at:  2026-11-16T11:26:06.146690916Z
+last_login_at:        -
+ID  USERNAME  ROLE      DISABLED  CREATED_AT                      UPDATED_AT                      PASSWORD_CHANGED_AT             LAST_LOGIN_AT
+1   admin     admin     false     2026-11-16T11:26:02.16717369Z   2026-11-16T11:26:02.16717369Z   2026-11-16T11:26:02.16717369Z   2026-11-16T11:26:05.325106638Z
+2   op1       operator  false     2026-11-16T11:26:06.146690916Z  2026-11-16T11:26:06.146690916Z  2026-11-16T11:26:06.146690916Z  -
+== step 10
+id:            1
+name:          kvm1
+address:       192.168.1.30
+ssh_port:      22
+ssh_user:      gaia
+ssh_host_key:  -
+created_at:    2026-11-16T11:26:06.288620859Z
+updated_at:    2026-11-16T11:26:06.288620859Z
+id:          1
+host_id:     1
+name:        web1
+uuid:        -
+policy_id:   -
+created_at:  2026-11-16T11:26:06.365253479Z
+updated_at:  2026-11-16T11:26:06.365253479Z
+id:                 1
+name:               gold
+repository_id:      1
+backup_interval_s:  900
+test_interval_s:    86400
+keep_last:          8
+keep_daily:         7
+keep_weekly:        4
+rpo_target_s:       3600
+rto_target_s:       1800
+max_proof_age_s:    172800
+check_template:     linux-basic
+checks:             []
+created_at:         2026-11-16T11:26:06.439877242Z
+updated_at:         2026-11-16T11:26:06.439877242Z
+id:          1
+host_id:     1
+name:        web1
+uuid:        -
+policy_id:   1
+created_at:  2026-11-16T11:26:06.365253479Z
+updated_at:  2026-11-16T11:26:06.514444088Z
+SEQ  AT                              USER_ID  USERNAME  ROLE   ACTION                      TARGET                  OUTCOME  REMOTE_ADDR  DETAIL                                     PREV_SHA256                                       SHA256
+1    2026-11-16T11:26:05.335227544Z  1        admin     admin  POST /api/v1/login          user:admin              200      ::1          logged in (session 1)                      00000000000000000000000000000000000000000000000…  7adf1df75a2fb0db7d2b784dfb9dd805ace1b8f623f6813…
+2    2026-11-16T11:26:05.555119039Z  1        admin     admin  POST /api/v1/repositories   /api/v1/repositories    0        ::1          attempt                                    7adf1df75a2fb0db7d2b784dfb9dd805ace1b8f623f6813…  065ef0c201b63d685e91f1269087943cf3f90d32bb393d4…
+3    2026-11-16T11:26:05.739396546Z  1        admin     admin  POST /api/v1/repositories   /api/v1/repositories/1  201      ::1          created repository main at /srv/gaia/main  065ef0c201b63d685e91f1269087943cf3f90d32bb393d4…  ea27213bcdaa6f08053db13efe40bd3f22004301f0cd4b1…
+4    2026-11-16T11:26:05.81305184Z   1        admin     admin  POST /api/v1/state-backups  /api/v1/state-backups   0        ::1          attempt                                    ea27213bcdaa6f08053db13efe40bd3f22004301f0cd4b1…  a7fd51dd94e7de7bfa84cf230c670db9b2bca2afb2755b9…
+5    2026-11-16T11:26:05.942588476Z  1        admin     admin  POST /api/v1/state-backups  /api/v1/state-backups   201      ::1          state backup 1: ok                         a7fd51dd94e7de7bfa84cf230c670db9b2bca2afb2755b9…  990174e21a436e3bb0e32306ed492784305ac2698348ade…
+entries:           15
+intact:            true
+head_sha256:       f89ce8572033e26304c496af728a7e3f962545981be5d3c6ae86e5ba2688bade
+first_broken_seq:  0
+== file modes
+/etc/gaia:
+total 4
+drwxr-x--- 1 gaia gaia  22 Nov 16 11:26 .
+drwxr-xr-x 1 root root 144 Nov 16 11:26 ..
+-rw-r----- 1 gaia gaia 228 Nov 16 11:26 server.json
+
+/var/lib/gaia:
+total 388
+drwxr-x--- 1 gaia gaia    128 Nov 16 11:26 .
+drwxr-xr-x 1 root root      8 Nov 16 11:26 ..
+drwx------ 1 gaia gaia      8 Nov 16 11:26 cache
+drwxr-x--- 1 gaia gaia     14 Nov 16 11:26 evidence
+-rw-r--r-- 1 gaia gaia 114688 Nov 16 11:26 gaia.db
+-rw-r--r-- 1 gaia gaia  32768 Nov 16 11:26 gaia.db-shm
+-rw-r--r-- 1 gaia gaia 214272 Nov 16 11:26 gaia.db-wal
+drwx------ 1 gaia gaia     64 Nov 16 11:26 keys
+drwx------ 1 gaia gaia     22 Nov 16 11:26 kopia
+drwx------ 1 gaia gaia     48 Nov 16 11:26 secrets
+drwx------ 1 gaia gaia     30 Nov 16 11:26 tls
+drwx------ 1 gaia gaia      0 Nov 16 11:26 tmp
+
+/var/lib/gaia/keys:
+total 16
+drwx------ 1 gaia gaia  64 Nov 16 11:26 .
+drwxr-x--- 1 gaia gaia 128 Nov 16 11:26 ..
+-rw------- 1 gaia gaia 119 Nov 16 11:26 evidence-key.pem
+-rw-r--r-- 1 gaia gaia 113 Nov 16 11:26 evidence-key.pub
+
+/var/lib/gaia/secrets:
+total 12
+drwx------ 1 gaia gaia  48 Nov 16 11:26 .
+drwxr-x--- 1 gaia gaia 128 Nov 16 11:26 ..
+-rw------- 1 gaia gaia  44 Nov 16 11:26 repository-main.password
+DRY RUN OK

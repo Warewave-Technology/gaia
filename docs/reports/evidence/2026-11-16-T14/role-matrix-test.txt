@@ -1,0 +1,4 @@
+=== RUN   TestRoleMatrix
+    server_test.go:233: 45 endpoints × 4 roles
+--- PASS: TestRoleMatrix (1.20s)
+ok  	github.com/Warewave-Technology/gaia/internal/server	1.568s
