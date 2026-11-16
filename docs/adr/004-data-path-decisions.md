@@ -1,6 +1,6 @@
 # ADR-004: Data path decisions after Phase 1
 
-Status: accepted (2026-11-14), amended 2026-11-16 (see "Amendments" at the end; amendments win over the
+Status: accepted (2026-11-14), amended 2026-11-16 twice (see "Amendments" at the end; later amendments win over
 original text). Amends ADR-001 (libvirt binding, benchmark gate) and ADR-002 #5 (Kopia defaults).
 Evidence: report `2026-11-14-T3.md`.
 
@@ -87,3 +87,32 @@ declared check has passed. Sandbox setup, image hashing and shutdown are exclude
 
 go-libvirt's `DomainScreenshot` is broken (wrong MIME source, stream deadlock), so console screenshots use
 `virsh screenshot` as a subprocess, as §5 allows. Every other libvirt call stays on go-libvirt.
+
+## Amendments, second round (2026-11-16)
+
+Decisions on the `ONAY GEREKİYOR` items of reports T9 and T10, approved by the product owner.
+
+### A6. Gate reference includes the repository's write speed (replaces A1's reference)
+
+- A backup cannot finish faster than its repository can be written. T9: the repository disk wrote at
+  236–284 MB/s, which put a floor of ~2.9 under the A1 ratio no matter what the software did.
+- **Reference = max(source read, repository write)**, both hash-free and measured in the same run:
+  - source read: as in A1 (same byte ranges, same source, faster of single- and multi-stream);
+  - repository write: a hash-free sequential write of `repository_bytes` to the repository's disk.
+- Gate unchanged: median `full_backup / reference` ≤ 2 over ≥ 3 runs, every restore byte-identical.
+- T9's estimate under this reference (~1.07) is **not** a result. Task T12 measures it.
+
+### A7. CPU budget for the data path
+
+On fast storage the backup is CPU-bound (T9 context run: ~5.1 CPU-seconds per GB processed). This number is
+recorded as a **regression budget**: a change that raises CPU-seconds per GB by more than 10 % on the reference
+run needs a justification in its report. It is a budget, not a target to optimise now.
+
+### A8. Defaults: `FIXED-1M` splitter and 1 MiB blocks; BLAKE2B stays (supersedes the provisional §2 / A3)
+
+- **`FIXED-1M`**, block size 1 MiB. T10: scattered writes' repository growth 4.85× → 2.24× of dirty bytes,
+  read-back from the repository −66 %, no penalty on full backup or restore at 30 GiB.
+- `FIXED-256K` was better still, but the block index lists the whole disk at every point (~155 MB per point for a
+  1 TiB disk, T10 estimate). Re-evaluate 256K once the index is delta-encoded or binary (MVP backlog).
+- **Hash stays `BLAKE2B-256-128`.** BLAKE3 and HMAC-SHA256 cut hashing CPU by 37–45 % but did not change
+  end-to-end backup time (T10). The hash is part of the repository format and cannot change after creation.
