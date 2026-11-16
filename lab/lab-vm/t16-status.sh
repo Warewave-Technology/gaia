@@ -258,7 +258,8 @@ runcmd:
 EOF
 cloud-localds "$SEED" "$WORK/user-data" "$WORK/meta-data"
 rm -f "$SERIAL" "$CTL_SOCK"
-# No network interface; the seed is a read-only CD-ROM (left out of backups); serial 1 is the fixture's control line.
+# No network interface; the seed is a read-only disk (Gaia leaves read-only disks out; Debian's cloud kernel does not
+# read it as a SATA CD-ROM); serial 1 is the fixture's control line.
 cat >"$WORK/$DOM.xml" <<EOF
 <domain type='kvm'>
   <name>$DOM</name>
@@ -270,7 +271,7 @@ cat >"$WORK/$DOM.xml" <<EOF
     <emulator>/usr/bin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$VDA'/><target dev='vda' bus='virtio'/></disk>
     <disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$VDB'/><target dev='vdb' bus='virtio'/></disk>
-    <disk type='file' device='cdrom'><driver name='qemu' type='raw'/><source file='$SEED'/><target dev='sda' bus='sata'/><readonly/></disk>
+    <disk type='file' device='disk'><driver name='qemu' type='raw'/><source file='$SEED'/><target dev='vdc' bus='virtio'/><readonly/></disk>
     <serial type='file'><source path='$SERIAL'/><target port='0'/></serial>
     <serial type='unix'><source mode='bind' path='$CTL_SOCK'/><target port='1'/></serial>
   </devices>
