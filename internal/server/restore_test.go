@@ -258,7 +258,7 @@ func TestRestoreState(t *testing.T) {
 	if r.Verdict != "WARNING" || len(r.Repositories) != 1 || len(r.Repositories[0].PointsNotInCatalog) != 1 || r.Repositories[0].PointsNotInCatalog[0] != late.ID {
 		t.Fatalf("the point stored after the state backup is not named: %+v", r)
 	}
-	if r.KitGenerationIn != 2 || r.KitGeneration != 3 || len(r.Tag) != 6 || r.StateBackup.SchemaVersion != store.Latest() || r.EvidenceKeyID == "" {
+	if r.KitGenerationIn != 2 || r.KitGeneration != 3 || r.SessionsEnded != 3 || len(r.Tag) != 6 || r.StateBackup.SchemaVersion != store.Latest() || r.EvidenceKeyID == "" {
 		t.Fatalf("rebuild record %+v", r)
 	}
 	if fp, _ := CertFileFingerprint(f.s.cfg.TLSCert); fp != r.CertSHA256 {

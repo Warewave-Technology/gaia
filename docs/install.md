@@ -3,9 +3,9 @@
 This guide installs `gaia server` (ADR-007) on a clean Debian 12 machine and checks that it works. It takes about
 15 minutes. Every command is meant to be copied as it is; replace only what is in `<angle brackets>`.
 
-What this version does: users and roles, the API and the command line, the audit log, repositories, hosts, VMs
-and policies as records, and a daily backup of Gaia's own state. Backing up and testing VMs comes in the next
-versions.
+What this version does: users and roles, the API and the command line, the audit log, repositories, scheduled
+backups of VMs on KVM hosts, restore tests with signed evidence, the status of every VM, backups of Gaia's own
+state, and a recovery kit to rebuild a lost Gaia server (step 13).
 
 ## 1. What you need
 
@@ -72,6 +72,11 @@ runuser -u gaia -- gaia server init -config /etc/gaia/server.json -data-dir /var
 
 It asks twice for the password of the first admin user (`admin`); it must have at least 12 characters.
 
+It then asks twice for the passphrase of the **recovery kit**, also at least 12 characters. The recovery kit is an
+encrypted file with everything secret that a new server needs to take over if this one is lost: repository
+passwords and the evidence signing key (step 8b). Gaia does not store the passphrase. **Put it in your password
+manager now**; without it the kit cannot be opened.
+
 It then prints two values. **Write both down now**, for example in your password manager:
 
 | Value | What it is for |
@@ -119,7 +124,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`4`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`5`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -131,7 +136,8 @@ The repository is where backups (and Gaia's own state) go. It is a Kopia reposit
 gaia repositories add name=main location=/srv/gaia/main
 ```
 
-The answer shows `splitter: FIXED-1M` and `hash: BLAKE2B-256-128`. The directory must be empty or not exist. If it
+It asks for the recovery kit's passphrase from step 4: a new repository means a new recovery kit that can open
+it. The answer shows `splitter: FIXED-1M` and `hash: BLAKE2B-256-128`. The directory must be empty or not exist. If it
 is not under `/srv/gaia`, the service may not write there. In that case, run `systemctl edit gaia`, add this
 section, and restart:
 
@@ -151,20 +157,47 @@ gaia state-backups run && gaia state-backups list
 
 The new line must say `ok`.
 
-**Important — keep these files somewhere else.** On purpose, the state backup does not contain secrets:
+Besides this nightly run, Gaia backs its state up a few minutes after backups and restore tests end, so a
+rebuilt server (step 13) misses at most the last few minutes. The state backup holds no secrets: those are in
+the recovery kit.
 
-- `/var/lib/gaia/secrets/repository-main.password`: the repository's password. Without it the repository,
-  including the state backups, cannot be read.
-- `/var/lib/gaia/keys/evidence-key.pem`: the private evidence signing key.
+## 8b. Save the recovery kit off the server (do not skip)
 
-Copy both now to a safe place outside this server, for example an encrypted vault or a USB stick in a safe. If the
-server is lost and these files are not saved elsewhere, the repository cannot be opened.
+If the server is lost, the repository can only be opened with the recovery kit and its passphrase. A kit that is
+only on the server is lost with it. Run this on **your workstation** (where you ran `gaia login`), not on the
+server:
 
 ```bash
-tar -C /var/lib/gaia -czf /root/gaia-secrets.tar.gz secrets keys/evidence-key.pem && chmod 600 /root/gaia-secrets.tar.gz
+gaia kit save
 ```
 
-Then move `/root/gaia-secrets.tar.gz` off the server and delete it there.
+1. It downloads the newest kit, for example `gaia-recovery-kit-2.age`, into the current directory.
+2. It asks for the kit's passphrase (step 4), opens the file with it, and tells the server that this kit is
+   stored elsewhere.
+3. It prints `Recovery kit 2 opens with the passphrase and is the server's newest: confirmed.`
+
+Check it:
+
+```bash
+gaia kit status
+```
+
+The first line must start with `CONFIRMED`. Until it does, `gaia status` ends with `WARNING recovery kit: ...` and
+`gaia system` shows the same.
+
+Move the file to a safe place: a password manager that keeps files, an encrypted vault, or a USB stick in a
+safe. Keep the passphrase separately (not in the same file or note).
+
+**Every new repository writes a new kit** (and so does a new passphrase): `gaia kit status` then says
+`NOT CONFIRMED` again, and you run `gaia kit save` again. Older kits cannot open repositories made after them.
+
+If you only have a shell on the server: run `gaia kit save -o /root/gaia-recovery-kit.age` there, copy the file
+off the server (`scp`), and delete it from the server.
+
+The kit is a standard [age](https://age-encryption.org) file. To see what is inside without Gaia (it shows the
+secrets, so do this only on a trusted machine): install `age` (`apt-get install age`, or `brew install age`), then
+`age -d gaia-recovery-kit-2.age`. Gaia itself shows a summary without the secrets: `gaia kit show -kit
+gaia-recovery-kit-2.age`.
 
 ## 9. Users
 
@@ -346,13 +379,65 @@ gaia api GET /api/v1/hosts
 2. On the server, as root, replace the program and restart:
 
    ```bash
-   install -m 0755 gaia /usr/local/bin/gaia && systemctl restart gaia && gaia system
+   install -m 0755 gaia /usr/local/bin/gaia && systemctl try-restart gaia-sandbox && systemctl restart gaia && gaia system
    ```
 
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the
 new schema version. Gaia refuses to start on a database written by a newer version: do not downgrade.
 
-## 13. Removing Gaia
+**From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
+
+```bash
+gaia kit regenerate && gaia kit save
+```
+
+`gaia kit regenerate` asks twice for a new passphrase; put it in your password manager.
+
+## 13. Rebuilding a lost server
+
+When the Gaia server is lost (its disk died, the VM was deleted) but the repository survived, a new server takes
+over from the recovery kit and the repository alone. Everything comes back as of Gaia's last state backup: users,
+hosts, VMs, policies, points, restore tests, evidence, the audit log, and each VM's status.
+
+You need: the recovery kit file from step 8b, its passphrase, the repository (the disk or share it was on), and a
+new Debian 12 machine (step 1).
+
+1. On the new machine, do step 3 (and step 2 for the package; the same Gaia version or a newer one). Do **not** run
+   `gaia server init`.
+2. Make the repository reachable on the new machine, for example by mounting its disk or share. The same path as
+   before is simplest; `gaia kit show -kit <kit file>` shows where each repository was. Then, as root:
+
+   ```bash
+   chown -R gaia:gaia <repository path>
+   ```
+
+3. Copy the kit file to the new machine (`scp gaia-recovery-kit-<n>.age <user>@<server>:/tmp/`), then, as root:
+
+   ```bash
+   chown gaia /tmp/gaia-recovery-kit-<n>.age && runuser -u gaia -- gaia server restore-state -kit /tmp/gaia-recovery-kit-<n>.age -config /etc/gaia/server.json
+   ```
+
+   It asks for the kit's passphrase. Add `-repository <name>=<path>` if a repository is now at another path, and
+   `-hostname <names>` (as in step 4) if the new server has another name or address: it then gets a new TLS
+   certificate, and `gaia login` asks you to confirm the new sha256 it prints.
+
+   The first line says `OK` or `WARNING`, then what was restored. `WARNING` lists what could not be restored,
+   usually the work of the last minutes before the loss (a point or a test after the last state backup). If it
+   says `CRITICAL`, the restored evidence ledger does not verify: keep the output and do not delete anything.
+4. Start the services (step 5), log in (step 6; the rebuild ended every login made on the lost server) and look:
+
+   ```bash
+   gaia status && gaia kit status
+   ```
+
+   Every VM is back with its status. The next backup of a VM continues from its last point if that point's
+   checkpoint is still on the host; otherwise it is a full backup, and the job says why. Hosts need no change:
+   the new server logs in with the same SSH key. (If a host's firewall allows SSH only from the old server's
+   address, allow the new one.)
+5. The rebuild wrote a new recovery kit. Save it (step 8b), then delete `/tmp/gaia-recovery-kit-<n>.age` on the
+   server.
+
+## 14. Removing Gaia
 
 This deletes everything Gaia wrote. The repository and its backups are deleted too if they are under `/srv/gaia`.
 
@@ -378,3 +463,8 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | Restore tests stay `UNKNOWN` with `sandbox helper ... connect` | `gaia-sandbox` is not running: `systemctl status gaia-sandbox`. |
 | A restore test is `CRITICAL` with `boot ... no login prompt` | The restored VM did not boot. The evidence (`gaia evidence export`) has its screenshots and serial log. |
 | The service does not start | `journalctl -u gaia -n 50` shows why: a wrong config, missing files, or a database from a newer version. |
+| `gaia status` ends with `WARNING recovery kit: ...` | Do what it says: `gaia kit save` (step 8b), or `gaia kit regenerate` and then `gaia kit save`. |
+| `the passphrase does not open the current recovery kit` | Use the kit passphrase from step 4 (not the admin password). |
+| `restore-state`: `... is not empty` | The data directory must be empty. A failed `restore-state` empties it again itself; anything else in it is not Gaia's. |
+| `restore-state`: `the state repository ... cannot be opened` | Mount the repository, or give its path with `-repository <name>=<path>`; its files must belong to `gaia`. |
+| `restore-state`: `... belong to different installations` | The kit is not the one of the server that wrote this repository. |

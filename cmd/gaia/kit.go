@@ -94,7 +94,15 @@ func cliKit(ctx context.Context, args []string, asJSON bool) int {
 		}
 		return kitConfirm(ctx, c, *kitPath, b, *passFile, asJSON)
 	case "regenerate":
-		cur, err := readKitPassphrase(*passFile, "Current passphrase of the recovery kit: ", false)
+		first, err := noKitYet(ctx, c)
+		if err != nil {
+			return fail(asJSON, "kit regenerate", err)
+		}
+		prompt := "Current passphrase of the recovery kit: "
+		if first {
+			prompt = fmt.Sprintf("There is no recovery kit yet. Passphrase for it (at least %d characters; Gaia does not store it): ", recoverykit.MinPassphrase)
+		}
+		cur, err := readKitPassphrase(*passFile, prompt, first)
 		if err != nil {
 			return fail(asJSON, "kit regenerate", err)
 		}
@@ -203,22 +211,30 @@ func kitShow(path, passFile string, asJSON bool) int {
 	return 0
 }
 
-// repoKitPassphrase asks for the kit passphrase when a repository is added: twice if it sets the first kit.
-func repoKitPassphrase(ctx context.Context, c *client.Client, body map[string]any) error {
-	if _, ok := body["kit_passphrase"]; ok {
-		return errors.New("do not put the kit passphrase on the command line: leave it out and type it when asked")
-	}
+// noKitYet reports whether the server has never written a recovery kit (an installation from before schema 5).
+func noKitYet(ctx context.Context, c *client.Client) (bool, error) {
 	b, _, err := c.Do(ctx, "GET", "/api/v1/recovery-kit", nil)
 	if err != nil {
-		return err
+		return false, err
 	}
 	var info struct {
 		Summary kitSummary `json:"summary"`
 	}
 	if err := json.Unmarshal(b, &info); err != nil {
+		return false, err
+	}
+	return info.Summary.Generation == 0, nil
+}
+
+// repoKitPassphrase asks for the kit passphrase when a repository is added: twice if it sets the first kit.
+func repoKitPassphrase(ctx context.Context, c *client.Client, body map[string]any) error {
+	if _, ok := body["kit_passphrase"]; ok {
+		return errors.New("do not put the kit passphrase on the command line: leave it out and type it when asked")
+	}
+	first, err := noKitYet(ctx, c)
+	if err != nil {
 		return err
 	}
-	first := info.Summary.Generation == 0
 	prompt := "Passphrase of the recovery kit (a new repository writes a new kit): "
 	if first {
 		prompt = fmt.Sprintf("There is no recovery kit yet. Passphrase for it (at least %d characters): ", recoverykit.MinPassphrase)

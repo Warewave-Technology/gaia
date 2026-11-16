@@ -53,6 +53,7 @@ type RestoreResult struct {
 	Evidence         RestoredEvidence     `json:"evidence"`
 	Ledger           LedgerCheck          `json:"ledger"`
 	InterruptedJobs  int                  `json:"interrupted_jobs"`
+	SessionsEnded    int64                `json:"sessions_ended"` // logins on the lost server; everyone logs in again
 	Tag              string               `json:"restore_tag"`
 	MigratedVersions []int                `json:"migrated_versions"`
 }
@@ -261,6 +262,9 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 		}
 	}
 	if res.InterruptedJobs, err = db.FailInterruptedJobs(ctx, "the server was lost while the job ran; rebuilt from state backup "+res.StateBackup.ID); err != nil {
+		return res, err
+	}
+	if res.SessionsEnded, err = db.EndAllSessions(ctx); err != nil {
 		return res, err
 	}
 	res.Ledger = checkLedger(cfg)

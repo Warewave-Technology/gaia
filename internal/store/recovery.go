@@ -247,3 +247,12 @@ func (d *DB) Counts(ctx context.Context) (CatalogCounts, error) {
 	}
 	return c, nil
 }
+
+// EndAllSessions logs every user out: a rebuilt server does not honour logins made on the lost one.
+func (d *DB) EndAllSessions(ctx context.Context) (int64, error) {
+	r, err := d.db.ExecContext(ctx, `DELETE FROM sessions`)
+	if err != nil {
+		return 0, err
+	}
+	return r.RowsAffected()
+}
