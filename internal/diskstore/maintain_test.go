@@ -152,3 +152,42 @@ func TestMaintainKeepsReferencedData(t *testing.T) {
 	}
 	_ = content.ID{}
 }
+
+// A content damaged on disk stays in the index, so a later backup of the same data deduplicates onto it: the new
+// point passes the post-backup check (which confirms presence, not readability) and only a verification that reads
+// the data finds it. This documents the gap raised in the T15 report; when damaged contents are taken out of the
+// index on detection, the second backup must write the block again and this test must change.
+func TestDamagedContentIsReusedByDedup(t *testing.T) {
+	ctx := context.Background()
+	s, o := newStoreOpts(t)
+	p1, _ := full(t, s, "vm1", 1)
+	var packs []string
+	filepath.Walk(o.Path, func(p string, fi os.FileInfo, err error) error {
+		rel, _ := filepath.Rel(o.Path, p)
+		if err == nil && !fi.IsDir() && strings.HasPrefix(rel, "p") {
+			packs = append(packs, p)
+		}
+		return nil
+	})
+	for _, pk := range packs {
+		b, _ := os.ReadFile(pk)
+		b[len(b)/2] ^= 0xff
+		os.WriteFile(pk, b, 0o600)
+	}
+	p2, _ := full(t, s, "vm1", 1) // the same data again
+	if c, err := s.CheckPoint(ctx, p2.ID); err != nil || len(c.Problems) != 0 {
+		t.Fatalf("post-backup check of the second point: %+v %v", c, err)
+	}
+	u, err := OpenUncached(ctx, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer u.Close(ctx)
+	rng := rand.New(rand.NewPCG(1, 2))
+	v1, _ := u.VerifyPoint(ctx, p1.ID, 1, rng)
+	v2, _ := u.VerifyPoint(ctx, p2.ID, 1, rng)
+	if len(v1.Problems) == 0 || len(v2.Problems) == 0 {
+		t.Fatalf("both points share the damaged content: first %v, second %v", v1.Problems, v2.Problems)
+	}
+	t.Logf("second point, written after the damage, reads: %v", v2.Problems)
+}

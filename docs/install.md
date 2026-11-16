@@ -191,6 +191,8 @@ What the host needs: Debian 12 or newer (libvirt ≥ 9.0, QEMU ≥ 7.2), OpenSSH
 
 **On the host, as root.** Create a user for Gaia. Membership in `libvirt` lets it control every VM on the host, so
 treat its key like a root key. `libvirt-qemu` lets it open the disk export socket QEMU creates during a backup.
+QEMU creates that socket in the VM's own directory, `/var/lib/libvirt/qemu/domain-<id>-<name>/`: libvirt's AppArmor
+profile for the VM already allows it there, so AppArmor needs no change. Gaia backs up running VMs only.
 
 ```bash
 useradd -m -s /usr/sbin/nologin -G libvirt,libvirt-qemu gaia-backup && install -d -m 700 -o gaia-backup -g gaia-backup /home/gaia-backup/.ssh
@@ -317,4 +319,5 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `hosts scan` or `check` says `502 host: ...` | The server cannot reach the host's SSH (address, port, firewall), or the key is not in the host user's `authorized_keys`. |
 | `host key ... is not the pinned one` | The host's SSH key changed. If that was on purpose (the host was reinstalled), run `scan` and `trust` again. |
 | A backup job fails with `permission denied` on a socket | The host user is not in the groups `libvirt` and `libvirt-qemu` (step 10). |
+| A backup job fails with `... is not running` | Gaia backs up running VMs only (libvirt pull-mode backup). Start the VM. |
 | The service does not start | `journalctl -u gaia -n 50` shows why: a wrong config, missing files, or a database from a newer version. |
