@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -67,9 +66,6 @@ type DiskDetail struct {
 	WrittenBytes  uint64 `json:"written_bytes"`
 	StoreID       string `json:"store_id"`
 }
-
-// socketPrefix is where qemu puts this server's NBD sockets on a host.
-func (s *Server) socketPrefix() string { return filepath.Join(s.cfg.HostSocketDir, "gaia-") }
 
 // hostTarget is how to reach a host.
 func hostTarget(h store.Host) hostconn.Target {
@@ -175,7 +171,14 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 		return err
 	}
 	d.Timings["connect"] = time.Since(t).Seconds()
-	if d.StaleJobEnded, err = lv.AbortStaleJob(vm.Name, s.socketPrefix()); err != nil {
+	// The NBD socket goes into the VM's own directory on the host, the one place its AppArmor profile lets QEMU
+	// create it; gaia's host user reaches it through the group libvirt-qemu.
+	domDir, err := lv.DomainDir(vm.Name, s.cfg.HostSocketDir)
+	if err != nil {
+		return err
+	}
+	socketPrefix := domDir + "/gaia-"
+	if d.StaleJobEnded, err = lv.AbortStaleJob(vm.Name, socketPrefix); err != nil {
 		return err
 	}
 	disks, uuid, err := lv.Disks(vm.Name)
@@ -232,7 +235,7 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 
 	d.Checkpoint = fmt.Sprintf("gaia-%d-%d", vm.ID, j.ID)
 	req := libvirtbackup.MultiRequest{Domain: vm.Name, Disks: targets, Checkpoint: d.Checkpoint,
-		Server:     libvirtbackup.Server{Network: "unix", Addr: fmt.Sprintf("%s%d.sock", s.socketPrefix(), j.ID)},
+		Server:     libvirtbackup.Server{Network: "unix", Addr: fmt.Sprintf("%s%d.sock", socketPrefix, j.ID)},
 		ScratchDir: s.cfg.HostScratchDir}
 	if d.Kind == "incremental" {
 		req.Incremental = parent.Checkpoint

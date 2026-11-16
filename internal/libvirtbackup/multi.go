@@ -133,6 +133,30 @@ func (c *Conn) DeleteCheckpoint(domain, name string) error {
 	return c.l.DomainCheckpointDelete(cp, 0)
 }
 
+// DomainDir is a running domain's private directory under libvirt's QEMU state directory (base, normally
+// /var/lib/libvirt/qemu): domain-<id>-<the first 20 characters of the name>, as libvirt names it
+// (virDomainDefGetShortName). It is the place libvirt's per-domain AppArmor profile lets QEMU create files, so a
+// pull-mode backup's NBD unix socket goes there; libvirt 9.0 does not add the socket to that profile itself.
+func (c *Conn) DomainDir(domain, base string) (string, error) {
+	dom, err := c.l.DomainLookupByName(domain)
+	if err != nil {
+		return "", fmt.Errorf("domain %q: %w", domain, err)
+	}
+	if dom.ID <= 0 {
+		return "", fmt.Errorf("domain %q is not running (a pull-mode backup needs a running domain)", domain)
+	}
+	return path.Join(base, fmt.Sprintf("domain-%d-%s", dom.ID, shortName(domain))), nil
+}
+
+// shortName is libvirt's short domain name: the first 20 characters (bytes for ASCII names).
+func shortName(name string) string {
+	r := []rune(name)
+	if len(r) > 20 {
+		r = r[:20]
+	}
+	return string(r)
+}
+
 // AbortStaleJob ends a pull-mode backup job left on the domain whose NBD socket path starts with socketPrefix
 // (a job of this program that its process did not end); it reports whether there was one. Jobs of others are
 // left alone and reported as an error.

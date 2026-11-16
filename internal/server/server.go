@@ -40,7 +40,7 @@ type Config struct {
 	StateBackupAt         string `json:"state_backup_at"`         // HH:MM local time, default 02:30
 	StateBackupRepository string `json:"state_backup_repository"` // repository name; "" = the first repository
 	// Backups (T15).
-	HostSocketDir      string  `json:"host_socket_dir"`      // where qemu puts the NBD sockets on a host; default /var/lib/libvirt/qemu
+	HostSocketDir      string  `json:"host_socket_dir"`      // libvirt's QEMU state dir on a host (the NBD socket goes into the VM's domain-<id>-<name> there); default /var/lib/libvirt/qemu
 	HostScratchDir     string  `json:"host_scratch_dir"`     // qemu's copy-before-write scratch files on a host; default /var/lib/libvirt/images
 	NBDConnections     int     `json:"nbd_connections"`      // per disk, default 2
 	MaxParallelBackups int     `json:"max_parallel_backups"` // default 2

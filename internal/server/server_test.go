@@ -168,8 +168,12 @@ func (f *fixture) seed() {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ver, err := f.s.db.StartVerification(ctx, "system", repo.ID, "sampled", "seed")
+	if err != nil {
+		t.Fatal(err)
+	}
 	f.ids = map[string]int64{"users": f.userIDs[store.RoleAuditor], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
-		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID}
+		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID}
 }
 
 func (f *fixture) path(rt route) string {

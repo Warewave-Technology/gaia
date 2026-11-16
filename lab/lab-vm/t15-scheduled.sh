@@ -90,7 +90,12 @@ cleanup() {
 	systemctl daemon-reload
 	rm -rf "$SRV_HOME" "$WORK" /root/.config/gaia
 	userdel "$SRV_USER" >/dev/null 2>&1 || true
-	userdel -r "$HOST_USER" >/dev/null 2>&1 || true
+	pkill -u "$HOST_USER" >/dev/null 2>&1 || true # sshd sessions of the server's last connections
+	for _ in 1 2 3 4 5; do
+		userdel -r "$HOST_USER" >/dev/null 2>&1 && break
+		id "$HOST_USER" >/dev/null 2>&1 || break
+		sleep 1
+	done
 }
 # shellcheck disable=SC2329 # invoked by the trap
 on_exit() {
