@@ -4,8 +4,9 @@ This guide installs `gaia server` (ADR-007) on a clean Debian 12 machine and che
 15 minutes. Every command is meant to be copied as it is; replace only what is in `<angle brackets>`.
 
 What this version does: users and roles, the API and the command line, the audit log, repositories, scheduled
-backups of VMs on KVM hosts, restore tests with signed evidence, the status of every VM, backups of Gaia's own
-state, and a recovery kit to rebuild a lost Gaia server (step 13).
+backups of VMs on KVM hosts, restore tests with signed evidence, the status of every VM, the screens for operators
+and auditors with the evidence export (step 10c), backups of Gaia's own state, and a recovery kit to rebuild a lost
+Gaia server (step 13).
 
 ## 1. What you need
 
@@ -447,6 +448,46 @@ also lists every other reason. Every change of status is recorded with its time 
 ```bash
 gaia state-changes list entity=vm_status entity_id=<vm id>
 ```
+
+## 10c. The screens and the auditor's export
+
+Gaia's screens are on the same address as the API. Open it in a browser:
+
+```
+https://<server>:8443
+```
+
+1. The browser warns that the certificate is not trusted: it is the server's own certificate from step 4. Check
+   its sha256 fingerprint in the browser's certificate view against the one from step 4, then continue.
+2. Log in with a user from step 9. Each person has their own user; the login lasts 12 hours.
+
+| Screen | Who sees it | What it shows |
+|---|---|---|
+| Overview | everyone | Every VM with its status, the point it can return to, Proven RPO, Proven RTO and proof age against their targets, the last 6 hours, and the reasons in words. |
+| A VM (click its name) | everyone | The return point, the latest restore test with its console screenshots and checks, the evidence, the status history, the points and the restore tests. `Back up now` and `Test a restore now` only for `admin` and `operator`. |
+| Evidence | `admin`, `auditor` | The ledger and its last check, the trust anchor, the newest daily report, every bundle, and **Download the evidence export**. |
+
+Times on every screen are the server's local time; the zone is shown under the clock. The screens need
+JavaScript; without it, use `gaia status`.
+
+The **evidence export** is what an auditor takes away. It holds every bundle, the ledger, the trust anchor and
+the current public key, the newest daily report with its signed ledger head, the evidence specification, a list of
+every restore test, `SHA256SUMS`, and a `README.txt` that says how to verify it without Gaia's server. From the
+command line (as `admin` or `auditor`):
+
+```bash
+gaia evidence export-all -o gaia-evidence.tar.gz
+```
+
+Verify it on any machine, after unpacking it:
+
+```bash
+gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head ledger-head-<n>.json
+```
+
+`<n>` is the daily report in the export (`ls ledger-head-*.json`). Compare the trust anchor's `key_id` in
+`README.txt` with the one recorded in step 4 first. A daily report that reached you by email is a stronger anchor
+than the one in the export: give it with `-head` as well.
 
 ## 11. What else the command line does
 

@@ -108,7 +108,7 @@ func (s *Server) auditExport(c *call) (int, any, error) {
 		if err := add(name, rs[0].Report); err != nil {
 			return 0, nil, err
 		}
-		report = fmt.Sprintf("%s  the newest daily report (%s)", name, rs[0].GeneratedAt)
+		report = fmt.Sprintf("%-26s the newest daily report (%s)", name, rs[0].GeneratedAt)
 		if string(rs[0].LedgerHead) != "null" {
 			head := fmt.Sprintf("ledger-head-%d.json", rs[0].ID)
 			if err := add(head, append(append([]byte{}, rs[0].LedgerHead...), '\n')); err != nil {
@@ -155,11 +155,12 @@ Verify, without Gaia's server
      (docs/reports/evidence/2026-11-17-T19/independent-verifier/verify.py, standard library only):
        python3 -I verify.py ledger ledger.jsonl bundles --key anchor.pub%s
   OK means: every entry from the anchor on is signed and chained, every bundle is exactly as sealed, no bundle is
-  missing or extra%s. A copy of the daily report that reached you by email is a stronger head than the one in this
-  export: give that one with -head (--head) as well.
+  missing or extra%s.
+  A copy of the daily report that reached you by email is a stronger head than the one in this export: give that one
+  with -head (--head) as well.
 `, hostname(), now.Format(time.RFC3339), s.version, keyID, len(ledger), bundles, report,
 		opt(verifyHead != "", " -head "+verifyHead), opt(verifyHead != "", " --head "+verifyHead),
-		opt(verifyHead != "", ", and the ledger still holds the head the daily report recorded"))
+		opt(verifyHead != "", ",\n  and the ledger still holds the head the daily report recorded"))
 	if err := add("README.txt", []byte(readme)); err != nil {
 		return 0, nil, err
 	}
