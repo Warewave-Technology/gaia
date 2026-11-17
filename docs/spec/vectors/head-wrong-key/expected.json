@@ -1,0 +1,8 @@
+{
+  "description": "a head statement of entry 2 signed by B: after entry 2 the current key was still A (the rotation to B is entry 3)",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_signature_invalid"
+  ]
+}

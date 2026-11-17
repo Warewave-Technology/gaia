@@ -1,0 +1,8 @@
+{
+  "description": "two head statements: the first is not JSON, the second is valid and is still checked",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_malformed"
+  ]
+}

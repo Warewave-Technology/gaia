@@ -826,9 +826,10 @@ type ledgerScan struct {
 	bundles  []bundleRef
 	// For head statements (head.go): per entry read, its hash and the key current after it; and every key that was
 	// current at some point, by key_id.
-	hashes []string
-	after  []ed25519.PublicKey
-	known  map[string]ed25519.PublicKey
+	hashes      []string
+	after       []ed25519.PublicKey
+	known       map[string]ed25519.PublicKey
+	unsupported bool // L2 stopped at an entry of a format_version it does not implement
 }
 
 func (s *ledgerScan) bundleIDs() map[string]bool {
@@ -888,6 +889,7 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 		e, code, err := parsePayload(p)
 		if err != nil {
 			s.add(code, n, err.Error())
+			s.unsupported = code == CodeFormatUnsupported
 			return s
 		}
 		h := sha256Hex(pb)

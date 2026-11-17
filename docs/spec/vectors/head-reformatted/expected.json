@@ -1,0 +1,6 @@
+{
+  "description": "a valid head statement re-encoded with indentation and CRLF line ends: only the payload's value is signed",
+  "mode": "ledger",
+  "verdict": "OK",
+  "findings": []
+}

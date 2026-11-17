@@ -1,0 +1,9 @@
+{
+  "description": "the ledger file is gone; a head statement by the trust anchor recorded entry 2",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "ledger_missing",
+    "ledger_truncated"
+  ]
+}

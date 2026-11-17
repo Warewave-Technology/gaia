@@ -1,0 +1,10 @@
+{
+  "description": "a head statement of entry 3; then entry 3 was cut in half, so only 2 entries can be read",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "bundle_unlisted",
+    "entry_malformed",
+    "ledger_truncated"
+  ]
+}

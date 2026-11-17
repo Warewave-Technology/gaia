@@ -294,7 +294,7 @@ var vectors = []vector{
 		g.write("bundles/.keep", nil)
 		g.anchor(keyA)
 	}},
-	{"ledger-truncated", "ledger", Critical, "the last line was cut in half: its bundle has no readable entry",
+	{"ledger-last-line-cut", "ledger", Critical, "the last line was cut in half: its bundle has no readable entry",
 		[]string{CodeBundleUnlisted, CodeEntryMalformed}, func(g vgen) {
 			g.okLedger()
 			b, _ := os.ReadFile(g.ledger())
@@ -488,6 +488,74 @@ var vectors = []vector{
 			g.head("h1", keyB, t0.Add(3*time.Minute))
 			g.keepLines(2)
 			g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b2")))
+			g.anchor(keyA)
+		}},
+	{"head-wrong-key", "ledger", Critical, "a head statement of entry 2 signed by B: after entry 2 the current key was still A (the rotation to B is entry 3)",
+		[]string{CodeHeadSignatureInvalid}, func(g vgen) {
+			g.appendBundle("b1", keyA, t0)
+			b, err := os.ReadFile(g.ledger())
+			g.must(err)
+			g.headOf("h1", map[string]any{"format": HeadFormatV1, "format_version": 1, "time": "2026-11-16T12:00:30Z",
+				"key_id": KeyID(pubOf(keyB)), "seq": 2, "entry_sha256": lastHash(g.t, b)}, keyB)
+			_, err = RotateAt(g.ledger(), keyA, pubOf(keyB), t0.Add(time.Minute))
+			g.must(err)
+			g.appendBundle("b2", keyB, t0.Add(2*time.Minute))
+			g.anchor(keyA)
+		}},
+	{"head-old-key-beyond", "ledger", Critical, "a head statement of entry 5, beyond the ledger's 4, signed by A, which the rotation of entry 3 retired",
+		[]string{CodeHeadSignatureInvalid}, func(g vgen) {
+			g.appendBundle("b1", keyA, t0)
+			_, err := RotateAt(g.ledger(), keyA, pubOf(keyB), t0.Add(time.Minute))
+			g.must(err)
+			g.appendBundle("b2", keyB, t0.Add(2*time.Minute))
+			g.headOf("h1", map[string]any{"format": HeadFormatV1, "format_version": 1, "time": "2026-11-16T12:03:00Z",
+				"key_id": KeyID(pubOf(keyA)), "seq": 5, "entry_sha256": strings.Repeat("ab", 32)}, keyA)
+			g.anchor(keyA)
+		}},
+	{"head-ledger-missing", "ledger", Critical, "the ledger file is gone; a head statement by the trust anchor recorded entry 2",
+		[]string{CodeLedgerMissing, CodeLedgerTruncated}, func(g vgen) {
+			g.appendBundle("b1", keyA, t0)
+			g.head("h1", keyA, t0.Add(time.Minute))
+			g.must(os.Remove(g.ledger()))
+			g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b1")))
+			g.write("bundles/.keep", nil)
+			g.anchor(keyA)
+		}},
+	{"head-entry-malformed", "ledger", Critical, "a head statement of entry 3; then entry 3 was cut in half, so only 2 entries can be read",
+		[]string{CodeBundleUnlisted, CodeEntryMalformed, CodeLedgerTruncated}, func(g vgen) {
+			g.okLedger()
+			g.head("h1", keyA, t0.Add(2*time.Minute))
+			b, err := os.ReadFile(g.ledger())
+			g.must(err)
+			g.write("ledger.jsonl", b[:len(b)-40])
+		}},
+	{"head-reformatted", "ledger", OK, "a valid head statement re-encoded with indentation and CRLF line ends: only the payload's value is signed",
+		nil, func(g vgen) {
+			g.okLedger()
+			g.head("h1", keyA, t0.Add(2*time.Minute))
+			b, err := os.ReadFile(filepath.Join(g.dir, "heads", "h1.json"))
+			g.must(err)
+			var w line
+			g.must(json.Unmarshal(b, &w))
+			out, err := json.MarshalIndent(map[string]string{"sig": w.Sig, "payload": w.Payload}, "", "  ")
+			g.must(err)
+			g.write("heads/h1.json", []byte(strings.ReplaceAll(string(out), "\n", "\r\n")+"\r\n"))
+		}},
+	{"head-one-bad-one-good", "ledger", Critical, "two head statements: the first is not JSON, the second is valid and is still checked",
+		[]string{CodeHeadMalformed}, func(g vgen) {
+			g.okLedger()
+			g.write("heads/h1.json", []byte("ledger head: seq 3\n"))
+			g.head("h2", keyA, t0.Add(2*time.Minute))
+		}},
+	{"head-after-unsupported-entry", "ledger", Unknown, "a head statement of entry 2; entry 2 has format_version 2, which a v1 verifier cannot read: that is not a cut",
+		[]string{CodeFormatUnsupported, CodeHeadUnverifiable}, func(g vgen) {
+			h := g.line(genesis(keyA, t0), keyA)
+			r := rotation(2, keyA, keyB, h, t0)
+			r.FormatVersion = 2
+			h2 := g.line(r, keyA)
+			g.headOf("h1", map[string]any{"format": HeadFormatV1, "format_version": 1, "time": "2026-11-16T12:01:00Z",
+				"key_id": KeyID(pubOf(keyA)), "seq": 2, "entry_sha256": h2}, keyA)
+			g.write("bundles/.keep", nil)
 			g.anchor(keyA)
 		}},
 	{"head-format-unsupported", "ledger", Unknown, "a head statement with format_version 2 (validly signed)", []string{CodeFormatUnsupported}, func(g vgen) {

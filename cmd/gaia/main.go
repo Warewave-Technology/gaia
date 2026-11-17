@@ -224,11 +224,7 @@ func cmdEvidenceVerify(args []string) int {
 		if err != nil {
 			return fail(*asJSON, "evidence verify", err)
 		}
-		st, err := evidence.HeadFromDocument(b)
-		if err != nil {
-			return fail(*asJSON, "evidence verify", fmt.Errorf("-head %s: %w", h, err))
-		}
-		statements = append(statements, st)
+		statements = append(statements, evidence.HeadFromDocument(b))
 	}
 	var pub ed25519.PublicKey
 	if *pubPath != "" {

@@ -159,15 +159,26 @@ func checkHead(b []byte, s *ledgerScan, anchor ed25519.PublicKey) HeadCheck {
 		case s.hashes[h.Seq-1] != h.EntrySHA256:
 			c.Result, c.Detail = CodeHeadMismatch, fmt.Sprintf("entry %d hashes to %s; the head statement of %s recorded %s", h.Seq, s.hashes[h.Seq-1], h.Time, h.EntrySHA256)
 		}
+	case s != nil && s.unsupported:
+		c.Result, c.Detail = CodeHeadUnverifiable, fmt.Sprintf("the head statement names entry %d; entry %d has a format_version this verifier does not implement", h.Seq, n+1)
 	default:
-		k, ok := known[h.KeyID]
+		// Only the key current after the last entry read could have signed a statement of a later entry.
+		last := anchor
+		if n > 0 {
+			last = s.after[n-1]
+		}
+		_, ok := known[h.KeyID]
 		switch {
-		case !ok:
-			c.Result, c.Detail = CodeHeadUnverifiable, fmt.Sprintf("the head statement names entry %d of a ledger with %d, signed by key %s, which this ledger does not know", h.Seq, n, h.KeyID)
-		case !signed(k):
-			c.Result, c.Detail = CodeHeadSignatureInvalid, fmt.Sprintf("not signed by %s", h.KeyID)
+		case last != nil && KeyID(last) == h.KeyID:
+			if !signed(last) {
+				c.Result, c.Detail = CodeHeadSignatureInvalid, fmt.Sprintf("not signed by %s", h.KeyID)
+			} else {
+				c.Result, c.Detail = CodeLedgerTruncated, fmt.Sprintf("the head statement of %s records entry %d; the ledger has %d readable entries", h.Time, h.Seq, n)
+			}
+		case ok:
+			c.Result, c.Detail = CodeHeadSignatureInvalid, fmt.Sprintf("signed by %s, which was not the current key after the ledger's last readable entry %d", h.KeyID, n)
 		default:
-			c.Result, c.Detail = CodeLedgerTruncated, fmt.Sprintf("the head statement of %s records entry %d; the ledger has %d", h.Time, h.Seq, n)
+			c.Result, c.Detail = CodeHeadUnverifiable, fmt.Sprintf("the head statement names entry %d of a ledger with %d readable entries, signed by key %s, which this ledger does not lead to", h.Seq, n, h.KeyID)
 		}
 	}
 	return c
@@ -184,18 +195,15 @@ func (r *LedgerReport) checkHeads(heads [][]byte, s *ledgerScan, anchor ed25519.
 	}
 }
 
-// HeadFromDocument finds the head statement in a document: a head statement itself, or a JSON object whose member
-// "ledger_head" is one (Gaia's daily report). It returns the statement's bytes for VerifyLedgerHeads.
-func HeadFromDocument(b []byte) ([]byte, error) {
+// HeadFromDocument finds the head statement in a document: a JSON object whose member "ledger_head" is one (Gaia's
+// daily report, or a notification of it) gives that member; anything else is taken as the statement itself, for the
+// verification to judge (head_malformed if it is not one).
+func HeadFromDocument(b []byte) []byte {
 	var doc map[string]json.RawMessage
-	if err := json.Unmarshal(b, &doc); err != nil {
-		return nil, fmt.Errorf("not a JSON object: %w", err)
+	if json.Unmarshal(b, &doc) == nil {
+		if lh, ok := doc["ledger_head"]; ok && string(lh) != "null" {
+			return lh
+		}
 	}
-	if lh, ok := doc["ledger_head"]; ok {
-		return lh, nil
-	}
-	if _, ok := doc["payload"]; ok {
-		return b, nil
-	}
-	return nil, errors.New(`neither a head statement nor a document with "ledger_head"`)
+	return b
 }

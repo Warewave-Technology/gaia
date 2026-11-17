@@ -1,0 +1,8 @@
+{
+  "description": "a head statement of entry 5, beyond the ledger's 4, signed by A, which the rotation of entry 3 retired",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_signature_invalid"
+  ]
+}

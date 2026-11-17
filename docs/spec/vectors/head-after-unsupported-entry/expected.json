@@ -1,0 +1,9 @@
+{
+  "description": "a head statement of entry 2; entry 2 has format_version 2, which a v1 verifier cannot read: that is not a cut",
+  "mode": "ledger",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "format_unsupported",
+    "head_unverifiable"
+  ]
+}

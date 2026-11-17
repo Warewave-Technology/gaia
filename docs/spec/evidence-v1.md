@@ -232,8 +232,8 @@ A writer:
 
 ### 6.8 Head statements
 
-A head statement records, outside the ledger, which entry was the ledger's last at a given time. It has the form of
-a ledger line (§6.2): a JSON object with a string `payload` and a string `sig`, where `sig` is the base64 of the
+A head statement records, outside the ledger, which entry was the ledger's last at a given time. It has the members
+of a ledger line (§6.2): it is a JSON object with a string `payload` and a string `sig`, where `sig` is the base64 of the
 Ed25519 signature of the payload bytes. It is not a line of the ledger and is never appended to it. The payload is a
 JSON object:
 
@@ -248,8 +248,12 @@ JSON object:
 
 The statement is signed by the key that was current after entry *n* (§8.2 step 11): the key that would sign
 entry *n* + 1. A producer makes it under the same lock as an append (§6.7) and sends it where the producer cannot
-change it later, for example in a report mailed to other people (§11.1). A file that holds a head statement MAY
-end with a line feed.
+change it later, for example in a report mailed to other people (§11.1).
+
+A head statement is one JSON text (§2): JSON whitespace before, after and inside it is allowed, so it may be
+re-encoded (indented, with CRLF line ends) on its way. Only the decoded value of `payload` is signed; it must arrive
+unchanged. How a statement is carried inside other documents (a report, an email) is outside this format: a verifier
+takes the statement's own JSON text.
 
 ## 7. Versions
 
@@ -303,12 +307,13 @@ The procedure keeps:
 - If it is empty: report `ledger_empty` and go to L4 (and then L5, with no entries read).
 - If its first line is a version 0 ledger (appendix A), use appendix A instead of this procedure, and report
   `format_unsupported` once for each head statement: they need a version 1 ledger. An implementation without
-  appendix A reports `format_unsupported` and stops.
+  appendix A reports `format_unsupported` once for the ledger and once for each head statement, and ends
+  verification: L2–L5 add nothing.
 
 **L2 — entries.** Split the file at line feeds. For each line *n* = 1, 2, … in order:
 
-1. *Truncation.* If the file does not end with a line feed and this is its last line, report `entry_malformed`
-   and stop.
+1. *Incomplete last line.* If the file does not end with a line feed and this is its last line, report
+   `entry_malformed` and stop.
 2. *Line.* Parse the line as a JSON object (§2) with a string `payload` and a string `sig`. An empty line, or
    an unpaired surrogate escape anywhere in the line (§6.2), also fails this step. Otherwise report
    `entry_malformed` and stop.
@@ -385,7 +390,7 @@ The verdict combines all findings of L1–L5. `anchor_missing` is reported once,
 |---|---|---|
 | `manifest_missing` | CRITICAL | `manifest.json` cannot be read |
 | `manifest_malformed` | CRITICAL | `manifest.json` is not a JSON object by §2, or a member of §5.2 is missing or has the wrong type or syntax |
-| `format_unsupported` | UNKNOWN | the `format` or `format_version` of a manifest, or the `format_version` of an entry, is not one this verifier implements |
+| `format_unsupported` | UNKNOWN | the `format` or `format_version` of a manifest, or the `format_version` of an entry or of a head statement, is not one this verifier implements; or a head statement is given with a version 0 ledger |
 | `key_mismatch` | CRITICAL | the manifest's `key_id` is not the key that should have signed the bundle |
 | `signature_missing` | CRITICAL | `manifest.sig` cannot be read |
 | `signature_malformed` | CRITICAL | `manifest.sig` is not the base64 of 64 bytes (§5.4) |
@@ -411,10 +416,10 @@ The verdict combines all findings of L1–L5. `anchor_missing` is reported once,
 | `bundle_hash_mismatch` | CRITICAL | a bundle's `manifest.json` is not the one its entry recorded |
 | `bundle_id_mismatch` | CRITICAL | a bundle's manifest names another bundle_id than its entry and directory |
 | `head_malformed` | CRITICAL | a head statement breaks §6.8 (not JSON, duplicate member, missing or wrong member) |
-| `head_signature_invalid` | CRITICAL | a head statement is not signed by the key it must be signed by (§8.6) |
+| `head_signature_invalid` | CRITICAL | a head statement is not validly signed by the key that must have signed it (§8.6) |
 | `head_mismatch` | CRITICAL | a head statement names an entry the ledger has, but with another entry hash: the ledger was rewritten |
-| `ledger_truncated` | CRITICAL | a validly signed head statement names an entry beyond the ledger's last: the ledger was cut off |
-| `head_unverifiable` | UNKNOWN | a head statement names an entry beyond the ledger's last, signed by a key the ledger does not lead to |
+| `ledger_truncated` | CRITICAL | a validly signed head statement names an entry beyond the last one L2 read: the ledger was cut off, or cannot be read from there on |
+| `head_unverifiable` | UNKNOWN | a head statement names an entry beyond the last one L2 read, and either is signed by a key the ledger does not lead to, or L2 stopped at an entry of an unsupported version |
 
 A verifier MAY report a finding more than once (e.g. one per file) and MAY add detail and locations. Conformance
 (§10) compares verdicts and the *set* of codes.
@@ -470,29 +475,38 @@ It says nothing about entries after the newest statement (§11.1).
 ### 8.6 Head statements (step L5)
 
 The procedure uses what L2 read:
-- *N*, the number of entries that passed steps 1–5 (0 if L2 did not run);
+- *N*, the number of entries that reached step 11 (0 if L2 did not run, or stopped at entry 1);
 - for each such entry *n*, its entry hash *H*(*n*) and the key *K*(*n*) that was current after it (step 11);
+- the **last key** *L*: *K*(*N*) if *N* ≥ 1; otherwise *A* if it is given; otherwise none;
 - the **known keys**: *A* if it is given, the genesis key L2 accepted, and every key a rotation made current.
 
-For each head statement, in the order given; its findings carry the statement's position, and the procedure goes
-on with the next statement after a finding:
+The statements are taken in the order given (for the vectors, file names in byte-wise ascending order); the order
+does not change the set of codes. Each statement's findings carry its position, and the procedure goes on with the
+next statement after a finding:
 
 1. **H1.** Parse it as a JSON object (§2) with a string `payload` and a string `sig`; an unpaired surrogate escape
-   (§6.2) also fails this step. Otherwise report `head_malformed`.
+   anywhere in the statement (§6.2) also fails this step. Otherwise report `head_malformed`.
 2. **H2.** Parse the payload bytes as a JSON object (§2). `format` must be the string `"restore-evidence-head"` and
    `format_version` an integer; otherwise report `head_malformed`. If `format_version` is not `1`, report
    `format_unsupported`.
 3. **H3.** Check the members of §6.8: `time` is a time, `key_id` and `entry_sha256` are hex64, and `seq` is an
    integer of at least 1. Otherwise report `head_malformed`.
-4. **H4.** Let *n* = `seq`.
-   - If *n* ≤ *N*: `key_id` must be key_id(*K*(*n*)) and `sig` must be the base64 of 64 bytes that is a valid
-     signature by *K*(*n*) of the payload bytes; otherwise report `head_signature_invalid`. If it is, and
-     `entry_sha256` ≠ *H*(*n*), report `head_mismatch`.
-   - If *n* > *N*: if no known key has the key_id `key_id`, report `head_unverifiable`. Otherwise, if `sig` is not
-     a valid signature by that key of the payload bytes (decoded as above), report `head_signature_invalid`;
-     otherwise report `ledger_truncated`.
+4. **H4.** Let *n* = `seq`. A signature is valid when `sig` is the base64 of 64 bytes that is a valid signature of
+   the payload bytes by the key in question.
+   - If *n* ≤ *N*: `key_id` must be key_id(*K*(*n*)) and the signature valid by *K*(*n*); otherwise report
+     `head_signature_invalid`. If both hold and `entry_sha256` ≠ *H*(*n*), report `head_mismatch`.
+   - If *n* > *N* and L2 stopped with `format_unsupported`: report `head_unverifiable` (the ledger may go on in a
+     version this verifier cannot read; that is not evidence of a cut).
+   - Otherwise, if *n* > *N*, only the last key could have signed the statement:
+     - if *L* exists and `key_id` is key_id(*L*): report `ledger_truncated` if the signature is valid by *L*,
+       otherwise `head_signature_invalid`;
+     - else, if `key_id` is the key_id of another known key: report `head_signature_invalid` (a key that was no
+       longer current at entry *N* cannot have recorded a later entry);
+     - else report `head_unverifiable`.
 
-A statement that passes H1–H4 adds no finding.
+A statement that passes H1–H4 adds no finding. A head statement whose bytes cannot be obtained (a missing file, no
+permission) ends verification with an error and no verdict, as in L1. Bytes that were obtained but are empty, not
+UTF-8 or not JSON fail H1 (`head_malformed`).
 
 ## 9. Example
 
@@ -556,6 +570,9 @@ Limits:
 - A statement signed by a key that a truncated ledger no longer leads to cannot be checked (`head_unverifiable`,
   UNKNOWN): the ledger may have been cut off before a rotation. Keeping the trust anchor and the key_ids of later
   keys (e.g. from earlier reports) outside the ledger helps the verifier's operator judge such a case.
+- Two validly signed statements with the same `seq` and different `entry_sha256` prove that the producer forked its
+  ledger. This version reports it only through the statement that the ledger at hand does not match
+  (`head_mismatch`).
 
 ### 11.2 Keys
 
