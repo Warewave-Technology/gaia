@@ -9,7 +9,8 @@
 # gaia server and its sandbox helper run as in T16 (packaged units, own users; filesystem repository); the KVM host is
 # gaia-lab over SSH as the host user gaia-t19-backup (never gaia-backup: that one is server B's). Two channels are
 # added from the guide (step 8c): mail (smtp, with the run's CA) and hook (webhook). Then every event is caused:
-#   status       the VM is added (-> UNKNOWN), proven (-> OK), damaged (-> CRITICAL) and proven again (-> OK);
+#   status       the VM is added (-> UNKNOWN), proven (-> OK) and damaged (-> CRITICAL; it stays CRITICAL while the
+#                damaged point exists, ADR-007 B4.3, also after a new point passes its test);
 #   job_failed   a backup while the host refuses Gaia's key;
 #   integrity,   one byte flipped in the repository's oldest data pack, then a full verification: critical, the damaged
 #   quarantine   contents quarantined;
@@ -398,9 +399,22 @@ wait_verification "$v" | tee "$OUT_DIR/verification-full.json" | jq -c '{id, mod
 api quarantine list repository_id="$repo_id" | tee "$OUT_DIR/quarantine.json" | jq -c '.[] | {content_id, points}'
 wait_status CRITICAL damaged
 
-section "back to OK: the policy again, a full backup and a test"
+# ADR-007 B4.3: the VM stays CRITICAL while the damaged point exists (until retention prunes it), even when new points
+# pass their tests; the run waits for the first passing test of a point after the damage and records the status then.
+section "after the damage: the policy again, a full backup and a passing test of a new point"
 api vms set "$vm_id" policy_id="$policy_id" >/dev/null
-wait_status OK proven-again
+damaged=$(jq '[.affected[].point_id] | max' "$OUT_DIR/verification-full.json")
+for ((i = 0; ; i++)); do
+	t=$(api tests list vm_id="$vm_id" limit=20 | jq -c --argjson d "$damaged" '[.[] | select(.point_id > $d and .verdict == "OK")] | min_by(.id) // empty')
+	[[ -n "$t" ]] && break
+	((i < PHASE_TIMEOUT_S / 10)) || { echo "UNKNOWN: no passing test of a point after point $damaged within $PHASE_TIMEOUT_S s"; exit 3; }
+	sleep 10
+done
+jq -c '{id, point_id, verdict, proven_rto_s}' <<<"$t" | tee "$OUT_DIR/test-after-damage.json"
+api jobs list vm_id="$vm_id" limit=20 | jq -c --argjson f "$(jq .id "$OUT_DIR/job-failed.json")" \
+	'[.[] | select(.kind == "backup" and .state == "ok" and .id > $f)] | min_by(.id) | {id, state, reason}' | tee "$OUT_DIR/backup-after-damage.json"
+api points list vm_id="$vm_id" limit=20 | jq -c '.[] | {id, kind, check_state, reason}' | tee "$OUT_DIR/points-after-damage.jsonl"
+status_now | tee "$OUT_DIR/status-after-damage.json" | jq -c '{status, reasons: [.reasons[] | {status, rule, text}], proven_rpo_s}'
 
 section "ledger: a bundle's file changed behind Gaia's back, then put back"
 bdir=$(find "$SRV_HOME/data/evidence/bundles" -mindepth 1 -maxdepth 1 -type d | sort | head -1)
@@ -513,7 +527,8 @@ jq -n --slurpfile r "$OUT_DIR/received.json" --slurpfile n "$OUT_DIR/notificatio
 	--slurpfile lh "$OUT_DIR/ledger-history.json" --slurpfile c "$OUT_DIR/ledger-check-cut.json" --slurpfile ct "$OUT_DIR/channel-tests.jsonl" \
 	--slurpfile v1 "$OUT_DIR/verify-intact-with-mail-head.json" --slurpfile v2 "$OUT_DIR/verify-cut-alone.json" \
 	--slurpfile v3 "$OUT_DIR/verify-cut-with-mail-head.json" --slurpfile v4 "$OUT_DIR/verify-cut-with-hook-head.json" \
-	--slurpfile dr "$OUT_DIR/daily-report.json" --arg cut_at "$cut_at" '
+	--slurpfile dr "$OUT_DIR/daily-report.json" --slurpfile sad "$OUT_DIR/status-after-damage.json" \
+	--slurpfile tad "$OUT_DIR/test-after-damage.json" --arg cut_at "$cut_at" '
 	["status", "job_failed", "integrity", "quarantine", "ledger", "daily_report"] as $kinds
 	| ($r[0]) as $got
 	| def codes($v): [$v.findings[].code] | unique;
@@ -528,6 +543,8 @@ jq -n --slurpfile r "$OUT_DIR/received.json" --slurpfile n "$OUT_DIR/notificatio
 	    notifications: ($n[0] | group_by(.state) | map({state: .[0].state, count: length})),
 	    status_changes: [$h[0][] | {at, from, to, reason}],
 	    status_mails: [$got.mail[] | select(.event == "status") | .subject],
+	    status_after_damage: ($sad[0] | {status, reasons: [.reasons[] | {rule, text}]}),
+	    test_after_damage: $tad[0],
 	    pass: (([$kinds[] as $k | ([$got.mail[] | select(.event == $k)] | length) > 0 and ([$got.hook[] | select(.event == $k)] | length) > 0] | all)
 	           and ([$got.hook[] | .signature_ok] | all) and ($n[0] | all(.state == "sent")) and ([$ct[] | .state] | all(. == "sent")))},
 	  b_truncation: {
