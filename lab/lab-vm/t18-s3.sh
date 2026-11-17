@@ -585,9 +585,9 @@ attempt address-admin-right admin admin
 api audit list after="$login_after" limit=1000 | jq -c --arg from "$login_from" '[.[] | select(.action == "POST /api/v1/login" and .at >= $from)
 	| {seq, at, username, target, outcome, remote_addr, detail}]' >"$OUT_DIR/audit-logins.json"
 jq -r '.[] | [.seq, .at, .target, .outcome, .detail] | @tsv' "$OUT_DIR/audit-logins.json"
-api state-changes list entity=user_lockout limit=100 | tee "$OUT_DIR/lockout-changes.json" | jq -c '.[] | {at, entity_id, from, to, reason, actor}'
+api state-changes list entity=user_lockout entity_id="$op_id" limit=100 | tee "$OUT_DIR/lockout-changes.json" | jq -c '.[] | {at, entity_id, from, to, reason, actor}'
 api audit verify | tee "$OUT_DIR/audit-verify.json" | jq -c .
-api state-changes list limit=2000 >"$OUT_DIR/state-changes.json"
+api state-changes list limit=1000 >"$OUT_DIR/state-changes.json"
 
 # --- gate --------------------------------------------------------------------------------------------------------
 section "gate (CLAUDE.md T18)"

@@ -256,6 +256,10 @@ func TestJobStates(t *testing.T) {
 	if !slices.Equal(path, []string{">queued", "queued>running", "running>failed"}) {
 		t.Fatalf("job history %v", path)
 	}
+	// The entity alone (no entity_id) lists every record of it, not none.
+	if all, err := d.StateChanges(ctx, "job", 0, 0, 100); err != nil || len(all) != len(cs) {
+		t.Fatalf("every job: %d changes, want %d: %v", len(all), len(cs), err)
+	}
 }
 
 func TestDomainConstraints(t *testing.T) {

@@ -5617,7 +5617,7 @@
             }
           },
           {
-            "description": "with entity",
+            "description": "only this record of the entity",
             "in": "query",
             "name": "entity_id",
             "required": false,

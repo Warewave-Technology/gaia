@@ -737,7 +737,7 @@ func (s *Server) table() []route {
 		{method: "GET", path: "/api/v1/evidence/{id}/export", summary: "Export a bundle with the ledger and the trust anchor (tar.gz, ADR-006)",
 			roles: adminAudit, auditRead: true, h: s.exportEvidence},
 		{method: "GET", path: "/api/v1/state-changes", summary: "Recorded state changes, oldest first", roles: anyRole, out: []store.StateChange{},
-			query: append([]param{{"entity", "string", "e.g. job, point, restore_test, vm, user"}, {"entity_id", "integer", "with entity"},
+			query: append([]param{{"entity", "string", "e.g. job, point, restore_test, vm, user"}, {"entity_id", "integer", "only this record of the entity"},
 				{"after", "integer", "after this seq"}}, limit...),
 			h: func(c *call) (int, any, error) {
 				eid, err := c.intQuery("entity_id", 0, 0)

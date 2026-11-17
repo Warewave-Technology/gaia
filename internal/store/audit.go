@@ -153,8 +153,12 @@ func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after in
 	q := `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor FROM state_changes WHERE seq > ?`
 	args := []any{after}
 	if entity != "" {
-		q += ` AND entity = ? AND entity_id = ?`
-		args = append(args, entity, id)
+		q += ` AND entity = ?`
+		args = append(args, entity)
+	}
+	if id != 0 {
+		q += ` AND entity_id = ?`
+		args = append(args, id)
 	}
 	rows, err := d.db.QueryContext(ctx, q+` ORDER BY seq LIMIT ?`, append(args, limit)...)
 	if err != nil {
