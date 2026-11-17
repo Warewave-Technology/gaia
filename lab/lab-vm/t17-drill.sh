@@ -225,14 +225,17 @@ EOF
 
 # all_state_changes: every recorded state change, oldest first (the API gives at most 1000 a page).
 all_state_changes() {
-	local after=0 page all='[]'
+	local after=0 dir
+	dir=$(mktemp -d)
+	: >"$dir/all.jsonl"
 	while :; do
-		page=$(api state-changes list after="$after" limit=1000)
-		[[ $(jq length <<<"$page") -gt 0 ]] || break
-		all=$(jq -c --argjson p "$page" '. + $p' <<<"$all")
-		after=$(jq '.[-1].seq' <<<"$page")
+		api state-changes list after="$after" limit=1000 >"$dir/page.json" || { rm -rf "$dir"; return 1; }
+		[[ $(jq length "$dir/page.json") -gt 0 ]] || break
+		jq -c '.[]' "$dir/page.json" >>"$dir/all.jsonl"
+		after=$(jq '.[-1].seq' "$dir/page.json")
 	done
-	printf '%s\n' "$all"
+	jq -s . "$dir/all.jsonl"
+	rm -rf "$dir"
 }
 snapshot() { # NAME: what the server knows now, through the API
 	local n=$1
