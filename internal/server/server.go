@@ -51,6 +51,11 @@ type Config struct {
 	// Restore tests (T16).
 	SandboxSocket    string `json:"sandbox_socket"`     // the sandbox helper (gaia sandbox serve); default /run/gaia-sandbox/sandbox.sock
 	SandboxImagesDir string `json:"sandbox_images_dir"` // where restore tests restore disks for the helper; default /var/lib/gaia-sandbox/images
+	// Login protection (T18, login.go).
+	LoginMaxFailures     int    `json:"login_max_failures"`     // wrong passwords in a row that lock a username out; default 5
+	LoginLockout         string `json:"login_lockout"`          // Go duration of a lockout; default 15m
+	LoginAddressFailures int    `json:"login_address_failures"` // wrong passwords from one client address within the window that block it; default 20
+	LoginAddressWindow   string `json:"login_address_window"`   // Go duration; default 10m
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -116,6 +121,26 @@ func (c *Config) resolve() error {
 	if c.SandboxImagesDir == "" {
 		c.SandboxImagesDir = "/var/lib/gaia-sandbox/images"
 	}
+	if c.LoginMaxFailures == 0 {
+		c.LoginMaxFailures = 5
+	}
+	if c.LoginLockout == "" {
+		c.LoginLockout = "15m"
+	}
+	if c.LoginAddressFailures == 0 {
+		c.LoginAddressFailures = 20
+	}
+	if c.LoginAddressWindow == "" {
+		c.LoginAddressWindow = "10m"
+	}
+	for name, v := range map[string]string{"login_lockout": c.LoginLockout, "login_address_window": c.LoginAddressWindow} {
+		if d, err := time.ParseDuration(v); err != nil || d < time.Second || d > 24*time.Hour {
+			return fmt.Errorf("%s %q: want a duration from 1s to 24h", name, v)
+		}
+	}
+	if c.LoginMaxFailures < 1 || c.LoginMaxFailures > 100 || c.LoginAddressFailures < 1 || c.LoginAddressFailures > 10000 {
+		return fmt.Errorf("login_max_failures: 1-100, login_address_failures: 1-10000")
+	}
 	switch {
 	case !filepath.IsAbs(c.HostSocketDir) || !filepath.IsAbs(c.HostScratchDir):
 		return fmt.Errorf("host_socket_dir and host_scratch_dir must be absolute paths")
@@ -172,6 +197,7 @@ type Server struct {
 	repoLocks repoLocks
 	// Kopia's full safety (24 h before an unreferenced content may go); tests use none.
 	maintenanceSafety maintenance.SafetyParameters
+	logins            *loginGuard
 	jobsWG            sync.WaitGroup
 	running           sync.Map // VM ID -> ID of its running backup job
 	testing           sync.Map // VM ID -> ID of its running restore test job
@@ -217,7 +243,7 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		log.Info("migrated the state database", "versions", done, "schema", store.Latest())
 	}
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
-		maintenanceSafety: maintenance.SafetyFull, sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
+		maintenanceSafety: maintenance.SafetyFull, logins: newLoginGuard(), sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
 		stateDirty: make(chan struct{}, 1)}
 	if s.sshKey, err = loadSSHKey(cfg); err != nil {
 		db.Close()
@@ -339,10 +365,20 @@ func (s *Server) Run(ctx context.Context) error {
 // apiError is the body of every error response.
 type apiError struct {
 	Error string `json:"error"`
-	Code  string `json:"code"` // unauthorized, forbidden, not_found, conflict, invalid, not_implemented, internal, unavailable
+	Code  string `json:"code"` // unauthorized, forbidden, not_found, conflict, invalid, not_implemented, internal, unavailable, too_many_requests
 }
 
 var errNotImplemented = errors.New("not implemented in this version")
+
+func (c Config) loginLockout() time.Duration {
+	d, _ := time.ParseDuration(c.LoginLockout) // checked by resolve
+	return d
+}
+
+func (c Config) loginAddressWindow() time.Duration {
+	d, _ := time.ParseDuration(c.LoginAddressWindow)
+	return d
+}
 
 // call is one request being served.
 type call struct {
@@ -412,6 +448,8 @@ func statusOf(err error) (int, string) {
 		return http.StatusNotImplemented, "not_implemented"
 	case errors.Is(err, errHost):
 		return http.StatusBadGateway, "host"
+	case errors.Is(err, errTooManyLogins):
+		return http.StatusTooManyRequests, "too_many_requests"
 	}
 	return http.StatusInternalServerError, "internal"
 }
@@ -488,7 +526,7 @@ func (s *Server) serve(rt *route) http.Handler {
 				s.log.Error("request failed", "route", rt.method+" "+rt.path, "user", c.user.Username, "error", err)
 			}
 			msg := err.Error()
-			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost} {
+			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins} {
 				msg = strings.TrimPrefix(msg, e.Error()+": ") // the code says it already
 			}
 			if code == http.StatusInternalServerError {

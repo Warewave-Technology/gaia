@@ -42,7 +42,7 @@ type resource struct {
 }
 
 var resources = map[string]resource{
-	"users":         {"/api/v1/users", []string{"list", "get", "add", "set"}},
+	"users":         {"/api/v1/users", []string{"list", "get", "add", "set", "unlock"}},
 	"hosts":         {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
 	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status"}},
 	"repositories":  {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
@@ -203,7 +203,7 @@ func runCLI(ctx context.Context, args []string) int {
 	switch verb {
 	case "get":
 		return call("GET", res.path+"/"+id, nil)
-	case "scan", "check", "restore-check":
+	case "scan", "check", "restore-check", "unlock":
 		return call("POST", res.path+"/"+id+"/"+verb, nil)
 	case "backup":
 		return call("POST", res.path+"/"+id+"/backups", nil)

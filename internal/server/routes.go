@@ -250,6 +250,8 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.User(c.r.Context(), id))
 			}},
+		{method: "POST", path: "/api/v1/users/{id}/unlock", summary: "End a user's lockout after wrong passwords and reset the count (T18)",
+			roles: adminOnly, out: store.User{}, h: s.unlockUser},
 		{method: "PATCH", path: "/api/v1/users/{id}", summary: "Change a user's role, password or disabled flag", roles: adminOnly,
 			in: store.UserPatch{}, out: store.User{}, example: `{}`,
 			h: func(c *call) (int, any, error) {

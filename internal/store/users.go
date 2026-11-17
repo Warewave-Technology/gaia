@@ -102,15 +102,17 @@ type User struct {
 	UpdatedAt         string `json:"updated_at"`
 	PasswordChangedAt string `json:"password_changed_at"`
 	LastLoginAt       string `json:"last_login_at"`
+	FailedLogins      int    `json:"failed_logins"` // wrong passwords in a row since the last good one
+	LockedUntil       string `json:"locked_until"`  // the end of the current or last lockout ("" = never locked, or unlocked)
 	hash              string
 }
 
-const userCols = `id, username, role, password_hash, disabled, created_at, updated_at, password_changed_at, last_login_at`
+const userCols = `id, username, role, password_hash, disabled, created_at, updated_at, password_changed_at, last_login_at, failed_logins, locked_until`
 
 func scanUser(s interface{ Scan(...any) error }) (User, error) {
 	var u User
 	var dis int
-	err := s.Scan(&u.ID, &u.Username, &u.Role, &u.hash, &dis, &u.CreatedAt, &u.UpdatedAt, &u.PasswordChangedAt, &u.LastLoginAt)
+	err := s.Scan(&u.ID, &u.Username, &u.Role, &u.hash, &dis, &u.CreatedAt, &u.UpdatedAt, &u.PasswordChangedAt, &u.LastLoginAt, &u.FailedLogins, &u.LockedUntil)
 	if errors.Is(err, sql.ErrNoRows) {
 		return u, ErrNotFound
 	}
@@ -365,4 +367,82 @@ func (d *DB) SessionUser(ctx context.Context, token string) (User, Session, erro
 func (d *DB) DeleteSession(ctx context.Context, id int64) error {
 	_, err := d.db.ExecContext(ctx, `DELETE FROM sessions WHERE id = ?`, id)
 	return err
+}
+
+// UserByName returns a user by username.
+func (d *DB) UserByName(ctx context.Context, username string) (User, error) {
+	u, err := scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE username = ?`, username))
+	if errors.Is(err, ErrNotFound) {
+		return u, fmt.Errorf("%w: user %s", ErrNotFound, username)
+	}
+	return u, err
+}
+
+// Locked reports whether a user is locked out at now, and until when.
+func (u User) Locked(now time.Time) (bool, time.Time) {
+	if u.LockedUntil == "" {
+		return false, time.Time{}
+	}
+	t, err := time.Parse(time.RFC3339Nano, u.LockedUntil)
+	if err != nil { // unreadable: treat as locked; an admin unlocks
+		return true, now.Add(time.Hour)
+	}
+	return now.Before(t), t
+}
+
+// LoginFailed counts a wrong password for a user. Every maxFailures-th failure in a row locks the user out for lockout
+// (a state change "user_lockout"); the user and whether this failure locked it are returned.
+func (d *DB) LoginFailed(ctx context.Context, id int64, maxFailures int, lockout time.Duration) (User, bool, error) {
+	locked := false
+	err := d.tx(ctx, func(tx *sql.Tx) error {
+		u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+		if err != nil {
+			return err
+		}
+		n := u.FailedLogins + 1
+		until := u.LockedUntil
+		if maxFailures > 0 && n%maxFailures == 0 {
+			locked, until = true, d.now().UTC().Add(lockout).Format(time.RFC3339Nano)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET failed_logins = ?, locked_until = ? WHERE id = ?`, n, until, id); err != nil {
+			return err
+		}
+		if !locked {
+			return nil
+		}
+		return d.recordState(ctx, tx, "user_lockout", id, "unlocked", "locked until "+until, fmt.Sprintf("%d wrong passwords in a row", n), "system")
+	})
+	if err != nil {
+		return User{}, false, err
+	}
+	u, err := d.User(ctx, id)
+	return u, locked, err
+}
+
+// LoginSucceeded resets a user's count of wrong passwords after a good one.
+func (d *DB) LoginSucceeded(ctx context.Context, id int64) error {
+	_, err := d.db.ExecContext(ctx, `UPDATE users SET failed_logins = 0, locked_until = '' WHERE id = ?`, id)
+	return err
+}
+
+// UnlockUser ends a user's lockout and resets the count of wrong passwords.
+func (d *DB) UnlockUser(ctx context.Context, actor string, id int64) (User, error) {
+	err := d.tx(ctx, func(tx *sql.Tx) error {
+		u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+		if err != nil {
+			return notFound("user", id, err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET failed_logins = 0, locked_until = '' WHERE id = ?`, id); err != nil {
+			return err
+		}
+		from := "unlocked"
+		if locked, until := u.Locked(d.now()); locked {
+			from = "locked until " + until.UTC().Format(time.RFC3339Nano)
+		}
+		return d.recordState(ctx, tx, "user_lockout", id, from, "unlocked", fmt.Sprintf("unlocked by %s after %d wrong passwords in a row", actor, u.FailedLogins), actor)
+	})
+	if err != nil {
+		return User{}, err
+	}
+	return d.User(ctx, id)
 }

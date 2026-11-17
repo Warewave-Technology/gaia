@@ -33,9 +33,9 @@ func (s *Server) login(c *call) (int, any, error) {
 	}
 	ctx := c.r.Context()
 	c.target = "user:" + in.Username
-	u, err := s.db.Authenticate(ctx, in.Username, in.Password)
+	u, err := s.checkPassword(ctx, c, in.Username, in.Password)
 	if errors.Is(err, store.ErrBadLogin) {
-		c.detail = "login failed"
+		c.detail = "login failed: " + c.detail
 		return 0, nil, fmt.Errorf("%w: %v", errUnauthorized, err)
 	}
 	if err != nil {
@@ -56,8 +56,8 @@ func (s *Server) changePassword(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	ctx := c.r.Context()
-	if _, err := s.db.Authenticate(ctx, c.user.Username, in.CurrentPassword); errors.Is(err, store.ErrBadLogin) {
-		c.detail = "wrong current password"
+	if _, err := s.checkPassword(ctx, c, c.user.Username, in.CurrentPassword); errors.Is(err, store.ErrBadLogin) {
+		c.detail = "wrong current password: " + c.detail
 		return 0, nil, fmt.Errorf("%w: the current password is wrong", store.ErrInvalid)
 	} else if err != nil {
 		return 0, nil, err
