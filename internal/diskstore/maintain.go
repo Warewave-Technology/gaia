@@ -108,6 +108,11 @@ func (s *Store) VerifyPoint(ctx context.Context, id string, fraction float64, rn
 	r := PointVerify{Point: id, Problems: []string{}, Damaged: []Damage{}}
 	p, err := s.Point(ctx, id)
 	if err != nil {
+		if dr, ok := s.r.(repo.DirectRepository); ok {
+			if herr := storageAnswers(ctx, dr); herr != nil {
+				return r, fmt.Errorf("%w: point %s: manifest: %v (and the storage does not return its format blob either: %v)", ErrStorage, id, err, herr)
+			}
+		}
 		r.Problems = append(r.Problems, "manifest: "+err.Error())
 		return r, nil
 	}

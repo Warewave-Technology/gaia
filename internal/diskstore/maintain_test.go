@@ -359,29 +359,57 @@ func TestDamagedBlockIndexDoesNotStopGC(t *testing.T) {
 	restoreAndCompare(t, reopen(t, o), keep, keepData)
 }
 
-// A storage that fails is not damage: the verification stops with ErrStorage and names no contents.
-func TestVerifyStorageErrorIsNotDamage(t *testing.T) {
+// A pack the storage will not return, while it returns other blobs, is damage (T18: MinIO answers a pack whose bytes
+// rotted on its disk with a cut-short response, every time).
+func TestVerifyUnreadablePackIsDamage(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root reads unreadable files")
 	}
+	t.Parallel() // the storage's retries take half a minute
 	ctx := context.Background()
 	s, o := newStoreOpts(t)
 	p, _ := full(t, s, "vm1", 1)
 	u := uncached(t, o)
+	for _, pk := range packFiles(t, o.Path) {
+		os.Chmod(pk, 0)
+		t.Cleanup(func() { os.Chmod(pk, 0o600) })
+	}
+	v, err := u.VerifyPoint(ctx, p.ID, 1, rand.New(rand.NewPCG(1, 2)))
+	if err != nil || len(v.Damaged) == 0 || !strings.Contains(v.Damaged[0].Reason, "the storage cannot return pack") {
+		t.Fatalf("unreadable packs: %+v %v", v, err)
+	}
+}
+
+// A storage that returns nothing at all is not damage: the verification stops with ErrStorage and names no contents.
+func TestVerifyStorageErrorIsNotDamage(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads unreadable files")
+	}
+	t.Parallel()
+	ctx := context.Background()
+	s, o := newStoreOpts(t)
+	p, _ := full(t, s, "vm1", 1)
+	u := uncached(t, o)
+	os.Chmod(o.Path, 0)
+	t.Cleanup(func() { os.Chmod(o.Path, 0o700) })
+	v, err := u.VerifyPoint(ctx, p.ID, 1, rand.New(rand.NewPCG(1, 2)))
+	if !errors.Is(err, ErrStorage) || len(v.Damaged) != 0 {
+		t.Fatalf("unreadable storage: %+v %v", v, err)
+	}
+}
+
+func packFiles(t *testing.T, repoPath string) []string {
+	t.Helper()
 	var packs []string
-	filepath.Walk(o.Path, func(p string, fi os.FileInfo, err error) error {
-		rel, _ := filepath.Rel(o.Path, p)
+	filepath.Walk(repoPath, func(p string, fi os.FileInfo, err error) error {
+		rel, _ := filepath.Rel(repoPath, p)
 		if err == nil && !fi.IsDir() && strings.HasPrefix(rel, "p") {
 			packs = append(packs, p)
 		}
 		return nil
 	})
-	for _, pk := range packs {
-		os.Chmod(pk, 0)
-		t.Cleanup(func() { os.Chmod(pk, 0o600) })
+	if len(packs) == 0 {
+		t.Fatal("no pack files")
 	}
-	v, err := u.VerifyPoint(ctx, p.ID, 1, rand.New(rand.NewPCG(1, 2)))
-	if !errors.Is(err, ErrStorage) || len(v.Damaged) != 0 {
-		t.Fatalf("unreadable packs: %+v %v", v, err)
-	}
+	return packs
 }

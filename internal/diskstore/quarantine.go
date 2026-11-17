@@ -11,6 +11,7 @@ import (
 	"github.com/kopia/kopia/repo"
 	"github.com/kopia/kopia/repo/blob"
 	"github.com/kopia/kopia/repo/content"
+	"github.com/kopia/kopia/repo/format"
 	"github.com/kopia/kopia/repo/manifest"
 	"github.com/kopia/kopia/repo/object"
 )
@@ -75,8 +76,10 @@ func (s *Store) diagnoseObject(ctx context.Context, oid object.ID) ([]Damage, er
 }
 
 // diagnoseContent reads one content. When that fails it fetches the content's bytes from its pack without decoding
-// them: if those arrive, the stored bytes are what is wrong (damage); if the pack is gone, the content is lost (damage);
-// any other failure is the storage's.
+// them: if those arrive, the stored bytes are what is wrong (damage); if the pack is gone, the content is lost (damage).
+// If the pack cannot be fetched (after the storage's own retries) while the storage still returns another blob, the
+// storage cannot give this pack back, e.g. object storage that found bitrot on its own disk (T18: MinIO cuts the
+// response short): damage too. Only when the storage returns nothing at all is it the storage's failure.
 func (s *Store) diagnoseContent(ctx context.Context, cid content.ID) (*Damage, error) {
 	dr, ok := s.r.(repo.DirectRepository)
 	if !ok {
@@ -102,13 +105,28 @@ func (s *Store) diagnoseContent(ctx context.Context, cid content.ID) (*Damage, e
 	case errors.Is(err, blob.ErrInvalidRange):
 		d.Reason = fmt.Sprintf("pack %s is shorter than the index says", ci.PackBlobID)
 	case err != nil:
-		return nil, fmt.Errorf("%w: pack %s: %v", ErrStorage, ci.PackBlobID, err)
+		if herr := storageAnswers(ctx, dr); herr != nil {
+			return nil, fmt.Errorf("%w: pack %s: %v (and the storage does not return its format blob either: %v)", ErrStorage, ci.PackBlobID, err, herr)
+		}
+		d.Reason = fmt.Sprintf("the storage cannot return pack %s (%v), while it returns other blobs", ci.PackBlobID, err)
 	case raw.Length() != int(ci.PackedLength):
 		d.Reason = fmt.Sprintf("pack %s gave %d of %d bytes", ci.PackBlobID, raw.Length(), ci.PackedLength)
 	default:
 		d.Reason = fmt.Sprintf("stored bytes do not verify: %v", rerr)
 	}
 	return d, nil
+}
+
+// storageAnswers reads the repository's format blob: the storage is up and returns data.
+func storageAnswers(ctx context.Context, dr repo.DirectRepository) error {
+	var b rawBuffer
+	if err := dr.BlobReader().GetBlob(ctx, format.KopiaRepositoryBlobID, 0, -1, &b); err != nil {
+		return err
+	}
+	if b.Length() == 0 {
+		return errors.New("empty format blob")
+	}
+	return nil
 }
 
 // rawBuffer is a blob.OutputBuffer.

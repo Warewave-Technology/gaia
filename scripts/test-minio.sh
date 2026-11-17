@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds (once) and starts a MinIO server for the S3 repository tests (ADR-007 §4), on 127.0.0.1:19000 with a
-# throw-away data directory, and prints the environment the tests read. MinIO publishes no binaries or images any more,
+# throw-away data directory, and prints the environment the tests read (the data directory too: a test damages a
+# stored object on MinIO's own disk). MinIO publishes no binaries or images any more,
 # so it is built from source at a pinned commit (go install; needs Go and network access).
 #
 #   eval "$(scripts/test-minio.sh)"   # then: make check   (or go test ./internal/diskstore ./internal/server)
@@ -42,3 +43,4 @@ if ! curl -sf "http://$ADDR/minio/health/live" >/dev/null; then
 	}
 fi
 echo "export GAIA_TEST_S3=http://$USER_:$PASS_@$ADDR/gaia-test"
+echo "export GAIA_TEST_S3_DIR=$RUN_DIR/data"

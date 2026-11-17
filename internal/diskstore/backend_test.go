@@ -201,3 +201,69 @@ func TestBackends(t *testing.T) {
 		})
 	}
 }
+
+// Bitrot on the object storage's own disk: MinIO checks its stored data and answers a damaged pack with a cut-short
+// response, every time. The verification calls that damage (the storage still returns other blobs), the quarantine
+// works as on a filesystem, and a new point of the same data restores byte for byte. Needs $GAIA_TEST_S3_DIR, the data
+// directory of the MinIO in $GAIA_TEST_S3 (scripts/test-minio.sh sets both).
+func TestS3BitrotOnTheStorageDisk(t *testing.T) {
+	dir := os.Getenv("GAIA_TEST_S3_DIR")
+	var b *backend
+	for _, x := range backends(t) {
+		if x.name == "s3" {
+			b = &x
+		}
+	}
+	switch {
+	case b == nil || dir == "":
+		if os.Getenv("GAIA_REQUIRE_S3") != "" {
+			t.Fatal("GAIA_REQUIRE_S3 is set but GAIA_TEST_S3 or GAIA_TEST_S3_DIR is not")
+		}
+		t.Skip("needs GAIA_TEST_S3 and GAIA_TEST_S3_DIR")
+	}
+	t.Parallel() // the storage's retries take a minute
+	ctx := context.Background()
+	s, o := openBackend(t, *b)
+	p, data := full(t, s, "vm1", 1)
+	idx, err := s.loadIndex(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oid, _ := object.ParseID(idx.Blocks[0])
+	cid, _, _ := oid.ContentID()
+	ci, err := s.r.ContentInfo(ctx, cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(os.Getenv("GAIA_TEST_S3"))
+	objDir := filepath.Join(dir, strings.Trim(u.Path, "/"), o.S3.Prefix+string(ci.PackBlobID))
+	var largest string
+	var size int64
+	filepath.Walk(objDir, func(p string, fi os.FileInfo, err error) error {
+		if err == nil && !fi.IsDir() && fi.Size() > size {
+			largest, size = p, fi.Size()
+		}
+		return nil
+	})
+	if largest == "" {
+		t.Fatalf("no MinIO files for pack %s under %s", ci.PackBlobID, objDir)
+	}
+	raw, _ := os.ReadFile(largest)
+	raw[len(raw)/2] ^= 0xff
+	if err := os.WriteFile(largest, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	v, err := uncached(t, o).VerifyPoint(ctx, p.ID, 1, rand.New(rand.NewPCG(1, 2)))
+	if err != nil || len(v.Damaged) == 0 {
+		t.Fatalf("verification after bitrot on the storage's disk: %+v %v", v, err)
+	}
+	t.Logf("damage: %+v", v.Damaged)
+	if _, err := uncached(t, o).Quarantine(ctx, v.Damaged, "test"); err != nil {
+		t.Fatal(err)
+	}
+	p2, _ := full(t, reopen(t, o), "vm1", 1)
+	if v, err := uncached(t, o).VerifyPoint(ctx, p2.ID, 1, rand.New(rand.NewPCG(1, 2))); err != nil || len(v.Problems) != 0 {
+		t.Fatalf("the new point: %+v %v", v, err)
+	}
+	restoreAndCompare(t, reopen(t, o), p2, data)
+}
