@@ -155,16 +155,7 @@ function LatestTest({ test, rtoTarget }: { test: TestView; rtoTarget: number | n
   const rto = test.proven_rto_s
   return (
     <>
-      {test.screenshots.length > 0 && test.evidence_id > 0 && (
-        <div className={s.shots}>
-          {test.screenshots.map((n) => (
-            <figure key={n}>
-              <img src={`/api/v1/evidence/${test.evidence_id}/files/${encodeURIComponent(n)}`} width={720} height={400} alt={t.shot(n)} />
-              <figcaption>{n.replace(/^screenshot-|\.png$/g, '')}</figcaption>
-            </figure>
-          ))}
-        </div>
-      )}
+      <Shots test={test} />
       {rto !== null && restore !== null && boot !== null && (
         <div className={s.rto}>
           <span className={s.lbl}>{t.rto} <b>{dur(rto, true)}</b>{rtoTarget && <span className={s.of}> {t.ofTarget(dur(rtoTarget))}</span>}</span>
@@ -326,6 +317,23 @@ function TestDetail({ test }: { test: TestView }) {
       {test.verdict !== 'OK' && <p className={test.verdict === 'CRITICAL' ? s.whyCrit : s.why}>{test.reason}</p>}
       {d.restore_s !== undefined && <p className={s.muted}>{t.restore} {dur(d.restore_s, true)}{test.proven_rto_s !== null && <>, {t.rto} {dur(test.proven_rto_s, true)}</>}</p>}
       {checks.length > 0 ? <Checks checks={checks} /> : test.verdict === 'OK' && <p className={s.muted}>{t.noChecks}</p>}
+      <Shots test={test} small />
+    </div>
+  )
+}
+
+/** The console screenshots sealed in a test's bundle; `small` in a table row's detail. */
+function Shots({ test, small = false }: { test: TestView; small?: boolean }) {
+  const t = useT().vm
+  if (test.screenshots.length === 0 || test.evidence_id <= 0) return null
+  return (
+    <div className={small ? `${s.shots} ${s.thumbs}` : s.shots}>
+      {test.screenshots.map((n) => (
+        <figure key={n}>
+          <img src={`/api/v1/evidence/${test.evidence_id}/files/${encodeURIComponent(n)}`} width={720} height={400} alt={t.shot(n)} loading="lazy" />
+          <figcaption>{n.replace(/^screenshot-|\.png$/g, '')}</figcaption>
+        </figure>
+      ))}
     </div>
   )
 }

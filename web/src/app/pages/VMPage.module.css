@@ -97,3 +97,5 @@ h2 { font-size: var(--text-md); font-weight: 600; margin: 0 0 14px; }
 .whyCrit { color: var(--red); }
 .reasonFull { margin: 0; color: var(--fg1); }
 .tdetail .checks li { grid-template-columns: auto 120px 44px minmax(0, 1fr); }
+.thumbs { grid-template-columns: repeat(auto-fill, minmax(160px, 220px)); gap: 10px; }
+.thumbs figcaption { margin-top: 3px; font-size: var(--text-xs); }
