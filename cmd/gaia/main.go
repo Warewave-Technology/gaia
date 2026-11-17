@@ -91,7 +91,7 @@ func usage() {
   gaia server init | run | migrate | restore-state   the server (ADR-007)
   gaia login | logout | whoami | system | password | status
   gaia kit status | save | confirm | regenerate | show   the recovery kit (ADR-007 B5)
-  gaia users | hosts | vms | repositories | policies | jobs | points | tests | evidence | audit | state-changes | state-backups VERB ...
+  gaia users | hosts | vms | repositories | policies | jobs | points | verifications | quarantine | tests | evidence | audit | state-changes | state-backups VERB ...
   gaia api METHOD PATH [JSON]
   gaia sandbox serve                         the restore-test sandbox helper (root; ADR-007 §5)
   gaia verify | migrate-check | evidence keygen | seal | verify | rotate   (lab tools)

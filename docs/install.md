@@ -124,7 +124,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`5`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`6`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -145,6 +145,27 @@ section, and restart:
 [Service]
 ReadWritePaths=<the directory>
 ```
+
+### 7b. Or: a repository in an S3 bucket
+
+The repository can instead be in a bucket of S3-compatible object storage (for example MinIO). You need: the
+bucket (it must exist), an access key that may read, write, list and delete in it, and the endpoint's address.
+
+```bash
+gaia repositories add name=main kind=s3 location=https://<endpoint>:<port>/<bucket>/<folder> s3_access_key_id=<access key>
+```
+
+- It asks for the secret access key, then for the kit passphrase. Never put the secret key on the command line.
+- `<folder>` is optional. Nothing may be stored under it yet.
+- If the endpoint's TLS certificate is not signed by a CA the server trusts (a self-signed one), add
+  `s3_ca_file=<CA certificate file>`: Gaia then checks the certificate against that file.
+- `http://` instead of `https://` sends everything unencrypted on the network except the backup data itself, which
+  Kopia encrypts. Use it only on a network you trust.
+- Add `?region=<name>` to the location if the storage needs a region.
+- The Gaia server must reach the endpoint (firewall).
+
+The access key is kept on the server like the repository password and is part of the recovery kit (step 8b).
+Everything else in this guide is the same for both kinds of repository.
 
 ## 8. Check the backup of Gaia's own state
 
@@ -230,6 +251,18 @@ gaia password
 
 The last admin cannot be disabled or demoted.
 
+**Wrong passwords.** After 5 wrong passwords in a row, a username is locked out for 15 minutes; `gaia login` then
+answers `429 too many wrong passwords for this username` even for the right password. After 20 wrong passwords from
+one address within 10 minutes, that address is refused the same way. Every attempt is in the audit log
+(`gaia audit list`). An admin can end a lockout at once:
+
+```bash
+gaia users unlock <id>
+```
+
+The limits are `login_max_failures`, `login_lockout`, `login_address_failures` and `login_address_window` in
+`/etc/gaia/server.json`.
+
 ## 10. Back up VMs on a KVM host
 
 Gaia reaches a host only over SSH (ADR-007 §3): libvirt and the disk reads (NBD) both go through that one
@@ -311,7 +344,16 @@ gaia verifications list
 gaia verifications get <verification id>
 ```
 
-A verification that finds damage is `critical` and lists the affected points; those points are marked failed.
+A verification that finds damage is `critical` and lists the affected points; those points are marked failed. The
+damaged data is also put in quarantine: Gaia stops reusing it, so the next backup of every affected VM is a full
+backup that stores that data again (the job's reason says so). The quarantine is in the audit log. To see it:
+
+```bash
+gaia quarantine list
+```
+
+The damaged copy stays in the repository until maintenance frees it. Find out why it was damaged (the disk, the
+storage) before you trust that storage again.
 
 To prove a point restores, without touching the VM: `gaia points restore-check <point id>` restores each disk to a
 scratch file on the Gaia server, prints its sha256, and deletes it. It needs free space for the largest disk under
@@ -386,6 +428,8 @@ gaia api GET /api/v1/hosts
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the
 new schema version. Gaia refuses to start on a database written by a newer version: do not downgrade.
 
+From schema 5 to 6 (T18) there is nothing else to do.
+
 **From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
 
 ```bash
@@ -412,13 +456,17 @@ new Debian 12 machine (step 1).
    chown -R gaia:gaia <repository path>
    ```
 
+   An S3 repository needs nothing here: the kit holds its location and access key. The new server must reach the
+   endpoint.
+
 3. Copy the kit file to the new machine (`scp gaia-recovery-kit-<n>.age <user>@<server>:/tmp/`), then, as root:
 
    ```bash
    chown gaia /tmp/gaia-recovery-kit-<n>.age && runuser -u gaia -- gaia server restore-state -kit /tmp/gaia-recovery-kit-<n>.age -config /etc/gaia/server.json
    ```
 
-   It asks for the kit's passphrase. Add `-repository <name>=<path>` if a repository is now at another path, and
+   It asks for the kit's passphrase. Add `-repository <name>=<path>` if a repository is now at another path (for S3,
+   `-repository <name>=https://<endpoint>/<bucket>/<folder>`), and
    `-hostname <names>` (as in step 4) if the new server has another name or address: it then gets a new TLS
    certificate, and `gaia login` asks you to confirm the new sha256 it prints.
 
@@ -454,6 +502,7 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | The certificate sha256 at login differs from step 4 | Do not log in. If the server was set up again, use the new value from that `init`. |
 | `the server's certificate is not the one pinned at login` | The server's certificate changed. Log in again only if that was on purpose. |
 | `401 unauthorized` | The login expired (12 hours) or the user was disabled: run `gaia login` again. |
+| `429 ... too many wrong passwords` | Wait until the time it names, or an admin runs `gaia users unlock <id>` (step 9). The audit log shows the attempts. |
 | `403 forbidden` | Your role may not do that (step 9). |
 | `503 ... the audit log cannot be written` | The disk under `/var/lib/gaia` is full or read-only. Gaia does nothing it cannot record. |
 | `state-backups run` says `failed` | The message says why; the journal has details (`journalctl -u gaia`). |
@@ -469,3 +518,6 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `restore-state`: `... is not empty` | The data directory must be empty. A failed `restore-state` empties it again itself; anything else in it is not Gaia's. |
 | `restore-state`: `the state repository ... cannot be opened` | Mount the repository, or give its path with `-repository <name>=<path>`; its files must belong to `gaia`. |
 | `restore-state`: `... belong to different installations` | The kit is not the one of the server that wrote this repository. |
+| S3: `x509: certificate signed by unknown authority` | The endpoint's certificate is self-signed: add `s3_ca_file=<CA file>` (step 7b). |
+| S3: `The specified bucket does not exist` or `Access Denied` | Create the bucket, or check the access key and its permissions. |
+| A verification is `critical` and `gaia quarantine list` shows contents | The repository's storage damaged data. The affected VMs back up full next; check the disk or storage (step 10). |
