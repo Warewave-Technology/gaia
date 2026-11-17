@@ -1,0 +1,1 @@
+{"verdict": "CRITICAL", "findings": ["file_modified"], "detail": [{"code": "file_modified", "at": "gaia-t17-web-20261116T222922Z-dfe7e1:result.json"}]}
