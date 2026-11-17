@@ -561,6 +561,7 @@ GAIA_PASSWORD=$op_pw api users add username=t18op role=operator | tee "$OUT_DIR/
 op_id=$(jq .id "$OUT_DIR/login-user.json")
 admin_pw=$(cat "$pwfile")
 login_from=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+login_after=$(api audit verify | jq .entries) # the audit log is read oldest first, at most 1000 entries a page
 : >"$OUT_DIR/logins.jsonl"
 attempt() { # STEP USER PASSWORD-KIND
 	local step=$1 user=$2 kind=$3 pw code
@@ -581,7 +582,7 @@ api users unlock "$op_id" | jq -c '{id, username, failed_logins, locked_until}'
 attempt user-right-after-unlock t18op right
 for i in $(seq 1 10); do attempt "address-wrong-$i" "nobody-$i" wrong; done
 attempt address-admin-right admin admin
-api audit list limit=100000 | jq -c --arg from "$login_from" '[.[] | select(.action == "POST /api/v1/login" and .at >= $from)
+api audit list after="$login_after" limit=1000 | jq -c --arg from "$login_from" '[.[] | select(.action == "POST /api/v1/login" and .at >= $from)
 	| {seq, at, username, target, outcome, remote_addr, detail}]' >"$OUT_DIR/audit-logins.json"
 jq -r '.[] | [.seq, .at, .target, .outcome, .detail] | @tsv' "$OUT_DIR/audit-logins.json"
 api state-changes list entity=user_lockout limit=100 | tee "$OUT_DIR/lockout-changes.json" | jq -c '.[] | {at, entity_id, from, to, reason, actor}'

@@ -260,7 +260,9 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 				if len(res.Problems) > 0 {
 					a := Affected{PointID: p.ID, VMID: p.VMID, Disk: k.Target, Problems: res.Problems, Contents: []string{}}
 					for _, d := range res.Damaged {
-						a.Contents = append(a.Contents, d.Content)
+						if !slices.Contains(a.Contents, d.Content) { // a content used at several offsets of the disk
+							a.Contents = append(a.Contents, d.Content)
+						}
 					}
 					affected = append(affected, a)
 					damaged = append(damaged, res.Damaged...)
