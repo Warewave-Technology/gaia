@@ -228,3 +228,21 @@ func (d *DB) AddMigrationEvidence(ctx context.Context, e EvidenceBundle, checkID
 	}
 	return d.Evidence(ctx, id)
 }
+
+// FinishInterruptedMigrationChecks gives every check whose job ended without it (the server stopped while it ran)
+// the readiness UNKNOWN: an unchecked VM is never shown as ready, nor as still being checked.
+func (d *DB) FinishInterruptedMigrationChecks(ctx context.Context, reason string) (int, error) {
+	ms, err := rowsOf(ctx, d.db, scanMC, `SELECT `+mcColsC+` FROM migration_checks c JOIN jobs j ON j.id = c.job_id
+		WHERE c.readiness = '' AND j.state IN ('failed', 'cancelled')`)
+	if err != nil {
+		return 0, err
+	}
+	for _, m := range ms {
+		if _, err := d.FinishMigrationCheck(ctx, "system", m.ID, "UNKNOWN", reason, "", map[string]string{"interrupted": reason}); err != nil {
+			return 0, err
+		}
+	}
+	return len(ms), nil
+}
+
+const mcColsC = `c.id, c.source_id, c.vm, c.job_id, c.config, c.readiness, c.reason, c.bundle_id, c.firmware, c.guest_id, c.detail, c.created_at, c.finished_at`

@@ -50,6 +50,7 @@ type VM struct {
 	GuestID    string `json:"guest_id"`
 	GuestName  string `json:"guest_full_name"`
 	Firmware   string `json:"firmware"`
+	SecureBoot bool   `json:"secure_boot"` // UEFI Secure Boot is on (bootOptions.efiSecureBootEnabled)
 	CPUs       int32  `json:"cpus"`
 	MemoryMiB  int32  `json:"memory_mib"`
 	VMX        string `json:"vmx"` // datastore path
@@ -123,6 +124,9 @@ func toVM(m mo.VirtualMachine, dc string) VM {
 	cfg := m.Config
 	v.UUID, v.GuestID, v.GuestName, v.Firmware, v.Template = cfg.Uuid, cfg.GuestId, cfg.GuestFullName, cfg.Firmware, cfg.Template
 	v.CPUs, v.MemoryMiB, v.VMX = cfg.Hardware.NumCPU, cfg.Hardware.MemoryMB, cfg.Files.VmPathName
+	if b := cfg.BootOptions; b != nil && b.EfiSecureBootEnabled != nil {
+		v.SecureBoot = *b.EfiSecureBootEnabled
+	}
 	for _, d := range cfg.Hardware.Device {
 		label := ""
 		if di := d.GetVirtualDevice().DeviceInfo; di != nil {

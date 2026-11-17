@@ -307,6 +307,66 @@
         ],
         "type": "object"
       },
+      "Check": {
+        "additionalProperties": false,
+        "properties": {
+          "boot": {
+            "type": "boolean"
+          },
+          "expect_body": {
+            "type": "string"
+          },
+          "expect_status": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "ConverterState": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "info": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Info"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reachable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "detail",
+          "reachable"
+        ],
+        "type": "object"
+      },
       "DailyReport": {
         "additionalProperties": false,
         "properties": {
@@ -409,6 +469,12 @@
           "ledger_seq": {
             "type": "integer"
           },
+          "migration_check_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "test_id": {
             "type": [
               "integer",
@@ -431,6 +497,7 @@
           "created_at",
           "id",
           "ledger_seq",
+          "migration_check_id",
           "test_id",
           "verdict",
           "vm_id"
@@ -562,6 +629,34 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "Info": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "type": "string"
+          },
+          "image_detail": {
+            "type": "string"
+          },
+          "image_present": {
+            "type": "boolean"
+          },
+          "versions": {
+            "type": "string"
+          },
+          "virtio_win": {
+            "$ref": "#/components/schemas/VirtioWin"
+          }
+        },
+        "required": [
+          "image",
+          "image_detail",
+          "image_present",
+          "versions",
+          "virtio_win"
+        ],
         "type": "object"
       },
       "Job": {
@@ -940,6 +1035,133 @@
           "referenced_contents",
           "seconds",
           "unresolved_points"
+        ],
+        "type": "object"
+      },
+      "MigrationCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "config": {
+            "description": "any JSON value"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "detail": {
+            "description": "any JSON value"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "firmware": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "job_id": {
+            "type": "integer"
+          },
+          "readiness": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "integer"
+          },
+          "vm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "config",
+          "created_at",
+          "detail",
+          "finished_at",
+          "firmware",
+          "guest_id",
+          "id",
+          "job_id",
+          "readiness",
+          "reason",
+          "source_id",
+          "vm"
+        ],
+        "type": "object"
+      },
+      "MigrationCheckRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "boot_timeout_s": {
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/Check"
+            },
+            "type": "array"
+          },
+          "probe_timeout_s": {
+            "type": "integer"
+          },
+          "template": {
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "vm"
+        ],
+        "type": "object"
+      },
+      "MigrationSource": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "insecure": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "insecure",
+          "kind",
+          "name",
+          "updated_at",
+          "url",
+          "username"
         ],
         "type": "object"
       },
@@ -1835,6 +2057,125 @@
         ],
         "type": "object"
       },
+      "SourceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "insecure": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "insecure",
+          "name",
+          "password",
+          "url",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SourceInventory": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked_calls": {
+            "type": "integer"
+          },
+          "calls": {
+            "type": "integer"
+          },
+          "product": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "vms": {
+            "items": {
+              "$ref": "#/components/schemas/SourceVM"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "blocked_calls",
+          "calls",
+          "product",
+          "source",
+          "vms"
+        ],
+        "type": "object"
+      },
+      "SourceVM": {
+        "additionalProperties": false,
+        "properties": {
+          "checkable": {
+            "type": "string"
+          },
+          "cpus": {
+            "type": "integer"
+          },
+          "disk_bytes": {
+            "type": "integer"
+          },
+          "disks": {
+            "type": "integer"
+          },
+          "firmware": {
+            "type": "string"
+          },
+          "guest_full_name": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "has_snapshots": {
+            "type": "boolean"
+          },
+          "memory_mib": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "power_state": {
+            "type": "string"
+          },
+          "secure_boot": {
+            "type": "boolean"
+          },
+          "template": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "checkable",
+          "cpus",
+          "disk_bytes",
+          "disks",
+          "firmware",
+          "guest_full_name",
+          "guest_id",
+          "has_snapshots",
+          "memory_mib",
+          "name",
+          "power_state",
+          "secure_boot",
+          "template"
+        ],
+        "type": "object"
+      },
       "StateBackup": {
         "additionalProperties": false,
         "properties": {
@@ -2642,6 +2983,41 @@
         ],
         "type": "object"
       },
+      "VirtioWin": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "want_sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "path",
+          "state",
+          "url",
+          "version",
+          "want_sha256"
+        ],
+        "type": "object"
+      },
       "WebhookConfig": {
         "additionalProperties": false,
         "properties": {
@@ -2841,6 +3217,72 @@
         ],
         "x-gaia-roles": [
           "admin",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/converter": {
+      "get": {
+        "operationId": "get_converter",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConverterState"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The converter service: its pinned image, the image's versions, virtio-win",
+        "tags": [
+          "converter"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
           "auditor"
         ]
       }
@@ -5072,6 +5514,820 @@
           "admin",
           "operator",
           "auditor"
+        ]
+      }
+    },
+    "/api/v1/migration-checks": {
+      "get": {
+        "operationId": "get_migration_checks",
+        "parameters": [
+          {
+            "description": "only this source's",
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MigrationCheck"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Migration checks, newest first",
+        "tags": [
+          "migration-checks"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/migration-checks/{id}": {
+      "get": {
+        "operationId": "get_migration_checks_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One migration check",
+        "tags": [
+          "migration-checks"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/migration-checks/{id}/report": {
+      "get": {
+        "operationId": "get_migration_checks_by_id_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "A check's readiness report: its signed bundle, the ledger, the keys, how to verify (tar.gz)",
+        "tags": [
+          "migration-checks"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/migration-sources": {
+      "get": {
+        "operationId": "get_migration_sources",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MigrationSource"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Migration sources (vSphere endpoints read with read-only calls)",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      },
+      "post": {
+        "operationId": "post_migration_sources",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationSource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Record a migration source; its password goes to secrets/, never to an answer",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/migration-sources/{id}": {
+      "delete": {
+        "operationId": "delete_migration_sources_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Remove a migration source no check refers to",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      },
+      "get": {
+        "operationId": "get_migration_sources_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationSource"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One migration source",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/migration-sources/{id}/checks": {
+      "post": {
+        "operationId": "post_migration_sources_by_id_checks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrationCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationCheck"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Check one VM of the source: download, convert, boot in the sandbox, seal a readiness bundle",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/migration-sources/{id}/inventory": {
+      "get": {
+        "operationId": "get_migration_sources_by_id_inventory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceInventory"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The source's VMs, read now with read-only calls",
+        "tags": [
+          "migration-sources"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
         ]
       }
     },

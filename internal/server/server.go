@@ -58,6 +58,9 @@ type Config struct {
 	LoginAddressWindow   string `json:"login_address_window"`   // Go duration; default 10m
 	// Notifications (T19, notify.go, report.go).
 	DailyReportAt string `json:"daily_report_at"` // HH:MM local time of the daily report; default 07:00
+	// Migration checks (T21, migration.go): the converter service (gaia convert serve) and its job directories.
+	ConvertSocket  string `json:"convert_socket"`   // default /run/gaia-convert/convert.sock
+	ConvertJobsDir string `json:"convert_jobs_dir"` // default /var/lib/gaia-convert/jobs
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -128,6 +131,12 @@ func (c *Config) resolve() error {
 	}
 	if c.SandboxImagesDir == "" {
 		c.SandboxImagesDir = "/var/lib/gaia-sandbox/images"
+	}
+	if c.ConvertSocket == "" {
+		c.ConvertSocket = "/run/gaia-convert/convert.sock"
+	}
+	if c.ConvertJobsDir == "" {
+		c.ConvertJobsDir = "/var/lib/gaia-convert/jobs"
 	}
 	if c.LoginMaxFailures == 0 {
 		c.LoginMaxFailures = 5
@@ -209,6 +218,7 @@ type Server struct {
 	jobsWG            sync.WaitGroup
 	running           sync.Map // VM ID -> ID of its running backup job
 	testing           sync.Map // VM ID -> ID of its running restore test job
+	migrating         sync.Map // job ID of the running migration check (one at a time)
 	sandbox           *sandbox.Client
 	now               func() time.Time // the clock of the status model
 	kitMu             sync.Mutex       // one recovery kit write at a time
@@ -268,6 +278,12 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		return nil, err
 	} else if n > 0 {
 		log.Warn("jobs interrupted by the last stop were marked failed", "count", n)
+	}
+	if n, err := db.FinishInterruptedMigrationChecks(ctx, "not checked: the server stopped while the check ran"); err != nil {
+		db.Close()
+		return nil, err
+	} else if n > 0 {
+		log.Warn("migration checks interrupted by the last stop are UNKNOWN", "count", n)
 	}
 	if s.restoreTag, err = db.RestoreTag(ctx); err != nil {
 		db.Close()

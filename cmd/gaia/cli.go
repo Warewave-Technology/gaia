@@ -35,6 +35,8 @@ import (
 //	gaia kit status | save | confirm | regenerate | show  the recovery kit (kit.go)
 //	gaia channels add name=N kind=smtp|webhook smtp={...}|webhook={...} [events=[...]] | test ID | set ID enabled=false
 //	gaia ledger list | check                             gaia daily-reports list | get ID | run
+//	gaia sources add name=N url=https://ESXI/sdk username=root [insecure=true] | inventory ID | check ID vm=NAME [template=T]
+//	gaia migration-checks list [source_id=N] | get ID | report ID [-o FILE]   (ADR-003: read-only migration checks)
 //	gaia api METHOD PATH [JSON]                          any API call
 //
 // -json anywhere prints the server's JSON instead of a table.
@@ -45,24 +47,26 @@ type resource struct {
 }
 
 var resources = map[string]resource{
-	"users":         {"/api/v1/users", []string{"list", "get", "add", "set", "unlock"}},
-	"hosts":         {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
-	"vms":           {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status"}},
-	"repositories":  {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
-	"policies":      {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
-	"jobs":          {"/api/v1/jobs", []string{"list", "get"}},
-	"points":        {"/api/v1/points", []string{"list", "get", "disks", "restore-check"}},
-	"verifications": {"/api/v1/verifications", []string{"list", "get"}},
-	"quarantine":    {"/api/v1/quarantined-contents", []string{"list"}},
-	"tests":         {"/api/v1/restore-tests", []string{"list", "get"}},
-	"evidence":      {"/api/v1/evidence", []string{"list", "get", "export", "export-all"}},
-	"audit":         {"/api/v1/audit", []string{"list", "verify"}},
-	"state-changes": {"/api/v1/state-changes", []string{"list"}},
-	"state-backups": {"/api/v1/state-backups", []string{"list", "run"}},
-	"channels":      {"/api/v1/notification-channels", []string{"list", "get", "add", "set", "test"}},
-	"notifications": {"/api/v1/notifications", []string{"list"}},
-	"ledger":        {"/api/v1/ledger", []string{"list", "check"}},
-	"daily-reports": {"/api/v1/daily-reports", []string{"list", "get", "run"}},
+	"users":            {"/api/v1/users", []string{"list", "get", "add", "set", "unlock"}},
+	"hosts":            {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
+	"vms":              {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status"}},
+	"repositories":     {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
+	"policies":         {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
+	"jobs":             {"/api/v1/jobs", []string{"list", "get"}},
+	"points":           {"/api/v1/points", []string{"list", "get", "disks", "restore-check"}},
+	"verifications":    {"/api/v1/verifications", []string{"list", "get"}},
+	"quarantine":       {"/api/v1/quarantined-contents", []string{"list"}},
+	"tests":            {"/api/v1/restore-tests", []string{"list", "get"}},
+	"evidence":         {"/api/v1/evidence", []string{"list", "get", "export", "export-all"}},
+	"audit":            {"/api/v1/audit", []string{"list", "verify"}},
+	"state-changes":    {"/api/v1/state-changes", []string{"list"}},
+	"state-backups":    {"/api/v1/state-backups", []string{"list", "run"}},
+	"channels":         {"/api/v1/notification-channels", []string{"list", "get", "add", "set", "test"}},
+	"notifications":    {"/api/v1/notifications", []string{"list"}},
+	"ledger":           {"/api/v1/ledger", []string{"list", "check"}},
+	"daily-reports":    {"/api/v1/daily-reports", []string{"list", "get", "run"}},
+	"sources":          {"/api/v1/migration-sources", []string{"list", "get", "add", "rm", "inventory", "check"}},
+	"migration-checks": {"/api/v1/migration-checks", []string{"list", "get", "report"}},
 }
 
 // isCLICommand reports whether args[0] is handled by runCLI.
@@ -195,6 +199,11 @@ func runCLI(ctx context.Context, args []string) int {
 				return fail(asJSON, cmd, err)
 			}
 		}
+		if cmd == "sources" {
+			if err := sourcePassword(body); err != nil {
+				return fail(asJSON, cmd, err)
+			}
+		}
 		if cmd == "repositories" {
 			if err := repoS3Secrets(body); err != nil {
 				return fail(asJSON, cmd, err)
@@ -234,6 +243,13 @@ func runCLI(ctx context.Context, args []string) int {
 	id, rest, err := needID()
 	if err != nil {
 		return fail(asJSON, cmd, err)
+	}
+	if cmd == "sources" && verb == "check" { // a migration check of one VM (body vm=NAME ...)
+		body, err := keyValues(rest)
+		if err != nil {
+			return fail(asJSON, cmd, err)
+		}
+		return call("POST", res.path+"/"+id+"/checks", body)
 	}
 	switch verb {
 	case "get":
@@ -282,6 +298,10 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("POST", res.path+"/"+id+"/disks", body)
 	case "export":
 		return writeExport(ctx, c, res.path+"/"+id+"/export", "gaia-evidence-"+id+".tar.gz", rest, asJSON, cmd)
+	case "report":
+		return writeExport(ctx, c, res.path+"/"+id+"/report", "gaia-readiness-"+id+".tar.gz", rest, asJSON, cmd)
+	case "inventory":
+		return call("GET", res.path+"/"+id+"/inventory", nil)
 	}
 	return fail(asJSON, cmd, fmt.Errorf("verb %s", verb))
 }
@@ -306,6 +326,23 @@ func writeExport(ctx context.Context, c *client.Client, path, out string, rest [
 		fmt.Printf("wrote %s (%d bytes); verify it with the README inside\n", out, len(b))
 	}
 	return 0
+}
+
+// sourcePassword takes a migration source's password from GAIA_VSPHERE_PASSWORD, or asks for it; never from argv.
+func sourcePassword(body map[string]any) error {
+	if _, ok := body["password"]; ok {
+		return errors.New("do not put the source's password on the command line: set GAIA_VSPHERE_PASSWORD, or type it when asked")
+	}
+	if v := os.Getenv("GAIA_VSPHERE_PASSWORD"); v != "" {
+		body["password"] = v
+		return nil
+	}
+	pw, err := readPassword("", "Password of the vSphere user: ", false)
+	if err != nil {
+		return err
+	}
+	body["password"] = pw
+	return nil
 }
 
 // channelSecrets takes an SMTP password or a webhook secret from the environment (GAIA_SMTP_PASSWORD,

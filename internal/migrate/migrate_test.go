@@ -147,3 +147,72 @@ func TestErrorLine(t *testing.T) {
 		t.Fatalf("errorLine = %q", got)
 	}
 }
+
+// fakeConverter writes what a conversion would: a disk and a domain XML with the given OS and firmware.
+type fakeConverter struct {
+	state, os, firmware string
+	virtioWin           bool
+}
+
+func (f fakeConverter) Convert(_ context.Context, in ConvertInput) ConvertOutput {
+	out := ConvertOutput{State: f.state, Detail: "fake " + f.state, Seconds: 1, VirtioWin: f.virtioWin}
+	if f.state != "converted" {
+		return out
+	}
+	disk, dom := filepath.Join(in.ImageDir, in.Name+"-sda"), filepath.Join(in.ImageDir, in.Name+".xml")
+	os.WriteFile(disk, []byte("qcow2"), 0o644)
+	fw := ""
+	if f.firmware == "efi" {
+		fw = " firmware='efi'"
+	}
+	os.WriteFile(dom, []byte(`<domain type='kvm'><name>`+in.Name+`</name><metadata><libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">`+
+		`<libosinfo:os id="`+f.os+`"/></libosinfo:libosinfo></metadata><memory unit='KiB'>2097152</memory><vcpu>2</vcpu>`+
+		`<os`+fw+`><type arch='x86_64' machine='q35'>hvm</type></os><devices><disk device='disk'><target dev='vda' bus='virtio'/></disk>`+
+		`<interface type='bridge'><mac address='00:50:56:3f:a8:21'/><model type='virtio'/></interface></devices></domain>`), 0o644)
+	out.Disks, out.DomainXML = []string{disk}, dom
+	return out
+}
+
+// After the download: the conversion's outcome, the guest OS virt-v2v found and the firmware decide the steps.
+func TestConvertStep(t *testing.T) {
+	ctx := context.Background()
+	const linux, win = "http://debian.org/debian/12", "http://microsoft.com/win/2k22"
+	for _, tc := range []struct {
+		name       string
+		conv       fakeConverter
+		guestID    string
+		srcFW      string
+		conversion string
+		firmware   string
+		boots      bool
+		want       string
+	}{
+		{"linux bios", fakeConverter{"converted", linux, "bios", false}, "debian12_64Guest", "bios", verify.OK, verify.OK, true, "BIOS on the source and in the sandbox"},
+		{"linux uefi", fakeConverter{"converted", linux, "efi", false}, "debian12_64Guest", "efi", verify.OK, verify.OK, true, "UEFI on the source and in the sandbox"},
+		{"firmware changed", fakeConverter{"converted", linux, "bios", false}, "debian12_64Guest", "efi", verify.OK, verify.Critical, true, "the source boots with efi, the converted guest with bios"},
+		{"windows with drivers", fakeConverter{"converted", win, "bios", true}, "windows2019srvNext_64Guest", "bios", verify.OK, verify.OK, true, "virtio-win drivers"},
+		{"windows the source did not name", fakeConverter{"converted", win, "bios", false}, "otherGuest64", "bios", verify.Unknown, verify.Unknown, false, "no virtio-win drivers were given"},
+		{"refused", fakeConverter{state: "failed"}, "debian12_64Guest", "bios", verify.Critical, verify.Unknown, false, "fake failed"},
+		{"not run", fakeConverter{state: "not_run"}, "debian12_64Guest", "bios", verify.Unknown, verify.Unknown, false, "fake not_run"},
+	} {
+		dir := t.TempDir()
+		x := &vmRun{o: Options{Converter: tc.conv}, name: "vm1", vm: vsphereread.VM{GuestID: tc.guestID, Firmware: tc.srcFW},
+			work: dir, images: dir, extra: map[string]string{}, t: map[string]float64{}}
+		disks, cfg, skip := x.convertStep(ctx, filepath.Join(dir, "vm1.vmx"))
+		got := map[string]verify.CheckResult{}
+		for _, c := range x.pre {
+			got[c.Name] = c
+		}
+		all := ""
+		for _, c := range x.pre {
+			all += c.Name + " " + c.Verdict + ": " + c.Detail + "\n"
+		}
+		if got["conversion"].Verdict != tc.conversion || got["firmware"].Verdict != tc.firmware || (len(disks) > 0) != tc.boots ||
+			(skip == "") != tc.boots || !strings.Contains(all, tc.want) {
+			t.Errorf("%s: disks %v skip %q\n%s", tc.name, disks, skip, all)
+		}
+		if tc.boots && (cfg == nil || cfg.Machine.Firmware != tc.conv.firmware) {
+			t.Errorf("%s: config %+v", tc.name, cfg)
+		}
+	}
+}

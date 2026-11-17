@@ -101,13 +101,29 @@ func (s *Server) queueDueBackups(ctx context.Context, now time.Time) error {
 }
 
 // dispatch starts queued jobs: backups, at most max_parallel_backups at once and one per VM; restore tests one at a
-// time (the sandbox boots one guest at a time).
+// time (the sandbox boots one guest at a time); migration checks one at a time.
 func (s *Server) dispatch(ctx context.Context) error {
 	qs, err := s.db.QueuedJobs(ctx)
 	if err != nil {
 		return err
 	}
 	for _, j := range qs {
+		if j.Kind == "migration_check" {
+			n := 0
+			s.migrating.Range(func(_, _ any) bool { n++; return true })
+			if n > 0 {
+				continue
+			}
+			s.migrating.Store(j.ID, true)
+			s.jobsWG.Add(1)
+			go func(j store.Job) {
+				defer s.jobsWG.Done()
+				defer s.stateChanged()
+				defer s.migrating.Delete(j.ID)
+				s.runMigrationCheck(ctx, j)
+			}(j)
+			continue
+		}
 		if j.Kind == "restore_test" && j.VMID != nil {
 			n := 0
 			s.testing.Range(func(_, _ any) bool { n++; return true })

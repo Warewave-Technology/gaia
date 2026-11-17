@@ -67,8 +67,39 @@ type Options struct {
 	VirtioWin string
 	Verify    verify.Options // Key, EvidenceDir, Ledger, WorkDir, SerialDir, Socket, Self, Log
 	Log       io.Writer
+	// Converter converts the downloaded VM; nil runs virt-v2v on this machine (the lab tool). gaia server gives its
+	// converter service (ADR-005 §1).
+	Converter Converter
+	// Dirs gives a VM's download and image directories; nil: WorkDir/<vm> and ImageDir/<vm>.
+	Dirs func(vm string) (work, images string)
 
 	virtioWin *Input // hashed once per run
+}
+
+// Converter turns a downloaded VM into KVM disks.
+type Converter interface {
+	Convert(ctx context.Context, in ConvertInput) ConvertOutput
+}
+
+// ConvertInput is one conversion: the downloaded .vmx, the guest's name, whether the source says it is Windows.
+type ConvertInput struct {
+	VMX      string // the downloaded .vmx (its disks next to it)
+	Name     string
+	Windows  bool
+	ImageDir string // where the disks, domain XML and log go
+}
+
+// ConvertOutput is what a conversion produced.
+type ConvertOutput struct {
+	State     string            // converted, failed (virt-v2v refused the guest: CRITICAL), not_run (UNKNOWN)
+	Detail    string            // virt-v2v's error, or why it did not run
+	Seconds   float64           //
+	Disks     []string          // paths, boot disk first
+	DomainXML string            // path
+	Log       string            // path
+	VirtioWin bool              // virtio-win was given to virt-v2v
+	Info      any               // the converter's facts for the bundle (image, versions, virtio-win)
+	Files     map[string]string // more files for the bundle (bundle path -> local file)
 }
 
 // Readiness is the outcome for one VM.
@@ -171,6 +202,9 @@ type vmRun struct {
 	pre    []verify.CheckResult
 	extra  map[string]string
 	t      map[string]float64
+
+	convInfo any
+	declared verify.Config
 }
 
 func (x *vmRun) add(name, typ, verdict, detail string, start time.Time) {
@@ -186,21 +220,62 @@ func (x *vmRun) notRun(why string, steps ...string) {
 }
 
 func checkVM(ctx context.Context, o Options, name string, v vsphereread.VM, found bool) (*Readiness, error) {
-	x := &vmRun{o: o, name: name, vm: v, work: filepath.Join(o.WorkDir, name), images: filepath.Join(o.ImageDir, name),
-		extra: map[string]string{}, t: map[string]float64{}}
+	p, err := Prepare(ctx, o, name, v, found)
+	if err != nil {
+		return nil, err
+	}
+	vo := o.Verify
+	vo.Config, vo.PreChecks, vo.Extra, vo.SkipReason = p.Config, p.PreChecks, p.Extra, p.SkipReason
+	if len(p.Disks) > 0 {
+		vo.Image, vo.ImageFormat = p.Disks[0], "qcow2"
+	}
+	res, err := verify.Run(ctx, vo)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range res.Timings {
+		p.Timings[k] = v
+	}
+	return &Readiness{VM: name, Readiness: res.Verdict, BundleID: res.BundleID, LedgerSeq: res.LedgerSeq, Checks: res.Checks, Timings: p.Timings}, nil
+}
+
+// Prepared is a VM ready for the sandbox, or the reason it is not: the steps so far as checks (they go ahead of the
+// guest's own in the bundle), the files for the bundle, the converted disks and the sandbox configuration.
+type Prepared struct {
+	VM         vsphereread.VM
+	PreChecks  []verify.CheckResult
+	Extra      map[string]string // bundle path -> local file
+	Disks      []string          // converted qcow2 disks, boot disk first; none when SkipReason is set
+	Config     *verify.Config    // always set: without a conversion, a minimal one so the bundle still records each step
+	Declared   verify.Config     // Config as declared, before the template is applied (what the sandbox helper takes)
+	SkipReason string
+	Timings    map[string]float64
+	Converter  any // the converter's facts (image, versions, virtio-win), when it ran
+}
+
+// Prepare runs a VM's migration steps up to the converted disks: what the source says about it, that it is powered
+// off, its layout, the download (read-only calls only), the conversion, and the firmware it boots with. A step that
+// fails is that VM's verdict; err means the steps themselves could not run (a local file could not be written).
+func Prepare(ctx context.Context, o Options, name string, v vsphereread.VM, found bool) (*Prepared, error) {
+	work, images := filepath.Join(o.WorkDir, name), filepath.Join(o.ImageDir, name)
+	if o.Dirs != nil {
+		work, images = o.Dirs(name)
+	}
+	x := &vmRun{o: o, name: name, vm: v, work: work, images: images, extra: map[string]string{}, t: map[string]float64{}}
 	if err := os.MkdirAll(x.work, 0o755); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(x.images, 0o755); err != nil {
 		return nil, err
 	}
-	image, cfg, skip := x.prepare(ctx, found)
-	if cfg == nil { // nothing to build a sandbox from: a minimal config so the bundle still records every step
+	disks, cfg, skip := x.prepare(ctx, found)
+	if cfg == nil {
 		tmpl := "linux-boot"
 		if defaultTemplate(v.GuestID) == "windows-basic" {
 			tmpl = "windows-basic"
 		}
 		cfg = &verify.Config{VM: name, Template: tmpl, Machine: verify.Machine{MAC: "52:54:00:00:00:00"}}
+		x.declared = *cfg
 		if err := resolveConfig(cfg); err != nil {
 			return nil, err
 		}
@@ -208,23 +283,15 @@ func checkVM(ctx context.Context, o Options, name string, v vsphereread.VM, foun
 	if o.CallLog != "" {
 		x.extra["migration/calls.jsonl"] = o.CallLog
 	}
-	vo := o.Verify
-	vo.Config, vo.Image, vo.ImageFormat, vo.PreChecks, vo.Extra, vo.SkipReason = cfg, image, "qcow2", x.pre, x.extra, skip
-	res, err := verify.Run(ctx, vo)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range res.Timings {
-		x.t[k] = v
-	}
-	return &Readiness{VM: name, Readiness: res.Verdict, BundleID: res.BundleID, LedgerSeq: res.LedgerSeq, Checks: res.Checks, Timings: x.t}, nil
+	return &Prepared{VM: v, PreChecks: x.pre, Extra: x.extra, Disks: disks, Config: cfg, Declared: x.declared, SkipReason: skip,
+		Timings: x.t, Converter: x.convInfo}, nil
 }
 
-var allSteps = []string{"source_vm", "cold", "layout", "download", "conversion"}
+var allSteps = []string{"source_vm", "cold", "layout", "download", "conversion", "firmware"}
 
-// prepare runs the migration steps; it returns the converted image and the sandbox config,
-// or "" and the reason the guest cannot be started.
-func (x *vmRun) prepare(ctx context.Context, found bool) (string, *verify.Config, string) {
+// prepare runs the migration steps; it returns the converted disks and the sandbox config,
+// or nil and the reason the guest cannot be started.
+func (x *vmRun) prepare(ctx context.Context, found bool) ([]string, *verify.Config, string) {
 	t := time.Now()
 	invPath := filepath.Join(x.work, "inventory.json")
 	b, _ := json.MarshalIndent(x.vm, "", "  ")
@@ -234,20 +301,20 @@ func (x *vmRun) prepare(ctx context.Context, found bool) (string, *verify.Config
 	case !found:
 		x.add("source_vm", "inventory", verify.Unknown, "no VM of this name on the source", t)
 		x.notRun("the VM was not found", allSteps[1:]...)
-		return "", nil, "the VM was not found on the source"
+		return nil, nil, "the VM was not found on the source"
 	case x.vm.Unreadable != "":
 		x.add("source_vm", "inventory", verify.Unknown, x.vm.Unreadable, t)
 		x.notRun("the VM's configuration is unreadable", allSteps[1:]...)
-		return "", nil, "the VM's configuration is unreadable"
+		return nil, nil, "the VM's configuration is unreadable"
 	}
-	x.add("source_vm", "inventory", verify.OK, fmt.Sprintf("%s, guest %s, %d vCPU, %d MiB, firmware %s, %d disk(s), %d NIC(s)",
-		x.vm.VMX, x.vm.GuestID, x.vm.CPUs, x.vm.MemoryMiB, x.vm.Firmware, len(x.vm.Disks), len(x.vm.NICs)), t)
+	x.add("source_vm", "inventory", verify.OK, fmt.Sprintf("%s, guest %s, %d vCPU, %d MiB, firmware %s%s, %d disk(s), %d NIC(s)",
+		x.vm.VMX, x.vm.GuestID, x.vm.CPUs, x.vm.MemoryMiB, x.vm.Firmware, opt(x.vm.SecureBoot, " (Secure Boot)"), len(x.vm.Disks), len(x.vm.NICs)), t)
 
 	t = time.Now()
 	if x.vm.PowerState != "poweredOff" {
 		x.add("cold", "power_state", verify.Unknown, "the VM is "+x.vm.PowerState+": stage 1 checks powered-off VMs (or clones) only", t)
 		x.notRun("the VM is not powered off", allSteps[2:]...)
-		return "", nil, "the VM is not powered off"
+		return nil, nil, "the VM is not powered off"
 	}
 	x.add("cold", "power_state", verify.OK, "poweredOff", t)
 
@@ -256,7 +323,7 @@ func (x *vmRun) prepare(ctx context.Context, found bool) (string, *verify.Config
 	if why != "" {
 		x.add("layout", "files", verify.Unknown, why, t)
 		x.notRun("unsupported layout", allSteps[3:]...)
-		return "", nil, "unsupported layout: " + why
+		return nil, nil, "unsupported layout: " + why
 	}
 	x.add("layout", "files", verify.OK, fmt.Sprintf("%d files to read, all in %s", len(files), path.Dir(x.vm.VMX)), t)
 
@@ -269,8 +336,8 @@ func (x *vmRun) prepare(ctx context.Context, found bool) (string, *verify.Config
 		downloads = append(downloads, d)
 		if err != nil {
 			x.add("download", "datastore_http", verify.Unknown, err.Error(), t)
-			x.notRun("a download failed", "conversion")
-			return "", nil, "a download failed"
+			x.notRun("a download failed", allSteps[4:]...)
+			return nil, nil, "a download failed"
 		}
 		total += d.Bytes
 	}
@@ -285,27 +352,86 @@ func (x *vmRun) prepare(ctx context.Context, found bool) (string, *verify.Config
 	x.add("download", "datastore_http", verify.OK, fmt.Sprintf("%d files, %d bytes in %.1f s (GET /folder, sha256 in downloads.json)",
 		len(downloads), total, x.t["download"]), t)
 
-	t = time.Now()
-	disk, xmlPath, err := x.convert(ctx, vmx)
-	x.t["conversion"] = time.Since(t).Seconds()
-	if err != nil {
+	return x.convertStep(ctx, vmx)
+}
+
+// convertStep converts the downloaded VM and checks what came out: the guest OS virt-v2v found and the firmware.
+func (x *vmRun) convertStep(ctx context.Context, vmx string) ([]string, *verify.Config, string) {
+	t := time.Now()
+	conv := x.o.Converter
+	if conv == nil {
+		conv = localConverter{o: x.o}
+	}
+	windows := defaultTemplate(x.vm.GuestID) == "windows-basic"
+	out := conv.Convert(ctx, ConvertInput{VMX: vmx, Name: x.name, Windows: windows, ImageDir: x.images})
+	x.t["conversion"] = out.Seconds
+	x.convInfo = out.Info
+	if out.Log != "" {
+		x.extra["migration/virt-v2v.log"] = out.Log
+	}
+	for k, v := range out.Files {
+		x.extra[k] = v
+	}
+	if out.State != "converted" {
 		// virt-v2v ran and refused the guest: not ready for KVM. It could not run at all: not checked.
 		v := verify.Critical
-		if errors.Is(err, errNotRun) {
+		if out.State != "failed" {
 			v = verify.Unknown
 		}
-		x.add("conversion", "virt-v2v", v, err.Error(), t)
-		return "", nil, "the conversion failed"
+		x.add("conversion", "virt-v2v", v, out.Detail, t)
+		x.notRun("the conversion did not finish", "firmware")
+		return nil, nil, "the conversion failed"
 	}
-	cfg, err := x.config(xmlPath)
+	x.extra["migration/converted-domain.xml"] = out.DomainXML
+	cfg, osID, err := x.config(out.DomainXML)
 	if err != nil {
 		x.add("conversion", "virt-v2v", verify.Unknown, "reading the converted domain: "+err.Error(), t)
-		return "", nil, "the converted domain is unreadable"
+		x.notRun("the converted domain is unreadable", "firmware")
+		return nil, nil, "the converted domain is unreadable"
 	}
-	x.add("conversion", "virt-v2v", verify.OK, fmt.Sprintf("%s (%s, %s, %d vCPU, %d MiB, NIC %s) in %.1f s",
-		filepath.Base(disk), cfg.Machine.Arch, cfg.Machine.Firmware, cfg.Machine.VCPUs, cfg.Machine.MemoryMiB, cfg.Machine.MAC, x.t["conversion"]), t)
-	return disk, cfg, ""
+	// A Windows guest needs virtio-win's drivers on its new virtio disk and NIC. The source's guest OS decides
+	// whether they are given; a guest virt-v2v found to be Windows although the source said otherwise was converted
+	// without them and would only show that it cannot boot: not checked (ADR-005 §2).
+	if isWindowsOS(osID) && !out.VirtioWin {
+		x.add("conversion", "virt-v2v", verify.Unknown, fmt.Sprintf("virt-v2v found Windows (%s) but the source's guest OS %q is not Windows, "+
+			"so no virtio-win drivers were given: the converted guest cannot be judged", osID, x.vm.GuestID), t)
+		x.notRun("converted without virtio drivers", "firmware")
+		return nil, nil, "a Windows guest converted without virtio-win"
+	}
+	x.add("conversion", "virt-v2v", verify.OK, fmt.Sprintf("%d disk(s), %s (%s, %s, %d vCPU, %d MiB, NIC %s)%s in %.1f s",
+		len(out.Disks), osID, cfg.Machine.Arch, cfg.Machine.Firmware, cfg.Machine.VCPUs, cfg.Machine.MemoryMiB, cfg.Machine.MAC,
+		opt(out.VirtioWin, ", virtio-win drivers"), out.Seconds), t)
+
+	// UEFI detection: the firmware the source boots with must be the one the converted guest is started with (OVMF
+	// for UEFI), or the sandbox would prove a boot path the VM does not have.
+	t = time.Now()
+	src := strings.ToLower(x.vm.Firmware)
+	if src == "" {
+		src = "bios"
+	}
+	switch {
+	case src != cfg.Machine.Firmware:
+		x.add("firmware", "firmware", verify.Critical, fmt.Sprintf("the source boots with %s, the converted guest with %s", src, cfg.Machine.Firmware), t)
+	case src == "efi" && x.vm.SecureBoot:
+		x.add("firmware", "firmware", verify.OK, "UEFI with Secure Boot on the source; the sandbox boots it with UEFI (OVMF); "+
+			"Secure Boot itself is not checked", t)
+	case src == "efi":
+		x.add("firmware", "firmware", verify.OK, "UEFI on the source and in the sandbox (OVMF)", t)
+	default:
+		x.add("firmware", "firmware", verify.OK, "BIOS on the source and in the sandbox (SeaBIOS)", t)
+	}
+	return out.Disks, cfg, ""
 }
+
+func opt(ok bool, s string) string {
+	if ok {
+		return s
+	}
+	return ""
+}
+
+// isWindowsOS reports whether a libosinfo OS id (virt-v2v's <libosinfo:os id=...>) is Windows.
+func isWindowsOS(id string) bool { return strings.Contains(id, "microsoft.com/win") }
 
 // layout returns the files to download, or why the VM is outside stage 1's scope.
 func (x *vmRun) layout() ([]vsphereread.File, string) {
@@ -337,42 +463,60 @@ func (x *vmRun) layout() ([]vsphereread.File, string) {
 	return out, ""
 }
 
-// convert runs virt-v2v -i vmx locally, to qcow2 with virtio.
-func (x *vmRun) convert(ctx context.Context, vmx string) (disk, domXML string, err error) {
-	timeout := x.o.V2VTimeout
+// localConverter runs virt-v2v -i vmx on this machine, to qcow2 with virtio (the lab tool, gaia migrate-check).
+type localConverter struct{ o Options }
+
+func (c localConverter) Convert(ctx context.Context, in ConvertInput) ConvertOutput {
+	start := time.Now()
+	out := ConvertOutput{Log: filepath.Join(filepath.Dir(in.VMX), "virt-v2v.log")}
+	if c.o.virtioWin != nil {
+		out.Info = map[string]any{"virtio_win": c.o.virtioWin}
+	}
+	disk, xml, err := c.convert(ctx, in, out.Log)
+	out.Seconds = time.Since(start).Seconds()
+	switch {
+	case errors.Is(err, errNotRun):
+		out.State, out.Detail = "not_run", err.Error()
+	case err != nil:
+		out.State, out.Detail = "failed", err.Error()
+	default:
+		out.State, out.Disks, out.DomainXML, out.VirtioWin = "converted", []string{disk}, xml, c.o.VirtioWin != ""
+	}
+	return out
+}
+
+func (c localConverter) convert(ctx context.Context, in ConvertInput, logPath string) (disk, domXML string, err error) {
+	timeout := c.o.V2VTimeout
 	if timeout == 0 {
 		timeout = 30 * time.Minute
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	logPath := filepath.Join(x.work, "virt-v2v.log")
 	lf, err := os.Create(logPath)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("%w: %v", errNotRun, err)
 	}
 	defer lf.Close()
-	x.extra["migration/virt-v2v.log"] = logPath
-	args := []string{"-i", "vmx", vmx, "-o", "local", "-os", x.images, "-of", "qcow2", "-on", x.name}
+	args := []string{"-i", "vmx", in.VMX, "-o", "local", "-os", in.ImageDir, "-of", "qcow2", "-on", in.Name}
 	fmt.Fprintf(lf, "$ virt-v2v %s\n", strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, "virt-v2v", args...)
 	cmd.Env = append(os.Environ(), "LIBGUESTFS_BACKEND=direct")
-	if x.o.VirtioWin != "" {
-		cmd.Env = append(cmd.Env, "VIRTIO_WIN="+x.o.VirtioWin)
-		fmt.Fprintf(lf, "VIRTIO_WIN=%s (sha256 %s)\n", x.o.VirtioWin, x.o.virtioWin.SHA256)
+	if c.o.VirtioWin != "" {
+		cmd.Env = append(cmd.Env, "VIRTIO_WIN="+c.o.VirtioWin)
+		fmt.Fprintf(lf, "VIRTIO_WIN=%s (sha256 %s)\n", c.o.VirtioWin, c.o.virtioWin.SHA256)
 	}
 	cmd.Stdout, cmd.Stderr = lf, lf
 	if err := cmd.Start(); err != nil {
 		return "", "", fmt.Errorf("%w: %v", errNotRun, err)
 	}
 	runErr := cmd.Wait()
-	disk, domXML = filepath.Join(x.images, x.name+"-sda"), filepath.Join(x.images, x.name+".xml")
+	disk, domXML = filepath.Join(in.ImageDir, in.Name+"-sda"), filepath.Join(in.ImageDir, in.Name+".xml")
 	if runErr != nil {
 		return "", "", fmt.Errorf("virt-v2v: %v (%s)", runErr, errorLine(logPath))
 	}
 	if _, err := os.Stat(disk); err != nil {
 		return "", "", fmt.Errorf("virt-v2v finished but %s is missing", filepath.Base(disk))
 	}
-	x.extra["migration/converted-domain.xml"] = domXML
 	return disk, domXML, nil
 }
 
@@ -391,13 +535,19 @@ func errorLine(p string) string {
 	return "last line: " + lines[len(lines)-1]
 }
 
-// config builds the sandbox config from virt-v2v's domain XML and the VM's checks.
-func (x *vmRun) config(domXMLPath string) (*verify.Config, error) {
+// config builds the sandbox config from virt-v2v's domain XML and the VM's checks; it also returns the guest OS
+// virt-v2v found (its libosinfo id).
+func (x *vmRun) config(domXMLPath string) (*verify.Config, string, error) {
 	b, err := os.ReadFile(domXMLPath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	var d struct {
+		Metadata struct {
+			OS struct {
+				ID string `xml:"id,attr"`
+			} `xml:"http://libosinfo.org/xmlns/libvirt/domain/1.0 libosinfo>os"`
+		} `xml:"metadata"`
 		Memory struct {
 			Unit  string `xml:"unit,attr"`
 			Value int64  `xml:",chardata"`
@@ -426,7 +576,7 @@ func (x *vmRun) config(domXMLPath string) (*verify.Config, error) {
 		} `xml:"devices>interface"`
 	}
 	if err := xml.Unmarshal(b, &d); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	m := verify.Machine{Arch: d.OS.Type.Arch, Firmware: "bios", VCPUs: d.VCPU, DiskBus: "virtio", NICModel: "virtio"}
 	if d.OS.Firmware == "efi" || d.OS.Loader != nil {
@@ -454,7 +604,13 @@ func (x *vmRun) config(domXMLPath string) (*verify.Config, error) {
 	}
 	cfg := &verify.Config{VM: x.name, Template: ch.Template, Machine: m, Checks: ch.Checks,
 		BootTimeoutS: ch.BootTimeoutS, ProbeTimeoutS: ch.ProbeTimeoutS}
-	return cfg, resolveConfig(cfg)
+	x.declared = *cfg
+	x.declared.Checks = append([]verify.Check(nil), ch.Checks...)
+	os := d.Metadata.OS.ID
+	if os == "" {
+		os = "an unknown OS"
+	}
+	return cfg, os, resolveConfig(cfg)
 }
 
 // defaultTemplate picks the built-in checks from the source's guest OS identifier

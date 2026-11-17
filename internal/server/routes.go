@@ -846,6 +846,53 @@ func (s *Server) table() []route {
 				return list(s.db.StateChanges(c.r.Context(), c.r.URL.Query().Get("entity"), eid, after, int(n)))
 			}},
 
+		// --- migration checks (T21, migration.go; ADR-003, ADR-005) ---
+		{method: "GET", path: "/api/v1/migration-sources", summary: "Migration sources (vSphere endpoints read with read-only calls)", roles: anyRole,
+			out: []store.MigrationSource{}, h: func(c *call) (int, any, error) { return list(s.db.MigrationSources(c.r.Context())) }},
+		{method: "POST", path: "/api/v1/migration-sources", summary: "Record a migration source; its password goes to secrets/, never to an answer",
+			roles: writers, in: SourceCreate{}, out: store.MigrationSource{}, status: http.StatusCreated,
+			example: `{"name":"matrix-src","url":"https://esxi.example/sdk","username":"root","password":"a password","insecure":true}`, h: s.createSource},
+		{method: "GET", path: "/api/v1/migration-sources/{id}", summary: "One migration source", roles: anyRole, out: store.MigrationSource{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.db.MigrationSource(c.r.Context(), id))
+			}},
+		{method: "DELETE", path: "/api/v1/migration-sources/{id}", summary: "Remove a migration source no check refers to", roles: writers,
+			status: http.StatusNoContent, h: s.deleteSource},
+		{method: "GET", path: "/api/v1/migration-sources/{id}/inventory", summary: "The source's VMs, read now with read-only calls",
+			roles: writers, out: SourceInventory{}, h: s.sourceInventory},
+		{method: "POST", path: "/api/v1/migration-sources/{id}/checks", summary: "Check one VM of the source: download, convert, boot in the sandbox, seal a readiness bundle",
+			roles: writers, in: MigrationCheckRequest{}, out: store.MigrationCheck{}, status: http.StatusCreated, example: `{"vm":"matrix-vm"}`,
+			h: s.queueMigrationCheck},
+		{method: "GET", path: "/api/v1/migration-checks", summary: "Migration checks, newest first", roles: anyRole, out: []store.MigrationCheck{},
+			query: append([]param{{"source_id", "integer", "only this source's"}}, limit...),
+			h: func(c *call) (int, any, error) {
+				sid, err := c.intQuery("source_id", 0, 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				n, err := c.intQuery("limit", 100, 1000)
+				if err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.MigrationChecks(c.r.Context(), sid, int(n)))
+			}},
+		{method: "GET", path: "/api/v1/migration-checks/{id}", summary: "One migration check", roles: anyRole, out: store.MigrationCheck{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.db.MigrationCheck(c.r.Context(), id))
+			}},
+		{method: "GET", path: "/api/v1/migration-checks/{id}/report", summary: "A check's readiness report: its signed bundle, the ledger, the keys, how to verify (tar.gz)",
+			roles: anyRole, auditRead: true, h: s.readinessReport},
+		{method: "GET", path: "/api/v1/converter", summary: "The converter service: its pinned image, the image's versions, virtio-win",
+			roles: anyRole, out: ConverterState{}, h: s.converterInfo},
+
 		// --- audit and state backups ---
 		{method: "GET", path: "/api/v1/audit", summary: "The audit log, oldest first", roles: adminAudit, out: []store.AuditEntry{},
 			query: append([]param{{"after", "integer", "after this seq"}}, limit...),
