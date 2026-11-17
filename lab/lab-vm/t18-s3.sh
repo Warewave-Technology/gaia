@@ -322,7 +322,9 @@ GAIA_S3_SECRET_ACCESS_KEY=$S3_SECRET GAIA_KIT_PASSPHRASE=$(cat "$kitfile") \
 	api repositories add name=main kind=s3 location="$S3_URL/$BUCKET/main" s3_access_key_id="$S3_KEY" s3_ca_file="$ca/ca.crt" |
 	tee "$OUT_DIR/repository.json" | jq -c .
 repo_id=$(jq .id "$OUT_DIR/repository.json")
-api kit status | jq -c .summary
+# exit 1 (WARNING) until a kit is saved off the server; this run does not save one
+api kit status >"$OUT_DIR/kit-status.json" || true
+jq -c .summary "$OUT_DIR/kit-status.json" || cat "$OUT_DIR/kit-status.json"
 grep -c "$S3_SECRET" "$SRV_HOME/data/secrets/repository-main.s3.json" >/dev/null && echo "access key stored in secrets/repository-main.s3.json ($(stat -c %a "$SRV_HOME/data/secrets/repository-main.s3.json"))"
 api policies add name=t18 repository_id="$repo_id" backup_interval_s="$INTERVAL_S" test_interval_s=86400 keep_last="$KEEP_LAST" \
 	keep_daily=0 keep_weekly=0 rpo_target_s=$((2 * INTERVAL_S)) rto_target_s=1800 max_proof_age_s=172800 check_template=linux-basic |
