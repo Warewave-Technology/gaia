@@ -289,10 +289,13 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		rt := &s.routes[i]
 		mux.Handle(rt.method+" "+rt.path, s.serve(rt))
 	}
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, apiError{Error: "no such endpoint: " + r.Method + " " + r.URL.Path, Code: "not_found"})
 	})
-	s.handler = mux
+	mux.Handle("/", uiHandler()) // the web UI (web/dist, T20)
+	// A request a browser sends from another site (Sec-Fetch-Site / Origin) cannot change anything: the session
+	// cookie is SameSite=Strict as well, and the CLI sends neither header.
+	s.handler = http.NewCrossOriginProtection().Handler(mux)
 	return s, nil
 }
 
@@ -498,6 +501,12 @@ func (s *Server) serve(rt *route) http.Handler {
 		c := &call{w: w, r: r, target: r.URL.Path}
 		if rt.roles != nil {
 			token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+			if !ok || token == "" {
+				// The web UI's session cookie (T20); cross-origin requests never reach here (CrossOriginProtection).
+				if ck, err := r.Cookie(sessionCookie); err == nil && ck.Value != "" {
+					token, ok = ck.Value, true
+				}
+			}
 			if !ok || token == "" {
 				writeJSON(w, http.StatusUnauthorized, apiError{Error: "log in first (Authorization: Bearer <token>)", Code: "unauthorized"})
 				return

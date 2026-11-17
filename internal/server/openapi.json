@@ -111,6 +111,37 @@
         ],
         "type": "object"
       },
+      "BundleCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "key_id": {
+            "type": "string"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "files",
+          "key_id",
+          "problems",
+          "verdict"
+        ],
+        "type": "object"
+      },
       "Channel": {
         "additionalProperties": false,
         "properties": {
@@ -817,6 +848,9 @@
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
+          "browser": {
+            "type": "boolean"
+          },
           "password": {
             "type": "string"
           },
@@ -845,7 +879,6 @@
         },
         "required": [
           "expires_at",
-          "token",
           "user"
         ],
         "type": "object"
@@ -988,6 +1021,41 @@
           "failing",
           "state",
           "text"
+        ],
+        "type": "object"
+      },
+      "OverviewView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "ledger": {
+            "$ref": "#/components/schemas/LedgerSummary"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotifySummary"
+          },
+          "recovery_kit": {
+            "$ref": "#/components/schemas/KitSummary"
+          },
+          "vms": {
+            "items": {
+              "$ref": "#/components/schemas/VMOverview"
+            },
+            "type": "array"
+          },
+          "window_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "ledger",
+          "notifications",
+          "recovery_kit",
+          "vms",
+          "window_s"
         ],
         "type": "object"
       },
@@ -1306,6 +1374,34 @@
         },
         "type": "object"
       },
+      "Proven": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "point_id": {
+            "type": "integer"
+          },
+          "point_taken_at": {
+            "type": "string"
+          },
+          "test_finished_at": {
+            "type": "string"
+          },
+          "test_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "point_id",
+          "point_taken_at",
+          "test_finished_at",
+          "test_id"
+        ],
+        "type": "object"
+      },
       "QuarantinedContent": {
         "additionalProperties": false,
         "properties": {
@@ -1413,6 +1509,30 @@
           "reason",
           "repositories",
           "sha256"
+        ],
+        "type": "object"
+      },
+      "ReportHead": {
+        "additionalProperties": false,
+        "properties": {
+          "generated_at": {
+            "type": "string"
+          },
+          "head_seq": {
+            "type": "integer"
+          },
+          "head_sha256": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "generated_at",
+          "head_seq",
+          "head_sha256",
+          "id"
         ],
         "type": "object"
       },
@@ -1618,6 +1738,26 @@
           "fingerprint",
           "key",
           "type"
+        ],
+        "type": "object"
+      },
+      "ServerClock": {
+        "additionalProperties": false,
+        "properties": {
+          "now": {
+            "type": "string"
+          },
+          "offset_s": {
+            "type": "integer"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "now",
+          "offset_s",
+          "zone"
         ],
         "type": "object"
       },
@@ -1840,6 +1980,116 @@
         ],
         "type": "object"
       },
+      "Targets": {
+        "additionalProperties": false,
+        "properties": {
+          "max_proof_age_s": {
+            "type": "integer"
+          },
+          "rpo_target_s": {
+            "type": "integer"
+          },
+          "rto_target_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_proof_age_s",
+          "rpo_target_s",
+          "rto_target_s"
+        ],
+        "type": "object"
+      },
+      "TestView": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "detail": {
+            "description": "any JSON value"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "job_id": {
+            "type": "integer"
+          },
+          "ledger_seq": {
+            "type": "integer"
+          },
+          "point_id": {
+            "type": "integer"
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "screenshots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "detail",
+          "evidence",
+          "finished_at",
+          "id",
+          "job_id",
+          "ledger_seq",
+          "point_id",
+          "proven_rto_s",
+          "reason",
+          "screenshots",
+          "started_at",
+          "verdict",
+          "vm_id"
+        ],
+        "type": "object"
+      },
+      "TimelineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "id",
+          "kind"
+        ],
+        "type": "object"
+      },
       "TrustRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2014,6 +2264,109 @@
         ],
         "type": "object"
       },
+      "VMOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvent"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "proof_age_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "proven": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Proven"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proven_rpo_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "targets": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Targets"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "theoretical_rpo_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "changed_at",
+          "events",
+          "host",
+          "notes",
+          "policy",
+          "proof_age_s",
+          "proven",
+          "proven_rpo_s",
+          "proven_rto_s",
+          "reasons",
+          "status",
+          "targets",
+          "theoretical_rpo_s",
+          "vm",
+          "vm_id"
+        ],
+        "type": "object"
+      },
       "VMPatch": {
         "additionalProperties": false,
         "properties": {
@@ -2095,6 +2448,107 @@
           "theoretical_rpo_s",
           "vm",
           "vm_id"
+        ],
+        "type": "object"
+      },
+      "VMView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "daily_report": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReportHead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "host": {
+            "$ref": "#/components/schemas/Host"
+          },
+          "latest_bundle": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BundleCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ledger": {
+            "$ref": "#/components/schemas/LedgerSummary"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array"
+          },
+          "points_total": {
+            "type": "integer"
+          },
+          "policy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Policy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repository": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Repository"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/VMOverview"
+          },
+          "status_history": {
+            "items": {
+              "$ref": "#/components/schemas/StateChange"
+            },
+            "type": "array"
+          },
+          "tests": {
+            "items": {
+              "$ref": "#/components/schemas/TestView"
+            },
+            "type": "array"
+          },
+          "vm": {
+            "$ref": "#/components/schemas/VM"
+          },
+          "window_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "daily_report",
+          "host",
+          "latest_bundle",
+          "ledger",
+          "points",
+          "points_total",
+          "policy",
+          "repository",
+          "status",
+          "status_history",
+          "tests",
+          "vm",
+          "window_s"
         ],
         "type": "object"
       },
@@ -2711,6 +3165,74 @@
         ]
       }
     },
+    "/api/v1/evidence-export": {
+      "get": {
+        "operationId": "get_evidence_export",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "The auditor's export: every bundle, the ledger, the keys, the newest daily report, the specification (tar.gz)",
+        "tags": [
+          "evidence-export"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/evidence/{id}": {
       "get": {
         "operationId": "get_evidence_by_id",
@@ -2891,6 +3413,182 @@
         ],
         "x-gaia-roles": [
           "admin",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/evidence/{id}/files/{name}": {
+      "get": {
+        "operationId": "get_evidence_by_id_files_by_name",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One file of an evidence bundle (a screenshot, a log), as stored",
+        "tags": [
+          "evidence"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/evidence/{id}/verify": {
+      "get": {
+        "operationId": "get_evidence_by_id_verify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BundleCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Verify one bundle now against the installation's key (evidence spec §8.4)",
+        "tags": [
+          "evidence"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
           "auditor"
         ]
       }
@@ -4118,7 +4816,7 @@
           }
         },
         "security": [],
-        "summary": "Log in; returns a bearer token",
+        "summary": "Log in; returns a bearer token, or sets the session cookie for a browser",
         "tags": [
           "session"
         ],
@@ -7887,6 +8585,159 @@
         "summary": "One verification, with the points it found damaged",
         "tags": [
           "verifications"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/overview": {
+      "get": {
+        "operationId": "get_views_overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The overview screen: every VM's status, proven point, targets and recent history, worst first",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/vms/{id}": {
+      "get": {
+        "operationId": "get_views_vms_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One VM's page: status, history, tests, points and evidence",
+        "tags": [
+          "views"
         ],
         "x-gaia-roles": [
           "admin",

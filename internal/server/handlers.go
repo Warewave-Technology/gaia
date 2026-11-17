@@ -47,6 +47,16 @@ func (s *Server) login(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	c.detail = fmt.Sprintf("logged in (session %d)", sess.ID)
+	if in.Browser {
+		exp, err := time.Parse(time.RFC3339Nano, sess.ExpiresAt)
+		if err != nil {
+			return 0, nil, err
+		}
+		http.SetCookie(c.w, &http.Cookie{Name: sessionCookie, Value: token, Path: "/", Expires: exp, HttpOnly: true, Secure: true,
+			SameSite: http.SameSiteStrictMode})
+		c.detail += " in a browser"
+		return http.StatusOK, LoginResponse{ExpiresAt: sess.ExpiresAt, User: u}, nil
+	}
 	return http.StatusOK, LoginResponse{Token: token, ExpiresAt: sess.ExpiresAt, User: u}, nil
 }
 

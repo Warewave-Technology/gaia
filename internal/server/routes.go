@@ -47,11 +47,14 @@ func (rt *route) audited() bool { return rt.method != http.MethodGet || rt.audit
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	// Browser: the session goes into an HttpOnly cookie (__Host-gaia_session) and not into the answer, so the web
+	// UI's scripts never hold it (T20).
+	Browser bool `json:"browser,omitempty"`
 }
 
 // LoginResponse carries the bearer token.
 type LoginResponse struct {
-	Token     string     `json:"token"`
+	Token     string     `json:"token,omitempty"` // empty for a browser login (the cookie carries it)
 	ExpiresAt string     `json:"expires_at"`
 	User      store.User `json:"user"`
 }
@@ -188,11 +191,12 @@ func (s *Server) table() []route {
 	vmFilter := append([]param{{"vm_id", "integer", "only this VM's"}}, limit...)
 	return []route{
 		// --- session ---
-		{method: "POST", path: "/api/v1/login", summary: "Log in; returns a bearer token", roles: public, in: LoginRequest{}, out: LoginResponse{},
+		{method: "POST", path: "/api/v1/login", summary: "Log in; returns a bearer token, or sets the session cookie for a browser", roles: public, in: LoginRequest{}, out: LoginResponse{},
 			example: `{"username":"nobody","password":"not a valid password"}`, h: s.login},
 		{method: "POST", path: "/api/v1/logout", summary: "End this session", roles: anyRole, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) {
 				c.detail = "logged out"
+				http.SetCookie(c.w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 				return http.StatusNoContent, nil, s.db.DeleteSession(c.r.Context(), c.session.ID)
 			}},
 		{method: "GET", path: "/api/v1/me", summary: "The logged-in user", roles: anyRole, out: store.User{},
@@ -808,6 +812,17 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.Evidence(c.r.Context(), id))
 			}},
+		{method: "GET", path: "/api/v1/evidence/{id}/files/{name}", summary: "One file of an evidence bundle (a screenshot, a log), as stored",
+			roles: anyRole, h: s.evidenceFile},
+		{method: "GET", path: "/api/v1/evidence/{id}/verify", summary: "Verify one bundle now against the installation's key (evidence spec §8.4)",
+			roles: anyRole, out: BundleCheck{}, h: s.verifyBundle},
+		{method: "GET", path: "/api/v1/evidence-export", summary: "The auditor's export: every bundle, the ledger, the keys, the newest daily report, the specification (tar.gz)",
+			roles: adminAudit, auditRead: true, h: s.auditExport},
+		// --- views for the web UI (T20): one request per screen ---
+		{method: "GET", path: "/api/v1/views/overview", summary: "The overview screen: every VM's status, proven point, targets and recent history, worst first",
+			roles: anyRole, out: OverviewView{}, h: s.overviewView},
+		{method: "GET", path: "/api/v1/views/vms/{id}", summary: "One VM's page: status, history, tests, points and evidence",
+			roles: anyRole, out: VMView{}, h: s.vmView},
 		{method: "GET", path: "/api/v1/evidence/{id}/export", summary: "Export a bundle with the ledger and the trust anchor (tar.gz, ADR-006)",
 			roles: adminAudit, auditRead: true, h: s.exportEvidence},
 		{method: "GET", path: "/api/v1/state-changes", summary: "Recorded state changes, oldest first", roles: anyRole, out: []store.StateChange{},

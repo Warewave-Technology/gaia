@@ -200,7 +200,7 @@ func (f *fixture) seed() {
 	}
 	f.ids = map[string]int64{"users": f.userIDs[store.RoleAuditor], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
 		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID, "notification-channels": ch.ID,
-		"daily-reports": dr.ID}
+		"daily-reports": dr.ID, "views": v.ID}
 }
 
 func (f *fixture) path(rt route) string {
