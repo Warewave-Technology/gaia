@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "generated_at": "2026-11-17T18:59:15.042105816Z",
+    "reason": "schedule: daily at 07:00",
+    "head_seq": 123,
+    "head_sha256": "01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0",
+    "ledger_head": {
+      "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:59:15.042105816Z\",\"key_id\":\"2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909\",\"seq\":123,\"entry_sha256\":\"01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0\"}",
+      "sig": "MsDFTPzOrrMwy0Tm0jTg5hG5ZIpsdt9CNFV1I+xr9EsRzkGvlFndeKsBcGoGCFgtAByyb/GNR1bTFZXHH+a5CQ=="
+    },
+    "report": {
+      "format": "gaia-daily-report",
+      "format_version": 1,
+      "id": 1,
+      "installation": "gaia-t17-b",
+      "version": "4a971ea4efdc",
+      "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+      "generated_at": "2026-11-17T18:59:15.042105816Z",
+      "reason": "schedule: daily at 07:00",
+      "summary": {
+        "OK": 1
+      },
+      "vms": [
+        {
+          "vm": "gaia-t17-web",
+          "status": "OK",
+          "since": "2026-11-17T15:30:39.915461476Z",
+          "reason": "point 245 is proven by test 123: proven RPO 9m22s \u003c= 20m0s, proven RTO 49s \u003c= 10m0s, proof age 7m45s \u003c= 30m0s",
+          "theoretical_rpo_s": 261.791697949,
+          "proven_rpo_s": 561.680290325,
+          "proven_rto_s": 48.636793714999996,
+          "proof_age_s": 464.654782099
+        }
+      ],
+      "ledger_check": {
+        "id": 1,
+        "checked_at": "2026-11-17T18:59:15.038561083Z",
+        "reason": "daily report",
+        "verdict": "OK",
+        "entries": 123,
+        "head_seq": 123,
+        "head_sha256": "01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0",
+        "problems": []
+      },
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:59:15.042105816Z\",\"key_id\":\"2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909\",\"seq\":123,\"entry_sha256\":\"01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0\"}",
+        "sig": "MsDFTPzOrrMwy0Tm0jTg5hG5ZIpsdt9CNFV1I+xr9EsRzkGvlFndeKsBcGoGCFgtAByyb/GNR1bTFZXHH+a5CQ=="
+      },
+      "recovery_kit": {
+        "state": "confirmed",
+        "generation": 2,
+        "text": "recovery kit 2 was saved off the server on 2026-11-16T22:47:43.781926976Z by admin"
+      },
+      "notifications": {
+        "state": "WARNING",
+        "channels": 0,
+        "enabled": 0,
+        "text": "no notification channel is enabled: nobody is told when a VM's status changes",
+        "failing": []
+      },
+      "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+      "problems": []
+    }
+  }
+]

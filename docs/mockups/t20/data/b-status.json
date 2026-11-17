@@ -1,0 +1,20 @@
+[
+  {
+    "vm_id": 1,
+    "vm": "gaia-t17-web",
+    "changed_at": "2026-11-17T15:30:39.915461476Z",
+    "status": "OK",
+    "theoretical_rpo_s": 109.784891076,
+    "proven_rpo_s": 409.904848347,
+    "proven_rto_s": 37.177449297,
+    "proof_age_s": 333.462155348,
+    "reasons": [
+      {
+        "status": "OK",
+        "rule": "proven",
+        "text": "point 249 is proven by test 125: proven RPO 6m50s \u003c= 20m0s, proven RTO 37s \u003c= 10m0s, proof age 5m33s \u003c= 30m0s"
+      }
+    ],
+    "notes": []
+  }
+]

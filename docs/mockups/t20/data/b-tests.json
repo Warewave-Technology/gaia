@@ -1,0 +1,997 @@
+[
+  {
+    "id": 125,
+    "vm_id": 1,
+    "point_id": 249,
+    "job_id": 374,
+    "verdict": "OK",
+    "proven_rto_s": 37.177449297,
+    "started_at": "2026-11-17T19:10:14.648658176Z",
+    "finished_at": "2026-11-17T19:11:17.189183886Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 37.2 s = restore 26.1 s + ready 11.0 s",
+    "bundle_id": "gaia-t17-web-20261117T191041Z-b09261",
+    "detail": {
+      "point": 249,
+      "test": 125,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 11.779562403
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 14.357649819
+        }
+      ],
+      "restore_s": 26.141638222,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.035811075,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.035811075,
+        "image_hash": 7.79232925,
+        "proven_rto": 37.177449297,
+        "ready": 11.035811075,
+        "restore": 26.141638222,
+        "sandbox_setup": 1.976174904,
+        "shutdown": 2.001929448,
+        "total": 35.732646127
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T191041Z-b09261",
+      "ledger_seq": 125
+    }
+  },
+  {
+    "id": 124,
+    "vm_id": 1,
+    "point_id": 247,
+    "job_id": 371,
+    "verdict": "OK",
+    "proven_rto_s": 28.479204024,
+    "started_at": "2026-11-17T19:00:14.654337883Z",
+    "finished_at": "2026-11-17T19:01:04.636381666Z",
+    "reason": "every check passed (boot 12.0 s); proven RTO 28.5 s = restore 16.4 s + ready 12.0 s",
+    "bundle_id": "gaia-t17-web-20261117T190031Z-1be4a8",
+    "detail": {
+      "point": 247,
+      "test": 124,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.293017594
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 10.139490953
+        }
+      ],
+      "restore_s": 16.441960469,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 12.037243555,
+          "attempts": 13,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 12.037243555,
+        "image_hash": 5.553609858,
+        "proven_rto": 28.479204024,
+        "ready": 12.037243555,
+        "restore": 16.441960469,
+        "sandbox_setup": 2.027602512,
+        "shutdown": 2.002443723,
+        "total": 32.811899922
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T190031Z-1be4a8",
+      "ledger_seq": 124
+    }
+  },
+  {
+    "id": 123,
+    "vm_id": 1,
+    "point_id": 245,
+    "job_id": 368,
+    "verdict": "OK",
+    "proven_rto_s": 48.636793714999996,
+    "started_at": "2026-11-17T18:50:07.140871757Z",
+    "finished_at": "2026-11-17T18:51:30.414990947Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 48.6 s = restore 37.6 s + ready 11.0 s",
+    "bundle_id": "gaia-t17-web-20261117T185045Z-61ba78",
+    "detail": {
+      "point": 245,
+      "test": 123,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 18.988423699
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 18.609649471
+        }
+      ],
+      "restore_s": 37.603000797,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.033792918,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.033792918,
+        "image_hash": 16.388615189,
+        "proven_rto": 48.636793714999996,
+        "ready": 11.033792918,
+        "restore": 37.603000797,
+        "sandbox_setup": 2.275698691,
+        "shutdown": 3.002999292,
+        "total": 44.953008422
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T185045Z-61ba78",
+      "ledger_seq": 123
+    }
+  },
+  {
+    "id": 122,
+    "vm_id": 1,
+    "point_id": 243,
+    "job_id": 365,
+    "verdict": "OK",
+    "proven_rto_s": 29.493146591,
+    "started_at": "2026-11-17T18:40:07.104094256Z",
+    "finished_at": "2026-11-17T18:40:54.201704958Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 29.5 s = restore 18.4 s + ready 11.0 s",
+    "bundle_id": "gaia-t17-web-20261117T184025Z-180712",
+    "detail": {
+      "point": 243,
+      "test": 122,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.405987939
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 12.036223652
+        }
+      ],
+      "restore_s": 18.447800172,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.045346419,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.045346419,
+        "image_hash": 5.938021482,
+        "proven_rto": 29.493146591,
+        "ready": 11.045346419,
+        "restore": 18.447800172,
+        "sandbox_setup": 1.829163802,
+        "shutdown": 2.003034468,
+        "total": 28.026037235
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T184025Z-180712",
+      "ledger_seq": 122
+    }
+  },
+  {
+    "id": 121,
+    "vm_id": 1,
+    "point_id": 241,
+    "job_id": 362,
+    "verdict": "OK",
+    "proven_rto_s": 42.373691509000004,
+    "started_at": "2026-11-17T18:30:07.097692046Z",
+    "finished_at": "2026-11-17T18:31:11.627780851Z",
+    "reason": "every check passed (boot 12.0 s); proven RTO 42.4 s = restore 30.3 s + ready 12.0 s",
+    "bundle_id": "gaia-t17-web-20261117T183037Z-ce55fa",
+    "detail": {
+      "point": 241,
+      "test": 121,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 11.899301219
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 18.431067318
+        }
+      ],
+      "restore_s": 30.335416723,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 12.038274786,
+          "attempts": 13,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 12.038274786,
+        "image_hash": 10.493059883,
+        "proven_rto": 42.373691509000004,
+        "ready": 12.038274786,
+        "restore": 30.335416723,
+        "sandbox_setup": 1.9359014380000001,
+        "shutdown": 2.005621965,
+        "total": 33.566434877
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T183037Z-ce55fa",
+      "ledger_seq": 121
+    }
+  },
+  {
+    "id": 120,
+    "vm_id": 1,
+    "point_id": 239,
+    "job_id": 359,
+    "verdict": "OK",
+    "proven_rto_s": 23.153846312,
+    "started_at": "2026-11-17T18:20:07.101850698Z",
+    "finished_at": "2026-11-17T18:20:46.889854721Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 23.2 s = restore 12.1 s + ready 11.0 s",
+    "bundle_id": "gaia-t17-web-20261117T182019Z-5dcb14",
+    "detail": {
+      "point": 239,
+      "test": 120,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.200996411
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 5.91098035
+        }
+      ],
+      "restore_s": 12.116579163,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.037267149,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.037267149,
+        "image_hash": 4.712834888,
+        "proven_rto": 23.153846312,
+        "ready": 11.037267149,
+        "restore": 12.116579163,
+        "sandbox_setup": 1.767235849,
+        "shutdown": 2.086367309,
+        "total": 27.03953389
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T182019Z-5dcb14",
+      "ledger_seq": 120
+    }
+  },
+  {
+    "id": 119,
+    "vm_id": 1,
+    "point_id": 237,
+    "job_id": 356,
+    "verdict": "OK",
+    "proven_rto_s": 24.916897211,
+    "started_at": "2026-11-17T18:10:07.102809865Z",
+    "finished_at": "2026-11-17T18:10:49.48630182Z",
+    "reason": "every check passed (boot 12.0 s); proven RTO 24.9 s = restore 12.9 s + ready 12.0 s",
+    "bundle_id": "gaia-t17-web-20261117T181020Z-6a4359",
+    "detail": {
+      "point": 237,
+      "test": 119,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.36416568
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 6.506876566
+        }
+      ],
+      "restore_s": 12.876198052,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 12.040699159,
+          "attempts": 13,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 12.040699159,
+        "image_hash": 4.915628381,
+        "proven_rto": 24.916897211,
+        "ready": 12.040699159,
+        "restore": 12.876198052,
+        "sandbox_setup": 2.012212205,
+        "shutdown": 3.065361788,
+        "total": 28.804918305
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T181020Z-6a4359",
+      "ledger_seq": 119
+    }
+  },
+  {
+    "id": 118,
+    "vm_id": 1,
+    "point_id": 235,
+    "job_id": 353,
+    "verdict": "OK",
+    "proven_rto_s": 46.114835846000005,
+    "started_at": "2026-11-17T18:00:07.145204034Z",
+    "finished_at": "2026-11-17T18:01:20.711223084Z",
+    "reason": "every check passed (boot 14.0 s); proven RTO 46.1 s = restore 32.1 s + ready 14.0 s",
+    "bundle_id": "gaia-t17-web-20261117T180039Z-fadf71",
+    "detail": {
+      "point": 235,
+      "test": 118,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 15.714531382
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 16.345232933
+        }
+      ],
+      "restore_s": 32.065400969,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 14.049434877,
+          "attempts": 15,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 14.049434877,
+        "image_hash": 8.756120186,
+        "proven_rto": 46.114835846000005,
+        "ready": 14.049434877,
+        "restore": 32.065400969,
+        "sandbox_setup": 2.276099629,
+        "shutdown": 2.002224959,
+        "total": 40.761761222
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T180039Z-fadf71",
+      "ledger_seq": 118
+    }
+  },
+  {
+    "id": 117,
+    "vm_id": 1,
+    "point_id": 233,
+    "job_id": 350,
+    "verdict": "OK",
+    "proven_rto_s": 47.117377575999996,
+    "started_at": "2026-11-17T17:50:07.118024894Z",
+    "finished_at": "2026-11-17T17:51:20.380956219Z",
+    "reason": "every check passed (boot 12.1 s); proven RTO 47.1 s = restore 35.1 s + ready 12.1 s",
+    "bundle_id": "gaia-t17-web-20261117T175042Z-f2a40d",
+    "detail": {
+      "point": 233,
+      "test": 117,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 18.223338431
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 16.834852457
+        }
+      ],
+      "restore_s": 35.063178697,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 12.054198879,
+          "attempts": 13,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 12.054198879,
+        "image_hash": 8.741913811,
+        "proven_rto": 47.117377575999996,
+        "ready": 12.054198879,
+        "restore": 35.063178697,
+        "sandbox_setup": 2.151904507,
+        "shutdown": 3.071085675,
+        "total": 37.536066647
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T175042Z-f2a40d",
+      "ledger_seq": 117
+    }
+  },
+  {
+    "id": 116,
+    "vm_id": 1,
+    "point_id": 231,
+    "job_id": 347,
+    "verdict": "OK",
+    "proven_rto_s": 46.095078326,
+    "started_at": "2026-11-17T17:40:07.106197514Z",
+    "finished_at": "2026-11-17T17:41:15.077998522Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 46.1 s = restore 35.1 s + ready 11.0 s",
+    "bundle_id": "gaia-t17-web-20261117T174042Z-150e1d",
+    "detail": {
+      "point": 231,
+      "test": 116,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 19.152784529
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 15.89405557
+        }
+      ],
+      "restore_s": 35.052415782,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.042662544,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.042662544,
+        "image_hash": 9.284799894,
+        "proven_rto": 46.095078326,
+        "ready": 11.042662544,
+        "restore": 35.052415782,
+        "sandbox_setup": 2.301152262,
+        "shutdown": 3.002570104,
+        "total": 32.295678039
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T174042Z-150e1d",
+      "ledger_seq": 116
+    }
+  },
+  {
+    "id": 115,
+    "vm_id": 1,
+    "point_id": 229,
+    "job_id": 344,
+    "verdict": "OK",
+    "proven_rto_s": 25.660258973,
+    "started_at": "2026-11-17T17:30:07.106255186Z",
+    "finished_at": "2026-11-17T17:30:49.949528477Z",
+    "reason": "every check passed (boot 13.0 s); proven RTO 25.7 s = restore 12.6 s + ready 13.0 s",
+    "bundle_id": "gaia-t17-web-20261117T173020Z-5828e0",
+    "detail": {
+      "point": 229,
+      "test": 115,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.460657694
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 6.149164693
+        }
+      ],
+      "restore_s": 12.614868014,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 13.045390959,
+          "attempts": 14,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 13.045390959,
+        "image_hash": 5.522314382,
+        "proven_rto": 25.660258973,
+        "ready": 13.045390959,
+        "restore": 12.614868014,
+        "sandbox_setup": 2.253388387,
+        "shutdown": 2.00281,
+        "total": 29.547219618
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T173020Z-5828e0",
+      "ledger_seq": 115
+    }
+  },
+  {
+    "id": 114,
+    "vm_id": 1,
+    "point_id": 227,
+    "job_id": 341,
+    "verdict": "OK",
+    "proven_rto_s": 22.207718097,
+    "started_at": "2026-11-17T17:20:07.109477041Z",
+    "finished_at": "2026-11-17T17:20:45.037219438Z",
+    "reason": "every check passed (boot 10.0 s); proven RTO 22.2 s = restore 12.2 s + ready 10.0 s",
+    "bundle_id": "gaia-t17-web-20261117T172019Z-f4326f",
+    "detail": {
+      "point": 227,
+      "test": 114,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 6.308438227
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 5.8542690010000005
+        }
+      ],
+      "restore_s": 12.167796123,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 10.039921974,
+          "attempts": 11,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t17-web login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 10.039921974,
+        "image_hash": 4.511029827,
+        "proven_rto": 22.207718097,
+        "ready": 10.039921974,
+        "restore": 12.167796123,
+        "sandbox_setup": 1.578465738,
+        "shutdown": 3.107988699,
+        "total": 25.162798498
+      },
+      "errors": [],
+      "bundle": "gaia-t17-web-20261117T172019Z-f4326f",
+      "ledger_seq": 114
+    }
+  },
+  {
+    "id": 102,
+    "vm_id": 1,
+    "point_id": 203,
+    "job_id": 305,
+    "verdict": "UNKNOWN",
+    "proven_rto_s": null,
+    "started_at": "2026-11-17T15:19:52.666095934Z",
+    "finished_at": "2026-11-17T15:20:17.1904683Z",
+    "reason": "not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": EOF",
+    "bundle_id": "",
+    "detail": {
+      "point": 203,
+      "test": 102,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 1024,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "",
+        "mac": "52:54:00:0b:ee:5b"
+      },
+      "mac_generated": true,
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 4294967296,
+          "sha256": "",
+          "seconds": 7.116932683
+        },
+        {
+          "target": "vdb",
+          "bytes": 1073741824,
+          "sha256": "",
+          "seconds": 14.064829221
+        }
+      ],
+      "restore_s": 21.185819885,
+      "verdict": "UNKNOWN",
+      "checks": [],
+      "timings_s": {},
+      "errors": [],
+      "bundle": "",
+      "ledger_seq": 0
+    }
+  }
+]

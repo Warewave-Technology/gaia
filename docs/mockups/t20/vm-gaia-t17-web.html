@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gaia-t17-web · Gaia</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">Gaia</a>
+  <span class="install">gaia-t17-b</span>
+  <nav aria-label="Main"><a href="index.html">Status</a><a href="#">Evidence export</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
+  <span class="who">admin <span class="role">admin</span></span>
+</header>
+<p class="mock">Mock-up for T20, step 1. Static, made from real lab records by <code>docs/mockups/t20/make.py</code>;
+buttons and links other than the VM name do nothing yet.</p>
+<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Status</a> / gaia-t17-web</nav>
+<section class="vmhead s-ok">
+  <div class="title"><h1>gaia-t17-web</h1><span class="badge s-ok"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="since">since 2026-11-17 15:30:39 UTC</span></div>
+  <p class="answer">You can return to <strong>point 249</strong>, taken 19:10:00 UTC.
+  Its restore was tested at 19:11:17: restored in 26 s, booted to a login prompt in
+  11 s, 37 s in all.</p>
+  <dl class="figs">
+    <div><dt>Proven RPO</dt><dd><span class="num">6 min 50 s</span><span class="target">target 20 min</span></dd></div>
+    <div><dt>Proven RTO</dt><dd><span class="num">37 s</span><span class="target">target 10 min</span></dd></div>
+    <div><dt>Proof age</dt><dd><span class="num">5 min 33 s</span><span class="target">target 30 min</span></dd></div>
+    <div><dt>Theoretical RPO</dt><dd><span class="num">1 min 50 s</span><span class="target">target 20 min</span></dd></div>
+  </dl>
+  <p class="meta">Policy <strong>t17</strong>: back up every 5 min, test a restore every
+  10 min, keep the last 8 points. Repository <strong>main</strong>
+  (filesystem, <code>/srv/gaia/main</code>). Host <strong>gaia-lab</strong> (192.168.1.30).
+  As of 2026-11-17 19:16:50 UTC.</p>
+  <p class="actions"><a class="button" href="#">Back up now</a> <a class="button" href="#">Test a restore now</a>
+  <a class="button quiet" href="#">Export evidence for an auditor</a></p>
+</section>
+
+<section>
+  <h2>Status history</h2>
+  <ol class="timeline">
+<li class="s-ok">
+  <time datetime="2026-11-17T15:30:39.915510336Z">2026-11-17 15:30:39</time>
+  <span class="change"><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span><span class="arrow" aria-label="to">→</span><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></span>
+  <span class="lasted">since then (3 h 46 min)</span>
+  <p>point 205 is proven by test 103: proven RPO 50s &lt;= 20m0s, proven RTO 22s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p>
+</li>
+<li class="s-warning">
+  <time datetime="2026-11-17T15:29:48.435201723Z">2026-11-17 15:29:48</time>
+  <span class="change"><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="arrow" aria-label="to">→</span><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span></span>
+  <span class="lasted">for 51 s</span>
+  <p>the newest proven point (201, test 101) is 20m10s old, over the RPO target 20m0s</p>
+</li>
+<li class="s-ok">
+  <time datetime="2026-11-16T22:29:48.25903051Z">2026-11-16 22:29:48</time>
+  <span class="change"><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><span class="arrow" aria-label="to">→</span><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></span>
+  <span class="lasted">for 17 h</span>
+  <p>point 1 is proven by test 1: proven RPO 45s &lt;= 20m0s, proven RTO 14s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p>
+</li>
+<li class="s-unknown">
+  <time datetime="2026-11-16T22:28:53.310153625Z">2026-11-16 22:28:53</time>
+  <span class="change"><span class="new">new VM</span><span class="arrow" aria-label="to">→</span><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span></span>
+  <span class="lasted">for 55 s</span>
+  <p>there is no backup point that passed its post-backup check</p>
+</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Latest restore test: test 125 of point 249</h2>
+  <div class="test">
+    <figure><img src="img/b-test125-boot.png" width="720" height="400" alt="Console of the restored VM when the boot check passed: the login prompt"><figcaption>When the boot check passed (11 s)</figcaption></figure>
+    <figure><img src="img/b-test125-end.png" width="720" height="400" alt="Console of the restored VM: Debian GNU/Linux 12 gaia-t17-web tty1, gaia-t17-web login:"><figcaption>At the end of the test</figcaption></figure>
+  </div>
+  <table class="checks"><caption class="visually-hidden">Checks of test 125</caption>
+    <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Took</th><th scope="col">What was seen</th></tr></thead>
+    <tbody><tr><td>boot</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">11 s</td><td>serial console matched &quot;(?m)login: *$&quot;: &quot;gaia-t17-web login:&quot;</td></tr><tr><td>image_unchanged_vda</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">—</td><td>sha256 before and after are equal</td></tr><tr><td>image_unchanged_vdb</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">—</td><td>sha256 before and after are equal</td></tr></tbody>
+  </table>
+  <p class="evidence">Evidence bundle <code>gaia-t17-web-20261117T191041Z-b09261</code>, ledger entry 125:
+  <span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> manifest signed by evidence key <code title="2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909">2695ee2e41e8978c…</code>,
+  all 10 files match.</p>
+</section>
+
+<section>
+  <h2>Restore tests</h2>
+  <p class="intro">The newest 12, and earlier ones that did not pass. A test that could not run proves nothing and does not count.</p>
+  <table class="tests">
+    <thead><tr><th scope="col">Test</th><th scope="col">Point</th><th scope="col">Result</th><th scope="col">Proven RTO</th>
+    <th scope="col">Finished (UTC)</th><th scope="col">Evidence</th><th scope="col">Detail</th></tr></thead>
+    <tbody><tr class="s-ok"><td class="num">125</td><td class="num">249</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">37 s</td>
+<td>2026-11-17 19:11:17</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> signature verified when this page was made</td><td class="reason">every check passed (boot 11.0 s); proven RTO 37.2 s = restore 26.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">124</td><td class="num">247</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">28 s</td>
+<td>2026-11-17 19:01:04</td><td><span class="pending">sealed (ledger entry 124), not checked since; next check with the 07:00 report</span></td><td class="reason">every check passed (boot 12.0 s); proven RTO 28.5 s = restore 16.4 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">123</td><td class="num">245</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">49 s</td>
+<td>2026-11-17 18:51:30</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 48.6 s = restore 37.6 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">122</td><td class="num">243</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">29 s</td>
+<td>2026-11-17 18:40:54</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 29.5 s = restore 18.4 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">121</td><td class="num">241</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">42 s</td>
+<td>2026-11-17 18:31:11</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.0 s); proven RTO 42.4 s = restore 30.3 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">120</td><td class="num">239</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">23 s</td>
+<td>2026-11-17 18:20:46</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 23.2 s = restore 12.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">119</td><td class="num">237</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">25 s</td>
+<td>2026-11-17 18:10:49</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.0 s); proven RTO 24.9 s = restore 12.9 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">118</td><td class="num">235</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">46 s</td>
+<td>2026-11-17 18:01:20</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 14.0 s); proven RTO 46.1 s = restore 32.1 s + ready 14.0 s</td></tr><tr class="s-ok"><td class="num">117</td><td class="num">233</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">47 s</td>
+<td>2026-11-17 17:51:20</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.1 s); proven RTO 47.1 s = restore 35.1 s + ready 12.1 s</td></tr><tr class="s-ok"><td class="num">116</td><td class="num">231</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">46 s</td>
+<td>2026-11-17 17:41:15</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 46.1 s = restore 35.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">115</td><td class="num">229</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">26 s</td>
+<td>2026-11-17 17:30:49</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 13.0 s); proven RTO 25.7 s = restore 12.6 s + ready 13.0 s</td></tr><tr class="s-ok"><td class="num">114</td><td class="num">227</td>
+<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">22 s</td>
+<td>2026-11-17 17:20:45</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 10.0 s); proven RTO 22.2 s = restore 12.2 s + ready 10.0 s</td></tr><tr class="s-unknown"><td class="num">102</td><td class="num">203</td>
+<td><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span></td><td class="num">—</td>
+<td>2026-11-17 15:20:17</td><td><span class="none">no bundle (the test did not run)</span></td><td class="reason">not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: EOF</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Points</h2>
+  <p class="intro">The 8 points kept now. 242 earlier points were removed by retention; their records stay.</p>
+  <table class="points">
+    <thead><tr><th scope="col">Point</th><th scope="col">Taken (UTC)</th><th scope="col">Kind</th><th scope="col">Size</th>
+    <th scope="col">Post-backup check</th><th scope="col">Restore tested</th></tr></thead>
+    <tbody><tr><td class="num">250</td><td>2026-11-17 19:15:00</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="none">not tested</span></td></tr><tr><td class="num">249</td><td>2026-11-17 19:10:00</td><td>incremental</td>
+<td class="num">21 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td>test 125</td></tr><tr><td class="num">248</td><td>2026-11-17 19:05:00</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="none">not tested</span></td></tr><tr><td class="num">247</td><td>2026-11-17 19:00:00</td><td>incremental</td>
+<td class="num">19 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td>test 124</td></tr><tr><td class="num">246</td><td>2026-11-17 18:54:53</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="none">not tested</span></td></tr><tr><td class="num">245</td><td>2026-11-17 18:49:53</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td>test 123</td></tr><tr><td class="num">244</td><td>2026-11-17 18:44:53</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="none">not tested</span></td></tr><tr><td class="num">243</td><td>2026-11-17 18:39:53</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
+<td>test 122</td></tr></tbody>
+  </table>
+</section>
+</main>
+</body>
+</html>

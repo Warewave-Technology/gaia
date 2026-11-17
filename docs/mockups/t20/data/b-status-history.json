@@ -1,0 +1,42 @@
+[
+  {
+    "seq": 6,
+    "at": "2026-11-16T22:28:53.310153625Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "",
+    "to": "UNKNOWN",
+    "reason": "there is no backup point that passed its post-backup check",
+    "actor": "system"
+  },
+  {
+    "seq": 20,
+    "at": "2026-11-16T22:29:48.25903051Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "UNKNOWN",
+    "to": "OK",
+    "reason": "point 1 is proven by test 1: proven RPO 45s \u003c= 20m0s, proven RTO 14s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+    "actor": "system"
+  },
+  {
+    "seq": 2355,
+    "at": "2026-11-17T15:29:48.435201723Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "OK",
+    "to": "WARNING",
+    "reason": "the newest proven point (201, test 101) is 20m10s old, over the RPO target 20m0s",
+    "actor": "system"
+  },
+  {
+    "seq": 2368,
+    "at": "2026-11-17T15:30:39.915510336Z",
+    "entity": "vm_status",
+    "entity_id": 1,
+    "from": "WARNING",
+    "to": "OK",
+    "reason": "point 205 is proven by test 103: proven RPO 50s \u003c= 20m0s, proven RTO 22s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+    "actor": "system"
+  }
+]

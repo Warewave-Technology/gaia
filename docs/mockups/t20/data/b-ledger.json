@@ -1,0 +1,25 @@
+{
+  "latest": {
+    "id": 1,
+    "checked_at": "2026-11-17T18:59:15.038561083Z",
+    "reason": "daily report",
+    "verdict": "OK",
+    "entries": 123,
+    "head_seq": 123,
+    "head_sha256": "01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0",
+    "problems": [],
+    "text": "OK at 2026-11-17T18:59:15.038561083Z: 123 entries"
+  },
+  "checks": [
+    {
+      "id": 1,
+      "checked_at": "2026-11-17T18:59:15.038561083Z",
+      "reason": "daily report",
+      "verdict": "OK",
+      "entries": 123,
+      "head_seq": 123,
+      "head_sha256": "01fd53ed3e0a9429e8f8962bac60958fb602744f3da75dd411a58c593d6a33c0",
+      "problems": []
+    }
+  ]
+}

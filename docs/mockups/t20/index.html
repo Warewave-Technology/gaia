@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status · Gaia</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">Gaia</a>
+  <span class="install">gaia-t17-b</span>
+  <nav aria-label="Main"><a href="index.html" aria-current="page">Status</a><a href="#">Evidence export</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
+  <span class="who">admin <span class="role">admin</span></span>
+</header>
+<p class="mock">Mock-up for T20, step 1. Static, made from real lab records by <code>docs/mockups/t20/make.py</code>;
+buttons and links other than the VM name do nothing yet.</p>
+<main>
+<section class="hero">
+  <h1>Which point can I return to?</h1>
+  <p class="lede">4 VMs: 1 CRITICAL, 1 UNKNOWN, 1 WARNING, 1 OK. Worst first.</p>
+</section>
+<ul class="install-state">
+  <li class="i-warning"><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span> <span>Notifications: no notification channel is enabled: nobody is told when a VM&#x27;s status changes.</span> <a href="#">Add a channel</a></li>
+  <li><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> <span>Evidence ledger: 123 entries, checked 18:59:15 UTC with the daily report.</span></li>
+  <li><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> <span>Recovery kit 2 is saved off the server.</span></li>
+</ul>
+<table class="status">
+<caption class="visually-hidden">Every VM's status, worst first</caption>
+<thead><tr>
+  <th scope="col">Status</th><th scope="col">VM</th><th scope="col">You can return to, and why the status</th>
+  <th scope="col" class="c-fig">Proven RPO</th><th scope="col" class="c-fig">Proven RTO</th><th scope="col" class="c-fig">Proof age</th>
+  <th scope="col" class="c-fig">Theoretical RPO</th>
+</tr></thead>
+<tbody>
+<tr class="row s-critical">
+  <td class="c-status"><span class="badge s-critical"><span class="glyph" aria-hidden="true">✕</span>CRITICAL</span><span class="since">since 18:51:40</span></td>
+  <td class="c-vm"><span class="vmname">gaia-t19</span><span class="asof">as of 2026-11-17 18:57:29 UTC</span></td>
+  <td class="c-answer"><p class="answer-line">Point 2, taken 18:56:34, the full backup after the damage. Restore tested at 18:57:23: it booted in 17 s.</p><div class="why"><span class="why-label">Why CRITICAL:</span><p class="why-main">integrity check failed for point(s) [1]</p><p class="why-also">Also: point 2 is proven by test 2: proven RPO 55s &lt;= 20m0s, proven RTO 17s &lt;= 10m0s, proof age 6s &lt;= 30m0s</p></div></td>
+  <td class="c-fig" data-label="Proven RPO"><span class="num">55 s</span></td>
+  <td class="c-fig" data-label="Proven RTO"><span class="num">17 s</span></td>
+  <td class="c-fig" data-label="Proof age"><span class="num">6 s</span></td>
+  <td class="c-fig" data-label="Theoretical RPO"><span class="num">55 s</span></td>
+</tr>
+<tr class="row s-unknown">
+  <td class="c-status"><span class="badge s-unknown"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><span class="since">since 13:39:54</span></td>
+  <td class="c-vm"><span class="vmname">gaia-t18</span><span class="asof">as of 2026-11-17 13:39:54 UTC</span></td>
+  <td class="c-answer"><p class="answer-line">Nothing proven. No backup of this VM has passed its check yet, so there is no point to return to.</p><div class="why"><span class="why-label">Why UNKNOWN:</span><p class="why-main">there is no backup point that passed its post-backup check</p></div></td>
+  <td class="c-fig" data-label="Proven RPO"><span class="none">none</span></td>
+  <td class="c-fig" data-label="Proven RTO"><span class="none">none</span></td>
+  <td class="c-fig" data-label="Proof age"><span class="none">none</span></td>
+  <td class="c-fig" data-label="Theoretical RPO"><span class="none">none</span></td>
+</tr>
+<tr class="row s-warning">
+  <td class="c-status"><span class="badge s-warning"><span class="glyph" aria-hidden="true">!</span>WARNING</span><span class="since">since 17:01:18</span></td>
+  <td class="c-vm"><span class="vmname">gaia-t16</span><span class="asof">as of 2026-11-16 17:01:19 UTC</span></td>
+  <td class="c-answer"><p class="answer-line">Point 4, taken 16:47:51. Its restore test passed at 16:49:17, but that proof is now older than the policy allows.</p><div class="why"><span class="why-label">Why WARNING:</span><p class="why-main">the proof (test 4) is 12m2s old, over the maximum 12m0s</p><p class="why-note">Note: restore test 6 (point 6) could not run: not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory</p></div></td>
+  <td class="c-fig" data-label="Proven RPO"><span class="num">13 min 28 s</span></td>
+  <td class="c-fig" data-label="Proven RTO"><span class="num">12 s</span></td>
+  <td class="c-fig" data-label="Proof age"><span class="num">12 min 2 s</span></td>
+  <td class="c-fig" data-label="Theoretical RPO"><span class="num">3 min 28 s</span></td>
+</tr>
+<tr class="row s-ok">
+  <td class="c-status"><span class="badge s-ok"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="since">since 15:30:39</span></td>
+  <td class="c-vm"><span class="vmname"><a href="vm-gaia-t17-web.html">gaia-t17-web</a></span><span class="asof">as of 2026-11-17 19:16:50 UTC</span></td>
+  <td class="c-answer"><p class="answer-line">Point 249, taken 19:10:00. Restore tested at 19:11:17: it booted to a login prompt in 37 s.</p><div class="why"><span class="why-label">Why OK:</span><p class="why-main">point 249 is proven by test 125: proven RPO 6m50s &lt;= 20m0s, proven RTO 37s &lt;= 10m0s, proof age 5m33s &lt;= 30m0s</p></div></td>
+  <td class="c-fig" data-label="Proven RPO"><span class="num">6 min 50 s</span></td>
+  <td class="c-fig" data-label="Proven RTO"><span class="num">37 s</span></td>
+  <td class="c-fig" data-label="Proof age"><span class="num">5 min 33 s</span></td>
+  <td class="c-fig" data-label="Theoretical RPO"><span class="num">1 min 50 s</span></td>
+</tr>
+</tbody>
+</table>
+<section class="legend">
+  <h2>What the statuses mean</h2>
+  <dl>
+    <div><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span><dd>The newest proven point is within the RPO target, its restore took less than the RTO target, and the proof is fresh.</dd></div>
+    <div><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span><dd>Backups are on time, but the proof misses a target: too old, too slow, or no recent passing test.</dd></div>
+    <div><span class="badge s-critical small"><span class="glyph" aria-hidden="true">✕</span>CRITICAL</span><dd>Backups are late, the latest restore test failed, or a point that still exists is damaged.</dd></div>
+    <div><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><dd>No restore test has ever passed, or something needed to judge is missing. Never read it as healthy.</dd></div>
+  </dl>
+</section>
+<section class="sources">
+  <h2>Where these rows come from (mock-up only)</h2>
+  <p>Each row is a real status the server computed, at its own moment. A real screen shows one installation, all at the same moment.</p>
+  <ul><li><strong>gaia-t19</strong>: T19 lab run, after one byte of the repository was damaged and quarantined (docs/reports/evidence/2026-11-17-T19/lab/status-after-damage.json); as of 2026-11-17 18:57:29 UTC.</li><li><strong>gaia-t18</strong>: T18 lab run, the moment the VM was added (docs/reports/evidence/2026-11-17-T18/state-changes.json); as of 2026-11-17 13:39:54 UTC.</li><li><strong>gaia-t16</strong>: T16 lab run, with the sandbox helper stopped (docs/reports/evidence/2026-11-16-T16/status-end.json); as of 2026-11-16 17:01:19 UTC.</li><li><strong>gaia-t17-web</strong>: server B (gaia-t17-b), live, through its API; as of 2026-11-17 19:16:50 UTC.</li></ul>
+</section>
+</main>
+</body>
+</html>

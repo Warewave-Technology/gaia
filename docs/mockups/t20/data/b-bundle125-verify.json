@@ -1,0 +1,19 @@
+{
+  "anchor_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "checked_at": "2026-11-17T19:19:13.618593Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "report": {
+    "dir": "/private/tmp/claude-501/-Users-yigit-basalma--claude-spares-spare-hlDpoH/819be5cc-afa7-4218-a1b0-1c2d6e90dabc/scratchpad/t20data/exp/gaia-evidence-gaia-t17-web-20261117T191041Z-b09261/bundles/gaia-t17-web-20261117T191041Z-b09261",
+    "format": "v1",
+    "bundle_id": "gaia-t17-web-20261117T191041Z-b09261",
+    "bundle_sha256": "819caba1200c2a02cf12eb21fa68747aae6bc9001108deab7b6f79baad828e83",
+    "key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "files": 10,
+    "verdict": "OK",
+    "findings": [],
+    "problems": []
+  },
+  "verdict": "OK"
+}
