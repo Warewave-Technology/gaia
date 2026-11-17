@@ -1,0 +1,67 @@
+{
+  "schema": {
+    "before": 7,
+    "after": 7
+  },
+  "version": {
+    "before": "4a971ea4efdc",
+    "after": "31862db98228"
+  },
+  "points": {
+    "before": 265,
+    "after": 267,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T15:30:39.915461476Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T20:40:52.1362272Z"
+    }
+  ],
+  "status_changes_during_upgrade": [
+    {
+      "at": "2026-11-17T20:40:02.1369776Z",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the newest proven point (263, test 132) is 20m1s old, over the RPO target 20m0s"
+    },
+    {
+      "at": "2026-11-17T20:40:52.136269849Z",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 267 is proven by test 134: proven RPO 49s <= 20m0s, proven RTO 20s <= 10m0s, proof age 0s <= 30m0s"
+    }
+  ],
+  "jobs_failed_during_upgrade": [
+    {
+      "id": 398,
+      "kind": "restore_test",
+      "error": "restoring disk vda: context canceled\nblock 558: unexpected content error: error getting cached content from blob \"pfa6fd1ab082a907e82a2c019baf237ff-sd048e20ff7f7f851147\": failed to get blob with ID pfa6fd1ab082a907e82a2c019baf237ff-sd048e20ff7f7f851147: context canceled"
+    }
+  ],
+  "next_backup": {
+    "id": 399,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 401,
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 56,
+    "intact": true,
+    "head_sha256": "28994b940c1e5a99598c248a2f0cf66116d5be82eceb33c81fc5cdddc556bd8e",
+    "first_broken_seq": 0
+  },
+  "pass": true,
+  "verdict": "OK"
+}

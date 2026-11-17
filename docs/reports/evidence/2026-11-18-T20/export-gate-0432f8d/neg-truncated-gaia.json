@@ -1,0 +1,143 @@
+{
+  "verdict": "CRITICAL",
+  "findings": [
+    {
+      "code": "ledger_truncated",
+      "severity": "CRITICAL",
+      "where": "head 1",
+      "detail": "the head statement of 2026-11-17T18:59:15.042105816Z records entry 123; the ledger has 113 readable entries"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T172019Z-f4326f",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T173020Z-5828e0",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T174042Z-150e1d",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T175042Z-f2a40d",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T180039Z-fadf71",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T181020Z-6a4359",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T182019Z-5dcb14",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T183037Z-ce55fa",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T184025Z-180712",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T185045Z-61ba78",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T190031Z-1be4a8",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T191041Z-b09261",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T192026Z-b37ab2",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T193026Z-dae17f",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T194031Z-c7ad1a",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T195026Z-8d5f30",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T200026Z-a83980",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T201027Z-5b881f",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T202026Z-93e16e",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T204026Z-3a6ff7",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T205029Z-981f6b",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T210036Z-ed073b",
+      "detail": "a bundle directory that no ledger entry names"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schema": {
+    "before": 7,
+    "after": 7
+  },
+  "version": {
+    "before": "fe30d089864b",
+    "after": "e8e684818d7d"
+  },
+  "points": {
+    "before": 279,
+    "after": 281,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T20:40:52.1362272Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T21:50:45.094379593Z"
+    }
+  ],
+  "status_changes_during_upgrade": [
+    {
+      "at": "2026-11-17T21:45:21.62727758Z",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the newest proven point (276, test 139) is 20m1s old, over the RPO target 20m0s"
+    },
+    {
+      "at": "2026-11-17T21:50:45.094478323Z",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 280 is proven by test 141: proven RPO 5m22s <= 20m0s, proven RTO 22s <= 10m0s, proof age 0s <= 30m0s"
+    }
+  ],
+  "jobs_failed_during_upgrade": [
+    {
+      "id": 418,
+      "kind": "restore_test",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": EOF"
+    }
+  ],
+  "next_backup": {
+    "id": 420,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 421,
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 90,
+    "intact": true,
+    "head_sha256": "dd7e65c0e5c2a86158c5c9cc755f70964952c34e1a2b55f2228cf4bedaa7f1db",
+    "first_broken_seq": 0
+  },
+  "pass": true,
+  "verdict": "OK"
+}

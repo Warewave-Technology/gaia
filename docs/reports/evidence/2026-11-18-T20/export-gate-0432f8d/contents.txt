@@ -1,0 +1,13 @@
+./README.txt
+./SHA256SUMS
+./SPEC.md
+./anchor.pub
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/config.json
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/dnsmasq.leases
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/dnsmasq.log
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/domain.xml
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/manifest.json
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/manifest.sig
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/network.xml
+./bundles/gaia-t17-web-20261116T222922Z-dfe7e1/result.json
+./restore-tests.json

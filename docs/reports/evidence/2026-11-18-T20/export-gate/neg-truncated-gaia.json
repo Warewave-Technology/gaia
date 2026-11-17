@@ -138,6 +138,30 @@
       "severity": "CRITICAL",
       "where": "gaia-t17-web-20261117T210036Z-ed073b",
       "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T211003Z-46f450",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T212003Z-8f97a1",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T213016Z-15add3",
+      "detail": "a bundle directory that no ledger entry names"
+    },
+    {
+      "code": "bundle_unlisted",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261117T215018Z-a91268",
+      "detail": "a bundle directory that no ledger entry names"
     }
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "verdict": "CRITICAL",
+  "findings": [
+    {
+      "code": "file_modified",
+      "severity": "CRITICAL",
+      "where": "gaia-t17-web-20261116T222922Z-dfe7e1/result.json",
+      "detail": "sha256 4f8c8cec4af64bbd2daed0e01e1c1615697a321cfc015db63d52fbb842e98ee3 (3381 bytes), manifest says c94ea1d1ab1f00a77781ef4f346881bb86f3138e4b9e6e465d1ba0d55d70a7ab (3380 bytes)"
+    }
+  ]
+}
