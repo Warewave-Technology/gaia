@@ -357,23 +357,33 @@ vm_id=$(jq .id "$OUT_DIR/vm.json")
 wait_status UNKNOWN added
 wait_status OK proven
 
+idle() { # waits until the VM has no queued or running job
+	for ((i = 0; i < 120; i++)); do
+		[[ $(api jobs list vm_id="$vm_id" limit=20 | jq '[.[] | select(.state == "queued" or .state == "running")] | length') == 0 ]] && return 0
+		sleep 5
+	done
+	echo "UNKNOWN: the VM's jobs did not end within 600 s"
+	exit 3
+}
+
 section "job_failed: a backup while the host refuses Gaia's key"
-api vms set "$vm_id" policy_id=0 >/dev/null # no scheduled backup in between
-for ((i = 0; i < 120; i++)); do
-	[[ $(api jobs list vm_id="$vm_id" limit=20 | jq '[.[] | select(.state == "queued" or .state == "running")] | length') == 0 ]] && break
-	sleep 5
-done
+idle
+before=$(api jobs list vm_id="$vm_id" limit=20 | jq '[.[] | select(.kind == "backup") | .id] | max // 0')
 mv "$AUTH_KEYS" "$AUTH_KEYS.off"
 inject "host authorized_keys removed"
-job=$(api vms backup "$vm_id" | jq .id)
-for ((i = 0; i < 120; i++)); do
-	st=$(api jobs get "$job" | jq -r .state)
-	[[ $st == failed || $st == ok ]] && break
+api vms backup "$vm_id" >/dev/null || true # (409 if the scheduler queued one first: that one is taken)
+job=0
+for ((i = 0; i < 300; i++)); do
+	job=$(api jobs list vm_id="$vm_id" limit=20 | jq --argjson b "$before" '[.[] | select(.kind == "backup" and .id > $b and (.state == "failed" or .state == "ok"))] | (min_by(.id) | .id) // 0')
+	((job > 0)) && break
 	sleep 2
 done
+((job > 0)) || { echo "UNKNOWN: no backup ended within 600 s of removing the key"; exit 3; }
 api jobs get "$job" | tee "$OUT_DIR/job-failed.json" | jq -c '{id, kind, state, error}'
 mv "$AUTH_KEYS.off" "$AUTH_KEYS"
 inject "host authorized_keys restored"
+api vms set "$vm_id" policy_id=0 >/dev/null # no scheduled backup while the repository is damaged and verified
+idle
 
 section "integrity and quarantine: one byte of the oldest data pack (status: -> CRITICAL)"
 pack=$(find "$SRV_HOME/repo" -type f -path "$SRV_HOME/repo/p*" -size +1M -printf '%T@ %p\n' | sort -n | head -1 | cut -d' ' -f2)
@@ -397,17 +407,16 @@ bdir=$(find "$SRV_HOME/data/evidence/bundles" -mindepth 1 -maxdepth 1 -type d | 
 cp -p "$bdir/result.json" "$WORK/result.json.orig"
 echo " " >>"$bdir/result.json"
 inject "bundle $(basename "$bdir"): result.json changed"
-api ledger check | tee "$OUT_DIR/ledger-check-changed.json" | jq -c '{verdict, entries, problems}'
+api ledger check >"$OUT_DIR/ledger-check-changed.json" || true # exit code: the verdict
+jq -c '{verdict, entries, problems}' "$OUT_DIR/ledger-check-changed.json"
 cp -p "$WORK/result.json.orig" "$bdir/result.json"
 inject "bundle $(basename "$bdir"): result.json put back"
-api ledger check | tee "$OUT_DIR/ledger-check-restored.json" | jq -c '{verdict, entries, problems}'
+api ledger check >"$OUT_DIR/ledger-check-restored.json" || true # exit code: the verdict
+jq -c '{verdict, entries, problems}' "$OUT_DIR/ledger-check-restored.json"
 
 section "daily report"
 api vms set "$vm_id" policy_id=0 >/dev/null # the ledger stops growing: no new test seals a bundle from here on
-for ((i = 0; i < 120; i++)); do
-	[[ $(api jobs list vm_id="$vm_id" limit=20 | jq '[.[] | select(.state == "queued" or .state == "running")] | length') == 0 ]] && break
-	sleep 5
-done
+idle
 api daily-reports run | tee "$OUT_DIR/daily-report.json" | jq -c '{id, generated_at, head_seq, head_sha256}'
 delivered
 gaia status || true
@@ -457,7 +466,8 @@ cat "$WORK/live-cut.jsonl" >"$live" # keeps owner and mode
 [[ -n "$last_bundle" ]] && rm -rf "${SRV_HOME:?}/data/evidence/bundles/$last_bundle"
 inject "server: ledger cut from $entries to $((entries - 1)) entries, bundle $last_bundle removed"
 cut_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-api ledger check | tee "$OUT_DIR/ledger-check-cut.json" | jq -c '{verdict, entries, problems}'
+api ledger check >"$OUT_DIR/ledger-check-cut.json" || true # exit code: the verdict
+jq -c '{verdict, entries, problems}' "$OUT_DIR/ledger-check-cut.json"
 delivered
 gaia status || true
 

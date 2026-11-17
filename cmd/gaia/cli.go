@@ -207,8 +207,25 @@ func runCLI(ctx context.Context, args []string) int {
 	if verb == "verify" && cmd == "audit" {
 		return call("GET", res.path+"/verify", nil)
 	}
-	if verb == "check" && cmd == "ledger" {
-		return call("POST", res.path+"/verify", nil)
+	if verb == "check" && cmd == "ledger" { // exit code: the ledger's verdict
+		b, _, err := c.Do(ctx, "POST", res.path+"/verify", nil)
+		if err != nil {
+			return fail(asJSON, cmd, err)
+		}
+		show(b, asJSON)
+		var lc struct {
+			Verdict string `json:"verdict"`
+		}
+		json.Unmarshal(b, &lc)
+		switch lc.Verdict {
+		case "OK":
+			return 0
+		case "WARNING":
+			return 1
+		case "CRITICAL":
+			return 2
+		}
+		return 3
 	}
 	id, rest, err := needID()
 	if err != nil {

@@ -265,7 +265,7 @@ Gaia keeps trying (after 1, 2, 4 ... minutes, at most hourly, for 24 hours). Unt
 A channel is turned off with `gaia channels set <id> enabled=false` (and on again with `enabled=true`; it then
 reports from that moment on). `gaia notifications list` shows every message and its state.
 
-Gaia also checks the evidence ledger and every bundle with each daily report (and `gaia ledger check` does it now).
+Gaia also checks the evidence ledger and every bundle with each daily report (and `gaia ledger check` does it now; its exit code is the verdict).
 A ledger that does not verify, or is shorter than the last daily report says, is a `ledger` event and shows in
 `gaia status` as `CRITICAL evidence ledger: ...`.
 
