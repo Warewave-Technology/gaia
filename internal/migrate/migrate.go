@@ -265,8 +265,10 @@ func Prepare(ctx context.Context, o Options, name string, v vsphereread.VM, foun
 	if err := os.MkdirAll(x.work, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(x.images, 0o755); err != nil {
-		return nil, err
+	if o.Converter == nil { // a converter of its own (gaia server's) makes its output directory itself
+		if err := os.MkdirAll(x.images, 0o755); err != nil {
+			return nil, err
+		}
 	}
 	disks, cfg, skip := x.prepare(ctx, found)
 	if cfg == nil {

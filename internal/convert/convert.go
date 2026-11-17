@@ -4,9 +4,9 @@
 // no network, no capabilities, /dev/kvm for libguestfs.
 //
 // gaia server reaches it on one unix socket (group gaia-convert, which only gaia server's user shares). A job is a
-// directory in JobsDir that gaia server made: JOB/in holds the source VM's downloaded files (gaia server writes
-// them), JOB/out receives virt-v2v's disks, domain XML and log (the converter writes them). The service reads
-// nothing else of gaia server's: no keys, no database.
+// directory in JobsDir (setgid, group gaia-convert) that gaia server made: JOB/in holds the source VM's downloaded
+// files. The converter makes JOB-out for virt-v2v's disks, domain XML and log; gaia server reads and removes it as a
+// member of the group. The service reads nothing else of gaia server's: no keys, no database.
 package convert
 
 import (
@@ -126,7 +126,7 @@ type Request struct {
 	Windows bool `json:"windows"`
 }
 
-// Result is the outcome of one conversion. The files are in JOB/out.
+// Result is the outcome of one conversion. The files are in JOB-out (OutDir).
 type Result struct {
 	State     string     `json:"state"`  // converted, failed (virt-v2v refused the guest), not_run (it could not run)
 	Detail    string     `json:"detail"` // virt-v2v's own error line, or why it did not run
@@ -134,9 +134,9 @@ type Result struct {
 	Image     string     `json:"image"`
 	Versions  string     `json:"versions"`
 	VirtioWin *VirtioWin `json:"virtio_win,omitempty"` // when it was given to virt-v2v
-	Disks     []string   `json:"disks"`                // file names in JOB/out, boot disk first (NAME-sda, ...)
-	DomainXML string     `json:"domain_xml"`           // file name in JOB/out
-	Log       string     `json:"log"`                  // file name in JOB/out
+	Disks     []string   `json:"disks"`                // file names in JOB-out, boot disk first (NAME-sda, ...)
+	DomainXML string     `json:"domain_xml"`           // file name in JOB-out
+	Log       string     `json:"log"`                  // file name in JOB-out
 	Command   []string   `json:"command"`              // the podman command, as run
 }
 
@@ -280,11 +280,14 @@ func (s *service) checkRequest(r *Request) (job string, err error) {
 		return "", errors.New("job, name or vmx not allowed")
 	}
 	job = filepath.Join(s.c.JobsDir, r.Job)
-	for _, p := range []string{job, filepath.Join(job, "in"), filepath.Join(job, "out")} {
+	for _, p := range []string{job, filepath.Join(job, "in")} {
 		fi, err := os.Lstat(p)
 		if err != nil || !fi.IsDir() {
 			return "", fmt.Errorf("%s: not a directory", p)
 		}
+	}
+	if _, err := os.Lstat(OutDir(s.c.JobsDir, r.Job)); err == nil {
+		return "", fmt.Errorf("%s exists: a job is converted once", OutDir(s.c.JobsDir, r.Job))
 	}
 	fi, err := os.Lstat(filepath.Join(job, "in", r.VMX))
 	if err != nil || !fi.Mode().IsRegular() {
@@ -323,7 +326,11 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 		res.Detail = "the converter image is not usable: " + in.ImageDetail
 		return res
 	}
-	out := filepath.Join(job, "out")
+	out := OutDir(s.c.JobsDir, req.Job)
+	if err := os.Mkdir(out, 0o770); err != nil {
+		res.Detail = err.Error()
+		return res
+	}
 	logPath := filepath.Join(out, res.Log)
 	lf, err := os.Create(logPath)
 	if err != nil {
@@ -429,6 +436,9 @@ func notifyReady() {
 		conn.Close()
 	}
 }
+
+// OutDir is where the converter puts a job's disks, domain XML and log.
+func OutDir(jobsDir, job string) string { return filepath.Join(jobsDir, job+"-out") }
 
 // Client is gaia server's side.
 type Client struct {

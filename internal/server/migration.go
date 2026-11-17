@@ -307,20 +307,25 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	}
 	job := fmt.Sprintf("mc%d", mc.ID)
 	jobDir := filepath.Join(s.cfg.ConvertJobsDir, job)
-	in, out := filepath.Join(jobDir, "in"), filepath.Join(jobDir, "out")
-	for _, p := range []string{jobDir, in, out} {
-		// setgid: what is made inside belongs to the group gaia-convert, so the converter reads in/ and writes out/
-		// (Go's os.Chmod takes os.ModeSetgid, not 0o2000, and a chmod without it clears the bit the parent gave)
-		if err := os.MkdirAll(p, 0o770|os.ModeSetgid); err != nil {
+	in, out := filepath.Join(jobDir, "in"), convert.OutDir(s.cfg.ConvertJobsDir, job)
+	// The jobs directory is setgid, group gaia-convert (install.md step 10d): what gaia server makes in it belongs to
+	// that group, so the converter can read in/. gaia server never asks for setgid itself (gaia.service has
+	// RestrictSUIDSGID=yes); the converter makes its own out directory, which gaia server reads and removes as a member
+	// of the group.
+	if fi, err := os.Stat(s.cfg.ConvertJobsDir); err != nil || !fi.IsDir() || fi.Mode()&os.ModeSetgid == 0 {
+		return "", "", "", fmt.Errorf("the converter's jobs directory %s must exist and be setgid, group gaia-convert (install.md step 10d): %v",
+			s.cfg.ConvertJobsDir, err)
+	}
+	for _, p := range []string{jobDir, in} {
+		if err := os.Mkdir(p, 0o750); err != nil {
 			return "", "", "", fmt.Errorf("the converter's job directory: %w", err)
-		}
-		if err := os.Chmod(p, 0o770|os.ModeSetgid); err != nil {
-			return "", "", "", err
 		}
 	}
 	defer func() {
-		if err := os.RemoveAll(jobDir); err != nil {
-			s.log.Error("removing a migration check's files", "dir", jobDir, "error", err)
+		for _, d := range []string{jobDir, out} {
+			if err := os.RemoveAll(d); err != nil {
+				s.log.Error("removing a migration check's files", "dir", d, "error", err)
+			}
 		}
 	}()
 	callLog := filepath.Join(jobDir, "calls.jsonl")
@@ -355,7 +360,7 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	if req.Template != "" || len(req.Checks) > 0 || req.BootTimeoutS > 0 || req.ProbeTimeoutS > 0 {
 		checks[mc.VM] = migrate.Checks{Template: req.Template, Checks: req.Checks, BootTimeoutS: req.BootTimeoutS, ProbeTimeoutS: req.ProbeTimeoutS}
 	}
-	conv := &serverConverter{client: convert.Client{Socket: s.cfg.ConvertSocket}, job: job, dir: jobDir}
+	conv := &serverConverter{client: convert.Client{Socket: s.cfg.ConvertSocket}, job: job, dir: jobDir, out: out}
 	p, err := migrate.Prepare(ctx, migrate.Options{Source: cl, Checks: checks, CallLog: callLog, Converter: conv,
 		Dirs: func(string) (string, string) { return in, out }}, mc.VM, vm, found)
 	if err != nil {
@@ -491,7 +496,8 @@ func migrationReason(r *verify.Result, d *MigrationDetail) string {
 type serverConverter struct {
 	client convert.Client
 	job    string
-	dir    string
+	dir    string // the job directory gaia server made (in/, the call log, the converter's answer)
+	out    string // the converter's out directory
 	result *convert.Result
 }
 
@@ -510,13 +516,13 @@ func (c *serverConverter) Convert(ctx context.Context, in migrate.ConvertInput) 
 		}
 	}
 	if res.Log != "" {
-		out.Log = filepath.Join(c.dir, "out", res.Log)
+		out.Log = filepath.Join(c.out, res.Log)
 	}
 	for _, d := range res.Disks {
-		out.Disks = append(out.Disks, filepath.Join(c.dir, "out", d))
+		out.Disks = append(out.Disks, filepath.Join(c.out, d))
 	}
 	if res.DomainXML != "" {
-		out.DomainXML = filepath.Join(c.dir, "out", res.DomainXML)
+		out.DomainXML = filepath.Join(c.out, res.DomainXML)
 	}
 	return out
 }

@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -47,13 +48,20 @@ func (fc *fakeConverter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fc.got = append(fc.got, req)
-	in, out := filepath.Join(fc.jobs, req.Job, "in"), filepath.Join(fc.jobs, req.Job, "out")
-	// The converter is another user: it reaches in/ and out/ through their group, which setgid passes down.
-	for _, d := range []string{filepath.Join(fc.jobs, req.Job), in, out} {
-		if fi, err := os.Stat(d); err != nil || fi.Mode()&os.ModeSetgid == 0 || fi.Mode().Perm()&0o070 != 0o070 {
-			http.Error(w, fmt.Sprintf("%s: not setgid and group-writable (%v %v)", d, fi.Mode(), err), 400)
+	in, out := filepath.Join(fc.jobs, req.Job, "in"), convert.OutDir(fc.jobs, req.Job)
+	// The converter is another user: it reads in/ through the group gaia-convert, which the setgid jobs directory
+	// passes down (gaia server never sets it itself), and makes its own out directory.
+	jfi, _ := os.Stat(fc.jobs)
+	for _, d := range []string{filepath.Join(fc.jobs, req.Job), in} {
+		fi, err := os.Stat(d)
+		if err != nil || fi.Mode().Perm()&0o050 != 0o050 || fi.Sys().(*syscall.Stat_t).Gid != jfi.Sys().(*syscall.Stat_t).Gid {
+			http.Error(w, fmt.Sprintf("%s: not readable through the jobs directory's group (%v)", d, err), 400)
 			return
 		}
+	}
+	if err := os.Mkdir(out, 0o770); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
 	}
 	if _, err := os.Stat(filepath.Join(in, req.VMX)); err != nil {
 		http.Error(w, "no vmx in the job's in/: "+err.Error(), 400)
@@ -161,6 +169,7 @@ func TestMigrationCheck(t *testing.T) {
 	s.cfg.ConvertSocket = filepath.Join(sockDir, "c.sock")
 	s.cfg.SandboxImagesDir = filepath.Join(f.dir, "sandbox-images")
 	os.MkdirAll(s.cfg.ConvertJobsDir, 0o770)
+	os.Chmod(s.cfg.ConvertJobsDir, 0o770|os.ModeSetgid) // as install.md step 10d makes it
 	os.MkdirAll(s.cfg.SandboxImagesDir, 0o755)
 	disk := bytes.Repeat([]byte("converted "), 1000)
 	conv := &fakeConverter{t: t, jobs: s.cfg.ConvertJobsDir, osID: "http://debian.org/debian/12", content: disk}
@@ -236,8 +245,8 @@ func TestMigrationCheck(t *testing.T) {
 	if got.Config.Template != "linux-boot" || len(got.Config.Checks) != 0 || len(got.PreChecks) != 6 || got.SkipReason != "" {
 		t.Fatalf("sandbox request %+v", got)
 	}
-	if _, err := os.Stat(filepath.Join(s.cfg.ConvertJobsDir, fmt.Sprintf("mc%d", mc.ID))); !os.IsNotExist(err) {
-		t.Fatalf("the job directory is left: %v", err)
+	if es, _ := os.ReadDir(s.cfg.ConvertJobsDir); len(es) != 0 {
+		t.Fatalf("job directories left: %v", es)
 	}
 	if es, _ := os.ReadDir(s.cfg.SandboxImagesDir); len(es) != 0 {
 		t.Fatalf("converted disks left for the sandbox: %v", es)
