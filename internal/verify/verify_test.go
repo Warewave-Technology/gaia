@@ -3,6 +3,8 @@ package verify
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"image/png"
 	"io"
@@ -184,6 +186,33 @@ func TestProbeWinRM(t *testing.T) {
 	soap := serve(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><x:Fault xmlns:x="urn:x"/></s:Body></s:Envelope>`)
 	})
+	// Windows Server as installed: no anonymous Identify, /wsman wants Negotiate, and SSPI answers an NTLM NEGOTIATE.
+	ntlm := func(challenge []byte) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/wsman" {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Server", "Microsoft-HTTPAPI/2.0")
+			tok, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Negotiate ")
+			b, _ := base64.StdEncoding.DecodeString(tok)
+			if !ok || len(b) < 12 || string(b[:8]) != "NTLMSSP\x00" || b[8] != 1 {
+				w.Header().Add("WWW-Authenticate", "Negotiate")
+				w.Header().Add("WWW-Authenticate", "Kerberos")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if challenge != nil {
+				w.Header().Set("WWW-Authenticate", "Negotiate "+base64.StdEncoding.EncodeToString(challenge))
+			} else {
+				w.Header().Set("WWW-Authenticate", "Negotiate")
+			}
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	}
+	windowsDefault := serve(ntlm(ntlmChallengeFor("GAIA-T11-WIN", "gaia-t11-win", "WORKGROUP", 20348)))
+	noChallenge := serve(ntlm(nil))
+	garbage := serve(ntlm([]byte("NTLMSSP\x00\x02\x00\x00\x00 not a challenge")))
 	nothing := serve(http.NotFound)
 	for _, tc := range []struct {
 		name string
@@ -196,6 +225,9 @@ func TestProbeWinRM(t *testing.T) {
 		{"a web server", web, false, "not a WS-Management IdentifyResponse"},
 		{"401", denied, false, "status 401"},
 		{"another SOAP reply", soap, false, "not a WS-Management IdentifyResponse"},
+		{"windows default (NTLM challenge)", windowsDefault, true, `CHALLENGE from computer "GAIA-T11-WIN" (DNS "gaia-t11-win", domain "WORKGROUP"), Windows 10.0 build 20348`},
+		{"401 without a challenge", noChallenge, false, "no NTLM challenge"},
+		{"a broken challenge", garbage, false, "not an NTLM CHALLENGE"},
 		{"no endpoint", nothing, false, "no WS-Management endpoint"},
 		{"closed port", freePort(t), false, "refused"},
 	} {
@@ -204,6 +236,39 @@ func TestProbeWinRM(t *testing.T) {
 			t.Errorf("%s: %+v, want ok=%v and %q", tc.name, r, tc.ok, tc.want)
 		}
 	}
+}
+
+// ntlmChallengeFor builds a CHALLENGE_MESSAGE (MS-NLMP 2.2.1.2) as Windows' SSPI sends it: names as AV pairs, the
+// version 10.0 with the given build.
+func ntlmChallengeFor(nb, dns, domain string, build uint16) []byte {
+	u := func(s string) []byte {
+		var b []byte
+		for _, r := range s {
+			b = binary.LittleEndian.AppendUint16(b, uint16(r))
+		}
+		return b
+	}
+	var info []byte
+	for _, av := range []struct {
+		id uint16
+		v  []byte
+	}{{2, u(domain)}, {1, u(nb)}, {4, u(dns)}, {3, u(dns)}, {0, nil}} {
+		info = binary.LittleEndian.AppendUint16(info, av.id)
+		info = binary.LittleEndian.AppendUint16(info, uint16(len(av.v)))
+		info = append(info, av.v...)
+	}
+	m := append([]byte("NTLMSSP\x00"), 2, 0, 0, 0)
+	m = append(m, 0, 0, 0, 0, 56, 0, 0, 0) // empty TargetNameFields at 56
+	m = binary.LittleEndian.AppendUint32(m, 0x02000000|0x00800000|0x00000001)
+	m = append(m, []byte("12345678")...) // server challenge
+	m = append(m, make([]byte, 8)...)    // reserved
+	m = binary.LittleEndian.AppendUint16(m, uint16(len(info)))
+	m = binary.LittleEndian.AppendUint16(m, uint16(len(info)))
+	m = binary.LittleEndian.AppendUint32(m, 56)
+	m = append(m, 10, 0)
+	m = binary.LittleEndian.AppendUint16(m, build)
+	m = append(m, 0, 0, 0, 15)
+	return append(m, info...)
 }
 
 func TestWorst(t *testing.T) {

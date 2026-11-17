@@ -2,6 +2,7 @@ package verify
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/xml"
 	"fmt"
@@ -106,9 +107,15 @@ func probeOnce(ctx context.Context, c Check, host string) (ok bool, detail strin
 const winrmIdentifyRequest = `<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" ` +
 	`xmlns:wsmid="http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd"><s:Header/><s:Body><wsmid:Identify/></s:Body></s:Envelope>`
 
-// winrmIdentify posts an unauthenticated Identify to WinRM's anonymous endpoint and accepts only a SOAP
-// IdentifyResponse naming a WS-Management protocol and a vendor: a port that is merely open, or any other HTTP server,
-// does not pass. The server's own reply is kept as evidence.
+// winrmIdentify proves a WinRM listener, without credentials, in one of two ways (ADR-005 §3):
+//   - an unauthenticated WS-Management Identify, answered with a SOAP IdentifyResponse naming a WS-Management
+//     protocol and a vendor (WinRM configured to allow it);
+//   - Windows Server's default, which refuses an unauthenticated Identify with 401 (T21 lab run): the first message of
+//     an NTLM negotiation (MS-NLMP 2.2.1.1) on /wsman, answered with an NTLM CHALLENGE that carries the computer's
+//     names and Windows version. Only Windows' WinRM service registers /wsman with HTTP.sys and has SSPI answer it.
+//
+// A port that is merely open, any other HTTP server, or a 401 without a Windows NTLM challenge does not pass. The
+// server's own reply is kept as evidence.
 func winrmIdentify(ctx context.Context, addr string) (ok bool, detail string, status int, body string) {
 	var last string
 	for _, path := range []string{"/wsman-anon/identify", "/wsman"} {
@@ -140,6 +147,9 @@ func winrmIdentify(ctx context.Context, addr string) (ok bool, detail string, st
 				} `xml:"http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd IdentifyResponse"`
 			} `xml:"http://www.w3.org/2003/05/soap-envelope Body"`
 		}
+		if resp.StatusCode == http.StatusUnauthorized && path == "/wsman" && strings.Contains(resp.Header.Get("WWW-Authenticate"), "Negotiate") {
+			return winrmNTLM(ctx, url, resp.Header.Get("Server"))
+		}
 		if resp.StatusCode != http.StatusOK {
 			return false, fmt.Sprintf("POST %s: status %d, want 200 with an IdentifyResponse", url, resp.StatusCode), resp.StatusCode, head
 		}
@@ -154,6 +164,99 @@ func winrmIdentify(ctx context.Context, addr string) (ok bool, detail string, st
 			url, id.ProductVendor, id.ProductVersion, id.ProtocolVersion, resp.Header.Get("Server"), head), resp.StatusCode, head
 	}
 	return false, last + ": no WS-Management endpoint", http.StatusNotFound, ""
+}
+
+// ntlmNegotiate is an NTLM NEGOTIATE_MESSAGE (MS-NLMP 2.2.1.1) asking for Unicode, NTLM, the target's information and
+// its version, with no domain or workstation.
+var ntlmNegotiate = func() []byte {
+	m := append([]byte("NTLMSSP\x00"), 1, 0, 0, 0)
+	m = binary.LittleEndian.AppendUint32(m, 0x00000001|0x00000004|0x00000200|0x00008000|0x00080000|0x00800000|0x02000000|0x20000000|0x80000000)
+	m = append(m, make([]byte, 16)...)                 // empty DomainNameFields, WorkstationFields
+	return append(m, 10, 0, 0x7c, 0x4f, 0, 0, 0, 0x0f) // Version: 10.0 build 20348, NTLMSSP_REVISION_W2K3
+}()
+
+// winrmNTLM sends the NTLM NEGOTIATE to WinRM and reads the CHALLENGE in its 401 (MS-NLMP 2.2.1.2): the computer's
+// NetBIOS and DNS names and its Windows version, which the guest's own SSPI fills in.
+func winrmNTLM(ctx context.Context, url, server string) (bool, string, int, string) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(winrmIdentifyRequest))
+	if err != nil {
+		return false, err.Error(), 0, ""
+	}
+	req.Header.Set("Content-Type", "application/soap+xml;charset=UTF-8")
+	req.Header.Set("Authorization", "Negotiate "+base64.StdEncoding.EncodeToString(ntlmNegotiate))
+	resp, err := (&http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
+	if err != nil {
+		return false, err.Error(), 0, ""
+	}
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 16384))
+	resp.Body.Close()
+	auth := resp.Header.Get("WWW-Authenticate")
+	tok, found := strings.CutPrefix(auth, "Negotiate ")
+	if resp.StatusCode != http.StatusUnauthorized || !found {
+		return false, fmt.Sprintf("POST %s with an NTLM NEGOTIATE: status %d, %q: no NTLM challenge", url, resp.StatusCode, auth), resp.StatusCode, auth
+	}
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(tok))
+	if err != nil {
+		return false, fmt.Sprintf("POST %s: the challenge is not base64: %v", url, err), resp.StatusCode, auth
+	}
+	ch, err := parseNTLMChallenge(raw)
+	if err != nil {
+		return false, fmt.Sprintf("POST %s: not an NTLM CHALLENGE: %v (reply % x)", url, err, raw[:min(len(raw), 64)]), resp.StatusCode, auth
+	}
+	return true, fmt.Sprintf("POST %s: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener "+
+		"answered an NTLM NEGOTIATE with a CHALLENGE from computer %q (DNS %q, domain %q), Windows %s, server %q (challenge % x)",
+		url, ch.nbComputer, ch.dnsComputer, ch.nbDomain, ch.version, server, raw), resp.StatusCode, auth
+}
+
+type ntlmChallenge struct {
+	nbComputer, dnsComputer, nbDomain, version string
+}
+
+// parseNTLMChallenge reads a CHALLENGE_MESSAGE's target information (AV pairs) and version.
+func parseNTLMChallenge(b []byte) (ntlmChallenge, error) {
+	var c ntlmChallenge
+	if len(b) < 48 || string(b[:8]) != "NTLMSSP\x00" || binary.LittleEndian.Uint32(b[8:12]) != 2 {
+		return c, fmt.Errorf("no NTLMSSP type 2 header")
+	}
+	flags := binary.LittleEndian.Uint32(b[20:24])
+	tlen, toff := int(binary.LittleEndian.Uint16(b[40:42])), int(binary.LittleEndian.Uint32(b[44:48]))
+	if toff < 48 || toff+tlen > len(b) || tlen == 0 {
+		return c, fmt.Errorf("target information out of range (%d bytes at %d)", tlen, toff)
+	}
+	if flags&0x02000000 != 0 && len(b) >= 56 {
+		c.version = fmt.Sprintf("%d.%d build %d", b[48], b[49], binary.LittleEndian.Uint16(b[50:52]))
+	} else {
+		c.version = "(no version)"
+	}
+	utf16 := func(v []byte) string {
+		r := make([]rune, 0, len(v)/2)
+		for i := 0; i+1 < len(v); i += 2 {
+			r = append(r, rune(binary.LittleEndian.Uint16(v[i:])))
+		}
+		return string(r)
+	}
+	for p := b[toff : toff+tlen]; len(p) >= 4; {
+		id, n := binary.LittleEndian.Uint16(p), int(binary.LittleEndian.Uint16(p[2:]))
+		if id == 0 {
+			break
+		}
+		if 4+n > len(p) {
+			return c, fmt.Errorf("an AV pair runs past the target information")
+		}
+		switch id {
+		case 1:
+			c.nbComputer = utf16(p[4 : 4+n])
+		case 2:
+			c.nbDomain = utf16(p[4 : 4+n])
+		case 3:
+			c.dnsComputer = utf16(p[4 : 4+n])
+		}
+		p = p[4+n:]
+	}
+	if c.nbComputer == "" {
+		return c, fmt.Errorf("no computer name in the target information")
+	}
+	return c, nil
 }
 
 // rdpConnectionRequest is a TPKT-framed X.224 Connection Request carrying an RDP Negotiation
