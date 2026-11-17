@@ -3,87 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Status · Gaia</title>
+<meta name="color-scheme" content="dark light">
+<title>Overview — Gaia</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <a class="brand" href="index.html">Gaia</a>
-  <span class="install">gaia-t17-b</span>
-  <nav aria-label="Main"><a href="index.html" aria-current="page">Status</a><a href="#">Evidence export</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
-  <span class="who">admin <span class="role">admin</span></span>
+<header class="bar">
+  <a class="mark" href="index.html" aria-label="Gaia overview"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25"/><path d="M10 2.75v14.5M2.75 10h14.5"/></svg>Gaia</a>
+  <span class="inst">gaia-t17-b</span>
+  <nav aria-label="Main"><a href="index.html" aria-current="page">Overview</a><a href="#">Evidence</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
+  <span class="clock" title="Times on these pages are the server's local time (Etc/UTC)">19:16<span>server time, Etc/UTC</span></span>
+  <span class="user">admin</span>
 </header>
-<p class="mock">Mock-up for T20, step 1. Static, made from real lab records by <code>docs/mockups/t20/make.py</code>;
-buttons and links other than the VM name do nothing yet.</p>
-<main>
-<section class="hero">
-  <h1>Which point can I return to?</h1>
-  <p class="lede">4 VMs: 1 CRITICAL, 1 UNKNOWN, 1 WARNING, 1 OK. Worst first.</p>
+<p class="mock">Proposal 2 for T20: static, made from real lab records by <code>docs/mockups/t20/make.py</code>. Only the VM name links work.</p>
+<main class="ov">
+<section class="fleet" aria-labelledby="q">
+  <div class="q">
+    <h1 id="q">Which point can I return to?</h1>
+    <p>4 protected VMs, problems first. A healthy machine stays quiet.</p>
+  </div>
+  <ul class="tally" aria-label="VMs by status"><li class="t s-critical"><span class="n">1</span><span class="chip s-critical sm"><span class="g" aria-hidden="true">◆</span>CRITICAL</span></li><li class="t s-unknown"><span class="n">1</span><span class="chip s-unknown sm"><span class="g" aria-hidden="true">?</span>UNKNOWN</span></li><li class="t s-warning"><span class="n">1</span><span class="chip s-warning sm"><span class="g" aria-hidden="true">▲</span>WARNING</span></li><li class="t s-ok"><span class="n">1</span><span class="chip s-ok sm"><span class="g" aria-hidden="true">✓</span>OK</span></li></ul>
+  <dl class="facts">
+    <div><dt>Oldest proof</dt><dd><b>12m</b>gaia-t16</dd></div>
+    <div><dt>Never proven</dt><dd><b>1</b>gaia-t18</dd></div>
+    <div><dt>Evidence ledger</dt><dd><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span>123 entries, checked 18:59</dd></div>
+    <div><dt>Recovery kit</dt><dd><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span>kit 2 is stored off the server</dd></div>
+  </dl>
+  <p class="alert s-warning"><span class="g" aria-hidden="true">▲</span><span><b>Nobody is told when a status changes.</b> No notification channel is enabled on this server.</span><a href="#">Add a channel</a></p>
 </section>
-<ul class="install-state">
-  <li class="i-warning"><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span> <span>Notifications: no notification channel is enabled: nobody is told when a VM&#x27;s status changes.</span> <a href="#">Add a channel</a></li>
-  <li><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> <span>Evidence ledger: 123 entries, checked 18:59:15 UTC with the daily report.</span></li>
-  <li><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> <span>Recovery kit 2 is saved off the server.</span></li>
-</ul>
-<table class="status">
-<caption class="visually-hidden">Every VM's status, worst first</caption>
+
+<section class="vms" aria-label="Protected VMs">
+<div class="legend" aria-hidden="true">
+  <span><svg width="26" height="10"><rect class="lg-bar" x="0" y="2.5" width="26" height="5"/></svg>proven RPO</span>
+  <span><svg width="10" height="10"><path class="lg-notch" d="M1 1 L9 1 L5 7 Z"/></svg>newest backup</span>
+  <span><svg width="6" height="12"><rect class="lg-tgt" x="2" y="0" width="2" height="12"/></svg>target</span>
+  <span class="sep"></span>
+  <span><svg width="10" height="12"><line class="lg-bk" x1="5" y1="1" x2="5" y2="11"/></svg>backup</span>
+  <span><svg width="10" height="10"><circle class="lg-tok" cx="5" cy="5" r="3"/></svg>restore test passed</span>
+  <span><svg width="10" height="10"><path class="lg-tf" d="M2 2 l6 6 m0 -6 l-6 6"/></svg>failed</span>
+  <span><svg width="10" height="10"><circle class="lg-tun" cx="5" cy="5" r="3"/></svg>could not run</span>
+  <span><svg width="14" height="14"><circle class="lg-ret" cx="7" cy="7" r="5.5"/></svg>point to return to</span>
+  <span><svg width="10" height="10"><rect class="lg-dmg" x="1.5" y="1.5" width="7" height="7"/></svg>damaged point</span>
+</div>
+<table class="grid">
 <thead><tr>
-  <th scope="col">Status</th><th scope="col">VM</th><th scope="col">You can return to, and why the status</th>
-  <th scope="col" class="c-fig">Proven RPO</th><th scope="col" class="c-fig">Proven RTO</th><th scope="col" class="c-fig">Proof age</th>
-  <th scope="col" class="c-fig">Theoretical RPO</th>
+  <th scope="col">VM</th>
+  <th scope="col">Return to</th>
+  <th scope="col" class="c-proof">Proven RPO against target<span class="axis" style="width:220px" aria-hidden="true"><span style="left:15.4px">1m</span><span style="left:66.5px">10m</span><span style="left:106.3px">1h</span><span style="left:146.0px">6h</span><span style="left:176.8px">1d</span><span style="left:220.0px">7d</span></span></th>
+  <th scope="col" class="c-num">Proven RTO</th>
+  <th scope="col" class="c-num">Proof age</th>
+  <th scope="col" class="c-hist">Last 6 hours</th>
+  <th scope="col">Why</th>
 </tr></thead>
 <tbody>
-<tr class="row s-critical">
-  <td class="c-status"><span class="badge s-critical"><span class="glyph" aria-hidden="true">✕</span>CRITICAL</span><span class="since">since 18:51:40</span></td>
-  <td class="c-vm"><span class="vmname">gaia-t19</span><span class="asof">as of 2026-11-17 18:57:29 UTC</span></td>
-  <td class="c-answer"><p class="answer-line">Point 2, taken 18:56:34, the full backup after the damage. Restore tested at 18:57:23: it booted in 17 s.</p><div class="why"><span class="why-label">Why CRITICAL:</span><p class="why-main">integrity check failed for point(s) [1]</p><p class="why-also">Also: point 2 is proven by test 2: proven RPO 55s &lt;= 20m0s, proven RTO 17s &lt;= 10m0s, proof age 6s &lt;= 30m0s</p></div></td>
-  <td class="c-fig" data-label="Proven RPO"><span class="num">55 s</span></td>
-  <td class="c-fig" data-label="Proven RTO"><span class="num">17 s</span></td>
-  <td class="c-fig" data-label="Proof age"><span class="num">6 s</span></td>
-  <td class="c-fig" data-label="Theoretical RPO"><span class="num">55 s</span></td>
+<tr class="r s-critical">
+  <th scope="row" class="c-vm"><span class="chip s-critical "><span class="g" aria-hidden="true">◆</span>CRITICAL</span><span class="vm">gaia-t19</span><span class="sub">gaia-lab, as of Nov 17 18:57:29</span></th>
+  <td class="c-ret"><span class="rt">18:56:33</span><span class="rd">Nov 17, point 2</span><span class="rs">proven by test 2 at 18:57</span></td>
+  <td class="c-proof"><svg class="pb " viewBox="0 0 220 26" width="220" height="26" role="img" aria-label="55s, target 20m"><rect class="b0" x="0" y="6" width="81.9" height="14"/><rect class="b1" x="81.9" y="6" width="15.4" height="14"/><rect class="b2" x="97.3" y="6" width="122.7" height="14"/><rect class="pbar ok" x="0" y="10.5" width="13.6" height="5"/><path class="notch" d="M9.6 0.5 L17.6 0.5 L13.6 6 Z"/><rect class="tgt" x="80.9" y="3" width="2" height="20"/></svg><span class="fig"><b>55s</b><span class="of">target 20m</span></span></td>
+  <td class="c-num"><b>17s</b><span class="of">target 10m</span></td>
+  <td class="c-num"><b class="">6s</b><span class="of">max 30m</span></td>
+  <td class="c-hist"><svg class="hs" viewBox="0 0 250 34" width="250" height="34" role="img" aria-label="Backups and restore tests, last 6 hours"><line class="hr" x1="41.7" y1="2" x2="41.7" y2="29"/><line class="hr" x1="83.3" y1="2" x2="83.3" y2="29"/><line class="hr" x1="125.0" y1="2" x2="125.0" y2="29"/><line class="hr" x1="166.7" y1="2" x2="166.7" y2="29"/><line class="hr" x1="208.3" y1="2" x2="208.3" y2="29"/><line class="base" x1="0" y1="25" x2="250" y2="25"/><line class="bk" x1="245.0" y1="19" x2="245.0" y2="28"/><line class="bk" x1="249.3" y1="19" x2="249.3" y2="28"/><path class="xf" d="M242.9 16 l6 6 m0 -6 l-6 6"/><rect class="dmg" x="241.5" y="21.5" width="7" height="7"/><circle class="ret" cx="249.3" cy="25" r="5.50"/><circle class="tok" cx="245.8" cy="11" r="2.80"/><circle class="tok" cx="249.9" cy="11" r="2.80"/><line class="now" x1="249.25" y1="1" x2="249.25" y2="29"/></svg></td>
+  <td class="c-why"><p>Point 1 is damaged and quarantined. Point 2, taken after it, is proven.</p><details><summary>Reasons</summary><ul><li><span class="chip s-critical xs"><span class="g" aria-hidden="true">◆</span>CRITICAL</span><span>integrity check failed for point(s) [1]</span></li><li><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span>point 2 is proven by test 2: proven RPO 55s &lt;= 20m0s, proven RTO 17s &lt;= 10m0s, proof age 6s &lt;= 30m0s</span></li></ul></details></td>
 </tr>
-<tr class="row s-unknown">
-  <td class="c-status"><span class="badge s-unknown"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><span class="since">since 13:39:54</span></td>
-  <td class="c-vm"><span class="vmname">gaia-t18</span><span class="asof">as of 2026-11-17 13:39:54 UTC</span></td>
-  <td class="c-answer"><p class="answer-line">Nothing proven. No backup of this VM has passed its check yet, so there is no point to return to.</p><div class="why"><span class="why-label">Why UNKNOWN:</span><p class="why-main">there is no backup point that passed its post-backup check</p></div></td>
-  <td class="c-fig" data-label="Proven RPO"><span class="none">none</span></td>
-  <td class="c-fig" data-label="Proven RTO"><span class="none">none</span></td>
-  <td class="c-fig" data-label="Proof age"><span class="none">none</span></td>
-  <td class="c-fig" data-label="Theoretical RPO"><span class="none">none</span></td>
+<tr class="r s-unknown">
+  <th scope="row" class="c-vm"><span class="chip s-unknown "><span class="g" aria-hidden="true">?</span>UNKNOWN</span><span class="vm">gaia-t18</span><span class="sub">gaia-lab, as of Nov 17 13:39:54</span></th>
+  <td class="c-ret"><span class="rt none">nothing proven</span><span class="rs">no restore test has passed</span></td>
+  <td class="c-proof"><svg class="pb " viewBox="0 0 220 26" width="220" height="26" role="img" aria-label="nothing proven, target 30m"><rect class="b0" x="0" y="6" width="90.9" height="14"/><rect class="b1" x="90.9" y="6" width="15.4" height="14"/><rect class="b2" x="106.3" y="6" width="113.7" height="14"/><rect class="none" x="0" y="6" width="220" height="14"/><rect class="tgt" x="89.9" y="3" width="2" height="20"/></svg><span class="fig"><b class="none">none</b></span></td>
+  <td class="c-num"><b class="none">—</b></td>
+  <td class="c-num"><b class="none">—</b></td>
+  <td class="c-hist"><svg class="hs" viewBox="0 0 250 34" width="250" height="34" role="img" aria-label="Backups and restore tests, last 6 hours"><line class="hr" x1="41.7" y1="2" x2="41.7" y2="29"/><line class="hr" x1="83.3" y1="2" x2="83.3" y2="29"/><line class="hr" x1="125.0" y1="2" x2="125.0" y2="29"/><line class="hr" x1="166.7" y1="2" x2="166.7" y2="29"/><line class="hr" x1="208.3" y1="2" x2="208.3" y2="29"/><line class="base" x1="0" y1="25" x2="250" y2="25"/><text class="empty" x="125" y="17" text-anchor="middle">no backups yet</text><line class="now" x1="249.25" y1="1" x2="249.25" y2="29"/></svg></td>
+  <td class="c-why"><p>Just added. No backup has passed its check yet.</p><details><summary>Reasons</summary><ul><li><span class="chip s-unknown xs"><span class="g" aria-hidden="true">?</span>UNKNOWN</span><span>there is no backup point that passed its post-backup check</span></li></ul></details></td>
 </tr>
-<tr class="row s-warning">
-  <td class="c-status"><span class="badge s-warning"><span class="glyph" aria-hidden="true">!</span>WARNING</span><span class="since">since 17:01:18</span></td>
-  <td class="c-vm"><span class="vmname">gaia-t16</span><span class="asof">as of 2026-11-16 17:01:19 UTC</span></td>
-  <td class="c-answer"><p class="answer-line">Point 4, taken 16:47:51. Its restore test passed at 16:49:17, but that proof is now older than the policy allows.</p><div class="why"><span class="why-label">Why WARNING:</span><p class="why-main">the proof (test 4) is 12m2s old, over the maximum 12m0s</p><p class="why-note">Note: restore test 6 (point 6) could not run: not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory</p></div></td>
-  <td class="c-fig" data-label="Proven RPO"><span class="num">13 min 28 s</span></td>
-  <td class="c-fig" data-label="Proven RTO"><span class="num">12 s</span></td>
-  <td class="c-fig" data-label="Proof age"><span class="num">12 min 2 s</span></td>
-  <td class="c-fig" data-label="Theoretical RPO"><span class="num">3 min 28 s</span></td>
+<tr class="r s-warning">
+  <th scope="row" class="c-vm"><span class="chip s-warning "><span class="g" aria-hidden="true">▲</span>WARNING</span><span class="vm">gaia-t16</span><span class="sub">gaia-lab, as of Nov 16 17:01:19</span></th>
+  <td class="c-ret"><span class="rt">16:47:51</span><span class="rd">Nov 16, point 4</span><span class="rs">proven by test 4 at 16:49</span></td>
+  <td class="c-proof"><svg class="pb " viewBox="0 0 220 26" width="220" height="26" role="img" aria-label="13m, target 20m"><rect class="b0" x="0" y="6" width="81.9" height="14"/><rect class="b1" x="81.9" y="6" width="15.4" height="14"/><rect class="b2" x="97.3" y="6" width="122.7" height="14"/><rect class="pbar ok" x="0" y="10.5" width="73.1" height="5"/><path class="notch" d="M39.0 0.5 L47.0 0.5 L43.0 6 Z"/><rect class="tgt" x="80.9" y="3" width="2" height="20"/></svg><span class="fig"><b>13m</b><span class="of">target 20m</span></span></td>
+  <td class="c-num"><b>12s</b><span class="of">target 10m</span></td>
+  <td class="c-num"><b class="over">12m</b><span class="of">max 12m</span></td>
+  <td class="c-hist"><svg class="hs" viewBox="0 0 250 34" width="250" height="34" role="img" aria-label="Backups and restore tests, last 6 hours"><line class="hr" x1="41.7" y1="2" x2="41.7" y2="29"/><line class="hr" x1="83.3" y1="2" x2="83.3" y2="29"/><line class="hr" x1="125.0" y1="2" x2="125.0" y2="29"/><line class="hr" x1="166.7" y1="2" x2="166.7" y2="29"/><line class="hr" x1="208.3" y1="2" x2="208.3" y2="29"/><line class="base" x1="0" y1="25" x2="250" y2="25"/><line class="bk" x1="247.6" y1="19" x2="247.6" y2="28"/><line class="bk" x1="244.1" y1="19" x2="244.1" y2="28"/><line class="bk" x1="240.7" y1="19" x2="240.7" y2="28"/><line class="bk" x1="237.2" y1="19" x2="237.2" y2="28"/><line class="bk" x1="233.7" y1="19" x2="233.7" y2="28"/><line class="bk" x1="230.2" y1="19" x2="230.2" y2="28"/><circle class="ret" cx="240.7" cy="25" r="5.50"/><circle class="tok" cx="241.6" cy="11" r="2.80"/><circle class="tok" cx="230.8" cy="11" r="2.80"/><circle class="tun" cx="248.3" cy="11" r="3.00"/><circle class="tun" cx="244.9" cy="11" r="3.00"/><path class="tf" d="M238.0 7.8 l6.4 6.4 m0 -6.4 l-6.4 6.4"/><path class="tf" d="M234.3 7.8 l6.4 6.4 m0 -6.4 l-6.4 6.4"/><line class="now" x1="249.25" y1="1" x2="249.25" y2="29"/></svg></td>
+  <td class="c-why"><p>The proof is older than allowed. The last two tests could not run: the sandbox is unreachable.</p><details><summary>Reasons</summary><ul><li><span class="chip s-warning xs"><span class="g" aria-hidden="true">▲</span>WARNING</span><span>the proof (test 4) is 12m2s old, over the maximum 12m0s</span></li><li class="note"><span class="nl">note</span><span>restore test 6 (point 6) could not run: not tested: sandbox helper at /run/gaia-t16-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: dial unix /run/gaia-t16-sandbox/sandbox.sock: connect: no such file or directory</span></li></ul></details></td>
 </tr>
-<tr class="row s-ok">
-  <td class="c-status"><span class="badge s-ok"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="since">since 15:30:39</span></td>
-  <td class="c-vm"><span class="vmname"><a href="vm-gaia-t17-web.html">gaia-t17-web</a></span><span class="asof">as of 2026-11-17 19:16:50 UTC</span></td>
-  <td class="c-answer"><p class="answer-line">Point 249, taken 19:10:00. Restore tested at 19:11:17: it booted to a login prompt in 37 s.</p><div class="why"><span class="why-label">Why OK:</span><p class="why-main">point 249 is proven by test 125: proven RPO 6m50s &lt;= 20m0s, proven RTO 37s &lt;= 10m0s, proof age 5m33s &lt;= 30m0s</p></div></td>
-  <td class="c-fig" data-label="Proven RPO"><span class="num">6 min 50 s</span></td>
-  <td class="c-fig" data-label="Proven RTO"><span class="num">37 s</span></td>
-  <td class="c-fig" data-label="Proof age"><span class="num">5 min 33 s</span></td>
-  <td class="c-fig" data-label="Theoretical RPO"><span class="num">1 min 50 s</span></td>
+<tr class="r s-ok">
+  <th scope="row" class="c-vm"><span class="chip s-ok "><span class="g" aria-hidden="true">✓</span>OK</span><span class="vm"><a href="vm-gaia-t17-web.html">gaia-t17-web</a></span><span class="sub">gaia-lab, as of Nov 17 19:16:50</span></th>
+  <td class="c-ret"><span class="rt">19:10:00</span><span class="rd">Nov 17, point 249</span><span class="rs">proven by test 125 at 19:11</span></td>
+  <td class="c-proof"><svg class="pb " viewBox="0 0 220 26" width="220" height="26" role="img" aria-label="6m 50s, target 20m"><rect class="b0" x="0" y="6" width="81.9" height="14"/><rect class="b1" x="81.9" y="6" width="15.4" height="14"/><rect class="b2" x="97.3" y="6" width="122.7" height="14"/><rect class="pbar ok" x="0" y="10.5" width="58.0" height="5"/><path class="notch" d="M24.8 0.5 L32.8 0.5 L28.8 6 Z"/><rect class="tgt" x="80.9" y="3" width="2" height="20"/></svg><span class="fig"><b>6m 50s</b><span class="of">target 20m</span></span></td>
+  <td class="c-num"><b>37s</b><span class="of">target 10m</span></td>
+  <td class="c-num"><b class="">5m 33s</b><span class="of">max 30m</span></td>
+  <td class="c-hist"><svg class="hs" viewBox="0 0 250 34" width="250" height="34" role="img" aria-label="Backups and restore tests, last 6 hours"><line class="hr" x1="41.7" y1="2" x2="41.7" y2="29"/><line class="hr" x1="83.3" y1="2" x2="83.3" y2="29"/><line class="hr" x1="125.0" y1="2" x2="125.0" y2="29"/><line class="hr" x1="166.7" y1="2" x2="166.7" y2="29"/><line class="hr" x1="208.3" y1="2" x2="208.3" y2="29"/><line class="base" x1="0" y1="25" x2="250" y2="25"/><line class="bk" x1="248.7" y1="19" x2="248.7" y2="28"/><line class="bk" x1="245.3" y1="19" x2="245.3" y2="28"/><line class="bk" x1="241.8" y1="19" x2="241.8" y2="28"/><line class="bk" x1="238.3" y1="19" x2="238.3" y2="28"/><line class="bk" x1="234.8" y1="19" x2="234.8" y2="28"/><line class="bk" x1="231.3" y1="19" x2="231.3" y2="28"/><line class="bk" x1="227.8" y1="19" x2="227.8" y2="28"/><line class="bk" x1="224.3" y1="19" x2="224.3" y2="28"/><line class="bk" x1="220.9" y1="19" x2="220.9" y2="28"/><line class="bk" x1="217.4" y1="19" x2="217.4" y2="28"/><line class="bk" x1="213.9" y1="19" x2="213.9" y2="28"/><line class="bk" x1="210.4" y1="19" x2="210.4" y2="28"/><line class="bk" x1="207.0" y1="19" x2="207.0" y2="28"/><line class="bk" x1="203.5" y1="19" x2="203.5" y2="28"/><line class="bk" x1="200.0" y1="19" x2="200.0" y2="28"/><line class="bk" x1="196.6" y1="19" x2="196.6" y2="28"/><line class="bk" x1="193.1" y1="19" x2="193.1" y2="28"/><line class="bk" x1="189.6" y1="19" x2="189.6" y2="28"/><line class="bk" x1="186.1" y1="19" x2="186.1" y2="28"/><line class="bk" x1="182.7" y1="19" x2="182.7" y2="28"/><line class="bk" x1="179.2" y1="19" x2="179.2" y2="28"/><line class="bk" x1="175.7" y1="19" x2="175.7" y2="28"/><line class="bk" x1="172.3" y1="19" x2="172.3" y2="28"/><line class="bk" x1="168.8" y1="19" x2="168.8" y2="28"/><line class="bk" x1="165.3" y1="19" x2="165.3" y2="28"/><line class="bk" x1="161.8" y1="19" x2="161.8" y2="28"/><line class="bk" x1="158.4" y1="19" x2="158.4" y2="28"/><line class="bk" x1="154.9" y1="19" x2="154.9" y2="28"/><line class="bk" x1="151.4" y1="19" x2="151.4" y2="28"/><line class="bk" x1="147.9" y1="19" x2="147.9" y2="28"/><line class="bk" x1="144.5" y1="19" x2="144.5" y2="28"/><line class="bk" x1="141.0" y1="19" x2="141.0" y2="28"/><line class="bk" x1="137.5" y1="19" x2="137.5" y2="28"/><line class="bk" x1="134.1" y1="19" x2="134.1" y2="28"/><line class="bk" x1="130.6" y1="19" x2="130.6" y2="28"/><line class="bk" x1="127.1" y1="19" x2="127.1" y2="28"/><line class="bk" x1="123.6" y1="19" x2="123.6" y2="28"/><line class="bk" x1="120.2" y1="19" x2="120.2" y2="28"/><line class="bk" x1="116.7" y1="19" x2="116.7" y2="28"/><line class="bk" x1="113.2" y1="19" x2="113.2" y2="28"/><line class="bk" x1="109.8" y1="19" x2="109.8" y2="28"/><line class="bk" x1="106.3" y1="19" x2="106.3" y2="28"/><line class="bk" x1="102.8" y1="19" x2="102.8" y2="28"/><line class="bk" x1="99.3" y1="19" x2="99.3" y2="28"/><line class="bk" x1="95.8" y1="19" x2="95.8" y2="28"/><line class="bk" x1="92.3" y1="19" x2="92.3" y2="28"/><line class="bk" x1="88.9" y1="19" x2="88.9" y2="28"/><line class="bk" x1="85.3" y1="19" x2="85.3" y2="28"/><line class="bk" x1="81.8" y1="19" x2="81.8" y2="28"/><line class="bk" x1="78.3" y1="19" x2="78.3" y2="28"/><line class="bk" x1="74.9" y1="19" x2="74.9" y2="28"/><line class="bk" x1="71.4" y1="19" x2="71.4" y2="28"/><line class="bk" x1="67.9" y1="19" x2="67.9" y2="28"/><line class="bk" x1="64.4" y1="19" x2="64.4" y2="28"/><line class="bk" x1="61.0" y1="19" x2="61.0" y2="28"/><line class="bk" x1="57.5" y1="19" x2="57.5" y2="28"/><line class="bk" x1="54.0" y1="19" x2="54.0" y2="28"/><line class="bk" x1="50.6" y1="19" x2="50.6" y2="28"/><line class="bk" x1="47.1" y1="19" x2="47.1" y2="28"/><line class="bk" x1="43.6" y1="19" x2="43.6" y2="28"/><line class="bk" x1="40.1" y1="19" x2="40.1" y2="28"/><line class="bk" x1="36.7" y1="19" x2="36.7" y2="28"/><line class="bk" x1="33.2" y1="19" x2="33.2" y2="28"/><line class="bk" x1="29.7" y1="19" x2="29.7" y2="28"/><line class="bk" x1="26.3" y1="19" x2="26.3" y2="28"/><line class="bk" x1="22.8" y1="19" x2="22.8" y2="28"/><line class="bk" x1="19.3" y1="19" x2="19.3" y2="28"/><line class="bk" x1="15.8" y1="19" x2="15.8" y2="28"/><line class="bk" x1="12.4" y1="19" x2="12.4" y2="28"/><line class="bk" x1="8.9" y1="19" x2="8.9" y2="28"/><line class="bk" x1="5.4" y1="19" x2="5.4" y2="28"/><line class="bk" x1="1.9" y1="19" x2="1.9" y2="28"/><circle class="ret" cx="245.3" cy="25" r="5.50"/><circle class="tok" cx="246.1" cy="11" r="2.80"/><circle class="tok" cx="239.1" cy="11" r="2.80"/><circle class="tok" cx="232.4" cy="11" r="2.80"/><circle class="tok" cx="225.0" cy="11" r="2.80"/><circle class="tok" cx="218.3" cy="11" r="2.80"/><circle class="tok" cx="211.1" cy="11" r="2.80"/><circle class="tok" cx="204.2" cy="11" r="2.80"/><circle class="tok" cx="197.6" cy="11" r="2.80"/><circle class="tok" cx="190.6" cy="11" r="2.80"/><circle class="tok" cx="183.6" cy="11" r="2.80"/><circle class="tok" cx="176.4" cy="11" r="2.80"/><circle class="tok" cx="169.4" cy="11" r="2.80"/><circle class="tok" cx="162.4" cy="11" r="2.80"/><circle class="tok" cx="155.5" cy="11" r="2.80"/><circle class="tok" cx="148.5" cy="11" r="2.80"/><circle class="tok" cx="141.6" cy="11" r="2.80"/><circle class="tok" cx="134.6" cy="11" r="2.80"/><circle class="tok" cx="127.7" cy="11" r="2.80"/><circle class="tok" cx="120.8" cy="11" r="2.80"/><circle class="tok" cx="113.8" cy="11" r="2.80"/><circle class="tok" cx="106.9" cy="11" r="2.80"/><circle class="tok" cx="99.9" cy="11" r="2.80"/><circle class="tok" cx="92.9" cy="11" r="2.80"/><circle class="tok" cx="79.0" cy="11" r="2.80"/><circle class="tok" cx="72.1" cy="11" r="2.80"/><circle class="tok" cx="65.1" cy="11" r="2.80"/><circle class="tok" cx="58.5" cy="11" r="2.80"/><circle class="tok" cx="51.2" cy="11" r="2.80"/><circle class="tok" cx="44.2" cy="11" r="2.80"/><circle class="tok" cx="37.3" cy="11" r="2.80"/><circle class="tok" cx="30.3" cy="11" r="2.80"/><circle class="tok" cx="23.5" cy="11" r="2.80"/><circle class="tok" cx="17.1" cy="11" r="2.80"/><circle class="tok" cx="9.5" cy="11" r="2.80"/><circle class="tok" cx="2.5" cy="11" r="2.80"/><circle class="tun" cx="85.7" cy="11" r="3.00"/><line class="now" x1="249.25" y1="1" x2="249.25" y2="29"/></svg></td>
+  <td class="c-why"><p>Proven within every target.</p><details><summary>Reasons</summary><ul><li><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span>point 249 is proven by test 125: proven RPO 6m50s &lt;= 20m0s, proven RTO 37s &lt;= 10m0s, proof age 5m33s &lt;= 30m0s</span></li></ul></details></td>
 </tr>
 </tbody>
 </table>
-<section class="legend">
-  <h2>What the statuses mean</h2>
-  <dl>
-    <div><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span><dd>The newest proven point is within the RPO target, its restore took less than the RTO target, and the proof is fresh.</dd></div>
-    <div><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span><dd>Backups are on time, but the proof misses a target: too old, too slow, or no recent passing test.</dd></div>
-    <div><span class="badge s-critical small"><span class="glyph" aria-hidden="true">✕</span>CRITICAL</span><dd>Backups are late, the latest restore test failed, or a point that still exists is damaged.</dd></div>
-    <div><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><dd>No restore test has ever passed, or something needed to judge is missing. Never read it as healthy.</dd></div>
-  </dl>
 </section>
-<section class="sources">
-  <h2>Where these rows come from (mock-up only)</h2>
-  <p>Each row is a real status the server computed, at its own moment. A real screen shows one installation, all at the same moment.</p>
-  <ul><li><strong>gaia-t19</strong>: T19 lab run, after one byte of the repository was damaged and quarantined (docs/reports/evidence/2026-11-17-T19/lab/status-after-damage.json); as of 2026-11-17 18:57:29 UTC.</li><li><strong>gaia-t18</strong>: T18 lab run, the moment the VM was added (docs/reports/evidence/2026-11-17-T18/state-changes.json); as of 2026-11-17 13:39:54 UTC.</li><li><strong>gaia-t16</strong>: T16 lab run, with the sandbox helper stopped (docs/reports/evidence/2026-11-16-T16/status-end.json); as of 2026-11-16 17:01:19 UTC.</li><li><strong>gaia-t17-web</strong>: server B (gaia-t17-b), live, through its API; as of 2026-11-17 19:16:50 UTC.</li></ul>
+
+<section class="src">
+  <h2>Where these rows come from</h2>
+  <p>This proposal shows four statuses Gaia really computed in the lab, each at its own moment. A real overview shows one installation at one moment.</p>
+  <ul><li><b>gaia-t19</b>: T19 lab run, after one byte of the repository was damaged (docs/reports/evidence/2026-11-17-T19/lab), as of Nov 17 18:57:29.</li><li><b>gaia-t18</b>: T18 lab run, the moment the VM was added (docs/reports/evidence/2026-11-17-T18), as of Nov 17 13:39:54.</li><li><b>gaia-t16</b>: T16 lab run, with the sandbox helper stopped (docs/reports/evidence/2026-11-16-T16), as of Nov 16 17:01:19.</li><li><b>gaia-t17-web</b>: server B (gaia-t17-b), live, through its API, as of Nov 17 19:16:50.</li></ul>
 </section>
 </main>
 </body>

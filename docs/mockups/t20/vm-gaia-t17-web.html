@@ -3,148 +3,149 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>gaia-t17-web · Gaia</title>
+<meta name="color-scheme" content="dark light">
+<title>gaia-t17-web — Gaia</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <a class="brand" href="index.html">Gaia</a>
-  <span class="install">gaia-t17-b</span>
-  <nav aria-label="Main"><a href="index.html">Status</a><a href="#">Evidence export</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
-  <span class="who">admin <span class="role">admin</span></span>
+<header class="bar">
+  <a class="mark" href="index.html" aria-label="Gaia overview"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25"/><path d="M10 2.75v14.5M2.75 10h14.5"/></svg>Gaia</a>
+  <span class="inst">gaia-t17-b</span>
+  <nav aria-label="Main"><a href="index.html">Overview</a><a href="#">Evidence</a><a href="#">Notifications</a><a href="#">Settings</a></nav>
+  <span class="clock" title="Times on these pages are the server's local time (Etc/UTC)">19:16<span>server time, Etc/UTC</span></span>
+  <span class="user">admin</span>
 </header>
-<p class="mock">Mock-up for T20, step 1. Static, made from real lab records by <code>docs/mockups/t20/make.py</code>;
-buttons and links other than the VM name do nothing yet.</p>
-<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Status</a> / gaia-t17-web</nav>
-<section class="vmhead s-ok">
-  <div class="title"><h1>gaia-t17-web</h1><span class="badge s-ok"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="since">since 2026-11-17 15:30:39 UTC</span></div>
-  <p class="answer">You can return to <strong>point 249</strong>, taken 19:10:00 UTC.
-  Its restore was tested at 19:11:17: restored in 26 s, booted to a login prompt in
-  11 s, 37 s in all.</p>
-  <dl class="figs">
-    <div><dt>Proven RPO</dt><dd><span class="num">6 min 50 s</span><span class="target">target 20 min</span></dd></div>
-    <div><dt>Proven RTO</dt><dd><span class="num">37 s</span><span class="target">target 10 min</span></dd></div>
-    <div><dt>Proof age</dt><dd><span class="num">5 min 33 s</span><span class="target">target 30 min</span></dd></div>
-    <div><dt>Theoretical RPO</dt><dd><span class="num">1 min 50 s</span><span class="target">target 20 min</span></dd></div>
-  </dl>
-  <p class="meta">Policy <strong>t17</strong>: back up every 5 min, test a restore every
-  10 min, keep the last 8 points. Repository <strong>main</strong>
-  (filesystem, <code>/srv/gaia/main</code>). Host <strong>gaia-lab</strong> (192.168.1.30).
-  As of 2026-11-17 19:16:50 UTC.</p>
-  <p class="actions"><a class="button" href="#">Back up now</a> <a class="button" href="#">Test a restore now</a>
-  <a class="button quiet" href="#">Export evidence for an auditor</a></p>
-</section>
+<p class="mock">Proposal 2 for T20: static, made from real lab records by <code>docs/mockups/t20/make.py</code>. Only the VM name links work.</p>
+<main class="vmp">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Overview</a><span aria-hidden="true">/</span><span>gaia-t17-web</span></nav>
 
-<section>
-  <h2>Status history</h2>
-  <ol class="timeline">
-<li class="s-ok">
-  <time datetime="2026-11-17T15:30:39.915510336Z">2026-11-17 15:30:39</time>
-  <span class="change"><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span><span class="arrow" aria-label="to">→</span><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></span>
-  <span class="lasted">since then (3 h 46 min)</span>
-  <p>point 205 is proven by test 103: proven RPO 50s &lt;= 20m0s, proven RTO 22s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p>
-</li>
-<li class="s-warning">
-  <time datetime="2026-11-17T15:29:48.435201723Z">2026-11-17 15:29:48</time>
-  <span class="change"><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span><span class="arrow" aria-label="to">→</span><span class="badge s-warning small"><span class="glyph" aria-hidden="true">!</span>WARNING</span></span>
-  <span class="lasted">for 51 s</span>
-  <p>the newest proven point (201, test 101) is 20m10s old, over the RPO target 20m0s</p>
-</li>
-<li class="s-ok">
-  <time datetime="2026-11-16T22:29:48.25903051Z">2026-11-16 22:29:48</time>
-  <span class="change"><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span><span class="arrow" aria-label="to">→</span><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></span>
-  <span class="lasted">for 17 h</span>
-  <p>point 1 is proven by test 1: proven RPO 45s &lt;= 20m0s, proven RTO 14s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p>
-</li>
-<li class="s-unknown">
-  <time datetime="2026-11-16T22:28:53.310153625Z">2026-11-16 22:28:53</time>
-  <span class="change"><span class="new">new VM</span><span class="arrow" aria-label="to">→</span><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span></span>
-  <span class="lasted">for 55 s</span>
-  <p>there is no backup point that passed its post-backup check</p>
-</li>
-  </ol>
-</section>
-
-<section>
-  <h2>Latest restore test: test 125 of point 249</h2>
-  <div class="test">
-    <figure><img src="img/b-test125-boot.png" width="720" height="400" alt="Console of the restored VM when the boot check passed: the login prompt"><figcaption>When the boot check passed (11 s)</figcaption></figure>
-    <figure><img src="img/b-test125-end.png" width="720" height="400" alt="Console of the restored VM: Debian GNU/Linux 12 gaia-t17-web tty1, gaia-t17-web login:"><figcaption>At the end of the test</figcaption></figure>
+<section class="head">
+  <div class="id">
+    <h1>gaia-t17-web</h1>
+    <span class="chip s-ok lg"><span class="g" aria-hidden="true">✓</span>OK</span>
+    <p class="sub">OK since Nov 17 15:30:39. Host gaia-lab (192.168.1.30), policy <b>t17</b>, repository <b>main</b>.</p>
   </div>
-  <table class="checks"><caption class="visually-hidden">Checks of test 125</caption>
-    <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Took</th><th scope="col">What was seen</th></tr></thead>
-    <tbody><tr><td>boot</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td class="num">11 s</td><td>serial console matched &quot;(?m)login: *$&quot;: &quot;gaia-t17-web login:&quot;</td></tr><tr><td>image_unchanged_vda</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td class="num">—</td><td>sha256 before and after are equal</td></tr><tr><td>image_unchanged_vdb</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td class="num">—</td><td>sha256 before and after are equal</td></tr></tbody>
-  </table>
-  <p class="evidence">Evidence bundle <code>gaia-t17-web-20261117T191041Z-b09261</code>, ledger entry 125:
-  <span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> manifest signed by evidence key <code title="2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909">2695ee2e41e8978c…</code>,
-  all 10 files match.</p>
+  <div class="answer">
+    <span class="lbl">You can return to</span>
+    <span class="when">19:10:00</span>
+    <span class="what"><b>Nov 17, point 249.</b> Test 125 restored it and booted it to a login prompt in 37s, 5m 33s ago.</span>
+  </div>
+  <div class="kbs">
+    <div class="kb">
+  <span class="kl">Proven RPO</span>
+  <span class="kv"><b class="">6m 50s</b><span class="of">target 20m</span></span>
+  <svg class="pb lg" viewBox="0 0 250 26" width="250" height="26" role="img" aria-label="6m 50s, target 20m"><rect class="b0" x="0" y="6" width="93.0" height="14"/><rect class="b1" x="93.0" y="6" width="17.5" height="14"/><rect class="b2" x="110.5" y="6" width="139.5" height="14"/><rect class="pbar ok" x="0" y="10.5" width="66.0" height="5"/><rect class="tgt" x="92.0" y="3" width="2" height="20"/></svg>
+</div>
+    <div class="kb">
+  <span class="kl">Theoretical RPO <span class="hint">age of the newest backup</span></span>
+  <span class="kv"><b class="">1m 50s</b><span class="of">target 20m</span></span>
+  <svg class="pb lg" viewBox="0 0 250 26" width="250" height="26" role="img" aria-label="1m 50s, target 20m"><rect class="b0" x="0" y="6" width="93.0" height="14"/><rect class="b1" x="93.0" y="6" width="17.5" height="14"/><rect class="b2" x="110.5" y="6" width="139.5" height="14"/><rect class="pbar ok" x="0" y="10.5" width="32.7" height="5"/><rect class="tgt" x="92.0" y="3" width="2" height="20"/></svg>
+</div>
+    <div class="kb">
+  <span class="kl">Proven RTO</span>
+  <span class="kv"><b class="">37s</b><span class="of">target 10m</span></span>
+  <svg class="pb lg" viewBox="0 0 250 26" width="250" height="26" role="img" aria-label="37s, target 10m"><rect class="b0" x="0" y="6" width="75.6" height="14"/><rect class="b1" x="75.6" y="6" width="17.5" height="14"/><rect class="b2" x="93.0" y="6" width="157.0" height="14"/><rect class="pbar ok" x="0" y="10.5" width="5.4" height="5"/><rect class="tgt" x="74.6" y="3" width="2" height="20"/></svg>
+</div>
+    <div class="kb">
+  <span class="kl">Proof age</span>
+  <span class="kv"><b class="">5m 33s</b><span class="of">max 30m</span></span>
+  <svg class="pb lg" viewBox="0 0 250 26" width="250" height="26" role="img" aria-label="5m 33s, target 30m"><rect class="b0" x="0" y="6" width="103.3" height="14"/><rect class="b1" x="103.3" y="6" width="17.5" height="14"/><rect class="b2" x="120.8" y="6" width="129.2" height="14"/><rect class="pbar ok" x="0" y="10.5" width="60.7" height="5"/><rect class="tgt" x="102.3" y="3" width="2" height="20"/></svg>
+</div>
+  </div>
+  <p class="acts"><a class="btn" href="#">Back up now</a><a class="btn" href="#">Test a restore now</a><a class="btn quiet" href="#">Export evidence</a></p>
 </section>
 
-<section>
-  <h2>Restore tests</h2>
-  <p class="intro">The newest 12, and earlier ones that did not pass. A test that could not run proves nothing and does not count.</p>
-  <table class="tests">
-    <thead><tr><th scope="col">Test</th><th scope="col">Point</th><th scope="col">Result</th><th scope="col">Proven RTO</th>
-    <th scope="col">Finished (UTC)</th><th scope="col">Evidence</th><th scope="col">Detail</th></tr></thead>
-    <tbody><tr class="s-ok"><td class="num">125</td><td class="num">249</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">37 s</td>
-<td>2026-11-17 19:11:17</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> signature verified when this page was made</td><td class="reason">every check passed (boot 11.0 s); proven RTO 37.2 s = restore 26.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">124</td><td class="num">247</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">28 s</td>
-<td>2026-11-17 19:01:04</td><td><span class="pending">sealed (ledger entry 124), not checked since; next check with the 07:00 report</span></td><td class="reason">every check passed (boot 12.0 s); proven RTO 28.5 s = restore 16.4 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">123</td><td class="num">245</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">49 s</td>
-<td>2026-11-17 18:51:30</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 48.6 s = restore 37.6 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">122</td><td class="num">243</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">29 s</td>
-<td>2026-11-17 18:40:54</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 29.5 s = restore 18.4 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">121</td><td class="num">241</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">42 s</td>
-<td>2026-11-17 18:31:11</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.0 s); proven RTO 42.4 s = restore 30.3 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">120</td><td class="num">239</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">23 s</td>
-<td>2026-11-17 18:20:46</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 23.2 s = restore 12.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">119</td><td class="num">237</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">25 s</td>
-<td>2026-11-17 18:10:49</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.0 s); proven RTO 24.9 s = restore 12.9 s + ready 12.0 s</td></tr><tr class="s-ok"><td class="num">118</td><td class="num">235</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">46 s</td>
-<td>2026-11-17 18:01:20</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 14.0 s); proven RTO 46.1 s = restore 32.1 s + ready 14.0 s</td></tr><tr class="s-ok"><td class="num">117</td><td class="num">233</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">47 s</td>
-<td>2026-11-17 17:51:20</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 12.1 s); proven RTO 47.1 s = restore 35.1 s + ready 12.1 s</td></tr><tr class="s-ok"><td class="num">116</td><td class="num">231</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">46 s</td>
-<td>2026-11-17 17:41:15</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 11.0 s); proven RTO 46.1 s = restore 35.1 s + ready 11.0 s</td></tr><tr class="s-ok"><td class="num">115</td><td class="num">229</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">26 s</td>
-<td>2026-11-17 17:30:49</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 13.0 s); proven RTO 25.7 s = restore 12.6 s + ready 13.0 s</td></tr><tr class="s-ok"><td class="num">114</td><td class="num">227</td>
-<td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td><td class="num">22 s</td>
-<td>2026-11-17 17:20:45</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span> in the ledger check of 18:59:15</td><td class="reason">every check passed (boot 10.0 s); proven RTO 22.2 s = restore 12.2 s + ready 10.0 s</td></tr><tr class="s-unknown"><td class="num">102</td><td class="num">203</td>
-<td><span class="badge s-unknown small"><span class="glyph" aria-hidden="true">?</span>UNKNOWN</span></td><td class="num">—</td>
-<td>2026-11-17 15:20:17</td><td><span class="none">no bundle (the test did not run)</span></td><td class="reason">not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: EOF</td></tr></tbody>
-  </table>
+<section class="hist">
+  <h2>Last 6 hours <span class="h2s">a backup every 5m, a restore test every 10m, the last 8 points kept</span></h2>
+  <div class="bigstrip"><svg class="hs big" viewBox="0 0 1080 60" width="1080" height="60" role="img" aria-label="Backups and restore tests, last 6 hours"><line class="hr" x1="180.0" y1="2" x2="180.0" y2="55"/><line class="hr" x1="360.0" y1="2" x2="360.0" y2="55"/><line class="hr" x1="540.0" y1="2" x2="540.0" y2="55"/><line class="hr" x1="720.0" y1="2" x2="720.0" y2="55"/><line class="hr" x1="900.0" y1="2" x2="900.0" y2="55"/><line class="base" x1="0" y1="51" x2="1080" y2="51"/><line class="bk" x1="1074.5" y1="43.5" x2="1074.5" y2="54"/><line class="bk" x1="1059.5" y1="43.5" x2="1059.5" y2="54"/><line class="bk" x1="1044.5" y1="43.5" x2="1044.5" y2="54"/><line class="bk" x1="1029.5" y1="43.5" x2="1029.5" y2="54"/><line class="bk" x1="1014.1" y1="43.5" x2="1014.1" y2="54"/><line class="bk" x1="999.1" y1="43.5" x2="999.1" y2="54"/><line class="bk" x1="984.1" y1="43.5" x2="984.1" y2="54"/><line class="bk" x1="969.1" y1="43.5" x2="969.1" y2="54"/><line class="bk" x1="954.1" y1="43.5" x2="954.1" y2="54"/><line class="bk" x1="939.1" y1="43.5" x2="939.1" y2="54"/><line class="bk" x1="924.1" y1="43.5" x2="924.1" y2="54"/><line class="bk" x1="909.1" y1="43.5" x2="909.1" y2="54"/><line class="bk" x1="894.1" y1="43.5" x2="894.1" y2="54"/><line class="bk" x1="879.1" y1="43.5" x2="879.1" y2="54"/><line class="bk" x1="864.1" y1="43.5" x2="864.1" y2="54"/><line class="bk" x1="849.1" y1="43.5" x2="849.1" y2="54"/><line class="bk" x1="834.1" y1="43.5" x2="834.1" y2="54"/><line class="bk" x1="819.1" y1="43.5" x2="819.1" y2="54"/><line class="bk" x1="804.1" y1="43.5" x2="804.1" y2="54"/><line class="bk" x1="789.1" y1="43.5" x2="789.1" y2="54"/><line class="bk" x1="774.1" y1="43.5" x2="774.1" y2="54"/><line class="bk" x1="759.1" y1="43.5" x2="759.1" y2="54"/><line class="bk" x1="744.1" y1="43.5" x2="744.1" y2="54"/><line class="bk" x1="729.1" y1="43.5" x2="729.1" y2="54"/><line class="bk" x1="714.1" y1="43.5" x2="714.1" y2="54"/><line class="bk" x1="699.1" y1="43.5" x2="699.1" y2="54"/><line class="bk" x1="684.1" y1="43.5" x2="684.1" y2="54"/><line class="bk" x1="669.1" y1="43.5" x2="669.1" y2="54"/><line class="bk" x1="654.1" y1="43.5" x2="654.1" y2="54"/><line class="bk" x1="639.1" y1="43.5" x2="639.1" y2="54"/><line class="bk" x1="624.1" y1="43.5" x2="624.1" y2="54"/><line class="bk" x1="609.1" y1="43.5" x2="609.1" y2="54"/><line class="bk" x1="594.1" y1="43.5" x2="594.1" y2="54"/><line class="bk" x1="579.1" y1="43.5" x2="579.1" y2="54"/><line class="bk" x1="564.1" y1="43.5" x2="564.1" y2="54"/><line class="bk" x1="549.1" y1="43.5" x2="549.1" y2="54"/><line class="bk" x1="534.1" y1="43.5" x2="534.1" y2="54"/><line class="bk" x1="519.1" y1="43.5" x2="519.1" y2="54"/><line class="bk" x1="504.1" y1="43.5" x2="504.1" y2="54"/><line class="bk" x1="489.1" y1="43.5" x2="489.1" y2="54"/><line class="bk" x1="474.1" y1="43.5" x2="474.1" y2="54"/><line class="bk" x1="459.1" y1="43.5" x2="459.1" y2="54"/><line class="bk" x1="444.1" y1="43.5" x2="444.1" y2="54"/><line class="bk" x1="429.1" y1="43.5" x2="429.1" y2="54"/><line class="bk" x1="414.0" y1="43.5" x2="414.0" y2="54"/><line class="bk" x1="398.9" y1="43.5" x2="398.9" y2="54"/><line class="bk" x1="383.9" y1="43.5" x2="383.9" y2="54"/><line class="bk" x1="368.4" y1="43.5" x2="368.4" y2="54"/><line class="bk" x1="353.4" y1="43.5" x2="353.4" y2="54"/><line class="bk" x1="338.4" y1="43.5" x2="338.4" y2="54"/><line class="bk" x1="323.4" y1="43.5" x2="323.4" y2="54"/><line class="bk" x1="308.4" y1="43.5" x2="308.4" y2="54"/><line class="bk" x1="293.4" y1="43.5" x2="293.4" y2="54"/><line class="bk" x1="278.4" y1="43.5" x2="278.4" y2="54"/><line class="bk" x1="263.4" y1="43.5" x2="263.4" y2="54"/><line class="bk" x1="248.4" y1="43.5" x2="248.4" y2="54"/><line class="bk" x1="233.4" y1="43.5" x2="233.4" y2="54"/><line class="bk" x1="218.4" y1="43.5" x2="218.4" y2="54"/><line class="bk" x1="203.4" y1="43.5" x2="203.4" y2="54"/><line class="bk" x1="188.4" y1="43.5" x2="188.4" y2="54"/><line class="bk" x1="173.4" y1="43.5" x2="173.4" y2="54"/><line class="bk" x1="158.4" y1="43.5" x2="158.4" y2="54"/><line class="bk" x1="143.4" y1="43.5" x2="143.4" y2="54"/><line class="bk" x1="128.4" y1="43.5" x2="128.4" y2="54"/><line class="bk" x1="113.4" y1="43.5" x2="113.4" y2="54"/><line class="bk" x1="98.4" y1="43.5" x2="98.4" y2="54"/><line class="bk" x1="83.4" y1="43.5" x2="83.4" y2="54"/><line class="bk" x1="68.5" y1="43.5" x2="68.5" y2="54"/><line class="bk" x1="53.4" y1="43.5" x2="53.4" y2="54"/><line class="bk" x1="38.4" y1="43.5" x2="38.4" y2="54"/><line class="bk" x1="23.4" y1="43.5" x2="23.4" y2="54"/><line class="bk" x1="8.4" y1="43.5" x2="8.4" y2="54"/><circle class="ret" cx="1059.5" cy="51" r="6.88"/><circle class="tok" cx="1063.3" cy="33.5" r="3.50"/><circle class="tok" cx="1032.7" cy="33.5" r="3.50"/><circle class="tok" cx="1004.0" cy="33.5" r="3.50"/><circle class="tok" cx="972.2" cy="33.5" r="3.50"/><circle class="tok" cx="943.0" cy="33.5" r="3.50"/><circle class="tok" cx="911.8" cy="33.5" r="3.50"/><circle class="tok" cx="881.9" cy="33.5" r="3.50"/><circle class="tok" cx="853.5" cy="33.5" r="3.50"/><circle class="tok" cx="823.5" cy="33.5" r="3.50"/><circle class="tok" cx="793.2" cy="33.5" r="3.50"/><circle class="tok" cx="762.0" cy="33.5" r="3.50"/><circle class="tok" cx="731.7" cy="33.5" r="3.50"/><circle class="tok" cx="701.6" cy="33.5" r="3.50"/><circle class="tok" cx="671.7" cy="33.5" r="3.50"/><circle class="tok" cx="641.7" cy="33.5" r="3.50"/><circle class="tok" cx="611.7" cy="33.5" r="3.50"/><circle class="tok" cx="581.7" cy="33.5" r="3.50"/><circle class="tok" cx="551.7" cy="33.5" r="3.50"/><circle class="tok" cx="521.7" cy="33.5" r="3.50"/><circle class="tok" cx="491.7" cy="33.5" r="3.50"/><circle class="tok" cx="461.7" cy="33.5" r="3.50"/><circle class="tok" cx="431.7" cy="33.5" r="3.50"/><circle class="tok" cx="401.5" cy="33.5" r="3.50"/><circle class="tok" cx="341.3" cy="33.5" r="3.50"/><circle class="tok" cx="311.4" cy="33.5" r="3.50"/><circle class="tok" cx="281.1" cy="33.5" r="3.50"/><circle class="tok" cx="252.5" cy="33.5" r="3.50"/><circle class="tok" cx="221.1" cy="33.5" r="3.50"/><circle class="tok" cx="191.1" cy="33.5" r="3.50"/><circle class="tok" cx="161.2" cy="33.5" r="3.50"/><circle class="tok" cx="131.1" cy="33.5" r="3.50"/><circle class="tok" cx="101.6" cy="33.5" r="3.50"/><circle class="tok" cx="74.0" cy="33.5" r="3.50"/><circle class="tok" cx="41.2" cy="33.5" r="3.50"/><circle class="tok" cx="11.0" cy="33.5" r="3.50"/><circle class="tun" cx="370.3" cy="33.5" r="3.75"/><line class="now" x1="1079.25" y1="1" x2="1079.25" y2="55"/></svg><div class="hours" aria-hidden="true"><span style="left:0.000%">13:16</span><span style="left:16.667%">14:16</span><span style="left:33.333%">15:16</span><span style="left:50.000%">16:16</span><span style="left:66.667%">17:16</span><span style="left:83.333%">18:16</span><span style="left:100.000%">19:16</span></div></div>
+  <div class="legend" aria-hidden="true">
+  <span><svg width="26" height="10"><rect class="lg-bar" x="0" y="2.5" width="26" height="5"/></svg>proven RPO</span>
+  <span><svg width="10" height="10"><path class="lg-notch" d="M1 1 L9 1 L5 7 Z"/></svg>newest backup</span>
+  <span><svg width="6" height="12"><rect class="lg-tgt" x="2" y="0" width="2" height="12"/></svg>target</span>
+  <span class="sep"></span>
+  <span><svg width="10" height="12"><line class="lg-bk" x1="5" y1="1" x2="5" y2="11"/></svg>backup</span>
+  <span><svg width="10" height="10"><circle class="lg-tok" cx="5" cy="5" r="3"/></svg>restore test passed</span>
+  <span><svg width="10" height="10"><path class="lg-tf" d="M2 2 l6 6 m0 -6 l-6 6"/></svg>failed</span>
+  <span><svg width="10" height="10"><circle class="lg-tun" cx="5" cy="5" r="3"/></svg>could not run</span>
+  <span><svg width="14" height="14"><circle class="lg-ret" cx="7" cy="7" r="5.5"/></svg>point to return to</span>
+  <span><svg width="10" height="10"><rect class="lg-dmg" x="1.5" y="1.5" width="7" height="7"/></svg>damaged point</span>
+</div>
 </section>
 
-<section>
-  <h2>Points</h2>
-  <p class="intro">The 8 points kept now. 242 earlier points were removed by retention; their records stay.</p>
-  <table class="points">
-    <thead><tr><th scope="col">Point</th><th scope="col">Taken (UTC)</th><th scope="col">Kind</th><th scope="col">Size</th>
-    <th scope="col">Post-backup check</th><th scope="col">Restore tested</th></tr></thead>
-    <tbody><tr><td class="num">250</td><td>2026-11-17 19:15:00</td><td>incremental</td>
-<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td><span class="none">not tested</span></td></tr><tr><td class="num">249</td><td>2026-11-17 19:10:00</td><td>incremental</td>
-<td class="num">21 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td>test 125</td></tr><tr><td class="num">248</td><td>2026-11-17 19:05:00</td><td>incremental</td>
-<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td><span class="none">not tested</span></td></tr><tr><td class="num">247</td><td>2026-11-17 19:00:00</td><td>incremental</td>
-<td class="num">19 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td>test 124</td></tr><tr><td class="num">246</td><td>2026-11-17 18:54:53</td><td>incremental</td>
-<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td><span class="none">not tested</span></td></tr><tr><td class="num">245</td><td>2026-11-17 18:49:53</td><td>incremental</td>
-<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td>test 123</td></tr><tr><td class="num">244</td><td>2026-11-17 18:44:53</td><td>incremental</td>
-<td class="num">18 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td><span class="none">not tested</span></td></tr><tr><td class="num">243</td><td>2026-11-17 18:39:53</td><td>incremental</td>
-<td class="num">20 MiB</td><td><span class="badge s-ok small"><span class="glyph" aria-hidden="true">✓</span>OK</span></td>
-<td>test 122</td></tr></tbody>
-  </table>
+<div class="two">
+<section class="test">
+  <h2>Latest restore test <span class="h2s">test 125 of point 249, Nov 17 19:11:17</span></h2>
+  <div class="shots">
+    <figure><img src="img/b-test125-boot.png" width="720" height="400" alt="Console of the restored VM when the boot check passed: the login prompt"><figcaption>Boot check passed after 11s</figcaption></figure>
+    <figure><img src="img/b-test125-end.png" width="720" height="400" alt="Console of the restored VM at the end of the test: Debian GNU/Linux 12 gaia-t17-web tty1, gaia-t17-web login:"><figcaption>End of the test</figcaption></figure>
+  </div>
+  <div class="rto">
+    <span class="lbl">Proven RTO <b>37s</b> <span class="of">of the 10m target</span></span>
+    <span class="track"><span class="split" style="width:6.20%"><span class="rs" style="width:70.3%"></span><span class="bs" style="width:29.7%"></span></span></span>
+    <span class="keys"><span class="k rs">restore 26s</span><span class="k bs">boot 11s</span></span>
+  </div>
+  <ul class="checks"><li><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="cn">boot</span><span class="ct">11s</span><span class="cd">serial console matched &quot;(?m)login: *$&quot;: &quot;gaia-t17-web login:&quot;</span></li><li><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="cn">image unchanged vda</span><span class="ct"></span><span class="cd">sha256 before and after are equal</span></li><li><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="cn">image unchanged vdb</span><span class="ct"></span><span class="cd">sha256 before and after are equal</span></li></ul>
 </section>
+
+<section class="ev">
+  <h2>Evidence</h2>
+  <dl>
+    <div><dt>Bundle</dt><dd><code>gaia-t17-web-20261117T191041Z-b09261</code></dd></div>
+    <div><dt>Signature</dt><dd><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span>manifest signed, all 10 files match</dd></div>
+    <div><dt>Signed by</dt><dd><code title="2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909">2695ee2e41e8978c…</code></dd></div>
+    <div><dt>Ledger</dt><dd>entry 125; the check at 18:59 found 123 entries <span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></dd></div>
+    <div><dt>External anchor</dt><dd>daily report 1 (Nov 17 18:59) recorded the head at entry 123</dd></div>
+  </dl>
+  <div class="cmd"><span>Verify offline, with the export and the mailed daily report</span><code>gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head gaia-daily-report-1.json</code></div>
+</section>
+</div>
+
+<section class="sh">
+  <h2>Status history <span class="h2s">since the VM was added</span></h2>
+  <div class="band" aria-hidden="true"><span class="seg s-unknown" style="flex:0.0120" title="UNKNOWN Nov 16 22:28:53, for 55s"></span><span class="seg s-ok" style="flex:0.8173" title="OK Nov 16 22:29:48, for 17h"></span><span class="seg s-warning" style="flex:0.0120" title="WARNING Nov 17 15:29:48, for 51s"></span><span class="seg s-ok" style="flex:0.1812" title="OK Nov 17 15:30:39, for 3h 46m"></span></div>
+  <div class="bandaxis" aria-hidden="true"><span>Nov 16 22:28</span><span>Nov 17 19:16</span></div>
+  <ol class="changes"><li class="s-ok"><time>Nov 17 15:30:39</time><span class="tr"><span class="chip s-warning xs"><span class="g" aria-hidden="true">▲</span>WARNING</span><span class="ar">→</span><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></span><span class="for">3h 46m so far</span><p>point 205 is proven by test 103: proven RPO 50s &lt;= 20m0s, proven RTO 22s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p></li><li class="s-warning"><time>Nov 17 15:29:48</time><span class="tr"><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="ar">→</span><span class="chip s-warning xs"><span class="g" aria-hidden="true">▲</span>WARNING</span></span><span class="for">for 51s</span><p>the newest proven point (201, test 101) is 20m10s old, over the RPO target 20m0s</p></li><li class="s-ok"><time>Nov 16 22:29:48</time><span class="tr"><span class="chip s-unknown xs"><span class="g" aria-hidden="true">?</span>UNKNOWN</span><span class="ar">→</span><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></span><span class="for">for 17h</span><p>point 1 is proven by test 1: proven RPO 45s &lt;= 20m0s, proven RTO 14s &lt;= 10m0s, proof age 0s &lt;= 30m0s</p></li><li class="s-unknown"><time>Nov 16 22:28:53</time><span class="tr"><span class="new">added</span><span class="ar">→</span><span class="chip s-unknown xs"><span class="g" aria-hidden="true">?</span>UNKNOWN</span></span><span class="for">for 55s</span><p>there is no backup point that passed its post-backup check</p></li></ol>
+</section>
+
+<div class="two">
+<section>
+  <h2>Points <span class="h2s">8 kept, 242 pruned by retention</span></h2>
+  <table class="list"><thead><tr><th>Point</th><th>Taken</th><th>Kind</th><th class="num">Size</th><th>Check</th><th>Restore test</th></tr></thead><tbody><tr><td class="num">250</td><td class="num">Nov 17 19:15:00</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="muted">not tested</span></td></tr><tr class="ret"><td class="num">249</td><td class="num">Nov 17 19:10:00</td><td>incremental</td>
+<td class="num">21 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="proved">test 125</span> <span class="rmark">return here</span></td></tr><tr><td class="num">248</td><td class="num">Nov 17 19:05:00</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="muted">not tested</span></td></tr><tr><td class="num">247</td><td class="num">Nov 17 19:00:00</td><td>incremental</td>
+<td class="num">19 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="proved">test 124</span></td></tr><tr><td class="num">246</td><td class="num">Nov 17 18:54:53</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="muted">not tested</span></td></tr><tr><td class="num">245</td><td class="num">Nov 17 18:49:53</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="proved">test 123</span></td></tr><tr><td class="num">244</td><td class="num">Nov 17 18:44:53</td><td>incremental</td>
+<td class="num">18 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="muted">not tested</span></td></tr><tr><td class="num">243</td><td class="num">Nov 17 18:39:53</td><td>incremental</td>
+<td class="num">20 MiB</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td><span class="proved">test 122</span></td></tr></tbody></table>
+</section>
+<section>
+  <h2>Restore tests <span class="h2s">the newest 12, and those that did not pass</span></h2>
+  <table class="list"><thead><tr><th>Test</th><th>Point</th><th>Result</th><th class="num">RTO</th><th>Finished</th><th>Evidence</th></tr></thead><tbody><tr class="s-ok"><td class="num">125</td><td class="num">249</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">37s</td><td class="num">Nov 17 19:11:17</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">verified</span></td></tr><tr class="s-ok"><td class="num">124</td><td class="num">247</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">28s</td><td class="num">Nov 17 19:01:04</td><td><span class="pending">not checked yet</span></td></tr><tr class="s-ok"><td class="num">123</td><td class="num">245</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">49s</td><td class="num">Nov 17 18:51:30</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">122</td><td class="num">243</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">29s</td><td class="num">Nov 17 18:40:54</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">121</td><td class="num">241</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">42s</td><td class="num">Nov 17 18:31:11</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">120</td><td class="num">239</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">23s</td><td class="num">Nov 17 18:20:46</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">119</td><td class="num">237</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">25s</td><td class="num">Nov 17 18:10:49</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">118</td><td class="num">235</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">46s</td><td class="num">Nov 17 18:01:20</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">117</td><td class="num">233</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">47s</td><td class="num">Nov 17 17:51:20</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">116</td><td class="num">231</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">46s</td><td class="num">Nov 17 17:41:15</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">115</td><td class="num">229</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">26s</td><td class="num">Nov 17 17:30:49</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-ok"><td class="num">114</td><td class="num">227</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span></td>
+<td class="num">22s</td><td class="num">Nov 17 17:20:45</td><td><span class="chip s-ok xs"><span class="g" aria-hidden="true">✓</span>OK</span><span class="muted">check 18:59</span></td></tr><tr class="s-unknown"><td class="num">102</td><td class="num">203</td><td><span class="chip s-unknown xs"><span class="g" aria-hidden="true">?</span>UNKNOWN</span></td>
+<td class="num">—</td><td class="num">Nov 17 15:20:17</td><td><span class="muted">no bundle</span></td></tr><tr class="why s-unknown"><td></td><td colspan="5">not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post &quot;http://sandbox/v1/verify&quot;: EOF</td></tr></tbody></table>
+</section>
+</div>
 </main>
 </body>
 </html>

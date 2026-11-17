@@ -1,0 +1,2631 @@
+{
+  "points": [
+    {
+      "id": 250,
+      "taken_at": "2026-11-17T19:15:00.866448158Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 249,
+      "taken_at": "2026-11-17T19:10:00.746490887Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 248,
+      "taken_at": "2026-11-17T19:05:00.939706056Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 247,
+      "taken_at": "2026-11-17T19:00:00.857906972Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 246,
+      "taken_at": "2026-11-17T18:54:53.278075097Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 245,
+      "taken_at": "2026-11-17T18:49:53.389482721Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 244,
+      "taken_at": "2026-11-17T18:44:53.333876903Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 243,
+      "taken_at": "2026-11-17T18:39:53.268834625Z",
+      "kind": "incremental",
+      "state": "present",
+      "check_state": "ok"
+    },
+    {
+      "id": 242,
+      "taken_at": "2026-11-17T18:34:53.242241456Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 241,
+      "taken_at": "2026-11-17T18:29:53.424306316Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 240,
+      "taken_at": "2026-11-17T18:24:53.442794118Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 239,
+      "taken_at": "2026-11-17T18:19:53.321516614Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 238,
+      "taken_at": "2026-11-17T18:14:53.305074283Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 237,
+      "taken_at": "2026-11-17T18:09:53.342045718Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 236,
+      "taken_at": "2026-11-17T18:04:53.420525128Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 235,
+      "taken_at": "2026-11-17T17:59:53.287873557Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 234,
+      "taken_at": "2026-11-17T17:54:53.262974338Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 233,
+      "taken_at": "2026-11-17T17:49:53.351232933Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 232,
+      "taken_at": "2026-11-17T17:44:53.327634187Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 231,
+      "taken_at": "2026-11-17T17:39:53.292039663Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 230,
+      "taken_at": "2026-11-17T17:34:53.549135317Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 229,
+      "taken_at": "2026-11-17T17:29:53.22552109Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 228,
+      "taken_at": "2026-11-17T17:24:53.273955682Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 227,
+      "taken_at": "2026-11-17T17:19:53.210364277Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 226,
+      "taken_at": "2026-11-17T17:14:53.21323339Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 225,
+      "taken_at": "2026-11-17T17:09:53.223521873Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 224,
+      "taken_at": "2026-11-17T17:04:53.215654533Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 223,
+      "taken_at": "2026-11-17T16:59:53.211748561Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 222,
+      "taken_at": "2026-11-17T16:54:53.163432572Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 221,
+      "taken_at": "2026-11-17T16:49:53.202494318Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 220,
+      "taken_at": "2026-11-17T16:44:53.171682896Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 219,
+      "taken_at": "2026-11-17T16:39:53.168445149Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 218,
+      "taken_at": "2026-11-17T16:34:53.208083212Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 217,
+      "taken_at": "2026-11-17T16:29:53.228264995Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 216,
+      "taken_at": "2026-11-17T16:24:53.199838099Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 215,
+      "taken_at": "2026-11-17T16:19:53.23761964Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 214,
+      "taken_at": "2026-11-17T16:14:53.289533454Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 213,
+      "taken_at": "2026-11-17T16:09:53.199949007Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 212,
+      "taken_at": "2026-11-17T16:04:53.3583523Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 211,
+      "taken_at": "2026-11-17T15:59:53.178463847Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 210,
+      "taken_at": "2026-11-17T15:54:53.171922322Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 209,
+      "taken_at": "2026-11-17T15:49:53.163412397Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 208,
+      "taken_at": "2026-11-17T15:44:53.188537043Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 207,
+      "taken_at": "2026-11-17T15:39:53.194954931Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 206,
+      "taken_at": "2026-11-17T15:34:49.731075901Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 205,
+      "taken_at": "2026-11-17T15:29:49.62103729Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 204,
+      "taken_at": "2026-11-17T15:24:49.556032252Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 203,
+      "taken_at": "2026-11-17T15:19:38.758255662Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 202,
+      "taken_at": "2026-11-17T15:14:38.819874254Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 201,
+      "taken_at": "2026-11-17T15:09:38.832694353Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 200,
+      "taken_at": "2026-11-17T15:04:39.047131136Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 199,
+      "taken_at": "2026-11-17T14:59:39.011270703Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 198,
+      "taken_at": "2026-11-17T14:54:38.785580723Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 197,
+      "taken_at": "2026-11-17T14:49:38.712629478Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 196,
+      "taken_at": "2026-11-17T14:44:38.751950882Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 195,
+      "taken_at": "2026-11-17T14:39:38.879112271Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 194,
+      "taken_at": "2026-11-17T14:34:38.810658487Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 193,
+      "taken_at": "2026-11-17T14:29:38.845502289Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 192,
+      "taken_at": "2026-11-17T14:24:38.820880272Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 191,
+      "taken_at": "2026-11-17T14:19:38.723110077Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 190,
+      "taken_at": "2026-11-17T14:14:38.768425078Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 189,
+      "taken_at": "2026-11-17T14:09:38.762579895Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 188,
+      "taken_at": "2026-11-17T14:04:38.76696867Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 187,
+      "taken_at": "2026-11-17T13:59:38.766098848Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 186,
+      "taken_at": "2026-11-17T13:54:38.844542604Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 185,
+      "taken_at": "2026-11-17T13:49:38.745575241Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 184,
+      "taken_at": "2026-11-17T13:44:39.017086916Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 183,
+      "taken_at": "2026-11-17T13:39:39.865750159Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 182,
+      "taken_at": "2026-11-17T13:34:38.809216241Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 181,
+      "taken_at": "2026-11-17T13:29:39.036769278Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 180,
+      "taken_at": "2026-11-17T13:24:38.765404352Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 179,
+      "taken_at": "2026-11-17T13:19:38.744337784Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 178,
+      "taken_at": "2026-11-17T13:14:38.749393699Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 177,
+      "taken_at": "2026-11-17T13:09:38.746438245Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 176,
+      "taken_at": "2026-11-17T13:04:38.744400422Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 175,
+      "taken_at": "2026-11-17T12:59:38.729949142Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 174,
+      "taken_at": "2026-11-17T12:54:38.793326291Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 173,
+      "taken_at": "2026-11-17T12:49:38.88185794Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 172,
+      "taken_at": "2026-11-17T12:44:38.927096102Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 171,
+      "taken_at": "2026-11-17T12:39:39.074408163Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 170,
+      "taken_at": "2026-11-17T12:34:38.771827966Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 169,
+      "taken_at": "2026-11-17T12:29:38.770171072Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 168,
+      "taken_at": "2026-11-17T12:24:39.098124915Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 167,
+      "taken_at": "2026-11-17T12:19:38.797147827Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 166,
+      "taken_at": "2026-11-17T12:14:39.019315969Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 165,
+      "taken_at": "2026-11-17T12:09:38.983690007Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 164,
+      "taken_at": "2026-11-17T12:04:38.959732138Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 163,
+      "taken_at": "2026-11-17T11:59:38.807776137Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 162,
+      "taken_at": "2026-11-17T11:54:38.905373363Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 161,
+      "taken_at": "2026-11-17T11:49:38.909215249Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 160,
+      "taken_at": "2026-11-17T11:44:39.011779956Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 159,
+      "taken_at": "2026-11-17T11:39:38.842882715Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 158,
+      "taken_at": "2026-11-17T11:34:38.91869749Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 157,
+      "taken_at": "2026-11-17T11:29:38.834704794Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 156,
+      "taken_at": "2026-11-17T11:24:38.886374551Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 155,
+      "taken_at": "2026-11-17T11:19:38.775048158Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 154,
+      "taken_at": "2026-11-17T11:14:38.801148711Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 153,
+      "taken_at": "2026-11-17T11:09:38.855339031Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 152,
+      "taken_at": "2026-11-17T11:04:38.851211519Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 151,
+      "taken_at": "2026-11-17T10:59:39.021696556Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 150,
+      "taken_at": "2026-11-17T10:54:38.725119875Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 149,
+      "taken_at": "2026-11-17T10:49:38.72057372Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 148,
+      "taken_at": "2026-11-17T10:44:39.58133843Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 147,
+      "taken_at": "2026-11-17T10:39:38.678849226Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 146,
+      "taken_at": "2026-11-17T10:34:38.762287824Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 145,
+      "taken_at": "2026-11-17T10:29:39.180092985Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 144,
+      "taken_at": "2026-11-17T10:24:38.766795842Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 143,
+      "taken_at": "2026-11-17T10:19:38.769784367Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 142,
+      "taken_at": "2026-11-17T10:14:38.738455783Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 141,
+      "taken_at": "2026-11-17T10:09:38.760906072Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 140,
+      "taken_at": "2026-11-17T10:04:38.743807815Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 139,
+      "taken_at": "2026-11-17T09:59:38.707045789Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 138,
+      "taken_at": "2026-11-17T09:54:38.833792559Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 137,
+      "taken_at": "2026-11-17T09:49:38.759742726Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 136,
+      "taken_at": "2026-11-17T09:44:38.753842429Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 135,
+      "taken_at": "2026-11-17T09:39:38.694313696Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 134,
+      "taken_at": "2026-11-17T09:34:24.973388451Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 133,
+      "taken_at": "2026-11-17T09:29:25.041775142Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 132,
+      "taken_at": "2026-11-17T09:24:25.091528771Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 131,
+      "taken_at": "2026-11-17T09:19:25.128739413Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 130,
+      "taken_at": "2026-11-17T09:14:25.095009764Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 129,
+      "taken_at": "2026-11-17T09:09:25.04501631Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 128,
+      "taken_at": "2026-11-17T09:04:25.141633791Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 127,
+      "taken_at": "2026-11-17T08:59:25.012414621Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 126,
+      "taken_at": "2026-11-17T08:54:24.977150513Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 125,
+      "taken_at": "2026-11-17T08:49:25.036894716Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 124,
+      "taken_at": "2026-11-17T08:44:25.047905324Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 123,
+      "taken_at": "2026-11-17T08:39:25.005238752Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 122,
+      "taken_at": "2026-11-17T08:34:25.080160184Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 121,
+      "taken_at": "2026-11-17T08:29:24.988666606Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 120,
+      "taken_at": "2026-11-17T08:24:25.036919325Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 119,
+      "taken_at": "2026-11-17T08:19:25.09742785Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 118,
+      "taken_at": "2026-11-17T08:14:25.181417957Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 117,
+      "taken_at": "2026-11-17T08:09:25.136517702Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 116,
+      "taken_at": "2026-11-17T08:04:25.014893655Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 115,
+      "taken_at": "2026-11-17T07:59:25.004379722Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 114,
+      "taken_at": "2026-11-17T07:54:25.016896623Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 113,
+      "taken_at": "2026-11-17T07:49:24.98574859Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 112,
+      "taken_at": "2026-11-17T07:44:25.035590872Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 111,
+      "taken_at": "2026-11-17T07:39:25.033750386Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 110,
+      "taken_at": "2026-11-17T07:34:25.03852648Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 109,
+      "taken_at": "2026-11-17T07:29:25.044832665Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 108,
+      "taken_at": "2026-11-17T07:24:25.009056376Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 107,
+      "taken_at": "2026-11-17T07:19:25.015356472Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 106,
+      "taken_at": "2026-11-17T07:14:25.034941621Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 105,
+      "taken_at": "2026-11-17T07:09:25.022780756Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 104,
+      "taken_at": "2026-11-17T07:04:25.017225181Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 103,
+      "taken_at": "2026-11-17T06:59:25.043913638Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 102,
+      "taken_at": "2026-11-17T06:54:25.056247623Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 101,
+      "taken_at": "2026-11-17T06:49:25.017562363Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 100,
+      "taken_at": "2026-11-17T06:44:25.042472172Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 99,
+      "taken_at": "2026-11-17T06:39:25.014236842Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 98,
+      "taken_at": "2026-11-17T06:34:24.987518455Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 97,
+      "taken_at": "2026-11-17T06:29:25.003852915Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 96,
+      "taken_at": "2026-11-17T06:24:25.05149828Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 95,
+      "taken_at": "2026-11-17T06:19:25.05132857Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 94,
+      "taken_at": "2026-11-17T06:14:25.039669959Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 93,
+      "taken_at": "2026-11-17T06:09:25.08004485Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 92,
+      "taken_at": "2026-11-17T06:04:24.979588308Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 91,
+      "taken_at": "2026-11-17T05:59:25.045505781Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 90,
+      "taken_at": "2026-11-17T05:54:25.023279967Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 89,
+      "taken_at": "2026-11-17T05:49:25.046789851Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 88,
+      "taken_at": "2026-11-17T05:44:25.068861026Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 87,
+      "taken_at": "2026-11-17T05:39:25.038393981Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 86,
+      "taken_at": "2026-11-17T05:34:25.024384425Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 85,
+      "taken_at": "2026-11-17T05:29:25.004426658Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 84,
+      "taken_at": "2026-11-17T05:24:25.066446751Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 83,
+      "taken_at": "2026-11-17T05:19:25.062869708Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 82,
+      "taken_at": "2026-11-17T05:14:25.061633832Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 81,
+      "taken_at": "2026-11-17T05:09:25.047931749Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 80,
+      "taken_at": "2026-11-17T05:04:25.097538789Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 79,
+      "taken_at": "2026-11-17T04:59:25.050316939Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 78,
+      "taken_at": "2026-11-17T04:54:25.006095477Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 77,
+      "taken_at": "2026-11-17T04:49:25.037744055Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 76,
+      "taken_at": "2026-11-17T04:44:25.022936991Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 75,
+      "taken_at": "2026-11-17T04:39:24.985601086Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 74,
+      "taken_at": "2026-11-17T04:34:25.08114922Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 73,
+      "taken_at": "2026-11-17T04:29:25.03566477Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 72,
+      "taken_at": "2026-11-17T04:24:25.013056021Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 71,
+      "taken_at": "2026-11-17T04:19:25.015273342Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 70,
+      "taken_at": "2026-11-17T04:14:25.266983948Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 69,
+      "taken_at": "2026-11-17T04:09:25.030694063Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 68,
+      "taken_at": "2026-11-17T04:04:25.054431337Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 67,
+      "taken_at": "2026-11-17T03:59:25.013639211Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 66,
+      "taken_at": "2026-11-17T03:54:25.092018943Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 65,
+      "taken_at": "2026-11-17T03:49:25.029269982Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 64,
+      "taken_at": "2026-11-17T03:44:25.055901647Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 63,
+      "taken_at": "2026-11-17T03:39:25.037296236Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 62,
+      "taken_at": "2026-11-17T03:34:25.06223271Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 61,
+      "taken_at": "2026-11-17T03:29:25.054798339Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 60,
+      "taken_at": "2026-11-17T03:24:25.054964535Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 59,
+      "taken_at": "2026-11-17T03:19:25.047712497Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 58,
+      "taken_at": "2026-11-17T03:14:25.052051651Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 57,
+      "taken_at": "2026-11-17T03:09:25.015230502Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 56,
+      "taken_at": "2026-11-17T03:04:25.073974035Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 55,
+      "taken_at": "2026-11-17T02:59:24.976316951Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 54,
+      "taken_at": "2026-11-17T02:54:25.063402782Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 53,
+      "taken_at": "2026-11-17T02:49:25.031597615Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 52,
+      "taken_at": "2026-11-17T02:44:25.083736012Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 51,
+      "taken_at": "2026-11-17T02:39:25.009232502Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 50,
+      "taken_at": "2026-11-17T02:34:24.939007849Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 49,
+      "taken_at": "2026-11-17T02:29:24.991087445Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 48,
+      "taken_at": "2026-11-17T02:24:25.057126757Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 47,
+      "taken_at": "2026-11-17T02:19:25.05265299Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 46,
+      "taken_at": "2026-11-17T02:14:25.046347596Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 45,
+      "taken_at": "2026-11-17T02:09:25.020188492Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 44,
+      "taken_at": "2026-11-17T02:04:25.126731665Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 43,
+      "taken_at": "2026-11-17T01:59:25.016855759Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 42,
+      "taken_at": "2026-11-17T01:54:25.058822072Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 41,
+      "taken_at": "2026-11-17T01:49:25.045645174Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 40,
+      "taken_at": "2026-11-17T01:44:25.025015445Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 39,
+      "taken_at": "2026-11-17T01:39:25.018814915Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 38,
+      "taken_at": "2026-11-17T01:34:25.001090192Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 37,
+      "taken_at": "2026-11-17T01:29:24.993812019Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 36,
+      "taken_at": "2026-11-17T01:24:25.014198974Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 35,
+      "taken_at": "2026-11-17T01:19:25.030342555Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 34,
+      "taken_at": "2026-11-17T01:14:25.053948405Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 33,
+      "taken_at": "2026-11-17T01:09:25.006575795Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 32,
+      "taken_at": "2026-11-17T01:04:25.025484281Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 31,
+      "taken_at": "2026-11-17T00:59:25.007259574Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 30,
+      "taken_at": "2026-11-17T00:54:25.030312519Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 29,
+      "taken_at": "2026-11-17T00:49:24.967797436Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 28,
+      "taken_at": "2026-11-17T00:44:25.001045517Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 27,
+      "taken_at": "2026-11-17T00:39:24.970661198Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 26,
+      "taken_at": "2026-11-17T00:34:24.983088241Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 25,
+      "taken_at": "2026-11-17T00:29:24.963417227Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 24,
+      "taken_at": "2026-11-17T00:24:24.983796942Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 23,
+      "taken_at": "2026-11-17T00:19:24.967306769Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 22,
+      "taken_at": "2026-11-17T00:14:24.965337712Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 21,
+      "taken_at": "2026-11-17T00:09:25.02549928Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 20,
+      "taken_at": "2026-11-17T00:04:24.9779763Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 19,
+      "taken_at": "2026-11-16T23:59:25.033446097Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 18,
+      "taken_at": "2026-11-16T23:54:24.981289263Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 17,
+      "taken_at": "2026-11-16T23:49:25.003300412Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 16,
+      "taken_at": "2026-11-16T23:44:25.022449076Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 15,
+      "taken_at": "2026-11-16T23:39:24.968827298Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 14,
+      "taken_at": "2026-11-16T23:34:24.955455941Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 13,
+      "taken_at": "2026-11-16T23:29:24.999713278Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 12,
+      "taken_at": "2026-11-16T23:24:25.034234397Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 11,
+      "taken_at": "2026-11-16T23:19:25.085292271Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 10,
+      "taken_at": "2026-11-16T23:14:24.975812264Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 9,
+      "taken_at": "2026-11-16T23:09:24.985448964Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 8,
+      "taken_at": "2026-11-16T23:04:25.195808201Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 7,
+      "taken_at": "2026-11-16T22:59:24.948034476Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 6,
+      "taken_at": "2026-11-16T22:54:24.994218278Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 5,
+      "taken_at": "2026-11-16T22:49:24.988738012Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 4,
+      "taken_at": "2026-11-16T22:44:16.807671557Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 3,
+      "taken_at": "2026-11-16T22:39:16.836246379Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 2,
+      "taken_at": "2026-11-16T22:34:03.356057549Z",
+      "kind": "incremental",
+      "state": "pruned",
+      "check_state": "ok"
+    },
+    {
+      "id": 1,
+      "taken_at": "2026-11-16T22:29:03.250803127Z",
+      "kind": "full",
+      "state": "pruned",
+      "check_state": "ok"
+    }
+  ],
+  "tests": [
+    {
+      "id": 125,
+      "point_id": 249,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T19:11:17.189183886Z",
+      "proven_rto_s": 37.177449297
+    },
+    {
+      "id": 124,
+      "point_id": 247,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T19:01:04.636381666Z",
+      "proven_rto_s": 28.479204024
+    },
+    {
+      "id": 123,
+      "point_id": 245,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:51:30.414990947Z",
+      "proven_rto_s": 48.636793714999996
+    },
+    {
+      "id": 122,
+      "point_id": 243,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:40:54.201704958Z",
+      "proven_rto_s": 29.493146591
+    },
+    {
+      "id": 121,
+      "point_id": 241,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:31:11.627780851Z",
+      "proven_rto_s": 42.373691509000004
+    },
+    {
+      "id": 120,
+      "point_id": 239,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:20:46.889854721Z",
+      "proven_rto_s": 23.153846312
+    },
+    {
+      "id": 119,
+      "point_id": 237,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:10:49.48630182Z",
+      "proven_rto_s": 24.916897211
+    },
+    {
+      "id": 118,
+      "point_id": 235,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T18:01:20.711223084Z",
+      "proven_rto_s": 46.114835846000005
+    },
+    {
+      "id": 117,
+      "point_id": 233,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:51:20.380956219Z",
+      "proven_rto_s": 47.117377575999996
+    },
+    {
+      "id": 116,
+      "point_id": 231,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:41:15.077998522Z",
+      "proven_rto_s": 46.095078326
+    },
+    {
+      "id": 115,
+      "point_id": 229,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:30:49.949528477Z",
+      "proven_rto_s": 25.660258973
+    },
+    {
+      "id": 114,
+      "point_id": 227,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:20:45.037219438Z",
+      "proven_rto_s": 22.207718097
+    },
+    {
+      "id": 113,
+      "point_id": 225,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:10:43.522602464Z",
+      "proven_rto_s": 21.824976687000003
+    },
+    {
+      "id": 112,
+      "point_id": 223,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T17:00:44.456284751Z",
+      "proven_rto_s": 22.82543491
+    },
+    {
+      "id": 111,
+      "point_id": 221,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:50:44.415448982Z",
+      "proven_rto_s": 21.639664373
+    },
+    {
+      "id": 110,
+      "point_id": 219,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:40:45.025512622Z",
+      "proven_rto_s": 22.044077401000003
+    },
+    {
+      "id": 109,
+      "point_id": 217,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:30:44.139106864Z",
+      "proven_rto_s": 22.498622623
+    },
+    {
+      "id": 108,
+      "point_id": 215,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:20:44.387497579Z",
+      "proven_rto_s": 22.574371569
+    },
+    {
+      "id": 107,
+      "point_id": 213,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:10:45.362878358Z",
+      "proven_rto_s": 22.578731535000003
+    },
+    {
+      "id": 106,
+      "point_id": 211,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T16:00:44.075956459Z",
+      "proven_rto_s": 22.308374842
+    },
+    {
+      "id": 105,
+      "point_id": 209,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T15:50:45.536730529Z",
+      "proven_rto_s": 22.722030316999998
+    },
+    {
+      "id": 104,
+      "point_id": 207,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T15:40:44.430099142Z",
+      "proven_rto_s": 22.632600267
+    },
+    {
+      "id": 103,
+      "point_id": 205,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T15:30:39.892626197Z",
+      "proven_rto_s": 21.552852233
+    },
+    {
+      "id": 102,
+      "point_id": 203,
+      "verdict": "UNKNOWN",
+      "finished_at": "2026-11-17T15:20:17.1904683Z",
+      "proven_rto_s": null
+    },
+    {
+      "id": 101,
+      "point_id": 201,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T15:10:36.688527412Z",
+      "proven_rto_s": 23.291551093000002
+    },
+    {
+      "id": 100,
+      "point_id": 199,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T15:00:38.606159645Z",
+      "proven_rto_s": 24.690889921
+    },
+    {
+      "id": 99,
+      "point_id": 197,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:50:31.723821153Z",
+      "proven_rto_s": 23.196468804
+    },
+    {
+      "id": 98,
+      "point_id": 195,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:41:01.077079958Z",
+      "proven_rto_s": 27.405828272
+    },
+    {
+      "id": 97,
+      "point_id": 193,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:30:32.010439928Z",
+      "proven_rto_s": 24.798336045
+    },
+    {
+      "id": 96,
+      "point_id": 191,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:20:32.190936462Z",
+      "proven_rto_s": 23.519222609
+    },
+    {
+      "id": 95,
+      "point_id": 189,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:10:34.457915484Z",
+      "proven_rto_s": 24.706676114
+    },
+    {
+      "id": 94,
+      "point_id": 187,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T14:00:32.409350544Z",
+      "proven_rto_s": 23.225183007
+    },
+    {
+      "id": 93,
+      "point_id": 185,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:50:41.67853383Z",
+      "proven_rto_s": 32.4946554
+    },
+    {
+      "id": 92,
+      "point_id": 183,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:41:30.383300981Z",
+      "proven_rto_s": 50.421546809999995
+    },
+    {
+      "id": 91,
+      "point_id": 181,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:30:33.767992209Z",
+      "proven_rto_s": 24.282663548000002
+    },
+    {
+      "id": 90,
+      "point_id": 179,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:20:29.987448462Z",
+      "proven_rto_s": 21.775617989
+    },
+    {
+      "id": 89,
+      "point_id": 177,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:10:30.935740831Z",
+      "proven_rto_s": 22.424442665
+    },
+    {
+      "id": 88,
+      "point_id": 175,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T13:00:40.08634666Z",
+      "proven_rto_s": 27.483239921
+    },
+    {
+      "id": 87,
+      "point_id": 173,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:50:48.943391084Z",
+      "proven_rto_s": 35.204021791
+    },
+    {
+      "id": 86,
+      "point_id": 171,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:40:37.172045966Z",
+      "proven_rto_s": 25.944787466
+    },
+    {
+      "id": 85,
+      "point_id": 169,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:30:36.487579782Z",
+      "proven_rto_s": 25.620674987
+    },
+    {
+      "id": 84,
+      "point_id": 167,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:20:33.901537721Z",
+      "proven_rto_s": 24.441310533
+    },
+    {
+      "id": 83,
+      "point_id": 165,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:10:43.170794169Z",
+      "proven_rto_s": 31.329986133
+    },
+    {
+      "id": 82,
+      "point_id": 163,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T12:00:37.587988361Z",
+      "proven_rto_s": 27.790687174
+    },
+    {
+      "id": 81,
+      "point_id": 161,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:50:51.959122636Z",
+      "proven_rto_s": 41.753443826
+    },
+    {
+      "id": 80,
+      "point_id": 159,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:40:35.237439362Z",
+      "proven_rto_s": 24.209480289
+    },
+    {
+      "id": 79,
+      "point_id": 157,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:31:06.619620226Z",
+      "proven_rto_s": 44.172941771
+    },
+    {
+      "id": 78,
+      "point_id": 155,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:20:36.979358757Z",
+      "proven_rto_s": 25.485982417000002
+    },
+    {
+      "id": 77,
+      "point_id": 153,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:10:30.86194479Z",
+      "proven_rto_s": 23.344519685
+    },
+    {
+      "id": 76,
+      "point_id": 151,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T11:00:29.478195019Z",
+      "proven_rto_s": 22.044776305
+    },
+    {
+      "id": 75,
+      "point_id": 149,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:50:28.953648764Z",
+      "proven_rto_s": 21.991228209
+    },
+    {
+      "id": 74,
+      "point_id": 147,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:40:31.182881614Z",
+      "proven_rto_s": 22.636949502
+    },
+    {
+      "id": 73,
+      "point_id": 145,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:30:29.161519164Z",
+      "proven_rto_s": 21.893651415999997
+    },
+    {
+      "id": 72,
+      "point_id": 143,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:20:29.447065907Z",
+      "proven_rto_s": 22.236081566
+    },
+    {
+      "id": 71,
+      "point_id": 141,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:10:30.745381347Z",
+      "proven_rto_s": 23.1967936
+    },
+    {
+      "id": 70,
+      "point_id": 139,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T10:00:29.3766134Z",
+      "proven_rto_s": 22.189793207
+    },
+    {
+      "id": 69,
+      "point_id": 137,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:50:30.599833116Z",
+      "proven_rto_s": 23.123767183
+    },
+    {
+      "id": 68,
+      "point_id": 135,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:40:28.342689944Z",
+      "proven_rto_s": 21.37611647
+    },
+    {
+      "id": 67,
+      "point_id": 133,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:30:15.23439855Z",
+      "proven_rto_s": 21.775266016
+    },
+    {
+      "id": 66,
+      "point_id": 131,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:20:16.493942511Z",
+      "proven_rto_s": 22.777732328
+    },
+    {
+      "id": 65,
+      "point_id": 129,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:10:15.950718494Z",
+      "proven_rto_s": 21.597576295000003
+    },
+    {
+      "id": 64,
+      "point_id": 127,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T09:00:16.327727787Z",
+      "proven_rto_s": 21.947051492
+    },
+    {
+      "id": 63,
+      "point_id": 125,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:50:15.324051503Z",
+      "proven_rto_s": 21.884395451
+    },
+    {
+      "id": 62,
+      "point_id": 123,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:40:15.527224915Z",
+      "proven_rto_s": 21.763054688
+    },
+    {
+      "id": 61,
+      "point_id": 121,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:30:16.343914821Z",
+      "proven_rto_s": 21.817548942000002
+    },
+    {
+      "id": 60,
+      "point_id": 119,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:20:16.849494663Z",
+      "proven_rto_s": 22.12181207
+    },
+    {
+      "id": 59,
+      "point_id": 117,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:10:36.634591602Z",
+      "proven_rto_s": 35.527634304
+    },
+    {
+      "id": 58,
+      "point_id": 115,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T08:00:15.001986132Z",
+      "proven_rto_s": 21.776854844
+    },
+    {
+      "id": 57,
+      "point_id": 113,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:50:15.841789799Z",
+      "proven_rto_s": 21.653840883
+    },
+    {
+      "id": 56,
+      "point_id": 111,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:40:15.166154648Z",
+      "proven_rto_s": 21.665832433
+    },
+    {
+      "id": 55,
+      "point_id": 109,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:30:15.181771183Z",
+      "proven_rto_s": 21.819908106
+    },
+    {
+      "id": 54,
+      "point_id": 107,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:20:16.11313746Z",
+      "proven_rto_s": 21.628310356
+    },
+    {
+      "id": 53,
+      "point_id": 105,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:10:15.857747316Z",
+      "proven_rto_s": 22.575004886
+    },
+    {
+      "id": 52,
+      "point_id": 103,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T07:00:15.522043384Z",
+      "proven_rto_s": 22.044737073
+    },
+    {
+      "id": 51,
+      "point_id": 101,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:50:16.206968589Z",
+      "proven_rto_s": 21.915390173
+    },
+    {
+      "id": 50,
+      "point_id": 99,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:40:16.00473411Z",
+      "proven_rto_s": 21.556200185
+    },
+    {
+      "id": 49,
+      "point_id": 97,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:30:15.398258626Z",
+      "proven_rto_s": 21.941291336
+    },
+    {
+      "id": 48,
+      "point_id": 95,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:20:16.672575704Z",
+      "proven_rto_s": 22.037416227
+    },
+    {
+      "id": 47,
+      "point_id": 93,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:10:23.425021227Z",
+      "proven_rto_s": 28.472307158
+    },
+    {
+      "id": 46,
+      "point_id": 91,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T06:00:16.60997011Z",
+      "proven_rto_s": 22.798050608
+    },
+    {
+      "id": 45,
+      "point_id": 89,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:50:15.360935852Z",
+      "proven_rto_s": 21.881901124
+    },
+    {
+      "id": 44,
+      "point_id": 87,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:40:16.554834197Z",
+      "proven_rto_s": 21.813727625
+    },
+    {
+      "id": 43,
+      "point_id": 85,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:30:14.244449071Z",
+      "proven_rto_s": 20.808179637
+    },
+    {
+      "id": 42,
+      "point_id": 83,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:20:16.552950736Z",
+      "proven_rto_s": 22.864570860999997
+    },
+    {
+      "id": 41,
+      "point_id": 81,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:10:16.286820461Z",
+      "proven_rto_s": 21.693132390000002
+    },
+    {
+      "id": 40,
+      "point_id": 79,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T05:00:16.125979602Z",
+      "proven_rto_s": 21.596806557999997
+    },
+    {
+      "id": 39,
+      "point_id": 77,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:50:14.03258649Z",
+      "proven_rto_s": 20.542205875999997
+    },
+    {
+      "id": 38,
+      "point_id": 75,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:40:12.899064529Z",
+      "proven_rto_s": 19.574280183
+    },
+    {
+      "id": 37,
+      "point_id": 73,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:30:05.022868929Z",
+      "proven_rto_s": 11.929132326
+    },
+    {
+      "id": 36,
+      "point_id": 71,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:20:13.880805493Z",
+      "proven_rto_s": 20.554939073
+    },
+    {
+      "id": 35,
+      "point_id": 69,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:10:06.012706177Z",
+      "proven_rto_s": 12.054961159
+    },
+    {
+      "id": 34,
+      "point_id": 67,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T04:00:13.819178013Z",
+      "proven_rto_s": 20.573702712
+    },
+    {
+      "id": 33,
+      "point_id": 65,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:50:12.393756365Z",
+      "proven_rto_s": 18.802119951999998
+    },
+    {
+      "id": 32,
+      "point_id": 63,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:40:05.974962873Z",
+      "proven_rto_s": 11.868760789
+    },
+    {
+      "id": 31,
+      "point_id": 61,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:30:11.360756862Z",
+      "proven_rto_s": 17.865096147
+    },
+    {
+      "id": 30,
+      "point_id": 59,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:20:05.584802057Z",
+      "proven_rto_s": 12.664643837
+    },
+    {
+      "id": 29,
+      "point_id": 57,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:10:11.427558176Z",
+      "proven_rto_s": 18.171595316999998
+    },
+    {
+      "id": 28,
+      "point_id": 55,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T03:00:10.079079258Z",
+      "proven_rto_s": 17.118827259
+    },
+    {
+      "id": 27,
+      "point_id": 53,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:50:07.421820377Z",
+      "proven_rto_s": 14.26831465
+    },
+    {
+      "id": 26,
+      "point_id": 51,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:40:11.510993196Z",
+      "proven_rto_s": 18.419743752000002
+    },
+    {
+      "id": 25,
+      "point_id": 49,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:30:11.40229343Z",
+      "proven_rto_s": 18.389588474
+    },
+    {
+      "id": 24,
+      "point_id": 47,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:20:05.811464944Z",
+      "proven_rto_s": 11.750985657
+    },
+    {
+      "id": 23,
+      "point_id": 45,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:10:09.897925748Z",
+      "proven_rto_s": 17.026218733
+    },
+    {
+      "id": 22,
+      "point_id": 43,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T02:00:05.15119773Z",
+      "proven_rto_s": 11.387082737
+    },
+    {
+      "id": 21,
+      "point_id": 41,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:50:10.103597752Z",
+      "proven_rto_s": 17.042434041
+    },
+    {
+      "id": 20,
+      "point_id": 39,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:40:05.307908974Z",
+      "proven_rto_s": 12.414237292
+    },
+    {
+      "id": 19,
+      "point_id": 37,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:30:10.037941696Z",
+      "proven_rto_s": 17.063844913
+    },
+    {
+      "id": 18,
+      "point_id": 35,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:20:03.869574062Z",
+      "proven_rto_s": 11.177937365
+    },
+    {
+      "id": 17,
+      "point_id": 33,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:10:10.878809003Z",
+      "proven_rto_s": 17.786614368000002
+    },
+    {
+      "id": 16,
+      "point_id": 31,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T01:00:09.37667203Z",
+      "proven_rto_s": 16.374658323
+    },
+    {
+      "id": 15,
+      "point_id": 29,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:50:05.151925227Z",
+      "proven_rto_s": 12.316651791
+    },
+    {
+      "id": 14,
+      "point_id": 27,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:40:09.45657864Z",
+      "proven_rto_s": 16.788301661
+    },
+    {
+      "id": 13,
+      "point_id": 25,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:30:04.182043355Z",
+      "proven_rto_s": 11.29636749
+    },
+    {
+      "id": 12,
+      "point_id": 23,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:20:09.189251444Z",
+      "proven_rto_s": 16.251844890999998
+    },
+    {
+      "id": 11,
+      "point_id": 21,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:10:03.87142211Z",
+      "proven_rto_s": 10.889863915000001
+    },
+    {
+      "id": 10,
+      "point_id": 19,
+      "verdict": "OK",
+      "finished_at": "2026-11-17T00:00:06.444170827Z",
+      "proven_rto_s": 12.535681158
+    },
+    {
+      "id": 9,
+      "point_id": 17,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:50:04.963937391Z",
+      "proven_rto_s": 10.759505394000001
+    },
+    {
+      "id": 8,
+      "point_id": 15,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:40:03.862222094Z",
+      "proven_rto_s": 10.695617649999999
+    },
+    {
+      "id": 7,
+      "point_id": 13,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:30:03.455729119Z",
+      "proven_rto_s": 10.647368657
+    },
+    {
+      "id": 6,
+      "point_id": 11,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:20:05.452644676Z",
+      "proven_rto_s": 10.923166629
+    },
+    {
+      "id": 5,
+      "point_id": 9,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:10:07.815141966Z",
+      "proven_rto_s": 12.937258314
+    },
+    {
+      "id": 4,
+      "point_id": 7,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T23:00:05.661253872Z",
+      "proven_rto_s": 12.088995744
+    },
+    {
+      "id": 3,
+      "point_id": 5,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T22:50:09.22749071Z",
+      "proven_rto_s": 14.013808305
+    },
+    {
+      "id": 2,
+      "point_id": 3,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T22:39:57.44840478Z",
+      "proven_rto_s": 12.035850101000001
+    },
+    {
+      "id": 1,
+      "point_id": 1,
+      "verdict": "OK",
+      "finished_at": "2026-11-16T22:29:48.233526722Z",
+      "proven_rto_s": 13.608388362
+    }
+  ]
+}
