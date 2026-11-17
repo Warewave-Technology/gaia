@@ -223,16 +223,27 @@ EOF
 	log "guest $DOM ready"
 }
 
+# all_state_changes: every recorded state change, oldest first (the API gives at most 1000 a page).
+all_state_changes() {
+	local after=0 page all='[]'
+	while :; do
+		page=$(api state-changes list after="$after" limit=1000)
+		[[ $(jq length <<<"$page") -gt 0 ]] || break
+		all=$(jq -c --argjson p "$page" '. + $p' <<<"$all")
+		after=$(jq '.[-1].seq' <<<"$page")
+	done
+	printf '%s\n' "$all"
+}
 snapshot() { # NAME: what the server knows now, through the API
 	local n=$1
 	api status >"$OUT/$n-status.json" || true
-	api points list vm_id="$vm_id" limit=100 >"$OUT/$n-points.json"
+	api points list vm_id="$vm_id" limit=1000 >"$OUT/$n-points.json"
 	api tests list vm_id="$vm_id" limit=100 >"$OUT/$n-tests.json"
 	api jobs list vm_id="$vm_id" limit=200 >"$OUT/$n-jobs.json"
 	api evidence list limit=100 >"$OUT/$n-evidence.json"
 	api state-backups list limit=100 >"$OUT/$n-state-backups.json"
 	api audit verify >"$OUT/$n-audit-verify.json"
-	api state-changes list limit=1000 >"$OUT/$n-state-changes.json"
+	all_state_changes >"$OUT/$n-state-changes.json"
 	local ev
 	ev=$(jq '.[0].id // empty' "$OUT/$n-evidence.json")
 	if [[ -n "$ev" ]]; then
@@ -457,7 +468,7 @@ upgrade)
 	OUT=$D/out/upgrade-$rev
 	mkdir -p "$OUT"
 	exec > >(tee -a "$OUT/upgrade.log") 2>&1
-	stamp upgrade-start
+	started=$(stamp upgrade-start | jq -r .at)
 	api system >"$OUT/before-system.json"
 	section "server B ($B) before: $(jq -r '"\(.version), schema \(.schema_version)"' "$OUT/before-system.json")"
 	snapshot before
@@ -486,16 +497,20 @@ EOF
 	jq -n --slurpfile b0 "$OUT/before-system.json" --slurpfile b1 "$OUT/after-system.json" \
 		--slurpfile s0 "$OUT/before-status.json" --slurpfile s1 "$OUT/after-status.json" \
 		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" \
-		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --argjson since "$since" '
+		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --slurpfile c1 "$OUT/after-state-changes.json" \
+		--argjson since "$since" --arg started "$started" '
 		($j1[0] | map(select(.id > $since))) as $new
+		| ($p1[0] | map(.id)) as $after_ids
 		| {schema: {before: $b0[0].schema_version, after: $b1[0].schema_version}, version: {before: $b0[0].version, after: $b1[0].version},
-		   points: {before: ($p0[0] | length), after: ($p1[0] | length)},
+		   points: {before: ($p0[0] | length), after: ($p1[0] | length), missing_after: [$p0[0][] | .id | select(. as $id | $after_ids | index($id) | not)]},
 		   status_before: [$s0[0][] | {vm, status, changed_at}], status_after: [$s1[0][] | {vm, status, changed_at}],
+		   status_changes_during_upgrade: [$c1[0][] | select(.entity == "vm_status" and .at >= $started) | {at, from, to, reason}],
+		   jobs_failed_during_upgrade: [$j1[0][] | select(.state == "failed" and .finished_at >= $started) | {id, kind, error}],
 		   next_backup: ($new | map(select(.kind == "backup")) | last | {id, state, reason}),
 		   next_test: ($new | map(select(.kind == "restore_test")) | last | {id, state}),
 		   audit: $a1[0]}
-		| . + {pass: (.schema.after > .schema.before and .next_backup.state == "ok" and .next_test.state == "ok" and .audit.intact
-		              and (.status_after | length > 0 and all(.status == "OK")))}
+		| . + {pass: (.schema.after >= .schema.before and .points.missing_after == [] and .next_backup.state == "ok" and .next_test.state == "ok"
+		              and .audit.intact and (.status_after | length > 0 and all(.status == "OK")))}
 		| . + {verdict: (if .pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json"
 	stamp upgrade-end
 	[[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2
