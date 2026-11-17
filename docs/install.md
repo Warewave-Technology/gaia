@@ -489,6 +489,95 @@ gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundl
 `README.txt` with the one recorded in step 4 first. A daily report that reached you by email is a stronger anchor
 than the one in the export: give it with `-head` as well.
 
+## 10d. Migration checks (optional)
+
+A migration check answers "will this VMware VM run on KVM?" with proof: Gaia reads a powered-off VM from vSphere
+with **read-only calls only** (it never changes anything there), converts it with virt-v2v, boots the result in the
+sandbox, runs the checks and seals a signed readiness report. Skip this step if you do not move VMs from VMware.
+
+The conversion runs in a converter container under its own unprivileged user, `gaia-convert`, never as root and
+never as gaia server. As root on the server:
+
+1. Install podman and what rootless containers need, and OVMF for UEFI guests:
+
+   ```bash
+   apt-get install -y --no-install-recommends podman uidmap crun catatonit fuse-overlayfs ovmf
+   ```
+
+2. Create the converter's user. It needs `/dev/kvm` and its own range of user IDs; gaia server joins its group to
+   reach it:
+
+   ```bash
+   useradd --system --home-dir /var/lib/gaia-convert --create-home --shell /usr/sbin/nologin gaia-convert
+   usermod -aG kvm gaia-convert
+   usermod --add-subuids 1000000-1065535 --add-subgids 1000000-1065535 gaia-convert
+   usermod -aG gaia-convert gaia
+   install -d -o gaia-convert -g gaia-convert -m 2770 /var/lib/gaia-convert/jobs
+   ```
+
+3. Build the converter image from the package's `converter/Containerfile` (about 10 minutes; it downloads Fedora's
+   packages), as `gaia-convert`, and print its ID:
+
+   ```bash
+   install -d -o gaia-convert -g gaia-convert /var/lib/gaia-convert/build /var/lib/gaia-convert/tmp
+   install -m 0644 converter/Containerfile /var/lib/gaia-convert/build/
+   systemd-run --wait --pipe --uid=gaia-convert --gid=gaia-convert -p RuntimeDirectory=gaia-convert \
+     -p WorkingDirectory=/var/lib/gaia-convert/build -E HOME=/var/lib/gaia-convert \
+     -E XDG_RUNTIME_DIR=/run/gaia-convert -E TMPDIR=/var/lib/gaia-convert/tmp \
+     sh -c 'podman --cgroup-manager=cgroupfs build -q -t gaia-converter . | tail -1'
+   ```
+
+   The last line is the image's ID (64 hex digits). Pin it: the converter runs that image and no other.
+
+   ```bash
+   mkdir -p /etc/gaia
+   echo '{"image": "sha256:<the 64 hex digits>"}' > /etc/gaia/convert.json
+   ```
+
+4. For Windows guests only: download virtio-win 0.1.302 (the drivers a Windows guest needs on KVM; Gaia does not
+   ship them) to where the converter looks for it. It is checked against its sha256 on every use; without it,
+   Windows guests are not converted and their check is `UNKNOWN`:
+
+   ```bash
+   curl -fL -o /var/lib/gaia-convert/virtio-win-0.1.302.iso \
+     https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso
+   echo "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d  /var/lib/gaia-convert/virtio-win-0.1.302.iso" | sha256sum -c
+   chown gaia-convert: /var/lib/gaia-convert/virtio-win-0.1.302.iso
+   ```
+
+5. Start the converter service, then restart gaia server (it joined a group), and check:
+
+   ```bash
+   install -m 0644 gaia-convert.service /etc/systemd/system/
+   systemctl daemon-reload
+   systemctl enable --now gaia-convert
+   systemctl restart gaia
+   gaia convert info
+   ```
+
+   `gaia convert info` says `OK` (the image runs, virtio-win matches), `WARNING` (no virtio-win: Linux guests only) or
+   `CRITICAL` (the image is missing or not the pinned one).
+
+From the workstation, add the vSphere endpoint (an ESXi host or vCenter; a read-only user is enough). The command
+asks for the password, or takes it from `GAIA_VSPHERE_PASSWORD`; it is stored in Gaia's secrets and never shown:
+
+```bash
+gaia sources add name=esxi url=https://<esxi>/sdk username=<user> [insecure=true]
+gaia sources inventory <source id>
+gaia sources check <source id> vm=<VM name>
+gaia migration-checks list
+gaia migration-checks report <check id> -o readiness.tar.gz
+```
+
+- `insecure=true` skips the check of the endpoint's certificate: only for a lab ESXi with its own certificate.
+- The VM must be powered off (or a clone), have one disk and no snapshots; the inventory says which VMs can be
+  checked and why not.
+- The check picks its checks from the guest OS (`linux-basic`, or `windows-basic` for Windows: WinRM answers). Add
+  `template=windows-rdp` when Remote Desktop is on, or `template=... checks=[...]` like a policy's.
+- The **Migration** screen shows the same: the converter's state, every check with its steps and console, and, for
+  admins and operators, each source's VMs with a **Check** button.
+- The readiness report holds the signed bundle and says how to verify it offline.
+
 ## 11. What else the command line does
 
 ```bash
