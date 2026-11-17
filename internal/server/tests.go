@@ -205,6 +205,10 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 	}
 	e, err := evidence.Append(s.cfg.ledgerPath(), evidence.Entry{BundleID: res.BundleID, BundleSHA256: sum, Subject: vm.Name, Verdict: res.Verdict}, key)
 	if err != nil {
+		// A ledger that refuses an entry is a ledger problem, not only this test's: check it now (a change notifies).
+		if _, cerr := s.checkLedger(context.WithoutCancel(ctx), "system", "appending bundle "+res.BundleID+" failed: "+err.Error()); cerr != nil {
+			s.log.Error("ledger check", "error", cerr)
+		}
 		return "", "", "", nil, fmt.Errorf("ledger: %w", err)
 	}
 	d.LedgerSeq = e.Seq

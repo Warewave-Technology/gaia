@@ -182,8 +182,25 @@ func (f *fixture) seed() {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A notification channel (off, so it takes no events in other tests) and a daily report.
+	if err := os.WriteFile(f.s.cfg.notifySecretFile("seed-hook"), []byte("seed secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ch, err := f.s.db.AddChannel(ctx, "admin", store.Channel{Name: "seed-hook", Kind: "webhook", Config: []byte(`{"url":"http://127.0.0.1:1/"}`), Events: allEvents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.s.db.SetChannelEnabled(ctx, "admin", ch.ID, false, "seed"); err != nil {
+		t.Fatal(err)
+	}
+	dr, err := f.s.db.AddDailyReport(ctx, store.DailyReport{ID: 1, GeneratedAt: "2026-11-16T07:00:00Z", Reason: "seed", LedgerHead: []byte("null"),
+		Report: []byte(`{"format":"gaia-daily-report"}`)}, "seed", []byte(`{}`)) // (made by hand: a real one would compute the VM's status)
+	if err != nil {
+		t.Fatal(err)
+	}
 	f.ids = map[string]int64{"users": f.userIDs[store.RoleAuditor], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
-		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID}
+		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID, "notification-channels": ch.ID,
+		"daily-reports": dr.ID}
 }
 
 func (f *fixture) path(rt route) string {

@@ -111,6 +111,207 @@
         ],
         "type": "object"
       },
+      "Channel": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "description": "any JSON value"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "config",
+          "created_at",
+          "cursor",
+          "enabled",
+          "events",
+          "id",
+          "kind",
+          "name",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "ChannelCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "smtp": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SMTPConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "smtp_password": {
+            "type": "string"
+          },
+          "webhook": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "webhook_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "events",
+          "kind",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ChannelCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "description": "any JSON value"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "webhook_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "config",
+          "created_at",
+          "cursor",
+          "enabled",
+          "events",
+          "id",
+          "kind",
+          "name",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "ChannelUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "DailyReport": {
+        "additionalProperties": false,
+        "properties": {
+          "generated_at": {
+            "type": "string"
+          },
+          "head_seq": {
+            "type": "integer"
+          },
+          "head_sha256": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "ledger_head": {
+            "description": "any JSON value"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "report": {
+            "description": "any JSON value"
+          }
+        },
+        "required": [
+          "generated_at",
+          "head_seq",
+          "head_sha256",
+          "id",
+          "ledger_head",
+          "reason",
+          "report"
+        ],
+        "type": "object"
+      },
       "Disk": {
         "additionalProperties": false,
         "properties": {
@@ -504,6 +705,115 @@
         ],
         "type": "object"
       },
+      "LedgerCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "integer"
+          },
+          "head_seq": {
+            "type": "integer"
+          },
+          "head_sha256": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked_at",
+          "entries",
+          "head_seq",
+          "head_sha256",
+          "id",
+          "problems",
+          "reason",
+          "verdict"
+        ],
+        "type": "object"
+      },
+      "LedgerInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/LedgerCheck"
+            },
+            "type": "array"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/LedgerSummary"
+          }
+        },
+        "required": [
+          "checks",
+          "latest"
+        ],
+        "type": "object"
+      },
+      "LedgerSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "integer"
+          },
+          "head_seq": {
+            "type": "integer"
+          },
+          "head_sha256": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked_at",
+          "entries",
+          "head_seq",
+          "head_sha256",
+          "id",
+          "problems",
+          "reason",
+          "text",
+          "verdict"
+        ],
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -591,6 +901,93 @@
           "referenced_contents",
           "seconds",
           "unresolved_points"
+        ],
+        "type": "object"
+      },
+      "Notification": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "type": "integer"
+          },
+          "body": {
+            "description": "any JSON value"
+          },
+          "channel_id": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_error": {
+            "type": "string"
+          },
+          "next_attempt_at": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempts",
+          "body",
+          "channel_id",
+          "created_at",
+          "event",
+          "finished_at",
+          "id",
+          "last_error",
+          "next_attempt_at",
+          "ref",
+          "state",
+          "subject"
+        ],
+        "type": "object"
+      },
+      "NotifySummary": {
+        "additionalProperties": false,
+        "properties": {
+          "channels": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "integer"
+          },
+          "failing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channels",
+          "enabled",
+          "failing",
+          "state",
+          "text"
         ],
         "type": "object"
       },
@@ -1167,6 +1564,43 @@
         ],
         "type": "object"
       },
+      "SMTPConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "ca_pem": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "security": {
+            "type": "string"
+          },
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "host",
+          "port",
+          "security",
+          "to"
+        ],
+        "type": "object"
+      },
       "Scanned": {
         "additionalProperties": false,
         "properties": {
@@ -1346,14 +1780,23 @@
       "SystemInfo": {
         "additionalProperties": false,
         "properties": {
+          "daily_report_at": {
+            "type": "string"
+          },
           "evidence_key_id": {
             "type": "string"
+          },
+          "ledger": {
+            "$ref": "#/components/schemas/LedgerSummary"
           },
           "migrations": {
             "items": {
               "$ref": "#/components/schemas/AppliedMigration"
             },
             "type": "array"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotifySummary"
           },
           "recovery_kit": {
             "$ref": "#/components/schemas/KitSummary"
@@ -1381,8 +1824,11 @@
           }
         },
         "required": [
+          "daily_report_at",
           "evidence_key_id",
+          "ledger",
           "migrations",
+          "notifications",
           "recovery_kit",
           "schema_version",
           "ssh_authorized_keys_line",
@@ -1724,6 +2170,21 @@
         ],
         "type": "object"
       },
+      "WebhookConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "ca_pem": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
       "apiError": {
         "additionalProperties": false,
         "properties": {
@@ -1908,6 +2369,255 @@
         ],
         "x-gaia-roles": [
           "admin",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/daily-reports": {
+      "get": {
+        "operationId": "get_daily_reports",
+        "parameters": [
+          {
+            "description": "at most this many (default 100, at most 1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DailyReport"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Daily reports, newest first, with their signed ledger heads",
+        "tags": [
+          "daily-reports"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      },
+      "post": {
+        "operationId": "post_daily_reports",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReport"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Make the daily report now and send it to every channel that takes it",
+        "tags": [
+          "daily-reports"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/daily-reports/{id}": {
+      "get": {
+        "operationId": "get_daily_reports_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReport"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One daily report",
+        "tags": [
+          "daily-reports"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
           "auditor"
         ]
       }
@@ -3192,6 +3902,156 @@
         ]
       }
     },
+    "/api/v1/ledger": {
+      "get": {
+        "operationId": "get_ledger",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The evidence ledger's latest checks",
+        "tags": [
+          "ledger"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/ledger/verify": {
+      "post": {
+        "operationId": "post_ledger_verify",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Check the evidence ledger and its bundles now (a change of verdict notifies)",
+        "tags": [
+          "ledger"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/login": {
       "post": {
         "operationId": "post_login",
@@ -3496,6 +4356,556 @@
           "admin",
           "operator",
           "auditor"
+        ]
+      }
+    },
+    "/api/v1/notification-channels": {
+      "get": {
+        "operationId": "get_notification_channels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Channel"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Where notifications go (email, webhook)",
+        "tags": [
+          "notification-channels"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "post_notification_channels",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Add a notification channel (a webhook's secret is in the answer, once)",
+        "tags": [
+          "notification-channels"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/notification-channels/{id}": {
+      "get": {
+        "operationId": "get_notification_channels_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Channel"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One notification channel",
+        "tags": [
+          "notification-channels"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_notification_channels_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Channel"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Turn a channel off or on (on again, it starts from now)",
+        "tags": [
+          "notification-channels"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/notification-channels/{id}/test": {
+      "post": {
+        "operationId": "post_notification_channels_by_id_test",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Send a test message now; the answer is the notification with its outcome",
+        "tags": [
+          "notification-channels"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "get_notifications",
+        "parameters": [
+          {
+            "description": "only this channel's",
+            "in": "query",
+            "name": "channel_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Messages sent or to be sent, newest first",
+        "tags": [
+          "notifications"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator"
         ]
       }
     },

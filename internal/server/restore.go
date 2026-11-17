@@ -291,9 +291,29 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 	if res.SessionsEnded, err = db.EndAllSessions(ctx); err != nil {
 		return res, err
 	}
-	res.Ledger = checkLedger(cfg)
+	// The newest daily report the lost server made recorded a ledger head: the restored ledger must still hold it.
+	var heads [][]byte
+	if rs, err := db.DailyReports(ctx, 1); err != nil {
+		return res, err
+	} else if len(rs) == 1 && string(rs[0].LedgerHead) != "null" {
+		heads = append(heads, rs[0].LedgerHead)
+	}
+	res.Ledger = checkLedger(cfg, heads)
 	if res.Ledger.Verdict != "OK" && res.Ledger.Verdict != "none" {
 		res.Problems = append(res.Problems, "the restored evidence ledger does not verify: "+strings.Join(res.Ledger.Problems, "; "))
+	}
+	// Notification secrets are not in the state backup or the kit: a channel that needs one must be added again.
+	chans, err := db.Channels(ctx)
+	if err != nil {
+		return res, err
+	}
+	for _, ch := range chans {
+		var smtpCfg SMTPConfig
+		needs := ch.Kind == "webhook" || (json.Unmarshal(ch.Config, &smtpCfg) == nil && smtpCfg.Username != "")
+		if _, err := os.Stat(cfg.notifySecretFile(ch.Name)); ch.Enabled && needs && err != nil {
+			res.Problems = append(res.Problems, fmt.Sprintf("notification channel %s: its secret (SMTP password or webhook secret) is not on this server: "+
+				"disable it (gaia channels set %d enabled=false) and add it again under a new name", ch.Name, ch.ID))
+		}
 	}
 	if res.Catalog, err = db.Counts(ctx); err != nil {
 		return res, err
@@ -566,8 +586,9 @@ func restoreBundles(ctx context.Context, cfg Config, db *store.DB, st *diskstore
 	return nil
 }
 
-// checkLedger verifies the restored ledger and bundles against the ledger's own anchor (verdict "none": no ledger).
-func checkLedger(cfg Config) LedgerCheck {
+// checkLedger verifies the restored ledger and bundles against the ledger's own anchor and the given head statements
+// (verdict "none": no ledger).
+func checkLedger(cfg Config, heads [][]byte) LedgerCheck {
 	lc := LedgerCheck{Keys: []string{}, Problems: []string{}}
 	if _, err := os.Stat(cfg.ledgerPath()); errors.Is(err, os.ErrNotExist) {
 		lc.Verdict = "none"
@@ -578,7 +599,7 @@ func checkLedger(cfg Config) LedgerCheck {
 		lc.Verdict, lc.Problems = "CRITICAL", []string{err.Error()}
 		return lc
 	}
-	r, err := evidence.VerifyLedger(cfg.ledgerPath(), cfg.bundlesDir(), anchor)
+	r, err := evidence.VerifyLedgerHeads(cfg.ledgerPath(), cfg.bundlesDir(), anchor, heads)
 	if err != nil {
 		lc.Verdict, lc.Problems = "UNKNOWN", []string{err.Error()}
 		return lc

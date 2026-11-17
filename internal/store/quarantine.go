@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 )
 
 // QuarantinedContent is one damaged repository content a verification took out of deduplication (ADR-007 B3).
@@ -56,7 +58,29 @@ func (d *DB) RecordQuarantine(ctx context.Context, actor string, repoID, verID i
 				return err
 			}
 		}
-		return nil
+		if len(cs) == 0 {
+			return nil
+		}
+		// The quarantine itself, as one event (it notifies, T19).
+		var repo string
+		if err := tx.QueryRowContext(ctx, `SELECT name FROM repositories WHERE id = ?`, repoID).Scan(&repo); err != nil {
+			return notFound("repository", repoID, err)
+		}
+		var items []string
+		for _, c := range cs {
+			items = append(items, fmt.Sprintf("%s (points %v: %s)", c.ContentID, c.Points, c.Reason))
+		}
+		var vms []string
+		for vmID := range fullReasons {
+			var name string
+			if err := tx.QueryRowContext(ctx, `SELECT name FROM vms WHERE id = ?`, vmID).Scan(&name); err != nil {
+				return notFound("vm", vmID, err)
+			}
+			vms = append(vms, name)
+		}
+		slices.Sort(vms)
+		return d.recordState(ctx, tx, "quarantine", verID, "", "quarantined", fmt.Sprintf("repository %s: verification %d quarantined %d damaged contents; next backup full for %s: %s",
+			repo, verID, len(cs), strings.Join(vms, ", "), joinMax(items, 10)), actor)
 	})
 }
 

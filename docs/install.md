@@ -124,7 +124,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`6`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`7`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -219,6 +219,55 @@ The kit is a standard [age](https://age-encryption.org) file. To see what is ins
 secrets, so do this only on a trusted machine): install `age` (`apt-get install age`, or `brew install age`), then
 `age -d gaia-recovery-kit-2.age`. Gaia itself shows a summary without the secrets: `gaia kit show -kit
 gaia-recovery-kit-2.age`.
+
+## 8c. Notifications and the daily report
+
+Gaia tells people when something changes: a VM's status (with the reason), a failed job, damage found in the
+repository and its quarantine, a problem with the evidence ledger. Once a day it sends a **daily report**: every
+VM's status, Proven RPO and RTO, and the evidence ledger's head, signed. Keep the reports: they are what proves
+later that the evidence ledger was not cut short (step 13 and `gaia evidence verify -head`).
+
+Add at least one channel. **Email**, through your mail server (STARTTLS on port 587 by default; `security` `tls`
+for port 465). The password comes from the environment, never from the command line:
+
+```bash
+GAIA_SMTP_PASSWORD='the mail account password' gaia channels add name=ops-mail kind=smtp \
+  smtp='{"host":"mail.example.org","username":"gaia@example.org","from":"Gaia <gaia@example.org>","to":["ops@example.org"]}'
+```
+
+Leave out `username` (and the password) if the mail server takes mail from the Gaia server without logging in. Add
+`ca_file=/path/ca.pem` if the mail server's certificate is signed by your own CA.
+
+A **webhook** (an HTTPS endpoint of your chat or ticket system, or your own receiver):
+
+```bash
+gaia channels add name=ops-hook kind=webhook webhook='{"url":"https://hooks.example.org/gaia"}'
+```
+
+The answer shows `webhook_secret` **once**: give it to the receiver. Every POST carries the event as JSON and the
+header `X-Gaia-Signature: sha256=<HMAC-SHA256 of the body with that secret>`, so the receiver can check it came from
+Gaia. `X-Gaia-Event` names the event and `X-Gaia-Delivery` numbers the message.
+
+Check every channel now:
+
+```bash
+gaia channels list
+gaia channels test <channel id>
+```
+
+`test` sends a message at once and answers with its `state`: `sent` is good. Otherwise `last_error` says why, and
+Gaia keeps trying (after 1, 2, 4 ... minutes, at most hourly, for 24 hours). Until every enabled channel delivers,
+`gaia status` ends with `WARNING notifications: ...`, and with no channel at all it says nobody is told.
+
+`events=` limits a channel to some events, for example `events='["status","daily_report"]'`. The events are
+`status`, `job_failed`, `integrity`, `quarantine`, `ledger` and `daily_report`. The daily report goes out at
+`daily_report_at` (in `/etc/gaia/server.json`, default `07:00`, server time); `gaia daily-reports run` sends one now.
+A channel is turned off with `gaia channels set <id> enabled=false` (and on again with `enabled=true`; it then
+reports from that moment on). `gaia notifications list` shows every message and its state.
+
+Gaia also checks the evidence ledger and every bundle with each daily report (and `gaia ledger check` does it now).
+A ledger that does not verify, or is shorter than the last daily report says, is a `ledger` event and shows in
+`gaia status` as `CRITICAL evidence ledger: ...`.
 
 ## 9. Users
 
@@ -428,7 +477,7 @@ gaia api GET /api/v1/hosts
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the
 new schema version. Gaia refuses to start on a database written by a newer version: do not downgrade.
 
-From schema 5 to 6 (T18) there is nothing else to do.
+From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): add a notification channel (step 8c).
 
 **From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
 
@@ -485,6 +534,18 @@ new Debian 12 machine (step 1).
    address, allow the new one.)
 5. The rebuild wrote a new recovery kit. Save it (step 8b), then delete `/tmp/gaia-recovery-kit-<n>.age` on the
    server.
+6. Notification channels come back, but not their secrets (SMTP passwords, webhook secrets are in neither the
+   state backup nor the kit): the rebuild lists each such channel. Turn it off (`gaia channels set <id>
+   enabled=false`) and add it again under a new name (step 8c). Then check the evidence ledger against the newest
+   daily report you received before the loss (the attachment `gaia-daily-report-<n>.json` in your mailbox), on the
+   server as root; the key's `key_id` printed first must be the `evidence_key_id` in that report:
+
+   ```bash
+   gaia evidence verify -pubkey /var/lib/gaia/keys/evidence-key.pub -ledger /var/lib/gaia/evidence/ledger.jsonl -evidence-dir /var/lib/gaia/evidence/bundles -head gaia-daily-report-<n>.json
+   ```
+
+   `ledger_truncated` means the rebuilt ledger lacks entries that report saw: the restore tests of the last
+   minutes before the loss. Their bundles are listed by the rebuild; nothing else may be missing.
 
 ## 14. Removing Gaia
 
@@ -520,4 +581,7 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `restore-state`: `... belong to different installations` | The kit is not the one of the server that wrote this repository. |
 | S3: `x509: certificate signed by unknown authority` | The endpoint's certificate is self-signed: add `s3_ca_file=<CA file>` (step 7b). |
 | S3: `The specified bucket does not exist` or `Access Denied` | Create the bucket, or check the access key and its permissions. |
+| `gaia status` ends with `WARNING notifications: ...` | No channel, or the last message of one failed: `gaia notifications list` shows `last_error`; fix it and `gaia channels test <id>` (step 8c). |
+| A channel's messages fail with `x509: certificate signed by unknown authority` | Add the channel again with `ca_file=` (turn the old one off first). |
+| `CRITICAL evidence ledger: ... ledger_truncated` | The ledger is shorter than the last daily report or the catalog says: entries were cut off. Do not trust the evidence until you know why; the problems list names the entries. Keep the daily reports. |
 | A verification is `critical` and `gaia quarantine list` shows contents | The repository's storage damaged data. The affected VMs back up full next; check the disk or storage (step 10). |

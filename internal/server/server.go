@@ -56,6 +56,8 @@ type Config struct {
 	LoginLockout         string `json:"login_lockout"`          // Go duration of a lockout; default 15m
 	LoginAddressFailures int    `json:"login_address_failures"` // wrong passwords from one client address within the window that block it; default 20
 	LoginAddressWindow   string `json:"login_address_window"`   // Go duration; default 10m
+	// Notifications (T19, notify.go, report.go).
+	DailyReportAt string `json:"daily_report_at"` // HH:MM local time of the daily report; default 07:00
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -90,6 +92,12 @@ func (c *Config) resolve() error {
 		return fmt.Errorf("data_dir %q: an absolute path is required", c.DataDir)
 	case !hhmm.MatchString(c.StateBackupAt):
 		return fmt.Errorf("state_backup_at %q: want HH:MM", c.StateBackupAt)
+	}
+	if c.DailyReportAt == "" {
+		c.DailyReportAt = "07:00"
+	}
+	if !hhmm.MatchString(c.DailyReportAt) {
+		return fmt.Errorf("daily_report_at %q: want HH:MM", c.DailyReportAt)
 	}
 	if ttl, err := time.ParseDuration(c.SessionTTL); err != nil || ttl < time.Minute {
 		return fmt.Errorf("session_ttl %q: want a duration of at least 1m", c.SessionTTL)
@@ -205,6 +213,8 @@ type Server struct {
 	now               func() time.Time // the clock of the status model
 	kitMu             sync.Mutex       // one recovery kit write at a time
 	stateDirty        chan struct{}    // a job ended: back Gaia's state up soon
+	ledgerMu          sync.Mutex       // one ledger check at a time
+	reportMu          sync.Mutex       // one daily report at a time
 	// Set by gaia server restore-state: the lost server may have made checkpoints after its last state backup with
 	// the job IDs this one issues again, so names made on hosts after a rebuild carry the rebuild's tag.
 	restoreTag string
@@ -346,6 +356,7 @@ func (s *Server) Run(ctx context.Context) error {
 		s.backupStateAfterChanges(ctx)
 	}()
 	go s.schedule(ctx)
+	go s.notifyLoop(ctx)
 	s.log.Info("gaia server is listening", "address", ln.Addr().String(), "version", s.version, "schema", store.Latest())
 	select {
 	case err := <-errc:

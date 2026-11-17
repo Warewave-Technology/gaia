@@ -32,6 +32,8 @@ import (
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
 //	gaia kit status | save | confirm | regenerate | show  the recovery kit (kit.go)
+//	gaia channels add name=N kind=smtp|webhook smtp={...}|webhook={...} [events=[...]] | test ID | set ID enabled=false
+//	gaia ledger list | check                             gaia daily-reports list | get ID | run
 //	gaia api METHOD PATH [JSON]                          any API call
 //
 // -json anywhere prints the server's JSON instead of a table.
@@ -56,6 +58,10 @@ var resources = map[string]resource{
 	"audit":         {"/api/v1/audit", []string{"list", "verify"}},
 	"state-changes": {"/api/v1/state-changes", []string{"list"}},
 	"state-backups": {"/api/v1/state-backups", []string{"list", "run"}},
+	"channels":      {"/api/v1/notification-channels", []string{"list", "get", "add", "set", "test"}},
+	"notifications": {"/api/v1/notifications", []string{"list"}},
+	"ledger":        {"/api/v1/ledger", []string{"list", "check"}},
+	"daily-reports": {"/api/v1/daily-reports", []string{"list", "get", "run"}},
 }
 
 // isCLICommand reports whether args[0] is handled by runCLI.
@@ -183,6 +189,11 @@ func runCLI(ctx context.Context, args []string) int {
 				return fail(asJSON, cmd, err)
 			}
 		}
+		if cmd == "channels" {
+			if err := channelSecrets(body); err != nil {
+				return fail(asJSON, cmd, err)
+			}
+		}
 		if cmd == "repositories" {
 			if err := repoS3Secrets(body); err != nil {
 				return fail(asJSON, cmd, err)
@@ -196,6 +207,9 @@ func runCLI(ctx context.Context, args []string) int {
 	if verb == "verify" && cmd == "audit" {
 		return call("GET", res.path+"/verify", nil)
 	}
+	if verb == "check" && cmd == "ledger" {
+		return call("POST", res.path+"/verify", nil)
+	}
 	id, rest, err := needID()
 	if err != nil {
 		return fail(asJSON, cmd, err)
@@ -208,6 +222,9 @@ func runCLI(ctx context.Context, args []string) int {
 	case "backup":
 		return call("POST", res.path+"/"+id+"/backups", nil)
 	case "test":
+		if cmd == "channels" {
+			return call("POST", res.path+"/"+id+"/test", nil)
+		}
 		return call("POST", res.path+"/"+id+"/tests", nil)
 	case "status":
 		return call("GET", res.path+"/"+id+"/status", nil)
@@ -260,6 +277,41 @@ func runCLI(ctx context.Context, args []string) int {
 		return 0
 	}
 	return fail(asJSON, cmd, fmt.Errorf("verb %s", verb))
+}
+
+// channelSecrets takes an SMTP password or a webhook secret from the environment (GAIA_SMTP_PASSWORD,
+// GAIA_WEBHOOK_SECRET), never from argv.
+func channelSecrets(body map[string]any) error {
+	if _, ok := body["smtp_password"]; ok {
+		return errors.New("do not put the SMTP password on the command line: set GAIA_SMTP_PASSWORD")
+	}
+	if _, ok := body["webhook_secret"]; ok {
+		return errors.New("do not put the webhook secret on the command line: set GAIA_WEBHOOK_SECRET (or leave it out for a new one)")
+	}
+	if v := os.Getenv("GAIA_SMTP_PASSWORD"); v != "" {
+		body["smtp_password"] = v
+	}
+	if v := os.Getenv("GAIA_WEBHOOK_SECRET"); v != "" {
+		body["webhook_secret"] = v
+	}
+	// ca_file=PATH: the CA certificates (PEM) the mail server's or webhook's certificate is checked against.
+	if f, ok := body["ca_file"].(string); ok {
+		delete(body, "ca_file")
+		b, err := os.ReadFile(f)
+		if err != nil {
+			return err
+		}
+		set := false
+		for _, k := range []string{"smtp", "webhook"} {
+			if m, ok := body[k].(map[string]any); ok {
+				m["ca_pem"], set = string(b), true
+			}
+		}
+		if !set {
+			return errors.New("ca_file needs smtp={...} or webhook={...}")
+		}
+	}
+	return nil
 }
 
 // askPassword fills body["password"] from the terminal unless it was given (passwords do not belong in argv).
@@ -556,6 +608,31 @@ func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool
 		}
 		if err := json.Unmarshal(kb, &info); err != nil || info.Summary.State != "confirmed" {
 			fmt.Printf("\nWARNING recovery kit: %s\n", info.Summary.Text)
+		}
+	}
+	// So are the evidence ledger and whether anybody is told (T19).
+	if sb, _, err := c.Do(ctx, "GET", "/api/v1/system", nil); err != nil {
+		fmt.Printf("ledger, notifications: UNKNOWN (%v)\n", err)
+	} else {
+		var info struct {
+			Ledger struct {
+				Verdict string `json:"verdict"`
+				Text    string `json:"text"`
+			} `json:"ledger"`
+			Notifications struct {
+				State string `json:"state"`
+				Text  string `json:"text"`
+			} `json:"notifications"`
+		}
+		if err := json.Unmarshal(sb, &info); err != nil {
+			fmt.Printf("ledger, notifications: UNKNOWN (%v)\n", err)
+		} else {
+			if info.Ledger.Verdict != "OK" {
+				fmt.Printf("%s evidence ledger: %s\n", info.Ledger.Verdict, info.Ledger.Text)
+			}
+			if info.Notifications.State != "OK" {
+				fmt.Printf("%s notifications: %s\n", info.Notifications.State, info.Notifications.Text)
+			}
 		}
 	}
 	return code

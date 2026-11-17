@@ -150,6 +150,9 @@ type SystemInfo struct {
 	StateBackupAt    string                   `json:"state_backup_at"`
 	StateBackupRepo  string                   `json:"state_backup_repository"`
 	RecoveryKit      KitSummary               `json:"recovery_kit"`
+	Ledger           LedgerSummary            `json:"ledger"`
+	Notifications    NotifySummary            `json:"notifications"`
+	DailyReportAt    string                   `json:"daily_report_at"`
 }
 
 func list[T any](v []T, err error) (int, any, error) {
@@ -584,6 +587,77 @@ func (s *Server) table() []route {
 				}
 				return list(s.db.Verifications(c.r.Context(), rid, int(n)))
 			}},
+		// --- notifications, ledger checks, daily reports (T19) ---
+		{method: "GET", path: "/api/v1/notification-channels", summary: "Where notifications go (email, webhook)", roles: adminOnly, out: []store.Channel{},
+			h: func(c *call) (int, any, error) { return list(s.db.Channels(c.r.Context())) }},
+		{method: "POST", path: "/api/v1/notification-channels", summary: "Add a notification channel (a webhook's secret is in the answer, once)",
+			roles: adminOnly, in: ChannelCreate{}, out: ChannelCreated{}, status: http.StatusCreated,
+			example: `{"name":"ops-mail","kind":"smtp","smtp":{"host":"mail.example.org","from":"gaia@example.org","to":["ops@example.org"]}}`, h: s.createChannel},
+		{method: "GET", path: "/api/v1/notification-channels/{id}", summary: "One notification channel", roles: adminOnly, out: store.Channel{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.db.Channel(c.r.Context(), id))
+			}},
+		{method: "PATCH", path: "/api/v1/notification-channels/{id}", summary: "Turn a channel off or on (on again, it starts from now)", roles: adminOnly,
+			in: ChannelUpdate{}, out: store.Channel{}, example: `{"enabled":false,"reason":"mail server replaced"}`,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				var in ChannelUpdate
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				if in.Enabled == nil {
+					return 0, nil, fmt.Errorf("%w: \"enabled\" is required", store.ErrInvalid)
+				}
+				reason := in.Reason
+				if reason == "" {
+					reason = "changed by " + c.user.Username
+				}
+				return one(s.db.SetChannelEnabled(c.r.Context(), c.user.Username, id, *in.Enabled, reason))
+			}},
+		{method: "POST", path: "/api/v1/notification-channels/{id}/test", summary: "Send a test message now; the answer is the notification with its outcome",
+			roles: adminOnly, out: store.Notification{}, h: s.testChannel},
+		{method: "GET", path: "/api/v1/notifications", summary: "Messages sent or to be sent, newest first", roles: []string{store.RoleAdmin, store.RoleOperator},
+			out: []store.Notification{}, query: append([]param{{"channel_id", "integer", "only this channel's"}}, limit...),
+			h: func(c *call) (int, any, error) {
+				cid, err := c.intQuery("channel_id", 0, 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				n, err := c.intQuery("limit", 100, 1000)
+				if err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.Notifications(c.r.Context(), cid, int(n)))
+			}},
+		{method: "GET", path: "/api/v1/ledger", summary: "The evidence ledger's latest checks", roles: anyRole, out: LedgerInfo{}, h: s.ledgerInfo},
+		{method: "POST", path: "/api/v1/ledger/verify", summary: "Check the evidence ledger and its bundles now (a change of verdict notifies)",
+			roles: adminOnly, out: store.LedgerCheck{}, h: s.verifyLedger},
+		{method: "GET", path: "/api/v1/daily-reports", summary: "Daily reports, newest first, with their signed ledger heads", roles: anyRole,
+			out: []store.DailyReport{}, query: limit,
+			h: func(c *call) (int, any, error) {
+				n, err := c.intQuery("limit", 100, 1000)
+				if err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.DailyReports(c.r.Context(), int(n)))
+			}},
+		{method: "GET", path: "/api/v1/daily-reports/{id}", summary: "One daily report", roles: anyRole, out: store.DailyReport{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				return one(s.db.DailyReport(c.r.Context(), id))
+			}},
+		{method: "POST", path: "/api/v1/daily-reports", summary: "Make the daily report now and send it to every channel that takes it",
+			roles: adminOnly, out: store.DailyReport{}, status: http.StatusCreated, h: s.createDailyReport},
 		{method: "GET", path: "/api/v1/quarantined-contents", summary: "Repository contents a verification found damaged and took out of deduplication (ADR-007 B3)",
 			roles: anyRole, out: []store.QuarantinedContent{}, query: []param{{"repository_id", "integer", "only this repository's"}},
 			h: func(c *call) (int, any, error) {

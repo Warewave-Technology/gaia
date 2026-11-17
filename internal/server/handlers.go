@@ -83,9 +83,18 @@ func (s *Server) systemInfo(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
+	ledger, err := s.ledgerSummary(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	notify, err := s.notifySummary(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
 	return http.StatusOK, SystemInfo{Version: s.version, SchemaVersion: len(applied), Migrations: applied, EvidenceKeyID: evidence.KeyID(pub),
 		SSHPublicKey: s.sshKey.AuthorizedKey, SSHAuthorizedKey: `restrict,port-forwarding,command="/usr/bin/false" ` + s.sshKey.AuthorizedKey,
-		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository, RecoveryKit: kit}, nil
+		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository, RecoveryKit: kit,
+		Ledger: ledger, Notifications: notify, DailyReportAt: s.cfg.DailyReportAt}, nil
 }
 
 // repoOptions are where Gaia keeps a repository's client config, password and cache (A2: 1 GiB hard limit).
