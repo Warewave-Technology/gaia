@@ -53,3 +53,36 @@ export function useVMs() {
 export function useDailyReports() {
   return useQuery({ queryKey: ['daily-reports'], queryFn: () => unwrap(api.GET('/api/v1/daily-reports', { params: { query: { limit: 1 } } })) })
 }
+
+export type MigrationView = components['schemas']['MigrationView']
+export type MigrationCheckView = components['schemas']['MigrationCheckView']
+export type SourceVM = components['schemas']['SourceVM']
+export type MigrationSource = components['schemas']['MigrationSource']
+
+/** The migration screen; it refreshes faster while a check is queued or running. */
+export function useMigrationView() {
+  return useQuery({
+    queryKey: ['views', 'migration'],
+    queryFn: () => unwrap(api.GET('/api/v1/views/migration')),
+    refetchInterval: (q) => (q.state.data?.checks.some((c) => c.job_state === 'queued' || c.job_state === 'running') ? 5_000 : REFRESH),
+  })
+}
+
+/** A source's VMs, read when asked (it logs in to vSphere: read-only calls only). */
+export function useSourceInventory(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ['inventory', id],
+    queryFn: () => unwrap(api.GET('/api/v1/migration-sources/{id}/inventory', { params: { path: { id } } })),
+    enabled,
+    staleTime: 60_000,
+  })
+}
+
+/** "Check": queue a migration check of one VM of a source. */
+export function useQueueMigrationCheck(source: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vm: string) => unwrap(api.POST('/api/v1/migration-sources/{id}/checks', { params: { path: { id: source } }, body: { vm } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['views', 'migration'] }),
+  })
+}

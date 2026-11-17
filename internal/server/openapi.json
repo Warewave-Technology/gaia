@@ -341,6 +341,37 @@
         ],
         "type": "object"
       },
+      "CheckResult": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "name",
+          "seconds",
+          "type",
+          "verdict"
+        ],
+        "type": "object"
+      },
       "ConverterState": {
         "additionalProperties": false,
         "properties": {
@@ -1125,6 +1156,156 @@
         ],
         "type": "object"
       },
+      "MigrationCheckView": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "evidence_id": {
+            "type": "integer"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "firmware": {
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "job_state": {
+            "type": "string"
+          },
+          "readiness": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MigrationDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "screenshots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "created_at",
+          "evidence_id",
+          "finished_at",
+          "firmware",
+          "guest_id",
+          "id",
+          "job_state",
+          "readiness",
+          "reason",
+          "screenshots",
+          "source",
+          "source_id",
+          "started_at",
+          "vm"
+        ],
+        "type": "object"
+      },
+      "MigrationDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle": {
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "type": "array"
+          },
+          "converter": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Result"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ledger_seq": {
+            "type": "integer"
+          },
+          "missing_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "product": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "timings_s": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "vsphere_blocked_calls": {
+            "type": "integer"
+          },
+          "vsphere_calls": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bundle",
+          "checks",
+          "errors",
+          "ledger_seq",
+          "product",
+          "source",
+          "timings_s",
+          "vsphere_blocked_calls",
+          "vsphere_calls"
+        ],
+        "type": "object"
+      },
       "MigrationSource": {
         "additionalProperties": false,
         "properties": {
@@ -1162,6 +1343,36 @@
           "updated_at",
           "url",
           "username"
+        ],
+        "type": "object"
+      },
+      "MigrationView": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/MigrationCheckView"
+            },
+            "type": "array"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "converter": {
+            "$ref": "#/components/schemas/ConverterState"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/MigrationSource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "checks",
+          "clock",
+          "converter",
+          "sources"
         ],
         "type": "object"
       },
@@ -1909,6 +2120,66 @@
           "seconds",
           "sha256",
           "target"
+        ],
+        "type": "object"
+      },
+      "Result": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "disks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "domain_xml": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "log": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "string"
+          },
+          "virtio_win": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VirtioWin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "command",
+          "detail",
+          "disks",
+          "domain_xml",
+          "image",
+          "log",
+          "seconds",
+          "state",
+          "versions"
         ],
         "type": "object"
       },
@@ -9859,6 +10130,72 @@
         "summary": "One verification, with the points it found damaged",
         "tags": [
           "verifications"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/migration": {
+      "get": {
+        "operationId": "get_views_migration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The migration screen: the converter, the sources and the checks (T21)",
+        "tags": [
+          "views"
         ],
         "x-gaia-roles": [
           "admin",

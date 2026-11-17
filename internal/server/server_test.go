@@ -198,9 +198,27 @@ func (f *fixture) seed() {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A migration source (no password: its inventory fails fast) and a finished check whose bundle is the seed bundle.
+	src, err := f.s.db.CreateMigrationSource(ctx, "admin", store.MigrationSource{Name: "seed-esxi", Kind: "vsphere", URL: "https://127.0.0.1:9/sdk", Username: "root"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mc, err := f.s.db.QueueMigrationCheck(ctx, "admin", src.ID, "seed-vm", nil, "seed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.s.db.SetJobState(ctx, "system", mc.JobID, "running", "seed", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.s.db.SetJobState(ctx, "system", mc.JobID, "ok", "seed", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.s.db.FinishMigrationCheck(ctx, "system", mc.ID, "OK", "seed", ev.BundleID, MigrationDetail{}); err != nil {
+		t.Fatal(err)
+	}
 	f.ids = map[string]int64{"users": f.userIDs[store.RoleAuditor], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
 		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID, "notification-channels": ch.ID,
-		"daily-reports": dr.ID, "views": v.ID}
+		"daily-reports": dr.ID, "views": v.ID, "migration-sources": src.ID, "migration-checks": mc.ID}
 }
 
 func (f *fixture) path(rt route) string {

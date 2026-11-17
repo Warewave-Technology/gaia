@@ -24,6 +24,7 @@ export function Shell() {
         {sys && <span className={s.inst}>{sys.hostname}</span>}
         <nav className={s.nav} aria-label={t.nav.main}>
           <NavLink to="/" end>{t.nav.overview}</NavLink>
+          <NavLink to="/migration">{t.nav.migration}</NavLink>
           {can(me, 'export') && <NavLink to="/evidence">{t.nav.evidence}</NavLink>}
         </nav>
         {fmt && sys && (

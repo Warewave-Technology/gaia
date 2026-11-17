@@ -3,6 +3,7 @@ import { RequireAuth } from './layout/RequireAuth'
 import { RouteError } from './layout/States'
 import { Shell } from './layout/Shell'
 import { EvidencePage } from './pages/EvidencePage'
+import { MigrationPage } from './pages/MigrationPage'
 import { Login } from './pages/Login'
 import { NotFound } from './pages/NotFound'
 import { Overview } from './pages/Overview'
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       // each screen has its own: when one fails to draw, the bar stays
       { index: true, element: <Overview />, errorElement: <RouteError /> },
       { path: 'vms/:id', element: <VMPage />, errorElement: <RouteError /> },
+      { path: 'migration', element: <MigrationPage />, errorElement: <RouteError /> },
       { path: 'evidence', element: <EvidencePage />, errorElement: <RouteError /> },
       { path: '*', element: <NotFound /> },
     ],

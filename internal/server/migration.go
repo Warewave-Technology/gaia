@@ -716,3 +716,79 @@ func oneLine(s string, n int) string {
 	}
 	return s
 }
+
+// MigrationView is the migration screen in one request (T21): the converter's state, the sources, and the checks
+// newest first with what each did.
+type MigrationView struct {
+	Clock     ServerClock             `json:"clock"`
+	Converter ConverterState          `json:"converter"`
+	Sources   []store.MigrationSource `json:"sources"`
+	Checks    []MigrationCheckView    `json:"checks"`
+}
+
+// MigrationCheckView is one check as the screen shows it.
+type MigrationCheckView struct {
+	ID          int64            `json:"id"`
+	SourceID    int64            `json:"source_id"`
+	Source      string           `json:"source"`
+	VM          string           `json:"vm"`
+	JobState    string           `json:"job_state"` // queued, running, ok, failed
+	Readiness   string           `json:"readiness"` // "" until it ends
+	Reason      string           `json:"reason"`
+	Firmware    string           `json:"firmware"`
+	GuestID     string           `json:"guest_id"`
+	CreatedAt   string           `json:"created_at"`
+	StartedAt   string           `json:"started_at"`
+	FinishedAt  string           `json:"finished_at"`
+	BundleID    string           `json:"bundle_id"`
+	EvidenceID  int64            `json:"evidence_id"` // 0 without a bundle
+	Screenshots []string         `json:"screenshots"`
+	Result      *MigrationDetail `json:"result,omitempty"` // once it ended
+}
+
+func (s *Server) migrationView(c *call) (int, any, error) {
+	ctx := c.r.Context()
+	_, conv, _ := s.converterInfo(c)
+	out := MigrationView{Clock: serverClock(s.now()), Converter: conv.(ConverterState), Checks: []MigrationCheckView{}}
+	var err error
+	if out.Sources, err = s.db.MigrationSources(ctx); err != nil {
+		return 0, nil, err
+	}
+	names := map[int64]string{}
+	for _, m := range out.Sources {
+		names[m.ID] = m.Name
+	}
+	ev, err := s.db.EvidenceBundles(ctx, 0, 1000000)
+	if err != nil {
+		return 0, nil, err
+	}
+	evID := map[string]int64{}
+	for _, e := range ev {
+		evID[e.BundleID] = e.ID
+	}
+	mcs, err := s.db.MigrationChecks(ctx, 0, 200)
+	if err != nil {
+		return 0, nil, err
+	}
+	for _, m := range mcs {
+		j, err := s.db.Job(ctx, m.JobID)
+		if err != nil {
+			return 0, nil, err
+		}
+		v := MigrationCheckView{ID: m.ID, SourceID: m.SourceID, Source: names[m.SourceID], VM: m.VM, JobState: j.State, Readiness: m.Readiness,
+			Reason: m.Reason, Firmware: m.Firmware, GuestID: m.GuestID, CreatedAt: m.CreatedAt, StartedAt: j.StartedAt, FinishedAt: m.FinishedAt,
+			BundleID: m.BundleID, EvidenceID: evID[m.BundleID], Screenshots: []string{}}
+		if m.BundleID != "" {
+			v.Screenshots = s.screenshots(m.BundleID)
+		}
+		if m.Readiness != "" {
+			var d MigrationDetail
+			if err := json.Unmarshal(m.Detail, &d); err != nil {
+				return 0, nil, fmt.Errorf("migration check %d: detail: %w", m.ID, err)
+			}
+			v.Result = &d
+		}
+		out.Checks = append(out.Checks, v)
+	}
+	return http.StatusOK, out, nil
+}

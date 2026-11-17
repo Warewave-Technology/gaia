@@ -825,6 +825,8 @@ func (s *Server) table() []route {
 			roles: anyRole, out: OverviewView{}, h: s.overviewView},
 		{method: "GET", path: "/api/v1/views/vms/{id}", summary: "One VM's page: status, history, tests, points and evidence",
 			roles: anyRole, out: VMView{}, h: s.vmView},
+		{method: "GET", path: "/api/v1/views/migration", summary: "The migration screen: the converter, the sources and the checks (T21)",
+			roles: anyRole, out: MigrationView{}, h: s.migrationView},
 		{method: "GET", path: "/api/v1/evidence/{id}/export", summary: "Export a bundle with the ledger and the trust anchor (tar.gz, ADR-006)",
 			roles: adminAudit, auditRead: true, h: s.exportEvidence},
 		{method: "GET", path: "/api/v1/state-changes", summary: "Recorded state changes, oldest first", roles: anyRole, out: []store.StateChange{},
