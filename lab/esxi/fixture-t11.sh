@@ -38,8 +38,14 @@ WIN_ISO="$IMAGES/SERVER_EVAL_x64FRE_en-us.iso"
 WIN_INDEX=2 # Windows Server 2022 Standard Evaluation (Desktop Experience); checked against the WIM's XML below
 VM=gaia-t11-win
 MAC=00:50:56:3f:b1:01
+# VARIANT=broken (T21): gaia-t21-win-broken, the same disk with the MBR's boot code (bytes 0-439) zeroed, so it
+# cannot boot: the negative control for the WinRM boot check.
+if [[ "${VARIANT:-}" == broken ]]; then
+	VM=gaia-t21-win-broken
+	MAC=00:50:56:3f:b1:02
+fi
 DISK_GIB=32
-BUILT="$IMAGES/$VM.qcow2"
+BUILT="$IMAGES/gaia-t11-win.qcow2" # one build, both variants
 
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
 
@@ -323,6 +329,10 @@ build
 mkdir -p "$WORK"
 raw="$WORK/$VM.raw"
 qemu-img convert -q -f qcow2 -O raw "$BUILT" "$raw"
+if [[ "${VARIANT:-}" == broken ]]; then
+	dd if=/dev/zero of="$raw" bs=440 count=1 conv=notrunc status=none
+	echo "$VM: zeroed the MBR boot code (bytes 0-439)"
+fi
 sha=$(sha256sum "$raw" | cut -d' ' -f1)
 echo "$sha" >"$WORK/$VM.raw.sha256"
 echo "disk: $(stat -c %s "$raw") bytes, $(du -h "$raw" | cut -f1) allocated, sha256 $sha"

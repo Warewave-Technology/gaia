@@ -3,10 +3,13 @@
 # free ESXi host through the host's own shell (SSH: vmkfstools + vim-cmd). This is never a product
 # path: Gaia itself only reads from a migration source (cmd/gaia migrate-check, internal/vsphereread).
 #
-# Two powered-off Debian 12 VMs (official generic image: standard kernel, VMware drivers), never started:
-#   gaia-t8-linux   SSH on 22, HTTP /health on 8080 (systemd), DHCP on any en*/eth* NIC (systemd-networkd)
-#   gaia-t8-broken  the same, with the MBR's boot code (bytes 0-439) zeroed
-# Both: pvscsi disk (thin), vmxnet3 NIC with a static MAC, BIOS, guestOS debian12-64.
+# Three powered-off Debian 12 VMs (official generic image: standard kernel, VMware drivers; its disk has both a BIOS
+# boot path and an EFI system partition), never started:
+#   gaia-t8-linux   SSH on 22, HTTP /health on 8080 (systemd), DHCP on any en*/eth* NIC (systemd-networkd), BIOS
+#   gaia-t8-broken  the same, with the MBR's boot code (bytes 0-439) zeroed: it cannot boot
+#   gaia-t21-uefi   the same as gaia-t8-broken, but firmware "efi" (T21): UEFI reads no MBR boot code, so it boots
+#                   only through UEFI, and a check that boots it proves the UEFI path, not BIOS
+# All: pvscsi disk (thin), vmxnet3 NIC with a static MAC, guestOS debian12-64.
 #
 # Usage (on gaia-lab, as root):  lab/esxi/fixture-t8.sh create|delete ESXI_IP
 # Env: PASSWORD_FILE (/root/.gaia-esxi-password; the ESXi root password, never printed), DATASTORE (datastore1),
@@ -21,8 +24,9 @@ IMAGES="${IMAGES:-/var/lib/gaia/images}"
 WORK="${WORK:-/var/lib/gaia/t8-fixture}"
 CLOUD_URL=https://cloud.debian.org/images/cloud/bookworm/latest
 IMG=debian-12-generic-amd64.qcow2
-VMS=(gaia-t8-linux gaia-t8-broken)
-declare -A MAC=([gaia-t8-linux]=00:50:56:3f:a8:01 [gaia-t8-broken]=00:50:56:3f:a8:02)
+VMS=(gaia-t8-linux gaia-t8-broken gaia-t21-uefi)
+declare -A MAC=([gaia-t8-linux]=00:50:56:3f:a8:01 [gaia-t8-broken]=00:50:56:3f:a8:02 [gaia-t21-uefi]=00:50:56:3f:a8:03)
+declare -A FIRMWARE=([gaia-t8-linux]=bios [gaia-t8-broken]=bios [gaia-t21-uefi]=efi)
 
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
 [[ -s "$PASSWORD_FILE" ]] || { echo "no ESXi password in $PASSWORD_FILE"; exit 3; }
@@ -110,7 +114,7 @@ for vm in "${VMS[@]}"; do
 		--run-command 'systemctl enable systemd-networkd.service gaia-health.service' \
 		--touch /etc/cloud/cloud-init.disabled
 	qemu-img convert -q -f qcow2 -O raw "$qcow" "$raw"
-	if [[ "$vm" == gaia-t8-broken ]]; then
+	if [[ "$vm" == gaia-t8-broken || "$vm" == gaia-t21-uefi ]]; then
 		dd if=/dev/zero of="$raw" bs=440 count=1 conv=notrunc status=none
 		echo "$vm: zeroed the MBR boot code (bytes 0-439)"
 	fi
@@ -124,7 +128,7 @@ EOF
 	esxi_put "$raw" "$dir/$vm-src-flat.vmdk"
 	sectors=$(($(stat -c %s "$raw") / 512))
 	rm -f "$raw"
-	esxi "$dir" "$vm" "${MAC[$vm]}" "$sectors" <<'EOF'
+	esxi "$dir" "$vm" "${MAC[$vm]}" "$sectors" "${FIRMWARE[$vm]}" <<'EOF'
 set -e
 cd "$1"
 cat >"$2-src.vmdk" <<VMDK
@@ -150,7 +154,7 @@ config.version = "8"
 virtualHW.version = "19"
 displayName = "$2"
 guestOS = "debian12-64"
-firmware = "bios"
+firmware = "$5"
 memSize = "1024"
 numvcpus = "2"
 scsi0.present = "TRUE"

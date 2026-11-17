@@ -41,6 +41,9 @@ aptq install -y -q --no-install-recommends libvirt-daemon-system libvirt-clients
 aptq install -y -q --no-install-recommends virt-v2v libguestfs-tools nbdkit libnbd-bin
 # T11: the Windows fixture's unattended install (genisoimage, socat for the QEMU monitor), rhsrvany from its RPM.
 aptq install -y -q --no-install-recommends genisoimage socat rpm2cpio cpio
+# T21: the converter service runs the converter image with rootless podman (--init needs catatonit); UEFI guests boot
+# in the sandbox with OVMF.
+aptq install -y -q --no-install-recommends podman uidmap crun catatonit fuse-overlayfs skopeo ovmf
 
 # Go (Debian's packaged Go is too old for this module). go.dev publishes the checksums.
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
