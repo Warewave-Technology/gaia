@@ -336,14 +336,19 @@ wait_verification() {
 	cat "$WORK/ver.json"
 }
 inject() { jq -nc --arg what "$1" '{at: (now | todate), injected: $what}' | tee -a "$OUT_DIR/injections.jsonl"; }
-# delivered: waits until no message of Gaia's is still queued (the notifier looks every 5 s).
+# delivered: waits until every channel has turned every state change so far into its messages (its cursor, moved
+# every 5 s), and none of those is still queued.
 delivered() {
-	local i
+	local i newest cursors
+	newest=$(api state-changes list after="$(api channels list | jq '[.[].cursor] | min')" limit=1000 | jq '.[-1].seq // 0')
 	for ((i = 0; i < 60; i++)); do
-		[[ $(api notifications list limit=1000 | jq '[.[] | select(.state == "queued")] | length') == 0 ]] && return 0
+		cursors=$(api channels list | jq '[.[] | select(.enabled) | .cursor] | min')
+		if ((cursors >= newest)) && [[ $(api notifications list limit=1000 | jq '[.[] | select(.state == "queued")] | length') == 0 ]]; then
+			return 0
+		fi
 		sleep 5
 	done
-	echo "WARNING: messages still queued after 300 s (the gate will say so)"
+	echo "WARNING: not every message was queued and sent within 300 s (the gate will say so)"
 }
 
 # --- events --------------------------------------------------------------------------------------------------------
