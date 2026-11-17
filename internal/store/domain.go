@@ -795,22 +795,27 @@ func (d *DB) RestoreTests(ctx context.Context, vmID int64, limit int) ([]Restore
 
 // EvidenceBundle is a sealed evidence bundle in the installation's ledger (ADR-006).
 type EvidenceBundle struct {
-	ID           int64  `json:"id"`
-	BundleID     string `json:"bundle_id"`
-	TestID       *int64 `json:"test_id"`
-	VMID         *int64 `json:"vm_id"`
-	LedgerSeq    int    `json:"ledger_seq"`
-	BundleSHA256 string `json:"bundle_sha256"`
-	Verdict      string `json:"verdict"`
-	CreatedAt    string `json:"created_at"`
+	ID       int64  `json:"id"`
+	BundleID string `json:"bundle_id"`
+	TestID   *int64 `json:"test_id"`
+	VMID     *int64 `json:"vm_id"`
+	// MigrationCheckID: the bundle of a migration check (schema 8), which belongs to no protected VM.
+	MigrationCheckID *int64 `json:"migration_check_id"`
+	LedgerSeq        int    `json:"ledger_seq"`
+	BundleSHA256     string `json:"bundle_sha256"`
+	Verdict          string `json:"verdict"`
+	CreatedAt        string `json:"created_at"`
 }
 
-const evCols = `id, bundle_id, test_id, vm_id, ledger_seq, bundle_sha256, verdict, created_at`
+const evCols = `id, bundle_id, test_id, vm_id, migration_check_id, ledger_seq, bundle_sha256, verdict, created_at`
 
 func scanEvidence(s interface{ Scan(...any) error }) (EvidenceBundle, error) {
 	var e EvidenceBundle
-	var tid, vid sql.NullInt64
-	err := s.Scan(&e.ID, &e.BundleID, &tid, &vid, &e.LedgerSeq, &e.BundleSHA256, &e.Verdict, &e.CreatedAt)
+	var tid, vid, mid sql.NullInt64
+	err := s.Scan(&e.ID, &e.BundleID, &tid, &vid, &mid, &e.LedgerSeq, &e.BundleSHA256, &e.Verdict, &e.CreatedAt)
+	if mid.Valid {
+		e.MigrationCheckID = &mid.Int64
+	}
 	if tid.Valid {
 		e.TestID = &tid.Int64
 	}

@@ -60,14 +60,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7}) || Latest() != 7 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8}) || Latest() != 8 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 7 || applied[6].Name != "0007_notifications.sql" {
+	if err != nil || len(applied) != 8 || applied[7].Name != "0008_migration_checks.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -104,6 +104,48 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	b, _ := fresh.Schema(ctx)
 	if !slices.Equal(a, b) {
 		t.Fatalf("schema after migrating from the previous version differs from a fresh one:\n%s\n---\n%s", strings.Join(a, "\n"), strings.Join(b, "\n"))
+	}
+}
+
+// Schema 8 rebuilds jobs to add the kind migration_check: jobs, and the points and restore tests that refer to them,
+// come through unchanged, and the foreign keys still hold.
+func TestMigrationRebuildsJobs(t *testing.T) {
+	ctx := context.Background()
+	d := open(t)
+	if _, err := d.Migrate(ctx, 7); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	for _, q := range []string{
+		`INSERT INTO hosts (id, name, address, ssh_user, created_at, updated_at) VALUES (1, 'kvm1', '10.0.0.1', 'gaia', '` + now + `', '` + now + `')`,
+		`INSERT INTO repositories (id, name, kind, location, splitter, hash, created_at) VALUES (1, 'main', 'filesystem', '/srv', 'FIXED-1M', 'BLAKE2B-256-128', '` + now + `')`,
+		`INSERT INTO vms (id, host_id, name, created_at, updated_at) VALUES (1, 1, 'web', '` + now + `', '` + now + `')`,
+		`INSERT INTO jobs (id, kind, vm_id, state, reason, created_at, checkpoint, detail) VALUES (7, 'backup', 1, 'ok', 'schedule', '` + now + `', 'gaia-7', '{"bytes":1}')`,
+		`INSERT INTO jobs (id, kind, vm_id, state, reason, created_at) VALUES (8, 'restore_test', 1, 'ok', 'schedule', '` + now + `')`,
+		`INSERT INTO points (id, vm_id, job_id, repository_id, kind, taken_at, check_state) VALUES (3, 1, 7, 1, 'full', '` + now + `', 'ok')`,
+		`INSERT INTO restore_tests (id, vm_id, point_id, job_id, verdict, started_at) VALUES (4, 1, 3, 8, 'OK', '` + now + `')`,
+	} {
+		if _, err := d.SQL().ExecContext(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	if _, err := d.Migrate(ctx, 0); err != nil {
+		t.Fatal(err)
+	}
+	var kind, cp, detail string
+	if err := d.SQL().QueryRowContext(ctx, `SELECT kind, checkpoint, detail FROM jobs WHERE id = 7`).Scan(&kind, &cp, &detail); err != nil ||
+		kind != "backup" || cp != "gaia-7" || detail != `{"bytes":1}` {
+		t.Fatalf("job 7 after the rebuild: %s %s %s %v", kind, cp, detail, err)
+	}
+	var n int
+	if err := d.SQL().QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check`).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("foreign key violations: %d %v", n, err)
+	}
+	if mj, err := d.CreateJob(ctx, "admin", "migration_check", nil, "test"); err != nil || mj.ID != 9 {
+		t.Fatalf("a migration_check job: %+v %v", mj, err)
+	}
+	if _, err := d.SQL().ExecContext(ctx, `DELETE FROM jobs WHERE id = 7`); err == nil {
+		t.Fatal("deleted a job a point refers to: the foreign key is gone")
 	}
 }
 

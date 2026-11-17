@@ -69,8 +69,12 @@ func TestConfigWindowsBootProbe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Checks) != 2 || !c.Checks[0].IsBoot() || c.Checks[0].Type != CheckRDP || c.Checks[1].IsBoot() || c.Checks[1].ExpectStatus != 405 {
+	if len(c.Checks) != 1 || !c.Checks[0].IsBoot() || c.Checks[0].Type != CheckWinRM || c.Checks[0].Port != 5985 {
 		t.Fatalf("checks %+v", c.Checks)
+	}
+	c, err = LoadConfig(writeConfig(t, `{"vm":"win1","template":"windows-rdp","machine":{"mac":"00:50:56:aa:bb:cc"}}`))
+	if err != nil || len(c.Checks) != 2 || c.Checks[0].Type != CheckWinRM || c.Checks[1].Type != CheckRDP || c.Checks[1].IsBoot() {
+		t.Fatalf("windows-rdp: %v %+v", err, c.Checks)
 	}
 	mac := `"machine":{"mac":"52:54:00:aa:bb:cc"}`
 	if _, err := LoadConfig(writeConfig(t, `{"vm":"a",`+mac+`,"checks":[{"name":"up","type":"tcp","port":22,"boot":true}]}`)); err != nil {
@@ -135,6 +139,69 @@ func TestRDPProbe(t *testing.T) {
 		r := Probe(ctx, Check{Type: CheckRDP, Port: fakeRDP(t, tc.reply)}, "127.0.0.1", 1500*time.Millisecond)
 		if r.OK != tc.ok || !strings.Contains(r.Detail, tc.want) {
 			t.Errorf("reply % x: %+v, want ok=%v and %q", tc.reply, r, tc.ok, tc.want)
+		}
+	}
+}
+
+// The reply Windows Server's WinRM gives an unauthenticated Identify (shape of Test-WSMan's exchange).
+const winrmReply = `<s:Envelope xml:lang="en-US" xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Header/><s:Body>` +
+	`<wsmid:IdentifyResponse xmlns:wsmid="http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd">` +
+	`<wsmid:ProtocolVersion>http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd</wsmid:ProtocolVersion>` +
+	`<wsmid:ProductVendor>Microsoft Corporation</wsmid:ProductVendor><wsmid:ProductVersion>OS: 0.0.0 SP: 0.0 Stack: 3.0</wsmid:ProductVersion>` +
+	`</wsmid:IdentifyResponse></s:Body></s:Envelope>`
+
+// The WinRM probe passes only on a WS-Management IdentifyResponse: not on an open port, another HTTP server, an
+// HTTP error, or a SOAP reply that is not an Identify response.
+func TestProbeWinRM(t *testing.T) {
+	ctx := context.Background()
+	serve := func(h http.HandlerFunc) int {
+		ts := httptest.NewServer(h)
+		t.Cleanup(ts.Close)
+		_, p, _ := net.SplitHostPort(ts.Listener.Addr().String())
+		port, _ := strconv.Atoi(p)
+		return port
+	}
+	windows := serve(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		if r.Method != http.MethodPost || r.URL.Path != "/wsman-anon/identify" || r.Header.Get("WSMANIDENTIFY") != "unauthenticated" ||
+			!strings.Contains(string(b), "<wsmid:Identify/>") {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Server", "Microsoft-HTTPAPI/2.0")
+		w.Header().Set("Content-Type", "application/soap+xml;charset=UTF-8")
+		io.WriteString(w, winrmReply)
+	})
+	onlyWsman := serve(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/wsman" {
+			http.NotFound(w, r)
+			return
+		}
+		io.WriteString(w, winrmReply)
+	})
+	web := serve(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "<html>it works</html>") })
+	denied := serve(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusUnauthorized) })
+	soap := serve(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><x:Fault xmlns:x="urn:x"/></s:Body></s:Envelope>`)
+	})
+	nothing := serve(http.NotFound)
+	for _, tc := range []struct {
+		name string
+		port int
+		ok   bool
+		want string
+	}{
+		{"windows", windows, true, `vendor "Microsoft Corporation", version "OS: 0.0.0 SP: 0.0 Stack: 3.0", protocol http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd, server "Microsoft-HTTPAPI/2.0"`},
+		{"identify on /wsman", onlyWsman, true, "/wsman: WS-Management IdentifyResponse"},
+		{"a web server", web, false, "not a WS-Management IdentifyResponse"},
+		{"401", denied, false, "status 401"},
+		{"another SOAP reply", soap, false, "not a WS-Management IdentifyResponse"},
+		{"no endpoint", nothing, false, "no WS-Management endpoint"},
+		{"closed port", freePort(t), false, "refused"},
+	} {
+		r := Probe(ctx, Check{Type: CheckWinRM, Port: tc.port}, "127.0.0.1", 1500*time.Millisecond)
+		if r.OK != tc.ok || !strings.Contains(r.Detail, tc.want) {
+			t.Errorf("%s: %+v, want ok=%v and %q", tc.name, r, tc.ok, tc.want)
 		}
 	}
 }
@@ -272,4 +339,15 @@ func TestDomainXMLTwoDisks(t *testing.T) {
 	if defaultTarget("sata", 2) != "sdc" {
 		t.Fatal(defaultTarget("sata", 2))
 	}
+}
+
+// freePort is a local port nothing listens on.
+func freePort(t *testing.T) int {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
 }

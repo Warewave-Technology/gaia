@@ -194,13 +194,31 @@ func (d *DB) Migrate(ctx context.Context, to int) ([]int, error) {
 	}
 	var done []int
 	for _, m := range ms[len(applied):to] {
+		// A migration that rebuilds a table other tables refer to (SQLite's documented procedure for changing a
+		// constraint) runs with foreign key enforcement off, which only works outside a transaction, and checks every
+		// foreign key before it commits.
+		fkOff := strings.HasPrefix(m.SQL, foreignKeysOff)
+		if fkOff {
+			if _, err := d.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+				return done, err
+			}
+		}
 		tx, err := d.db.BeginTx(ctx, nil)
 		if err != nil {
 			return done, err
 		}
 		if _, err := tx.ExecContext(ctx, m.SQL); err != nil {
 			tx.Rollback()
+			d.foreignKeysOn(ctx, fkOff)
 			return done, fmt.Errorf("migration %s: %w", m.Name, err)
+		}
+		if fkOff {
+			var n int
+			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check`).Scan(&n); err != nil || n > 0 {
+				tx.Rollback()
+				d.foreignKeysOn(ctx, fkOff)
+				return done, fmt.Errorf("migration %s: %d foreign key violations (%v)", m.Name, n, err)
+			}
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, name, sha256, applied_at) VALUES (?, ?, ?, ?)`,
 			m.Version, m.Name, m.SHA256, d.ts()); err != nil {
@@ -208,11 +226,28 @@ func (d *DB) Migrate(ctx context.Context, to int) ([]int, error) {
 			return done, err
 		}
 		if err := tx.Commit(); err != nil {
+			d.foreignKeysOn(ctx, fkOff)
 			return done, fmt.Errorf("migration %s: %w", m.Name, err)
+		}
+		if err := d.foreignKeysOn(ctx, fkOff); err != nil {
+			return done, err
 		}
 		done = append(done, m.Version)
 	}
 	return done, nil
+}
+
+// foreignKeysOff, as a migration's first line, runs it with foreign key enforcement off (see Migrate).
+const foreignKeysOff = "-- gaia:foreign-keys-off\n"
+
+func (d *DB) foreignKeysOn(ctx context.Context, was bool) error {
+	if !was {
+		return nil
+	}
+	if _, err := d.db.ExecContext(ctx, `PRAGMA foreign_keys = ON`); err != nil {
+		return fmt.Errorf("turning foreign keys back on: %w", err)
+	}
+	return nil
 }
 
 // Schema returns the database's schema (tables, indexes, triggers) as normalised SQL, sorted: two databases with

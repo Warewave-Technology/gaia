@@ -576,7 +576,7 @@ func (x *run) waitNetBoot(ctx context.Context, k Check) CheckResult {
 		return nil
 	})
 	if err != nil {
-		res.Seconds, res.Detail = time.Since(x.t0).Seconds(), err.Error()
+		res.Seconds, res.Detail = time.Since(x.t0).Seconds(), err.Error()+netBootWhy(k.Type)
 		x.logf("boot not reached: %v", err)
 		return res
 	}
@@ -585,8 +585,25 @@ func (x *run) waitNetBoot(ctx context.Context, k Check) CheckResult {
 	if res.Verdict == OK {
 		res.Detail = fmt.Sprintf("%s (DHCP lease %s, then the probe)", res.Detail, ip)
 		x.logf("boot reached after %.3f s", res.Seconds)
+	} else {
+		res.Detail += netBootWhy(k.Type)
 	}
 	return res
+}
+
+// netBootWhy says why a boot probe cannot pass on a guest that did not boot (T11's rule, ADR-005 §3): the report
+// must say what the check rests on, not only that it failed.
+func netBootWhy(typ string) string {
+	switch typ {
+	case CheckWinRM:
+		return ". WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once " +
+			"Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot " +
+			"loader, a stop error or the Recovery Environment takes no lease or never answers an Identify"
+	case CheckRDP:
+		return ". Remote Desktop answers only from a running Windows with RDP enabled: TermService accepts the X.224 " +
+			"handshake once Windows has taken a DHCP lease, so a guest that did not boot cannot confirm it"
+	}
+	return ""
 }
 
 // waitLease waits for the guest's DHCP lease (by its MAC) in dnsmasq's lease file.

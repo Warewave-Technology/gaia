@@ -3,6 +3,7 @@ package verify
 import (
 	"context"
 	"encoding/binary"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net"
@@ -95,8 +96,64 @@ func probeOnce(ctx context.Context, c Check, host string) (ok bool, detail strin
 		}
 		ok, detail := rdpHandshake(conn)
 		return ok, addr + ": " + detail, 0, ""
+	case CheckWinRM:
+		return winrmIdentify(actx, addr)
 	}
 	return false, "not a probe: " + c.Type, 0, ""
+}
+
+// winrmIdentifyRequest is a WS-Management Identify (DSP0226 §11), the request Test-WSMan sends without credentials.
+const winrmIdentifyRequest = `<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" ` +
+	`xmlns:wsmid="http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd"><s:Header/><s:Body><wsmid:Identify/></s:Body></s:Envelope>`
+
+// winrmIdentify posts an unauthenticated Identify to WinRM's anonymous endpoint and accepts only a SOAP
+// IdentifyResponse naming a WS-Management protocol and a vendor: a port that is merely open, or any other HTTP server,
+// does not pass. The server's own reply is kept as evidence.
+func winrmIdentify(ctx context.Context, addr string) (ok bool, detail string, status int, body string) {
+	var last string
+	for _, path := range []string{"/wsman-anon/identify", "/wsman"} {
+		url := "http://" + addr + path
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(winrmIdentifyRequest))
+		if err != nil {
+			return false, err.Error(), 0, ""
+		}
+		req.Header.Set("Content-Type", "application/soap+xml;charset=UTF-8")
+		req.Header.Set("WSMANIDENTIFY", "unauthenticated")
+		resp, err := (&http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
+		if err != nil {
+			return false, err.Error(), 0, ""
+		}
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 16384))
+		resp.Body.Close()
+		head := string(b[:min(len(b), 1024)])
+		if resp.StatusCode == http.StatusNotFound {
+			last = fmt.Sprintf("POST %s: 404", url)
+			continue
+		}
+		var r struct {
+			XMLName xml.Name
+			Body    struct {
+				Identify *struct {
+					ProtocolVersion string `xml:"ProtocolVersion"`
+					ProductVendor   string `xml:"ProductVendor"`
+					ProductVersion  string `xml:"ProductVersion"`
+				} `xml:"http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd IdentifyResponse"`
+			} `xml:"http://www.w3.org/2003/05/soap-envelope Body"`
+		}
+		if resp.StatusCode != http.StatusOK {
+			return false, fmt.Sprintf("POST %s: status %d, want 200 with an IdentifyResponse", url, resp.StatusCode), resp.StatusCode, head
+		}
+		if err := xml.Unmarshal(b, &r); err != nil || r.Body.Identify == nil {
+			return false, fmt.Sprintf("POST %s: 200, but not a WS-Management IdentifyResponse", url), resp.StatusCode, head
+		}
+		id := r.Body.Identify
+		if !strings.Contains(id.ProtocolVersion, "wsman") || id.ProductVendor == "" {
+			return false, fmt.Sprintf("POST %s: IdentifyResponse without a WS-Management protocol or vendor", url), resp.StatusCode, head
+		}
+		return true, fmt.Sprintf("POST %s: WS-Management IdentifyResponse, vendor %q, version %q, protocol %s, server %q (reply %q)",
+			url, id.ProductVendor, id.ProductVersion, id.ProtocolVersion, resp.Header.Get("Server"), head), resp.StatusCode, head
+	}
+	return false, last + ": no WS-Management endpoint", http.StatusNotFound, ""
 }
 
 // rdpConnectionRequest is a TPKT-framed X.224 Connection Request carrying an RDP Negotiation

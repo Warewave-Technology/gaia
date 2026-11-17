@@ -27,6 +27,7 @@ const (
 	CheckTCP        = "tcp"         // a TCP connect to Port succeeds
 	CheckHTTP       = "http"        // GET http://guest:Port/Path answers ExpectStatus (and contains ExpectBody)
 	CheckRDP        = "rdp"         // an RDP server on Port answers the X.224 Connection Request (MS-RDPBCGR 1.3.1.1)
+	CheckWinRM      = "winrm"       // WinRM on Port answers a WS-Management Identify with an IdentifyResponse (ADR-005 §3)
 )
 
 // Check is one declared health check.
@@ -38,7 +39,7 @@ type Check struct {
 	Path         string `json:"path,omitempty"`
 	ExpectStatus int    `json:"expect_status,omitempty"`
 	ExpectBody   string `json:"expect_body,omitempty"`
-	// Boot makes a tcp, http or rdp check the boot check, for guests without a serial console
+	// Boot makes a tcp, http, rdp or winrm check the boot check, for guests without a serial console
 	// (Windows): it runs from the moment the guest takes a DHCP lease, within the boot timeout.
 	Boot bool `json:"boot,omitempty"`
 }
@@ -80,11 +81,15 @@ var Templates = map[string][]Check{
 	"linux-boot": {
 		{Name: "boot", Type: CheckBootSerial, Pattern: `(?m)login: *$`},
 	},
-	// A Windows guest has no serial login prompt: it booted when Remote Desktop answers the RDP
-	// handshake on the address it leased, and WinRM's HTTP listener answers on /wsman.
+	// A Windows guest has no serial login prompt: it booted when WinRM, on by default in Windows Server, answers a
+	// WS-Management Identify on the address the guest leased (ADR-005 §3). Remote Desktop is off by default.
 	"windows-basic": {
-		{Name: "boot", Type: CheckRDP, Port: 3389, Boot: true},
-		{Name: "winrm", Type: CheckHTTP, Port: 5985, Path: "/wsman", ExpectStatus: 405},
+		{Name: "boot", Type: CheckWinRM, Port: 5985, Boot: true},
+	},
+	// windows-basic, and Remote Desktop answers the RDP handshake: for guests where RDP is enabled.
+	"windows-rdp": {
+		{Name: "boot", Type: CheckWinRM, Port: 5985, Boot: true},
+		{Name: "rdp", Type: CheckRDP, Port: 3389},
 	},
 }
 
@@ -172,7 +177,7 @@ func (c *Config) resolve() error {
 			if _, err := regexp.Compile(k.Pattern); err != nil || k.Pattern == "" {
 				return fmt.Errorf("check %s: pattern: %v", k.Name, err)
 			}
-		case CheckTCP, CheckHTTP, CheckRDP:
+		case CheckTCP, CheckHTTP, CheckRDP, CheckWinRM:
 			if k.Port < 1 || k.Port > 65535 {
 				return fmt.Errorf("check %s: port %d", k.Name, k.Port)
 			}

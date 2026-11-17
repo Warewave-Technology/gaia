@@ -20,6 +20,10 @@
 // `gaia probe` is internal: verify runs it inside the sandbox's network namespace.
 //
 // `gaia sandbox serve` is the root helper that runs gaia server's restore tests in the sandbox (internal/sandbox).
+//
+// `gaia convert serve` is the converter service (unprivileged, user gaia-convert) that runs virt-v2v in the pinned
+// converter image for gaia server's migration checks (internal/convert, ADR-005); `gaia convert info` asks it about
+// its image and virtio-win.
 package main
 
 import (
@@ -38,6 +42,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/convert"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
 	"github.com/Warewave-Technology/gaia/internal/migrate"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
@@ -85,6 +90,10 @@ func main() {
 		if len(os.Args) > 2 && os.Args[2] == "serve" {
 			os.Exit(cmdSandboxServe(ctx, os.Args[3:]))
 		}
+	case "convert":
+		if len(os.Args) > 2 && (os.Args[2] == "serve" || os.Args[2] == "info") {
+			os.Exit(cmdConvert(ctx, os.Args[2], os.Args[3:]))
+		}
 	}
 	usage()
 }
@@ -97,6 +106,7 @@ func usage() {
   gaia users | hosts | vms | repositories | policies | jobs | points | verifications | quarantine | tests | evidence | audit | state-changes | state-backups VERB ...
   gaia api METHOD PATH [JSON]
   gaia sandbox serve                         the restore-test sandbox helper (root; ADR-007 §5)
+  gaia convert serve | info                  the converter service for migration checks (user gaia-convert; ADR-005)
   gaia verify | migrate-check | evidence keygen | seal | verify | rotate | head   (lab tools)
 (-h on a server or lab command shows its flags)`)
 	os.Exit(3)
@@ -518,6 +528,47 @@ func cmdSandboxServe(ctx context.Context, args []string) int {
 	c.Self = self
 	if err := sandbox.Serve(ctx, c, log); err != nil {
 		log.Error("sandbox helper stopped", "error", err)
+		return 3
+	}
+	return 0
+}
+
+func cmdConvert(ctx context.Context, verb string, args []string) int {
+	fs := flag.NewFlagSet("convert "+verb, flag.ExitOnError)
+	config := fs.String("config", "/etc/gaia/convert.json", "the converter service's configuration")
+	asJSON := fs.Bool("json", false, "print JSON (info)")
+	fs.Parse(args)
+	c, err := convert.LoadConfig(*config)
+	if err != nil {
+		return fail(*asJSON, "convert "+verb, err)
+	}
+	if verb == "info" {
+		in, err := convert.Client{Socket: c.Socket}.Info(ctx)
+		if err != nil {
+			return fail(*asJSON, "convert info", err)
+		}
+		verdict := verify.OK
+		if !in.ImagePresent || in.VirtioWin.State != "ok" {
+			verdict = verify.Warning // Linux guests still convert without virtio-win; nothing converts without the image
+			if !in.ImagePresent {
+				verdict = verify.Critical
+			}
+		}
+		if *asJSON {
+			emit(map[string]any{"command": "convert info", "verdict": verdict, "info": in})
+		} else {
+			fmt.Printf("converter: %s\n  image %s: %s\n  %s\n  virtio-win %s: %s (%s)\n", verdict, in.Image, in.ImageDetail,
+				strings.ReplaceAll(in.Versions, "\n", "\n  "), in.VirtioWin.Version, in.VirtioWin.State, in.VirtioWin.Detail)
+		}
+		return verify.ExitCode(verdict)
+	}
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	if os.Geteuid() == 0 {
+		log.Error("gaia convert serve does not run as root: it runs as its own user, gaia-convert (ADR-007 B1)")
+		return 3
+	}
+	if err := convert.Serve(ctx, c, log); err != nil {
+		log.Error("converter service stopped", "error", err)
 		return 3
 	}
 	return 0

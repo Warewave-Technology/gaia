@@ -1,0 +1,30 @@
+# Gaia's converter image (ADR-005 §1): virt-v2v with rhsrvany (Fedora's mingw32-srvany), so Windows guests convert
+# too. gaia convert serve runs it rootless, without network, once per conversion.
+#
+# Reproducible: the base is pinned by digest, and packages come only from the release's own frozen "fedora"
+# repository (never "updates"), so the same Containerfile installs the same package set. The image Gaia uses is
+# pinned by its ID in /etc/gaia/convert.json; every migration-check bundle records the ID and the versions.
+# gaia convert serve runs it with podman's --init (Debian: the catatonit package) as user gaia-convert.
+#
+#   podman build -t gaia-converter -f packaging/converter/Containerfile packaging/converter
+FROM registry.fedoraproject.org/fedora:45@sha256:8430348a73c5a0e607b5de2cf9dd4741d9aa0891bbce3108588298102015f8c6
+
+ENV LIBGUESTFS_BACKEND=direct \
+    LIBGUESTFS_PATH=/usr/lib64/guestfs/appliance \
+    LIBGUESTFS_CACHEDIR=/tmp
+
+RUN dnf -y --repo=fedora --setopt=install_weak_deps=False install virt-v2v mingw32-srvany kernel-core \
+ && dnf clean all
+
+# libguestfs's appliance, built once here instead of on every run (supermin needs no KVM to build it); then what is
+# installed, for the bundles
+RUN mkdir -p /usr/lib64/guestfs/appliance \
+ && LIBGUESTFS_PATH=/usr/lib64/guestfs libguestfs-make-fixed-appliance /usr/lib64/guestfs/appliance \
+ && mkdir -p /usr/share/gaia-converter \
+ && rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' | sort >/usr/share/gaia-converter/packages.txt \
+ && rpm -q virt-v2v libguestfs mingw32-srvany qemu-kvm-core kernel-core >/usr/share/gaia-converter/versions.txt
+
+LABEL org.opencontainers.image.title="gaia-converter" \
+      org.opencontainers.image.description="virt-v2v and rhsrvany for Gaia's migration check (ADR-005)" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later"
+WORKDIR /tmp

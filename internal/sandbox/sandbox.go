@@ -39,6 +39,10 @@ type Request struct {
 	Config   verify.Config      `json:"config"`    // as declared (template, machine, checks); the helper resolves it
 	Disks    []verify.DiskImage `json:"disks"`     // regular files directly in the helper's images directory, boot disk first
 	RestoreS float64            `json:"restore_s"` // how long gaia server took to restore them (Proven RTO = restore + ready)
+	// The migration check (ADR-003): the steps gaia server ran before (source, download, conversion), recorded ahead of
+	// the guest's own checks; and, with no disks, why the guest could not be started (the bundle then records only that).
+	PreChecks  []verify.CheckResult `json:"pre_checks,omitempty"`
+	SkipReason string               `json:"skip_reason,omitempty"`
 }
 
 // Config is the helper's own configuration.
@@ -58,8 +62,18 @@ var targetRE = regexp.MustCompile(`^(vd|sd|hd)[a-z]$`)
 // checkRequest validates a request against the helper's configuration. Paths must be plain files directly in
 // ImagesDir: no symlinks, no subdirectories, no other place on the host.
 func (c Config) checkRequest(r *Request) error {
-	if len(r.Disks) == 0 {
+	switch {
+	case len(r.Disks) == 0 && r.SkipReason == "":
 		return errors.New("no disks")
+	case len(r.Disks) > 0 && r.SkipReason != "":
+		return errors.New("disks and a skip reason")
+	case len(r.SkipReason) > 1024 || len(r.PreChecks) > 32:
+		return errors.New("skip reason or pre-checks too long")
+	}
+	for i, k := range r.PreChecks {
+		if k.Name == "" || len(k.Name) > 64 || len(k.Type) > 64 || len(k.Detail) > 8192 || verify.Worst(k.Verdict) != k.Verdict {
+			return fmt.Errorf("pre-check %d: name, type, detail or verdict %q not allowed", i, k.Verdict)
+		}
 	}
 	seen := map[string]bool{}
 	for i, d := range r.Disks {
@@ -197,6 +211,7 @@ func (h *handler) verify(w http.ResponseWriter, r *http.Request) {
 	var progress bytes.Buffer
 	h.log.Info("verifying", "vm", req.Config.VM, "disks", len(req.Disks))
 	res, err := verify.Run(r.Context(), verify.Options{Config: &req.Config, Disks: req.Disks, RestoreS: req.RestoreS,
+		PreChecks: req.PreChecks, SkipReason: req.SkipReason,
 		WorkDir: h.c.WorkDir, SerialDir: h.c.SerialDir, EvidenceDir: h.c.BundleDir, Socket: h.c.LibvirtSocket,
 		Self: h.c.Self, Log: &progress})
 	if res != nil && res.BundleDir != "" {

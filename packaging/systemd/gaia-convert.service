@@ -1,0 +1,38 @@
+# Gaia's converter service for migration checks (ADR-005 §1, internal/convert). Installed by docs/install.md.
+# It runs as its own unprivileged user, gaia-convert: virt-v2v runs in the pinned converter image under rootless
+# podman, with no network and no capabilities. Its socket is for the group gaia-convert, which only gaia server's
+# user joins; it reads only the job directories gaia server makes in /var/lib/gaia-convert/jobs.
+[Unit]
+Description=Gaia converter service (migration check)
+Documentation=https://github.com/Warewave-Technology/gaia/blob/main/docs/install.md
+
+[Service]
+# notify: ready once the socket exists, so gaia.service (After=) finds it.
+Type=notify
+NotifyAccess=main
+User=gaia-convert
+Group=gaia-convert
+# libguestfs needs /dev/kvm inside the container
+SupplementaryGroups=kvm
+UMask=0007
+Environment=HOME=/var/lib/gaia-convert XDG_RUNTIME_DIR=/run/gaia-convert TMPDIR=/var/lib/gaia-convert/tmp
+RuntimeDirectory=gaia-convert
+RuntimeDirectoryMode=0750
+ExecStart=/usr/local/bin/gaia convert serve -config /etc/gaia/convert.json
+Restart=on-failure
+RestartSec=5
+
+# Hardening, measured on Debian 12 (T21): rootless podman maps its user namespace with the setuid newuidmap and
+# newgidmap, so NoNewPrivileges stays off, and so do the options that imply it for a User= service
+# (ProtectKernelModules, ProtectKernelTunables, PrivateDevices, RestrictRealtime, RestrictSUIDSGID, ...). The process
+# itself has no capabilities; the bounding set is what newuidmap needs to write the mapping, nothing more.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gaia-convert
+ProtectHome=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_DAC_OVERRIDE CAP_SYS_ADMIN
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
