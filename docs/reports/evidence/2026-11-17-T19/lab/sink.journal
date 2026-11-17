@@ -1,0 +1,89 @@
+2026-11-17T17:55:30.651838+0000 gaia-lab systemd[1]: Started gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T175519Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T17:55:30.659121+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:55:30 SMTP on 127.0.0.1:2587, HTTPS on 127.0.0.1:2443, messages in /root/t19-20261117T175519Z/sink
+2026-11-17T17:55:30.666636+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:55:30 webhook   -> /root/t19-20261117T175519Z/sink/hook/0001.json
+2026-11-17T17:55:36.613853+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:55:36 mail -> /root/t19-20261117T175519Z/sink/mail/0002.eml
+2026-11-17T17:55:36.817706+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:55:36 webhook test 2 -> /root/t19-20261117T175519Z/sink/hook/0003.json
+2026-11-17T17:58:03.377938+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:58:03 mail -> /root/t19-20261117T175519Z/sink/mail/0004.eml
+2026-11-17T17:58:03.411540+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:58:03 webhook status 4 -> /root/t19-20261117T175519Z/sink/hook/0005.json
+2026-11-17T17:59:08.339227+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:59:08 mail -> /root/t19-20261117T175519Z/sink/mail/0006.eml
+2026-11-17T17:59:08.363642+0000 gaia-lab notify-sink[295952]: 2026/11/17 17:59:08 webhook status 6 -> /root/t19-20261117T175519Z/sink/hook/0007.json
+2026-11-17T17:59:15.031865+0000 gaia-lab systemd[1]: Stopping gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T175519Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia...
+2026-11-17T17:59:15.032534+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Deactivated successfully.
+2026-11-17T17:59:15.032767+0000 gaia-lab systemd[1]: Stopped gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T175519Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T17:59:15.033609+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T17:59:15.033754+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T18:01:23.023927+0000 gaia-lab systemd[1]: Started gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T180110Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T18:01:23.027972+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:01:23 SMTP on 127.0.0.1:2587, HTTPS on 127.0.0.1:2443, messages in /root/t19-20261117T180110Z/sink
+2026-11-17T18:01:23.042353+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:01:23 webhook   -> /root/t19-20261117T180110Z/sink/hook/0001.json
+2026-11-17T18:01:29.585504+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:01:29 mail -> /root/t19-20261117T180110Z/sink/mail/0002.eml
+2026-11-17T18:01:29.823392+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:01:29 webhook test 2 -> /root/t19-20261117T180110Z/sink/hook/0003.json
+2026-11-17T18:03:55.937430+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:03:55 mail -> /root/t19-20261117T180110Z/sink/mail/0004.eml
+2026-11-17T18:03:55.973020+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:03:55 webhook status 4 -> /root/t19-20261117T180110Z/sink/hook/0005.json
+2026-11-17T18:05:01.010154+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:01 mail -> /root/t19-20261117T180110Z/sink/mail/0006.eml
+2026-11-17T18:05:01.051769+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:01 webhook status 6 -> /root/t19-20261117T180110Z/sink/hook/0007.json
+2026-11-17T18:05:15.935093+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:15 mail -> /root/t19-20261117T180110Z/sink/mail/0008.eml
+2026-11-17T18:05:15.951160+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:15 webhook job_failed 8 -> /root/t19-20261117T180110Z/sink/hook/0009.json
+2026-11-17T18:05:20.942563+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:20 mail -> /root/t19-20261117T180110Z/sink/mail/0010.eml
+2026-11-17T18:05:20.955761+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:20 mail -> /root/t19-20261117T180110Z/sink/mail/0011.eml
+2026-11-17T18:05:20.968519+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:20 mail -> /root/t19-20261117T180110Z/sink/mail/0012.eml
+2026-11-17T18:05:20.985242+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:20 webhook quarantine 12 -> /root/t19-20261117T180110Z/sink/hook/0013.json
+2026-11-17T18:05:20.996628+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:20 webhook status 13 -> /root/t19-20261117T180110Z/sink/hook/0014.json
+2026-11-17T18:05:21.005164+0000 gaia-lab notify-sink[297302]: 2026/11/17 18:05:21 webhook integrity 14 -> /root/t19-20261117T180110Z/sink/hook/0015.json
+2026-11-17T18:35:24.544979+0000 gaia-lab systemd[1]: Stopping gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T180110Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia...
+2026-11-17T18:35:24.546282+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Deactivated successfully.
+2026-11-17T18:35:24.546457+0000 gaia-lab systemd[1]: Stopped gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T180110Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T18:35:24.547320+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T18:35:24.547445+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T18:36:41.551914+0000 gaia-lab systemd[1]: Started gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T183631Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T18:36:41.556873+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:36:41 SMTP on 127.0.0.1:2587, HTTPS on 127.0.0.1:2443, messages in /root/t19-20261117T183631Z/sink
+2026-11-17T18:36:41.568593+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:36:41 webhook   -> /root/t19-20261117T183631Z/sink/hook/0001.json
+2026-11-17T18:36:47.164083+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:36:47 mail -> /root/t19-20261117T183631Z/sink/mail/0002.eml
+2026-11-17T18:36:47.375614+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:36:47 webhook test 2 -> /root/t19-20261117T183631Z/sink/hook/0003.json
+2026-11-17T18:39:13.983506+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:39:13 mail -> /root/t19-20261117T183631Z/sink/mail/0004.eml
+2026-11-17T18:39:13.997011+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:39:13 webhook status 4 -> /root/t19-20261117T183631Z/sink/hook/0005.json
+2026-11-17T18:40:03.976332+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:03 mail -> /root/t19-20261117T183631Z/sink/mail/0006.eml
+2026-11-17T18:40:03.982546+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:03 webhook status 6 -> /root/t19-20261117T183631Z/sink/hook/0007.json
+2026-11-17T18:40:19.078158+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:19 mail -> /root/t19-20261117T183631Z/sink/mail/0008.eml
+2026-11-17T18:40:19.107012+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:19 webhook job_failed 8 -> /root/t19-20261117T183631Z/sink/hook/0009.json
+2026-11-17T18:40:28.999831+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:28 mail -> /root/t19-20261117T183631Z/sink/mail/0010.eml
+2026-11-17T18:40:29.012406+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:29 mail -> /root/t19-20261117T183631Z/sink/mail/0011.eml
+2026-11-17T18:40:29.032195+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:29 mail -> /root/t19-20261117T183631Z/sink/mail/0012.eml
+2026-11-17T18:40:29.046790+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:29 webhook quarantine 12 -> /root/t19-20261117T183631Z/sink/hook/0013.json
+2026-11-17T18:40:29.059297+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:29 webhook status 13 -> /root/t19-20261117T183631Z/sink/hook/0014.json
+2026-11-17T18:40:29.070879+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:40:29 webhook integrity 14 -> /root/t19-20261117T183631Z/sink/hook/0015.json
+2026-11-17T18:46:08.990834+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:08 mail -> /root/t19-20261117T183631Z/sink/mail/0016.eml
+2026-11-17T18:46:09.003370+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:09 webhook daily_report 16 -> /root/t19-20261117T183631Z/sink/hook/0017.json
+2026-11-17T18:46:09.020517+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:09 mail -> /root/t19-20261117T183631Z/sink/mail/0018.eml
+2026-11-17T18:46:09.031961+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:09 mail -> /root/t19-20261117T183631Z/sink/mail/0019.eml
+2026-11-17T18:46:09.041894+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:09 webhook ledger 19 -> /root/t19-20261117T183631Z/sink/hook/0020.json
+2026-11-17T18:46:09.056910+0000 gaia-lab notify-sink[303141]: 2026/11/17 18:46:09 webhook ledger 20 -> /root/t19-20261117T183631Z/sink/hook/0021.json
+2026-11-17T18:46:18.308530+0000 gaia-lab systemd[1]: Stopping gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T183631Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia...
+2026-11-17T18:46:18.309771+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Deactivated successfully.
+2026-11-17T18:46:18.309987+0000 gaia-lab systemd[1]: Stopped gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T183631Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T18:46:18.310942+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T18:46:18.311090+0000 gaia-lab systemd[1]: gaia-t19-sink.service: Failed to open /run/systemd/transient/gaia-t19-sink.service: No such file or directory
+2026-11-17T18:47:45.403699+0000 gaia-lab systemd[1]: Started gaia-t19-sink.service - /root/gaia/bin/notify-sink -dir /root/t19-20261117T184728Z/sink -smtp 127.0.0.1:2587 -https 127.0.0.1:2443 -cert /var/lib/gaia/t19/ca/server.crt -key /var/lib/gaia/t19/ca/server.key -smtp-user gaia.
+2026-11-17T18:47:45.407666+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:47:45 SMTP on 127.0.0.1:2587, HTTPS on 127.0.0.1:2443, messages in /root/t19-20261117T184728Z/sink
+2026-11-17T18:47:45.420565+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:47:45 webhook   -> /root/t19-20261117T184728Z/sink/hook/0001.json
+2026-11-17T18:47:51.967613+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:47:51 mail -> /root/t19-20261117T184728Z/sink/mail/0002.eml
+2026-11-17T18:47:52.231101+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:47:52 webhook test 2 -> /root/t19-20261117T184728Z/sink/hook/0003.json
+2026-11-17T18:50:18.573822+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:50:18 mail -> /root/t19-20261117T184728Z/sink/mail/0004.eml
+2026-11-17T18:50:18.644886+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:50:18 webhook status 4 -> /root/t19-20261117T184728Z/sink/hook/0005.json
+2026-11-17T18:51:28.424122+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:28 mail -> /root/t19-20261117T184728Z/sink/mail/0006.eml
+2026-11-17T18:51:28.440454+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:28 webhook status 6 -> /root/t19-20261117T184728Z/sink/hook/0007.json
+2026-11-17T18:51:38.424326+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:38 mail -> /root/t19-20261117T184728Z/sink/mail/0008.eml
+2026-11-17T18:51:38.435808+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:38 webhook job_failed 8 -> /root/t19-20261117T184728Z/sink/hook/0009.json
+2026-11-17T18:51:43.426049+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 mail -> /root/t19-20261117T184728Z/sink/mail/0010.eml
+2026-11-17T18:51:43.441789+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 mail -> /root/t19-20261117T184728Z/sink/mail/0011.eml
+2026-11-17T18:51:43.456266+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 mail -> /root/t19-20261117T184728Z/sink/mail/0012.eml
+2026-11-17T18:51:43.476373+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 webhook quarantine 12 -> /root/t19-20261117T184728Z/sink/hook/0013.json
+2026-11-17T18:51:43.492588+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 webhook status 13 -> /root/t19-20261117T184728Z/sink/hook/0014.json
+2026-11-17T18:51:43.501584+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:51:43 webhook integrity 14 -> /root/t19-20261117T184728Z/sink/hook/0015.json
+2026-11-17T18:57:33.416746+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 mail -> /root/t19-20261117T184728Z/sink/mail/0016.eml
+2026-11-17T18:57:33.423334+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 webhook daily_report 16 -> /root/t19-20261117T184728Z/sink/hook/0017.json
+2026-11-17T18:57:33.433438+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 mail -> /root/t19-20261117T184728Z/sink/mail/0018.eml
+2026-11-17T18:57:33.440666+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 mail -> /root/t19-20261117T184728Z/sink/mail/0019.eml
+2026-11-17T18:57:33.447164+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 webhook ledger 19 -> /root/t19-20261117T184728Z/sink/hook/0020.json
+2026-11-17T18:57:33.452954+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:33 webhook ledger 20 -> /root/t19-20261117T184728Z/sink/hook/0021.json
+2026-11-17T18:57:38.413948+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:38 mail -> /root/t19-20261117T184728Z/sink/mail/0022.eml
+2026-11-17T18:57:38.421692+0000 gaia-lab notify-sink[305792]: 2026/11/17 18:57:38 webhook ledger 22 -> /root/t19-20261117T184728Z/sink/hook/0023.json

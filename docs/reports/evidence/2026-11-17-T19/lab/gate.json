@@ -1,0 +1,168 @@
+{
+  "a_events": {
+    "per_kind": [
+      {
+        "event": "status",
+        "mail": 3,
+        "webhook": 3
+      },
+      {
+        "event": "job_failed",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "integrity",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "quarantine",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "ledger",
+        "mail": 3,
+        "webhook": 3
+      },
+      {
+        "event": "daily_report",
+        "mail": 1,
+        "webhook": 1
+      }
+    ],
+    "test_messages": [
+      {
+        "channel_id": 1,
+        "state": "sent"
+      },
+      {
+        "channel_id": 2,
+        "state": "sent"
+      }
+    ],
+    "webhook_signatures_ok": true,
+    "notifications": [
+      {
+        "state": "sent",
+        "count": 22
+      }
+    ],
+    "status_changes": [
+      {
+        "at": "2026-11-17T18:50:17.27510941Z",
+        "from": "",
+        "to": "UNKNOWN",
+        "reason": "there is no backup point that passed its post-backup check"
+      },
+      {
+        "at": "2026-11-17T18:51:24.267624099Z",
+        "from": "UNKNOWN",
+        "to": "OK",
+        "reason": "point 1 is proven by test 1: proven RPO 1m4s <= 20m0s, proven RTO 32s <= 10m0s, proof age 0s <= 30m0s"
+      },
+      {
+        "at": "2026-11-17T18:51:40.470724052Z",
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "integrity check failed for point(s) [1]"
+      }
+    ],
+    "status_mails": [
+      "Gaia gaia-lab: gaia-t19: (new) -> UNKNOWN",
+      "Gaia gaia-lab: gaia-t19: UNKNOWN -> OK",
+      "Gaia gaia-lab: gaia-t19: OK -> CRITICAL"
+    ],
+    "status_after_damage": {
+      "status": "CRITICAL",
+      "reasons": [
+        {
+          "rule": "integrity_failed",
+          "text": "integrity check failed for point(s) [1]"
+        },
+        {
+          "rule": "proven",
+          "text": "point 2 is proven by test 2: proven RPO 55s <= 20m0s, proven RTO 17s <= 10m0s, proof age 6s <= 30m0s"
+        }
+      ]
+    },
+    "test_after_damage": {
+      "id": 2,
+      "point_id": 2,
+      "verdict": "OK",
+      "proven_rto_s": 16.524407903
+    },
+    "pass": true
+  },
+  "b_truncation": {
+    "daily_report": {
+      "id": 2,
+      "head_seq": 3,
+      "head_sha256": "0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5"
+    },
+    "intact_with_mail_head": {
+      "verdict": "OK",
+      "findings": []
+    },
+    "cut_alone": {
+      "verdict": "OK",
+      "findings": []
+    },
+    "cut_with_mail_head": {
+      "verdict": "CRITICAL",
+      "findings": [
+        "ledger_truncated"
+      ],
+      "heads": [
+        {
+          "seq": 3,
+          "result": "ledger_truncated",
+          "detail": "the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries"
+        }
+      ]
+    },
+    "cut_with_hook_head": {
+      "verdict": "CRITICAL",
+      "findings": [
+        "ledger_truncated"
+      ]
+    },
+    "server_check": {
+      "verdict": "CRITICAL",
+      "entries": 2,
+      "problems": [
+        "head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries",
+        "ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"
+      ]
+    },
+    "ledger_event_after_cut": {
+      "webhook": 1,
+      "mail": 2
+    },
+    "ledger_history": [
+      {
+        "at": "2026-11-17T18:47:48.399508047Z",
+        "from": "",
+        "to": "OK"
+      },
+      {
+        "at": "2026-11-17T18:57:29.867658388Z",
+        "from": "OK",
+        "to": "CRITICAL"
+      },
+      {
+        "at": "2026-11-17T18:57:30.133020025Z",
+        "from": "CRITICAL",
+        "to": "OK"
+      },
+      {
+        "at": "2026-11-17T18:57:38.25178014Z",
+        "from": "OK",
+        "to": "CRITICAL"
+      }
+    ],
+    "pass": true
+  },
+  "verdict": "OK"
+}

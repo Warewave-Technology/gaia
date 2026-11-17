@@ -1,0 +1,53 @@
+{
+  "anchor_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+  "checked_at": "2026-11-17T18:57:37.289735337Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+  "report": {
+    "ledger": "/var/lib/gaia/t19/export/ledger.jsonl",
+    "format": "v1",
+    "entries": 3,
+    "keys": [
+      "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5"
+    ],
+    "verdict": "OK",
+    "findings": [],
+    "problems": [],
+    "bundles": [
+      {
+        "dir": "/var/lib/gaia/t19/export/bundles/gaia-t19-20261117T185053Z-098722",
+        "format": "v1",
+        "bundle_id": "gaia-t19-20261117T185053Z-098722",
+        "bundle_sha256": "6952dd22891675153d587f743e2890d2d5e1641ae6ffbcf765151629b1faa7ea",
+        "key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      },
+      {
+        "dir": "/var/lib/gaia/t19/export/bundles/gaia-t19-20261117T185652Z-567c1d",
+        "format": "v1",
+        "bundle_id": "gaia-t19-20261117T185652Z-567c1d",
+        "bundle_sha256": "f380d2433214c7fe1045046e7e61ed41eddba35f270a128dc082beebdd64cb41",
+        "key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+        "files": 10,
+        "verdict": "OK",
+        "findings": [],
+        "problems": []
+      }
+    ],
+    "heads": [
+      {
+        "time": "2026-11-17T18:57:30.809401021Z",
+        "key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+        "seq": 3,
+        "entry_sha256": "0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5",
+        "result": "OK"
+      }
+    ],
+    "intact": true
+  },
+  "verdict": "OK"
+}

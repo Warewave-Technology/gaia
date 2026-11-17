@@ -1,0 +1,22 @@
+From: Gaia T19 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: backup job 3 of gaia-t19 failed
+Date: Tue, 17 Nov 2026 18:51:38 +0000
+Message-ID: <gaia-7-job_failed-36@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: job_failed
+Content-Type: multipart/mixed; boundary=516c6a4a3c3d16a91d314e8782250fa70abff7fe5c94ba4b86f352eb7b8b
+
+--516c6a4a3c3d16a91d314e8782250fa70abff7fe5c94ba4b86f352eb7b8b
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+The backup job 3 of gaia-t19 failed at 2026-11-17T18:51:33.471943487Z.
+Error:=20
+It was started for: requested by admin
+
+--=20
+Gaia, installation gaia-lab (evidence key 1567fbe43cc4ba83d9eadc99318d2df29=
+8a0ecbd39f6629e58dd342dd1a6b7f5)
+
+--516c6a4a3c3d16a91d314e8782250fa70abff7fe5c94ba4b86f352eb7b8b--

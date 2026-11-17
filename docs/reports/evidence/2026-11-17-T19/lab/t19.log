@@ -1,0 +1,321 @@
+
+== date / commit
+2026-11-17T18:47:28Z
+4a971ea4efdc0414e7cd5016d7569d7d3dfe269b
+output: /root/t19-20261117T184728Z; backup and test every 300 s; host gaia-t19-backup@192.168.1.30
+
+== build
+	dep	github.com/kopia/kopia	v0.23.1	h1:0+V5Au8fD+190vQbklG0DaWD6I4clmbwlmJTqtI0y0Q=
+	build	vcs.revision=4a971ea4efdc0414e7cd5016d7569d7d3dfe269b
+	build	vcs.modified=false
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+
+== free space
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G   40G  150G  21% /
+/dev/sda1       197G   40G  150G  21% /
+
+== guest image
+debian-12-genericcloud-amd64.qcow2: OK
+
+== notify-sink: SMTP 127.0.0.1:2587 (STARTTLS + AUTH), HTTPS 127.0.0.1:2443
+Running as unit: gaia-t19-sink.service
+sink is up
+
+== gaia server and sandbox helper
+{
+  "listen": "127.0.0.1:8443",
+  "data_dir": "/var/lib/gaia-t19/data",
+  "tls_cert": "/var/lib/gaia-t19/data/tls/cert.pem",
+  "tls_key": "/var/lib/gaia-t19/data/tls/key.pem",
+  "session_ttl": "12h",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "host_socket_dir": "/var/lib/libvirt/qemu",
+  "host_scratch_dir": "/var/lib/libvirt/images",
+  "nbd_connections": 2,
+  "max_parallel_backups": 2,
+  "verify_at": "03:30",
+  "full_verify_day": "sunday",
+  "verify_sample": 0.02,
+  "sandbox_socket": "/run/gaia-t19-sandbox/sandbox.sock",
+  "sandbox_images_dir": "/var/lib/gaia-t19-sandbox/images",
+  "login_max_failures": 5,
+  "login_lockout": "15m",
+  "login_address_failures": 20,
+  "login_address_window": "10m",
+  "daily_report_at": "07:00"
+}
+{"version":"4a971ea4efdc","schema_version":7,"daily_report_at":"07:00","notifications":{"state":"WARNING","channels":0,"enabled":0,"text":"no notification channel is enabled: nobody is told when a VM's status changes","failing":[]},"ledger":"OK at 2026-11-17T18:47:48.399465098Z: 0 entries"}
+
+== host: gaia-t19-backup over SSH
+{"libvirt":"9.0.0","qemu":"7.2.22","domains":["gaia-t17-web"],"seconds":0.25817978}
+
+== channels (guide step 8c)
+{"id":1,"name":"mail","kind":"smtp","events":["daily_report","integrity","job_failed","ledger","quarantine","status"],"enabled":true}
+{"id":2,"name":"hook","kind":"webhook","events":["daily_report","integrity","job_failed","ledger","quarantine","status"],"enabled":true}
+{"id":1,"channel_id":1,"event":"test","state":"sent","attempts":1,"last_error":""}
+{"id":2,"channel_id":2,"event":"test","state":"sent","attempts":1,"last_error":""}
+
+== guest (gaia-t19: vda 4 GiB, vdb 1 GiB on /data)
+[18:47:57] guest started, waiting for GAIA-READY
+[18:50:12] guest ready
+
+== repository, policy, VM (status: -> UNKNOWN -> OK)
+{"id":1,"name":"t19","repository_id":1,"backup_interval_s":300,"test_interval_s":300,"keep_last":8,"keep_daily":0,"keep_weekly":0,"rpo_target_s":1200,"rto_target_s":600,"max_proof_age_s":1800,"check_template":"linux-boot","checks":[],"created_at":"2026-11-17T18:50:16.604396888Z","updated_at":"2026-11-17T18:50:16.604396888Z"}
+{"id":1,"host_id":1,"name":"gaia-t19","uuid":"","policy_id":1,"created_at":"2026-11-17T18:50:16.962996181Z","updated_at":"2026-11-17T18:50:16.962996181Z","full_backup_reason":""}
+[18:50:17] status UNKNOWN: there is no backup point that passed its post-backup check
+[18:51:29] status OK: point 1 is proven by test 1: proven RPO 1m9s <= 20m0s, proven RTO 32s <= 10m0s, proof age 5s <= 30m0s
+
+== job_failed: a backup while the host refuses Gaia's key
+{"at":"2026-11-17T18:51:30Z","injected":"host authorized_keys removed"}
+{"id":3,"kind":"backup","state":"failed","error":"SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain"}
+{"at":"2026-11-17T18:51:35Z","injected":"host authorized_keys restored"}
+
+== integrity and quarantine: one byte of the oldest data pack (status: -> CRITICAL)
+{"at":"2026-11-17T18:51:35Z","injected":"pack p/4de/6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147.f byte 10650840 41 -> be"}
+{"id":2,"mode":"full","state":"critical","points_checked":1,"error":"","affected":[{"point_id":1,"disk":"vda","contents":["f65ee01371b36613ebc58da70eac126f"]}]}
+{"content_id":"f65ee01371b36613ebc58da70eac126f","points":[1]}
+[18:51:41] status CRITICAL: integrity check failed for point(s) [1]
+
+== after the damage: the policy again, a full backup and a passing test of a new point
+{"id":2,"point_id":2,"verdict":"OK","proven_rto_s":16.524407903}
+{"id":4,"state":"ok","reason":"schedule: policy t19, every 300 s"}
+{"id":2,"kind":"full","check_state":"ok","reason":"full: repository verification 2 quarantined damaged contents used by point 1"}
+{"id":1,"kind":"full","check_state":"failed","reason":"full: no earlier checked point of this VM"}
+{"status":"CRITICAL","reasons":[{"status":"CRITICAL","rule":"integrity_failed","text":"integrity check failed for point(s) [1]"},{"status":"OK","rule":"proven","text":"point 2 is proven by test 2: proven RPO 55s <= 20m0s, proven RTO 17s <= 10m0s, proof age 6s <= 30m0s"}],"proven_rpo_s":55.332350662}
+
+== ledger: a bundle's file changed behind Gaia's back, then put back
+{"at":"2026-11-17T18:57:29Z","injected":"bundle gaia-t19-20261117T185053Z-098722: result.json changed"}
+{"verdict":"CRITICAL","entries":3,"problems":["gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)"]}
+{"at":"2026-11-17T18:57:29Z","injected":"bundle gaia-t19-20261117T185053Z-098722: result.json put back"}
+{"verdict":"OK","entries":3,"problems":[]}
+
+== daily report
+{"id":2,"generated_at":"2026-11-17T18:57:30.809401021Z","head_seq":3,"head_sha256":"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5"}
+VM        STATUS    SINCE                           THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t19  CRITICAL  2026-11-17T18:51:40.470652313Z  1m3s             1m3s        17s         14s        integrity check failed for point(s) [1]
+
+WARNING recovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine
+
+== the daily report as received, and the ledger cut back after it
+-rw-r--r-- 1 root root 3888 Nov 17 18:57 /root/t19-20261117T184728Z/daily-report-hook.json
+-rw-r--r-- 1 root root 1944 Nov 17 18:57 /root/t19-20261117T184728Z/daily-report-mail.json
+{"check":"intact-with-mail-head","verdict":"OK","findings":[],"heads":[{"seq":3,"result":"OK"}]}
+{"at":"2026-11-17T18:57:37Z","injected":"export: ledger cut from 3 to 2 entries, bundle gaia-t19-20261117T185652Z-567c1d removed"}
+{"check":"cut-alone","verdict":"OK","findings":[],"heads":[]}
+{"check":"cut-with-mail-head","verdict":"CRITICAL","findings":[{"code":"ledger_truncated","where":"head 1"}],"heads":[{"seq":3,"result":"ledger_truncated"}]}
+{"check":"cut-with-hook-head","verdict":"CRITICAL","findings":[{"code":"ledger_truncated","where":"head 1"}],"heads":[{"seq":3,"result":"ledger_truncated"}]}
+
+== the server's own ledger cut back the same way
+{"at":"2026-11-17T18:57:38Z","injected":"server: ledger cut from 3 to 2 entries, bundle gaia-t19-20261117T185652Z-567c1d removed"}
+{"verdict":"CRITICAL","entries":2,"problems":["head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries","ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"]}
+VM        STATUS    SINCE                           THEORETICAL RPO  PROVEN RPO  PROVEN RTO  PROOF AGE  REASON
+gaia-t19  CRITICAL  2026-11-17T18:51:40.470652313Z  1m10s            1m10s       17s         21s        integrity check failed for point(s) [1]
+
+WARNING recovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine
+CRITICAL evidence ledger: CRITICAL at 2026-11-17T18:57:38.25172021Z: 2 entries: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries
+
+== records
+1	1	test	sent	1	Gaia gaia-lab: test message (channel mail)
+2	2	test	sent	1	Gaia gaia-lab: test message (channel hook)
+3	1	status	sent	1	Gaia gaia-lab: gaia-t19: (new) -> UNKNOWN
+4	2	status	sent	1	Gaia gaia-lab: gaia-t19: (new) -> UNKNOWN
+5	1	status	sent	1	Gaia gaia-lab: gaia-t19: UNKNOWN -> OK
+6	2	status	sent	1	Gaia gaia-lab: gaia-t19: UNKNOWN -> OK
+7	1	job_failed	sent	1	Gaia gaia-lab: backup job 3 of gaia-t19 failed
+8	2	job_failed	sent	1	Gaia gaia-lab: backup job 3 of gaia-t19 failed
+9	1	quarantine	sent	1	Gaia gaia-lab: damaged repository contents quarantined (verification 2)
+10	1	status	sent	1	Gaia gaia-lab: gaia-t19: OK -> CRITICAL
+11	1	integrity	sent	1	Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)
+12	2	quarantine	sent	1	Gaia gaia-lab: damaged repository contents quarantined (verification 2)
+13	2	status	sent	1	Gaia gaia-lab: gaia-t19: OK -> CRITICAL
+14	2	integrity	sent	1	Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)
+15	1	daily_report	sent	1	Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL
+16	2	daily_report	sent	1	Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL
+17	1	ledger	sent	1	Gaia gaia-lab: the evidence ledger is CRITICAL
+18	1	ledger	sent	1	Gaia gaia-lab: the evidence ledger verifies again
+19	2	ledger	sent	1	Gaia gaia-lab: the evidence ledger is CRITICAL
+20	2	ledger	sent	1	Gaia gaia-lab: the evidence ledger verifies again
+21	1	ledger	sent	1	Gaia gaia-lab: the evidence ledger is CRITICAL
+22	2	ledger	sent	1	Gaia gaia-lab: the evidence ledger is CRITICAL
+{"entries":42,"intact":true,"head_sha256":"6752c1b62d54cd39a8595838f9f8d3f5704bf0c5754eb56c967f868766e9bdf8","first_broken_seq":0}
+sink: 11 mails, 11 webhook posts
+{"mail":[{"event":"test","subject":"Gaia gaia-lab: test message (channel mail)"},{"event":"status","subject":"Gaia gaia-lab: gaia-t19: (new) -> UNKNOWN"},{"event":"status","subject":"Gaia gaia-lab: gaia-t19: UNKNOWN -> OK"},{"event":"job_failed","subject":"Gaia gaia-lab: backup job 3 of gaia-t19 failed"},{"event":"quarantine","subject":"Gaia gaia-lab: damaged repository contents quarantined (verification 2)"},{"event":"status","subject":"Gaia gaia-lab: gaia-t19: OK -> CRITICAL"},{"event":"integrity","subject":"Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)"},{"event":"daily_report","subject":"Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL"},{"event":"ledger","subject":"Gaia gaia-lab: the evidence ledger is CRITICAL"},{"event":"ledger","subject":"Gaia gaia-lab: the evidence ledger verifies again"},{"event":"ledger","subject":"Gaia gaia-lab: the evidence ledger is CRITICAL"}],"hook":[{"event":"test","signature_ok":true},{"event":"status","signature_ok":true},{"event":"status","signature_ok":true},{"event":"job_failed","signature_ok":true},{"event":"quarantine","signature_ok":true},{"event":"status","signature_ok":true},{"event":"integrity","signature_ok":true},{"event":"daily_report","signature_ok":true},{"event":"ledger","signature_ok":true},{"event":"ledger","signature_ok":true},{"event":"ledger","signature_ok":true}]}
+
+== gate (CLAUDE.md T19)
+{
+  "a_events": {
+    "per_kind": [
+      {
+        "event": "status",
+        "mail": 3,
+        "webhook": 3
+      },
+      {
+        "event": "job_failed",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "integrity",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "quarantine",
+        "mail": 1,
+        "webhook": 1
+      },
+      {
+        "event": "ledger",
+        "mail": 3,
+        "webhook": 3
+      },
+      {
+        "event": "daily_report",
+        "mail": 1,
+        "webhook": 1
+      }
+    ],
+    "test_messages": [
+      {
+        "channel_id": 1,
+        "state": "sent"
+      },
+      {
+        "channel_id": 2,
+        "state": "sent"
+      }
+    ],
+    "webhook_signatures_ok": true,
+    "notifications": [
+      {
+        "state": "sent",
+        "count": 22
+      }
+    ],
+    "status_changes": [
+      {
+        "at": "2026-11-17T18:50:17.27510941Z",
+        "from": "",
+        "to": "UNKNOWN",
+        "reason": "there is no backup point that passed its post-backup check"
+      },
+      {
+        "at": "2026-11-17T18:51:24.267624099Z",
+        "from": "UNKNOWN",
+        "to": "OK",
+        "reason": "point 1 is proven by test 1: proven RPO 1m4s <= 20m0s, proven RTO 32s <= 10m0s, proof age 0s <= 30m0s"
+      },
+      {
+        "at": "2026-11-17T18:51:40.470724052Z",
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "integrity check failed for point(s) [1]"
+      }
+    ],
+    "status_mails": [
+      "Gaia gaia-lab: gaia-t19: (new) -> UNKNOWN",
+      "Gaia gaia-lab: gaia-t19: UNKNOWN -> OK",
+      "Gaia gaia-lab: gaia-t19: OK -> CRITICAL"
+    ],
+    "status_after_damage": {
+      "status": "CRITICAL",
+      "reasons": [
+        {
+          "rule": "integrity_failed",
+          "text": "integrity check failed for point(s) [1]"
+        },
+        {
+          "rule": "proven",
+          "text": "point 2 is proven by test 2: proven RPO 55s <= 20m0s, proven RTO 17s <= 10m0s, proof age 6s <= 30m0s"
+        }
+      ]
+    },
+    "test_after_damage": {
+      "id": 2,
+      "point_id": 2,
+      "verdict": "OK",
+      "proven_rto_s": 16.524407903
+    },
+    "pass": true
+  },
+  "b_truncation": {
+    "daily_report": {
+      "id": 2,
+      "head_seq": 3,
+      "head_sha256": "0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5"
+    },
+    "intact_with_mail_head": {
+      "verdict": "OK",
+      "findings": []
+    },
+    "cut_alone": {
+      "verdict": "OK",
+      "findings": []
+    },
+    "cut_with_mail_head": {
+      "verdict": "CRITICAL",
+      "findings": [
+        "ledger_truncated"
+      ],
+      "heads": [
+        {
+          "seq": 3,
+          "result": "ledger_truncated",
+          "detail": "the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries"
+        }
+      ]
+    },
+    "cut_with_hook_head": {
+      "verdict": "CRITICAL",
+      "findings": [
+        "ledger_truncated"
+      ]
+    },
+    "server_check": {
+      "verdict": "CRITICAL",
+      "entries": 2,
+      "problems": [
+        "head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries",
+        "ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"
+      ]
+    },
+    "ledger_event_after_cut": {
+      "webhook": 1,
+      "mail": 2
+    },
+    "ledger_history": [
+      {
+        "at": "2026-11-17T18:47:48.399508047Z",
+        "from": "",
+        "to": "OK"
+      },
+      {
+        "at": "2026-11-17T18:57:29.867658388Z",
+        "from": "OK",
+        "to": "CRITICAL"
+      },
+      {
+        "at": "2026-11-17T18:57:30.133020025Z",
+        "from": "CRITICAL",
+        "to": "OK"
+      },
+      {
+        "at": "2026-11-17T18:57:38.25178014Z",
+        "from": "OK",
+        "to": "CRITICAL"
+      }
+    ],
+    "pass": true
+  },
+  "verdict": "OK"
+}
+
+== result
+OK
+(gate.json, received.json, notifications.json, sink/, verify-*.json, daily-report-*.json, server.journal in /root/t19-20261117T184728Z)

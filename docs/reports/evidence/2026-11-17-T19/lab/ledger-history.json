@@ -1,0 +1,42 @@
+[
+  {
+    "seq": 3,
+    "at": "2026-11-17T18:47:48.399508047Z",
+    "entity": "ledger",
+    "entity_id": 1,
+    "from": "",
+    "to": "OK",
+    "reason": "daily report (no evidence yet): 0 entries, head 0",
+    "actor": "system"
+  },
+  {
+    "seq": 65,
+    "at": "2026-11-17T18:57:29.867658388Z",
+    "entity": "ledger",
+    "entity_id": 1,
+    "from": "OK",
+    "to": "CRITICAL",
+    "reason": "requested by admin: gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)",
+    "actor": "admin"
+  },
+  {
+    "seq": 66,
+    "at": "2026-11-17T18:57:30.133020025Z",
+    "entity": "ledger",
+    "entity_id": 1,
+    "from": "CRITICAL",
+    "to": "OK",
+    "reason": "requested by admin: 3 entries, head 3",
+    "actor": "admin"
+  },
+  {
+    "seq": 73,
+    "at": "2026-11-17T18:57:38.25178014Z",
+    "entity": "ledger",
+    "entity_id": 1,
+    "from": "OK",
+    "to": "CRITICAL",
+    "reason": "requested by admin: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries",
+    "actor": "admin"
+  }
+]

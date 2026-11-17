@@ -1,0 +1,28 @@
+{
+  "id": 2,
+  "repository_id": 1,
+  "mode": "full",
+  "state": "critical",
+  "reason": "requested by admin",
+  "started_at": "2026-11-17T18:51:36.069141759Z",
+  "finished_at": "2026-11-17T18:51:40.47989512Z",
+  "points_checked": 1,
+  "points_skipped": 0,
+  "blocks_read": 1291,
+  "bytes_read": 1351614464,
+  "affected": [
+    {
+      "point_id": 1,
+      "vm_id": 1,
+      "disk": "vda",
+      "problems": [
+        "block 264 (f65ee01371b36613ebc58da70eac126f): unexpected content error: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed; damaged content f65ee01371b36613ebc58da70eac126f: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed",
+        "block 856 (f65ee01371b36613ebc58da70eac126f): unexpected content error: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed; damaged content f65ee01371b36613ebc58da70eac126f: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed"
+      ],
+      "contents": [
+        "f65ee01371b36613ebc58da70eac126f"
+      ]
+    }
+  ],
+  "error": ""
+}

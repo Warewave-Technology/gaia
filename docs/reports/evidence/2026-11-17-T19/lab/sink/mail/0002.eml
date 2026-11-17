@@ -1,0 +1,21 @@
+From: Gaia T19 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: test message (channel mail)
+Date: Tue, 17 Nov 2026 18:47:51 +0000
+Message-ID: <gaia-1-test-1794941271954778173@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: test
+Content-Type: multipart/mixed; boundary=b53479587d4e196bdb25b907b7d525a9cdb0dac307d4282e161629fb6b54
+
+--b53479587d4e196bdb25b907b7d525a9cdb0dac307d4282e161629fb6b54
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+A test message, sent at 2026-11-17T18:47:51.954778173Z on the request of ad=
+min. If you read this, channel mail works.
+
+--=20
+Gaia, installation gaia-lab (evidence key 1567fbe43cc4ba83d9eadc99318d2df29=
+8a0ecbd39f6629e58dd342dd1a6b7f5)
+
+--b53479587d4e196bdb25b907b7d525a9cdb0dac307d4282e161629fb6b54--

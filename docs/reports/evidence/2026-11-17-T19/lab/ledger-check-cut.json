@@ -1,0 +1,13 @@
+{
+  "id": 5,
+  "checked_at": "2026-11-17T18:57:38.25172021Z",
+  "reason": "requested by admin",
+  "verdict": "CRITICAL",
+  "entries": 2,
+  "head_seq": 2,
+  "head_sha256": "91378c29fb5d62e5f7e972028dff8b8ccbcf6f4c9dadb938758e02349c102ace",
+  "problems": [
+    "head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries",
+    "ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"
+  ]
+}

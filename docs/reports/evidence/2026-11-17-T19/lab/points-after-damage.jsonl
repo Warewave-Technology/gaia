@@ -1,0 +1,2 @@
+{"id":2,"kind":"full","check_state":"ok","reason":"full: repository verification 2 quarantined damaged contents used by point 1"}
+{"id":1,"kind":"full","check_state":"failed","reason":"full: no earlier checked point of this VM"}

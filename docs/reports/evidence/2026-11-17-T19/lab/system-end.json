@@ -1,0 +1,81 @@
+{
+  "version": "4a971ea4efdc",
+  "schema_version": 7,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "0001_init.sql",
+      "sha256": "15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427",
+      "applied_at": "2026-11-17T18:47:45.978736614Z"
+    },
+    {
+      "version": 2,
+      "name": "0002_state_backups.sql",
+      "sha256": "4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546",
+      "applied_at": "2026-11-17T18:47:46.001478805Z"
+    },
+    {
+      "version": 3,
+      "name": "0003_backups.sql",
+      "sha256": "299eb8b7ee024822dcbcb14547ae4728f21ddc7d371d6078a6c10bd128630206",
+      "applied_at": "2026-11-17T18:47:46.02879667Z"
+    },
+    {
+      "version": 4,
+      "name": "0004_status.sql",
+      "sha256": "4a6ff0331088426b6fa6976bc4977b0636a77ad061dd85dee03dc89b8ac113cd",
+      "applied_at": "2026-11-17T18:47:46.044454142Z"
+    },
+    {
+      "version": 5,
+      "name": "0005_recovery.sql",
+      "sha256": "c57c01654d0963305963c3ee1040bb5e1e5a72d1f3ff33373307505d426eeeea",
+      "applied_at": "2026-11-17T18:47:46.062517278Z"
+    },
+    {
+      "version": 6,
+      "name": "0006_quarantine_logins.sql",
+      "sha256": "d3c7b1615d49b1225000d2a5e1a08f1397a3949c49e7154545ea19b997f9b9fa",
+      "applied_at": "2026-11-17T18:47:46.085457718Z"
+    },
+    {
+      "version": 7,
+      "name": "0007_notifications.sql",
+      "sha256": "a89635df3aa5dbd8a53722c4a7e0a5cde7872fe7cff0d55cd3c9742eafb03aff",
+      "applied_at": "2026-11-17T18:47:46.107412413Z"
+    }
+  ],
+  "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+  "ssh_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHCGg/VeoBDvHabaDl9a1VfGDDMqN4ZuPnB/HHqP6RrF gaia@gaia-lab",
+  "ssh_authorized_keys_line": "restrict,port-forwarding,command=\"/usr/bin/false\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHCGg/VeoBDvHabaDl9a1VfGDDMqN4ZuPnB/HHqP6RrF gaia@gaia-lab",
+  "started_at": "2026-11-17T18:47:48Z",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "recovery_kit": {
+    "state": "not confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine"
+  },
+  "ledger": {
+    "id": 5,
+    "checked_at": "2026-11-17T18:57:38.25172021Z",
+    "reason": "requested by admin",
+    "verdict": "CRITICAL",
+    "entries": 2,
+    "head_seq": 2,
+    "head_sha256": "91378c29fb5d62e5f7e972028dff8b8ccbcf6f4c9dadb938758e02349c102ace",
+    "problems": [
+      "head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries",
+      "ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"
+    ],
+    "text": "CRITICAL at 2026-11-17T18:57:38.25172021Z: 2 entries: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries"
+  },
+  "notifications": {
+    "state": "OK",
+    "channels": 2,
+    "enabled": 2,
+    "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+    "failing": []
+  },
+  "daily_report_at": "07:00"
+}

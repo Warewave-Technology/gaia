@@ -1,0 +1,23 @@
+{
+  "vm_id": 1,
+  "vm": "gaia-t19",
+  "changed_at": "2026-11-17T18:51:40.470652313Z",
+  "status": "CRITICAL",
+  "theoretical_rpo_s": 55.332350662,
+  "proven_rpo_s": 55.332350662,
+  "proven_rto_s": 16.524407903,
+  "proof_age_s": 6.223367475,
+  "reasons": [
+    {
+      "status": "CRITICAL",
+      "rule": "integrity_failed",
+      "text": "integrity check failed for point(s) [1]"
+    },
+    {
+      "status": "OK",
+      "rule": "proven",
+      "text": "point 2 is proven by test 2: proven RPO 55s \u003c= 20m0s, proven RTO 17s \u003c= 10m0s, proof age 6s \u003c= 30m0s"
+    }
+  ],
+  "notes": []
+}

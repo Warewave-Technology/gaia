@@ -1,0 +1,7 @@
+{"at":"2026-11-17T18:51:30Z","injected":"host authorized_keys removed"}
+{"at":"2026-11-17T18:51:35Z","injected":"host authorized_keys restored"}
+{"at":"2026-11-17T18:51:35Z","injected":"pack p/4de/6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147.f byte 10650840 41 -> be"}
+{"at":"2026-11-17T18:57:29Z","injected":"bundle gaia-t19-20261117T185053Z-098722: result.json changed"}
+{"at":"2026-11-17T18:57:29Z","injected":"bundle gaia-t19-20261117T185053Z-098722: result.json put back"}
+{"at":"2026-11-17T18:57:37Z","injected":"export: ledger cut from 3 to 2 entries, bundle gaia-t19-20261117T185652Z-567c1d removed"}
+{"at":"2026-11-17T18:57:38Z","injected":"server: ledger cut from 3 to 2 entries, bundle gaia-t19-20261117T185652Z-567c1d removed"}

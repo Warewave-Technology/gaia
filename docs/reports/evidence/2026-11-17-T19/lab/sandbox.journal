@@ -1,0 +1,46 @@
+2026-11-17T17:55:32.803678+0000 gaia-lab systemd[1]: Starting gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T17:55:33.001767+0000 gaia-lab gaia-t19[296015]: time=2026-11-17T17:55:33.001Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t19-sandbox/sandbox.sock group=gaia-t19 images=/var/lib/gaia-t19-sandbox/images
+2026-11-17T17:55:33.001939+0000 gaia-lab systemd[1]: Started gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T17:58:34.225538+0000 gaia-lab gaia-t19[296015]: time=2026-11-17T17:58:34.225Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T17:59:05.288737+0000 gaia-lab gaia-t19[296015]: time=2026-11-17T17:59:05.288Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T175834Z-53c161 verdict=OK
+2026-11-17T17:59:15.016072+0000 gaia-lab systemd[1]: Stopping gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T17:59:15.017256+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Deactivated successfully.
+2026-11-17T17:59:15.017441+0000 gaia-lab systemd[1]: Stopped gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T17:59:15.017671+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Consumed 11.100s CPU time.
+2026-11-17T18:01:25.427674+0000 gaia-lab systemd[1]: Starting gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T18:01:25.618122+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:01:25.618Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t19-sandbox/sandbox.sock group=gaia-t19 images=/var/lib/gaia-t19-sandbox/images
+2026-11-17T18:01:25.618273+0000 gaia-lab systemd[1]: Started gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T18:04:27.730981+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:04:27.730Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:05:00.159597+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:05:00.159Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T180427Z-31c587 verdict=OK
+2026-11-17T18:10:29.586932+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:10:29.586Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:10:58.715443+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:10:58.715Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T181029Z-3a6476 verdict=OK
+2026-11-17T18:15:33.175125+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:15:33.175Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:15:59.813126+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:15:59.813Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T181533Z-a7d7fc verdict=OK
+2026-11-17T18:20:29.432034+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:20:29.431Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:20:59.360195+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:20:59.360Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T182029Z-df6ba4 verdict=OK
+2026-11-17T18:25:46.425987+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:25:46.425Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:26:18.180150+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:26:18.180Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T182546Z-31d9e1 verdict=OK
+2026-11-17T18:30:35.974195+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:30:35.974Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:31:05.164913+0000 gaia-lab gaia-t19[297365]: time=2026-11-17T18:31:05.164Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T183035Z-2d0e8d verdict=OK
+2026-11-17T18:35:24.506558+0000 gaia-lab systemd[1]: Stopping gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T18:35:24.527567+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Deactivated successfully.
+2026-11-17T18:35:24.527942+0000 gaia-lab systemd[1]: Stopped gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T18:35:24.528325+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Consumed 1min 4.422s CPU time.
+2026-11-17T18:36:43.551621+0000 gaia-lab systemd[1]: Starting gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T18:36:43.715923+0000 gaia-lab gaia-t19[303205]: time=2026-11-17T18:36:43.715Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t19-sandbox/sandbox.sock group=gaia-t19 images=/var/lib/gaia-t19-sandbox/images
+2026-11-17T18:36:43.716066+0000 gaia-lab systemd[1]: Started gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T18:39:35.415568+0000 gaia-lab gaia-t19[303205]: time=2026-11-17T18:39:35.415Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:40:01.574988+0000 gaia-lab gaia-t19[303205]: time=2026-11-17T18:40:01.574Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T183935Z-1c8b5c verdict=OK
+2026-11-17T18:45:32.457154+0000 gaia-lab gaia-t19[303205]: time=2026-11-17T18:45:32.457Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:45:58.694309+0000 gaia-lab gaia-t19[303205]: time=2026-11-17T18:45:58.694Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T184532Z-708107 verdict=OK
+2026-11-17T18:46:18.287500+0000 gaia-lab systemd[1]: Stopping gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T18:46:18.290510+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Deactivated successfully.
+2026-11-17T18:46:18.290812+0000 gaia-lab systemd[1]: Stopped gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T18:46:18.291253+0000 gaia-lab systemd[1]: gaia-t19-sandbox.service: Consumed 20.574s CPU time.
+2026-11-17T18:47:47.959666+0000 gaia-lab systemd[1]: Starting gaia-t19-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-17T18:47:48.125007+0000 gaia-lab gaia-t19[305855]: time=2026-11-17T18:47:48.124Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t19-sandbox/sandbox.sock group=gaia-t19 images=/var/lib/gaia-t19-sandbox/images
+2026-11-17T18:47:48.125156+0000 gaia-lab systemd[1]: Started gaia-t19-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-17T18:50:53.154573+0000 gaia-lab gaia-t19[305855]: time=2026-11-17T18:50:53.154Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:51:23.822025+0000 gaia-lab gaia-t19[305855]: time=2026-11-17T18:51:23.821Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T185053Z-098722 verdict=OK
+2026-11-17T18:56:52.157832+0000 gaia-lab gaia-t19[305855]: time=2026-11-17T18:56:52.157Z level=INFO msg=verifying vm=gaia-t19 disks=2
+2026-11-17T18:57:22.797054+0000 gaia-lab gaia-t19[305855]: time=2026-11-17T18:57:22.796Z level=INFO msg=verified vm=gaia-t19 bundle=gaia-t19-20261117T185652Z-567c1d verdict=OK

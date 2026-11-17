@@ -1,0 +1,788 @@
+[
+  {
+    "id": 22,
+    "channel_id": 2,
+    "event": "ledger",
+    "ref": 73,
+    "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:38.25178014Z",
+      "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+      "text": "Ledger check at 2026-11-17T18:57:38.25178014Z: CRITICAL (was OK).\nrequested by admin: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries",
+      "state_change": {
+        "seq": 73,
+        "at": "2026-11-17T18:57:38.25178014Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "requested by admin: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:38.406325681Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:38.406325681Z",
+    "finished_at": "2026-11-17T18:57:38.422120879Z"
+  },
+  {
+    "id": 21,
+    "channel_id": 1,
+    "event": "ledger",
+    "ref": 73,
+    "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:38.25178014Z",
+      "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+      "text": "Ledger check at 2026-11-17T18:57:38.25178014Z: CRITICAL (was OK).\nrequested by admin: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries",
+      "state_change": {
+        "seq": 73,
+        "at": "2026-11-17T18:57:38.25178014Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "requested by admin: head 1: ledger_truncated: the head statement of 2026-11-17T18:57:30.809401021Z records entry 3; the ledger has 2 readable entries; ledger_truncated: the catalog records a bundle at entry 3, the ledger has 2 entries",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:38.399877719Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:38.399877719Z",
+    "finished_at": "2026-11-17T18:57:38.414898891Z"
+  },
+  {
+    "id": 20,
+    "channel_id": 2,
+    "event": "ledger",
+    "ref": 66,
+    "subject": "Gaia gaia-lab: the evidence ledger verifies again",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:30.133020025Z",
+      "subject": "Gaia gaia-lab: the evidence ledger verifies again",
+      "text": "Ledger check at 2026-11-17T18:57:30.133020025Z: OK (was CRITICAL).\nrequested by admin: 3 entries, head 3",
+      "state_change": {
+        "seq": 66,
+        "at": "2026-11-17T18:57:30.133020025Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "CRITICAL",
+        "to": "OK",
+        "reason": "requested by admin: 3 entries, head 3",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:33.408704682Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:33.408704682Z",
+    "finished_at": "2026-11-17T18:57:33.453256753Z"
+  },
+  {
+    "id": 19,
+    "channel_id": 2,
+    "event": "ledger",
+    "ref": 65,
+    "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:29.867658388Z",
+      "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+      "text": "Ledger check at 2026-11-17T18:57:29.867658388Z: CRITICAL (was OK).\nrequested by admin: gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)",
+      "state_change": {
+        "seq": 65,
+        "at": "2026-11-17T18:57:29.867658388Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "requested by admin: gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:33.408611813Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:33.408611813Z",
+    "finished_at": "2026-11-17T18:57:33.447469167Z"
+  },
+  {
+    "id": 18,
+    "channel_id": 1,
+    "event": "ledger",
+    "ref": 66,
+    "subject": "Gaia gaia-lab: the evidence ledger verifies again",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:30.133020025Z",
+      "subject": "Gaia gaia-lab: the evidence ledger verifies again",
+      "text": "Ledger check at 2026-11-17T18:57:30.133020025Z: OK (was CRITICAL).\nrequested by admin: 3 entries, head 3",
+      "state_change": {
+        "seq": 66,
+        "at": "2026-11-17T18:57:30.133020025Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "CRITICAL",
+        "to": "OK",
+        "reason": "requested by admin: 3 entries, head 3",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:33.401005918Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:33.401005918Z",
+    "finished_at": "2026-11-17T18:57:33.441153754Z"
+  },
+  {
+    "id": 17,
+    "channel_id": 1,
+    "event": "ledger",
+    "ref": 65,
+    "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+    "body": {
+      "event": "ledger",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:29.867658388Z",
+      "subject": "Gaia gaia-lab: the evidence ledger is CRITICAL",
+      "text": "Ledger check at 2026-11-17T18:57:29.867658388Z: CRITICAL (was OK).\nrequested by admin: gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)",
+      "state_change": {
+        "seq": 65,
+        "at": "2026-11-17T18:57:29.867658388Z",
+        "entity": "ledger",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "requested by admin: gaia-t19-20261117T185053Z-098722/result.json: file_modified: sha256 dfe7ed242b01386044d56a9edfce7ca5ba935974d8889bd56ba1821160219486 (3392 bytes), manifest says bcb61265f6add6e37fd20540a2a5f9dd52758b0e3c810fe635da220e6c61c210 (3390 bytes)",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:33.400921908Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:33.400921908Z",
+    "finished_at": "2026-11-17T18:57:33.433878486Z"
+  },
+  {
+    "id": 16,
+    "channel_id": 2,
+    "event": "daily_report",
+    "ref": 2,
+    "subject": "Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL",
+    "body": {
+      "event": "daily_report",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:30.809401021Z",
+      "subject": "Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL",
+      "text": "Daily report 2 of Gaia gaia-lab (4a971ea4efdc), 2026-11-17T18:57:30.809401021Z\n\nCRITICAL  gaia-t19  since 2026-11-17T18:51:40.470652313Z\n          proven RPO 57s, proven RTO 17s, proof age 7s, theoretical RPO 57s\n          integrity check failed for point(s) [1]\n\nEvidence ledger: OK, 3 entries.\nLedger head (signed, evidence key 1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5):\n{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}\nRecovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine\n\nThe attached JSON is this report with the signed ledger head. Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).\n",
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}",
+        "sig": "Ax7RNBsk3DQMh3dKozWUXKKt2ZU8s4H7sZ0cRnYA436M1SV+H90V3rD4tFyCQkQRFzcHXQ4W8AUwIT6LDJ3PBQ=="
+      },
+      "report": {
+        "format": "gaia-daily-report",
+        "format_version": 1,
+        "id": 2,
+        "installation": "gaia-lab",
+        "version": "4a971ea4efdc",
+        "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+        "generated_at": "2026-11-17T18:57:30.809401021Z",
+        "reason": "requested by admin",
+        "summary": {
+          "CRITICAL": 1
+        },
+        "vms": [
+          {
+            "vm": "gaia-t19",
+            "status": "CRITICAL",
+            "since": "2026-11-17T18:51:40.470652313Z",
+            "reason": "integrity check failed for point(s) [1]",
+            "theoretical_rpo_s": 56.518077246,
+            "proven_rpo_s": 56.518077246,
+            "proven_rto_s": 16.524407903,
+            "proof_age_s": 7.409094059
+          }
+        ],
+        "ledger_check": {
+          "id": 4,
+          "checked_at": "2026-11-17T18:57:30.806593317Z",
+          "reason": "daily report",
+          "verdict": "OK",
+          "entries": 3,
+          "head_seq": 3,
+          "head_sha256": "0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5",
+          "problems": []
+        },
+        "ledger_head": {
+          "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}",
+          "sig": "Ax7RNBsk3DQMh3dKozWUXKKt2ZU8s4H7sZ0cRnYA436M1SV+H90V3rD4tFyCQkQRFzcHXQ4W8AUwIT6LDJ3PBQ=="
+        },
+        "recovery_kit": {
+          "state": "not confirmed",
+          "generation": 2,
+          "text": "recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine"
+        },
+        "notifications": {
+          "state": "OK",
+          "channels": 2,
+          "enabled": 2,
+          "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+          "failing": []
+        },
+        "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+        "problems": []
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:30.817302475Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:30.817302475Z",
+    "finished_at": "2026-11-17T18:57:33.423725685Z"
+  },
+  {
+    "id": 15,
+    "channel_id": 1,
+    "event": "daily_report",
+    "ref": 2,
+    "subject": "Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL",
+    "body": {
+      "event": "daily_report",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:57:30.809401021Z",
+      "subject": "Gaia gaia-lab: daily report 2026-11-17: 1 CRITICAL",
+      "text": "Daily report 2 of Gaia gaia-lab (4a971ea4efdc), 2026-11-17T18:57:30.809401021Z\n\nCRITICAL  gaia-t19  since 2026-11-17T18:51:40.470652313Z\n          proven RPO 57s, proven RTO 17s, proof age 7s, theoretical RPO 57s\n          integrity check failed for point(s) [1]\n\nEvidence ledger: OK, 3 entries.\nLedger head (signed, evidence key 1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5):\n{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}\nRecovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine\n\nThe attached JSON is this report with the signed ledger head. Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).\n",
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}",
+        "sig": "Ax7RNBsk3DQMh3dKozWUXKKt2ZU8s4H7sZ0cRnYA436M1SV+H90V3rD4tFyCQkQRFzcHXQ4W8AUwIT6LDJ3PBQ=="
+      },
+      "report": {
+        "format": "gaia-daily-report",
+        "format_version": 1,
+        "id": 2,
+        "installation": "gaia-lab",
+        "version": "4a971ea4efdc",
+        "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+        "generated_at": "2026-11-17T18:57:30.809401021Z",
+        "reason": "requested by admin",
+        "summary": {
+          "CRITICAL": 1
+        },
+        "vms": [
+          {
+            "vm": "gaia-t19",
+            "status": "CRITICAL",
+            "since": "2026-11-17T18:51:40.470652313Z",
+            "reason": "integrity check failed for point(s) [1]",
+            "theoretical_rpo_s": 56.518077246,
+            "proven_rpo_s": 56.518077246,
+            "proven_rto_s": 16.524407903,
+            "proof_age_s": 7.409094059
+          }
+        ],
+        "ledger_check": {
+          "id": 4,
+          "checked_at": "2026-11-17T18:57:30.806593317Z",
+          "reason": "daily report",
+          "verdict": "OK",
+          "entries": 3,
+          "head_seq": 3,
+          "head_sha256": "0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5",
+          "problems": []
+        },
+        "ledger_head": {
+          "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-17T18:57:30.809401021Z\",\"key_id\":\"1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5\",\"seq\":3,\"entry_sha256\":\"0efba611bf52fa239bdff8b9b1b5edc6d0572b052184cbea5e4a25e52c4898f5\"}",
+          "sig": "Ax7RNBsk3DQMh3dKozWUXKKt2ZU8s4H7sZ0cRnYA436M1SV+H90V3rD4tFyCQkQRFzcHXQ4W8AUwIT6LDJ3PBQ=="
+        },
+        "recovery_kit": {
+          "state": "not confirmed",
+          "generation": 2,
+          "text": "recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine"
+        },
+        "notifications": {
+          "state": "OK",
+          "channels": 2,
+          "enabled": 2,
+          "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+          "failing": []
+        },
+        "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+        "problems": []
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:57:30.817224665Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:57:30.817224665Z",
+    "finished_at": "2026-11-17T18:57:33.417050684Z"
+  },
+  {
+    "id": 14,
+    "channel_id": 2,
+    "event": "integrity",
+    "ref": 44,
+    "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)",
+    "body": {
+      "event": "integrity",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.480044519Z",
+      "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)",
+      "text": "The full verification 2 of repository main found damage at 2026-11-17T18:51:40.480044519Z. These points are marked failed and prove nothing any more:\n- point 1, disk vda: damaged contents f65ee01371b36613ebc58da70eac126f",
+      "state_change": {
+        "seq": 44,
+        "at": "2026-11-17T18:51:40.480044519Z",
+        "entity": "verification",
+        "entity_id": 2,
+        "from": "running",
+        "to": "critical",
+        "reason": "1 points, 1291 blocks read",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.408029172Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.408029172Z",
+    "finished_at": "2026-11-17T18:51:43.501907502Z"
+  },
+  {
+    "id": 13,
+    "channel_id": 2,
+    "event": "status",
+    "ref": 43,
+    "subject": "Gaia gaia-lab: gaia-t19: OK -\u003e CRITICAL",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.470724052Z",
+      "subject": "Gaia gaia-lab: gaia-t19: OK -\u003e CRITICAL",
+      "text": "VM gaia-t19 is CRITICAL (was OK) since 2026-11-17T18:51:40.470724052Z.\nWhy: integrity check failed for point(s) [1]",
+      "state_change": {
+        "seq": 43,
+        "at": "2026-11-17T18:51:40.470724052Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "integrity check failed for point(s) [1]",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.407999702Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.407999702Z",
+    "finished_at": "2026-11-17T18:51:43.492880114Z"
+  },
+  {
+    "id": 12,
+    "channel_id": 2,
+    "event": "quarantine",
+    "ref": 42,
+    "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)",
+    "body": {
+      "event": "quarantine",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.45725349Z",
+      "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)",
+      "text": "At 2026-11-17T18:51:40.45725349Z, repository main: verification 2 quarantined 1 damaged contents; next backup full for gaia-t19: f65ee01371b36613ebc58da70eac126f (points [1]: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed).\nThe next backup of each VM named is full, so new points do not reuse the damaged data.",
+      "state_change": {
+        "seq": 42,
+        "at": "2026-11-17T18:51:40.45725349Z",
+        "entity": "quarantine",
+        "entity_id": 2,
+        "from": "",
+        "to": "quarantined",
+        "reason": "repository main: verification 2 quarantined 1 damaged contents; next backup full for gaia-t19: f65ee01371b36613ebc58da70eac126f (points [1]: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed)",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.407945163Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.407945163Z",
+    "finished_at": "2026-11-17T18:51:43.476674947Z"
+  },
+  {
+    "id": 11,
+    "channel_id": 1,
+    "event": "integrity",
+    "ref": 44,
+    "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)",
+    "body": {
+      "event": "integrity",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.480044519Z",
+      "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 1 point disk(s)",
+      "text": "The full verification 2 of repository main found damage at 2026-11-17T18:51:40.480044519Z. These points are marked failed and prove nothing any more:\n- point 1, disk vda: damaged contents f65ee01371b36613ebc58da70eac126f",
+      "state_change": {
+        "seq": 44,
+        "at": "2026-11-17T18:51:40.480044519Z",
+        "entity": "verification",
+        "entity_id": 2,
+        "from": "running",
+        "to": "critical",
+        "reason": "1 points, 1291 blocks read",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.401029872Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.401029872Z",
+    "finished_at": "2026-11-17T18:51:43.456559842Z"
+  },
+  {
+    "id": 10,
+    "channel_id": 1,
+    "event": "status",
+    "ref": 43,
+    "subject": "Gaia gaia-lab: gaia-t19: OK -\u003e CRITICAL",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.470724052Z",
+      "subject": "Gaia gaia-lab: gaia-t19: OK -\u003e CRITICAL",
+      "text": "VM gaia-t19 is CRITICAL (was OK) since 2026-11-17T18:51:40.470724052Z.\nWhy: integrity check failed for point(s) [1]",
+      "state_change": {
+        "seq": 43,
+        "at": "2026-11-17T18:51:40.470724052Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "OK",
+        "to": "CRITICAL",
+        "reason": "integrity check failed for point(s) [1]",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.400989532Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.400989532Z",
+    "finished_at": "2026-11-17T18:51:43.442091525Z"
+  },
+  {
+    "id": 9,
+    "channel_id": 1,
+    "event": "quarantine",
+    "ref": 42,
+    "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)",
+    "body": {
+      "event": "quarantine",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:40.45725349Z",
+      "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)",
+      "text": "At 2026-11-17T18:51:40.45725349Z, repository main: verification 2 quarantined 1 damaged contents; next backup full for gaia-t19: f65ee01371b36613ebc58da70eac126f (points [1]: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed).\nThe next backup of each VM named is full, so new points do not reuse the damaged data.",
+      "state_change": {
+        "seq": 42,
+        "at": "2026-11-17T18:51:40.45725349Z",
+        "entity": "quarantine",
+        "entity_id": 2,
+        "from": "",
+        "to": "quarantined",
+        "reason": "repository main: verification 2 quarantined 1 damaged contents; next backup full for gaia-t19: f65ee01371b36613ebc58da70eac126f (points [1]: stored bytes do not verify: invalid checksum at p4de6ef99246f749169bb95b1a2d1c623-s3752aeb166b0f810147 offset 10454683 length 411531/411531: decrypt: unable to decrypt content: cipher: message authentication failed)",
+        "actor": "admin"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:43.400918933Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:43.400918933Z",
+    "finished_at": "2026-11-17T18:51:43.426524736Z"
+  },
+  {
+    "id": 8,
+    "channel_id": 2,
+    "event": "job_failed",
+    "ref": 36,
+    "subject": "Gaia gaia-lab: backup job 3 of gaia-t19 failed",
+    "body": {
+      "event": "job_failed",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:33.471943487Z",
+      "subject": "Gaia gaia-lab: backup job 3 of gaia-t19 failed",
+      "text": "The backup job 3 of gaia-t19 failed at 2026-11-17T18:51:33.471943487Z.\nError: \nIt was started for: requested by admin",
+      "state_change": {
+        "seq": 36,
+        "at": "2026-11-17T18:51:33.471943487Z",
+        "entity": "job",
+        "entity_id": 3,
+        "from": "running",
+        "to": "failed",
+        "reason": "",
+        "actor": "system"
+      },
+      "vm": "gaia-t19",
+      "job": {
+        "id": 3,
+        "kind": "backup",
+        "vm_id": 1,
+        "state": "failed",
+        "reason": "requested by admin",
+        "error": "SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain",
+        "created_at": "2026-11-17T18:51:30.513221704Z",
+        "started_at": "2026-11-17T18:51:33.416245418Z",
+        "finished_at": "2026-11-17T18:51:33.471853447Z"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:38.409433588Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:38.409433588Z",
+    "finished_at": "2026-11-17T18:51:38.436319783Z"
+  },
+  {
+    "id": 7,
+    "channel_id": 1,
+    "event": "job_failed",
+    "ref": 36,
+    "subject": "Gaia gaia-lab: backup job 3 of gaia-t19 failed",
+    "body": {
+      "event": "job_failed",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:33.471943487Z",
+      "subject": "Gaia gaia-lab: backup job 3 of gaia-t19 failed",
+      "text": "The backup job 3 of gaia-t19 failed at 2026-11-17T18:51:33.471943487Z.\nError: \nIt was started for: requested by admin",
+      "state_change": {
+        "seq": 36,
+        "at": "2026-11-17T18:51:33.471943487Z",
+        "entity": "job",
+        "entity_id": 3,
+        "from": "running",
+        "to": "failed",
+        "reason": "",
+        "actor": "system"
+      },
+      "vm": "gaia-t19",
+      "job": {
+        "id": 3,
+        "kind": "backup",
+        "vm_id": 1,
+        "state": "failed",
+        "reason": "requested by admin",
+        "error": "SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain",
+        "created_at": "2026-11-17T18:51:30.513221704Z",
+        "started_at": "2026-11-17T18:51:33.416245418Z",
+        "finished_at": "2026-11-17T18:51:33.471853447Z"
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:38.400046092Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:38.400046092Z",
+    "finished_at": "2026-11-17T18:51:38.424498172Z"
+  },
+  {
+    "id": 6,
+    "channel_id": 2,
+    "event": "status",
+    "ref": 31,
+    "subject": "Gaia gaia-lab: gaia-t19: UNKNOWN -\u003e OK",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:24.267624099Z",
+      "subject": "Gaia gaia-lab: gaia-t19: UNKNOWN -\u003e OK",
+      "text": "VM gaia-t19 is OK (was UNKNOWN) since 2026-11-17T18:51:24.267624099Z.\nWhy: point 1 is proven by test 1: proven RPO 1m4s \u003c= 20m0s, proven RTO 32s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+      "state_change": {
+        "seq": 31,
+        "at": "2026-11-17T18:51:24.267624099Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "UNKNOWN",
+        "to": "OK",
+        "reason": "point 1 is proven by test 1: proven RPO 1m4s \u003c= 20m0s, proven RTO 32s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:28.413500396Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:28.413500396Z",
+    "finished_at": "2026-11-17T18:51:28.440766469Z"
+  },
+  {
+    "id": 5,
+    "channel_id": 1,
+    "event": "status",
+    "ref": 31,
+    "subject": "Gaia gaia-lab: gaia-t19: UNKNOWN -\u003e OK",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:51:24.267624099Z",
+      "subject": "Gaia gaia-lab: gaia-t19: UNKNOWN -\u003e OK",
+      "text": "VM gaia-t19 is OK (was UNKNOWN) since 2026-11-17T18:51:24.267624099Z.\nWhy: point 1 is proven by test 1: proven RPO 1m4s \u003c= 20m0s, proven RTO 32s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+      "state_change": {
+        "seq": 31,
+        "at": "2026-11-17T18:51:24.267624099Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "UNKNOWN",
+        "to": "OK",
+        "reason": "point 1 is proven by test 1: proven RPO 1m4s \u003c= 20m0s, proven RTO 32s \u003c= 10m0s, proof age 0s \u003c= 30m0s",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:51:28.403377414Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:51:28.403377414Z",
+    "finished_at": "2026-11-17T18:51:28.424577172Z"
+  },
+  {
+    "id": 4,
+    "channel_id": 2,
+    "event": "status",
+    "ref": 11,
+    "subject": "Gaia gaia-lab: gaia-t19: (new) -\u003e UNKNOWN",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:50:17.27510941Z",
+      "subject": "Gaia gaia-lab: gaia-t19: (new) -\u003e UNKNOWN",
+      "text": "VM gaia-t19 is UNKNOWN (was (new)) since 2026-11-17T18:50:17.27510941Z.\nWhy: there is no backup point that passed its post-backup check",
+      "state_change": {
+        "seq": 11,
+        "at": "2026-11-17T18:50:17.27510941Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "",
+        "to": "UNKNOWN",
+        "reason": "there is no backup point that passed its post-backup check",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:50:18.542945439Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:50:18.542945439Z",
+    "finished_at": "2026-11-17T18:50:18.689842527Z"
+  },
+  {
+    "id": 3,
+    "channel_id": 1,
+    "event": "status",
+    "ref": 11,
+    "subject": "Gaia gaia-lab: gaia-t19: (new) -\u003e UNKNOWN",
+    "body": {
+      "event": "status",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:50:17.27510941Z",
+      "subject": "Gaia gaia-lab: gaia-t19: (new) -\u003e UNKNOWN",
+      "text": "VM gaia-t19 is UNKNOWN (was (new)) since 2026-11-17T18:50:17.27510941Z.\nWhy: there is no backup point that passed its post-backup check",
+      "state_change": {
+        "seq": 11,
+        "at": "2026-11-17T18:50:17.27510941Z",
+        "entity": "vm_status",
+        "entity_id": 1,
+        "from": "",
+        "to": "UNKNOWN",
+        "reason": "there is no backup point that passed its post-backup check",
+        "actor": "system"
+      },
+      "vm": "gaia-t19"
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:50:18.503627585Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:50:18.503627585Z",
+    "finished_at": "2026-11-17T18:50:18.606843232Z"
+  },
+  {
+    "id": 2,
+    "channel_id": 2,
+    "event": "test",
+    "ref": 1794941272212438388,
+    "subject": "Gaia gaia-lab: test message (channel hook)",
+    "body": {
+      "event": "test",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:47:52.212438388Z",
+      "subject": "Gaia gaia-lab: test message (channel hook)",
+      "text": "A test message, sent at 2026-11-17T18:47:52.212438388Z on the request of admin. If you read this, channel hook works."
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:47:52.212617267Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:47:52.212617267Z",
+    "finished_at": "2026-11-17T18:47:52.231242041Z"
+  },
+  {
+    "id": 1,
+    "channel_id": 1,
+    "event": "test",
+    "ref": 1794941271954778173,
+    "subject": "Gaia gaia-lab: test message (channel mail)",
+    "body": {
+      "event": "test",
+      "installation": "gaia-lab",
+      "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+      "at": "2026-11-17T18:47:51.954778173Z",
+      "subject": "Gaia gaia-lab: test message (channel mail)",
+      "text": "A test message, sent at 2026-11-17T18:47:51.954778173Z on the request of admin. If you read this, channel mail works."
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-17T18:47:51.954935883Z",
+    "last_error": "",
+    "created_at": "2026-11-17T18:47:51.954935883Z",
+    "finished_at": "2026-11-17T18:47:51.967958009Z"
+  }
+]

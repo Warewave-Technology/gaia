@@ -1,0 +1,87 @@
+2026-11-17T17:55:33.051867+0000 gaia-lab systemd[1]: Started gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T17:55:33.311959+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:55:33.311Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T17:55:33.319465+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:55:33.319Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=a10890ae20ee schema=7
+2026-11-17T17:55:33.319788+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:55:33.319Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T17:58:01.090877+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:58:01.090Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T17:58:03.875650+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:58:03.875Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T17:58:04.383689+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:58:04.383Z level=INFO msg="state backup stored" id=1 repository=main snapshot=a23b4810983b9395ef87ff72b13aaf53 bytes=210432
+2026-11-17T17:58:10.456267+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:58:10.456Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=7.090272228
+2026-11-17T17:59:05.664007+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:59:05.663Z level=INFO msg="restore test" vm=gaia-t19 test=1 point=1 verdict=OK reason="every check passed (boot 14.1 s); proven RTO 29.6 s = restore 15.5 s + ready 14.1 s"
+2026-11-17T17:59:05.802003+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:59:05.801Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 1m1s <= 20m0s, proven RTO 30s <= 10m0s, proof age 0s <= 30m0s"
+2026-11-17T17:59:14.959060+0000 gaia-lab gaia-t19[296024]: time=2026-11-17T17:59:14.959Z level=INFO msg="shutting down"
+2026-11-17T17:59:14.959402+0000 gaia-lab systemd[1]: Stopping gaia-t19-server.service - Gaia backup and recoverability server...
+2026-11-17T17:59:14.983714+0000 gaia-lab systemd[1]: gaia-t19-server.service: Deactivated successfully.
+2026-11-17T17:59:14.983884+0000 gaia-lab systemd[1]: Stopped gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T17:59:14.984163+0000 gaia-lab systemd[1]: gaia-t19-server.service: Consumed 22.662s CPU time.
+2026-11-17T18:01:25.655815+0000 gaia-lab systemd[1]: Started gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T18:01:25.895124+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:01:25.895Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T18:01:25.902346+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:01:25.902Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=17d4c8a9bb20 schema=7
+2026-11-17T18:01:25.902346+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:01:25.902Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T18:03:53.792275+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:03:53.792Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T18:03:56.402663+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:03:56.402Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T18:03:56.820613+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:03:56.820Z level=INFO msg="state backup stored" id=1 repository=main snapshot=3af282e3c3eba887dd641ef483519b55 bytes=210432
+2026-11-17T18:04:01.625744+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:04:01.625Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=5.684741689
+2026-11-17T18:05:00.604615+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:05:00.604Z level=INFO msg="restore test" vm=gaia-t19 test=1 point=1 verdict=OK reason="every check passed (boot 13.0 s); proven RTO 29.5 s = restore 16.5 s + ready 13.0 s"
+2026-11-17T18:05:00.703652+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:05:00.703Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 1m3s <= 20m0s, proven RTO 30s <= 10m0s, proof age 0s <= 30m0s"
+2026-11-17T18:05:11.016785+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:05:11.016Z level=ERROR msg="backup failed" job=3 error="SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain"
+2026-11-17T18:05:16.595707+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:05:16.595Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1]"
+2026-11-17T18:05:16.610614+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:05:16.610Z level=INFO msg="repository verification" id=2 repository=main mode=full state=critical points=1 affected=1 skipped_failed=0
+2026-11-17T18:08:56.801675+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:08:56.801Z level=INFO msg="state backup stored" id=2 repository=main snapshot=0b40f91190536ca4163b91ab1173830e bytes=241152
+2026-11-17T18:10:17.980712+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:10:17.980Z level=INFO msg="backup done" job=4 point=2 kind=full seconds=7.050210494
+2026-11-17T18:10:59.146900+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:10:59.146Z level=INFO msg="restore test" vm=gaia-t19 test=2 point=2 verdict=OK reason="every check passed (boot 13.0 s); proven RTO 16.4 s = restore 3.4 s + ready 13.0 s"
+2026-11-17T18:13:56.781365+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:13:56.781Z level=INFO msg="state backup stored" id=3 repository=main snapshot=4f72de3cd6ea0d81987b99ef99a19d55 bytes=249856
+2026-11-17T18:15:13.111823+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:15:13.111Z level=INFO msg="backup done" job=6 point=3 kind=incremental seconds=2.189949794
+2026-11-17T18:16:00.175813+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:16:00.175Z level=INFO msg="restore test" vm=gaia-t19 test=3 point=3 verdict=OK reason="every check passed (boot 12.0 s); proven RTO 19.0 s = restore 7.0 s + ready 12.0 s"
+2026-11-17T18:18:56.789539+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:18:56.789Z level=INFO msg="state backup stored" id=4 repository=main snapshot=877c6c53af02d49ea999d8a7b418481d bytes=258560
+2026-11-17T18:20:13.864597+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:20:13.864Z level=INFO msg="backup done" job=8 point=4 kind=incremental seconds=2.938409203
+2026-11-17T18:20:59.768804+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:20:59.768Z level=INFO msg="restore test" vm=gaia-t19 test=4 point=4 verdict=OK reason="every check passed (boot 14.0 s); proven RTO 17.3 s = restore 3.2 s + ready 14.0 s"
+2026-11-17T18:23:56.825977+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:23:56.825Z level=INFO msg="state backup stored" id=5 repository=main snapshot=642cafd3bdc5096b07745208de71d6b2 bytes=267264
+2026-11-17T18:25:13.947020+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:25:13.946Z level=INFO msg="backup done" job=10 point=5 kind=incremental seconds=3.01603253
+2026-11-17T18:26:18.667843+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:26:18.667Z level=INFO msg="restore test" vm=gaia-t19 test=5 point=5 verdict=OK reason="every check passed (boot 12.0 s); proven RTO 32.2 s = restore 20.1 s + ready 12.0 s"
+2026-11-17T18:28:56.790621+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:28:56.790Z level=INFO msg="state backup stored" id=6 repository=main snapshot=f3b1ad13a16f2ba9bba782b31bdbd606 bytes=271872
+2026-11-17T18:30:15.495230+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:30:15.495Z level=INFO msg="backup done" job=12 point=6 kind=incremental seconds=4.538241099
+2026-11-17T18:31:05.658589+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:31:05.658Z level=INFO msg="restore test" vm=gaia-t19 test=6 point=6 verdict=OK reason="every check passed (boot 12.0 s); proven RTO 21.4 s = restore 9.4 s + ready 12.0 s"
+2026-11-17T18:33:56.803164+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:33:56.803Z level=INFO msg="state backup stored" id=7 repository=main snapshot=bdd0b5c54edfa7bc49735954329990ed bytes=280576
+2026-11-17T18:35:13.104614+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:35:13.104Z level=INFO msg="backup done" job=14 point=7 kind=incremental seconds=2.187670629
+2026-11-17T18:35:24.454365+0000 gaia-lab systemd[1]: Stopping gaia-t19-server.service - Gaia backup and recoverability server...
+2026-11-17T18:35:24.455728+0000 gaia-lab gaia-t19[297374]: time=2026-11-17T18:35:24.455Z level=INFO msg="shutting down"
+2026-11-17T18:35:24.487619+0000 gaia-lab systemd[1]: gaia-t19-server.service: Deactivated successfully.
+2026-11-17T18:35:24.487865+0000 gaia-lab systemd[1]: Stopped gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T18:35:24.488175+0000 gaia-lab systemd[1]: gaia-t19-server.service: Consumed 1min 22.183s CPU time.
+2026-11-17T18:36:43.739604+0000 gaia-lab systemd[1]: Started gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T18:36:43.952995+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:36:43.952Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T18:36:43.960518+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:36:43.960Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=7285cef92ffe schema=7
+2026-11-17T18:36:43.961090+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:36:43.960Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T18:39:10.437764+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:39:10.437Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T18:39:14.423074+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:39:14.422Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T18:39:14.681511+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:39:14.681Z level=INFO msg="state backup stored" id=1 repository=main snapshot=94b781dfb77de883ff0d190e5b08d2d3 bytes=210432
+2026-11-17T18:39:19.186551+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:39:19.186Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=5.20488271
+2026-11-17T18:40:01.972861+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:40:01.972Z level=INFO msg="restore test" vm=gaia-t19 test=1 point=1 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 17.2 s = restore 6.2 s + ready 11.0 s"
+2026-11-17T18:40:02.020378+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:40:02.020Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 47s <= 20m0s, proven RTO 17s <= 10m0s, proof age 0s <= 30m0s"
+2026-11-17T18:40:14.090777+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:40:14.090Z level=ERROR msg="backup failed" job=3 error="SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain"
+2026-11-17T18:40:27.002884+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:40:27.002Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1]"
+2026-11-17T18:40:27.015273+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:40:27.015Z level=INFO msg="repository verification" id=2 repository=main mode=full state=critical points=1 affected=1 skipped_failed=0
+2026-11-17T18:44:14.931712+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:44:14.931Z level=INFO msg="state backup stored" id=2 repository=main snapshot=04006f9934c903ab096e223f26389086 bytes=241152
+2026-11-17T18:45:19.277662+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:45:19.277Z level=INFO msg="backup done" job=4 point=2 kind=full seconds=5.298350567
+2026-11-17T18:45:59.081191+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:45:59.081Z level=INFO msg="restore test" vm=gaia-t19 test=2 point=2 verdict=OK reason="every check passed (boot 11.0 s); proven RTO 14.2 s = restore 3.2 s + ready 11.0 s"
+2026-11-17T18:46:18.235124+0000 gaia-lab gaia-t19[303215]: time=2026-11-17T18:46:18.234Z level=INFO msg="shutting down"
+2026-11-17T18:46:18.234894+0000 gaia-lab systemd[1]: Stopping gaia-t19-server.service - Gaia backup and recoverability server...
+2026-11-17T18:46:18.269475+0000 gaia-lab systemd[1]: gaia-t19-server.service: Deactivated successfully.
+2026-11-17T18:46:18.269713+0000 gaia-lab systemd[1]: Stopped gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T18:46:18.270005+0000 gaia-lab systemd[1]: gaia-t19-server.service: Consumed 39.294s CPU time.
+2026-11-17T18:47:48.171527+0000 gaia-lab systemd[1]: Started gaia-t19-server.service - Gaia backup and recoverability server.
+2026-11-17T18:47:48.393118+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:47:48.392Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T18:47:48.398368+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:47:48.398Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=4a971ea4efdc schema=7
+2026-11-17T18:47:48.398606+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:47:48.398Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T18:50:17.302446+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:50:17.302Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T18:50:19.143110+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:50:19.142Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T18:50:19.996445+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:50:19.996Z level=INFO msg="state backup stored" id=1 repository=main snapshot=0ce5b1e3daf5b5ebc4b15dfd6de38a06 bytes=210432
+2026-11-17T18:50:26.627879+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:50:26.627Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=8.022851654
+2026-11-17T18:51:24.216278+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:51:24.216Z level=INFO msg="restore test" vm=gaia-t19 test=1 point=1 verdict=OK reason="every check passed (boot 13.0 s); proven RTO 32.4 s = restore 19.3 s + ready 13.0 s"
+2026-11-17T18:51:24.286877+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:51:24.286Z level=INFO msg="VM status changed" vm=1 status=OK reason="point 1 is proven by test 1: proven RPO 1m4s <= 20m0s, proven RTO 32s <= 10m0s, proof age 0s <= 30m0s"
+2026-11-17T18:51:33.471704+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:51:33.471Z level=ERROR msg="backup failed" job=3 error="SSH to gaia-t19-backup@192.168.1.30: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain"
+2026-11-17T18:51:40.479967+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:51:40.479Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1]"
+2026-11-17T18:51:40.488675+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:51:40.488Z level=INFO msg="repository verification" id=2 repository=main mode=full state=critical points=1 affected=1 skipped_failed=0
+2026-11-17T18:55:19.619159+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:55:19.619Z level=INFO msg="state backup stored" id=2 repository=main snapshot=d413bcea23138126fdaa96f769bd5661 bytes=241152
+2026-11-17T18:56:37.895046+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:56:37.895Z level=INFO msg="backup done" job=4 point=2 kind=full seconds=4.479081739
+2026-11-17T18:57:23.406323+0000 gaia-lab gaia-t19[305864]: time=2026-11-17T18:57:23.406Z level=INFO msg="restore test" vm=gaia-t19 test=2 point=2 verdict=OK reason="every check passed (boot 13.1 s); proven RTO 16.5 s = restore 3.5 s + ready 13.1 s"

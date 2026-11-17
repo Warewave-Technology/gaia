@@ -1,0 +1,22 @@
+From: Gaia T19 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: gaia-t19: UNKNOWN -> OK
+Date: Tue, 17 Nov 2026 18:51:28 +0000
+Message-ID: <gaia-5-status-31@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: status
+Content-Type: multipart/mixed; boundary=745c1a2996d8cf41756fbe5769a6e69d05172977c45b36a6ce017e4de8db
+
+--745c1a2996d8cf41756fbe5769a6e69d05172977c45b36a6ce017e4de8db
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+VM gaia-t19 is OK (was UNKNOWN) since 2026-11-17T18:51:24.267624099Z.
+Why: point 1 is proven by test 1: proven RPO 1m4s <=3D 20m0s, proven RTO 32=
+s <=3D 10m0s, proof age 0s <=3D 30m0s
+
+--=20
+Gaia, installation gaia-lab (evidence key 1567fbe43cc4ba83d9eadc99318d2df29=
+8a0ecbd39f6629e58dd342dd1a6b7f5)
+
+--745c1a2996d8cf41756fbe5769a6e69d05172977c45b36a6ce017e4de8db--

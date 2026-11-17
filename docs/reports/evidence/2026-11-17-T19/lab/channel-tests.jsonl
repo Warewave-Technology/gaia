@@ -1,0 +1,42 @@
+{
+  "id": 1,
+  "channel_id": 1,
+  "event": "test",
+  "ref": 1794941271954778173,
+  "subject": "Gaia gaia-lab: test message (channel mail)",
+  "body": {
+    "event": "test",
+    "installation": "gaia-lab",
+    "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+    "at": "2026-11-17T18:47:51.954778173Z",
+    "subject": "Gaia gaia-lab: test message (channel mail)",
+    "text": "A test message, sent at 2026-11-17T18:47:51.954778173Z on the request of admin. If you read this, channel mail works."
+  },
+  "state": "sent",
+  "attempts": 1,
+  "next_attempt_at": "2026-11-17T18:47:51.954935883Z",
+  "last_error": "",
+  "created_at": "2026-11-17T18:47:51.954935883Z",
+  "finished_at": "2026-11-17T18:47:51.967958009Z"
+}
+{
+  "id": 2,
+  "channel_id": 2,
+  "event": "test",
+  "ref": 1794941272212438388,
+  "subject": "Gaia gaia-lab: test message (channel hook)",
+  "body": {
+    "event": "test",
+    "installation": "gaia-lab",
+    "evidence_key_id": "1567fbe43cc4ba83d9eadc99318d2df298a0ecbd39f6629e58dd342dd1a6b7f5",
+    "at": "2026-11-17T18:47:52.212438388Z",
+    "subject": "Gaia gaia-lab: test message (channel hook)",
+    "text": "A test message, sent at 2026-11-17T18:47:52.212438388Z on the request of admin. If you read this, channel hook works."
+  },
+  "state": "sent",
+  "attempts": 1,
+  "next_attempt_at": "2026-11-17T18:47:52.212617267Z",
+  "last_error": "",
+  "created_at": "2026-11-17T18:47:52.212617267Z",
+  "finished_at": "2026-11-17T18:47:52.231242041Z"
+}

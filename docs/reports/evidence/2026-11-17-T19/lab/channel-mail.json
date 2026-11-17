@@ -1,0 +1,28 @@
+{
+  "id": 1,
+  "name": "mail",
+  "kind": "smtp",
+  "config": {
+    "host": "127.0.0.1",
+    "port": 2587,
+    "security": "starttls",
+    "username": "gaia",
+    "from": "Gaia T19 \u003cgaia@lab.test\u003e",
+    "to": [
+      "ops@lab.test"
+    ],
+    "ca_pem": "-----BEGIN CERTIFICATE-----\nMIIBiDCCAS+gAwIBAgIUdO+eYxl/UeatfctxutmAi5hS9tQwCgYIKoZIzj0EAwIw\nGjEYMBYGA1UEAwwPZ2FpYS10MTkgbGFiIENBMB4XDTI2MTExNzE4NDc0NVoXDTI2\nMTEyNDE4NDc0NVowGjEYMBYGA1UEAwwPZ2FpYS10MTkgbGFiIENBMFkwEwYHKoZI\nzj0CAQYIKoZIzj0DAQcDQgAEH6fIBmedoIDOfhYD2/0vbrHtae8UOIBrUJk6SfcE\nBEntK03syBnloszV7BKWJ3Fycom28xmRuT1Z9Ocka/xbn6NTMFEwHQYDVR0OBBYE\nFJrzhOEz19RU21t9LHfr+Tke6Y09MB8GA1UdIwQYMBaAFJrzhOEz19RU21t9LHfr\n+Tke6Y09MA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDRwAwRAIgMsccpnPN\nAEB3lezDEk7qUt7pgA67D8C38N3+sVO+ehkCIHEohj+bM9DRleTKOe+rVeDLxxo8\niCJhMtXI0s+d5ofQ\n-----END CERTIFICATE-----\n"
+  },
+  "events": [
+    "daily_report",
+    "integrity",
+    "job_failed",
+    "ledger",
+    "quarantine",
+    "status"
+  ],
+  "enabled": true,
+  "cursor": 4,
+  "created_at": "2026-11-17T18:47:51.35063171Z",
+  "updated_at": "2026-11-17T18:47:51.35063171Z"
+}
