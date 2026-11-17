@@ -77,7 +77,12 @@ if [[ ! -s "$IMAGES/$IMG" ]]; then
 fi
 curl -fsSL "$CLOUD_URL/SHA512SUMS" -o "$WORK/SHA512SUMS"
 grep " $IMG\$" "$WORK/SHA512SUMS"
-(cd "$IMAGES" && grep " $IMG\$" "$WORK/SHA512SUMS" | sha512sum -c -)
+# "latest" moves: a cached image that no longer matches is downloaded again, once, and must match then.
+if ! (cd "$IMAGES" && grep " $IMG\$" "$WORK/SHA512SUMS" | sha512sum -c -); then
+	echo "the cached $IMG is not the current one: downloading it again"
+	curl -fsSL "$CLOUD_URL/$IMG" -o "$IMAGES/$IMG.part" && mv "$IMAGES/$IMG.part" "$IMAGES/$IMG"
+	(cd "$IMAGES" && grep " $IMG\$" "$WORK/SHA512SUMS" | sha512sum -c -)
+fi
 
 esxi "$DATASTORE" <<'EOF'
 [ -d "/vmfs/volumes/$1" ] || { echo "no datastore $1"; ls /vmfs/volumes; exit 1; }
