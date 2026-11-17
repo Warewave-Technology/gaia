@@ -78,7 +78,7 @@ const (
 
 // Severity of a finding: what was not checked is UNKNOWN; everything else is a failed check.
 func Severity(code string) string {
-	if code == CodeFormatUnsupported || code == CodeAnchorMissing {
+	if code == CodeFormatUnsupported || code == CodeAnchorMissing || code == CodeHeadUnverifiable {
 		return Unknown
 	}
 	return Critical
@@ -145,6 +145,7 @@ type LedgerReport struct {
 	Findings []Finding      `json:"findings"` // ledger-level
 	Problems []string       `json:"problems"` // the ledger-level findings as text
 	Bundles  []BundleReport `json:"bundles"`
+	Heads    []HeadCheck    `json:"heads"`  // the head statements given, in order (head.go)
 	Intact   bool           `json:"intact"` // verdict OK
 }
 
@@ -176,6 +177,9 @@ func (r *LedgerReport) done() LedgerReport {
 	r.Problems = findingText(r.Findings)
 	if r.Keys == nil {
 		r.Keys = []string{}
+	}
+	if r.Heads == nil {
+		r.Heads = []HeadCheck{}
 	}
 	return *r
 }
@@ -820,6 +824,11 @@ type ledgerScan struct {
 	current  ed25519.PublicKey
 	keys     []string
 	bundles  []bundleRef
+	// For head statements (head.go): per entry read, its hash and the key current after it; and every key that was
+	// current at some point, by key_id.
+	hashes []string
+	after  []ed25519.PublicKey
+	known  map[string]ed25519.PublicKey
 }
 
 func (s *ledgerScan) bundleIDs() map[string]bool {
@@ -839,7 +848,7 @@ func (s *ledgerScan) add(code string, n int, detail string) {
 // scanLedger is the specification's ledger procedure (§8.2, steps L2–L4) over the ledger's bytes. With anchor
 // nil the genesis key is taken as given, and reported as anchor_missing if reportAnchor.
 func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledgerScan {
-	s := &ledgerScan{}
+	s := &ledgerScan{known: map[string]ed25519.PublicKey{}}
 	raw := bytes.Split(data, []byte("\n"))
 	truncated := len(raw[len(raw)-1]) > 0
 	if !truncated {
@@ -914,6 +923,7 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 				return s
 			}
 			s.current, s.keys = anchor, []string{KeyID(anchor)}
+			s.known[KeyID(anchor)] = anchor
 		} else if e.keyID != KeyID(s.current) {
 			s.add(CodeSignerInvalid, n, fmt.Sprintf("key_id %s, the current key is %s", e.keyID, KeyID(s.current)))
 		}
@@ -942,8 +952,10 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 		}
 		if next != nil && len(s.findings) == before { // a rotation counts only when its entry passed every check
 			s.current, s.keys = next, append(s.keys, KeyID(next))
+			s.known[KeyID(next)] = next
 		}
 		s.lines, s.last = n, h
+		s.hashes, s.after = append(s.hashes, h), append(s.after, s.current)
 	}
 	return s
 }
@@ -1094,24 +1106,36 @@ func decodeSig64(s string) ([]byte, bool) {
 // every bundle it lists in bundlesDir/<bundle_id>, and that no bundle directory lacks an entry (§8.2).
 // (A ledger cut off together with its newest bundles still verifies: that needs an anchor outside.)
 func VerifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey) (LedgerReport, error) {
+	return VerifyLedgerHeads(ledger, bundlesDir, anchor, nil)
+}
+
+// VerifyLedgerHeads is VerifyLedger with head statements kept outside the ledger (§8.6): each must name an entry the
+// ledger still has, unchanged; a ledger shorter than a statement is ledger_truncated.
+func VerifyLedgerHeads(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte) (LedgerReport, error) {
 	r := &LedgerReport{Ledger: ledger, Format: "v1", Findings: []Finding{}, Bundles: []BundleReport{}}
 	data, err := os.ReadFile(ledger)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		r.add(CodeLedgerMissing, "", err.Error())
+		r.checkHeads(heads, nil, anchor)
 		r.unlisted(bundlesDir, nil)
 		return r.done(), nil
 	case err != nil:
 		return r.done(), err
 	case len(data) == 0:
 		r.add(CodeLedgerEmpty, "", "the ledger has no entries")
+		r.checkHeads(heads, nil, anchor)
 		r.unlisted(bundlesDir, nil)
 		return r.done(), nil
 	case isV0Ledger(data):
 		verifyLedgerV0(r, data, bundlesDir, anchor)
+		for i := range heads {
+			r.add(CodeFormatUnsupported, fmt.Sprintf("head %d", i+1), "head statements need a version 1 ledger")
+		}
 		return r.done(), nil
 	}
 	s := scanLedger(data, anchor, true)
+	r.checkHeads(heads, s, anchor)
 	r.Entries, r.Keys, r.Findings = s.lines, s.keys, append(r.Findings, s.findings...)
 	listed := map[string]bool{}
 	for _, b := range s.bundles {

@@ -1,0 +1,8 @@
+{
+  "description": "the head statement's seq was changed from 3 to 2 without signing it again",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_signature_invalid"
+  ]
+}

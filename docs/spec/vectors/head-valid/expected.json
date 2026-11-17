@@ -1,0 +1,6 @@
+{
+  "description": "a head statement of the ledger's last entry",
+  "mode": "ledger",
+  "verdict": "OK",
+  "findings": []
+}

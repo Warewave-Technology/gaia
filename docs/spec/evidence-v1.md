@@ -6,7 +6,10 @@
 > <https://creativecommons.org/publicdomain/zero/1.0/>. (The Gaia software that implements it is licensed
 > separately, under AGPL-3.0-or-later.)
 
-Status: version 1, 2026-11-16. Reference implementation: Gaia's `internal/evidence`; command `gaia evidence verify`.
+Status: version 1, 2026-11-16. Addition 2026-11-17: head statements (§6.8, §8.6) and their finding codes. The
+addition is optional for a verifier that is given no head statements, and it changes nothing for one that is: every
+document and vector of 2026-11-16 verifies as before. Reference implementation: Gaia's `internal/evidence`; commands
+`gaia evidence verify` and `gaia evidence head`.
 
 ## 1. Purpose
 
@@ -16,7 +19,9 @@ produced. This format makes both tamper-evident:
 
 - every file of a bundle is hashed into a manifest, and the manifest is signed;
 - every ledger entry is signed and carries the hash of the entry before it;
-- the ledger names the keys that sign it, starting from one key that the verifier already trusts.
+- the ledger names the keys that sign it, starting from one key that the verifier already trusts;
+- a **head statement**, a signed record of the ledger's last entry kept somewhere else, lets a verifier detect a
+  ledger that was cut off or rewritten after it.
 
 Anyone holding a ledger, its bundles and the trusted key can check, without trusting the system that produced
 them, that no file was changed, added or removed, and that no entry was changed, removed or reordered (with the
@@ -225,6 +230,27 @@ A writer:
 4. Signs the payload bytes.
 5. Writes the line and flushes it to stable storage.
 
+### 6.8 Head statements
+
+A head statement records, outside the ledger, which entry was the ledger's last at a given time. It has the form of
+a ledger line (§6.2): a JSON object with a string `payload` and a string `sig`, where `sig` is the base64 of the
+Ed25519 signature of the payload bytes. It is not a line of the ledger and is never appended to it. The payload is a
+JSON object:
+
+| Member | Type | Value |
+|---|---|---|
+| `format` | string | `"restore-evidence-head"` |
+| `format_version` | integer | `1` |
+| `time` | string | a time (§2): when the statement was made |
+| `key_id` | string | hex64: the key_id of the key that signed the statement |
+| `seq` | integer | *n* ≥ 1: the number of entries the ledger had |
+| `entry_sha256` | string | hex64: the entry hash of entry *n* |
+
+The statement is signed by the key that was current after entry *n* (§8.2 step 11): the key that would sign
+entry *n* + 1. A producer makes it under the same lock as an append (§6.7) and sends it where the producer cannot
+change it later, for example in a report mailed to other people (§11.1). A file that holds a head statement MAY
+end with a line feed.
+
 ## 7. Versions
 
 - `format` and `format_version` identify this specification. A later version will use a different
@@ -259,7 +285,8 @@ There are two modes:
 
 ### 8.2 Ledger mode
 
-**Input:** the ledger file; the bundles directory *D*; the trust anchor *A* (it may be absent).
+**Input:** the ledger file; the bundles directory *D*; the trust anchor *A* (it may be absent); and a list of head
+statements (§6.8), which may be empty. With an empty list, step L5 adds nothing.
 
 The procedure keeps:
 - the **current key** *K*;
@@ -270,12 +297,13 @@ The procedure keeps:
 *"Stop"* means: end step L2 and go to step L3.
 
 **L1 — read the ledger.**
-- If the file does not exist: report `ledger_missing` and go to L4.
+- If the file does not exist: report `ledger_missing` and go to L4 (and then L5, with no entries read).
 - If it exists but cannot be read (for example, it is a directory): verification ends with an error and no
   verdict. A tool that reports four-level verdicts reports UNKNOWN.
-- If it is empty: report `ledger_empty` and go to L4.
-- If its first line is a version 0 ledger (appendix A), use appendix A instead of this procedure. An
-  implementation without appendix A reports `format_unsupported` and stops.
+- If it is empty: report `ledger_empty` and go to L4 (and then L5, with no entries read).
+- If its first line is a version 0 ledger (appendix A), use appendix A instead of this procedure, and report
+  `format_unsupported` once for each head statement: they need a version 1 ledger. An implementation without
+  appendix A reports `format_unsupported` and stops.
 
 **L2 — entries.** Split the file at line feeds. For each line *n* = 1, 2, … in order:
 
@@ -347,7 +375,9 @@ are ignored. A missing *D*
 adds nothing here (L3 reports the missing bundles); a *D* that exists but cannot be read is reported as
 `bundle_missing`.
 
-The verdict combines all findings of L1–L4. `anchor_missing` is reported once, in L2, not again per bundle.
+**L5 — head statements.** See §8.6.
+
+The verdict combines all findings of L1–L5. `anchor_missing` is reported once, in L2, not again per bundle.
 
 ### 8.3 Finding codes
 
@@ -380,6 +410,11 @@ The verdict combines all findings of L1–L4. `anchor_missing` is reported once,
 | `bundle_duplicate` | CRITICAL | a bundle_id appears in more than one entry |
 | `bundle_hash_mismatch` | CRITICAL | a bundle's `manifest.json` is not the one its entry recorded |
 | `bundle_id_mismatch` | CRITICAL | a bundle's manifest names another bundle_id than its entry and directory |
+| `head_malformed` | CRITICAL | a head statement breaks §6.8 (not JSON, duplicate member, missing or wrong member) |
+| `head_signature_invalid` | CRITICAL | a head statement is not signed by the key it must be signed by (§8.6) |
+| `head_mismatch` | CRITICAL | a head statement names an entry the ledger has, but with another entry hash: the ledger was rewritten |
+| `ledger_truncated` | CRITICAL | a validly signed head statement names an entry beyond the ledger's last: the ledger was cut off |
+| `head_unverifiable` | UNKNOWN | a head statement names an entry beyond the ledger's last, signed by a key the ledger does not lead to |
 
 A verifier MAY report a finding more than once (e.g. one per file) and MAY add detail and locations. Conformance
 (§10) compares verdicts and the *set* of codes.
@@ -429,6 +464,36 @@ An `OK` in ledger mode means:
 It does not mean that the bundles' contents are true: that is the producer's responsibility, which the signature
 makes attributable.
 
+With head statements, an `OK` also means: for every statement, the ledger still holds the entry it names, unchanged.
+It says nothing about entries after the newest statement (§11.1).
+
+### 8.6 Head statements (step L5)
+
+The procedure uses what L2 read:
+- *N*, the number of entries that passed steps 1–5 (0 if L2 did not run);
+- for each such entry *n*, its entry hash *H*(*n*) and the key *K*(*n*) that was current after it (step 11);
+- the **known keys**: *A* if it is given, the genesis key L2 accepted, and every key a rotation made current.
+
+For each head statement, in the order given; its findings carry the statement's position, and the procedure goes
+on with the next statement after a finding:
+
+1. **H1.** Parse it as a JSON object (§2) with a string `payload` and a string `sig`; an unpaired surrogate escape
+   (§6.2) also fails this step. Otherwise report `head_malformed`.
+2. **H2.** Parse the payload bytes as a JSON object (§2). `format` must be the string `"restore-evidence-head"` and
+   `format_version` an integer; otherwise report `head_malformed`. If `format_version` is not `1`, report
+   `format_unsupported`.
+3. **H3.** Check the members of §6.8: `time` is a time, `key_id` and `entry_sha256` are hex64, and `seq` is an
+   integer of at least 1. Otherwise report `head_malformed`.
+4. **H4.** Let *n* = `seq`.
+   - If *n* ≤ *N*: `key_id` must be key_id(*K*(*n*)) and `sig` must be the base64 of 64 bytes that is a valid
+     signature by *K*(*n*) of the payload bytes; otherwise report `head_signature_invalid`. If it is, and
+     `entry_sha256` ≠ *H*(*n*), report `head_mismatch`.
+   - If *n* > *N*: if no known key has the key_id `key_id`, report `head_unverifiable`. Otherwise, if `sig` is not
+     a valid signature by that key of the payload bytes (decoded as above), report `head_signature_invalid`;
+     otherwise report `ledger_truncated`.
+
+A statement that passes H1–H4 adds no finding.
+
 ## 9. Example
 
 The first two lines of the vector `valid-ledger` (§10), and its trust anchor:
@@ -460,11 +525,12 @@ How these two lines check out:
 | `anchor.pub` | the trust anchor (ledger mode) or the key (bundle mode), base64 of 32 bytes and a line feed; absent: none is given |
 | `bundle/` | bundle mode: the bundle |
 | `ledger.jsonl`, `bundles/` | ledger mode: the ledger file and the bundles directory |
+| `heads/` | ledger mode, optional: head statements (§6.8), one per file, given to the verifier in the order of their file names |
 
 - An implementation **conforms** when, for every vector, it returns exactly the declared verdict and exactly the
   declared set of codes.
-- Vectors include valid ledgers and bundles, a key rotation, and at least one invalid case for each code of §8.3
-  except `v0_integrity`.
+- Vectors include valid ledgers and bundles, a key rotation, head statements, and at least one invalid case for each
+  code of §8.3 except `v0_integrity`.
 - The keys that signed the vectors are test keys derived from published seeds (Gaia's
   `internal/evidence/vectors_test.go`). They sign nothing else and MUST NOT be trusted for anything else.
 - Some vectors contain empty files (`bundles/.keep`) only so that version control keeps an empty directory; such
@@ -477,9 +543,19 @@ How these two lines check out:
 
 A ledger cut off after entry *k*, together with the bundles of the removed entries, verifies as `OK`: nothing
 inside the data can tell that more existed. To detect it, the hash of the last entry (the **ledger head**) must be
-recorded somewhere the producer cannot change, e.g. in reports sent elsewhere (Gaia's design puts it in a daily report), or
-with an RFC 3161 timestamp. A verifier that knows an earlier ledger head can check that it is still the entry hash
-of the same line.
+recorded somewhere the producer cannot change. A head statement (§6.8) is that record: the producer signs it and
+sends it elsewhere (Gaia puts it in its daily report, by email and webhook); a verifier given it (§8.6) reports
+`ledger_truncated` for a ledger cut off before the entry it names, and `head_mismatch` for a ledger rewritten from
+that entry on.
+
+Limits:
+- Entries written after the newest head statement the verifier holds can still be cut off undetected. The more
+  often statements are sent, the shorter that window.
+- The statement proves what the producer's key signed, not when: its `time` is the producer's clock (§11.3). An
+  RFC 3161 timestamp of the statement would prove the time.
+- A statement signed by a key that a truncated ledger no longer leads to cannot be checked (`head_unverifiable`,
+  UNKNOWN): the ledger may have been cut off before a rotation. Keeping the trust anchor and the key_ids of later
+  keys (e.g. from earlier reports) outside the ledger helps the verifier's operator judge such a case.
 
 ### 11.2 Keys
 

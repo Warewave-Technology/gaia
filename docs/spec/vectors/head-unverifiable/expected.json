@@ -1,0 +1,8 @@
+{
+  "description": "a head statement by B of entry 4; the ledger was cut back to before the rotation to B, so nothing it holds can check B's signature",
+  "mode": "ledger",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "head_unverifiable"
+  ]
+}

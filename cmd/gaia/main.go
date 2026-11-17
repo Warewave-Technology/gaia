@@ -3,7 +3,8 @@
 //
 //	gaia verify -config VM.json -image RESTORED.raw -key KEY.pem -evidence-dir DIR -ledger LEDGER [-restore-json R.json]
 //	gaia evidence keygen -key KEY.pem -pub PUB.pem
-//	gaia evidence verify -pubkey PUB.pem (-bundle DIR | -ledger LEDGER -evidence-dir DIR)
+//	gaia evidence verify -pubkey PUB.pem (-bundle DIR | -ledger LEDGER -evidence-dir DIR [-head REPORT.json ...])
+//	gaia evidence head -ledger LEDGER -key KEY.pem > HEAD.json
 //	gaia migrate-check -url https://ESXI/sdk -password-file F -vm A,B -key KEY.pem -evidence-dir DIR -ledger LEDGER
 //
 // `gaia verify` boots the image in an isolated libvirt sandbox on a copy-on-write
@@ -50,8 +51,8 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	// "evidence" is the API resource (list, get, export) and the local tool (keygen, seal, verify, rotate).
-	localEvidence := os.Args[1] == "evidence" && len(os.Args) > 2 && slices.Contains([]string{"keygen", "seal", "verify", "rotate"}, os.Args[2])
+	// "evidence" is the API resource (list, get, export) and the local tool (keygen, seal, verify, rotate, head).
+	localEvidence := os.Args[1] == "evidence" && len(os.Args) > 2 && slices.Contains([]string{"keygen", "seal", "verify", "rotate", "head"}, os.Args[2])
 	if isCLICommand(os.Args[1]) && !localEvidence {
 		os.Exit(runCLI(ctx, os.Args[1:]))
 	}
@@ -71,6 +72,8 @@ func main() {
 			os.Exit(cmdEvidenceVerify(os.Args[3:]))
 		case "rotate":
 			os.Exit(cmdEvidenceRotate(os.Args[3:]))
+		case "head":
+			os.Exit(cmdEvidenceHead(os.Args[3:]))
 		case "seal":
 			os.Exit(cmdEvidenceSeal(os.Args[3:]))
 		}
@@ -94,7 +97,7 @@ func usage() {
   gaia users | hosts | vms | repositories | policies | jobs | points | verifications | quarantine | tests | evidence | audit | state-changes | state-backups VERB ...
   gaia api METHOD PATH [JSON]
   gaia sandbox serve                         the restore-test sandbox helper (root; ADR-007 §5)
-  gaia verify | migrate-check | evidence keygen | seal | verify | rotate   (lab tools)
+  gaia verify | migrate-check | evidence keygen | seal | verify | rotate | head   (lab tools)
 (-h on a server or lab command shows its flags)`)
 	os.Exit(3)
 }
@@ -202,10 +205,30 @@ func cmdEvidenceVerify(args []string) int {
 	bundle := fs.String("bundle", "", "check one bundle directory")
 	ledger := fs.String("ledger", "", "check the ledger and every bundle it lists")
 	evDir := fs.String("evidence-dir", "", "the bundles' directory (with -ledger)")
+	var heads []string
+	fs.Func("head", "a ledger head kept outside the ledger: a head statement, or a daily report holding one (repeatable, with -ledger); a ledger cut off or rewritten after it is CRITICAL", func(v string) error {
+		heads = append(heads, v)
+		return nil
+	})
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
 	if (*bundle == "") == (*ledger == "") || (*ledger != "" && *evDir == "") {
 		return fail(*asJSON, "evidence verify", errors.New("either -bundle or -ledger with -evidence-dir is required"))
+	}
+	if len(heads) > 0 && *ledger == "" {
+		return fail(*asJSON, "evidence verify", errors.New("-head needs -ledger"))
+	}
+	var statements [][]byte
+	for _, h := range heads {
+		b, err := os.ReadFile(h)
+		if err != nil {
+			return fail(*asJSON, "evidence verify", err)
+		}
+		st, err := evidence.HeadFromDocument(b)
+		if err != nil {
+			return fail(*asJSON, "evidence verify", fmt.Errorf("-head %s: %w", h, err))
+		}
+		statements = append(statements, st)
 	}
 	var pub ed25519.PublicKey
 	if *pubPath != "" {
@@ -223,7 +246,7 @@ func cmdEvidenceVerify(args []string) int {
 		r := evidence.VerifyBundle(*bundle, pub)
 		verdict, findings, report = r.Verdict, r.Findings, r
 	} else {
-		r, err := evidence.VerifyLedger(*ledger, *evDir, pub)
+		r, err := evidence.VerifyLedgerHeads(*ledger, *evDir, pub, statements)
 		if err != nil {
 			return fail(*asJSON, "evidence verify", err)
 		}
@@ -238,6 +261,11 @@ func cmdEvidenceVerify(args []string) int {
 			"checked_at": time.Now().UTC(), "findings": findings, "report": report})
 	} else {
 		fmt.Printf("evidence: %s (trust anchor %s)\n", verdict, orNone(anchor))
+		if r, ok := report.(evidence.LedgerReport); ok {
+			for i, h := range r.Heads {
+				fmt.Printf("  head %d: entry %d %s of %s: %s\n", i+1, h.Seq, h.EntrySHA256, h.Time, h.Result)
+			}
+		}
 		for _, f := range findings {
 			where := ""
 			if f.Where != "" {
@@ -322,6 +350,28 @@ func cmdEvidenceRotate(args []string) int {
 	} else {
 		fmt.Printf("ledger %s: entry %d hands over from key %s to %s\n", *ledger, e.Seq, old, evidence.KeyID(next))
 	}
+	return 0
+}
+
+// cmdEvidenceHead prints a head statement of the ledger: keep it outside the ledger, and give it to evidence verify
+// -head later to detect a ledger cut off or rewritten after it (specification §6.8).
+func cmdEvidenceHead(args []string) int {
+	fs := flag.NewFlagSet("evidence head", flag.ExitOnError)
+	ledger := fs.String("ledger", "", "the ledger")
+	keyPath := fs.String("key", "", "the ledger's current private key (PEM)")
+	fs.Parse(args)
+	if *ledger == "" || *keyPath == "" {
+		return fail(false, "evidence head", errors.New("-ledger and -key are required"))
+	}
+	key, err := evidence.LoadPrivateKey(*keyPath)
+	if err != nil {
+		return fail(false, "evidence head", err)
+	}
+	_, b, err := evidence.HeadStatement(*ledger, key, time.Now())
+	if err != nil {
+		return fail(false, "evidence head", err)
+	}
+	fmt.Println(string(b))
 	return 0
 }
 

@@ -1,0 +1,8 @@
+{
+  "description": "a head statement with format_version 2 (validly signed)",
+  "mode": "ledger",
+  "verdict": "UNKNOWN",
+  "findings": [
+    "format_unsupported"
+  ]
+}

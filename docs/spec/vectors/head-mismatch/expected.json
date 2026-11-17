@@ -1,0 +1,8 @@
+{
+  "description": "after a head statement of entry 3, entry 3 and its bundle were replaced by another bundle, validly signed by A",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_mismatch"
+  ]
+}

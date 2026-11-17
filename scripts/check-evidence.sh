@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Conformance of `gaia evidence verify` with the Restore Evidence Format v1 (docs/spec/evidence-v1.md, ADR-006):
-#   1. every vector in docs/spec/vectors gives exactly its declared verdict, finding codes and exit code;
+#   1. every vector in docs/spec/vectors gives exactly its declared verdict, finding codes and exit code (head
+#      statements in a vector's heads/ are passed with -head, in name order);
 #   2. the evidence committed before the specification (v0) still verifies;
 #   3. a key rotation end to end through the CLI: keygen A and B, seal with A, rotate to B, seal with B, verify
 #      against A; A can no longer seal; B is not a trust anchor.
@@ -24,6 +25,9 @@ for v in docs/spec/vectors/*/; do
 		args+=(-bundle "$v/bundle")
 	else
 		args+=(-ledger "$v/ledger.jsonl" -evidence-dir "$v/bundles")
+		for h in "$v"/heads/*.json; do
+			[[ -f "$h" ]] && args+=(-head "$h")
+		done
 	fi
 	rc=0
 	out=$("$GAIA" evidence verify "${args[@]}" -json) || rc=$?
@@ -66,6 +70,20 @@ rc=0
 "$GAIA" evidence verify -pubkey "$tmp/b.pub" -ledger "$tmp/ledger.jsonl" -evidence-dir "$tmp/ev" >/dev/null || rc=$?
 ((rc == 2)) || fail "rotation: the new key accepted as trust anchor (exit $rc)"
 echo "key rotation: checked"
+
+# A head statement kept outside the ledger catches a ledger cut off after it (spec §11.1): the cut ledger alone is OK.
+"$GAIA" evidence head -ledger "$tmp/ledger.jsonl" -key "$tmp/b.pem" >"$tmp/head.json"
+jq -nc --slurpfile h "$tmp/head.json" '{format: "gaia-daily-report", ledger_head: $h[0]}' >"$tmp/report.json"
+"$GAIA" evidence verify -pubkey "$tmp/a.pub" -ledger "$tmp/ledger.jsonl" -evidence-dir "$tmp/ev" -head "$tmp/report.json" >/dev/null ||
+	fail "head: the intact ledger does not verify with its own head"
+head -n 3 "$tmp/ledger.jsonl" >"$tmp/cut.jsonl"
+mv "$tmp/ev/test-2" "$tmp/test-2.removed"
+"$GAIA" evidence verify -pubkey "$tmp/a.pub" -ledger "$tmp/cut.jsonl" -evidence-dir "$tmp/ev" >/dev/null ||
+	fail "head: the cut ledger should verify without the head"
+got=$("$GAIA" evidence verify -pubkey "$tmp/a.pub" -ledger "$tmp/cut.jsonl" -evidence-dir "$tmp/ev" -head "$tmp/report.json" -json |
+	jq -c '{verdict, findings: [.findings[].code]}') || true
+[[ "$got" == '{"verdict":"CRITICAL","findings":["ledger_truncated"]}' ]] || fail "head: cut ledger with its head: $got"
+echo "head statement: checked"
 
 ((fails == 0)) || { echo "$fails failure(s)"; exit 1; }
 echo "OK"

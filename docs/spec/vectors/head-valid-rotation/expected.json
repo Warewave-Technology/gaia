@@ -1,0 +1,6 @@
+{
+  "description": "a head statement by A before a rotation to B, and one by B after it",
+  "mode": "ledger",
+  "verdict": "OK",
+  "findings": []
+}

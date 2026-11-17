@@ -1,0 +1,8 @@
+{
+  "description": "the last entry and its bundle b2 were removed after a head statement of entry 3: without the statement the ledger verifies",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "ledger_truncated"
+  ]
+}

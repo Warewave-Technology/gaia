@@ -1,0 +1,8 @@
+{
+  "description": "the head statement has no entry_sha256",
+  "mode": "ledger",
+  "verdict": "CRITICAL",
+  "findings": [
+    "head_malformed"
+  ]
+}

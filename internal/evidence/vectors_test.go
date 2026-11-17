@@ -151,6 +151,33 @@ func (g vgen) replace(p, old, new string) {
 	g.must(os.WriteFile(filepath.Join(g.dir, p), bytes.Replace(b, []byte(old), []byte(new), 1), 0o644))
 }
 
+// head writes a head statement of the ledger as it is now to heads/<name>.json.
+func (g vgen) head(name string, key ed25519.PrivateKey, at time.Time) {
+	g.t.Helper()
+	_, b, err := HeadStatement(g.ledger(), key, at)
+	g.must(err)
+	g.write("heads/"+name+".json", append(b, '\n'))
+}
+
+// headOf writes a hand-made, validly signed head statement to heads/<name>.json.
+func (g vgen) headOf(name string, p any, key ed25519.PrivateKey) {
+	g.t.Helper()
+	pb, err := json.Marshal(p)
+	g.must(err)
+	b, err := json.Marshal(line{Payload: string(pb), Sig: base64.StdEncoding.EncodeToString(ed25519.Sign(key, pb))})
+	g.must(err)
+	g.write("heads/"+name+".json", append(b, '\n'))
+}
+
+// keepLines cuts the ledger to its first n lines.
+func (g vgen) keepLines(n int) {
+	g.t.Helper()
+	b, err := os.ReadFile(g.ledger())
+	g.must(err)
+	l := strings.SplitAfter(string(b), "\n")
+	g.write("ledger.jsonl", []byte(strings.Join(l[:n], "")))
+}
+
 type vector struct {
 	name, mode, verdict, description string
 	findings                         []string
@@ -403,6 +430,83 @@ var vectors = []vector{
 		g.okLedger()
 		g.replace("bundles/b1/serial.log", "login", "logon")
 	}},
+
+	// --- head statements (§6.8, §8.6) ---
+	{"head-valid", "ledger", OK, "a head statement of the ledger's last entry", nil, func(g vgen) {
+		g.okLedger()
+		g.head("h1", keyA, t0.Add(2*time.Minute))
+	}},
+	{"head-valid-earlier", "ledger", OK, "head statements of entry 2 and of entry 3: the ledger grew after the first",
+		nil, func(g vgen) {
+			g.appendBundle("b1", keyA, t0)
+			g.head("h1", keyA, t0.Add(30*time.Second))
+			g.appendBundle("b2", keyA, t0.Add(time.Minute))
+			g.head("h2", keyA, t0.Add(2*time.Minute))
+			g.anchor(keyA)
+		}},
+	{"head-valid-rotation", "ledger", OK, "a head statement by A before a rotation to B, and one by B after it", nil, func(g vgen) {
+		g.appendBundle("b1", keyA, t0)
+		g.head("h1", keyA, t0.Add(30*time.Second))
+		_, err := RotateAt(g.ledger(), keyA, pubOf(keyB), t0.Add(time.Minute))
+		g.must(err)
+		g.head("h2", keyB, t0.Add(90*time.Second))
+		g.appendBundle("b2", keyB, t0.Add(2*time.Minute))
+		g.anchor(keyA)
+	}},
+	{"head-ledger-truncated", "ledger", Critical, "the last entry and its bundle b2 were removed after a head statement of entry 3: without the statement the ledger verifies",
+		[]string{CodeLedgerTruncated}, func(g vgen) {
+			g.okLedger()
+			g.head("h1", keyA, t0.Add(2*time.Minute))
+			g.keepLines(2)
+			g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b2")))
+		}},
+	{"head-mismatch", "ledger", Critical, "after a head statement of entry 3, entry 3 and its bundle were replaced by another bundle, validly signed by A",
+		[]string{CodeHeadMismatch}, func(g vgen) {
+			g.okLedger()
+			g.head("h1", keyA, t0.Add(2*time.Minute))
+			g.keepLines(2)
+			g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b2")))
+			g.appendBundle("b3", keyA, t0.Add(3*time.Minute))
+		}},
+	{"head-signature-invalid", "ledger", Critical, "the head statement's seq was changed from 3 to 2 without signing it again",
+		[]string{CodeHeadSignatureInvalid}, func(g vgen) {
+			g.okLedger()
+			g.head("h1", keyA, t0.Add(2*time.Minute))
+			g.replace("heads/h1.json", `\"seq\":3`, `\"seq\":2`)
+		}},
+	{"head-malformed", "ledger", Critical, "the head statement has no entry_sha256", []string{CodeHeadMalformed}, func(g vgen) {
+		g.okLedger()
+		g.headOf("h1", map[string]any{"format": HeadFormatV1, "format_version": 1, "time": "2026-11-16T12:02:00Z",
+			"key_id": KeyID(pubOf(keyA)), "seq": 3}, keyA)
+	}},
+	{"head-unverifiable", "ledger", Unknown, "a head statement by B of entry 4; the ledger was cut back to before the rotation to B, so nothing it holds can check B's signature",
+		[]string{CodeHeadUnverifiable}, func(g vgen) {
+			g.appendBundle("b1", keyA, t0)
+			_, err := RotateAt(g.ledger(), keyA, pubOf(keyB), t0.Add(time.Minute))
+			g.must(err)
+			g.appendBundle("b2", keyB, t0.Add(2*time.Minute))
+			g.head("h1", keyB, t0.Add(3*time.Minute))
+			g.keepLines(2)
+			g.must(os.RemoveAll(filepath.Join(g.dir, "bundles", "b2")))
+			g.anchor(keyA)
+		}},
+	{"head-format-unsupported", "ledger", Unknown, "a head statement with format_version 2 (validly signed)", []string{CodeFormatUnsupported}, func(g vgen) {
+		g.okLedger()
+		b, err := os.ReadFile(g.ledger())
+		g.must(err)
+		g.headOf("h1", map[string]any{"format": HeadFormatV1, "format_version": 2, "time": "2026-11-16T12:02:00Z",
+			"key_id": KeyID(pubOf(keyA)), "seq": 3, "entry_sha256": lastHash(g.t, b)}, keyA)
+	}},
+}
+
+// lastHash is the entry hash of a ledger's last line.
+func lastHash(t *testing.T, ledger []byte) string {
+	l := strings.Split(strings.TrimSuffix(string(ledger), "\n"), "\n")
+	var w line
+	if err := json.Unmarshal([]byte(l[len(l)-1]), &w); err != nil {
+		t.Fatal(err)
+	}
+	return sha256Hex([]byte(w.Payload))
 }
 
 func runVector(dir string) (string, []string, error) {
@@ -424,7 +528,17 @@ func runVector(dir string) (string, []string, error) {
 		r := VerifyBundle(filepath.Join(dir, "bundle"), anchor)
 		return r.Verdict, codes(r.Findings), nil
 	}
-	r, err := VerifyLedger(filepath.Join(dir, "ledger.jsonl"), filepath.Join(dir, "bundles"), anchor)
+	var heads [][]byte
+	names, _ := filepath.Glob(filepath.Join(dir, "heads", "*.json"))
+	slices.Sort(names)
+	for _, n := range names {
+		b, err := os.ReadFile(n)
+		if err != nil {
+			return "", nil, err
+		}
+		heads = append(heads, b)
+	}
+	r, err := VerifyLedgerHeads(filepath.Join(dir, "ledger.jsonl"), filepath.Join(dir, "bundles"), anchor, heads)
 	return r.Verdict, codes(r.AllFindings()), err
 }
 
