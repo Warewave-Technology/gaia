@@ -1069,6 +1069,15 @@
           },
           "name": {
             "type": "string"
+          },
+          "s3_access_key_id": {
+            "type": "string"
+          },
+          "s3_ca_pem": {
+            "type": "string"
+          },
+          "s3_secret_access_key": {
+            "type": "string"
           }
         },
         "required": [

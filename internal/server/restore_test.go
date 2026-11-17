@@ -128,8 +128,11 @@ func testedVM(t *testing.T, f *fixture) (store.VM, store.Repository, func(time.T
 	sock := filepath.Join(sockDir, "s.sock")
 	s.sandbox = sandbox.NewClient(sock)
 	var repo store.Repository
-	if st := f.do(f.tokens[store.RoleAdmin], "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`,
-		filepath.Join(f.dir, "repo"), kitPassphrase), &repo); st != 201 {
+	body := fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`, filepath.Join(f.dir, "repo"), kitPassphrase)
+	if f.s3 != "" {
+		body = s3RepoBody(t, "main", f.s3)
+	}
+	if st := f.do(f.tokens[store.RoleAdmin], "POST", "/api/v1/repositories", body, &repo); st != 201 {
 		t.Fatalf("repository: %d", st)
 	}
 	h, _ := s.db.CreateHost(ctx, store.HostInput{Name: "kvm", Address: "kvm", SSHUser: "gaia-backup"})
@@ -192,8 +195,16 @@ func testedVM(t *testing.T, f *fixture) (store.VM, store.Repository, func(time.T
 // the repository alone: the catalog, ledger, evidence and status are those of the state backup, the ledger
 // verifies, what came after the state backup is named, a new kit is written, and the server starts.
 func TestRestoreState(t *testing.T) {
+	t.Run("filesystem", func(t *testing.T) { testRestoreState(t, "") })
+	if loc := s3Location(t); loc != "" {
+		t.Run("s3", func(t *testing.T) { testRestoreState(t, loc) })
+	}
+}
+
+func testRestoreState(t *testing.T, s3 string) {
 	ctx := context.Background()
 	f := newFixture(t)
+	f.s3 = s3
 	vm, repo, test := testedVM(t, f)
 	clock := time.Now().UTC()
 	if rt := test(clock); rt.Verdict != "OK" {

@@ -16,6 +16,9 @@ jobs:
         run: go mod tidy && git diff --exit-code go.mod go.sum
       - name: shellcheck, qemu-utils (internal/nbd is tested against qemu-nbd)
         run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck qemu-utils jq
+      - name: MinIO (internal/diskstore and internal/server test S3 repositories against it)
+        run: scripts/test-minio.sh | sed "s/^export //" >> "$GITHUB_ENV"
       - run: make check
         env:
           GAIA_REQUIRE_QEMU: "1"
+          GAIA_REQUIRE_S3: "1"

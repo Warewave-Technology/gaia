@@ -71,9 +71,16 @@ type UserCreate struct {
 
 // RepositoryCreate creates a Kopia repository.
 type RepositoryCreate struct {
-	Name     string `json:"name"`
-	Kind     string `json:"kind"`     // filesystem (s3: not yet)
-	Location string `json:"location"` // an absolute path for filesystem
+	Name string `json:"name"`
+	Kind string `json:"kind"` // filesystem (default) or s3
+	// filesystem: an absolute path to an empty directory. s3: https://endpoint/bucket[/prefix][?region=name] (http:// for
+	// plain HTTP), an existing bucket with nothing under the prefix.
+	Location string `json:"location"`
+	// s3 only: the access key, and the CA certificates (PEM) to check the endpoint's TLS certificate against when the
+	// system's do not sign it.
+	S3AccessKeyID     string `json:"s3_access_key_id,omitempty"`
+	S3SecretAccessKey string `json:"s3_secret_access_key,omitempty"`
+	S3CAPEM           string `json:"s3_ca_pem,omitempty"`
 	// The passphrase of the recovery kit: a new repository means a new kit, which must open it (ADR-007 B5).
 	KitPassphrase string `json:"kit_passphrase"`
 }

@@ -157,10 +157,20 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 	for _, r := range kit.Repositories {
 		rr := RestoredRepository{Name: r.Name, Location: r.Location, PointsNotInCatalog: []string{}}
 		if loc, moved := o.Locations[r.Name]; moved && loc != r.Location {
-			rr.Location, rr.Moved = loc, true
+			if r.Kind == "s3" {
+				canon, _, err := parseS3Location(loc)
+				if err != nil {
+					return res, fmt.Errorf("-repository %s: %w", r.Name, err)
+				}
+				loc = canon
+			}
+			rr.Location, rr.Moved = loc, loc != r.Location
 		}
-		opts := cfg.repoOptions(r.Name, rr.Location, r.Password)
-		st, err := connectRepository(ctx, opts)
+		opts, err := cfg.repoOptionsFor(r.Name, r.Kind, rr.Location, r.Password, r.S3)
+		var st *diskstore.Store
+		if err == nil {
+			st, err = connectRepository(ctx, opts)
+		}
 		if err != nil {
 			rr.Error = err.Error()
 			res.Problems = append(res.Problems, fmt.Sprintf("repository %s at %s: %v", r.Name, rr.Location, err))
@@ -404,16 +414,26 @@ func writeSecrets(cfg Config, kit recoverykit.Kit, hostnames []string, res *Rest
 		if err := writeExclusive(cfg.repoPasswordFile(r.Name), []byte(r.Password+"\n"), 0o600); err != nil {
 			return err
 		}
+		if r.Kind == "s3" {
+			if r.S3 == nil {
+				return fmt.Errorf("repository %s: the kit has no S3 access key", r.Name)
+			}
+			if err := writeS3Secret(cfg.repoS3File(r.Name), r.S3); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 // connectRepository writes the Kopia client config for a repository and opens it.
 func connectRepository(ctx context.Context, o diskstore.RepoOptions) (*diskstore.Store, error) {
-	if fi, err := os.Stat(o.Path); err != nil {
-		return nil, err
-	} else if !fi.IsDir() {
-		return nil, fmt.Errorf("%s is not a directory", o.Path)
+	if o.S3 == nil {
+		if fi, err := os.Stat(o.Path); err != nil {
+			return nil, err
+		} else if !fi.IsDir() {
+			return nil, fmt.Errorf("%s is not a directory", o.Path)
+		}
 	}
 	if err := diskstore.Connect(ctx, o); err != nil {
 		return nil, err

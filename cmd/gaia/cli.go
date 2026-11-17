@@ -184,6 +184,9 @@ func runCLI(ctx context.Context, args []string) int {
 			}
 		}
 		if cmd == "repositories" {
+			if err := repoS3Secrets(body); err != nil {
+				return fail(asJSON, cmd, err)
+			}
 			if err := repoKitPassphrase(ctx, c, body); err != nil {
 				return fail(asJSON, cmd, err)
 			}

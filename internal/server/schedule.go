@@ -222,11 +222,11 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 		lock := s.repoLocks.get(r.ID)
 		lock.Lock()
 		defer lock.Unlock()
-		pw, err := os.ReadFile(s.repoPasswordFile(r.Name))
+		o, err := s.repoOpts(r)
 		if err != nil {
 			return err
 		}
-		st, err := diskstore.OpenUncached(ctx, s.repoOptions(r.Name, r.Location, strings.TrimSpace(string(pw))))
+		st, err := diskstore.OpenUncached(ctx, o)
 		if err != nil {
 			return err
 		}

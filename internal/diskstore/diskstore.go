@@ -26,7 +26,9 @@ import (
 	"time"
 
 	"github.com/kopia/kopia/repo"
+	"github.com/kopia/kopia/repo/blob"
 	"github.com/kopia/kopia/repo/blob/filesystem"
+	"github.com/kopia/kopia/repo/blob/s3"
 	"github.com/kopia/kopia/repo/compression"
 	"github.com/kopia/kopia/repo/content"
 	"github.com/kopia/kopia/repo/format"
@@ -43,9 +45,10 @@ const (
 	pointType   = "gaia-disk-point"
 )
 
-// RepoOptions locate a filesystem Kopia repository and this client's config and cache.
+// RepoOptions locate a Kopia repository (a directory, or S3-compatible storage) and this client's config and cache.
 type RepoOptions struct {
-	Path       string // repository directory
+	Path       string // repository directory, when S3 is nil
+	S3         *S3    // S3-compatible storage (ADR-007 §4)
 	ConfigFile string // Kopia client config written by Create/Connect
 	Password   string
 	// Cache: T5 measured that an unbounded cache on the repository disk slows restore down,
@@ -61,11 +64,76 @@ type RepoOptions struct {
 	Hash     string
 }
 
+// S3 locates a repository in an S3-compatible bucket, reached over HTTPS unless Insecure.
+type S3 struct {
+	Endpoint        string // host[:port]
+	Bucket          string
+	Prefix          string // inside the bucket; "" or ending in "/"
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
+	RootCA          []byte // PEM certificates to trust instead of the system's; nil = the system's
+	Insecure        bool   // plain HTTP
+}
+
+// String is where the repository is, without credentials.
+func (o RepoOptions) String() string {
+	if o.S3 == nil {
+		return o.Path
+	}
+	scheme := "https"
+	if o.S3.Insecure {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s/%s/%s", scheme, o.S3.Endpoint, o.S3.Bucket, o.S3.Prefix)
+}
+
+// storage opens the repository's blob storage.
+func (o RepoOptions) storage(ctx context.Context, create bool) (blob.Storage, error) {
+	var st blob.Storage
+	var err error
+	if o.S3 == nil {
+		st, err = filesystem.New(ctx, &filesystem.Options{Path: o.Path}, create)
+	} else {
+		st, err = s3.New(ctx, &s3.Options{Endpoint: o.S3.Endpoint, BucketName: o.S3.Bucket, Prefix: o.S3.Prefix, Region: o.S3.Region,
+			AccessKeyID: o.S3.AccessKeyID, SecretAccessKey: o.S3.SecretAccessKey, RootCA: o.S3.RootCA, DoNotUseTLS: o.S3.Insecure}, create)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("repository storage %s: %w", o, err)
+	}
+	return st, nil
+}
+
+// Empty reports whether the storage holds no blob yet: a new repository goes only where nothing is.
+func Empty(ctx context.Context, o RepoOptions) (bool, error) {
+	if o.S3 == nil {
+		des, err := os.ReadDir(o.Path)
+		if errors.Is(err, os.ErrNotExist) {
+			return true, nil
+		}
+		return len(des) == 0, err
+	}
+	st, err := o.storage(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	defer st.Close(ctx)
+	errFound := errors.New("found")
+	err = st.ListBlobs(ctx, "", func(blob.Metadata) error { return errFound })
+	switch {
+	case errors.Is(err, errFound):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("listing %s: %w", o, err)
+	}
+	return true, nil
+}
+
 // Create initialises a new repository with the ADR-004 §2 splitter and connects to it.
 func Create(ctx context.Context, o RepoOptions) error {
-	st, err := filesystem.New(ctx, &filesystem.Options{Path: o.Path}, true)
+	st, err := o.storage(ctx, true)
 	if err != nil {
-		return fmt.Errorf("repository storage %s: %w", o.Path, err)
+		return err
 	}
 	defer st.Close(ctx)
 	sp := o.Splitter
@@ -81,9 +149,9 @@ func Create(ctx context.Context, o RepoOptions) error {
 
 // Connect writes the client config for an existing repository.
 func Connect(ctx context.Context, o RepoOptions) error {
-	st, err := filesystem.New(ctx, &filesystem.Options{Path: o.Path}, false)
+	st, err := o.storage(ctx, false)
 	if err != nil {
-		return fmt.Errorf("repository storage %s: %w", o.Path, err)
+		return err
 	}
 	defer st.Close(ctx)
 	mb := func(n int64) int64 { return n << 20 }

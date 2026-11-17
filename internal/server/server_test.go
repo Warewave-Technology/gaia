@@ -47,6 +47,7 @@ type fixture struct {
 	tokens  map[string]string // role -> token ("" = anonymous)
 	ids     map[string]int64  // path segment -> an existing ID
 	userIDs map[string]int64
+	s3      string // testedVM's repository is S3 at this location (s3Location) instead of a directory
 }
 
 func newFixture(t *testing.T) *fixture {

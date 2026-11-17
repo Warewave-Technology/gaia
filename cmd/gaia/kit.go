@@ -226,6 +226,31 @@ func noKitYet(ctx context.Context, c *client.Client) (bool, error) {
 	return info.Summary.Generation == 0, nil
 }
 
+// repoS3Secrets completes an S3 repository: the secret access key is typed when asked (or comes from
+// $GAIA_S3_SECRET_ACCESS_KEY), never on the command line; s3_ca_file=PATH sends that file's certificates.
+func repoS3Secrets(body map[string]any) error {
+	if _, ok := body["s3_secret_access_key"]; ok {
+		return errors.New("do not put the S3 secret access key on the command line: leave it out and type it when asked (or set GAIA_S3_SECRET_ACCESS_KEY)")
+	}
+	if f, ok := body["s3_ca_file"]; ok {
+		b, err := os.ReadFile(fmt.Sprint(f))
+		if err != nil {
+			return err
+		}
+		delete(body, "s3_ca_file")
+		body["s3_ca_pem"] = string(b)
+	}
+	if body["kind"] != "s3" {
+		return nil
+	}
+	secret, err := readSecret("", "GAIA_S3_SECRET_ACCESS_KEY", "S3 secret access key: ", false)
+	if err != nil {
+		return err
+	}
+	body["s3_secret_access_key"] = secret
+	return nil
+}
+
 // repoKitPassphrase asks for the kit passphrase when a repository is added: twice if it sets the first kit.
 func repoKitPassphrase(ctx context.Context, c *client.Client, body map[string]any) error {
 	if _, ok := body["kit_passphrase"]; ok {

@@ -53,11 +53,10 @@ func (s *Server) stateRepository(ctx context.Context) (store.Repository, error) 
 
 // OpenRepository opens a repository Gaia created, with its stored password.
 func (s *Server) OpenRepository(ctx context.Context, r store.Repository) (*diskstore.Store, error) {
-	pw, err := os.ReadFile(s.repoPasswordFile(r.Name))
+	o, err := s.repoOpts(r)
 	if err != nil {
-		return nil, fmt.Errorf("repository %s: password: %w", r.Name, err)
+		return nil, err
 	}
-	o := s.repoOptions(r.Name, r.Location, strings.TrimSpace(string(pw)))
 	return diskstore.Open(ctx, o.ConfigFile, o.Password)
 }
 

@@ -128,7 +128,13 @@ func buildKit(ctx context.Context, cfg Config, cfgPath string, db *store.DB, gen
 		if err != nil {
 			return k, err
 		}
-		k.Repositories = append(k.Repositories, recoverykit.Repository{ID: r.ID, Name: r.Name, Kind: r.Kind, Location: r.Location, Password: strings.TrimSpace(pw)})
+		kr := recoverykit.Repository{ID: r.ID, Name: r.Name, Kind: r.Kind, Location: r.Location, Password: strings.TrimSpace(pw)}
+		if r.Kind == "s3" {
+			if kr.S3, err = cfg.readS3Secret(r.Name); err != nil {
+				return k, err
+			}
+		}
+		k.Repositories = append(k.Repositories, kr)
 	}
 	k.StateRepository = stateRepositoryName(cfg, repos)
 	return k, nil

@@ -17,6 +17,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/diskstore"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/recoverykit"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -113,26 +114,35 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 	if in.Kind == "" {
 		in.Kind = "filesystem"
 	}
-	switch {
-	case in.Kind == "s3":
-		return 0, nil, fmt.Errorf("%w: S3 repositories (ADR-007 §4) come in a later task", errNotImplemented)
-	case in.Kind != "filesystem":
-		return 0, nil, fmt.Errorf("%w: kind %q (filesystem)", store.ErrInvalid, in.Kind)
-	case !filepath.IsAbs(in.Location) || filepath.Clean(in.Location) != in.Location:
-		return 0, nil, fmt.Errorf("%w: location %q: a clean absolute path", store.ErrInvalid, in.Location)
+	var s3key *recoverykit.S3
+	switch in.Kind {
+	case "filesystem":
+		if !filepath.IsAbs(in.Location) || filepath.Clean(in.Location) != in.Location {
+			return 0, nil, fmt.Errorf("%w: location %q: a clean absolute path", store.ErrInvalid, in.Location)
+		}
+		if in.S3AccessKeyID != "" || in.S3SecretAccessKey != "" || in.S3CAPEM != "" {
+			return 0, nil, fmt.Errorf("%w: S3 fields for a filesystem repository", store.ErrInvalid)
+		}
+	case "s3":
+		canon, _, err := parseS3Location(in.Location)
+		if err != nil {
+			return 0, nil, err
+		}
+		in.Location = canon
+		if in.S3AccessKeyID == "" || in.S3SecretAccessKey == "" {
+			return 0, nil, fmt.Errorf("%w: an S3 repository needs s3_access_key_id and s3_secret_access_key", store.ErrInvalid)
+		}
+		s3key = &recoverykit.S3{AccessKeyID: in.S3AccessKeyID, SecretAccessKey: in.S3SecretAccessKey, CAPEM: in.S3CAPEM}
+	default:
+		return 0, nil, fmt.Errorf("%w: kind %q (filesystem or s3)", store.ErrInvalid, in.Kind)
+	}
+	if !store.ValidName(in.Name) {
+		return 0, nil, fmt.Errorf("%w: a repository name is 1-128 of A-Z a-z 0-9 . _ - and starts with a letter or digit", store.ErrInvalid)
 	}
 	if _, err := s.db.RepositoryByName(ctx, in.Name); err == nil {
 		return 0, nil, fmt.Errorf("%w: a repository named %s exists", store.ErrConflict, in.Name)
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return 0, nil, err
-	}
-	if des, err := os.ReadDir(in.Location); err == nil && len(des) > 0 {
-		return 0, nil, fmt.Errorf("%w: %s is not empty", store.ErrConflict, in.Location)
-	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return 0, nil, fmt.Errorf("%w: %s: %v", store.ErrInvalid, in.Location, err)
-	}
-	if !store.ValidName(in.Name) {
-		return 0, nil, fmt.Errorf("%w: a repository name is 1-128 of A-Z a-z 0-9 . _ - and starts with a letter or digit", store.ErrInvalid)
 	}
 	// The new kit must open the new repository: check its passphrase before anything is made.
 	s.kitMu.Lock()
@@ -145,21 +155,50 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	password := base64.RawURLEncoding.EncodeToString(b)
-	pwFile := s.repoPasswordFile(in.Name)
+	o, err := s.cfg.repoOptionsFor(in.Name, in.Kind, in.Location, password, s3key)
+	if err != nil {
+		return 0, nil, err
+	}
+	if in.Kind == "filesystem" {
+		if des, err := os.ReadDir(in.Location); err == nil && len(des) > 0 {
+			return 0, nil, fmt.Errorf("%w: %s is not empty", store.ErrConflict, in.Location)
+		} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return 0, nil, fmt.Errorf("%w: %s: %v", store.ErrInvalid, in.Location, err)
+		}
+	} else if empty, err := diskstore.Empty(ctx, o); err != nil {
+		return 0, nil, fmt.Errorf("%w: %v", store.ErrInvalid, err)
+	} else if !empty {
+		return 0, nil, fmt.Errorf("%w: %s is not empty", store.ErrConflict, in.Location)
+	}
 	if err := os.MkdirAll(s.cfg.secretsDir(), 0o700); err != nil {
 		return 0, nil, err
 	}
+	var written []string
+	undo := func() {
+		for _, f := range written {
+			if rerr := os.Remove(f); rerr != nil {
+				s.log.Error("removing a secret of a repository that was not created", "file", f, "error", rerr)
+			}
+		}
+	}
+	pwFile := s.repoPasswordFile(in.Name)
 	if err := writeExclusive(pwFile, []byte(password+"\n"), 0o600); err != nil {
 		return 0, nil, err
 	}
-	o := s.repoOptions(in.Name, in.Location, password)
+	written = append(written, pwFile)
+	if s3key != nil {
+		if err := writeS3Secret(s.cfg.repoS3File(in.Name), s3key); err != nil {
+			undo()
+			return 0, nil, err
+		}
+		written = append(written, s.cfg.repoS3File(in.Name))
+	}
 	if err := os.MkdirAll(filepath.Dir(o.ConfigFile), 0o700); err != nil {
+		undo()
 		return 0, nil, err
 	}
 	if err := diskstore.Create(ctx, o); err != nil {
-		if rerr := os.Remove(pwFile); rerr != nil {
-			s.log.Error("removing the password of a repository that was not created", "file", pwFile, "error", rerr)
-		}
+		undo()
 		return 0, nil, fmt.Errorf("creating the repository at %s: %w", in.Location, err)
 	}
 	r, err := s.db.CreateRepository(ctx, store.Repository{Name: in.Name, Kind: in.Kind, Location: in.Location, Splitter: diskstore.Splitter,
@@ -171,7 +210,7 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("repository %s was created, but the recovery kit could not be written (gaia kit regenerate): %w", in.Name, err)
 	}
-	return created(c, fmt.Sprintf("repository %s at %s; recovery kit %d", in.Name, in.Location, kit.Generation), r, r.ID, nil)
+	return created(c, fmt.Sprintf("repository %s (%s) at %s; recovery kit %d", in.Name, in.Kind, in.Location, kit.Generation), r, r.ID, nil)
 }
 
 func writeExclusive(path string, data []byte, mode os.FileMode) error {

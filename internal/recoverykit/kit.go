@@ -63,6 +63,15 @@ type Repository struct {
 	Kind     string `json:"kind"`
 	Location string `json:"location"`
 	Password string `json:"password"`
+	S3       *S3    `json:"s3,omitempty"` // kind s3: how to reach the bucket
+}
+
+// S3 is what opens an S3 bucket besides its location: the access key and, when the endpoint's TLS certificate is not
+// signed by a CA the system trusts, the CA certificates to check it against (PEM).
+type S3 struct {
+	AccessKeyID     string `json:"access_key_id"`
+	SecretAccessKey string `json:"secret_access_key"`
+	CAPEM           string `json:"ca_pem,omitempty"`
 }
 
 // Instructions is the text every kit carries for the person who opens it.
