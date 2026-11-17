@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kopia/kopia/repo"
@@ -96,13 +97,15 @@ type PointVerify struct {
 	Read      int      `json:"read"`       // blocks read
 	BytesRead int64    `json:"bytes_read"` // their size
 	Problems  []string `json:"problems"`   // unreadable or wrong-size blocks; empty = OK
+	Damaged   []Damage `json:"damaged"`    // the contents behind the unreadable blocks (ADR-007 B3)
 }
 
 // VerifyPoint reads a fraction of a point's non-zero blocks (1 = all) through the repository, which checks every
 // content's authenticated encryption on the way. Open the store with OpenUncached, or a cached content hides a
-// corrupted one.
+// corrupted one. An unreadable block is diagnosed down to its damaged contents; when the storage itself fails (the
+// error wraps ErrStorage) the verification stops, since nothing can be said about the data.
 func (s *Store) VerifyPoint(ctx context.Context, id string, fraction float64, rng *rand.Rand) (PointVerify, error) {
-	r := PointVerify{Point: id, Problems: []string{}}
+	r := PointVerify{Point: id, Problems: []string{}, Damaged: []Damage{}}
 	p, err := s.Point(ctx, id)
 	if err != nil {
 		r.Problems = append(r.Problems, "manifest: "+err.Error())
@@ -110,7 +113,12 @@ func (s *Store) VerifyPoint(ctx context.Context, id string, fraction float64, rn
 	}
 	idx, err := s.loadIndex(ctx, p)
 	if err != nil {
-		r.Problems = append(r.Problems, "block index: "+err.Error())
+		ds, derr := s.diagnose(ctx, p.Index)
+		if derr != nil {
+			return r, fmt.Errorf("point %s: block index: %w", id, derr)
+		}
+		r.Problems = append(r.Problems, "block index: "+err.Error()+damageText(ds))
+		r.Damaged = append(r.Damaged, ds...)
 		return r, nil
 	}
 	var nonzero []int
@@ -136,12 +144,28 @@ func (s *Store) VerifyPoint(ctx context.Context, id string, fraction float64, rn
 		r.BytesRead += n
 		switch {
 		case err != nil:
-			r.Problems = append(r.Problems, fmt.Sprintf("block %d (%s): %v", i, idx.Blocks[i], err))
+			ds, derr := s.diagnose(ctx, idx.Blocks[i])
+			if derr != nil {
+				return r, fmt.Errorf("point %s: block %d: %w", id, i, derr)
+			}
+			if len(ds) == 0 {
+				return r, fmt.Errorf("point %s: block %d: %w: the read failed (%v), but every content reads back now", id, i, ErrStorage, err)
+			}
+			r.Problems = append(r.Problems, fmt.Sprintf("block %d (%s): %v%s", i, idx.Blocks[i], err, damageText(ds)))
+			r.Damaged = append(r.Damaged, ds...)
 		case n != want:
 			r.Problems = append(r.Problems, fmt.Sprintf("block %d is %d bytes, expected %d", i, n, want))
 		}
 	}
 	return r, nil
+}
+
+func damageText(ds []Damage) string {
+	var b strings.Builder
+	for _, d := range ds {
+		fmt.Fprintf(&b, "; damaged content %s: %s", d.Content, d.Reason)
+	}
+	return b.String()
 }
 
 func (s *Store) readAll(ctx context.Context, id string) (int64, error) {
@@ -162,8 +186,17 @@ type MaintenanceResult struct {
 	Mode       string                            `json:"mode"` // quick, full, or "" when none was due
 	GC         *maintenancestats.SnapshotGCStats `json:"gc"`   // Gaia's garbage collection (full mode only)
 	Referenced int                               `json:"referenced_contents"`
-	Seconds    float64                           `json:"seconds"`
+	// Quarantined counts referenced contents GC left deleted because they are quarantined (ADR-007 B3); Unresolved
+	// names points whose damaged block index hides which blocks they use (those blocks are kept only if another point
+	// or archive uses them).
+	Quarantined int      `json:"quarantined_contents"`
+	Unresolved  []string `json:"unresolved_points"`
+	Seconds     float64  `json:"seconds"`
 }
+
+// rewriteSkipEnv makes Kopia's content rewrite skip a deleted content it cannot read instead of failing the whole
+// maintenance. A quarantined content is deleted and unreadable by definition; any other deleted content is garbage.
+const rewriteSkipEnv = "KOPIA_IGNORE_MAINTENANCE_REWRITE_ERROR"
 
 // Maintain runs Kopia's maintenance as it is due (quick hourly, full daily), with Gaia's own garbage collection in
 // place of Kopia's snapshot GC: Gaia's points and archives are not Kopia snapshots, so snapshot GC would find every
@@ -173,7 +206,10 @@ type MaintenanceResult struct {
 // It must not run while a backup writes to the repository.
 func (s *Store) Maintain(ctx context.Context, force bool, safety maintenance.SafetyParameters) (MaintenanceResult, error) {
 	start := time.Now()
-	res := MaintenanceResult{}
+	res := MaintenanceResult{Unresolved: []string{}}
+	if err := os.Setenv(rewriteSkipEnv, "1"); err != nil {
+		return res, err
+	}
 	dr, ok := s.r.(repo.DirectRepository)
 	if !ok {
 		return res, errors.New("maintenance needs a direct repository")
@@ -206,8 +242,8 @@ func (s *Store) Maintain(ctx context.Context, force bool, safety maintenance.Saf
 		res.Mode = string(rp.Mode)
 		if rp.Mode == maintenance.ModeFull {
 			if err := maintenance.ReportRun(ctx, w, maintenance.TaskSnapshotGarbageCollection, nil, func() (maintenancestats.Kind, error) {
-				st, n, err := s.gc(ctx, w, safety, rp.MaintenanceStartTime)
-				res.GC, res.Referenced = st, n
+				st, err := s.gc(ctx, w, safety, rp.MaintenanceStartTime, &res)
+				res.GC = st
 				return st, err
 			}); err != nil {
 				return fmt.Errorf("Gaia garbage collection: %w", err)
@@ -223,22 +259,21 @@ func (s *Store) Maintain(ctx context.Context, force bool, safety maintenance.Saf
 }
 
 // referenced collects the contents reachable from Gaia's manifests: every point's block index and blocks, and every
-// archive's stream.
-func (s *Store) referenced(ctx context.Context, r repo.Repository) (map[content.ID]struct{}, error) {
+// archive's stream. A point's blocks are direct objects, kept by content ID whatever state the content is in; a point
+// whose block index is damaged is listed in unresolved. Any other unreadable object stops the collection: GC must not
+// run on a partial list.
+func (s *Store) referenced(ctx context.Context, r repo.Repository) (map[content.ID]struct{}, []string, error) {
 	used := map[content.ID]struct{}{}
+	unresolved := []string{}
 	seen := map[string]bool{}
 	add := func(id string) error {
 		if id == "" || seen[id] {
 			return nil
 		}
 		seen[id] = true
-		oid, err := object.ParseID(id)
+		cids, err := s.objectContents(ctx, id)
 		if err != nil {
 			return err
-		}
-		cids, err := r.VerifyObject(ctx, oid)
-		if err != nil {
-			return fmt.Errorf("object %s: %w", id, err)
 		}
 		for _, c := range cids {
 			used[c] = struct{}{}
@@ -247,47 +282,60 @@ func (s *Store) referenced(ctx context.Context, r repo.Repository) (map[content.
 	}
 	ms, err := r.FindManifests(ctx, map[string]string{manifest.TypeLabelKey: pointType})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, m := range ms {
 		p, err := s.Point(ctx, string(m.ID))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err := add(p.Index); err != nil {
-			return nil, fmt.Errorf("point %s: %w", m.ID, err)
+			return nil, nil, fmt.Errorf("point %s: %w", m.ID, err)
 		}
 		idx, err := s.loadIndex(ctx, p)
 		if err != nil {
-			return nil, err
+			ds, derr := s.diagnose(ctx, p.Index)
+			switch {
+			case derr != nil:
+				return nil, nil, fmt.Errorf("point %s: block index: %w", m.ID, derr)
+			case len(ds) == 0:
+				return nil, nil, err
+			}
+			unresolved = append(unresolved, string(m.ID))
+			continue
 		}
 		for _, b := range idx.Blocks {
 			if err := add(b); err != nil {
-				return nil, fmt.Errorf("point %s: %w", m.ID, err)
+				return nil, nil, fmt.Errorf("point %s: %w", m.ID, err)
 			}
 		}
 	}
 	as, err := r.FindManifests(ctx, map[string]string{manifest.TypeLabelKey: archiveType})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, m := range as {
 		var a Archive
 		if _, err := r.GetManifest(ctx, m.ID, &a); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err := add(a.ObjectID); err != nil {
-			return nil, fmt.Errorf("archive %s: %w", m.ID, err)
+			return nil, nil, fmt.Errorf("archive %s: %w", m.ID, err)
 		}
 	}
-	return used, nil
+	return used, unresolved, nil
 }
 
-func (s *Store) gc(ctx context.Context, w repo.DirectRepositoryWriter, safety maintenance.SafetyParameters, start time.Time) (*maintenancestats.SnapshotGCStats, int, error) {
+func (s *Store) gc(ctx context.Context, w repo.DirectRepositoryWriter, safety maintenance.SafetyParameters, start time.Time, res *MaintenanceResult) (*maintenancestats.SnapshotGCStats, error) {
 	st := &maintenancestats.SnapshotGCStats{}
-	used, err := s.referenced(ctx, w)
+	used, unresolved, err := s.referenced(ctx, w)
 	if err != nil {
-		return st, 0, err
+		return st, err
+	}
+	res.Referenced, res.Unresolved = len(used), unresolved
+	quarantined, err := quarantinedPacks(ctx, w)
+	if err != nil {
+		return st, err
 	}
 	err = w.ContentReader().IterateContents(ctx, content.IterateOptions{IncludeDeleted: true}, func(ci content.Info) error {
 		size := uint64(ci.PackedLength)
@@ -297,6 +345,10 @@ func (s *Store) gc(ctx context.Context, w repo.DirectRepositoryWriter, safety ma
 			return nil
 		}
 		if _, ok := used[ci.ContentID]; ok {
+			if ci.Deleted && quarantined[ci.ContentID] == ci.PackBlobID {
+				res.Quarantined++
+				return nil
+			}
 			if ci.Deleted {
 				if err := w.ContentManager().UndeleteContent(ctx, ci.ContentID); err != nil {
 					return fmt.Errorf("undelete referenced content %v: %w", ci.ContentID, err)
@@ -324,7 +376,7 @@ func (s *Store) gc(ctx context.Context, w repo.DirectRepositoryWriter, safety ma
 		}
 		return nil
 	})
-	return st, len(used), err
+	return st, err
 }
 
 // OpenUncached opens the repository through a client config of its own whose content and metadata caches are off,

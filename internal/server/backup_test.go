@@ -17,23 +17,25 @@ func TestFullReason(t *testing.T) {
 	host := []string{"gaia-1-5", "gaia-1-7"}
 	for _, c := range []struct {
 		name   string
+		demand string
 		parent *store.Point
 		host   []string
 		disks  []libvirtbackup.Disk
 		repo   int64
 		want   string // "" incremental; else a substring of the reason
 	}{
-		{"incremental", parent, host, disks, 1, ""},
-		{"first backup", nil, host, disks, 1, "no earlier checked point"},
-		{"repository changed", parent, host, disks, 2, "repository changed"},
-		{"checkpoint deleted on the host", parent, []string{"gaia-1-5"}, disks, 1, "checkpoint gaia-1-7 of point 7 is not on the host"},
-		{"no checkpoints at all", parent, nil, disks, 1, "is not on the host"},
-		{"disk resized", parent, host, []libvirtbackup.Disk{disks[0], {Target: "vdb", Capacity: 3 << 30}}, 1,
+		{"incremental", "", parent, host, disks, 1, ""},
+		{"quarantine demands a full", "full: repository verification 3 quarantined damaged contents", parent, host, disks, 1, "quarantined damaged contents"},
+		{"first backup", "", nil, host, disks, 1, "no earlier checked point"},
+		{"repository changed", "", parent, host, disks, 2, "repository changed"},
+		{"checkpoint deleted on the host", "", parent, []string{"gaia-1-5"}, disks, 1, "checkpoint gaia-1-7 of point 7 is not on the host"},
+		{"no checkpoints at all", "", parent, nil, disks, 1, "is not on the host"},
+		{"disk resized", "", parent, host, []libvirtbackup.Disk{disks[0], {Target: "vdb", Capacity: 3 << 30}}, 1,
 			fmt.Sprintf("disk vdb was resized from %d to %d bytes", 2<<30, 3<<30)},
-		{"disk added", parent, host, append(disks, libvirtbackup.Disk{Target: "vdc", Capacity: 1}), 1, "disk vdc is new"},
-		{"disk removed", parent, host, disks[:1], 1, "disk vdb was removed"},
+		{"disk added", "", parent, host, append(disks, libvirtbackup.Disk{Target: "vdc", Capacity: 1}), 1, "disk vdc is new"},
+		{"disk removed", "", parent, host, disks[:1], 1, "disk vdb was removed"},
 	} {
-		got := fullReason(c.parent, pd, c.host, c.disks, c.repo)
+		got := fullReason(c.demand, c.parent, pd, c.host, c.disks, c.repo)
 		if c.want == "" && got != "" || c.want != "" && (!strings.HasPrefix(got, "full: ") || !strings.Contains(got, c.want)) {
 			t.Errorf("%s: %q, want %q", c.name, got, c.want)
 		}

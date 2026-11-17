@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -180,12 +182,14 @@ func (s *Server) startDueVerifications(ctx context.Context, now time.Time) error
 	return nil
 }
 
-// Affected is one damaged disk of a point found by a verification.
+// Affected is one damaged disk of a point found by a verification. Contents are the damaged contents it uses (ADR-007
+// B3): read and found damaged, or found by a search of every point for the contents damaged elsewhere.
 type Affected struct {
 	PointID  int64    `json:"point_id"`
 	VMID     int64    `json:"vm_id"`
 	Disk     string   `json:"disk"`
 	Problems []string `json:"problems"`
+	Contents []string `json:"contents"`
 }
 
 // StartVerification records a verification of a repository and runs it in the background.
@@ -206,10 +210,14 @@ func (s *Server) StartVerification(ctx context.Context, actor string, r store.Re
 	return v, nil
 }
 
-// verify reads every present point of the repository (all blocks, or a sample) without the cache, and names the
-// points it finds damaged; their check state becomes failed.
+// verify reads every present point of the repository that has not failed already (all blocks, or a sample) without the
+// cache. When it finds damaged contents it quarantines them (ADR-007 B3): they leave deduplication, every point that
+// uses them becomes failed with the content IDs as the reason, every VM of those points must back up full next, and the
+// quarantine is an audit entry. A storage error ends the verification as failed and quarantines nothing.
 func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v store.Verification) {
 	affected := []Affected{}
+	skipped := 0
+	var q *quarantineResult
 	err := func() error {
 		lock := s.repoLocks.get(r.ID)
 		lock.Lock()
@@ -232,7 +240,12 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 			fraction = s.cfg.VerifySample
 		}
 		rng := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(v.ID)))
+		damaged := []diskstore.Damage{}
 		for _, p := range pts {
+			if p.CheckState == "failed" { // known to be unusable; pruning removes it
+				skipped++
+				continue
+			}
 			disks, err := s.db.PointDisks(ctx, p.ID)
 			if err != nil {
 				return err
@@ -245,12 +258,21 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 				v.BlocksRead += int64(res.Read)
 				v.BytesRead += res.BytesRead
 				if len(res.Problems) > 0 {
-					affected = append(affected, Affected{PointID: p.ID, VMID: p.VMID, Disk: k.Target, Problems: res.Problems})
+					a := Affected{PointID: p.ID, VMID: p.VMID, Disk: k.Target, Problems: res.Problems, Contents: []string{}}
+					for _, d := range res.Damaged {
+						a.Contents = append(a.Contents, d.Content)
+					}
+					affected = append(affected, a)
+					damaged = append(damaged, res.Damaged...)
 				}
 			}
 			v.PointsChecked++
 		}
-		return nil
+		if len(damaged) == 0 {
+			return nil
+		}
+		q, err = s.quarantine(ctx, st, r, v, pts, damaged, &affected)
+		return err
 	}()
 	v.State = "ok"
 	switch {
@@ -262,18 +284,147 @@ func (s *Server) verify(ctx context.Context, actor string, r store.Repository, v
 	b, _ := json.Marshal(affected)
 	v.Affected = b
 	ctx = context.WithoutCancel(ctx)
+	vms := map[int64]bool{}
 	for _, a := range affected {
-		if _, err := s.db.SetPointCheck(ctx, actor, a.PointID, false, fmt.Sprintf("repository verification %d (%s): disk %s: %s", v.ID, v.Mode, a.Disk, a.Problems[0])); err != nil {
+		reason := fmt.Sprintf("repository verification %d (%s): disk %s: %s", v.ID, v.Mode, a.Disk, a.Problems[0])
+		if len(a.Contents) > 0 {
+			reason = fmt.Sprintf("repository verification %d (%s): disk %s uses damaged contents %s (quarantined): %s", v.ID, v.Mode, a.Disk,
+				strings.Join(a.Contents, ", "), a.Problems[0])
+		}
+		if _, err := s.db.SetPointCheck(ctx, actor, a.PointID, false, reason); err != nil {
 			s.log.Error("marking a damaged point", "point", a.PointID, "error", err)
 		}
-		if _, err := s.refreshStatus(ctx, a.VMID); err != nil {
-			s.log.Error("status", "vm", a.VMID, "error", err)
+		vms[a.VMID] = true
+	}
+	if q != nil {
+		if err := s.recordQuarantine(ctx, actor, r, v, q); err != nil {
+			s.log.Error("recording a quarantine", "verification", v.ID, "error", err)
+			if v.Error == "" {
+				v.Error = "the quarantine was done in the repository but not recorded: " + err.Error()
+			}
 		}
 	}
+	for id := range vms {
+		if _, err := s.refreshStatus(ctx, id); err != nil {
+			s.log.Error("status", "vm", id, "error", err)
+		}
+	}
+	v.PointsSkipped = skipped
 	if _, err := s.db.FinishVerification(ctx, actor, v); err != nil {
 		s.log.Error("finishing a verification", "verification", v.ID, "error", err)
 	}
-	s.log.Info("repository verification", "id", v.ID, "repository", r.Name, "mode", v.Mode, "state", v.State, "points", v.PointsChecked, "affected", len(affected))
+	s.log.Info("repository verification", "id", v.ID, "repository", r.Name, "mode", v.Mode, "state", v.State, "points", v.PointsChecked,
+		"affected", len(affected), "skipped_failed", skipped)
+}
+
+// quarantineResult is what a verification quarantined, for the catalog.
+type quarantineResult struct {
+	Manifest string
+	Contents []store.QuarantinedContent
+	Full     map[int64]string // VM -> why its next backup must be full
+}
+
+// quarantine takes the damaged contents out of deduplication in the repository, and finds every present point that uses
+// them, read or not (a sampled verification reads few blocks): those not already among affected are added to it.
+func (s *Server) quarantine(ctx context.Context, st *diskstore.Store, r store.Repository, v store.Verification, pts []store.Point,
+	damaged []diskstore.Damage, affected *[]Affected) (*quarantineResult, error) {
+	seen := map[string]bool{}
+	var fresh []diskstore.Damage
+	var ids []string
+	for _, d := range damaged {
+		key := d.Content + "@" + d.Pack
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		ids = append(ids, d.Content)
+		done, err := s.db.Quarantined(ctx, r.ID, d.Content, d.Pack)
+		if err != nil {
+			return nil, err
+		}
+		if !done {
+			fresh = append(fresh, d)
+		}
+	}
+	users, err := st.PointsUsing(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("finding the points that use damaged contents: %w", err)
+	}
+	type diskOf struct {
+		point store.Point
+		disk  string
+	}
+	byStore := map[string]diskOf{}
+	for _, p := range pts {
+		disks, err := s.db.PointDisks(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range disks {
+			byStore[k.StoreID] = diskOf{p, k.Target}
+		}
+	}
+	listed := map[string]bool{}
+	for _, a := range *affected {
+		listed[fmt.Sprintf("%d/%s", a.PointID, a.Disk)] = true
+	}
+	pointsOf := map[string][]int64{}
+	res := &quarantineResult{Full: map[int64]string{}}
+	for sid, cids := range users {
+		u, ok := byStore[sid]
+		if !ok { // not a present point of the catalog: pruned already, or made by a lost server (T17)
+			continue
+		}
+		for _, c := range cids {
+			pointsOf[c] = append(pointsOf[c], u.point.ID)
+		}
+		if u.point.CheckState != "failed" && !listed[fmt.Sprintf("%d/%s", u.point.ID, u.disk)] {
+			listed[fmt.Sprintf("%d/%s", u.point.ID, u.disk)] = true
+			*affected = append(*affected, Affected{PointID: u.point.ID, VMID: u.point.VMID, Disk: u.disk, Contents: cids,
+				Problems: []string{"uses damaged contents found in other points: " + strings.Join(cids, ", ")}})
+		}
+	}
+	for _, a := range *affected {
+		if len(a.Contents) > 0 {
+			res.Full[a.VMID] = fmt.Sprintf("full: repository verification %d quarantined damaged contents used by point %d", v.ID, a.PointID)
+		}
+	}
+	if len(fresh) == 0 {
+		return res, nil
+	}
+	qq, err := st.Quarantine(ctx, fresh, fmt.Sprintf("repository verification %d (%s)", v.ID, v.Mode))
+	if err != nil {
+		return nil, fmt.Errorf("quarantine: %w", err)
+	}
+	res.Manifest = qq.ID
+	for _, d := range fresh {
+		pids := slices.Compact(slices.Sorted(slices.Values(pointsOf[d.Content])))
+		res.Contents = append(res.Contents, store.QuarantinedContent{ContentID: d.Content, Pack: d.Pack, Reason: d.Reason, Points: pids})
+	}
+	return res, nil
+}
+
+// recordQuarantine writes the quarantine into the catalog (contents, VMs that must back up full) and the audit log.
+func (s *Server) recordQuarantine(ctx context.Context, actor string, r store.Repository, v store.Verification, q *quarantineResult) error {
+	if err := s.db.RecordQuarantine(ctx, actor, r.ID, v.ID, q.Manifest, q.Contents, q.Full); err != nil {
+		return err
+	}
+	if len(q.Contents) == 0 {
+		return nil
+	}
+	var cs []string
+	for _, c := range q.Contents {
+		cs = append(cs, fmt.Sprintf("%s (%s; points %v)", c.ContentID, c.Reason, c.Points))
+	}
+	var vms []string
+	for id := range q.Full {
+		vms = append(vms, fmt.Sprint(id))
+	}
+	slices.Sort(vms)
+	_, err := s.db.AppendAudit(ctx, store.AuditEntry{Username: actor, Action: "repository quarantine", Target: "repository:" + r.Name,
+		Outcome: http.StatusOK, Detail: fmt.Sprintf("verification %d quarantined %d damaged contents (manifest %s): %s; next backup full for VMs %s",
+			v.ID, len(q.Contents), q.Manifest, strings.Join(cs, "; "), strings.Join(vms, ", "))})
+	return err
 }
 
 // RestoredDisk is one disk of a point restored and hashed.

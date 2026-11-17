@@ -433,6 +433,8 @@ type VM struct {
 	PolicyID  *int64 `json:"policy_id"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
+	// FullBackupReason says why the next backup must be full ("" = no such demand), e.g. a quarantine (ADR-007 B3).
+	FullBackupReason string `json:"full_backup_reason"`
 }
 
 // VMInput registers a VM.
@@ -449,12 +451,12 @@ type VMPatch struct {
 	UUID     *string `json:"uuid,omitempty"`
 }
 
-const vmCols = `id, host_id, name, uuid, policy_id, created_at, updated_at`
+const vmCols = `id, host_id, name, uuid, policy_id, created_at, updated_at, full_backup_reason`
 
 func scanVM(s interface{ Scan(...any) error }) (VM, error) {
 	var v VM
 	var pid sql.NullInt64
-	err := s.Scan(&v.ID, &v.HostID, &v.Name, &v.UUID, &pid, &v.CreatedAt, &v.UpdatedAt)
+	err := s.Scan(&v.ID, &v.HostID, &v.Name, &v.UUID, &pid, &v.CreatedAt, &v.UpdatedAt, &v.FullBackupReason)
 	if pid.Valid {
 		v.PolicyID = &pid.Int64
 	}

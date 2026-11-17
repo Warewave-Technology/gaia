@@ -575,6 +575,15 @@ func (s *Server) table() []route {
 				}
 				return list(s.db.Verifications(c.r.Context(), rid, int(n)))
 			}},
+		{method: "GET", path: "/api/v1/quarantined-contents", summary: "Repository contents a verification found damaged and took out of deduplication (ADR-007 B3)",
+			roles: anyRole, out: []store.QuarantinedContent{}, query: []param{{"repository_id", "integer", "only this repository's"}},
+			h: func(c *call) (int, any, error) {
+				rid, err := c.intQuery("repository_id", 0, 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				return list(s.db.QuarantinedContents(c.r.Context(), rid))
+			}},
 		{method: "GET", path: "/api/v1/verifications/{id}", summary: "One verification, with the points it found damaged", roles: anyRole, out: store.Verification{},
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")

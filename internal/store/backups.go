@@ -289,18 +289,19 @@ type Verification struct {
 	StartedAt     string          `json:"started_at"`
 	FinishedAt    string          `json:"finished_at"`
 	PointsChecked int             `json:"points_checked"`
+	PointsSkipped int             `json:"points_skipped"` // present points not read because they had failed already
 	BlocksRead    int64           `json:"blocks_read"`
 	BytesRead     int64           `json:"bytes_read"`
 	Affected      json.RawMessage `json:"affected"`
 	Error         string          `json:"error"`
 }
 
-const verCols = `id, repository_id, mode, state, reason, started_at, finished_at, points_checked, blocks_read, bytes_read, affected, error`
+const verCols = `id, repository_id, mode, state, reason, started_at, finished_at, points_checked, points_skipped, blocks_read, bytes_read, affected, error`
 
 func scanVer(s interface{ Scan(...any) error }) (Verification, error) {
 	var v Verification
 	var aff string
-	err := s.Scan(&v.ID, &v.RepositoryID, &v.Mode, &v.State, &v.Reason, &v.StartedAt, &v.FinishedAt, &v.PointsChecked, &v.BlocksRead, &v.BytesRead, &aff, &v.Error)
+	err := s.Scan(&v.ID, &v.RepositoryID, &v.Mode, &v.State, &v.Reason, &v.StartedAt, &v.FinishedAt, &v.PointsChecked, &v.PointsSkipped, &v.BlocksRead, &v.BytesRead, &aff, &v.Error)
 	v.Affected = json.RawMessage(aff)
 	return v, err
 }
@@ -331,8 +332,9 @@ func (d *DB) FinishVerification(ctx context.Context, actor string, v Verificatio
 		v.Affected = json.RawMessage("[]")
 	}
 	err := d.tx(ctx, func(tx *sql.Tx) error {
-		r, err := tx.ExecContext(ctx, `UPDATE verifications SET state = ?, finished_at = ?, points_checked = ?, blocks_read = ?, bytes_read = ?,
-			affected = ?, error = ? WHERE id = ? AND state = 'running'`, v.State, d.ts(), v.PointsChecked, v.BlocksRead, v.BytesRead, string(v.Affected), v.Error, v.ID)
+		r, err := tx.ExecContext(ctx, `UPDATE verifications SET state = ?, finished_at = ?, points_checked = ?, points_skipped = ?, blocks_read = ?,
+			bytes_read = ?, affected = ?, error = ? WHERE id = ? AND state = 'running'`, v.State, d.ts(), v.PointsChecked, v.PointsSkipped, v.BlocksRead,
+			v.BytesRead, string(v.Affected), v.Error, v.ID)
 		if err != nil {
 			return err
 		}
@@ -342,6 +344,9 @@ func (d *DB) FinishVerification(ctx context.Context, actor string, v Verificatio
 			return fmt.Errorf("%w: verification %d is not running", ErrConflict, v.ID)
 		}
 		reason := fmt.Sprintf("%d points, %d blocks read", v.PointsChecked, v.BlocksRead)
+		if v.PointsSkipped > 0 {
+			reason += fmt.Sprintf(", %d failed points skipped", v.PointsSkipped)
+		}
 		if v.Error != "" {
 			reason = v.Error
 		}

@@ -568,18 +568,29 @@
           "mode": {
             "type": "string"
           },
+          "quarantined_contents": {
+            "type": "integer"
+          },
           "referenced_contents": {
             "type": "integer"
           },
           "seconds": {
             "type": "number"
+          },
+          "unresolved_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
           "gc",
           "mode",
+          "quarantined_contents",
           "referenced_contents",
-          "seconds"
+          "seconds",
+          "unresolved_points"
         ],
         "type": "object"
       },
@@ -896,6 +907,53 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "QuarantinedContent": {
+        "additionalProperties": false,
+        "properties": {
+          "content_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "manifest": {
+            "type": "string"
+          },
+          "pack": {
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "quarantined_at": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "integer"
+          },
+          "verification_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content_id",
+          "id",
+          "manifest",
+          "pack",
+          "points",
+          "quarantined_at",
+          "reason",
+          "repository_id",
+          "verification_id"
+        ],
         "type": "object"
       },
       "Reason": {
@@ -1429,6 +1487,9 @@
           "created_at": {
             "type": "string"
           },
+          "full_backup_reason": {
+            "type": "string"
+          },
           "host_id": {
             "type": "integer"
           },
@@ -1453,6 +1514,7 @@
         },
         "required": [
           "created_at",
+          "full_backup_reason",
           "host_id",
           "id",
           "name",
@@ -1600,6 +1662,9 @@
           "points_checked": {
             "type": "integer"
           },
+          "points_skipped": {
+            "type": "integer"
+          },
           "reason": {
             "type": "string"
           },
@@ -1622,6 +1687,7 @@
           "id",
           "mode",
           "points_checked",
+          "points_skipped",
           "reason",
           "repository_id",
           "started_at",
@@ -4291,6 +4357,86 @@
         "x-gaia-roles": [
           "admin",
           "operator"
+        ]
+      }
+    },
+    "/api/v1/quarantined-contents": {
+      "get": {
+        "operationId": "get_quarantined_contents",
+        "parameters": [
+          {
+            "description": "only this repository's",
+            "in": "query",
+            "name": "repository_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuarantinedContent"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Repository contents a verification found damaged and took out of deduplication (ADR-007 B3)",
+        "tags": [
+          "quarantined-contents"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
         ]
       }
     },

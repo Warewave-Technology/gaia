@@ -73,10 +73,13 @@ func hostTarget(h store.Host) hostconn.Target {
 	return hostconn.Target{Address: h.Address, Port: h.SSHPort, User: h.SSHUser, HostKey: h.SSHHostKey}
 }
 
-// fullReason decides whether the next backup of a VM must be full, and why. parent is the VM's latest checked point
-// (nil if none); host lists the checkpoints on the host; disks are the VM's disks now.
-func fullReason(parent *store.Point, parentDisks []store.PointDisk, host []string, disks []libvirtbackup.Disk, repoID int64) string {
+// fullReason decides whether the next backup of a VM must be full, and why. demand is the VM's recorded demand for a
+// full backup (a quarantine, ADR-007 B3; "" = none); parent is the VM's latest checked point (nil if none); host lists
+// the checkpoints on the host; disks are the VM's disks now.
+func fullReason(demand string, parent *store.Point, parentDisks []store.PointDisk, host []string, disks []libvirtbackup.Disk, repoID int64) string {
 	switch {
+	case demand != "":
+		return demand
 	case parent == nil:
 		return "full: no earlier checked point of this VM"
 	case parent.RepositoryID != repoID:
@@ -221,6 +224,20 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 		return err
 	}
 
+	// The repository is locked from here on: a verification cannot quarantine contents (and demand a full backup) between
+	// the decision below and the backup it decides.
+	lock := s.repoLocks.get(repo.ID)
+	lock.Lock()
+	defer lock.Unlock()
+	st, err := s.OpenRepository(ctx, repo)
+	if err != nil {
+		return err
+	}
+	defer st.Close(ctx)
+	if vm, err = s.db.VM(ctx, vm.ID); err != nil {
+		return err
+	}
+
 	// Full or incremental, and why.
 	var parent *store.Point
 	var parentDisks []store.PointDisk
@@ -232,20 +249,11 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return err
 	}
-	d.Kind, d.Reason = "full", fullReason(parent, parentDisks, cps, disks, repo.ID)
+	d.Kind, d.Reason = "full", fullReason(vm.FullBackupReason, parent, parentDisks, cps, disks, repo.ID)
 	if d.Reason == "" {
 		d.Kind, d.Parent = "incremental", &parent.ID
 		d.Reason = fmt.Sprintf("incremental from point %d (checkpoint %s)", parent.ID, parent.Checkpoint)
 	}
-
-	lock := s.repoLocks.get(repo.ID)
-	lock.Lock()
-	defer lock.Unlock()
-	st, err := s.OpenRepository(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer st.Close(ctx)
 
 	d.Checkpoint = fmt.Sprintf("gaia-%d-%d", vm.ID, j.ID)
 	if s.restoreTag != "" {
@@ -341,6 +349,11 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	}
 	if len(d.Check) > 0 {
 		return errors.New(reason)
+	}
+	if d.Kind == "full" && vm.FullBackupReason != "" {
+		if err := s.db.ClearFullBackupReason(ctx, "system", vm.ID, fmt.Sprintf("full backup point %d (job %d) passed its post-backup check", pt.ID, j.ID)); err != nil {
+			return err
+		}
 	}
 
 	// Checkpoints on the host: the new one and its parent's stay; older ones of this server go.

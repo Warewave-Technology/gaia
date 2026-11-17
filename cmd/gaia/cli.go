@@ -50,6 +50,7 @@ var resources = map[string]resource{
 	"jobs":          {"/api/v1/jobs", []string{"list", "get"}},
 	"points":        {"/api/v1/points", []string{"list", "get", "disks", "restore-check"}},
 	"verifications": {"/api/v1/verifications", []string{"list", "get"}},
+	"quarantine":    {"/api/v1/quarantined-contents", []string{"list"}},
 	"tests":         {"/api/v1/restore-tests", []string{"list", "get"}},
 	"evidence":      {"/api/v1/evidence", []string{"list", "get", "export"}},
 	"audit":         {"/api/v1/audit", []string{"list", "verify"}},
