@@ -31,6 +31,7 @@ import (
 //	gaia points disks ID | restore-check ID
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
+//	gaia evidence export-all [-o FILE]                   the auditor's export: every bundle, the ledger, the keys, ...
 //	gaia kit status | save | confirm | regenerate | show  the recovery kit (kit.go)
 //	gaia channels add name=N kind=smtp|webhook smtp={...}|webhook={...} [events=[...]] | test ID | set ID enabled=false
 //	gaia ledger list | check                             gaia daily-reports list | get ID | run
@@ -54,7 +55,7 @@ var resources = map[string]resource{
 	"verifications": {"/api/v1/verifications", []string{"list", "get"}},
 	"quarantine":    {"/api/v1/quarantined-contents", []string{"list"}},
 	"tests":         {"/api/v1/restore-tests", []string{"list", "get"}},
-	"evidence":      {"/api/v1/evidence", []string{"list", "get", "export"}},
+	"evidence":      {"/api/v1/evidence", []string{"list", "get", "export", "export-all"}},
 	"audit":         {"/api/v1/audit", []string{"list", "verify"}},
 	"state-changes": {"/api/v1/state-changes", []string{"list"}},
 	"state-backups": {"/api/v1/state-backups", []string{"list", "run"}},
@@ -227,6 +228,9 @@ func runCLI(ctx context.Context, args []string) int {
 		}
 		return 3
 	}
+	if verb == "export-all" && cmd == "evidence" {
+		return writeExport(ctx, c, "/api/v1/evidence-export", "gaia-evidence-export.tar.gz", rest, asJSON, cmd)
+	}
 	id, rest, err := needID()
 	if err != nil {
 		return fail(asJSON, cmd, err)
@@ -277,23 +281,31 @@ func runCLI(ctx context.Context, args []string) int {
 		}
 		return call("POST", res.path+"/"+id+"/disks", body)
 	case "export":
-		out := "gaia-evidence-" + id + ".tar.gz"
-		for i := 0; i+1 < len(rest); i++ {
-			if rest[i] == "-o" {
-				out = rest[i+1]
-			}
-		}
-		b, _, err := c.Do(ctx, "GET", res.path+"/"+id+"/export", nil)
-		if err != nil {
-			return fail(asJSON, cmd, err)
-		}
-		if err := os.WriteFile(out, b, 0o644); err != nil {
-			return fail(asJSON, cmd, err)
-		}
-		fmt.Printf("wrote %s (%d bytes); verify it with the README inside\n", out, len(b))
-		return 0
+		return writeExport(ctx, c, res.path+"/"+id+"/export", "gaia-evidence-"+id+".tar.gz", rest, asJSON, cmd)
 	}
 	return fail(asJSON, cmd, fmt.Errorf("verb %s", verb))
+}
+
+// writeExport saves a tar.gz the server sends (a bundle's or the auditor's export) to -o FILE or a default name.
+func writeExport(ctx context.Context, c *client.Client, path, out string, rest []string, asJSON bool, cmd string) int {
+	for i := 0; i+1 < len(rest); i++ {
+		if rest[i] == "-o" {
+			out = rest[i+1]
+		}
+	}
+	b, _, err := c.Do(ctx, "GET", path, nil)
+	if err != nil {
+		return fail(asJSON, cmd, err)
+	}
+	if err := os.WriteFile(out, b, 0o644); err != nil {
+		return fail(asJSON, cmd, err)
+	}
+	if asJSON {
+		emit(map[string]any{"command": cmd, "file": out, "bytes": len(b)})
+	} else {
+		fmt.Printf("wrote %s (%d bytes); verify it with the README inside\n", out, len(b))
+	}
+	return 0
 }
 
 // channelSecrets takes an SMTP password or a webhook secret from the environment (GAIA_SMTP_PASSWORD,
