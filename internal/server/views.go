@@ -213,6 +213,7 @@ func (s *Server) timeline(ctx context.Context, vmID int64, now time.Time) ([]Tim
 // TestView is a restore test with what the VM page shows of its evidence.
 type TestView struct {
 	store.RestoreTest
+	EvidenceID  int64    `json:"evidence_id"` // the catalog's id of its bundle (0: none), for /evidence/{id}/files
 	LedgerSeq   int      `json:"ledger_seq"`  // 0: no bundle
 	Evidence    string   `json:"evidence"`    // verified, checked, not_checked, none, invalid
 	Screenshots []string `json:"screenshots"` // file names in the bundle
@@ -304,9 +305,9 @@ func (s *Server) vmView(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	seq := map[string]int{}
+	seq, eid := map[string]int{}, map[string]int64{}
 	for _, e := range ev {
-		seq[e.BundleID] = e.LedgerSeq
+		seq[e.BundleID], eid[e.BundleID] = e.LedgerSeq, e.ID
 	}
 	if v.Ledger, err = s.ledgerSummary(ctx); err != nil {
 		return 0, nil, err
@@ -316,7 +317,7 @@ func (s *Server) vmView(c *call) (int, any, error) {
 		if i >= 12 && t.Verdict == "OK" {
 			continue
 		}
-		tv := TestView{RestoreTest: t, LedgerSeq: seq[t.BundleID], Evidence: "none", Screenshots: []string{}}
+		tv := TestView{RestoreTest: t, EvidenceID: eid[t.BundleID], LedgerSeq: seq[t.BundleID], Evidence: "none", Screenshots: []string{}}
 		switch {
 		case t.BundleID == "":
 		case v.Ledger.Verdict == evidence.OK && tv.LedgerSeq > 0 && tv.LedgerSeq <= v.Ledger.HeadSeq:

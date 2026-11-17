@@ -1,0 +1,13 @@
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 7px; border: 1px solid; border-radius: var(--radius);
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.045em; line-height: 1; white-space: nowrap; vertical-align: middle; }
+.g { font-size: 10px; letter-spacing: 0; }
+.critical { color: var(--red); background: var(--red-tint); border-color: var(--red-line); }
+.warning { color: var(--yellow); background: var(--yel-tint); border-color: var(--yel-line); }
+.unknown { color: var(--purple); border-style: dashed; border-color: var(--purple);
+  background: repeating-linear-gradient(-45deg, var(--pur-tint) 0 3px, transparent 3px 6px); }
+.ok { color: var(--fg3); background: transparent; border-color: var(--line-2); }
+.ok .g { color: var(--green); }
+.sm { height: 20px; font-size: 11px; }
+.xs { height: 18px; padding: 0 6px 0 5px; gap: 4px; font-size: 10.5px; }
+.lg { height: 28px; padding: 0 11px 0 9px; font-size: 13px; gap: 8px; }
+.lg .g { font-size: 12px; }

@@ -1,0 +1,26 @@
+/* Gruvbox (morhetz). Dark is the default; light follows the system (docs/design/t20-direction.md).
+   Healthy is quiet: red and yellow only where something is wrong; UNKNOWN purple, never calm. Components use these
+   tokens, never raw hex. */
+:root {
+  --page: #1d2021; --surface: #282828; --raised: #32302f; --line: #3c3836; --line-2: #504945; --ctl: #7c6f64;
+  --fg0: #fbf1c7; --fg1: #ebdbb2; --fg2: #d5c4a1; --fg3: #bdae93; --fg4: #a89984;
+  --red: #fb4934; --yellow: #fabd2f; --green: #b8bb26; --purple: #d3869b; --aqua: #8ec07c; --blue: #83a598;
+  --red-tint: #3a1716; --red-line: #6f2420; --yel-tint: #362a12; --yel-line: #6b5014; --pur-tint: #33262d; --pur-line: #6e4a59;
+  --band0: #2b2a29; --band1: #353230; --band2: #423c38;
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --text-xs: 11px; --text-sm: 12px; --text-md: 14px; --text-lg: 16px; --text-xl: 21px; --text-2xl: 30px; --text-hero: 54px;
+  --gap-1: 4px; --gap-2: 8px; --gap-3: 12px; --gap-4: 16px; --gap-5: 22px; --gap-6: 30px; --gap-7: 48px;
+  --radius: 3px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --page: #fbf1c7; --surface: #f9f5d7; --raised: #f2e5bc; --line: #ebdbb2; --line-2: #d5c4a1; --ctl: #7c6f64;
+    --fg0: #282828; --fg1: #3c3836; --fg2: #504945; --fg3: #665c54; --fg4: #665c54;
+    --red: #9d0006; --yellow: #976311; --green: #74700d; --purple: #8f3f71; --aqua: #427b58; --blue: #076678;
+    --red-tint: #f6d7cc; --red-line: #e3a99a; --yel-tint: #f6e3b5; --yel-line: #dfbd6c; --pur-tint: #efdbe0; --pur-line: #d3a6b8;
+    --band0: #efe3bd; --band1: #e6d6a8; --band2: #d9c595;
+    color-scheme: light;
+  }
+}

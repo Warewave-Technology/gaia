@@ -156,6 +156,8 @@ type SystemInfo struct {
 	Ledger           LedgerSummary            `json:"ledger"`
 	Notifications    NotifySummary            `json:"notifications"`
 	DailyReportAt    string                   `json:"daily_report_at"`
+	Hostname         string                   `json:"hostname"` // the installation's name in the UI
+	Clock            ServerClock              `json:"clock"`
 }
 
 func list[T any](v []T, err error) (int, any, error) {

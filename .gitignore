@@ -5,3 +5,5 @@ bin/
 *.raw
 report.json
 dist/
+!/web/dist/
+web/node_modules/

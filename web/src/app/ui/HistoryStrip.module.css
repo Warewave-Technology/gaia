@@ -1,0 +1,17 @@
+.hs { display: block; overflow: visible; }
+.hr { stroke: var(--line); stroke-width: 1; }
+.base { stroke: var(--line-2); stroke-width: 1; }
+.bk { stroke: var(--fg4); stroke-width: 1.25; }
+.xf { stroke: var(--red); stroke-width: 1.7; fill: none; }
+.tok { fill: var(--aqua); }
+.tf { stroke: var(--red); stroke-width: 1.9; fill: none; stroke-linecap: round; }
+.tw { stroke: var(--yellow); stroke-width: 1.9; fill: none; stroke-linecap: round; }
+.tun { fill: var(--page); stroke: var(--purple); stroke-width: 1.4; stroke-dasharray: 2 1.6; }
+.dmg { fill: var(--red-tint); stroke: var(--red); stroke-width: 1.4; }
+.ret { fill: none; stroke: var(--fg0); stroke-width: 1.6; }
+.now { stroke: var(--blue); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.empty { fill: var(--fg4); font: 11px var(--font); }
+.big .bk { stroke-width: 2; stroke: var(--fg3); }
+.big .base { stroke-width: 1.5; }
+.big .tun { stroke-width: 2; }
+.big .ret { stroke-width: 2.2; }

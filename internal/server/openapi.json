@@ -1920,10 +1920,16 @@
       "SystemInfo": {
         "additionalProperties": false,
         "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
           "daily_report_at": {
             "type": "string"
           },
           "evidence_key_id": {
+            "type": "string"
+          },
+          "hostname": {
             "type": "string"
           },
           "ledger": {
@@ -1964,8 +1970,10 @@
           }
         },
         "required": [
+          "clock",
           "daily_report_at",
           "evidence_key_id",
+          "hostname",
           "ledger",
           "migrations",
           "notifications",
@@ -2012,6 +2020,9 @@
           "evidence": {
             "type": "string"
           },
+          "evidence_id": {
+            "type": "integer"
+          },
           "finished_at": {
             "type": "string"
           },
@@ -2056,6 +2067,7 @@
           "bundle_id",
           "detail",
           "evidence",
+          "evidence_id",
           "finished_at",
           "id",
           "job_id",

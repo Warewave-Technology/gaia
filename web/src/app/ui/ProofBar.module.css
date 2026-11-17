@@ -1,0 +1,9 @@
+.pb { display: block; overflow: visible; }
+.b0 { fill: var(--band0); } .b1 { fill: var(--band1); } .b2 { fill: var(--band2); }
+.bar.ok { fill: var(--fg2); } .bar.warn { fill: var(--yellow); } .bar.crit { fill: var(--red); }
+.none { fill: none; stroke: var(--purple); stroke-dasharray: 3 2; stroke-width: 1; }
+.notch { fill: var(--fg1); }
+.tgt { fill: var(--fg0); }
+.axis { position: relative; display: block; height: 14px; margin-top: 6px; }
+.axis span { position: absolute; top: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--fg4); font-weight: 400; }
+.axis span:last-child { transform: translateX(-100%); }
