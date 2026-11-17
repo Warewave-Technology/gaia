@@ -309,10 +309,12 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	jobDir := filepath.Join(s.cfg.ConvertJobsDir, job)
 	in, out := filepath.Join(jobDir, "in"), filepath.Join(jobDir, "out")
 	for _, p := range []string{jobDir, in, out} {
-		if err := os.MkdirAll(p, 0o2770); err != nil {
+		// setgid: what is made inside belongs to the group gaia-convert, so the converter reads in/ and writes out/
+		// (Go's os.Chmod takes os.ModeSetgid, not 0o2000, and a chmod without it clears the bit the parent gave)
+		if err := os.MkdirAll(p, 0o770|os.ModeSetgid); err != nil {
 			return "", "", "", fmt.Errorf("the converter's job directory: %w", err)
 		}
-		if err := os.Chmod(p, 0o2770); err != nil { // the converter (group gaia-convert) writes out/
+		if err := os.Chmod(p, 0o770|os.ModeSetgid); err != nil {
 			return "", "", "", err
 		}
 	}
@@ -582,7 +584,7 @@ func (s *Server) readinessReport(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	current, err := os.ReadFile(s.cfg.pubPath())
+	current, err := currentKey(s.cfg)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -791,4 +793,14 @@ func (s *Server) migrationView(c *call) (int, any, error) {
 		out.Checks = append(out.Checks, v)
 	}
 	return http.StatusOK, out, nil
+}
+
+// currentKey is the installation's current public key in the specification's key format (base64 of the 32 bytes),
+// which every verifier reads (the PEM file on the server is Gaia's own).
+func currentKey(c Config) ([]byte, error) {
+	pub, err := evidence.LoadPublicKey(c.pubPath())
+	if err != nil {
+		return nil, err
+	}
+	return []byte(base64.StdEncoding.EncodeToString(pub) + "\n"), nil
 }

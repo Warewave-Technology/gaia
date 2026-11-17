@@ -144,7 +144,7 @@ type Result struct {
 func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 	// podman's temporary files ($TMPDIR, inside the service's own directory: the rest of the system is read-only)
 	for _, d := range []string{c.JobsDir, os.TempDir()} {
-		if err := os.MkdirAll(d, 0o2770); err != nil {
+		if err := os.MkdirAll(d, 0o770|os.ModeSetgid); err != nil {
 			return err
 		}
 	}

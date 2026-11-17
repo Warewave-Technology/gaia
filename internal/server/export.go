@@ -51,7 +51,7 @@ func (s *Server) auditExport(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	current, err := os.ReadFile(s.cfg.pubPath())
+	current, err := currentKey(s.cfg)
 	if err != nil {
 		return 0, nil, err
 	}

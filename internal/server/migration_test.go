@@ -48,6 +48,13 @@ func (fc *fakeConverter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	fc.got = append(fc.got, req)
 	in, out := filepath.Join(fc.jobs, req.Job, "in"), filepath.Join(fc.jobs, req.Job, "out")
+	// The converter is another user: it reaches in/ and out/ through their group, which setgid passes down.
+	for _, d := range []string{filepath.Join(fc.jobs, req.Job), in, out} {
+		if fi, err := os.Stat(d); err != nil || fi.Mode()&os.ModeSetgid == 0 || fi.Mode().Perm()&0o070 != 0o070 {
+			http.Error(w, fmt.Sprintf("%s: not setgid and group-writable (%v %v)", d, fi.Mode(), err), 400)
+			return
+		}
+	}
 	if _, err := os.Stat(filepath.Join(in, req.VMX)); err != nil {
 		http.Error(w, "no vmx in the job's in/: "+err.Error(), 400)
 		return
@@ -272,6 +279,9 @@ func TestMigrationCheck(t *testing.T) {
 	cur, err := evidence.LoadPublicKey(filepath.Join(ex, root, "keys", "evidence-key-current.pub"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if b := files[root+"keys/evidence-key-current.pub"]; bytes.Contains(b, []byte("BEGIN")) || len(bytes.TrimSpace(b)) != 44 {
+		t.Fatalf("the current key is not in the specification's format (base64 of 32 bytes): %q", b)
 	}
 	if br := evidence.VerifyBundle(filepath.Join(ex, root, "bundles", mc.BundleID), cur); br.Verdict != evidence.OK {
 		t.Fatalf("the report's bundle: %+v", br)
