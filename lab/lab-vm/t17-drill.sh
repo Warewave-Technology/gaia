@@ -13,9 +13,12 @@
 #   part2 B_IP   server B, a fresh VM with A's repository disk: install guide step 13 with the saved kit only; then
 #                the next backup, the next restore test, the ledger across the rebuild, and the kit opened with the
 #                standalone age tool; writes gate.json
+#   upgrade B_IP the M2 upgrade path (PO decision 2026-11-17: server B stays as the VM every M2 schema change is
+#                tested on): B takes this version by install guide step 12; afterwards the VM's status is OK, the audit
+#                log is intact, and the next backup and restore test run; writes out/upgrade-<rev>/gate.json
 #   cleanup      removes the protected VM, the host user and the drill's directory (servers: t17-servers.sh lose)
 #
-# Usage (on gaia-lab, as root):  lab/lab-vm/t17-drill.sh prepare
+# Usage (on gaia-lab, as root):  lab/lab-vm/t17-drill.sh prepare   (upgrade: lab/lab-vm/t17-drill.sh upgrade <B ip>)
 #   systemd-run --unit=gaia-t17-1 --collect -E HOME=/root lab/lab-vm/t17-drill.sh part1 <A ip>
 #   systemd-run --unit=gaia-t17-2 --collect -E HOME=/root lab/lab-vm/t17-drill.sh part2 <B ip>
 # Env: INTERVAL_S (300: backups), TEST_INTERVAL_S (600), RPO_S (1200), RTO_S (600), MAX_PROOF_S (1800),
@@ -446,6 +449,58 @@ EOF
 	[[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2
 	;;
 
+upgrade)
+	B=${2:?B_IP}
+	# shellcheck disable=SC1091
+	. "$D/state.env"
+	rev=$(git -C "$repo_root" rev-parse --short=12 HEAD)
+	OUT=$D/out/upgrade-$rev
+	mkdir -p "$OUT"
+	exec > >(tee -a "$OUT/upgrade.log") 2>&1
+	stamp upgrade-start
+	api system >"$OUT/before-system.json"
+	section "server B ($B) before: $(jq -r '"\(.version), schema \(.schema_version)"' "$OUT/before-system.json")"
+	snapshot before
+	section "package (guide step 2) and upgrade (step 12, as root on B)"
+	rm -rf "$repo_root/dist"
+	make -C "$repo_root" dist | tail -1
+	NEW=$(pkg_of "$repo_root")
+	v=$(basename "$NEW" -linux-amd64.tar.gz)
+	put "$B" "$NEW" /tmp/
+	on "$B" <<EOF | tee "$OUT/step12.txt"
+set -euo pipefail
+cd /tmp && rm -rf $v-linux-amd64 && tar xzf $v-linux-amd64.tar.gz && cd $v-linux-amd64 && sha256sum -c SHA256SUMS
+install -m 0755 gaia /usr/local/bin/gaia && install -m 0644 gaia.service gaia-sandbox.service /etc/systemd/system/ && systemctl daemon-reload && systemctl try-restart gaia-sandbox && systemctl restart gaia
+sleep 3 && systemctl is-active gaia-sandbox gaia
+EOF
+	workstation_cli "$NEW"
+	for ((i = 0; i < 30; i++)); do api system >"$OUT/after-system.json" 2>/dev/null && break; sleep 2; done
+	jq -c '{version, schema_version, migrations: [.migrations[] | {version, name, applied_at}]}' "$OUT/after-system.json"
+	stamp upgraded
+	section "after: the next backup and restore test"
+	since=$(newest_job)
+	wait_jobs backup 1
+	wait_jobs restore_test 1
+	wait_status OK "B upgraded"
+	snapshot after
+	jq -n --slurpfile b0 "$OUT/before-system.json" --slurpfile b1 "$OUT/after-system.json" \
+		--slurpfile s0 "$OUT/before-status.json" --slurpfile s1 "$OUT/after-status.json" \
+		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" \
+		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --argjson since "$since" '
+		($j1[0] | map(select(.id > $since))) as $new
+		| {schema: {before: $b0[0].schema_version, after: $b1[0].schema_version}, version: {before: $b0[0].version, after: $b1[0].version},
+		   points: {before: ($p0[0] | length), after: ($p1[0] | length)},
+		   status_before: [$s0[0][] | {vm, status, changed_at}], status_after: [$s1[0][] | {vm, status, changed_at}],
+		   next_backup: ($new | map(select(.kind == "backup")) | last | {id, state, reason}),
+		   next_test: ($new | map(select(.kind == "restore_test")) | last | {id, state}),
+		   audit: $a1[0]}
+		| . + {pass: (.schema.after > .schema.before and .next_backup.state == "ok" and .next_test.state == "ok" and .audit.intact
+		              and (.status_after | length > 0 and all(.status == "OK")))}
+		| . + {verdict: (if .pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json"
+	stamp upgrade-end
+	[[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2
+	;;
+
 cleanup)
 	virsh -q destroy "$DOM" 2>/dev/null || true
 	virsh -q undefine "$DOM" --checkpoints-metadata 2>/dev/null || true
@@ -456,7 +511,7 @@ cleanup)
 	rm -rf "$D"
 	;;
 *)
-	sed -n '2,24p' "$0"
+	sed -n '2,27p' "$0"
 	exit 3
 	;;
 esac
