@@ -1253,6 +1253,8 @@ export interface components {
             passphrase: string;
         };
         KitSummary: {
+            confirmed_at?: string;
+            confirmed_by?: string;
             generation: number;
             state: string;
             text: string;

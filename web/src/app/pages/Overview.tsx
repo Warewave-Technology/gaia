@@ -49,7 +49,9 @@ function OverviewBody({ v }: { v: OverviewView }) {
           </div>
           <div>
             <dt>{t.kit}</dt>
-            <dd><StatusChip status={v.recovery_kit.state === 'confirmed' ? 'OK' : 'WARNING'} size="xs" />{v.recovery_kit.text}</dd>
+            <dd><StatusChip status={v.recovery_kit.state === 'confirmed' ? 'OK' : 'WARNING'} size="xs" />{v.recovery_kit.confirmed_at
+              ? t.kitSaved(v.recovery_kit.generation, `${fmt.date(v.recovery_kit.confirmed_at)} ${fmt.hhmm(v.recovery_kit.confirmed_at)}`, v.recovery_kit.confirmed_by ?? '')
+              : v.recovery_kit.text}</dd>
           </div>
         </dl>
         {v.notifications.state !== 'OK' && <div className={s.wide}><Notice tone="warning">{v.notifications.text}</Notice></div>}

@@ -26,6 +26,7 @@ export const en = {
     ledgerText: (n: number, at: string) => `${n} entries, checked ${at}`,
     ledgerUnchecked: 'not checked yet',
     kit: 'Recovery kit',
+    kitSaved: (gen: number, at: string, by: string) => `kit ${gen} saved off the server ${at} by ${by}`,
     cols: {
       vm: 'VM', ret: 'Return to', proof: 'Proven RPO against target', rto: 'Proven RTO', age: 'Proof age',
       hist: (h: number) => `Last ${h} hours`, why: 'Why',
@@ -106,6 +107,8 @@ export const en = {
     export: 'Download the evidence export',
     exportHint: 'every bundle, the ledger, the keys, the newest daily report and its signed head, the specification, and how to verify',
     ledger: 'Ledger',
+    ledgerChecked: (at: string, n: number, problems: string[]) =>
+      `checked ${at}, ${n} entries${problems.length ? ': ' + problems.join('; ') : ''}`,
     anchor: 'Trust anchor',
     anchorHint: 'compare it with the key_id recorded at installation, or in a mailed daily report',
     dailyReport: 'Newest daily report',

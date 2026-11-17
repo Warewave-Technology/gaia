@@ -13,6 +13,12 @@
 .out { margin-left: 6px; background: none; border: 0; padding: 0; color: var(--fg4); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
 .out:hover { color: var(--fg1); }
 @media (max-width: 760px) {
-  .bar { gap: 14px; padding: 0 16px; overflow-x: auto; }
+  /* Two rows: the mark, the clock and the user; then the places. */
+  .bar { height: auto; flex-wrap: wrap; gap: 0 14px; padding: 8px 16px 0; }
+  .mark { margin-right: auto; }
+  .nav { order: 1; flex-basis: 100%; }
+  .nav a { padding: 10px 0 8px; }
+  .clock, .user { white-space: nowrap; }
+  .user { padding-left: 14px; }
   .inst, .role { display: none; }
 }

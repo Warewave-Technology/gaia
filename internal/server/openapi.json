@@ -719,6 +719,12 @@
       "KitSummary": {
         "additionalProperties": false,
         "properties": {
+          "confirmed_at": {
+            "type": "string"
+          },
+          "confirmed_by": {
+            "type": "string"
+          },
           "generation": {
             "type": "integer"
           },

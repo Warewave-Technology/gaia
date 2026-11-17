@@ -36,7 +36,7 @@ export function EvidencePage() {
         </div>
       </section>
       <dl className={s.facts}>
-        <div><dt>{t.ledger}</dt><dd><StatusChip status={l.verdict} size="xs" />{l.text}</dd></div>
+        <div><dt>{t.ledger}</dt><dd><StatusChip status={l.verdict} size="xs" />{l.checked_at ? t.ledgerChecked(`${fmt.date(l.checked_at)} ${fmt.hhmm(l.checked_at)}`, l.entries, l.problems) : l.text}</dd></div>
         <div><dt>{t.anchor}</dt><dd><code>{sys.data.evidence_key_id}</code><span className={s.hint}>{t.anchorHint}</span></dd></div>
         <div><dt>{t.dailyReport}</dt><dd>{rep ? `${rep.id}, ${fmt.date(rep.generated_at)} ${fmt.hhmm(rep.generated_at)}, ledger head at entry ${rep.head_seq}` : '—'}</dd></div>
       </dl>

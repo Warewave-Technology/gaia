@@ -7,3 +7,4 @@ report.json
 dist/
 !/web/dist/
 web/node_modules/
+web/tsconfig.tsbuildinfo

@@ -42,8 +42,4 @@ export function useLogout() {
   })
 }
 
-/** What a role may do on the screens (the API checks it again). */
-export function can(u: User | null | undefined, what: 'act' | 'export'): boolean {
-  if (!u) return false
-  return what === 'act' ? u.role === 'admin' || u.role === 'operator' : u.role === 'admin' || u.role === 'auditor'
-}
+export { can } from '../access'

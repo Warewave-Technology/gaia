@@ -1,0 +1,31 @@
+{
+  "about": "Which role sees which screen, what each screen reads and what it can do. The UI decides from this file (src/app/access.ts); TestPageRoles (internal/server) checks the API answers every role as it says, and access.test.ts checks every API call in src/app is listed here.",
+  "abilities": {
+    "act": ["operator", "admin"],
+    "export": ["auditor", "admin"]
+  },
+  "session": ["POST /api/v1/login", "POST /api/v1/logout"],
+  "pages": [
+    {
+      "path": "/",
+      "name": "Overview",
+      "requires": null,
+      "reads": ["GET /api/v1/me", "GET /api/v1/system", "GET /api/v1/views/overview"],
+      "actions": {}
+    },
+    {
+      "path": "/vms/{id}",
+      "name": "VM",
+      "requires": null,
+      "reads": ["GET /api/v1/me", "GET /api/v1/system", "GET /api/v1/views/vms/{id}", "GET /api/v1/evidence/{id}/files/{name}"],
+      "actions": { "act": ["POST /api/v1/vms/{id}/backups", "POST /api/v1/vms/{id}/tests"] }
+    },
+    {
+      "path": "/evidence",
+      "name": "Evidence",
+      "requires": "export",
+      "reads": ["GET /api/v1/me", "GET /api/v1/system", "GET /api/v1/evidence", "GET /api/v1/vms", "GET /api/v1/daily-reports", "GET /api/v1/evidence-export"],
+      "actions": {}
+    }
+  ]
+}

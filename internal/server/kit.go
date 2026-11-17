@@ -42,6 +42,10 @@ type KitSummary struct {
 	State      string `json:"state"` // confirmed, not confirmed, stale, missing
 	Generation int64  `json:"generation"`
 	Text       string `json:"text"`
+	// When the kit was confirmed as stored off the server, and by whom (state "confirmed" only), for screens that
+	// write the time themselves.
+	ConfirmedAt string `json:"confirmed_at,omitempty"`
+	ConfirmedBy string `json:"confirmed_by,omitempty"`
 }
 
 // KitInfo is the newest kit and the ones before it.
@@ -213,7 +217,8 @@ func kitSummary(ctx context.Context, cfg Config, db *store.DB) (KitSummary, erro
 		return KitSummary{State: "not confirmed", Generation: k.Generation, Text: fmt.Sprintf("recovery kit %d (%s) is not confirmed as stored off this server: run gaia kit save on another machine",
 			k.Generation, k.Reason)}, nil
 	}
-	return KitSummary{State: "confirmed", Generation: k.Generation, Text: fmt.Sprintf("recovery kit %d was saved off the server on %s by %s", k.Generation, k.ConfirmedAt, k.ConfirmedBy)}, nil
+	return KitSummary{State: "confirmed", Generation: k.Generation, Text: fmt.Sprintf("recovery kit %d was saved off the server on %s by %s", k.Generation, k.ConfirmedAt, k.ConfirmedBy),
+		ConfirmedAt: k.ConfirmedAt, ConfirmedBy: k.ConfirmedBy}, nil
 }
 
 // --- handlers ---
