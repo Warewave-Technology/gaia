@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { useT } from '../../i18n'
 import { ApiError } from '../api/errors'
 import { useLogin, useMe } from '../api/session'
-import { Button, Notice } from '../ui'
+import { Button, GaiaMark, Notice } from '../ui'
 import s from './Login.module.css'
 
 export function Login() {
@@ -29,7 +29,7 @@ export function Login() {
     <main className={s.page}>
       <form className={s.form} onSubmit={submit} aria-labelledby="login-title">
         <div className={s.mark} aria-hidden="true">
-          <svg viewBox="0 0 20 20" width="28" height="28"><circle cx="10" cy="10" r="7.25" /><path d="M10 2.75v14.5M2.75 10h14.5" /></svg>
+          <GaiaMark size={30} />
         </div>
         <h1 id="login-title">{t.title}</h1>
         <label className={s.field}>

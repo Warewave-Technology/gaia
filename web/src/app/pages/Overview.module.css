@@ -1,7 +1,8 @@
 .ov { max-width: 1560px; margin: 0 auto; padding: 30px 32px 72px; }
 .fleet { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px 48px; align-items: end; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
 .q h1 { font-size: var(--text-2xl); line-height: 1.12; font-weight: 600; letter-spacing: -0.018em; }
-.q p { margin: 8px 0 0; color: var(--fg4); }
+.q h1 { display: flex; align-items: center; gap: 14px; }
+.qmark { margin-top: 2px; }
 .tally { list-style: none; margin: 0; padding: 0; display: flex; gap: 30px; }
 .tally li { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
 .n { font-size: 34px; line-height: 1; font-weight: 600; color: var(--fg2); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

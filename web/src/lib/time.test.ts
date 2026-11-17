@@ -14,6 +14,15 @@ test('times are shown in the server zone', () => {
   assert.equal(odd.clock('2026-11-17T19:10:00Z'), '22:10:00')
 })
 
+test('a missing or broken time is a dash, not an exception', () => {
+  const utc = serverTime({ now: '2026-11-17T19:16:50Z', zone: 'Etc/UTC', offset_s: 0 })
+  for (const bad of ['', 'not a time']) {
+    assert.equal(utc.clock(bad), '—')
+    assert.equal(utc.hhmm(bad), '—')
+    assert.equal(utc.date(bad), '—')
+  }
+})
+
 test('seconds between two times', () => {
   assert.equal(secondsBetween('2026-11-17T19:10:00Z', '2026-11-17T19:16:50Z'), 410)
 })

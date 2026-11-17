@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>icons</title>
+<style>
+body{margin:0;font:14px system-ui;display:grid;grid-template-columns:1fr 1fr}
+.th{padding:24px} .d{background:#282828;color:#ebdbb2} .l{background:#fbf1c7;color:#3c3836}
+.row{display:flex;gap:28px;align-items:end;margin:0 0 22px} .row span{font-size:12px;opacity:.6;width:20px}
+svg{display:block} .acc{color:#8ec07c} .l .acc{color:#427b58}
+h1{font:600 30px system-ui;margin:0;display:flex;gap:14px;align-items:center}
+</style>
+<template id="t">
+<div class="row"><span>A</span>
+<svg viewBox="0 0 24 24" width="96"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-5.4"/><path d="M16.8 9.8 14.6 12l2.2 2.2"/></g><circle class="acc" cx="12" cy="12" r="1.7" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="32"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-5.4"/><path d="M16.8 9.8 14.6 12l2.2 2.2"/></g><circle class="acc" cx="12" cy="12" r="1.7" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="18"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-5.4"/><path d="M16.8 9.8 14.6 12l2.2 2.2"/></g><circle class="acc" cx="12" cy="12" r="1.9" fill="currentColor"/></svg>
+</div>
+<div class="row"><span>B</span>
+<svg viewBox="0 0 24 24" width="96"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-4"/></g><circle class="acc" cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="32"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-4"/></g><circle class="acc" cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="18"><g fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-4"/></g><circle class="acc" cx="12" cy="12" r="2.6" fill="currentColor"/></svg>
+</div>
+<div class="row"><span>C</span>
+<svg viewBox="0 0 24 24" width="96"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12A8 8 0 1 1 17.66 6.34"/><path d="M17.9 2.9v3.7h-3.7"/></g><circle class="acc" cx="12" cy="12" r="2.3" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="32"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12A8 8 0 1 1 17.66 6.34"/><path d="M17.9 2.9v3.7h-3.7"/></g><circle class="acc" cx="12" cy="12" r="2.3" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="18"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12A8 8 0 1 1 17.66 6.34"/><path d="M17.9 2.9v3.7h-3.7"/></g><circle class="acc" cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+</div>
+<div class="row"><span>D</span>
+<svg viewBox="0 0 24 24" width="96"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".35"/><path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle class="acc" cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<svg viewBox="0 0 24 24" width="32"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".35"/><path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle class="acc" cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+</div>
+<h1><svg viewBox="0 0 24 24" width="36"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.13 6.86A8 8 0 1 0 20 12h-4"/></g><circle class="acc" cx="12" cy="12" r="2.4" fill="currentColor"/></svg>Which point can I return to?</h1>
+</template>
+<div class="th d"></div><div class="th l"></div>
+<script>for(const e of document.querySelectorAll('.th'))e.append(document.getElementById('t').content.cloneNode(true))</script>

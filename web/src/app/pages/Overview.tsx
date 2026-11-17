@@ -4,7 +4,7 @@ import { dur } from '../../lib/duration'
 import { serverTime, type Fmt } from '../../lib/time'
 import { useOverview, type OverviewView, type VMOverview } from '../api/views'
 import { Failed, Loading } from '../layout/States'
-import { HistoryStrip, Legend, Notice, ProofBar, ProofScale, StatusChip, asStatus } from '../ui'
+import { GaiaMark, HistoryStrip, Legend, Notice, ProofBar, ProofScale, StatusChip, asStatus } from '../ui'
 import s from './Overview.module.css'
 
 const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
@@ -29,8 +29,7 @@ function OverviewBody({ v }: { v: OverviewView }) {
     <main className={s.ov}>
       <section className={s.fleet} aria-labelledby="q">
         <div className={s.q}>
-          <h1 id="q">{t.title}</h1>
-          <p>{t.lede(v.vms.length)}</p>
+          <h1 id="q"><GaiaMark size={36} className={s.qmark} />{t.title}</h1>
         </div>
         <ul className={s.tally} aria-label={t.byStatus}>
           {ORDER.map((st) => (

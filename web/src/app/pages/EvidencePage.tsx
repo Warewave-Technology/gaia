@@ -4,7 +4,10 @@ import { serverTime } from '../../lib/time'
 import { can, useMe } from '../api/session'
 import { useDailyReports, useEvidence, useSystem, useVMs } from '../api/views'
 import { Failed, Loading } from '../layout/States'
-import { ButtonLink, StatusChip } from '../ui'
+import { ButtonLink, DataTable, StatusChip, by, type Column } from '../ui'
+import type { components } from '../../api/schema'
+
+type Bundle = components['schemas']['EvidenceBundle']
 import s from './EvidencePage.module.css'
 
 /** The auditor's place (read-only): what the evidence is, its state, and the export that verifies without Gaia. */
@@ -23,12 +26,19 @@ export function EvidencePage() {
   const names = new Map(vms.data.map((v) => [v.id, v.name]))
   const l = sys.data.ledger
   const rep = reps.data[0]
+  const cols: Column<Bundle>[] = [
+    { key: 'seq', header: t.col.seq, numeric: true, compare: by((b) => b.ledger_seq), cell: (b) => b.ledger_seq },
+    { key: 'bundle', header: t.col.bundle, clip: true, compare: by((b) => b.bundle_id), cell: (b) => <code title={b.bundle_id}>{b.bundle_id}</code> },
+    { key: 'vm', header: t.col.vm, compare: by((b) => (b.vm_id ? names.get(b.vm_id) ?? '' : '')), cell: (b) => (b.vm_id ? names.get(b.vm_id) ?? b.vm_id : '—') },
+    { key: 'test', header: t.col.test, numeric: true, compare: by((b) => b.test_id), cell: (b) => b.test_id ?? '—' },
+    { key: 'verdict', header: t.col.verdict, compare: by((b) => b.verdict), cell: (b) => <StatusChip status={b.verdict} size="xs" /> },
+    { key: 'sealed', header: t.col.sealed, numeric: true, compare: by((b) => b.created_at), cell: (b) => `${fmt.date(b.created_at)} ${fmt.clock(b.created_at)}` },
+  ]
   return (
     <main className={s.page}>
       <section className={s.head}>
         <div>
           <h1>{t.title}</h1>
-          <p className={s.lede}>{t.lede}</p>
         </div>
         <div className={s.dl}>
           <ButtonLink href="/api/v1/evidence-export" download>{t.export}</ButtonLink>
@@ -47,21 +57,8 @@ export function EvidencePage() {
       </section>
       <section>
         <h2>{t.bundles} <span className={s.h2s}>{ev.data.length}</span></h2>
-        <table className={s.list}>
-          <thead><tr><th>{t.col.seq}</th><th>{t.col.bundle}</th><th>{t.col.vm}</th><th>{t.col.test}</th><th>{t.col.verdict}</th><th>{t.col.sealed}</th></tr></thead>
-          <tbody>
-            {ev.data.map((b) => (
-              <tr key={b.id}>
-                <td className={s.num}>{b.ledger_seq}</td>
-                <td><code>{b.bundle_id}</code></td>
-                <td>{b.vm_id ? names.get(b.vm_id) ?? b.vm_id : '—'}</td>
-                <td className={s.num}>{b.test_id ?? '—'}</td>
-                <td><StatusChip status={b.verdict} size="xs" /></td>
-                <td className={s.num}>{fmt.date(b.created_at)} {fmt.clock(b.created_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable caption={t.bundles} columns={cols} rows={ev.data} rowKey={(b) => String(b.id)} pageSize={15}
+          rowState={(b) => (b.verdict === 'OK' ? undefined : b.verdict === 'CRITICAL' ? 'critical' : 'bad')} />
       </section>
     </main>
   )

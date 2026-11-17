@@ -21,15 +21,19 @@ function validZone(zone: string): boolean {
 export function serverTime(c: ServerClock): Fmt {
   const tz = validZone(c.zone) ? c.zone : 'UTC'
   const shift = tz === c.zone ? 0 : c.offset_s * 1000
-  const at = (iso: string) => new Date(Date.parse(iso) + shift)
+  // A time that is not there yet (a test still running has no finished_at) is a dash, never an exception.
+  const safe = (fmt: Intl.DateTimeFormat) => (iso: string) => {
+    const ms = Date.parse(iso)
+    return Number.isFinite(ms) ? fmt.format(new Date(ms + shift)) : '—'
+  }
   const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', ...o })
   const clock = f({ hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const hhmm = f({ hour: '2-digit', minute: '2-digit' })
   const date = new Intl.DateTimeFormat('en-US', { timeZone: tz, month: 'short', day: 'numeric' })
   return {
-    clock: (iso) => clock.format(at(iso)),
-    hhmm: (iso) => hhmm.format(at(iso)),
-    date: (iso) => date.format(at(iso)),
+    clock: safe(clock),
+    hhmm: safe(hhmm),
+    date: safe(date),
     zone: c.zone,
   }
 }

@@ -3,6 +3,7 @@ import { useT } from '../../i18n'
 import { can, useLogout, useMe } from '../api/session'
 import { useSystem } from '../api/views'
 import { serverTime } from '../../lib/time'
+import { GaiaMark } from '../ui'
 import s from './Shell.module.css'
 
 /** The bar every screen shares: the installation, the main places, the server's clock, the user. */
@@ -17,7 +18,7 @@ export function Shell() {
     <>
       <header className={s.bar}>
         <NavLink className={s.mark} to="/" aria-label={t.nav.overview}>
-          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" /><path d="M10 2.75v14.5M2.75 10h14.5" /></svg>
+          <GaiaMark size={19} />
           {t.app.name}
         </NavLink>
         {sys && <span className={s.inst}>{sys.hostname}</span>}

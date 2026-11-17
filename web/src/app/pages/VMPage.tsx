@@ -6,7 +6,7 @@ import { ApiError } from '../api/errors'
 import { can, useMe } from '../api/session'
 import { useVMAction, useVMView, type TestView, type VMView } from '../api/views'
 import { Failed, Loading } from '../layout/States'
-import { Button, HistoryStrip, Legend, Notice, ProofBar, StatusChip, asStatus } from '../ui'
+import { Button, DataTable, HistoryStrip, Legend, Notice, ProofBar, RowToggle, StatusChip, asStatus, by, type Column } from '../ui'
 import s from './VMPage.module.css'
 
 /** One VM (L3): where it can return to, how that is proven, and the record behind it. */
@@ -37,7 +37,7 @@ function VMBody({ v }: { v: VMView }) {
   const st = v.status
   const pol = v.policy
   const hours = Math.round(v.window_s / 3600)
-  const latest = v.tests[0]
+  const latest = v.tests.find((x) => x.finished_at)
   const at = (iso: string) => `${fmt.date(iso)} ${fmt.clock(iso)}`
   return (
     <main className={s.vmp}>
@@ -178,16 +178,7 @@ function LatestTest({ test, rtoTarget }: { test: TestView; rtoTarget: number | n
         </div>
       )}
       {test.verdict !== 'OK' && <Notice tone={test.verdict === 'CRITICAL' ? 'critical' : 'warning'}>{test.reason}</Notice>}
-      <ul className={s.checks}>
-        {checks.map((c) => (
-          <li key={c.name}>
-            <StatusChip status={c.verdict} size="xs" />
-            <span className={s.cn}>{c.name.replace(/_/g, ' ')}</span>
-            <span className={s.ct}>{c.seconds ? dur(c.seconds, true) : ''}</span>
-            <span className={s.cd}>{c.detail}</span>
-          </li>
-        ))}
-      </ul>
+      <Checks checks={checks} />
     </>
   )
 }
@@ -195,7 +186,7 @@ function LatestTest({ test, rtoTarget }: { test: TestView; rtoTarget: number | n
 function Evidence({ v, fmt }: { v: VMView; fmt: Fmt }) {
   const t = useT().vm
   const b = v.latest_bundle
-  const latest = v.tests[0]
+  const latest = v.tests.find((x) => x.finished_at)
   const rep = v.daily_report
   return (
     <section>
@@ -222,13 +213,34 @@ function Evidence({ v, fmt }: { v: VMView; fmt: Fmt }) {
   )
 }
 
+// the order a status column sorts in: the worst first when descending
+const ORDER = ['OK', 'WARNING', 'UNKNOWN', 'CRITICAL'] as const
+
 function StatusHistory({ v, fmt }: { v: VMView; fmt: Fmt }) {
   const t = useT().vm
+  const tt = useT()
   const h = v.status_history
   if (h.length === 0) return null
   const first = h[0].at
   const total = Math.max(secondsBetween(first, v.clock.now), 1)
   const segs = h.map((c, i) => ({ c, end: i + 1 < h.length ? h[i + 1].at : v.clock.now }))
+  type Row = (typeof segs)[number] & { last: boolean; s: number }
+  const rows: Row[] = segs.map((x, i) => ({ ...x, last: i === segs.length - 1, s: secondsBetween(x.c.at, x.end) })).reverse()
+  const cols: Column<Row>[] = [
+    { key: 'at', header: t.col.when, numeric: true, compare: by((r) => r.c.at), cell: (r, ctx) => <><RowToggle ctx={ctx} label={tt.table.details} />{fmt.date(r.c.at)} {fmt.clock(r.c.at)}</> },
+    {
+      key: 'change', header: t.col.change, compare: by((r) => ORDER.indexOf(asStatus(r.c.to))),
+      cell: (r) => (
+        <span className={s.tr}>
+          {r.c.from ? <StatusChip status={r.c.from} size="xs" /> : <span className={s.new}>{t.added}</span>}
+          <span className={s.ar} aria-label="to">→</span>
+          <StatusChip status={r.c.to} size="xs" />
+        </span>
+      ),
+    },
+    { key: 'for', header: t.col.lasted, numeric: true, compare: by((r) => r.s), cell: (r) => <span className={s.for}>{r.last ? t.soFar(dur(r.s)) : dur(r.s)}</span> },
+    { key: 'why', header: t.col.why, clip: true, cell: (r) => <span title={r.c.reason}>{r.c.reason}</span> },
+  ]
   return (
     <section className={s.sh}>
       <h2>{t.statusHistory}<span className={s.h2s}>{t.sinceAdded}</span></h2>
@@ -240,75 +252,95 @@ function StatusHistory({ v, fmt }: { v: VMView; fmt: Fmt }) {
         ))}
       </div>
       <div className={s.bandaxis} aria-hidden="true"><span>{fmt.date(first)} {fmt.hhmm(first)}</span><span>{fmt.date(v.clock.now)} {fmt.hhmm(v.clock.now)}</span></div>
-      <ol className={s.changes}>
-        {[...segs].reverse().map(({ c, end }, i) => (
-          <li key={c.seq}>
-            <time>{fmt.date(c.at)} {fmt.clock(c.at)}</time>
-            <span className={s.tr}>
-              {c.from ? <StatusChip status={c.from} size="xs" /> : <span className={s.new}>{t.added}</span>}
-              <span className={s.ar} aria-label="to">→</span>
-              <StatusChip status={c.to} size="xs" />
-            </span>
-            <span className={s.for}>{i === 0 ? t.soFar(dur(secondsBetween(c.at, end))) : t.lasted(dur(secondsBetween(c.at, end)))}</span>
-            <p>{c.reason}</p>
-          </li>
-        ))}
-      </ol>
+      <DataTable caption={t.statusHistory} columns={cols} rows={rows} rowKey={(r) => String(r.c.seq)} pageSize={8}
+        detail={(r) => <p className={s.reasonFull}>{r.c.reason}</p>}
+        rowState={(r) => (r.c.to === 'CRITICAL' ? 'critical' : r.c.to === 'OK' ? undefined : 'bad')} />
     </section>
   )
 }
+
+type PointRow = VMView['points'][number]
 
 function PointsTable({ v, fmt }: { v: VMView; fmt: Fmt }) {
   const t = useT().vm
   const tested = new Map(v.tests.filter((x) => x.verdict === 'OK').map((x) => [x.point_id, x.id]))
   const ret = v.status.proven?.point_id
-  return (
-    <table className={s.list}>
-      <thead><tr><th>{t.col.point}</th><th>{t.col.taken}</th><th>{t.col.kind}</th><th className={s.num}>{t.col.size}</th><th>{t.col.check}</th><th>{t.col.test}</th></tr></thead>
-      <tbody>
-        {v.points.map((p) => (
-          <tr key={p.id} className={p.id === ret ? s.ret : ''}>
-            <td className={s.num}>{p.id}</td>
-            <td className={s.num}>{fmt.date(p.taken_at)} {fmt.clock(p.taken_at)}</td>
-            <td>{p.kind}</td>
-            <td className={s.num}>{Math.round(p.bytes / 1048576)} MiB</td>
-            <td><StatusChip status={p.check_state === 'ok' ? 'OK' : p.check_state === 'failed' ? 'CRITICAL' : 'UNKNOWN'} size="xs" /></td>
-            <td>
-              {tested.has(p.id) ? <span className={s.proved}>test {tested.get(p.id)}</span> : <span className={s.muted}>{t.notTested}</span>}
-              {p.id === ret && <span className={s.rmark}>{t.returnHere}</span>}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )
+  const check = (p: PointRow) => (p.check_state === 'ok' ? 'OK' : p.check_state === 'failed' ? 'CRITICAL' : 'UNKNOWN')
+  const cols: Column<PointRow>[] = [
+    { key: 'id', header: t.col.point, numeric: true, compare: by((p) => p.id), cell: (p) => p.id },
+    { key: 'taken', header: t.col.taken, numeric: true, compare: by((p) => p.taken_at), cell: (p) => `${fmt.date(p.taken_at)} ${fmt.clock(p.taken_at)}` },
+    { key: 'kind', header: t.col.kind, compare: by((p) => p.kind), cell: (p) => p.kind },
+    { key: 'size', header: t.col.size, numeric: true, compare: by((p) => p.bytes), cell: (p) => `${Math.round(p.bytes / 1048576)} MiB` },
+    { key: 'check', header: t.col.check, compare: by(check), cell: (p) => <StatusChip status={check(p)} size="xs" /> },
+    {
+      key: 'test', header: t.col.test, cell: (p) => (
+        <>
+          {tested.has(p.id) ? <span className={s.proved}>test {tested.get(p.id)}</span> : <span className={s.muted}>{t.notTested}</span>}
+          {p.id === ret && <span className={s.rmark}>{t.returnHere}</span>}
+        </>
+      ),
+    },
+  ]
+  return <DataTable caption={t.pointsCaption} columns={cols} rows={v.points} rowKey={(p) => String(p.id)}
+    rowState={(p) => (p.id === ret ? 'mark' : check(p) === 'CRITICAL' ? 'critical' : undefined)} />
 }
 
 function TestsTable({ v, fmt }: { v: VMView; fmt: Fmt }) {
   const t = useT().vm
+  const tt = useT()
+  const ev = (x: TestView) => (x.evidence === 'checked' && v.ledger.checked_at ? t.ev.checked(fmt.hhmm(v.ledger.checked_at)) : t.ev[x.evidence as Exclude<keyof typeof t.ev, 'checked'>])
+  const cols: Column<TestView>[] = [
+    { key: 'id', header: t.col.id, compare: by((x) => x.id), cell: (x, ctx) => <><RowToggle ctx={ctx} label={tt.table.details} /><span className={s.tnum}>{x.id}</span></> },
+    { key: 'point', header: t.col.point, numeric: true, compare: by((x) => x.point_id), cell: (x) => x.point_id },
+    {
+      key: 'result', header: t.col.result, compare: by((x) => x.verdict || 'running'),
+      cell: (x) => (x.finished_at ? <StatusChip status={x.verdict} size="xs" /> : <span className={s.running}>{t.running}</span>),
+    },
+    { key: 'rto', header: t.col.rto, numeric: true, compare: by((x) => x.proven_rto_s), cell: (x) => dur(x.proven_rto_s) },
+    {
+      key: 'finished', header: t.col.finished, numeric: true, compare: by((x) => x.finished_at || x.started_at),
+      cell: (x) => (x.finished_at ? `${fmt.date(x.finished_at)} ${fmt.clock(x.finished_at)}` : <span className={s.muted}>{t.runningSince(fmt.clock(x.started_at))}</span>),
+    },
+    {
+      key: 'evidence', header: t.col.evidence,
+      cell: (x) => (
+        <>
+          {x.evidence === 'verified' || x.evidence === 'checked' ? <StatusChip status="OK" size="xs" /> : x.evidence === 'invalid' ? <StatusChip status="CRITICAL" size="xs" /> : null}
+          <span className={x.evidence === 'not_checked' ? s.pending : s.muted}>{x.finished_at ? ev(x) : ''}</span>
+        </>
+      ),
+    },
+  ]
+  return <DataTable caption={t.testsCaption} columns={cols} rows={v.tests} rowKey={(x) => String(x.id)}
+    rowState={(x) => (x.finished_at && x.verdict !== 'OK' ? (x.verdict === 'CRITICAL' ? 'critical' : 'bad') : undefined)}
+    detail={(x) => (x.finished_at ? <TestDetail test={x} /> : null)} />
+}
+
+/** What a restore test's row opens to: why it did not pass, and every check with its time. */
+function TestDetail({ test }: { test: TestView }) {
+  const t = useT().vm
+  const d = detailOf(test)
+  const checks = d.checks ?? []
   return (
-    <table className={s.list}>
-      <thead><tr><th>{t.col.id}</th><th>{t.col.point}</th><th>{t.col.result}</th><th className={s.num}>{t.col.rto}</th><th>{t.col.finished}</th><th>{t.col.evidence}</th></tr></thead>
-      <tbody>
-        {v.tests.flatMap((x) => {
-          const ev = x.evidence === 'checked' && v.ledger.checked_at ? t.ev.checked(fmt.hhmm(v.ledger.checked_at)) : t.ev[x.evidence as keyof typeof t.ev]
-          const rows = [
-            <tr key={x.id} className={x.verdict !== 'OK' ? s.bad : ''}>
-              <td className={s.num}>{x.id}</td>
-              <td className={s.num}>{x.point_id}</td>
-              <td><StatusChip status={x.verdict} size="xs" /></td>
-              <td className={s.num}>{dur(x.proven_rto_s)}</td>
-              <td className={s.num}>{fmt.date(x.finished_at)} {fmt.clock(x.finished_at)}</td>
-              <td>
-                {x.evidence === 'verified' || x.evidence === 'checked' ? <StatusChip status="OK" size="xs" /> : x.evidence === 'invalid' ? <StatusChip status="CRITICAL" size="xs" /> : null}
-                <span className={x.evidence === 'not_checked' ? s.pending : s.muted}>{typeof ev === 'string' ? ev : ''}</span>
-              </td>
-            </tr>,
-          ]
-          if (x.verdict !== 'OK') rows.push(<tr key={`${x.id}w`} className={s.why}><td /><td colSpan={5}>{x.reason}</td></tr>)
-          return rows
-        })}
-      </tbody>
-    </table>
+    <div className={s.tdetail}>
+      {test.verdict !== 'OK' && <p className={test.verdict === 'CRITICAL' ? s.whyCrit : s.why}>{test.reason}</p>}
+      {d.restore_s !== undefined && <p className={s.muted}>{t.restore} {dur(d.restore_s, true)}{test.proven_rto_s !== null && <>, {t.rto} {dur(test.proven_rto_s, true)}</>}</p>}
+      {checks.length > 0 ? <Checks checks={checks} /> : test.verdict === 'OK' && <p className={s.muted}>{t.noChecks}</p>}
+    </div>
+  )
+}
+
+function Checks({ checks }: { checks: Check[] }) {
+  return (
+    <ul className={s.checks}>
+      {checks.map((c) => (
+        <li key={c.name}>
+          <StatusChip status={c.verdict} size="xs" />
+          <span className={s.cn}>{c.name.replace(/_/g, ' ')}</span>
+          <span className={s.ct}>{c.seconds ? dur(c.seconds, true) : ''}</span>
+          <span className={s.cd}>{c.detail}</span>
+        </li>
+      ))}
+    </ul>
   )
 }

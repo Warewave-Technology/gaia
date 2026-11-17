@@ -1,3 +1,4 @@
+import { useRouteError } from 'react-router'
 import { useT } from '../../i18n'
 import { ApiError } from '../api/errors'
 import { Button, Notice } from '../ui'
@@ -18,6 +19,20 @@ export function Failed({ error, onRetry }: { error: unknown; onRetry?: () => voi
   return (
     <div className={s.failed}>
       <Notice tone="critical" action={onRetry && <Button variant="quiet" onClick={onRetry}>{t.app.retry}</Button>}>{msg}</Notice>
+    </div>
+  )
+}
+
+/** A screen that threw while drawing: says so in Gaia's words, with the error's text for a bug report, instead of
+ * the router's developer page. */
+export function RouteError() {
+  const t = useT()
+  const err = useRouteError()
+  const detail = err instanceof Error ? err.message : String(err)
+  return (
+    <div className={s.failed}>
+      <Notice tone="critical" action={<Button variant="quiet" onClick={() => location.reload()}>{t.errors.reload}</Button>}>{t.errors.screen}</Notice>
+      <pre className={s.detail}>{detail}</pre>
     </div>
   )
 }
