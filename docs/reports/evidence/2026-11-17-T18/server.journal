@@ -1,0 +1,100 @@
+2026-11-17T09:38:42.951320+0000 gaia-lab systemd[1]: Started gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T09:38:43.123827+0000 gaia-lab gaia-t18[195327]: time=2026-11-17T09:38:43.123Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T09:38:43.127330+0000 gaia-lab gaia-t18[195327]: time=2026-11-17T09:38:43.127Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=728556e795fe schema=6
+2026-11-17T09:38:43.127330+0000 gaia-lab gaia-t18[195327]: time=2026-11-17T09:38:43.127Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T09:41:22.982350+0000 gaia-lab systemd[1]: Stopping gaia-t18-server.service - Gaia backup and recoverability server...
+2026-11-17T09:41:22.983625+0000 gaia-lab gaia-t18[195327]: time=2026-11-17T09:41:22.982Z level=INFO msg="shutting down"
+2026-11-17T09:41:23.023380+0000 gaia-lab systemd[1]: gaia-t18-server.service: Deactivated successfully.
+2026-11-17T09:41:23.023597+0000 gaia-lab systemd[1]: Stopped gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T09:41:23.023832+0000 gaia-lab systemd[1]: gaia-t18-server.service: Consumed 2.895s CPU time.
+2026-11-17T09:42:57.723477+0000 gaia-lab systemd[1]: Started gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T09:42:57.929778+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:42:57.929Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T09:42:57.933235+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:42:57.933Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=87c3aa2884fe schema=6
+2026-11-17T09:42:57.933235+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:42:57.933Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T09:45:28.448835+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:45:28.448Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T09:45:29.092994+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:45:29.092Z level=INFO msg="state backup stored" id=1 repository=main snapshot=d469ceade52b8160df641286cff33489 bytes=169472
+2026-11-17T09:45:57.943596+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:45:57.943Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T09:46:09.465880+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:46:09.464Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=11.520023088
+2026-11-17T09:46:42.705937+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:46:42.705Z level=INFO msg="restore test" vm=gaia-t18 test=1 point=1 verdict=UNKNOWN reason="not tested: restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T09:46:42.711878+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:46:42.711Z level=ERROR msg="restore test failed" job=2 error="restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T09:50:28.774802+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T09:50:28.774Z level=INFO msg="state backup stored" id=2 repository=main snapshot=5861e278ac5c89b44d27fb0b0454f02d bytes=177664
+2026-11-17T10:01:12.916770+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:01:12.916Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=14.959110968
+2026-11-17T10:01:13.239984+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:01:13.239Z level=INFO msg="state backup stored" id=3 repository=main snapshot=d08f525665e37a8c57abb8757d520c1b bytes=177664
+2026-11-17T10:16:09.359966+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:16:09.359Z level=INFO msg="backup done" job=4 point=3 kind=full seconds=11.414974263
+2026-11-17T10:16:09.710391+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:16:09.710Z level=INFO msg="state backup stored" id=4 repository=main snapshot=b9120720ca278efc39a34c10378dcc2f bytes=194048
+2026-11-17T10:31:09.047438+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:31:09.047Z level=INFO msg="backup done" job=5 point=4 kind=full seconds=11.09327793
+2026-11-17T10:31:09.350221+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:31:09.350Z level=INFO msg="state backup stored" id=5 repository=main snapshot=83d9044ed3f7174ce8a1107422c6716d bytes=194048
+2026-11-17T10:31:48.880892+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:31:48.880Z level=INFO msg="repository verification" id=2 repository=main mode=sampled state=ok points=4 affected=0 skipped_failed=0
+2026-11-17T10:36:09.418528+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:36:09.418Z level=INFO msg="state backup stored" id=6 repository=main snapshot=f0ccb8ecc667cbf759d711f2fe8f8c86 bytes=194048
+2026-11-17T10:42:11.831547+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:42:11.831Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1 2 3 4]"
+2026-11-17T10:42:11.835270+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:42:11.835Z level=INFO msg="repository verification" id=3 repository=main mode=full state=critical points=4 affected=4 skipped_failed=0
+2026-11-17T10:42:12.594687+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:42:12.594Z level=INFO msg="state backup stored" id=7 repository=main snapshot=06776187a0ec5712597f9ac245893f53 bytes=210432
+2026-11-17T10:46:09.471619+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:46:09.471Z level=INFO msg="backup done" job=6 point=5 kind=full seconds=11.526435747
+2026-11-17T10:47:12.384582+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T10:47:12.384Z level=INFO msg="state backup stored" id=8 repository=main snapshot=97cae1c1520521345e31036480d1e4e7 bytes=210432
+2026-11-17T11:01:13.151470+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T11:01:13.151Z level=INFO msg="backup done" job=7 point=6 kind=incremental seconds=15.176803962
+2026-11-17T11:01:13.457555+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T11:01:13.457Z level=INFO msg="state backup stored" id=9 repository=main snapshot=98448a8f7c5465121069edbc2d86d196 bytes=218624
+2026-11-17T11:02:28.626727+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T11:02:28.626Z level=INFO msg="repository verification" id=4 repository=main mode=full state=ok points=2 affected=0 skipped_failed=4
+2026-11-17T11:02:35.753529+0000 gaia-lab systemd[1]: Stopping gaia-t18-server.service - Gaia backup and recoverability server...
+2026-11-17T11:02:35.753818+0000 gaia-lab gaia-t18[196584]: time=2026-11-17T11:02:35.753Z level=INFO msg="shutting down"
+2026-11-17T11:02:35.799742+0000 gaia-lab systemd[1]: gaia-t18-server.service: Deactivated successfully.
+2026-11-17T11:02:35.800004+0000 gaia-lab systemd[1]: Stopped gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T11:02:35.800354+0000 gaia-lab systemd[1]: gaia-t18-server.service: Consumed 4min 27.840s CPU time.
+2026-11-17T11:05:30.739782+0000 gaia-lab systemd[1]: Started gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T11:05:30.919973+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:05:30.919Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T11:05:30.923313+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:05:30.923Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=3f63cf36828b schema=6
+2026-11-17T11:05:30.923428+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:05:30.923Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T11:08:01.451494+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:01.451Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T11:08:01.972726+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:01.972Z level=INFO msg="state backup stored" id=1 repository=main snapshot=7958bee39ec07bb20c8333cb73e9c649 bytes=169472
+2026-11-17T11:08:15.945503+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:15.945Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T11:08:27.840341+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:27.840Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=11.905036281
+2026-11-17T11:08:59.437358+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:59.437Z level=INFO msg="restore test" vm=gaia-t18 test=1 point=1 verdict=UNKNOWN reason="not tested: restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T11:08:59.443869+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:08:59.443Z level=ERROR msg="restore test failed" job=2 error="restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T11:13:01.813376+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:13:01.813Z level=INFO msg="state backup stored" id=2 repository=main snapshot=7a52e619b233c65db17e4e254a3e5e6f bytes=177664
+2026-11-17T11:23:33.037270+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:23:33.037Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=17.095481057
+2026-11-17T11:23:33.420977+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:23:33.420Z level=INFO msg="state backup stored" id=3 repository=main snapshot=71ee5cdf5e7391f56130f41ef0d7e841 bytes=177664
+2026-11-17T11:38:29.496291+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:38:29.495Z level=INFO msg="backup done" job=4 point=3 kind=full seconds=13.562009377999999
+2026-11-17T11:38:29.913192+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:38:29.913Z level=INFO msg="state backup stored" id=4 repository=main snapshot=b85637c0d24d4f59d76ec48eabd6d74b bytes=194048
+2026-11-17T11:53:28.653098+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:53:28.653Z level=INFO msg="backup done" job=5 point=4 kind=full seconds=12.709826248
+2026-11-17T11:53:29.029739+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:53:29.029Z level=INFO msg="state backup stored" id=5 repository=main snapshot=8acfdcb2a5a2009ada0879dbc8d0ce21 bytes=194048
+2026-11-17T11:54:15.337514+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:54:15.337Z level=INFO msg="repository verification" id=2 repository=main mode=sampled state=ok points=4 affected=0 skipped_failed=0
+2026-11-17T11:58:29.079310+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T11:58:29.079Z level=INFO msg="state backup stored" id=6 repository=main snapshot=3144e08aabdd6f19406d61f2978075d2 bytes=194048
+2026-11-17T12:07:07.276715+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:07:07.276Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1 2 3 4]"
+2026-11-17T12:07:07.284393+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:07:07.284Z level=INFO msg="repository verification" id=3 repository=main mode=full state=critical points=4 affected=4 skipped_failed=0
+2026-11-17T12:07:08.168066+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:07:08.168Z level=INFO msg="state backup stored" id=7 repository=main snapshot=12d66c2383ac3ff05fb434114d0af94a bytes=214528
+2026-11-17T12:08:32.980116+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:08:32.978Z level=INFO msg="backup done" job=6 point=5 kind=full seconds=17.037417618
+2026-11-17T12:12:07.704009+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:12:07.703Z level=INFO msg="state backup stored" id=8 repository=main snapshot=7fff71f3073c85cbac4f82a6d9de3949 bytes=214528
+2026-11-17T12:23:31.894111+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:23:31.894Z level=INFO msg="backup done" job=7 point=6 kind=incremental seconds=15.954448628
+2026-11-17T12:23:32.250300+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:23:32.250Z level=INFO msg="state backup stored" id=9 repository=main snapshot=bf74715dce2da774f881afeb2dca8401 bytes=222720
+2026-11-17T12:24:47.219941+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:24:47.219Z level=INFO msg="repository verification" id=4 repository=main mode=full state=ok points=2 affected=0 skipped_failed=4
+2026-11-17T12:24:57.940987+0000 gaia-lab systemd[1]: Stopping gaia-t18-server.service - Gaia backup and recoverability server...
+2026-11-17T12:24:57.941862+0000 gaia-lab gaia-t18[228074]: time=2026-11-17T12:24:57.941Z level=INFO msg="shutting down"
+2026-11-17T12:24:57.970474+0000 gaia-lab systemd[1]: gaia-t18-server.service: Deactivated successfully.
+2026-11-17T12:24:57.970650+0000 gaia-lab systemd[1]: Stopped gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T12:24:57.970926+0000 gaia-lab systemd[1]: gaia-t18-server.service: Consumed 4min 59.096s CPU time.
+2026-11-17T13:36:54.267593+0000 gaia-lab systemd[1]: Started gaia-t18-server.service - Gaia backup and recoverability server.
+2026-11-17T13:36:54.487358+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:36:54.487Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-17T13:36:54.497284+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:36:54.497Z level=INFO msg="gaia server is listening" address=127.0.0.1:8443 version=dfd1d16e339b schema=6
+2026-11-17T13:36:54.497549+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:36:54.497Z level=INFO msg="next state backup" at=2026-11-18T02:30:00Z
+2026-11-17T13:39:25.016185+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:39:25.016Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-17T13:39:26.928645+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:39:26.928Z level=INFO msg="state backup stored" id=1 repository=main snapshot=c66b647f14dd4c01decc25c7e397f73c bytes=169472
+2026-11-17T13:39:54.621958+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:39:54.621Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-17T13:40:18.368044+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:40:18.367Z level=INFO msg="backup done" job=1 point=1 kind=full seconds=23.829660415
+2026-11-17T13:41:24.376395+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:41:24.376Z level=INFO msg="restore test" vm=gaia-t18 test=1 point=1 verdict=UNKNOWN reason="not tested: restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T13:41:24.400698+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:41:24.397Z level=ERROR msg="restore test failed" job=2 error="restoring disk vda: open /var/lib/gaia-sandbox/images/vm1-test1-vda.raw: no such file or directory"
+2026-11-17T13:44:25.384698+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:44:25.384Z level=INFO msg="state backup stored" id=2 repository=main snapshot=2bb12de9839915e37eb6bfa1078cf0aa bytes=177664
+2026-11-17T13:55:11.145963+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:55:11.145Z level=INFO msg="backup done" job=3 point=2 kind=incremental seconds=16.619490567
+2026-11-17T13:55:11.508002+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T13:55:11.507Z level=INFO msg="state backup stored" id=3 repository=main snapshot=12b5baeaa5543171669efcd82138c299 bytes=177664
+2026-11-17T14:10:09.871108+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:10:09.870Z level=INFO msg="backup done" job=4 point=3 kind=full seconds=15.346935232
+2026-11-17T14:10:10.299095+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:10:10.298Z level=INFO msg="state backup stored" id=4 repository=main snapshot=1b33ff7320dde5625ab1ec186542f1cc bytes=194048
+2026-11-17T14:25:05.570605+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:25:05.570Z level=INFO msg="backup done" job=5 point=4 kind=full seconds=11.04783371
+2026-11-17T14:25:05.930174+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:25:05.930Z level=INFO msg="state backup stored" id=5 repository=main snapshot=46a92fd08239a9f518f117361a65c008 bytes=194048
+2026-11-17T14:25:46.408516+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:25:46.408Z level=INFO msg="repository verification" id=2 repository=main mode=sampled state=ok points=4 affected=0 skipped_failed=0
+2026-11-17T14:30:06.745885+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:30:06.745Z level=INFO msg="state backup stored" id=6 repository=main snapshot=c419a4447e1918d9526fbc0c93ac41f9 bytes=194048
+2026-11-17T14:38:25.711055+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:38:25.710Z level=INFO msg="VM status changed" vm=1 status=CRITICAL reason="integrity check failed for point(s) [1 2 3 4]"
+2026-11-17T14:38:25.715998+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:38:25.714Z level=INFO msg="repository verification" id=3 repository=main mode=full state=critical points=4 affected=4 skipped_failed=0
+2026-11-17T14:38:26.458250+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:38:26.458Z level=INFO msg="state backup stored" id=7 repository=main snapshot=812bcde27228aa57229b09e2e16893a7 bytes=214528
+2026-11-17T14:40:10.339260+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:40:10.338Z level=INFO msg="backup done" job=6 point=5 kind=full seconds=15.807043328
+2026-11-17T14:43:26.114824+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:43:26.114Z level=INFO msg="state backup stored" id=8 repository=main snapshot=e9f788dc8ade54969c2ce5f0beeb406e bytes=214528
+2026-11-17T14:55:09.554309+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:55:09.554Z level=INFO msg="backup done" job=7 point=6 kind=incremental seconds=15.044337178
+2026-11-17T14:55:09.878110+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:55:09.878Z level=INFO msg="state backup stored" id=9 repository=main snapshot=f592bb985be3c5e08f3cfd81b3ba405c bytes=222720
+2026-11-17T14:56:12.810035+0000 gaia-lab gaia-t18[259729]: time=2026-11-17T14:56:12.809Z level=INFO msg="repository verification" id=4 repository=main mode=full state=ok points=2 affected=0 skipped_failed=4

@@ -1,0 +1,14 @@
+[
+  {
+    "target": "vda",
+    "bytes": 8589934592,
+    "sha256": "2cf06569f83b206af1079cc7f74c8cf333e2aae1b7124ac26bf7b0c599cbe685",
+    "seconds": 16.675948224
+  },
+  {
+    "target": "vdb",
+    "bytes": 5368709120,
+    "sha256": "48da0447d654b329191aa07d795c5701824f57ab6039cf315afd45c9a81b0da6",
+    "seconds": 22.923797257
+  }
+]

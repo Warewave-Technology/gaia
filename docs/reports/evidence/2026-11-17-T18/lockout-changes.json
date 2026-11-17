@@ -1,0 +1,22 @@
+[
+  {
+    "seq": 85,
+    "at": "2026-11-17T14:56:16.061516357Z",
+    "entity": "user_lockout",
+    "entity_id": 2,
+    "from": "unlocked",
+    "to": "locked until 2026-11-17T15:11:16.061444717Z",
+    "reason": "5 wrong passwords in a row",
+    "actor": "system"
+  },
+  {
+    "seq": 86,
+    "at": "2026-11-17T14:56:17.399171156Z",
+    "entity": "user_lockout",
+    "entity_id": 2,
+    "from": "locked until 2026-11-17T15:11:16.061444717Z",
+    "to": "unlocked",
+    "reason": "unlocked by admin after 5 wrong passwords in a row",
+    "actor": "admin"
+  }
+]

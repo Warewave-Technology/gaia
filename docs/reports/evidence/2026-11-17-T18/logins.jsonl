@@ -1,0 +1,24 @@
+{"step":"user-wrong-1","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-2","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-3","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-4","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-5","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"user-right-while-locked","user":"t18op","password":"right","status":429,"retry_after":"900","error":"too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-1","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-2","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-3","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-4","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-5","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"unknown-while-locked","user":"nobody-t18","password":"wrong","status":429,"retry_after":"900","error":"too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z","at":"2026-11-17T14:56:17Z"}
+{"step":"user-right-after-unlock","user":"t18op","password":"right","status":200,"retry_after":"","error":null,"at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-1","user":"nobody-1","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-2","user":"nobody-2","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-3","user":"nobody-3","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-4","user":"nobody-4","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-5","user":"nobody-5","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-6","user":"nobody-6","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-7","user":"nobody-7","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-8","user":"nobody-8","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-wrong-9","user":"nobody-9","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-wrong-10","user":"nobody-10","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-admin-right","user":"admin","password":"admin","status":429,"retry_after":"596","error":"20 wrong passwords from 127.0.0.1 within 10m0s; try again after 2026-11-17T15:06:15Z","at":"2026-11-17T14:56:19Z"}

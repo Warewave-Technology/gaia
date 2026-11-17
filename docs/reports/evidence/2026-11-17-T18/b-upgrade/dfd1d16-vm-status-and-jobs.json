@@ -1,0 +1,90 @@
+{
+  "vm_status_changes": [
+    {
+      "seq": 2355,
+      "at": "2026-11-17T15:29:48.435201723Z",
+      "entity": "vm_status",
+      "entity_id": 1,
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the newest proven point (201, test 101) is 20m10s old, over the RPO target 20m0s",
+      "actor": "system"
+    },
+    {
+      "seq": 2368,
+      "at": "2026-11-17T15:30:39.915510336Z",
+      "entity": "vm_status",
+      "entity_id": 1,
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 205 is proven by test 103: proven RPO 50s <= 20m0s, proven RTO 22s <= 10m0s, proof age 0s <= 30m0s",
+      "actor": "system"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 308,
+      "kind": "restore_test",
+      "state": "ok",
+      "created_at": "2026-11-17T15:30:03.417604957Z",
+      "finished_at": "2026-11-17T15:30:39.905383007Z",
+      "error": ""
+    },
+    {
+      "id": 307,
+      "kind": "backup",
+      "state": "ok",
+      "created_at": "2026-11-17T15:29:48.417641659Z",
+      "finished_at": "2026-11-17T15:29:50.48906028Z",
+      "error": ""
+    },
+    {
+      "id": 306,
+      "kind": "backup",
+      "state": "ok",
+      "created_at": "2026-11-17T15:24:48.414103053Z",
+      "finished_at": "2026-11-17T15:24:50.432102651Z",
+      "error": ""
+    },
+    {
+      "id": 305,
+      "kind": "restore_test",
+      "state": "failed",
+      "created_at": "2026-11-17T15:19:52.644172836Z",
+      "finished_at": "2026-11-17T15:20:17.238731692Z",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": EOF"
+    },
+    {
+      "id": 304,
+      "kind": "backup",
+      "state": "ok",
+      "created_at": "2026-11-17T15:19:37.658414943Z",
+      "finished_at": "2026-11-17T15:19:39.664340018Z",
+      "error": ""
+    },
+    {
+      "id": 303,
+      "kind": "backup",
+      "state": "ok",
+      "created_at": "2026-11-17T15:14:37.657438035Z",
+      "finished_at": "2026-11-17T15:14:39.733616164Z",
+      "error": ""
+    },
+    {
+      "id": 302,
+      "kind": "restore_test",
+      "state": "ok",
+      "created_at": "2026-11-17T15:09:52.654082489Z",
+      "finished_at": "2026-11-17T15:10:36.721234075Z",
+      "error": ""
+    },
+    {
+      "id": 301,
+      "kind": "backup",
+      "state": "ok",
+      "created_at": "2026-11-17T15:09:37.657395851Z",
+      "finished_at": "2026-11-17T15:09:39.903470171Z",
+      "error": ""
+    }
+  ]
+}

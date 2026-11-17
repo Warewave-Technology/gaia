@@ -1,0 +1,62 @@
+{
+  "id": 6,
+  "kind": "backup",
+  "vm_id": 1,
+  "state": "ok",
+  "reason": "schedule: policy t18, every 900 s",
+  "error": "",
+  "created_at": "2026-11-17T14:39:54.498743536Z",
+  "started_at": "2026-11-17T14:39:54.527151188Z",
+  "finished_at": "2026-11-17T14:40:10.338593871Z",
+  "checkpoint": "gaia-1-6",
+  "detail": {
+    "kind": "full",
+    "reason": "full: repository verification 3 quarantined damaged contents used by point 4",
+    "checkpoint": "gaia-1-6",
+    "point": 5,
+    "disks": [
+      {
+        "target": "vda",
+        "size_bytes": 8589934592,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1581449216,
+        "read_bytes": 1581449216,
+        "nbd_payload_bytes": 1581449216,
+        "repo_read_bytes": 0,
+        "written_bytes": 1685061632,
+        "store_id": "27a7d5e2a7f0423c2bd5910d90c909c3"
+      },
+      {
+        "target": "vdb",
+        "size_bytes": 5368709120,
+        "meta_context": "base:allocation",
+        "changed_bytes": 1561657344,
+        "read_bytes": 1561657344,
+        "nbd_payload_bytes": 1561657344,
+        "repo_read_bytes": 0,
+        "written_bytes": 1573912576,
+        "store_id": "4681deeff2a1cc48a3841c6d3ca31e7c"
+      }
+    ],
+    "check_problems": [],
+    "checkpoints_kept": [
+      "gaia-1-6"
+    ],
+    "checkpoints_deleted": [
+      "gaia-1-4",
+      "gaia-1-5"
+    ],
+    "points_pruned": [],
+    "timings_s": {
+      "begin": 0.497377412,
+      "check": 0.068726906,
+      "connect": 0.309267737,
+      "disk_vda": 6.6658414409999995,
+      "disk_vdb": 7.317041342,
+      "retention_maintenance": 0.00324792,
+      "total": 15.807043328
+    },
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22"
+  }
+}

@@ -1,0 +1,63 @@
+[
+  {
+    "id": 1,
+    "repository_id": 1,
+    "verification_id": 3,
+    "content_id": "ade012cf5cbd6d060832a44b348c1c93",
+    "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+    "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF), while it returns other blobs",
+    "quarantined_at": "2026-11-17T14:38:25.702031636Z",
+    "manifest": "db664238bb64d980d290e41c140990a4",
+    "points": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  {
+    "id": 2,
+    "repository_id": 1,
+    "verification_id": 3,
+    "content_id": "1e1bfbce21aa07a9b2b66ea730781a23",
+    "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+    "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10514251,311117) despite 10 retries: unexpected EOF), while it returns other blobs",
+    "quarantined_at": "2026-11-17T14:38:25.702031636Z",
+    "manifest": "db664238bb64d980d290e41c140990a4",
+    "points": [
+      1
+    ]
+  },
+  {
+    "id": 3,
+    "repository_id": 1,
+    "verification_id": 3,
+    "content_id": "1f4079cacb20a71bdd7875ad967f878a",
+    "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+    "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+    "quarantined_at": "2026-11-17T14:38:25.702031636Z",
+    "manifest": "db664238bb64d980d290e41c140990a4",
+    "points": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  {
+    "id": 4,
+    "repository_id": 1,
+    "verification_id": 3,
+    "content_id": "4c688c3d904ebc6cbff64ef2da0c1da0",
+    "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+    "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs",
+    "quarantined_at": "2026-11-17T14:38:25.702031636Z",
+    "manifest": "db664238bb64d980d290e41c140990a4",
+    "points": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+]

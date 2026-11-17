@@ -1,0 +1,140 @@
+[
+  {
+    "id": 6,
+    "vm_id": 1,
+    "job_id": 7,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-17T14:54:55.675794404Z",
+    "check_state": "ok",
+    "bytes": 1599078400,
+    "state": "present",
+    "checkpoint": "gaia-1-7",
+    "parent_id": 5,
+    "reason": "incremental from point 5 (checkpoint gaia-1-6)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 5,
+    "vm_id": 1,
+    "job_id": 6,
+    "repository_id": 1,
+    "kind": "full",
+    "taken_at": "2026-11-17T14:39:55.877862618Z",
+    "check_state": "ok",
+    "bytes": 3258974208,
+    "state": "present",
+    "checkpoint": "gaia-1-6",
+    "parent_id": null,
+    "reason": "full: repository verification 3 quarantined damaged contents used by point 4",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 4,
+    "vm_id": 1,
+    "job_id": 5,
+    "repository_id": 1,
+    "kind": "full",
+    "taken_at": "2026-11-17T14:24:55.528903058Z",
+    "check_state": "failed",
+    "bytes": 3158310912,
+    "state": "present",
+    "checkpoint": "gaia-1-5",
+    "parent_id": null,
+    "reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 3,
+    "vm_id": 1,
+    "job_id": 4,
+    "repository_id": 1,
+    "kind": "full",
+    "taken_at": "2026-11-17T14:09:55.793561263Z",
+    "check_state": "failed",
+    "bytes": 3057647616,
+    "state": "present",
+    "checkpoint": "gaia-1-4",
+    "parent_id": null,
+    "reason": "full: checkpoint gaia-1-3 of point 2 is not on the host",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 2,
+    "vm_id": 1,
+    "job_id": 3,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-17T13:54:55.5731641Z",
+    "check_state": "failed",
+    "bytes": 1621098496,
+    "state": "present",
+    "checkpoint": "gaia-1-3",
+    "parent_id": 1,
+    "reason": "incremental from point 1 (checkpoint gaia-1-1)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 1,
+    "vm_id": 1,
+    "job_id": 1,
+    "repository_id": 1,
+    "kind": "full",
+    "taken_at": "2026-11-17T13:39:56.053291197Z",
+    "check_state": "failed",
+    "bytes": 2773483520,
+    "state": "present",
+    "checkpoint": "gaia-1-1",
+    "parent_id": null,
+    "reason": "full: no earlier checked point of this VM",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  }
+]

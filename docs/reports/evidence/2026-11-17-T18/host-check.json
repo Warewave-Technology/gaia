@@ -1,0 +1,8 @@
+{
+  "libvirt": "9.0.0",
+  "qemu": "7.2.22",
+  "domains": [
+    "gaia-t17-web"
+  ],
+  "seconds": 0.229359994
+}

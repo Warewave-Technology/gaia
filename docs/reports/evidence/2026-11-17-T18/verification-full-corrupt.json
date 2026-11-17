@@ -1,0 +1,86 @@
+{
+  "id": 3,
+  "repository_id": 1,
+  "mode": "full",
+  "state": "critical",
+  "reason": "requested by admin",
+  "started_at": "2026-11-17T14:25:48.699540523Z",
+  "finished_at": "2026-11-17T14:38:25.711006653Z",
+  "points_checked": 4,
+  "points_skipped": 0,
+  "blocks_read": 11353,
+  "bytes_read": 11882463232,
+  "affected": [
+    {
+      "point_id": 1,
+      "vm_id": 1,
+      "disk": "vda",
+      "problems": [
+        "block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF; damaged content ade012cf5cbd6d060832a44b348c1c93: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 264 (1e1bfbce21aa07a9b2b66ea730781a23): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10514251,311117) despite 10 retries: unexpected EOF; damaged content 1e1bfbce21aa07a9b2b66ea730781a23: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10514251,311117) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 265 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 266 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 809 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 810 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs"
+      ],
+      "contents": [
+        "ade012cf5cbd6d060832a44b348c1c93",
+        "1e1bfbce21aa07a9b2b66ea730781a23",
+        "1f4079cacb20a71bdd7875ad967f878a",
+        "4c688c3d904ebc6cbff64ef2da0c1da0"
+      ]
+    },
+    {
+      "point_id": 2,
+      "vm_id": 1,
+      "disk": "vda",
+      "problems": [
+        "block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF; damaged content ade012cf5cbd6d060832a44b348c1c93: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 265 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 266 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 809 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 810 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs"
+      ],
+      "contents": [
+        "ade012cf5cbd6d060832a44b348c1c93",
+        "1f4079cacb20a71bdd7875ad967f878a",
+        "4c688c3d904ebc6cbff64ef2da0c1da0"
+      ]
+    },
+    {
+      "point_id": 3,
+      "vm_id": 1,
+      "disk": "vda",
+      "problems": [
+        "block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF; damaged content ade012cf5cbd6d060832a44b348c1c93: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 265 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 266 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 809 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 810 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs"
+      ],
+      "contents": [
+        "ade012cf5cbd6d060832a44b348c1c93",
+        "1f4079cacb20a71bdd7875ad967f878a",
+        "4c688c3d904ebc6cbff64ef2da0c1da0"
+      ]
+    },
+    {
+      "point_id": 4,
+      "vm_id": 1,
+      "disk": "vda",
+      "problems": [
+        "block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF; damaged content ade012cf5cbd6d060832a44b348c1c93: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10186997,327254) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 265 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 266 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 809 (1f4079cacb20a71bdd7875ad967f878a): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF; damaged content 1f4079cacb20a71bdd7875ad967f878a: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,10825368,390579) despite 10 retries: unexpected EOF), while it returns other blobs",
+        "block 810 (4c688c3d904ebc6cbff64ef2da0c1da0): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF; damaged content 4c688c3d904ebc6cbff64ef2da0c1da0: the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147,11215947,418347) despite 10 retries: unexpected EOF), while it returns other blobs"
+      ],
+      "contents": [
+        "ade012cf5cbd6d060832a44b348c1c93",
+        "1f4079cacb20a71bdd7875ad967f878a",
+        "4c688c3d904ebc6cbff64ef2da0c1da0"
+      ]
+    }
+  ],
+  "error": ""
+}

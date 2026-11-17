@@ -1,0 +1,45 @@
+{
+  "schema": {
+    "before": 6,
+    "after": 6
+  },
+  "version": {
+    "before": "728556e795fe",
+    "after": "dfd1d16e339b"
+  },
+  "points": {
+    "before": 100,
+    "after": 100
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-16T22:29:48.2589812Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T15:30:39.915461476Z"
+    }
+  ],
+  "next_backup": {
+    "id": 306,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 308,
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 42,
+    "intact": true,
+    "head_sha256": "dbad97103776cea6646a9bccf88360ecb2362a70ea98261ceb6192fbc84faec2",
+    "first_broken_seq": 0
+  },
+  "pass": false,
+  "verdict": "CRITICAL"
+}

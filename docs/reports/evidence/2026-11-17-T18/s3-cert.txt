@@ -1,0 +1,4 @@
+subject=CN = 192.168.1.30
+issuer=CN = gaia-t18 lab CA
+X509v3 Subject Alternative Name: 
+    IP Address:192.168.1.30

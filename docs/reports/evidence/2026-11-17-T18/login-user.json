@@ -1,0 +1,12 @@
+{
+  "id": 2,
+  "username": "t18op",
+  "role": "operator",
+  "disabled": false,
+  "created_at": "2026-11-17T14:56:14.813459997Z",
+  "updated_at": "2026-11-17T14:56:14.813459997Z",
+  "password_changed_at": "2026-11-17T14:56:14.813459997Z",
+  "last_login_at": "",
+  "failed_logins": 0,
+  "locked_until": ""
+}

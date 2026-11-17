@@ -1,0 +1,490 @@
+
+== date / commit
+2026-11-17T13:36:41Z
+dfd1d16e339bd912755e4089b279c7c36324537d
+output: /root/t18-20261117T133641Z
+cycles: 6 every 900 s; references in cycles: 1 4 5 6; checkpoint deleted after 2; vdb resized after 3; corruption after 4; keep_last 8; host gaia-t18-backup@192.168.1.30; S3 https://192.168.1.30:9000/gaia-t18
+
+== build
+	dep	github.com/digitalocean/go-libvirt	v0.0.0-20261013170128-efbbdf578ac8	h1:ZQhCuAXz9mLpTkBCwtS7ajWp3lU7pqiaOM0fxzIyQFc=
+	dep	github.com/kopia/kopia	v0.23.1	h1:0+V5Au8fD+190vQbklG0DaWD6I4clmbwlmJTqtI0y0Q=
+	dep	github.com/minio/minio-go/v7	v7.2.0	h1:RCJM0R1XOsRs+A3x3UCaf3ZYbByDaLjFeAi+YCQEPhs=
+	build	vcs.revision=dfd1d16e339bd912755e4089b279c7c36324537d
+	build	vcs.modified=false
+minio version DEVELOPMENT.GOGET (commit-id=DEVELOPMENT.GOGET)
+Runtime: go1.25.8 linux/amd64
+License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+
+== free space
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G   40G  150G  21% /
+/dev/sda1       197G   40G  150G  21% /
+
+== guest image
+debian-12-genericcloud-amd64.qcow2: OK
+
+== MinIO on https://192.168.1.30:9000 (TLS, CA of this run)
+subject=CN = 192.168.1.30
+issuer=CN = gaia-t18 lab CA
+X509v3 Subject Alternative Name: 
+    IP Address:192.168.1.30
+Running as unit: gaia-t18-minio.service
+MinIO health: 200
+bucket gaia-t18: 200
+
+== gaia server
+{"verdict":"OK","result":{"tls_certificate_sha256":"F7:5E:14:24:0A:0C:0C:16:3F:95:25:0A:A0:40:58:F7:6F:44:64:62:B4:91:80:60:93:5E:DB:A5:94:73:A1:55","evidence_key_id":"f95d848ae9a17f4c2051830a746f08bfdbcd67e7e8d44012a2d41aa0c93a9e9c"}}
+{
+  "listen": "127.0.0.1:8443",
+  "data_dir": "/var/lib/gaia-t18/data",
+  "tls_cert": "/var/lib/gaia-t18/data/tls/cert.pem",
+  "tls_key": "/var/lib/gaia-t18/data/tls/key.pem",
+  "session_ttl": "12h",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "host_socket_dir": "/var/lib/libvirt/qemu",
+  "host_scratch_dir": "/var/lib/libvirt/images",
+  "nbd_connections": 2,
+  "max_parallel_backups": 2,
+  "verify_at": "03:30",
+  "full_verify_day": "sunday",
+  "verify_sample": 0.02,
+  "sandbox_socket": "/run/gaia-sandbox/sandbox.sock",
+  "sandbox_images_dir": "/var/lib/gaia-sandbox/images",
+  "login_max_failures": 5,
+  "login_lockout": "15m",
+  "login_address_failures": 20,
+  "login_address_window": "10m"
+}
+11,13c11,13
+< User=gaia
+< Group=gaia
+< ExecStart=/usr/local/bin/gaia server run -config /etc/gaia/server.json
+---
+> User=gaia-t18
+> Group=gaia-t18
+> ExecStart=/usr/local/sbin/gaia-t18 server run -config /var/lib/gaia-t18/server.json
+21c21
+< ReadWritePaths=/var/lib/gaia /srv/gaia -/var/lib/gaia-sandbox/images
+---
+> ReadWritePaths=/var/lib/gaia-t18
+{"version":"dfd1d16e339b","schema_version":6,"migrations":["0001_init.sql","0002_state_backups.sql","0003_backups.sql","0004_status.sql","0005_recovery.sql","0006_quarantine_logins.sql"]}
+
+== host: user gaia-t18-backup, authorized_keys, host key
+{"id":1,"name":"gaia-lab","ssh_host_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINVyInK2SeMKRtwXaefePjEtXE5+2qajYXVNpDOKsViy"}
+{"libvirt":"9.0.0","qemu":"7.2.22","domains":["gaia-t17-web"],"seconds":0.229359994}
+
+== guest (gaia-t18: vda 8 GiB system, vdb 4 GiB data)
+[13:37:00] guest started, waiting for the workload (GAIA-READY on the serial console)
+[13:39:21] guest ready
+
+== repository in S3 and policy
+{"id":1,"name":"main","kind":"s3","location":"https://192.168.1.30:9000/gaia-t18/main/","splitter":"FIXED-1M","hash":"BLAKE2B-256-128","created_at":"2026-11-17T13:39:22.912847928Z"}
+{"state":"not confirmed","generation":2,"text":"recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine"}
+access key stored in secrets/repository-main.s3.json (600)
+{"id":1,"name":"t18","repository_id":1,"backup_interval_s":900,"test_interval_s":86400,"keep_last":8,"keep_daily":0,"keep_weekly":0,"rpo_target_s":1800,"rto_target_s":1800,"max_proof_age_s":172800,"check_template":"linux-basic","checks":[],"created_at":"2026-11-17T13:39:24.470210321Z","updated_at":"2026-11-17T13:39:24.470210321Z"}
+
+== cycles
+[13:39:39] cycle 1: references captured while paused (14.8 s)
+{"id":1,"host_id":1,"name":"gaia-t18","uuid":"","policy_id":1,"created_at":"2026-11-17T13:39:39.779843592Z","updated_at":"2026-11-17T13:39:39.779843592Z","full_backup_reason":""}
+{"cycle":1,"job":1,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T13:39:54.49842586Z","finished_at":"2026-11-17T13:40:18.368391022Z","kind":"full","backup_reason":"full: no earlier checked point of this VM","point":1,"parent_point":null,"checkpoint":"gaia-1-1","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581449216,"read_bytes":1581449216,"nbd_payload_bytes":1581449216,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":4294967296,"changed_bytes":1077477376,"read_bytes":1077477376,"nbd_payload_bytes":1077477376,"repo_read_bytes":0,"written_bytes":1088421888}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":{"mode":"full","gc":{"unreferencedContentCount":0,"unreferencedContentSize":0,"deletedContentCount":0,"deletedContentSize":0,"unreferencedRecentContentCount":0,"unreferencedRecentContentSize":0,"inUseContentCount":2592,"inUseContentSize":1990477937,"inUseSystemContentCount":4,"inUseSystemContentSize":1569,"recoveredContentCount":0,"recoveredContentSize":0},"referenced_contents":2592,"quarantined_contents":0,"unresolved_points":[],"seconds":0.842688547},"host_gaia_checkpoints":["gaia-1-1"],"timings_s":{"begin":0.717137759,"check":0.104294561,"connect":0.281074851,"disk_vda":12.139202262,"disk_vdb":8.860576031,"retention_maintenance":0.842939935,"total":23.829660415},"reference":true,"guest_workload_bytes_total":5767168}
+{"cycle":1,"point":1,"disks":[{"disk":"vda","reference_sha256":"17350db3ff7e41ed69fd8d1b26ffdf1f50d7c9e1c524e8049c9499fb2f5a6db5","restored_sha256":"17350db3ff7e41ed69fd8d1b26ffdf1f50d7c9e1c524e8049c9499fb2f5a6db5","bytes":8589934592,"seconds":36.671425625,"identical":true},{"disk":"vdb","reference_sha256":"06e2f9a5c44f3e0cb428464c909a6338c645a56607c7514bd19283efb65b2355","restored_sha256":"06e2f9a5c44f3e0cb428464c909a6338c645a56607c7514bd19283efb65b2355","bytes":4294967296,"seconds":26.632295609,"identical":true}]}
+[13:41:24] cycle 2: backup due 13:54:54
+{"cycle":2,"job":3,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T13:54:54.49872917Z","finished_at":"2026-11-17T13:55:11.145950126Z","kind":"incremental","backup_reason":"incremental from point 1 (checkpoint gaia-1-1)","point":2,"parent_point":1,"checkpoint":"gaia-1-3","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":359923712,"read_bytes":359923712,"nbd_payload_bytes":359923712,"repo_read_bytes":245366784,"written_bytes":559939584},{"target":"vdb","size_bytes":4294967296,"changed_bytes":569507840,"read_bytes":569507840,"nbd_payload_bytes":569507840,"repo_read_bytes":557842432,"written_bytes":1061158912}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-1","gaia-1-3"],"timings_s":{"begin":0.503901395,"check":0.035228064,"connect":0.235020256,"disk_vda":5.231938102,"disk_vdb":10.084956343,"retention_maintenance":0.002896014,"total":16.619490567},"reference":false,"guest_workload_bytes_total":98041856}
+[13:55:12] injection: deleting checkpoint gaia-1-3 on the host (virsh checkpoint-delete)
+Domain checkpoint gaia-1-3 deleted
+
+[13:55:12] cycle 3: backup due 14:09:54
+{"cycle":3,"job":4,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T14:09:54.499190421Z","finished_at":"2026-11-17T14:10:09.871326649Z","kind":"full","backup_reason":"full: checkpoint gaia-1-3 of point 2 is not on the host","point":3,"parent_point":null,"checkpoint":"gaia-1-4","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581449216,"read_bytes":1581449216,"nbd_payload_bytes":1581449216,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":4294967296,"changed_bytes":1361379328,"read_bytes":1361379328,"nbd_payload_bytes":1361379328,"repo_read_bytes":0,"written_bytes":1372585984}],"check_problems":[],"checkpoints_deleted":["gaia-1-1"],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-4"],"timings_s":{"begin":0.662030911,"check":0.046430434,"connect":0.268860832,"disk_vda":6.6279717,"disk_vdb":6.8934613890000005,"retention_maintenance":0.003619301,"total":15.346935232},"reference":false,"guest_workload_bytes_total":1196687360}
+[14:10:10] injection: growing vdb from 4294967296 bytes by 1 GiB (virsh blockresize)
+Block device 'vdb' is resized
+[14:10:10] cycle 4: pausing the guest in 794 s (backup due 14:24:54)
+[14:23:40] cycle 4: references captured while paused (15.4 s)
+{"cycle":4,"job":5,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T14:24:54.508378588Z","finished_at":"2026-11-17T14:25:05.570718649Z","kind":"full","backup_reason":"full: disk vdb was resized from 4294967296 to 5368709120 bytes","point":4,"parent_point":null,"checkpoint":"gaia-1-5","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581449216,"read_bytes":1581449216,"nbd_payload_bytes":1581449216,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":5368709120,"changed_bytes":1461518336,"read_bytes":1461518336,"nbd_payload_bytes":1461518336,"repo_read_bytes":0,"written_bytes":1473249280}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-4","gaia-1-5"],"timings_s":{"begin":0.461177112,"check":0.038854171,"connect":0.250324493,"disk_vda":4.538174453,"disk_vdb":5.299743658,"retention_maintenance":0.003030758,"total":11.04783371},"reference":true,"guest_workload_bytes_total":3494903808}
+{"cycle":4,"point":4,"disks":[{"disk":"vda","reference_sha256":"41fa3f9d20d800b9b516789676fc0d8552df7d52045797810e91763e2bdd2c9b","restored_sha256":"41fa3f9d20d800b9b516789676fc0d8552df7d52045797810e91763e2bdd2c9b","bytes":8589934592,"seconds":15.750706259,"identical":true},{"disk":"vdb","reference_sha256":"4d3f7f27739ab6336c0682e851460f24a90875105ef94dc05ce7b407f7274e65","restored_sha256":"4d3f7f27739ab6336c0682e851460f24a90875105ef94dc05ce7b407f7274e65","bytes":5368709120,"seconds":21.144945539,"identical":true}]}
+
+== verifications and the damaged content (after cycle 4)
+{"id":1,"name":"gaia-t18","policy_id":null}
+{"id":2,"mode":"sampled","state":"ok","points_checked":4,"blocks_read":226,"error":""}
+[14:25:47] injection: MinIO object main/pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147, file gaia-t18/main/pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147/a9403979-3adc-49c5-8ba6-d6bcda185432/part.1 (21261393 bytes), byte 10630696 e2 -> 1d
+{"contents_in_pack":70,"first":["07dd5eb5fbfbfe3229910ee9577fa5b9","07f8f481f109df5033b1b2e24463bbd3","0847e11386e24b631c2568ffcd6f6212","0a8eaded5c50b5efe08a79c0ef4765b1","0b5ef175e30726c41d8f70f14b40e006"]}
+{"id":3,"mode":"full","state":"critical","points_checked":4,"points_skipped":0,"blocks_read":11353,"error":"","affected":[{"point_id":1,"disk":"vda","contents":["ade012cf5cbd6d060832a44b348c1c93","1e1bfbce21aa07a9b2b66ea730781a23","1f4079cacb20a71bdd7875ad967f878a","4c688c3d904ebc6cbff64ef2da0c1da0"],"problem":"block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf3"},{"point_id":2,"disk":"vda","contents":["ade012cf5cbd6d060832a44b348c1c93","1f4079cacb20a71bdd7875ad967f878a","4c688c3d904ebc6cbff64ef2da0c1da0"],"problem":"block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf3"},{"point_id":3,"disk":"vda","contents":["ade012cf5cbd6d060832a44b348c1c93","1f4079cacb20a71bdd7875ad967f878a","4c688c3d904ebc6cbff64ef2da0c1da0"],"problem":"block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf3"},{"point_id":4,"disk":"vda","contents":["ade012cf5cbd6d060832a44b348c1c93","1f4079cacb20a71bdd7875ad967f878a","4c688c3d904ebc6cbff64ef2da0c1da0"],"problem":"block 263 (ade012cf5cbd6d060832a44b348c1c93): unexpected content error: error getting cached content from blob \"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147\": unable to complete GetBlob(pbf3"}]}
+{"content_id":"ade012cf5cbd6d060832a44b348c1c93","pack":"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147","reason":"the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d","points":[1,2,3,4],"verification_id":3}
+{"content_id":"1e1bfbce21aa07a9b2b66ea730781a23","pack":"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147","reason":"the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d","points":[1],"verification_id":3}
+{"content_id":"1f4079cacb20a71bdd7875ad967f878a","pack":"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147","reason":"the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d","points":[1,2,3,4],"verification_id":3}
+{"content_id":"4c688c3d904ebc6cbff64ef2da0c1da0","pack":"pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147","reason":"the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d","points":[1,2,3,4],"verification_id":3}
+{"id":1,"name":"gaia-t18","full_backup_reason":"full: repository verification 3 quarantined damaged contents used by point 4"}
+{"seq":26,"at":"2026-11-17T14:38:25.704126594Z","username":"admin","target":"repository:main","detail":"verification 3 quarantined 4 damaged contents (manifest db664238bb64d980d290e41c140990a4): ade012cf5cbd6d060832a44b348c1c93 (the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb690"}
+{"id":4,"kind":"full","check_state":"failed"}
+{"id":3,"kind":"full","check_state":"failed"}
+{"id":2,"kind":"incremental","check_state":"failed"}
+{"id":1,"kind":"full","check_state":"failed"}
+[14:38:44] cycle 5: references captured while paused (15.8 s)
+{"id":1,"name":"gaia-t18","policy_id":1,"full_backup_reason":"full: repository verification 3 quarantined damaged contents used by point 4"}
+{"cycle":5,"job":6,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T14:39:54.498743536Z","finished_at":"2026-11-17T14:40:10.338593871Z","kind":"full","backup_reason":"full: repository verification 3 quarantined damaged contents used by point 4","point":5,"parent_point":null,"checkpoint":"gaia-1-6","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":1581449216,"read_bytes":1581449216,"nbd_payload_bytes":1581449216,"repo_read_bytes":0,"written_bytes":1685061632},{"target":"vdb","size_bytes":5368709120,"changed_bytes":1561657344,"read_bytes":1561657344,"nbd_payload_bytes":1561657344,"repo_read_bytes":0,"written_bytes":1573912576}],"check_problems":[],"checkpoints_deleted":["gaia-1-4","gaia-1-5"],"points_pruned":[],"maintenance":null,"host_gaia_checkpoints":["gaia-1-6"],"timings_s":{"begin":0.497377412,"check":0.068726906,"connect":0.309267737,"disk_vda":6.6658414409999995,"disk_vdb":7.317041342,"retention_maintenance":0.00324792,"total":15.807043328},"reference":true,"guest_workload_bytes_total":4596432896}
+{"cycle":5,"point":5,"disks":[{"disk":"vda","reference_sha256":"0cb2a3cdb42016e139e5805ab8ff6befbfe6ae4cceb60a89f10f92d3897a2095","restored_sha256":"0cb2a3cdb42016e139e5805ab8ff6befbfe6ae4cceb60a89f10f92d3897a2095","bytes":8589934592,"seconds":29.128885589,"identical":true},{"disk":"vdb","reference_sha256":"7ae3f44f35718020c0643acac82800212bc36ba661693682d9891a5ce20a89db","restored_sha256":"7ae3f44f35718020c0643acac82800212bc36ba661693682d9891a5ce20a89db","bytes":5368709120,"seconds":31.723424067,"identical":true}]}
+[14:41:13] cycle 6: pausing the guest in 731 s (backup due 14:54:54)
+[14:53:39] cycle 6: references captured while paused (15.2 s)
+{"cycle":6,"job":7,"reason":"schedule: policy t18, every 900 s","state":"ok","error":"","created_at":"2026-11-17T14:54:54.498367029Z","finished_at":"2026-11-17T14:55:09.55431952Z","kind":"incremental","backup_reason":"incremental from point 5 (checkpoint gaia-1-6)","point":6,"parent_point":5,"checkpoint":"gaia-1-7","disks":[{"target":"vda","size_bytes":8589934592,"changed_bytes":356843520,"read_bytes":356843520,"nbd_payload_bytes":356843520,"repo_read_bytes":243269632,"written_bytes":553648128},{"target":"vdb","size_bytes":5368709120,"changed_bytes":532807680,"read_bytes":532807680,"nbd_payload_bytes":532807680,"repo_read_bytes":579862528,"written_bytes":1045430272}],"check_problems":[],"checkpoints_deleted":[],"points_pruned":[],"maintenance":{"mode":"quick","gc":null,"referenced_contents":0,"quarantined_contents":0,"unresolved_points":[],"seconds":0.087999429},"host_gaia_checkpoints":["gaia-1-6","gaia-1-7"],"timings_s":{"begin":0.505335948,"check":0.039669754,"connect":0.270237548,"disk_vda":4.438134402,"disk_vdb":9.140674872,"retention_maintenance":0.088727834,"total":15.044337178},"reference":true,"guest_workload_bytes_total":5683544064}
+{"cycle":6,"point":6,"disks":[{"disk":"vda","reference_sha256":"2cf06569f83b206af1079cc7f74c8cf333e2aae1b7124ac26bf7b0c599cbe685","restored_sha256":"2cf06569f83b206af1079cc7f74c8cf333e2aae1b7124ac26bf7b0c599cbe685","bytes":8589934592,"seconds":16.675948224,"identical":true},{"disk":"vdb","reference_sha256":"48da0447d654b329191aa07d795c5701824f57ab6039cf315afd45c9a81b0da6","restored_sha256":"48da0447d654b329191aa07d795c5701824f57ab6039cf315afd45c9a81b0da6","bytes":5368709120,"seconds":22.923797257,"identical":true}]}
+gaia-1-6
+gaia-1-7
+
+== after the quarantine: a full verification, a forced full maintenance
+{"id":4,"mode":"full","state":"ok","points_checked":2,"points_skipped":4,"blocks_read":6310,"error":""}
+{"rc":0,"mode":"full","referenced_contents":10321,"quarantined_contents":1,"unresolved_points":[],"seconds":0.45631897,"gc":{"InUseContentCount":null,"DeletedContentCount":null,"RecoveredContentCount":null}}
+{"id":6,"kind":"incremental","state":"present","check_state":"ok","checkpoint":"gaia-1-7","parent_id":5,"reason":"incremental from point 5 (checkpoint gaia-1-6)"}
+{"id":5,"kind":"full","state":"present","check_state":"ok","checkpoint":"gaia-1-6","parent_id":null,"reason":"full: repository verification 3 quarantined damaged contents used by point 4"}
+{"id":4,"kind":"full","state":"present","check_state":"failed","checkpoint":"gaia-1-5","parent_id":null,"reason":"full: disk vdb was resized from 4294967296 to 5368709120 bytes"}
+{"id":3,"kind":"full","state":"present","check_state":"failed","checkpoint":"gaia-1-4","parent_id":null,"reason":"full: checkpoint gaia-1-3 of point 2 is not on the host"}
+{"id":2,"kind":"incremental","state":"present","check_state":"failed","checkpoint":"gaia-1-3","parent_id":1,"reason":"incremental from point 1 (checkpoint gaia-1-1)"}
+{"id":1,"kind":"full","state":"present","check_state":"failed","checkpoint":"gaia-1-1","parent_id":null,"reason":"full: no earlier checked point of this VM"}
+{"id":1,"name":"gaia-t18","full_backup_reason":""}
+
+== login protection
+{"id":2,"username":"t18op","role":"operator"}
+{"step":"user-wrong-1","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-2","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-3","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-4","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:15Z"}
+{"step":"user-wrong-5","user":"t18op","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"user-right-while-locked","user":"t18op","password":"right","status":429,"retry_after":"900","error":"too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-1","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-2","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-3","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-4","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:16Z"}
+{"step":"unknown-wrong-5","user":"nobody-t18","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"unknown-while-locked","user":"nobody-t18","password":"wrong","status":429,"retry_after":"900","error":"too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z","at":"2026-11-17T14:56:17Z"}
+{"id":2,"username":"t18op","failed_logins":0,"locked_until":""}
+{"step":"user-right-after-unlock","user":"t18op","password":"right","status":200,"retry_after":"","error":null,"at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-1","user":"nobody-1","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-2","user":"nobody-2","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:17Z"}
+{"step":"address-wrong-3","user":"nobody-3","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-4","user":"nobody-4","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-5","user":"nobody-5","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-6","user":"nobody-6","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-7","user":"nobody-7","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:18Z"}
+{"step":"address-wrong-8","user":"nobody-8","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-wrong-9","user":"nobody-9","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-wrong-10","user":"nobody-10","password":"wrong","status":401,"retry_after":"","error":"wrong username or password, or the user is disabled","at":"2026-11-17T14:56:19Z"}
+{"step":"address-admin-right","user":"admin","password":"admin","status":429,"retry_after":"596","error":"20 wrong passwords from 127.0.0.1 within 10m0s; try again after 2026-11-17T15:06:15Z","at":"2026-11-17T14:56:19Z"}
+39	2026-11-17T14:56:15.249083215Z	user:t18op	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+40	2026-11-17T14:56:15.479626791Z	user:t18op	401	login failed: wrong password (2 in a row) unauthorized: wrong username or password, or the user is disabled
+41	2026-11-17T14:56:15.710125418Z	user:t18op	401	login failed: wrong password (3 in a row) unauthorized: wrong username or password, or the user is disabled
+42	2026-11-17T14:56:15.858378064Z	user:t18op	401	login failed: wrong password (4 in a row) unauthorized: wrong username or password, or the user is disabled
+43	2026-11-17T14:56:16.06811553Z	user:t18op	401	login failed: wrong password (5 in a row); locked out until 2026-11-17T15:11:16Z unauthorized: wrong username or password, or the user is disabled
+44	2026-11-17T14:56:16.154194089Z	user:t18op	429	login refused: too many wrong passwords for this username too many failed logins: too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z
+45	2026-11-17T14:56:16.332826982Z	user:nobody-t18	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+46	2026-11-17T14:56:16.510124101Z	user:nobody-t18	401	login failed: wrong password (2 in a row) unauthorized: wrong username or password, or the user is disabled
+47	2026-11-17T14:56:16.707891654Z	user:nobody-t18	401	login failed: wrong password (3 in a row) unauthorized: wrong username or password, or the user is disabled
+48	2026-11-17T14:56:16.886026939Z	user:nobody-t18	401	login failed: wrong password (4 in a row) unauthorized: wrong username or password, or the user is disabled
+49	2026-11-17T14:56:17.065571776Z	user:nobody-t18	401	login failed: wrong password (5 in a row); locked out until 2026-11-17T15:11:16Z unauthorized: wrong username or password, or the user is disabled
+50	2026-11-17T14:56:17.140811368Z	user:nobody-t18	429	login refused: too many wrong passwords for this username too many failed logins: too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z
+53	2026-11-17T14:56:17.564012436Z	user:t18op	200	logged in (session 2)
+54	2026-11-17T14:56:17.757493075Z	user:nobody-1	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+55	2026-11-17T14:56:17.917072156Z	user:nobody-2	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+56	2026-11-17T14:56:18.078838305Z	user:nobody-3	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+57	2026-11-17T14:56:18.242397262Z	user:nobody-4	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+58	2026-11-17T14:56:18.448681177Z	user:nobody-5	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+59	2026-11-17T14:56:18.659029649Z	user:nobody-6	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+60	2026-11-17T14:56:18.860840039Z	user:nobody-7	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+61	2026-11-17T14:56:19.068117758Z	user:nobody-8	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+62	2026-11-17T14:56:19.213884898Z	user:nobody-9	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+63	2026-11-17T14:56:19.400936443Z	user:nobody-10	401	login failed: wrong password (1 in a row) unauthorized: wrong username or password, or the user is disabled
+64	2026-11-17T14:56:19.509242615Z	user:admin	429	login refused: 20 wrong passwords from 127.0.0.1 within 10m0s too many failed logins: 20 wrong passwords from 127.0.0.1 within 10m0s; try again after 2026-11-17T15:06:15Z
+{"at":"2026-11-17T14:56:16.061516357Z","entity_id":2,"from":"unlocked","to":"locked until 2026-11-17T15:11:16.061444717Z","reason":"5 wrong passwords in a row","actor":"system"}
+{"at":"2026-11-17T14:56:17.399171156Z","entity_id":2,"from":"locked until 2026-11-17T15:11:16.061444717Z","to":"unlocked","reason":"unlocked by admin after 5 wrong passwords in a row","actor":"admin"}
+{"entries":64,"intact":true,"head_sha256":"ea6bf79056d44ebcd579096753b579c3088d95edc16870d67c93b51d4b4dc5b0","first_broken_seq":0}
+
+== gate (CLAUDE.md T18)
+{
+  "b_t15_on_s3": {
+    "cycles_before_corruption": 4,
+    "cycles_ok": 4,
+    "schedule_gaps_s": [
+      900,
+      900,
+      900
+    ],
+    "a_sampled_points_identical": {
+      "points": [
+        {
+          "cycle": 1,
+          "point": 1,
+          "disks": [
+            {
+              "disk": "vda",
+              "identical": true
+            },
+            {
+              "disk": "vdb",
+              "identical": true
+            }
+          ]
+        },
+        {
+          "cycle": 4,
+          "point": 4,
+          "disks": [
+            {
+              "disk": "vda",
+              "identical": true
+            },
+            {
+              "disk": "vdb",
+              "identical": true
+            }
+          ]
+        }
+      ],
+      "pass": true
+    },
+    "b1_checkpoint_deleted_full": {
+      "cycle": 3,
+      "kind": "full",
+      "backup_reason": "full: checkpoint gaia-1-3 of point 2 is not on the host",
+      "pass": true
+    },
+    "b2_corruption_critical": {
+      "verification": 3,
+      "state": "critical",
+      "newest_point": 4,
+      "affected": [
+        {
+          "point_id": 1,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1e1bfbce21aa07a9b2b66ea730781a23",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 2,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 3,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 4,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        }
+      ],
+      "affected_points_failed": [
+        {
+          "id": 4,
+          "check_state": "failed"
+        },
+        {
+          "id": 3,
+          "check_state": "failed"
+        },
+        {
+          "id": 2,
+          "check_state": "failed"
+        },
+        {
+          "id": 1,
+          "check_state": "failed"
+        }
+      ],
+      "pass": true
+    },
+    "b3_resize_full": {
+      "cycle": 4,
+      "kind": "full",
+      "backup_reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+      "pass": true
+    },
+    "c_no_tcp_nbd_listener": {
+      "backups_caught_running": 6,
+      "qemu_tcp_listeners": 0,
+      "pass": true
+    },
+    "sampled_verification_before_corruption": {
+      "state": "ok",
+      "points_checked": 4
+    }
+  },
+  "a_after_damage": {
+    "quarantined": [
+      {
+        "content_id": "ade012cf5cbd6d060832a44b348c1c93",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "1e1bfbce21aa07a9b2b66ea730781a23",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "1f4079cacb20a71bdd7875ad967f878a",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "4c688c3d904ebc6cbff64ef2da0c1da0",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      }
+    ],
+    "audit_entries": 1,
+    "next_backup": {
+      "cycle": 5,
+      "kind": "full",
+      "backup_reason": "full: repository verification 3 quarantined damaged contents used by point 4",
+      "state": "ok"
+    },
+    "later_backups": [
+      {
+        "cycle": 6,
+        "kind": "incremental",
+        "state": "ok"
+      }
+    ],
+    "points_identical": [
+      {
+        "cycle": 5,
+        "point": 5,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 6,
+        "point": 6,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      }
+    ],
+    "last_full_verification": {
+      "state": "ok",
+      "points_checked": 2,
+      "points_skipped": 4
+    },
+    "forced_maintenance_rc": 0,
+    "pass": true
+  },
+  "c_logins": {
+    "attempts": 24,
+    "audited": 24,
+    "user_wrong": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "user_right_while_locked": {
+      "status": 429,
+      "retry_after": "900",
+      "error": "too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z"
+    },
+    "unknown_wrong": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "unknown_while_locked": {
+      "status": 429,
+      "retry_after": "900",
+      "error": "too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z"
+    },
+    "user_right_after_unlock": 200,
+    "address_admin_right": {
+      "status": 429,
+      "retry_after": "596",
+      "error": "20 wrong passwords from 127.0.0.1 within 10m0s; try again after 2026-11-17T15:06:15Z"
+    },
+    "lockout_changes": [
+      {
+        "from": "unlocked",
+        "to": "locked until 2026-11-17T15:11:16.061444717Z",
+        "reason": "5 wrong passwords in a row",
+        "actor": "system"
+      },
+      {
+        "from": "locked until 2026-11-17T15:11:16.061444717Z",
+        "to": "unlocked",
+        "reason": "unlocked by admin after 5 wrong passwords in a row",
+        "actor": "admin"
+      }
+    ],
+    "pass": true
+  },
+  "verdict": "OK"
+}
+
+== summary
+cycle job   kind        state     vda_changed    vdb_changed  total_s host_checkpoints
+1     1     full        ok         1581449216     1077477376     23.8 gaia-1-1
+2     3     incremental ok          359923712      569507840     16.6 gaia-1-1,gaia-1-3
+3     4     full        ok         1581449216     1361379328     15.3 gaia-1-4
+4     5     full        ok         1581449216     1461518336       11 gaia-1-4,gaia-1-5
+5     6     full        ok         1581449216     1561657344     15.8 gaia-1-6
+6     7     incremental ok          356843520      532807680       15 gaia-1-6,gaia-1-7
+
+== result
+OK
+(gate.json, cycles.jsonl, restore-checks.jsonl, logins.jsonl, quarantine.json, verification-*.json, ss.txt, server.journal in /root/t18-20261117T133641Z)

@@ -1,0 +1,69 @@
+{
+  "id": 7,
+  "kind": "backup",
+  "vm_id": 1,
+  "state": "ok",
+  "reason": "schedule: policy t18, every 900 s",
+  "error": "",
+  "created_at": "2026-11-17T14:54:54.498367029Z",
+  "started_at": "2026-11-17T14:54:54.507946204Z",
+  "finished_at": "2026-11-17T14:55:09.55431952Z",
+  "checkpoint": "gaia-1-7",
+  "detail": {
+    "kind": "incremental",
+    "reason": "incremental from point 5 (checkpoint gaia-1-6)",
+    "checkpoint": "gaia-1-7",
+    "parent_point": 5,
+    "point": 6,
+    "disks": [
+      {
+        "target": "vda",
+        "size_bytes": 8589934592,
+        "meta_context": "qemu:dirty-bitmap:backup-vda",
+        "changed_bytes": 356843520,
+        "read_bytes": 356843520,
+        "nbd_payload_bytes": 356843520,
+        "repo_read_bytes": 243269632,
+        "written_bytes": 553648128,
+        "store_id": "06772a79c8c49e67451d821fcbaa533c"
+      },
+      {
+        "target": "vdb",
+        "size_bytes": 5368709120,
+        "meta_context": "qemu:dirty-bitmap:backup-vdb",
+        "changed_bytes": 532807680,
+        "read_bytes": 532807680,
+        "nbd_payload_bytes": 532807680,
+        "repo_read_bytes": 579862528,
+        "written_bytes": 1045430272,
+        "store_id": "e8b200bd48179b7baae21b0a6ed92a55"
+      }
+    ],
+    "check_problems": [],
+    "checkpoints_kept": [
+      "gaia-1-6",
+      "gaia-1-7"
+    ],
+    "checkpoints_deleted": [],
+    "points_pruned": [],
+    "maintenance": {
+      "mode": "quick",
+      "gc": null,
+      "referenced_contents": 0,
+      "quarantined_contents": 0,
+      "unresolved_points": [],
+      "seconds": 0.087999429
+    },
+    "timings_s": {
+      "begin": 0.505335948,
+      "check": 0.039669754,
+      "connect": 0.270237548,
+      "disk_vda": 4.438134402,
+      "disk_vdb": 9.140674872,
+      "retention_maintenance": 0.088727834,
+      "total": 15.044337178
+    },
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22"
+  }
+}

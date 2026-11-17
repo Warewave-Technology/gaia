@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "host_id": 1,
+  "name": "gaia-t18",
+  "uuid": "100178d1-74d5-473f-94de-841f3ebf6f9e",
+  "policy_id": null,
+  "created_at": "2026-11-17T13:39:39.779843592Z",
+  "updated_at": "2026-11-17T14:38:25.702217695Z",
+  "full_backup_reason": "full: repository verification 3 quarantined damaged contents used by point 4"
+}

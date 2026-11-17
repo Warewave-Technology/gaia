@@ -1,0 +1,21 @@
+{
+  "mode": "full",
+  "gc": {
+    "unreferencedContentCount": 0,
+    "unreferencedContentSize": 0,
+    "deletedContentCount": 0,
+    "deletedContentSize": 0,
+    "unreferencedRecentContentCount": 0,
+    "unreferencedRecentContentSize": 0,
+    "inUseContentCount": 10320,
+    "inUseContentSize": 9742332409,
+    "inUseSystemContentCount": 24,
+    "inUseSystemContentSize": 12217,
+    "recoveredContentCount": 0,
+    "recoveredContentSize": 0
+  },
+  "referenced_contents": 10321,
+  "quarantined_contents": 1,
+  "unresolved_points": [],
+  "seconds": 0.45631897
+}

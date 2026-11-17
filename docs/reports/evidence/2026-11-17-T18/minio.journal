@@ -1,0 +1,60 @@
+2026-11-17T09:38:40.147483+0000 gaia-lab systemd[1]: Started gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T09:38:40.496652+0000 gaia-lab minio[195198]: INFO: Formatting 1st pool, 1 set(s), 1 drives per set.
+2026-11-17T09:38:40.497147+0000 gaia-lab minio[195198]: INFO: WARNING: Host local has more than 0 drives of set. A host failure will result in data becoming unavailable.
+2026-11-17T09:38:40.517273+0000 gaia-lab minio[195198]: MinIO Object Storage Server
+2026-11-17T09:38:40.517440+0000 gaia-lab minio[195198]: Copyright: 2015-2026 MinIO, Inc.
+2026-11-17T09:38:40.517440+0000 gaia-lab minio[195198]: License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+2026-11-17T09:38:40.517440+0000 gaia-lab minio[195198]: Version: DEVELOPMENT.GOGET (go1.25.8 linux/amd64)
+2026-11-17T09:38:40.517546+0000 gaia-lab minio[195198]: API: https://192.168.1.30:9000
+2026-11-17T09:38:40.517603+0000 gaia-lab minio[195198]: WebUI: https://127.0.0.1:9001
+2026-11-17T09:38:40.517661+0000 gaia-lab minio[195198]: Docs: https://docs.min.io
+2026-11-17T09:41:23.038429+0000 gaia-lab minio[195198]: INFO: Exiting on signal: TERMINATED
+2026-11-17T09:41:23.038287+0000 gaia-lab systemd[1]: Stopping gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data...
+2026-11-17T09:41:23.083553+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Deactivated successfully.
+2026-11-17T09:41:23.083703+0000 gaia-lab systemd[1]: Stopped gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T09:41:23.084412+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T09:41:23.084511+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T09:42:54.927450+0000 gaia-lab systemd[1]: Started gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T09:42:55.263862+0000 gaia-lab minio[196513]: INFO: Formatting 1st pool, 1 set(s), 1 drives per set.
+2026-11-17T09:42:55.264144+0000 gaia-lab minio[196513]: INFO: WARNING: Host local has more than 0 drives of set. A host failure will result in data becoming unavailable.
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: MinIO Object Storage Server
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: Copyright: 2015-2026 MinIO, Inc.
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: Version: DEVELOPMENT.GOGET (go1.25.8 linux/amd64)
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: API: https://192.168.1.30:9000
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: WebUI: https://127.0.0.1:9001
+2026-11-17T09:42:55.283885+0000 gaia-lab minio[196513]: Docs: https://docs.min.io
+2026-11-17T11:02:35.819718+0000 gaia-lab systemd[1]: Stopping gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data...
+2026-11-17T11:02:35.824725+0000 gaia-lab minio[196513]: INFO: Exiting on signal: TERMINATED
+2026-11-17T11:02:35.963420+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Deactivated successfully.
+2026-11-17T11:02:35.963591+0000 gaia-lab systemd[1]: Stopped gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T11:02:35.963786+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Consumed 2min 23.359s CPU time.
+2026-11-17T11:02:35.964378+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T11:02:35.964501+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T11:05:27.743673+0000 gaia-lab systemd[1]: Started gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T11:05:28.125814+0000 gaia-lab minio[228001]: INFO: Formatting 1st pool, 1 set(s), 1 drives per set.
+2026-11-17T11:05:28.126210+0000 gaia-lab minio[228001]: INFO: WARNING: Host local has more than 0 drives of set. A host failure will result in data becoming unavailable.
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: MinIO Object Storage Server
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: Copyright: 2015-2026 MinIO, Inc.
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: Version: DEVELOPMENT.GOGET (go1.25.8 linux/amd64)
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: API: https://192.168.1.30:9000
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: WebUI: https://127.0.0.1:9001
+2026-11-17T11:05:28.158900+0000 gaia-lab minio[228001]: Docs: https://docs.min.io
+2026-11-17T12:24:57.989071+0000 gaia-lab systemd[1]: Stopping gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data...
+2026-11-17T12:24:57.990212+0000 gaia-lab minio[228001]: INFO: Exiting on signal: TERMINATED
+2026-11-17T12:24:58.095570+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Deactivated successfully.
+2026-11-17T12:24:58.095828+0000 gaia-lab systemd[1]: Stopped gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T12:24:58.096294+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Consumed 2min 47.817s CPU time.
+2026-11-17T12:24:58.097339+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T12:24:58.097514+0000 gaia-lab systemd[1]: gaia-t18-minio.service: Failed to open /run/systemd/transient/gaia-t18-minio.service: No such file or directory
+2026-11-17T13:36:51.231589+0000 gaia-lab systemd[1]: Started gaia-t18-minio.service - /var/lib/gaia/minio-v0.0.0-20260212201848-7aac2a2c5b7c/minio server --address 192.168.1.30:9000 --console-address 127.0.0.1:9001 --certs-dir /var/lib/gaia-t18-minio/certs /var/lib/gaia-t18-minio/data.
+2026-11-17T13:36:51.699615+0000 gaia-lab minio[259655]: INFO: Formatting 1st pool, 1 set(s), 1 drives per set.
+2026-11-17T13:36:51.700089+0000 gaia-lab minio[259655]: INFO: WARNING: Host local has more than 0 drives of set. A host failure will result in data becoming unavailable.
+2026-11-17T13:36:51.717742+0000 gaia-lab minio[259655]: MinIO Object Storage Server
+2026-11-17T13:36:51.717963+0000 gaia-lab minio[259655]: Copyright: 2015-2026 MinIO, Inc.
+2026-11-17T13:36:51.717963+0000 gaia-lab minio[259655]: License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+2026-11-17T13:36:51.717963+0000 gaia-lab minio[259655]: Version: DEVELOPMENT.GOGET (go1.25.8 linux/amd64)
+2026-11-17T13:36:51.718183+0000 gaia-lab minio[259655]: API: https://192.168.1.30:9000
+2026-11-17T13:36:51.718183+0000 gaia-lab minio[259655]: WebUI: https://127.0.0.1:9001
+2026-11-17T13:36:51.718183+0000 gaia-lab minio[259655]: Docs: https://docs.min.io

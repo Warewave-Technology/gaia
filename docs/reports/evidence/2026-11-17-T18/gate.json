@@ -1,0 +1,274 @@
+{
+  "b_t15_on_s3": {
+    "cycles_before_corruption": 4,
+    "cycles_ok": 4,
+    "schedule_gaps_s": [
+      900,
+      900,
+      900
+    ],
+    "a_sampled_points_identical": {
+      "points": [
+        {
+          "cycle": 1,
+          "point": 1,
+          "disks": [
+            {
+              "disk": "vda",
+              "identical": true
+            },
+            {
+              "disk": "vdb",
+              "identical": true
+            }
+          ]
+        },
+        {
+          "cycle": 4,
+          "point": 4,
+          "disks": [
+            {
+              "disk": "vda",
+              "identical": true
+            },
+            {
+              "disk": "vdb",
+              "identical": true
+            }
+          ]
+        }
+      ],
+      "pass": true
+    },
+    "b1_checkpoint_deleted_full": {
+      "cycle": 3,
+      "kind": "full",
+      "backup_reason": "full: checkpoint gaia-1-3 of point 2 is not on the host",
+      "pass": true
+    },
+    "b2_corruption_critical": {
+      "verification": 3,
+      "state": "critical",
+      "newest_point": 4,
+      "affected": [
+        {
+          "point_id": 1,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1e1bfbce21aa07a9b2b66ea730781a23",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 2,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 3,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        },
+        {
+          "point_id": 4,
+          "disk": "vda",
+          "contents": [
+            "ade012cf5cbd6d060832a44b348c1c93",
+            "1f4079cacb20a71bdd7875ad967f878a",
+            "4c688c3d904ebc6cbff64ef2da0c1da0"
+          ]
+        }
+      ],
+      "affected_points_failed": [
+        {
+          "id": 4,
+          "check_state": "failed"
+        },
+        {
+          "id": 3,
+          "check_state": "failed"
+        },
+        {
+          "id": 2,
+          "check_state": "failed"
+        },
+        {
+          "id": 1,
+          "check_state": "failed"
+        }
+      ],
+      "pass": true
+    },
+    "b3_resize_full": {
+      "cycle": 4,
+      "kind": "full",
+      "backup_reason": "full: disk vdb was resized from 4294967296 to 5368709120 bytes",
+      "pass": true
+    },
+    "c_no_tcp_nbd_listener": {
+      "backups_caught_running": 6,
+      "qemu_tcp_listeners": 0,
+      "pass": true
+    },
+    "sampled_verification_before_corruption": {
+      "state": "ok",
+      "points_checked": 4
+    }
+  },
+  "a_after_damage": {
+    "quarantined": [
+      {
+        "content_id": "ade012cf5cbd6d060832a44b348c1c93",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "1e1bfbce21aa07a9b2b66ea730781a23",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "1f4079cacb20a71bdd7875ad967f878a",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      },
+      {
+        "content_id": "4c688c3d904ebc6cbff64ef2da0c1da0",
+        "pack": "pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147",
+        "points": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "the storage cannot return pack pbf32f0b440cffb5e4bebc5a493e60755-sa830bb6901d28d24147 (unable to complete GetBlob(pbf32f"
+      }
+    ],
+    "audit_entries": 1,
+    "next_backup": {
+      "cycle": 5,
+      "kind": "full",
+      "backup_reason": "full: repository verification 3 quarantined damaged contents used by point 4",
+      "state": "ok"
+    },
+    "later_backups": [
+      {
+        "cycle": 6,
+        "kind": "incremental",
+        "state": "ok"
+      }
+    ],
+    "points_identical": [
+      {
+        "cycle": 5,
+        "point": 5,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      },
+      {
+        "cycle": 6,
+        "point": 6,
+        "disks": [
+          {
+            "disk": "vda",
+            "identical": true
+          },
+          {
+            "disk": "vdb",
+            "identical": true
+          }
+        ]
+      }
+    ],
+    "last_full_verification": {
+      "state": "ok",
+      "points_checked": 2,
+      "points_skipped": 4
+    },
+    "forced_maintenance_rc": 0,
+    "pass": true
+  },
+  "c_logins": {
+    "attempts": 24,
+    "audited": 24,
+    "user_wrong": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "user_right_while_locked": {
+      "status": 429,
+      "retry_after": "900",
+      "error": "too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z"
+    },
+    "unknown_wrong": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "unknown_while_locked": {
+      "status": 429,
+      "retry_after": "900",
+      "error": "too many wrong passwords for this username; try again after 2026-11-17T15:11:16Z"
+    },
+    "user_right_after_unlock": 200,
+    "address_admin_right": {
+      "status": 429,
+      "retry_after": "596",
+      "error": "20 wrong passwords from 127.0.0.1 within 10m0s; try again after 2026-11-17T15:06:15Z"
+    },
+    "lockout_changes": [
+      {
+        "from": "unlocked",
+        "to": "locked until 2026-11-17T15:11:16.061444717Z",
+        "reason": "5 wrong passwords in a row",
+        "actor": "system"
+      },
+      {
+        "from": "locked until 2026-11-17T15:11:16.061444717Z",
+        "to": "unlocked",
+        "reason": "unlocked by admin after 5 wrong passwords in a row",
+        "actor": "admin"
+      }
+    ],
+    "pass": true
+  },
+  "verdict": "OK"
+}

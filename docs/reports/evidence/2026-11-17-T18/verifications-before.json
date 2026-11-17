@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "repository_id": 1,
+    "mode": "sampled",
+    "state": "ok",
+    "reason": "schedule",
+    "started_at": "2026-11-17T13:39:24.499109207Z",
+    "finished_at": "2026-11-17T13:39:25.000730038Z",
+    "points_checked": 0,
+    "points_skipped": 0,
+    "blocks_read": 0,
+    "bytes_read": 0,
+    "affected": [],
+    "error": ""
+  }
+]
