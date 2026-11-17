@@ -226,7 +226,7 @@ hook_id=$(jq .id "$OUT_DIR/channel-hook.json")
 for id in "$mail_id" "$hook_id"; do
 	api channels test "$id" | tee -a "$OUT_DIR/channel-tests.jsonl" | jq -c '{id, channel_id, event, state, attempts, last_error}'
 done
-[[ $(jq -s 'map(.state) | unique' "$OUT_DIR/channel-tests.jsonl") == '["sent"]' ]] ||
+[[ $(jq -sc 'map(.state) | unique' "$OUT_DIR/channel-tests.jsonl") == '["sent"]' ]] ||
 	echo "WARNING: a test message was not sent (the gate will say so)"
 
 # --- the guest (as T16, without the control line) ----------------------------------------------------------------
