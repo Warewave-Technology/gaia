@@ -237,6 +237,14 @@ all_state_changes() {
 	jq -s . "$dir/all.jsonl"
 	rm -rf "$dir"
 }
+# relogin IP: a CLI session lasts 12 hours; the M2 upgrades come days apart. Logs the workstation in again (the
+# password file goes to the CLI) against the certificate fingerprint B was restored with.
+relogin() {
+	ws whoami >/dev/null 2>&1 && return
+	ws login -server "https://$1:8443" -user admin -fingerprint "$(jq -r '.result.tls_certificate_sha256' "$D/out/b-restore-state.json")" \
+		-password-file "$D/secrets/admin.pw"
+}
+
 snapshot() { # NAME: what the server knows now, through the API
 	local n=$1
 	api status >"$OUT/$n-status.json" || true
@@ -471,6 +479,7 @@ upgrade)
 	OUT=$D/out/upgrade-$rev
 	mkdir -p "$OUT"
 	exec > >(tee -a "$OUT/upgrade.log") 2>&1
+	relogin "$B"
 	started=$(stamp upgrade-start | jq -r .at)
 	api system >"$OUT/before-system.json"
 	section "server B ($B) before: $(jq -r '"\(.version), schema \(.schema_version)"' "$OUT/before-system.json")"

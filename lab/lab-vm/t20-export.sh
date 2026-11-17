@@ -35,6 +35,10 @@ gaia() { "$WS/bin/gaia" "$@"; } # the local tool: no server, no HOME
 # pyv ARGS: the independent verifier, isolated (-I), from its own directory; exit code kept in $rc.
 pyv() { rc=0; python3 -I "$PYV" "$@" || rc=$?; }
 
+if ! ws whoami >/dev/null 2>&1; then # the session lasts 12 hours (t17-drill.sh relogin)
+	ws login -server "$(jq -r .server "$WS/.config/gaia/cli.json")" -user admin \
+		-fingerprint "$(jq -r '.result.tls_certificate_sha256' "$D/out/b-restore-state.json")" -password-file "$D/secrets/admin.pw"
+fi
 echo "== server and export ($(ws whoami -json | jq -r '"\(.username), \(.role)"'))"
 ws system -json >"$OUT/system.json"
 jq -c '{version, schema_version, evidence_key_id}' "$OUT/system.json"
