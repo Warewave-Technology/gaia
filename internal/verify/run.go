@@ -598,7 +598,7 @@ func netBootWhy(typ string) string {
 	case CheckWinRM:
 		return ". WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once " +
 			"Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot " +
-			"loader, a stop error or the Recovery Environment takes no lease or never answers an Identify"
+			"loader, a stop error or the Recovery Environment takes no lease or never answers on 5985"
 	case CheckRDP:
 		return ". Remote Desktop answers only from a running Windows with RDP enabled: TermService accepts the X.224 " +
 			"handshake once Windows has taken a DHCP lease, so a guest that did not boot cannot confirm it"

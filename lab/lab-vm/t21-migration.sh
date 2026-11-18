@@ -5,7 +5,9 @@
 #   gaia-t8-broken       the same, MBR boot code zeroed   -> CRITICAL (no boot)
 #   gaia-t21-uefi        MBR boot code zeroed, firmware efi: boots only through UEFI -> OK, firmware UEFI
 #   gaia-t11-win         Windows Server 2022, BIOS        -> UNKNOWN before virtio-win is in place (not converted),
-#                                                            then OK: WinRM answers the Identify, RDP the handshake
+#                                                            then OK: WinRM answers (an Identify, or as Windows Server's
+#                                                            default an NTLM CHALLENGE with the computer's name and Windows
+#                                                            version), RDP the handshake
 #   gaia-t21-win-broken  the same disk, MBR boot code zeroed -> CRITICAL, the WinRM check saying why it cannot pass
 # The fixtures (lab/esxi/fixture-t8.sh, fixture-t11.sh) are made through the ESXi host's own shell (lab only, rule 9).
 #
@@ -322,7 +324,7 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
 	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
 	 b_t11_windows: {ready: s($win[0]), broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
-	                 pass: ($win[0].readiness == "OK" and ($win[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse")))
+	                 pass: ($win[0].readiness == "OK" and ($win[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse") or (contains("NTLM NEGOTIATE with a CHALLENGE from computer") and test("Windows [0-9]+[.][0-9]+ build [0-9]+")))))
 	                        and ($win[0] | step("rdp").verdict) == "OK"
 	                        and $wbrk[0].readiness == "CRITICAL" and ($wbrk[0] | step("boot").detail | contains("WinRM answers only from a running Windows"))
 	                        and $nov[0].readiness == "UNKNOWN" and ($nov[0] | step("conversion").detail | contains("virtio-win")))},
