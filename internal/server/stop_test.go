@@ -192,3 +192,41 @@ func TestDrain(t *testing.T) {
 		})
 	}
 }
+
+// A backup or restore test a stop ended (the drain was over) records its own failure; it is queued again for the next
+// start, but only after a stop, only once, and not when one is queued already.
+func TestRetryIfStopped(t *testing.T) {
+	ctx := context.Background()
+	f, _, vms, _, _ := quarantineFixture(t)
+	db := f.s.db
+	for _, q := range must(db.QueuedJobs(ctx)) { // addPoint's jobs
+		db.SetJobState(ctx, "system", q.ID, "cancelled", "test", "")
+	}
+	failed := func(vm int64, reason string) store.Job {
+		j, _ := db.CreateJob(ctx, "system", "restore_test", &vm, reason)
+		db.SetJobState(ctx, "system", j.ID, "running", "worker started", "")
+		j, _ = db.SetJobState(ctx, "system", j.ID, "failed", "restore test", "context canceled")
+		return j
+	}
+	queued := func() int { return len(must(db.QueuedJobs(ctx))) }
+	j := failed(vms[0].ID, "schedule")
+	f.s.retryIfStopped(j) // no stop: a failure of its own
+	if n := queued(); n != 0 {
+		t.Fatalf("queued without a stop: %d", n)
+	}
+	f.s.stopJobs()
+	f.s.retryIfStopped(j)
+	f.s.retryIfStopped(j) // its VM has one queued now
+	f.s.retryIfStopped(failed(vms[1].ID, fmt.Sprintf("%s1: the server stopped while it ran", retryReason)))
+	qs := must(db.QueuedJobs(ctx))
+	if len(qs) != 1 || *qs[0].VMID != vms[0].ID || qs[0].Reason != fmt.Sprintf("retry of job %d: the server stopped while it ran", j.ID) {
+		t.Fatalf("queued %+v", qs)
+	}
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}

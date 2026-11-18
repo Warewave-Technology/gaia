@@ -136,6 +136,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 				defer s.jobsWG.Done()
 				defer s.stateChanged()
 				defer s.testing.Delete(*j.VMID)
+				defer s.retryIfStopped(j)
 				s.runTest(s.jobs, j)
 			}(j)
 			continue
@@ -156,6 +157,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 			defer s.jobsWG.Done()
 			defer s.stateChanged()
 			defer s.running.Delete(*j.VMID)
+			defer s.retryIfStopped(j)
 			s.runBackup(s.jobs, j)
 		}(j)
 	}

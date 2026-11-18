@@ -415,6 +415,35 @@ func (s *Server) runningJobs() int {
 // so a job that stops the server cannot restart it for ever.
 const retryReason = "retry of job "
 
+// retryIfStopped queues a backup or restore test again that failed because a stop ended it (the drain was over), so
+// the next start runs it; finishInterrupted does the same for a job the stop did not even let record its end.
+func (s *Server) retryIfStopped(j store.Job) {
+	if s.jobs.Err() == nil || j.VMID == nil || strings.HasPrefix(j.Reason, retryReason) {
+		return
+	}
+	ctx := context.Background()
+	got, err := s.db.Job(ctx, j.ID)
+	if err != nil {
+		s.log.Error("retry after the stop", "job", j.ID, "error", err)
+		return
+	}
+	if got.State != "failed" {
+		return
+	}
+	if _, open, err := s.db.OpenJob(ctx, *j.VMID, j.Kind); err != nil {
+		s.log.Error("retry after the stop", "job", j.ID, "error", err)
+		return
+	} else if open {
+		return
+	}
+	r, err := s.db.CreateJob(ctx, "system", j.Kind, j.VMID, fmt.Sprintf("%s%d: the server stopped while it ran", retryReason, j.ID))
+	if err != nil {
+		s.log.Error("retry after the stop", "job", j.ID, "error", err)
+		return
+	}
+	s.log.Info("queued again for the next start", "job", j.ID, "kind", j.Kind, "as", r.ID)
+}
+
 // finishInterrupted ends what the last stop left running: jobs fail with the reason, restore tests become UNKNOWN,
 // repository verifications fail (one left running would block every later verification of its repository), migration
 // checks become UNKNOWN. A backup or restore test that was ended this way is queued again at once, unless it was
