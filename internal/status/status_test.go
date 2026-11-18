@@ -247,4 +247,10 @@ func TestTruthTableExamples(t *testing.T) {
 	if len(r.Notes) != 1 || !strings.Contains(r.Notes[0], "could not run") {
 		t.Errorf("a test that could not run is noted: %+v", r)
 	}
+	// A full backup for a reason (a checkpoint gone from the host) is noted and changes nothing else.
+	full := &Point{ID: 3, TakenAt: ago(60), FullReason: "checkpoint gaia-7 of point 2 is not on the host"}
+	r = Compute(Input{Now: now, Targets: targets, NewestChecked: full, LatestPassingTest: good, LatestTest: good})
+	if r.Status != OK || len(r.Notes) != 1 || r.Notes[0] != "the newest backup (point 3) is a full backup: checkpoint gaia-7 of point 2 is not on the host" {
+		t.Errorf("a full backup is noted: %+v", r)
+	}
 }

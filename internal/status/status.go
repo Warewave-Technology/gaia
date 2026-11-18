@@ -30,6 +30,9 @@ type Targets struct {
 type Point struct {
 	ID      int64     `json:"id"`
 	TakenAt time.Time `json:"taken_at"`
+	// FullReason says why the point is a full backup when the VM had an earlier one (a checkpoint missing on the host,
+	// a disk resized, a quarantine); empty for an incremental or a VM's first backup.
+	FullReason string `json:"full_reason,omitempty"`
 }
 
 // Test is a finished restore test.
@@ -152,6 +155,9 @@ func Compute(in Input) Result {
 
 	if lt := in.LatestTest; lt != nil && lt.Verdict == Warning {
 		r.Notes = append(r.Notes, fmt.Sprintf("the latest restore test (%d, point %d) is WARNING: %s", lt.ID, lt.PointID, lt.Detail))
+	}
+	if p := in.NewestChecked; p != nil && p.FullReason != "" {
+		r.Notes = append(r.Notes, fmt.Sprintf("the newest backup (point %d) is a full backup: %s", p.ID, p.FullReason))
 	}
 	if a := in.LatestAttempt; a != nil && a.Verdict == Unknown && (in.LatestTest == nil || a.ID > in.LatestTest.ID) {
 		r.Notes = append(r.Notes, fmt.Sprintf("restore test %d (point %d) could not run: %s", a.ID, a.PointID, a.Detail))

@@ -76,12 +76,25 @@ func hostTarget(h store.Host) hostconn.Target {
 // fullReason decides whether the next backup of a VM must be full, and why. demand is the VM's recorded demand for a
 // full backup (a quarantine, ADR-007 B3; "" = none); parent is the VM's latest checked point (nil if none); host lists
 // the checkpoints on the host; disks are the VM's disks now.
+// firstBackupReason is why a VM's first backup is full; every other reason for a full backup is worth telling (the
+// status's notes, the full_backup notification).
+const firstBackupReason = "full: no earlier checked point of this VM"
+
+// unplannedFull is why a point is a full backup although its VM had an earlier one, without the "full: " prefix; ""
+// for an incremental or a first backup.
+func unplannedFull(p store.Point) string {
+	if p.Kind != "full" || p.Reason == firstBackupReason || !strings.HasPrefix(p.Reason, "full: ") {
+		return ""
+	}
+	return strings.TrimPrefix(p.Reason, "full: ")
+}
+
 func fullReason(demand string, parent *store.Point, parentDisks []store.PointDisk, host []string, disks []libvirtbackup.Disk, repoID int64) string {
 	switch {
 	case demand != "":
 		return demand
 	case parent == nil:
-		return "full: no earlier checked point of this VM"
+		return firstBackupReason
 	case parent.RepositoryID != repoID:
 		return fmt.Sprintf("full: the policy's repository changed (point %d is in repository %d)", parent.ID, parent.RepositoryID)
 	case parent.Checkpoint == "" || !slices.Contains(host, parent.Checkpoint):

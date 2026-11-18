@@ -294,7 +294,10 @@ Gaia keeps trying (after 1, 2, 4 ... minutes, at most hourly, for 24 hours). Unt
 `gaia status` ends with `WARNING notifications: ...`, and with no channel at all it says nobody is told.
 
 `events=` limits a channel to some events, for example `events='["status","daily_report"]'`. The events are
-`status`, `job_failed`, `integrity`, `quarantine`, `ledger` and `daily_report`. The daily report goes out at
+`status`, `job_failed`, `integrity`, `quarantine`, `ledger`, `full_backup` (a backup was full although the VM had an
+earlier one: its checkpoint was gone from the host, a disk was resized, a quarantine) and `daily_report`. A channel
+added before 0.1.1 keeps the events it was added with; to get `full_backup` too, turn it off and add it again.
+The daily report goes out at
 `daily_report_at` (in `/etc/gaia/server.json`, default `07:00`, server time); `gaia daily-reports run` sends one now.
 A channel is turned off with `gaia channels set <id> enabled=false` (and on again with `enabled=true`; it then
 reports from that moment on). `gaia notifications list` shows every message and its state.

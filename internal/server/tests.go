@@ -296,7 +296,7 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 		if err != nil {
 			return in, fmt.Errorf("point %d: taken_at: %w", f.NewestChecked.ID, err)
 		}
-		in.NewestChecked = &status.Point{ID: f.NewestChecked.ID, TakenAt: tk}
+		in.NewestChecked = &status.Point{ID: f.NewestChecked.ID, TakenAt: tk, FullReason: unplannedFull(*f.NewestChecked)}
 	}
 	test := func(t *store.RestoreTest, p *store.Point) (*status.Test, error) {
 		if t == nil {

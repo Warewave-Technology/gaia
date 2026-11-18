@@ -229,6 +229,14 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 		Reason: "stored bytes do not verify", Points: []int64{f.ids["points"]}}}, map[int64]string{vmID: "full: quarantine"}); err != nil {
 		t.Fatal(err)
 	}
+	// full_backup: a backup is full because its checkpoint went from the host (a VM's first full backup is not one)
+	for _, reason := range []string{firstBackupReason, "full: checkpoint gaia-1 of point 1 is not on the host"} {
+		if _, err := f.s.db.CreateBackupPoint(ctx, "system", store.Point{VMID: vmID, JobID: jobID, RepositoryID: repoID, Kind: "full", Checkpoint: "c",
+			TakenAt: time.Now().UTC().Format(time.RFC3339Nano), Reason: reason, Machine: json.RawMessage(`{}`)},
+			[]store.PointDisk{{Target: "vda", SizeBytes: 1 << 20, BlockSize: 1 << 20, StoreID: "p-" + reason[:12]}}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	// ledger: a bundle's file changes behind Gaia's back
 	if c, err := f.s.checkLedger(ctx, "system", "test"); err != nil || c.Verdict != evidence.OK || c.Entries != 2 {
 		t.Fatalf("first ledger check: %+v %v", c, err)
@@ -250,7 +258,7 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	want := []string{evDaily, evIntegrity, evJobFailed, evLedger, evQuarantine, evStatus}
+	want := []string{evDaily, evFullBackup, evIntegrity, evJobFailed, evLedger, evQuarantine, evStatus}
 	hook.mu.Lock()
 	var got []string
 	for _, e := range hook.events {
@@ -288,6 +296,11 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 	}
 	if !slices.ContainsFunc(subjects, func(s string) bool { return strings.Contains(s, "seed-vm: (new) -> ") }) {
 		t.Fatalf("no status subject among %q", subjects)
+	}
+	if !slices.ContainsFunc(subjects, func(s string) bool {
+		return strings.HasSuffix(s, "seed-vm: the backup was full (checkpoint gaia-1 of point 1 is not on the host)")
+	}) {
+		t.Fatalf("no full_backup subject among %q", subjects)
 	}
 	// The mailed report and the posted body both hold the head statement, which verifies the installation's ledger.
 	pub, _ := evidence.LoadPublicKey(f.s.cfg.pubPath())

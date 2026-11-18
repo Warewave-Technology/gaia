@@ -44,11 +44,12 @@ const (
 	evIntegrity  = "integrity"    // a repository verification found damage
 	evQuarantine = "quarantine"   // damaged contents were quarantined (ADR-007 B3)
 	evLedger     = "ledger"       // the evidence ledger does not verify, or verifies again
+	evFullBackup = "full_backup"  // a backup was full although the VM had an earlier one (a checkpoint gone from the host, a disk resized, a quarantine)
 	evDaily      = "daily_report" // the daily report (report.go)
 	evTest       = "test"         // a test message sent on request
 )
 
-var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evDaily}
+var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily}
 
 const (
 	notifyTick  = 5 * time.Second
@@ -81,7 +82,7 @@ type WebhookConfig struct {
 type ChannelCreate struct {
 	Name          string         `json:"name"`
 	Kind          string         `json:"kind"`   // smtp or webhook
-	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, daily_report)
+	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report)
 	SMTP          *SMTPConfig    `json:"smtp,omitempty"`
 	SMTPPassword  string         `json:"smtp_password,omitempty"`
 	Webhook       *WebhookConfig `json:"webhook,omitempty"`
@@ -366,6 +367,24 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		}
 		ev.Subject = what + " failed"
 		ev.Text = fmt.Sprintf("The %s failed at %s.\nError: %s\nIt was started for: %s", what, sc.At, sc.Reason, j.Reason)
+	case sc.Entity == "point" && sc.From == "" && sc.To == "unchecked":
+		p, err := s.db.Point(ctx, sc.EntityID)
+		if err != nil {
+			return nil, err
+		}
+		why := unplannedFull(p)
+		if why == "" {
+			return nil, nil
+		}
+		vm, err := s.db.VM(ctx, p.VMID)
+		if err != nil {
+			return nil, err
+		}
+		ev.Event, ev.VM = evFullBackup, vm.Name
+		ev.Subject = fmt.Sprintf("%s: the backup was full (%s)", vm.Name, why)
+		ev.Text = fmt.Sprintf("Point %d of VM %s (job %d, %s) is a full backup, not an incremental, because %s.\n"+
+			"Its data is protected; the full backup only takes longer and more space. If nobody changed the VM or its host, find out who did.",
+			p.ID, vm.Name, p.JobID, sc.At, why)
 	case sc.Entity == "state_backup" && sc.To == "failed":
 		ev.Event = evJobFailed
 		ev.Subject = fmt.Sprintf("state backup %d failed", sc.EntityID)
