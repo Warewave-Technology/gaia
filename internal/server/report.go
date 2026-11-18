@@ -40,10 +40,22 @@ type DailyReportDoc struct {
 	LedgerCheck   store.LedgerCheck `json:"ledger_check"`
 	LedgerHead    json.RawMessage   `json:"ledger_head"` // the signed head statement; null when there is none
 	RecoveryKit   KitSummary        `json:"recovery_kit"`
+	LastRebuild   *ReportRebuild    `json:"last_rebuild"` // the newest rebuild from a recovery kit (restore-state); null: never
 	Notifications NotifySummary     `json:"notifications"`
 	HowToVerify   string            `json:"how_to_verify"`
 	Problems      []string          `json:"problems"` // what the report could not say
 }
+
+// ReportRebuild is a rebuild of the server from its recovery kit and a state backup (install.md step 13).
+type ReportRebuild struct {
+	At                 string `json:"at"`
+	StateBackup        string `json:"state_backup"`
+	StateBackupCreated string `json:"state_backup_created"`
+	KitGeneration      int64  `json:"kit_generation"`
+}
+
+// rebuildShown is how long the report's text names a rebuild: the readers of the first reports after it.
+const rebuildShown = 48 * time.Hour
 
 // ReportVM is one VM's line in the report.
 type ReportVM struct {
@@ -229,6 +241,14 @@ func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (sto
 	if doc.Notifications, err = s.notifySummary(ctx); err != nil {
 		return store.DailyReport{}, err
 	}
+	rs, err := s.db.StateRestores(ctx)
+	if err != nil {
+		return store.DailyReport{}, err
+	}
+	if len(rs) > 0 {
+		doc.LastRebuild = &ReportRebuild{At: rs[0].RestoredAt, StateBackup: rs[0].StateBackup, StateBackupCreated: rs[0].StateBackupCreated,
+			KitGeneration: rs[0].KitGeneration}
+	}
 	if doc.ID, err = s.db.NextDailyReportID(ctx); err != nil {
 		return store.DailyReport{}, err
 	}
@@ -285,6 +305,12 @@ func reportText(d DailyReportDoc) string {
 		}
 		json.Unmarshal(d.LedgerHead, &h)
 		fmt.Fprintf(&b, "Ledger head (signed, evidence key %s):\n%s\n", d.EvidenceKeyID, h.Payload)
+	}
+	if r := d.LastRebuild; r != nil {
+		if at, err := time.Parse(time.RFC3339Nano, r.At); err == nil && time.Since(at) < rebuildShown {
+			fmt.Fprintf(&b, "REBUILT: this server was rebuilt from its recovery kit (generation %d) at %s, from the state backup %s of %s. "+
+				"What the lost server did after that backup was not restored.\n", r.KitGeneration, r.At, r.StateBackup, r.StateBackupCreated)
+		}
 	}
 	fmt.Fprintf(&b, "Recovery kit: %s\n", d.RecoveryKit.Text)
 	if d.Notifications.State != status.OK {

@@ -301,6 +301,16 @@ func testRestoreState(t *testing.T, s3 string) {
 	if after.Status != before.Status || after.Status != "OK" || after.ChangedAt != before.ChangedAt {
 		t.Fatalf("status before %+v after %+v", before, after)
 	}
+	// The next daily report names the rebuild, in its JSON and its text.
+	var rep store.DailyReport
+	if st := f2.do(admin, "POST", "/api/v1/daily-reports", "", &rep); st != http.StatusCreated {
+		t.Fatalf("daily report after the rebuild: %d", st)
+	}
+	var doc DailyReportDoc
+	if err := json.Unmarshal(rep.Report, &doc); err != nil || doc.LastRebuild == nil || doc.LastRebuild.StateBackup != r.StateBackup.ID ||
+		!strings.Contains(reportText(doc), "REBUILT: this server was rebuilt from its recovery kit") {
+		t.Fatalf("daily report after the rebuild: %+v %v\n%s", doc.LastRebuild, err, reportText(doc))
+	}
 	var info KitInfo
 	f2.do(admin, "GET", "/api/v1/recovery-kit", "", &info)
 	if info.Summary.State != "not confirmed" || info.Summary.Generation != 3 || !strings.Contains(info.Kits[0].Reason, "rebuilt") {

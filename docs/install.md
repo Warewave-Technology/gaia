@@ -743,6 +743,9 @@ new Debian 12 machine (step 1).
 
    `ledger_truncated` means the rebuilt ledger lacks entries that report saw: the restore tests of the last
    minutes before the loss. Their bundles are listed by the rebuild; nothing else may be missing.
+7. Send a daily report now (`gaia daily-reports run`): it reaches the channels you added again and says, in a line
+   starting with `REBUILT:` and in its `last_rebuild` field, when the server was rebuilt and from which state
+   backup, so everyone who reads the reports learns of it.
 
 ## 14. Removing Gaia
 
