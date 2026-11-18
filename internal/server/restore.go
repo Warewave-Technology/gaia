@@ -273,7 +273,16 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 			}
 		}
 	}
-	if res.InterruptedJobs, err = db.FailInterruptedJobs(ctx, "the server was lost while the job ran; rebuilt from state backup "+res.StateBackup.ID); err != nil {
+	gone := "the server was lost while it ran; rebuilt from state backup " + res.StateBackup.ID
+	js, err := db.FailInterruptedJobs(ctx, gone)
+	if err != nil {
+		return res, err
+	}
+	res.InterruptedJobs = len(js)
+	if _, err := db.FinishInterruptedTests(ctx, gone); err != nil {
+		return res, err
+	}
+	if _, err := db.FailInterruptedVerifications(ctx, gone); err != nil {
 		return res, err
 	}
 	// The database was copied while its own state backup ran: that one did end, as the archive restored here.

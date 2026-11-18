@@ -28,7 +28,7 @@ import (
 //	gaia status [VM ID]                                  every VM's status (exit code: the worst status)
 //	gaia vms disks ID | add-disk ID target=vda size_bytes=N | backup ID | test ID | status ID
 //	gaia hosts scan ID | trust ID fingerprint=SHA256:... | check ID
-//	gaia points disks ID | restore-check ID
+//	gaia points disks ID | restore-check ID | forget ID reason="..."   (forget: a failed point only, admins)
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
 //	gaia evidence export-all [-o FILE]                   the auditor's export: every bundle, the ledger, the keys, ...
@@ -53,7 +53,7 @@ var resources = map[string]resource{
 	"repositories":     {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
 	"policies":         {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
 	"jobs":             {"/api/v1/jobs", []string{"list", "get"}},
-	"points":           {"/api/v1/points", []string{"list", "get", "disks", "restore-check"}},
+	"points":           {"/api/v1/points", []string{"list", "get", "disks", "restore-check", "forget"}},
 	"verifications":    {"/api/v1/verifications", []string{"list", "get"}},
 	"quarantine":       {"/api/v1/quarantined-contents", []string{"list"}},
 	"tests":            {"/api/v1/restore-tests", []string{"list", "get"}},
@@ -265,7 +265,7 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("POST", res.path+"/"+id+"/tests", nil)
 	case "status":
 		return call("GET", res.path+"/"+id+"/status", nil)
-	case "trust", "verify", "maintenance":
+	case "trust", "verify", "maintenance", "forget":
 		body, err := keyValues(rest)
 		if err != nil {
 			return fail(asJSON, cmd, err)

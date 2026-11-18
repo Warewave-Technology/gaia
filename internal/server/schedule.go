@@ -120,7 +120,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 				defer s.jobsWG.Done()
 				defer s.stateChanged()
 				defer s.migrating.Delete(j.ID)
-				s.runMigrationCheck(ctx, j)
+				s.runMigrationCheck(s.jobs, j)
 			}(j)
 			continue
 		}
@@ -136,7 +136,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 				defer s.jobsWG.Done()
 				defer s.stateChanged()
 				defer s.testing.Delete(*j.VMID)
-				s.runTest(ctx, j)
+				s.runTest(s.jobs, j)
 			}(j)
 			continue
 		}
@@ -156,7 +156,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 			defer s.jobsWG.Done()
 			defer s.stateChanged()
 			defer s.running.Delete(*j.VMID)
-			s.runBackup(ctx, j)
+			s.runBackup(s.jobs, j)
 		}(j)
 	}
 	return nil
@@ -221,7 +221,7 @@ func (s *Server) StartVerification(ctx context.Context, actor string, r store.Re
 	go func() {
 		defer s.jobsWG.Done()
 		defer s.stateChanged()
-		s.verify(ctx, actor, r, v)
+		s.verify(s.jobs, actor, r, v)
 	}()
 	return v, nil
 }

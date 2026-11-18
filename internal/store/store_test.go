@@ -448,7 +448,7 @@ func TestBackupPointsDisksVerifications(t *testing.T) {
 	if last, ok, _ := d.LastVerification(ctx, r.ID, "full"); !ok || last.ID != ver.ID {
 		t.Fatalf("last verification %+v", last)
 	}
-	if n, err := d.FailInterruptedJobs(ctx, "server restarted"); err != nil || n != 0 {
-		t.Fatalf("interrupted %d %v", n, err)
+	if js, err := d.FailInterruptedJobs(ctx, "server restarted"); err != nil || len(js) != 0 {
+		t.Fatalf("interrupted %v %v", js, err)
 	}
 }

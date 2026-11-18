@@ -19,13 +19,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/kopia/kopia/repo/maintenance"
 
+	"github.com/Warewave-Technology/gaia/internal/buildinfo"
 	"github.com/Warewave-Technology/gaia/internal/hostconn"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -61,6 +61,9 @@ type Config struct {
 	// Migration checks (T21, migration.go): the converter service (gaia convert serve) and its job directories.
 	ConvertSocket  string `json:"convert_socket"`   // default /run/gaia-convert/convert.sock
 	ConvertJobsDir string `json:"convert_jobs_dir"` // default /var/lib/gaia-convert/jobs
+	// Stopping (T22): how long a stop waits for running jobs before it ends them (gaia.service's TimeoutStopSec must
+	// be longer). Go duration, default 10m; 0s ends them at once.
+	StopDrain string `json:"stop_drain"`
 }
 
 var hhmm = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
@@ -150,6 +153,12 @@ func (c *Config) resolve() error {
 	if c.LoginAddressWindow == "" {
 		c.LoginAddressWindow = "10m"
 	}
+	if c.StopDrain == "" {
+		c.StopDrain = "10m"
+	}
+	if d, err := time.ParseDuration(c.StopDrain); err != nil || d < 0 || d > time.Hour {
+		return fmt.Errorf("stop_drain %q: want a duration from 0s to 1h", c.StopDrain)
+	}
 	for name, v := range map[string]string{"login_lockout": c.LoginLockout, "login_address_window": c.LoginAddressWindow} {
 		if d, err := time.ParseDuration(v); err != nil || d < time.Second || d > 24*time.Hour {
 			return fmt.Errorf("%s %q: want a duration from 1s to 24h", name, v)
@@ -182,21 +191,22 @@ func (c *Config) resolve() error {
 }
 
 // Paths under the data directory.
-func (c Config) dbPath() string         { return filepath.Join(c.DataDir, "gaia.db") }
-func (c Config) keyPath() string        { return filepath.Join(c.DataDir, "keys", "evidence-key.pem") }
-func (c Config) pubPath() string        { return filepath.Join(c.DataDir, "keys", "evidence-key.pub") }
-func (c Config) ledgerPath() string     { return filepath.Join(c.DataDir, "evidence", "ledger.jsonl") }
-func (c Config) bundlesDir() string     { return filepath.Join(c.DataDir, "evidence", "bundles") }
-func (c Config) secretsDir() string     { return filepath.Join(c.DataDir, "secrets") }
-func (c Config) kopiaDir() string       { return filepath.Join(c.DataDir, "kopia") }
-func (c Config) cacheDir() string       { return filepath.Join(c.DataDir, "cache") }
-func (c Config) tmpDir() string         { return filepath.Join(c.DataDir, "tmp") }
-func (c Config) sshKeyPath() string     { return filepath.Join(c.DataDir, "keys", "ssh-key") }
-func (c Config) ttl() time.Duration     { d, _ := time.ParseDuration(c.SessionTTL); return d }
-func (c Config) DBPath() string         { return c.dbPath() }
-func (c Config) EvidenceKey() string    { return c.keyPath() }
-func (c Config) EvidencePub() string    { return c.pubPath() }
-func (c Config) EvidenceLedger() string { return c.ledgerPath() }
+func (c Config) dbPath() string           { return filepath.Join(c.DataDir, "gaia.db") }
+func (c Config) keyPath() string          { return filepath.Join(c.DataDir, "keys", "evidence-key.pem") }
+func (c Config) pubPath() string          { return filepath.Join(c.DataDir, "keys", "evidence-key.pub") }
+func (c Config) ledgerPath() string       { return filepath.Join(c.DataDir, "evidence", "ledger.jsonl") }
+func (c Config) bundlesDir() string       { return filepath.Join(c.DataDir, "evidence", "bundles") }
+func (c Config) secretsDir() string       { return filepath.Join(c.DataDir, "secrets") }
+func (c Config) kopiaDir() string         { return filepath.Join(c.DataDir, "kopia") }
+func (c Config) cacheDir() string         { return filepath.Join(c.DataDir, "cache") }
+func (c Config) tmpDir() string           { return filepath.Join(c.DataDir, "tmp") }
+func (c Config) sshKeyPath() string       { return filepath.Join(c.DataDir, "keys", "ssh-key") }
+func (c Config) ttl() time.Duration       { d, _ := time.ParseDuration(c.SessionTTL); return d }
+func (c Config) stopDrain() time.Duration { d, _ := time.ParseDuration(c.StopDrain); return d }
+func (c Config) DBPath() string           { return c.dbPath() }
+func (c Config) EvidenceKey() string      { return c.keyPath() }
+func (c Config) EvidencePub() string      { return c.pubPath() }
+func (c Config) EvidenceLedger() string   { return c.ledgerPath() }
 
 // Server is a running gaia server.
 type Server struct {
@@ -216,15 +226,19 @@ type Server struct {
 	maintenanceSafety maintenance.SafetyParameters
 	logins            *loginGuard
 	jobsWG            sync.WaitGroup
-	running           sync.Map // VM ID -> ID of its running backup job
-	testing           sync.Map // VM ID -> ID of its running restore test job
-	migrating         sync.Map // job ID of the running migration check (one at a time)
-	sandbox           *sandbox.Client
-	now               func() time.Time // the clock of the status model
-	kitMu             sync.Mutex       // one recovery kit write at a time
-	stateDirty        chan struct{}    // a job ended: back Gaia's state up soon
-	ledgerMu          sync.Mutex       // one ledger check at a time
-	reportMu          sync.Mutex       // one daily report at a time
+	// The context of jobs (backups, restore tests, verifications, migration checks). It is not the server's: when the
+	// server stops, running jobs may end first (stop_drain); stopJobs ends them when the drain is over.
+	jobs       context.Context
+	stopJobs   context.CancelFunc
+	running    sync.Map // VM ID -> ID of its running backup job
+	testing    sync.Map // VM ID -> ID of its running restore test job
+	migrating  sync.Map // job ID of the running migration check (one at a time)
+	sandbox    *sandbox.Client
+	now        func() time.Time // the clock of the status model
+	kitMu      sync.Mutex       // one recovery kit write at a time
+	stateDirty chan struct{}    // a job ended: back Gaia's state up soon
+	ledgerMu   sync.Mutex       // one ledger check at a time
+	reportMu   sync.Mutex       // one daily report at a time
 	// Set by gaia server restore-state: the lost server may have made checkpoints after its last state backup with
 	// the job IDs this one issues again, so names made on hosts after a rebuild carry the rebuild's tag.
 	restoreTag string
@@ -265,6 +279,7 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
 		maintenanceSafety: maintenance.SafetyFull, logins: newLoginGuard(), sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
 		stateDirty: make(chan struct{}, 1)}
+	s.jobs, s.stopJobs = context.WithCancel(context.WithoutCancel(ctx))
 	if s.sshKey, err = loadSSHKey(cfg); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("SSH key: %w", err)
@@ -273,11 +288,9 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		db.Close()
 		return nil, err
 	}
-	if n, err := db.FailInterruptedJobs(ctx, "the server stopped while the job ran"); err != nil {
+	if err := s.finishInterrupted(ctx); err != nil {
 		db.Close()
 		return nil, err
-	} else if n > 0 {
-		log.Warn("jobs interrupted by the last stop were marked failed", "count", n)
 	}
 	if n, err := db.FinishInterruptedMigrationChecks(ctx, "not checked: the server stopped while the check ran"); err != nil {
 		db.Close()
@@ -323,35 +336,12 @@ func (s *Server) Handler() http.Handler { return s.handler }
 
 // Close waits for background work (backups, verifications) and closes the state database.
 func (s *Server) Close() error {
+	s.stopJobs()
 	s.jobsWG.Wait()
 	return s.db.Close()
 }
 
-func buildVersion() string {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "unknown"
-	}
-	rev, mod := "", ""
-	for _, kv := range bi.Settings {
-		switch kv.Key {
-		case "vcs.revision":
-			rev = kv.Value
-		case "vcs.modified":
-			mod = kv.Value
-		}
-	}
-	if rev == "" {
-		return "devel"
-	}
-	if len(rev) > 12 {
-		rev = rev[:12]
-	}
-	if mod == "true" {
-		rev += "+modified"
-	}
-	return rev
-}
+func buildVersion() string { return buildinfo.String() }
 
 // Run serves the API over TLS on cfg.Listen and runs the daily state backup until ctx ends.
 func (s *Server) Run(ctx context.Context) error {
@@ -385,9 +375,85 @@ func (s *Server) Run(ctx context.Context) error {
 		defer cancel()
 		s.log.Info("shutting down")
 		err := hs.Shutdown(sctx)
-		s.jobsWG.Wait() // running backups end their libvirt jobs before the process goes
+		s.drain(s.cfg.stopDrain())
 		return err
 	}
+}
+
+// drain waits up to d for running jobs to end on their own (the scheduler starts none any more), then ends the rest:
+// a job ended so is failed, and the next start queues it again (finishInterrupted). Running backups end their
+// libvirt jobs before the process goes.
+func (s *Server) drain(d time.Duration) {
+	done := make(chan struct{})
+	go func() {
+		s.jobsWG.Wait()
+		close(done)
+	}()
+	running := s.runningJobs()
+	if running > 0 {
+		s.log.Info("waiting for running jobs to end", "jobs", running, "stop_drain", d.String())
+	}
+	select {
+	case <-done:
+	case <-time.After(d):
+		s.log.Warn("stop_drain is over: ending the running jobs", "jobs", s.runningJobs())
+	}
+	s.stopJobs()
+	<-done
+}
+
+// runningJobs counts the jobs this process runs now.
+func (s *Server) runningJobs() int {
+	n := 0
+	for _, m := range []*sync.Map{&s.running, &s.testing, &s.migrating} {
+		m.Range(func(_, _ any) bool { n++; return true })
+	}
+	return n
+}
+
+// retryReason starts the reason of a job queued again after a stop; such a job is not queued again a second time,
+// so a job that stops the server cannot restart it for ever.
+const retryReason = "retry of job "
+
+// finishInterrupted ends what the last stop left running: jobs fail with the reason, restore tests become UNKNOWN,
+// repository verifications fail (one left running would block every later verification of its repository), migration
+// checks become UNKNOWN. A backup or restore test that was ended this way is queued again at once, unless it was
+// itself such a retry or its VM has one of that kind queued already.
+func (s *Server) finishInterrupted(ctx context.Context) error {
+	const why = "the server stopped while it ran"
+	js, err := s.db.FailInterruptedJobs(ctx, why)
+	if err != nil {
+		return err
+	}
+	if len(js) > 0 {
+		s.log.Warn("jobs interrupted by the last stop were marked failed", "count", len(js))
+	}
+	if n, err := s.db.FinishInterruptedTests(ctx, why); err != nil {
+		return err
+	} else if n > 0 {
+		s.log.Warn("restore tests interrupted by the last stop are UNKNOWN", "count", n)
+	}
+	if n, err := s.db.FailInterruptedVerifications(ctx, why); err != nil {
+		return err
+	} else if n > 0 {
+		s.log.Warn("repository verifications interrupted by the last stop were marked failed", "count", n)
+	}
+	for _, j := range js {
+		if (j.Kind != "backup" && j.Kind != "restore_test") || j.VMID == nil || strings.HasPrefix(j.Reason, retryReason) {
+			continue
+		}
+		if _, open, err := s.db.OpenJob(ctx, *j.VMID, j.Kind); err != nil {
+			return err
+		} else if open { // one is queued already
+			continue
+		}
+		r, err := s.db.CreateJob(ctx, "system", j.Kind, j.VMID, fmt.Sprintf("%s%d: %s", retryReason, j.ID, why))
+		if err != nil {
+			return err
+		}
+		s.log.Info("queued again", "job", j.ID, "kind", j.Kind, "as", r.ID)
+	}
+	return nil
 }
 
 // --- requests ---

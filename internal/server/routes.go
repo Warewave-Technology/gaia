@@ -782,6 +782,24 @@ func (s *Server) table() []route {
 				c.detail = fmt.Sprintf("restored and hashed %d disks", len(out))
 				return http.StatusOK, out, nil
 			}},
+		{method: "POST", path: "/api/v1/points/{id}/forget", summary: "Delete a failed point (one a verification found damaged) from its repository and mark it pruned, as retention would",
+			roles: adminOnly, in: PointForget{}, out: store.Point{}, example: `{"reason":""}`,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				var in PointForget
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				p, err := s.ForgetPoint(c.r.Context(), c.user.Username, id, in.Reason)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.detail = "forgotten: " + strings.TrimSpace(in.Reason)
+				return http.StatusOK, p, nil
+			}},
 		{method: "GET", path: "/api/v1/restore-tests", summary: "List restore tests, newest first", roles: anyRole, out: []store.RestoreTest{}, query: vmFilter,
 			h: func(c *call) (int, any, error) {
 				vmID, n, err := c.filter()

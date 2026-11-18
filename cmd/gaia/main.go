@@ -37,11 +37,13 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/buildinfo"
 	"github.com/Warewave-Technology/gaia/internal/convert"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
 	"github.com/Warewave-Technology/gaia/internal/migrate"
@@ -62,6 +64,9 @@ func main() {
 		os.Exit(runCLI(ctx, os.Args[1:]))
 	}
 	switch os.Args[1] {
+	case "version", "-version", "--version":
+		cmdVersion(os.Args[2:])
+		return
 	case "server":
 		os.Exit(cmdServer(ctx, os.Args[2:]))
 	case "verify":
@@ -100,6 +105,7 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
+  gaia version [-json]                       this program's version
   gaia server init | run | migrate | restore-state   the server (ADR-007)
   gaia login | logout | whoami | system | password | status
   gaia kit status | save | confirm | regenerate | show   the recovery kit (ADR-007 B5)
@@ -110,6 +116,15 @@ func usage() {
   gaia verify | migrate-check | evidence keygen | seal | verify | rotate | head   (lab tools)
 (-h on a server or lab command shows its flags)`)
 	os.Exit(3)
+}
+
+func cmdVersion(args []string) {
+	if _, asJSON := stripJSON(args); asJSON {
+		emit(map[string]string{"version": buildinfo.Version, "revision": buildinfo.Revision(), "go": runtime.Version(),
+			"os": runtime.GOOS, "arch": runtime.GOARCH})
+		return
+	}
+	fmt.Printf("gaia %s, %s, %s/%s\n", buildinfo.String(), runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
 
 func emit(v any) {

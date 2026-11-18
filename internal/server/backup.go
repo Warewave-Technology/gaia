@@ -504,6 +504,66 @@ func keepPoints(points []store.Point, pol store.Policy) map[int64]bool {
 	return keep
 }
 
+// PointForget is the body of POST /points/{id}/forget.
+type PointForget struct {
+	Reason string `json:"reason"` // why the point may go, for the audit log and the point's state change; required
+}
+
+// ForgetPoint deletes a failed point from its repository and marks it pruned, as retention would (ADR-007 B4.3: a
+// failed point keeps its VM CRITICAL until pruning removes it). Only a failed point: a damaged point cannot be
+// restored from anyway, and a person decides when it may go, with the reason; retention handles every other point.
+func (s *Server) ForgetPoint(ctx context.Context, actor string, id int64, reason string) (store.Point, error) {
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return store.Point{}, fmt.Errorf("%w: reason: say why the point may go (it is recorded)", store.ErrInvalid)
+	}
+	p, err := s.db.Point(ctx, id)
+	if err != nil {
+		return p, err
+	}
+	switch {
+	case p.State != "present":
+		return p, fmt.Errorf("%w: point %d is %s", store.ErrConflict, id, p.State)
+	case p.CheckState != "failed":
+		return p, fmt.Errorf("%w: point %d is not failed (its check is %s): only a damaged point can be forgotten; retention removes the others", store.ErrConflict, id, p.CheckState)
+	}
+	r, err := s.db.Repository(ctx, p.RepositoryID)
+	if err != nil {
+		return p, err
+	}
+	disks, err := s.db.PointDisks(ctx, p.ID)
+	if err != nil {
+		return p, err
+	}
+	err = func() error {
+		lock := s.repoLocks.get(r.ID)
+		lock.Lock()
+		defer lock.Unlock()
+		st, err := s.OpenRepository(ctx, r)
+		if err != nil {
+			return err
+		}
+		defer st.Close(ctx)
+		for _, k := range disks {
+			if err := st.DeletePoint(ctx, k.StoreID); err != nil {
+				return fmt.Errorf("point %d disk %s: %w", p.ID, k.Target, err)
+			}
+		}
+		return nil
+	}()
+	if err != nil {
+		return p, err
+	}
+	if err := s.db.PrunePoint(ctx, actor, p.ID, "forgotten by "+actor+": "+reason); err != nil {
+		return p, err
+	}
+	if _, err := s.refreshStatus(ctx, p.VMID); err != nil {
+		return p, err
+	}
+	s.stateChanged()
+	return s.db.Point(ctx, id)
+}
+
 // applyRetention prunes the VM's points the policy does not keep: their diskstore points are deleted (their blocks go
 // at the next garbage collection) and their rows marked pruned.
 func (s *Server) applyRetention(ctx context.Context, st *diskstore.Store, vm store.VM, pol store.Policy) ([]int64, error) {

@@ -193,18 +193,50 @@ func (d *DB) QueuedJobs(ctx context.Context) ([]Job, error) {
 	return rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state = 'queued' ORDER BY id`)
 }
 
-// FailInterruptedJobs ends the jobs a stopped server left running.
-func (d *DB) FailInterruptedJobs(ctx context.Context, reason string) (int, error) {
+// FailInterruptedJobs ends the jobs a stopped server left running and returns them as they were.
+func (d *DB) FailInterruptedJobs(ctx context.Context, reason string) ([]Job, error) {
 	js, err := rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state = 'running'`)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	for _, j := range js {
 		if _, err := d.SetJobState(ctx, "system", j.ID, "failed", reason, reason); err != nil {
+			return nil, err
+		}
+	}
+	return js, nil
+}
+
+// FinishInterruptedTests gives every restore test a stopped server left without a verdict the verdict UNKNOWN, with
+// the reason: no running test is left behind that would look as if it still ran.
+func (d *DB) FinishInterruptedTests(ctx context.Context, reason string) (int, error) {
+	ts, err := rowsOf(ctx, d.db, scanTest, `SELECT `+testCols+` FROM restore_tests WHERE finished_at = ''`)
+	if err != nil {
+		return 0, err
+	}
+	for _, t := range ts {
+		if _, err := d.FinishRestoreTest(ctx, "system", t.ID, "UNKNOWN", nil, "not tested: "+reason, "", map[string]string{"interrupted": reason}); err != nil {
 			return 0, err
 		}
 	}
-	return len(js), nil
+	return len(ts), nil
+}
+
+// FailInterruptedVerifications ends the repository verifications a stopped server left running as failed. A
+// verification still running is never started again (the scheduler waits for it), so one left behind would stop all
+// later verifications of its repository.
+func (d *DB) FailInterruptedVerifications(ctx context.Context, reason string) (int, error) {
+	vs, err := rowsOf(ctx, d.db, scanVer, `SELECT `+verCols+` FROM verifications WHERE state = 'running'`)
+	if err != nil {
+		return 0, err
+	}
+	for _, v := range vs {
+		v.State, v.Error = "failed", reason
+		if _, err := d.FinishVerification(ctx, "system", v); err != nil {
+			return 0, err
+		}
+	}
+	return len(vs), nil
 }
 
 // SyncDisks records the disks a VM has now: new ones are added, sizes updated, removed ones deleted; every change is
