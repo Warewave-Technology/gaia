@@ -37,13 +37,13 @@ version() {
 	base=$(tr -d ' \n' <VERSION)
 	[[ "$base" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "VERSION: want MAJOR.MINOR.PATCH, have '$base'" >&2; exit 3; }
 	tag=$(git describe --tags --exact-match HEAD 2>/dev/null || true)
-	if [[ "$tag" == "v$base" && -z "$(git status --porcelain)" ]]; then
+	if [[ "$tag" == "v$base" && -z "$(git status --porcelain --untracked-files=no)" ]]; then
 		echo "$base"
 		return
 	fi
 	t=$(TZ=UTC git log -1 --date=format-local:%Y%m%d%H%M%S --format=%cd)
 	v="$base~dev.$t.g$(git rev-parse --short=12 HEAD)"
-	[[ -z "$(git status --porcelain)" ]] || v+=".dirty"
+	[[ -z "$(git status --porcelain --untracked-files=no)" ]] || v+=".dirty"
 	echo "$v"
 }
 

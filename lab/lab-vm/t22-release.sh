@@ -175,7 +175,7 @@ echo "status=$(dpkg-query -W -f '${Status}' gaia)"
 echo "version=$(dpkg-query -W -f '${Version}' gaia)"
 echo "user=$(id gaia)"
 echo "dirs=$(stat -c '%n %U:%G %a' /var/lib/gaia /etc/gaia /srv/gaia | paste -sd ';')"
-echo "units=$(systemctl show -p FragmentPath --value gaia gaia-sandbox gaia-convert | paste -sd ';')"
+echo "units=$(systemctl show -p FragmentPath --value gaia gaia-sandbox gaia-convert | grep . | paste -sd ';')"
 echo "enabled=$(systemctl is-enabled gaia gaia-sandbox gaia-convert 2>&1 | paste -sd ';' || true)"
 echo "binary=$(gaia version)"
 EOF
@@ -213,12 +213,12 @@ kit=$(ls "$D"/kits/*.age)
 age_ok=false
 { sleep 2; cat "$D/kit.pass"; } | script -qec "age -d -o $D/kit.json $kit" /dev/null >/dev/null && jq -e .repositories "$D/kit.json" >/dev/null && age_ok=true
 rm -f "$D/kit.json"
-ws kit status -json | tee "$OUT/c-kit-status.json" | jq -c '{state}'
+ws kit status -json | tee "$OUT/c-kit-status.json" | jq -c '.summary | {state, generation}'
 jq -n --slurpfile inst "$OUT/c-installed.json" --slurpfile sys "$OUT/c-system.json" --slurpfile repo "$OUT/c-repository.json" \
 	--argjson sb "$sb" --slurpfile kit "$OUT/c-kit-status.json" --argjson age "$age_ok" --arg version "$VERSION" \
 	--arg active "$(sed -n 1,2p "$OUT/c-step5.txt" | paste -sd ' ')" \
 	'{package: $inst[0], services: $active, version: $sys[0].version, schema: $sys[0].schema_version, repository: ($repo[0] | {id, name, splitter, hash}),
-	  state_backup: ($sb | {id, state}), kit: $kit[0].state, kit_opens_with_age: $age}
+	  state_backup: ($sb | {id, state}), kit: $kit[0].summary.state, kit_opens_with_age: $age}
 	 | . + {pass: (.package.status == "install ok installed" and .package.version == $version and (.package.binary | startswith("gaia " + $version + " ("))
 	              and (.package.units | split(";") | all(startswith("/lib/systemd/system/"))) and .services == "active active"
 	              and (.version | startswith($version + " (")) and .schema == 8 and .state_backup.state == "ok" and .kit == "confirmed" and .kit_opens_with_age)}' \

@@ -1,1 +1,2 @@
 # Gaia's release key (scripts/release.sh, install.md step 2): ssh-keygen -Y verify -f allowed_signers -I release@gaia -n gaia-release
+release@gaia namespaces="gaia-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJnsHZ7oYaBuDknr1LKM2qIkVdO9dW6MwLNF0HwAxmrF

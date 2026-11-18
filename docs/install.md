@@ -39,17 +39,19 @@ Gaia's release key is this one line. Copy it from this guide, not from the relea
 `allowed_signers` next to the release files:
 
 ```
-@RELEASE_SIGNER@
+release@gaia namespaces="gaia-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJnsHZ7oYaBuDknr1LKM2qIkVdO9dW6MwLNF0HwAxmrF
 ```
 
-Its fingerprint is `@RELEASE_FINGERPRINT@`. Then, in that directory, check the signature and every checksum:
+Its fingerprint is `SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc`. Then, in that directory, check the
+signature and every checksum:
 
 ```bash
 ssh-keygen -Y verify -f allowed_signers -I release@gaia -n gaia-release -s SHA256SUMS.sig < SHA256SUMS && (sha256sum -c SHA256SUMS || shasum -a 256 -c SHA256SUMS)
 ```
 
-It must print `Good "gaia-release" signature for release@gaia with ED25519 key @RELEASE_FINGERPRINT@` and then one
-line per file, each ending in `OK`. If not, **stop**: the files are not the release.
+It must print
+`Good "gaia-release" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc`
+and then one line per file, each ending in `OK`. If not, **stop**: the files are not the release.
 
 Copy the server package and the checksums to the server, as any user who can log in there:
 
