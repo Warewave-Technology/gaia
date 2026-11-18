@@ -397,6 +397,14 @@ func (x *run) verify(ctx context.Context) error {
 			ready = max(ready, k.Seconds)
 		}
 		r.Timings["ready"] = ready
+		if boot.Type != CheckBootSerial && c.SettleS > 0 {
+			ip := x.r.Sandbox.GuestIP
+			st := settle(ctx, boot, time.Duration(c.SettleS)*time.Second, 5*time.Second,
+				func(timeoutS int) CheckResult { return x.probe(ctx, boot, ip, timeoutS) }, x.alive)
+			st.Seconds = time.Since(x.t0).Seconds()
+			x.logf("check %s: %s (%s)", st.Name, st.Verdict, st.Detail)
+			r.Checks = append(r.Checks, st)
+		}
 	}
 	x.screenshot("end")
 	x.shutdown(br.Verdict == OK)
@@ -589,6 +597,48 @@ func (x *run) waitNetBoot(ctx context.Context, k Check) CheckResult {
 		res.Detail += netBootWhy(k.Type)
 	}
 	return res
+}
+
+// alive is an error once the sandbox guest stopped or crashed.
+func (x *run) alive() error {
+	st, _, err := x.l.DomainGetState(x.dom, 0)
+	if err != nil {
+		return err
+	}
+	if s := libvirt.DomainState(st); s == libvirt.DomainShutoff || s == libvirt.DomainCrashed {
+		return fmt.Errorf("the guest stopped (libvirt state %d)", st)
+	}
+	return nil
+}
+
+// settle checks that a guest booted by a network probe stays up: the boot probe must keep passing, every `every`,
+// for d after every check passed. One answer proves the guest got that far, not that it stays: a Windows whose
+// first-boot scripts fail restarts on every boot and answers WinRM for a few seconds each time (T23).
+func settle(ctx context.Context, k Check, d, every time.Duration, probe func(timeoutS int) CheckResult, alive func() error) CheckResult {
+	res := CheckResult{Name: "stable", Type: k.Type, Verdict: OK}
+	start := time.Now()
+	for n := 1; ; n++ {
+		if err := alive(); err != nil {
+			res.Verdict, res.Detail = Critical, fmt.Sprintf("the guest stopped %.0f s after it passed every check: %v", time.Since(start).Seconds(), err)
+			return res
+		}
+		if p := probe(max(1, int(every.Seconds()))); p.Verdict != OK {
+			res.Verdict = p.Verdict
+			res.Detail = fmt.Sprintf("%s stopped answering %.0f s after it passed (probe %d, one every %s for %s): %s. "+
+				"A guest that restarts itself answers for a few seconds only (a Windows whose first-boot scripts fail "+
+				"restarts on every boot)", k.Name, time.Since(start).Seconds(), n, every, d, p.Detail)
+			return res
+		} else if time.Since(start) >= d {
+			res.Detail = fmt.Sprintf("%s kept answering for %s after every check passed (%d probes, one every %s)", k.Name, d, n, every)
+			return res
+		}
+		select {
+		case <-ctx.Done():
+			res.Verdict, res.Detail = Unknown, "not finished: "+ctx.Err().Error()
+			return res
+		case <-time.After(every):
+		}
+	}
 }
 
 // netBootWhy says why a boot probe cannot pass on a guest that did not boot (T11's rule, ADR-005 §3): the report

@@ -67,7 +67,11 @@ type Config struct {
 	BootTimeoutS     int     `json:"boot_timeout_s"`
 	ProbeTimeoutS    int     `json:"probe_timeout_s"`
 	ShutdownTimeoutS int     `json:"shutdown_timeout_s"`
-	Checks           []Check `json:"checks"`
+	// SettleS is how long a guest whose boot a network probe decides (Windows) must keep passing that probe after
+	// every check passed: a Windows whose first-boot scripts fail restarts on every boot and answers for a few
+	// seconds each time (T23). Default 60; -1 turns it off.
+	SettleS int     `json:"settle_s"`
+	Checks  []Check `json:"checks"`
 }
 
 // Templates are the built-in check sets (ADR-002 #4: templates first, user probes on top).
@@ -136,6 +140,7 @@ func (c *Config) resolve() error {
 	defInt(&c.BootTimeoutS, 300)
 	defInt(&c.ProbeTimeoutS, 120)
 	defInt(&c.ShutdownTimeoutS, 60)
+	defInt(&c.SettleS, 60)
 	if c.VM == "" {
 		return fmt.Errorf("vm is required")
 	}

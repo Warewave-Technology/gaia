@@ -466,7 +466,7 @@ server or the host) and runs the policy's checks. `check_template` names them:
 |---|---|
 | `linux-basic` | The serial console shows a login prompt, and SSH (TCP 22) answers. |
 | `linux-boot` | The serial console shows a login prompt. |
-| `windows-basic` | Windows answers WinRM (5985): it booted and started its network stack. |
+| `windows-basic` | Windows answers WinRM (5985): it booted and started its network stack; and it keeps answering for a minute (a Windows that restarts itself, for example on a failing first-boot script, does not). |
 | `windows-rdp` | As `windows-basic`, and Remote Desktop (3389) answers (when it is turned on in the VM). |
 
 Every test is sealed as signed evidence. To run one now and see the result:

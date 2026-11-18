@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image/png"
 	"io"
@@ -415,4 +416,44 @@ func freePort(t *testing.T) int {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
+}
+
+// A guest booted by a network probe must keep passing it: one that stops answering (it restarted) or stops is
+// CRITICAL with the probe's own detail; one that keeps answering is OK after the whole period.
+func TestSettle(t *testing.T) {
+	ctx := context.Background()
+	k := Check{Name: "boot", Type: CheckWinRM, Port: 5985, Boot: true}
+	answers := func(ok ...bool) func(int) CheckResult {
+		n := 0
+		return func(int) CheckResult {
+			n++
+			if n <= len(ok) && !ok[n-1] {
+				return CheckResult{Verdict: Critical, Detail: "connection refused"}
+			}
+			return CheckResult{Verdict: OK}
+		}
+	}
+	up := func() error { return nil }
+	for _, c := range []struct {
+		name  string
+		probe func(int) CheckResult
+		alive func() error
+		want  string
+		text  string
+	}{
+		{"keeps answering", answers(), up, OK, "kept answering for 50ms"},
+		{"restarts", answers(true, true, false), up, Critical, "stopped answering"},
+		{"stops", answers(), func() error { return errors.New("the guest stopped (libvirt state 5)") }, Critical, "the guest stopped"},
+		{"probe could not run", func(int) CheckResult { return CheckResult{Verdict: Unknown, Detail: "probe runner failed"} }, up, Unknown, "probe runner failed"},
+	} {
+		r := settle(ctx, k, 50*time.Millisecond, 10*time.Millisecond, c.probe, c.alive)
+		if r.Verdict != c.want || r.Name != "stable" || !strings.Contains(r.Detail, c.text) {
+			t.Errorf("%s: %+v", c.name, r)
+		}
+	}
+	c := Config{VM: "w", Template: "windows-basic"}
+	c.Validate() // defaults apply first (a missing MAC is reported after)
+	if c.SettleS != 60 {
+		t.Errorf("default settle_s: %+v", c)
+	}
 }
