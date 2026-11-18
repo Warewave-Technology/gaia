@@ -1,0 +1,5 @@
+binary: gone
+unit: gone
+data: kept
+user: kept
+active

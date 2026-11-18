@@ -1,0 +1,12 @@
+2026-11-18T08:20:24+0000 gaia[51934]: time=2026-11-18T08:20:24.785Z level=INFO msg="shutting down"
+2026-11-18T08:20:24+0000 systemd[1]: Stopping gaia.service - Gaia backup and recoverability server...
+2026-11-18T08:20:24+0000 gaia[51934]: time=2026-11-18T08:20:24.785Z level=INFO msg="waiting for running jobs to end" jobs=1 stop_drain=10m0s
+2026-11-18T08:20:55+0000 systemd[1]: Stopped gaia.service - Gaia backup and recoverability server.
+2026-11-18T08:20:56+0000 gaia[52336]: time=2026-11-18T08:20:56.870Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.1.0 (a197a58a8abe)" schema=8
+--
+2026-11-18T08:40:35+0000 gaia[52336]: time=2026-11-18T08:40:35.856Z level=INFO msg="shutting down"
+2026-11-18T08:40:35+0000 gaia[52336]: time=2026-11-18T08:40:35.859Z level=INFO msg="waiting for running jobs to end" jobs=1 stop_drain=10m0s
+2026-11-18T08:40:35+0000 systemd[1]: Stopping gaia.service - Gaia backup and recoverability server...
+2026-11-18T08:41:09+0000 systemd[1]: Stopped gaia.service - Gaia backup and recoverability server.
+2026-11-18T08:41:11+0000 gaia[52921]: time=2026-11-18T08:41:11.441Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.1.0 (12f8d6ea7146)" schema=8
+--

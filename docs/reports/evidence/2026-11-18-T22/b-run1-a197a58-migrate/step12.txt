@@ -1,0 +1,2 @@
+gaia_0.1.0_amd64.deb: OK
+UNKNOWN: harness failed at line 70: ssh "${sshopts[@]}" "gaia@$1" sudo bash -s

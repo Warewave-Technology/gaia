@@ -1,0 +1,22 @@
+[
+  {
+    "vm_id": 1,
+    "vm": "gaia-t17-web",
+    "changed_at": "2026-11-17T21:50:45.094379593Z",
+    "status": "OK",
+    "theoretical_rpo_s": 57.609624811,
+    "proven_rpo_s": 998.164822502,
+    "proven_rto_s": 24.35238087,
+    "proof_age_s": 674.304233668,
+    "reasons": [
+      {
+        "status": "OK",
+        "rule": "proven",
+        "text": "point 402 is proven by test 202: proven RPO 16m38s \u003c= 20m0s, proven RTO 24s \u003c= 10m0s, proof age 11m14s \u003c= 30m0s"
+      }
+    ],
+    "notes": [
+      "restore test 203 (point 404) could not run: not tested: restoring disk vda: context canceled\nblock 1112: unexpected content error: error getting cached content from blob \"p103e6540e8f7f51674b271efe479ddbd-sd048e20ff7f7f851147\": failed to get blob with ID p103e6540e8f7f51674b271efe479ddbd-sd048e20ff7f7f851147: context canceled"
+    ]
+  }
+]

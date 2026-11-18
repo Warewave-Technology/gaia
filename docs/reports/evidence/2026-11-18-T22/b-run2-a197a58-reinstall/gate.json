@@ -1,0 +1,66 @@
+{
+  "schema": {
+    "before": 8,
+    "after": 8
+  },
+  "version": {
+    "before": "0.1.0 (a197a58a8abe)",
+    "after": "0.1.0 (a197a58a8abe)"
+  },
+  "points": {
+    "before": 405,
+    "after": 409,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T21:50:45.094379593Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-18T08:20:55.427371034Z"
+    }
+  ],
+  "status_changes_during_upgrade": [
+    {
+      "at": "2026-11-18T08:15:36.861400481Z",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the newest proven point (402, test 202) is 20m9s old, over the RPO target 20m0s"
+    },
+    {
+      "at": "2026-11-18T08:20:55.427444063Z",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 406 is proven by test 204: proven RPO 4m47s <= 20m0s, proven RTO 19s <= 10m0s, proof age 0s <= 30m0s"
+    }
+  ],
+  "jobs_failed_during_upgrade": [],
+  "next_backup": {
+    "id": 611,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 613,
+    "state": "ok"
+  },
+  "during": {
+    "id": 610,
+    "kind": "restore_test",
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 105,
+    "intact": true,
+    "head_sha256": "98e9bda85fc52401e798c9bb30402e00f065871a931b725056e1e44acf0d95fd",
+    "first_broken_seq": 0
+  },
+  "pass": false,
+  "verdict": "CRITICAL"
+}

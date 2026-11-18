@@ -1,0 +1,4 @@
+version: 0.1.0
+commit: 12f8d6ea71461cf5111a0a5ee9cf33b3302b400f
+go: go1.27.1
+SOURCE_DATE_EPOCH: 1794990781

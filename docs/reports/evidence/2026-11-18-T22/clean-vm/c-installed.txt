@@ -1,0 +1,7 @@
+status=install ok installed
+version=0.1.0
+user=uid=999(gaia) gid=994(gaia) groups=994(gaia)
+dirs=/var/lib/gaia gaia:gaia 750;/etc/gaia gaia:gaia 750;/srv/gaia gaia:gaia 750
+units=/lib/systemd/system/gaia.service;/lib/systemd/system/gaia-sandbox.service;/lib/systemd/system/gaia-convert.service
+enabled=disabled;disabled;disabled
+binary=gaia 0.1.0 (12f8d6ea7146), go1.27.1, linux/amd64

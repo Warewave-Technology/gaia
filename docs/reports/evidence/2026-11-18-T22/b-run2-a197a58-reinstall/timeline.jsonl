@@ -1,0 +1,1 @@
+{"seen_at":"2026-11-18T08:31:13Z","phase":"B upgraded","status":"OK","changed_at":"2026-11-18T08:20:55.427371034Z","reason":"point 408 is proven by test 205: proven RPO 5m1s <= 20m0s, proven RTO 25s <= 10m0s, proof age 5s <= 30m0s"}

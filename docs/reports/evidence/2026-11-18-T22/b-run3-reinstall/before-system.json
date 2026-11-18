@@ -1,0 +1,92 @@
+{
+  "version": "0.1.0 (a197a58a8abe)",
+  "schema_version": 8,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "0001_init.sql",
+      "sha256": "15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427",
+      "applied_at": "2026-11-16T22:26:30.371771074Z"
+    },
+    {
+      "version": 2,
+      "name": "0002_state_backups.sql",
+      "sha256": "4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546",
+      "applied_at": "2026-11-16T22:26:30.386806233Z"
+    },
+    {
+      "version": 3,
+      "name": "0003_backups.sql",
+      "sha256": "299eb8b7ee024822dcbcb14547ae4728f21ddc7d371d6078a6c10bd128630206",
+      "applied_at": "2026-11-16T22:26:30.401811954Z"
+    },
+    {
+      "version": 4,
+      "name": "0004_status.sql",
+      "sha256": "4a6ff0331088426b6fa6976bc4977b0636a77ad061dd85dee03dc89b8ac113cd",
+      "applied_at": "2026-11-16T22:26:30.411034271Z"
+    },
+    {
+      "version": 5,
+      "name": "0005_recovery.sql",
+      "sha256": "c57c01654d0963305963c3ee1040bb5e1e5a72d1f3ff33373307505d426eeeea",
+      "applied_at": "2026-11-16T22:34:15.791510919Z"
+    },
+    {
+      "version": 6,
+      "name": "0006_quarantine_logins.sql",
+      "sha256": "d3c7b1615d49b1225000d2a5e1a08f1397a3949c49e7154545ea19b997f9b9fa",
+      "applied_at": "2026-11-17T09:38:22.554232013Z"
+    },
+    {
+      "version": 7,
+      "name": "0007_notifications.sql",
+      "sha256": "a89635df3aa5dbd8a53722c4a7e0a5cde7872fe7cff0d55cd3c9742eafb03aff",
+      "applied_at": "2026-11-17T18:59:14.562653235Z"
+    },
+    {
+      "version": 8,
+      "name": "0008_migration_checks.sql",
+      "sha256": "5f7d09a2d14ce71cc4fd85cbad6a3f3cf988e22f4131d4bf5685b4fe2616894b",
+      "applied_at": "2026-11-18T01:09:26.339598795Z"
+    }
+  ],
+  "evidence_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "ssh_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDyl/DFPcqWr9UrI3IIprhzn67gEYZdmYiZPi1aWcfCN gaia@gaia-t17-b",
+  "ssh_authorized_keys_line": "restrict,port-forwarding,command=\"/usr/bin/false\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDyl/DFPcqWr9UrI3IIprhzn67gEYZdmYiZPi1aWcfCN gaia@gaia-t17-b",
+  "started_at": "2026-11-18T08:20:56Z",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "recovery_kit": {
+    "state": "confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 was saved off the server on 2026-11-16T22:47:43.781926976Z by admin",
+    "confirmed_at": "2026-11-16T22:47:43.781926976Z",
+    "confirmed_by": "admin"
+  },
+  "ledger": {
+    "id": 2,
+    "checked_at": "2026-11-18T07:00:01.937564906Z",
+    "reason": "daily report",
+    "verdict": "OK",
+    "entries": 193,
+    "head_seq": 193,
+    "head_sha256": "a769aace842dcdea3fae34a5c35a0830ef6f7707691ddff7d3df8eca0b866d74",
+    "problems": [],
+    "text": "OK at 2026-11-18T07:00:01.937564906Z: 193 entries"
+  },
+  "notifications": {
+    "state": "WARNING",
+    "channels": 0,
+    "enabled": 0,
+    "text": "no notification channel is enabled: nobody is told when a VM's status changes",
+    "failing": []
+  },
+  "daily_report_at": "07:00",
+  "hostname": "gaia-t17-b",
+  "clock": {
+    "now": "2026-11-18T08:33:49.8407783Z",
+    "zone": "Etc/UTC",
+    "offset_s": 0
+  }
+}

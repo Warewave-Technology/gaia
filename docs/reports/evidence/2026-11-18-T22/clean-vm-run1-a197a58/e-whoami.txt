@@ -1,0 +1,10 @@
+id:                   1
+username:             admin
+role:                 admin
+disabled:             false
+created_at:           2026-11-18T08:05:54.505572038Z
+updated_at:           2026-11-18T08:05:54.505572038Z
+password_changed_at:  2026-11-18T08:05:54.505572038Z
+last_login_at:        2026-11-18T08:06:01.57164931Z
+failed_logins:        0
+locked_until:         -

@@ -1,0 +1,11 @@
+{
+  "purge": [
+    "binary: gone",
+    "unit: gone",
+    "data: kept",
+    "user: kept",
+    "active"
+  ],
+  "session_still_valid": true,
+  "pass": true
+}

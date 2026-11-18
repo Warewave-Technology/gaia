@@ -1,0 +1,40 @@
+
+== server B (192.168.1.120) before: 5fb7cfb5bf1e, schema 8
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/README.txt: time stamp 2026-11-18 08:03:59 is 0.069773847 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/anchor.pub: time stamp 2026-11-18 08:03:59 is 0.069689948 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/ledger.jsonl: time stamp 2026-11-18 08:03:59 is 0.069052661 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/config.json: time stamp 2026-11-18 08:03:59 is 0.068705473 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/dnsmasq.leases: time stamp 2026-11-18 08:03:59 is 0.068665874 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/dnsmasq.log: time stamp 2026-11-18 08:03:59 is 0.068631284 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/domain.xml: time stamp 2026-11-18 08:03:59 is 0.068595704 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/manifest.json: time stamp 2026-11-18 08:03:59 is 0.068562324 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/manifest.sig: time stamp 2026-11-18 08:03:59 is 0.068519025 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/network.xml: time stamp 2026-11-18 08:03:59 is 0.068477955 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/result.json: time stamp 2026-11-18 08:03:59 is 0.068427755 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/sandbox.log: time stamp 2026-11-18 08:03:59 is 0.068395345 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/screenshot-boot.png: time stamp 2026-11-18 08:03:59 is 0.068363146 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/screenshot-end.png: time stamp 2026-11-18 08:03:59 is 0.068320446 s in the future
+tar: gaia-evidence-gaia-t17-web-20261118T080024Z-ed3c4f/bundles/gaia-t17-web-20261118T080024Z-ed3c4f/serial.log: time stamp 2026-11-18 08:03:59 is 0.068232856 s in the future
+
+== package (guide step 2) and upgrade (step 12, as root on B)
+Good "gaia-release" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc
+gaia_0.1.0_amd64.deb: OK
+gaia-0.1.0-darwin-amd64.tar.gz: OK
+gaia-0.1.0-darwin-arm64.tar.gz: OK
+gaia-0.1.0-linux-amd64.tar.gz: OK
+gaia-0.1.0-linux-arm64.tar.gz: OK
+BUILDINFO.txt: OK
+
+== waiting for a running restore_test job
+{"id":607,"kind":"restore_test","vm_id":1,"state":"running","reason":"schedule: policy t17, every 600 s","error":"","created_at":"2026-11-18T08:10:11.40948225Z","started_at":"2026-11-18T08:10:11.420562499Z","finished_at":""}
+gaia_0.1.0_amd64.deb: OK
+Removed "/etc/systemd/system/multi-user.target.wants/gaia-sandbox.service".
+Removed "/etc/systemd/system/multi-user.target.wants/gaia.service".
+
+real	0m0.903s
+user	0m0.000s
+sys	0m0.015s
+E: Could not get lock /var/lib/dpkg/lock-frontend. It is held by process 51486 (apt-get)
+E: Unable to acquire the dpkg frontend lock (/var/lib/dpkg/lock-frontend), is another process using it?
+UNKNOWN: harness failed at line 70: ssh "${sshopts[@]}" "gaia@$1" sudo bash -s
+UNKNOWN: harness failed at line 540: tee "$OUT/step12.txt"

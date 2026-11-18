@@ -24,6 +24,11 @@ fixtures) are in the reports, not here.
   cannot limit its socket forwarding to one path. [T15]
   *Why it waits:* a narrower access needs a helper on each host behind a forced command: new software on the
   protected hosts, outside the MVP.
+- **A stop (an upgrade, a reboot) waits for running jobs up to 10 minutes** (`stop_drain`); a longer job, such as a
+  first full backup of a large VM, is ended, recorded as failed and run again from its start after the stop. An
+  install from before 0.1.0 does not wait at all (install.md step 12). [T18, T20, T22]
+  *Why it waits:* resuming a backup half way needs Kopia to keep a partial point across processes; a longer
+  `stop_drain` is possible (up to 1 hour, with `TimeoutStopSec` raised to match) but holds the upgrade.
 - **One SSH connection per job** (ADR-007 B2); two parallel backups of one host open two. [T15]
   *Why it waits:* a per-host connection pool is in the backlog (CLAUDE.md).
 - **Every point's block index lists the whole disk** (about 40 MiB of index per point for a 1 TiB disk at the default

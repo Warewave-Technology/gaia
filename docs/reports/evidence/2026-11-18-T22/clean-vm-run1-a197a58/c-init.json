@@ -1,0 +1,44 @@
+{
+  "command": "server init",
+  "result": {
+    "config": {
+      "listen": ":8443",
+      "data_dir": "/var/lib/gaia",
+      "tls_cert": "/var/lib/gaia/tls/cert.pem",
+      "tls_key": "/var/lib/gaia/tls/key.pem",
+      "session_ttl": "12h",
+      "state_backup_at": "02:30",
+      "state_backup_repository": "",
+      "host_socket_dir": "/var/lib/libvirt/qemu",
+      "host_scratch_dir": "/var/lib/libvirt/images",
+      "nbd_connections": 2,
+      "max_parallel_backups": 2,
+      "verify_at": "03:30",
+      "full_verify_day": "sunday",
+      "verify_sample": 0.02,
+      "sandbox_socket": "/run/gaia-sandbox/sandbox.sock",
+      "sandbox_images_dir": "/var/lib/gaia-sandbox/images",
+      "login_max_failures": 5,
+      "login_lockout": "15m",
+      "login_address_failures": 20,
+      "login_address_window": "10m",
+      "daily_report_at": "07:00",
+      "convert_socket": "/run/gaia-convert/convert.sock",
+      "convert_jobs_dir": "/var/lib/gaia-convert/jobs",
+      "stop_drain": "10m"
+    },
+    "tls_certificate_sha256": "02:CE:6D:38:BC:C4:F1:1C:AC:22:6A:DC:E4:AA:84:30:21:E4:BC:B5:F3:05:F0:B7:54:2C:3B:A6:39:2A:2C:6A",
+    "tls_certificate_names": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "gaia-t22-server",
+      "192.168.222.10"
+    ],
+    "evidence_key_id": "a4be8323637eba53961ec01b065856b995d6f2ded609305c79e5442c86c277ef",
+    "admin": "admin",
+    "recovery_kit": "/var/lib/gaia/recovery/gaia-recovery-kit.age",
+    "recovery_kit_generation": 1
+  },
+  "verdict": "OK"
+}

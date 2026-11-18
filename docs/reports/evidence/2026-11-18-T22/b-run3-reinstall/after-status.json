@@ -1,0 +1,20 @@
+[
+  {
+    "vm_id": 1,
+    "vm": "gaia-t17-web",
+    "changed_at": "2026-11-18T08:20:55.427371034Z",
+    "status": "OK",
+    "theoretical_rpo_s": 295.794748859,
+    "proven_rpo_s": 295.794748859,
+    "proven_rto_s": 24.909370311,
+    "proof_age_s": 1.460383655,
+    "reasons": [
+      {
+        "status": "OK",
+        "rule": "proven",
+        "text": "point 412 is proven by test 207: proven RPO 4m56s \u003c= 20m0s, proven RTO 25s \u003c= 10m0s, proof age 1s \u003c= 30m0s"
+      }
+    ],
+    "notes": []
+  }
+]

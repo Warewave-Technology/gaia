@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "repository_id": 1,
+  "state": "ok",
+  "reason": "requested by admin",
+  "started_at": "2026-11-18T08:06:08.680693208Z",
+  "finished_at": "2026-11-18T08:06:08.995633443Z",
+  "error": "",
+  "snapshot_id": "45b97b69d2b534e1678c0a1dee1e8570",
+  "bytes": 218624,
+  "sha256": "33fc7d7d7910256e27e96886e94a49c18603d541adcb7566d17c9470e8666036"
+}

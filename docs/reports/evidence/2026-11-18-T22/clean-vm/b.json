@@ -1,0 +1,19 @@
+{
+  "guide_key_is_repository_key": true,
+  "verify_exit": 0,
+  "verify_output": [
+    "Good \"gaia-release\" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc",
+    "gaia_0.1.0_amd64.deb: OK",
+    "gaia-0.1.0-darwin-amd64.tar.gz: OK",
+    "gaia-0.1.0-darwin-arm64.tar.gz: OK",
+    "gaia-0.1.0-linux-amd64.tar.gz: OK",
+    "gaia-0.1.0-linux-arm64.tar.gz: OK",
+    "BUILDINFO.txt: OK"
+  ],
+  "negative_exit": {
+    "changed_sums": 255,
+    "other_key": 255,
+    "changed_package": 1
+  },
+  "pass": true
+}

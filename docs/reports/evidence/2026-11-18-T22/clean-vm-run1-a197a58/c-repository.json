@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "name": "main",
+  "kind": "filesystem",
+  "location": "/srv/gaia/main",
+  "splitter": "FIXED-1M",
+  "hash": "BLAKE2B-256-128",
+  "created_at": "2026-11-18T08:06:04.30076826Z"
+}

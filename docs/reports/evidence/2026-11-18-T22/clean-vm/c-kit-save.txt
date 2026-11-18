@@ -1,0 +1,3 @@
+Recovery kit 2 opens with the passphrase and is the server's newest: confirmed.
+Keep gaia-recovery-kit-2.age off the server (a password manager, an encrypted vault, a USB stick in a safe) and delete any other copy
+on the server itself. Keep the passphrase separately.

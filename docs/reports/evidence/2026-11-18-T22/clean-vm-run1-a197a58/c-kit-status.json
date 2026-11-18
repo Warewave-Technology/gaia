@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "state": "confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 was saved off the server on 2026-11-18T08:06:10.17810869Z by admin",
+    "confirmed_at": "2026-11-18T08:06:10.17810869Z",
+    "confirmed_by": "admin"
+  },
+  "kits": [
+    {
+      "generation": 2,
+      "created_at": "2026-11-18T08:06:08.47868696Z",
+      "created_by": "admin",
+      "reason": "repository main created",
+      "sha256": "0a7bbee7cd7892025a1c99c33c4a722ade8776c6e8cb74378a53ca0626663c2a",
+      "repositories": [
+        "main"
+      ],
+      "confirmed_at": "2026-11-18T08:06:10.17810869Z",
+      "confirmed_by": "admin"
+    },
+    {
+      "generation": 1,
+      "created_at": "2026-11-18T08:05:56.593480547Z",
+      "created_by": "gaia server init",
+      "reason": "server init",
+      "sha256": "f830caedfba3b1c8751b3b9b2647ced7dad8af7a66a82de0f4d23dd6fde882c8",
+      "repositories": [],
+      "confirmed_at": "",
+      "confirmed_by": ""
+    }
+  ]
+}
