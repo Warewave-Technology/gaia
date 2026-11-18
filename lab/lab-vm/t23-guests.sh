@@ -223,7 +223,7 @@ EOF
 	;;
 delete-checkpoint)
 	n=${2:?NAME}
-	c=$(virsh checkpoint-list "$n" --name --topological | tail -1)
+	c=$(virsh checkpoint-list "$n" --name --topological | grep . | tail -1)
 	[[ -n "$c" ]] || { echo "UNKNOWN: $n has no checkpoint"; exit 3; }
 	virsh checkpoint-delete "$n" "$c"
 	echo "deleted checkpoint $c of $n; left: $(virsh checkpoint-list "$n" --name | paste -sd ' ' -)"
