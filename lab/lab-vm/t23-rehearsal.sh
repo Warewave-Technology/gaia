@@ -111,8 +111,16 @@ wait_job() { # ID: until the job ended; prints it
 	echo "UNKNOWN: job $1 did not end in $PHASE_TIMEOUT_S s" >&2
 	exit 3
 }
-backup_now() { api vms backup "${VM_ID[$1]}" | jq -r .id; } # VM: queues a backup, prints the job's ID
-test_now() { api vms test "${VM_ID[$1]}" | jq -r .id; }
+# backup_now / test_now VM: queues a backup (a restore test) and prints the job's ID; when the VM has one queued or
+# running already (409: the schedule was first), that one.
+now_job() {
+	local out
+	out=$(api vms "$1" "${VM_ID[$2]}" 2>/dev/null) || true
+	if jq -e .id <<<"$out" >/dev/null 2>&1; then jq -r .id <<<"$out"; return; fi
+	jq -r '.error' <<<"$out" | grep -oE 'job [0-9]+' | head -1 | cut -d' ' -f2 | grep . || { echo "UNKNOWN: vms $1 $2: $out" >&2; exit 3; }
+}
+backup_now() { now_job backup "$1"; }
+test_now() { now_job test "$1"; }
 # hook_mark: how many webhook deliveries the sink has; wait_event EVENT TEXT: until a webhook after the mark carries
 # EVENT with TEXT in its subject, and a mail with the same subject arrived; prints {event, vm, subject}.
 hook_mark() { find "$OUT_DIR/sink/hook" -name '*.json' | wc -l; }
