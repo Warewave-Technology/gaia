@@ -2,7 +2,7 @@
 # fixture: the VMs the T23 MVP acceptance protects, on gaia-lab (the KVM host), and the helpers that break them for
 # the acceptance scenarios. Not part of the product: Gaia only reads these VMs (backups) and boots copies of them.
 #
-#   create              the network gaia-t23 (NAT, 192.168.223.0/24, starts with the host) and three running VMs:
+#   create              (each VM that does not exist yet) the network gaia-t23 (NAT, 192.168.223.0/24, starts with the host) and three running VMs:
 #                       gaia-t23-linux2   Debian 12, BIOS, two disks (vda system, vdb data at /data), writing all the time
 #                       gaia-t23-uefi     Debian 12, UEFI only (OVMF), one disk
 #                       gaia-t23-win      T11's Windows Server 2022 disk (/var/lib/gaia/images/gaia-t11-win.qcow2, built
@@ -117,7 +117,7 @@ EOF
 }
 
 windows_guest() {
-	local n=gaia-t23-win w=$D/gaia-t23-win image
+	local n=gaia-t23-win w=$CONV_HOME/t23-win image # gaia-convert cannot enter /root
 	echo "$VIRTIO_SHA256  $VIRTIO_ISO" | sha256sum -c --quiet
 	image=$(jq -r .image /etc/gaia/convert.json)
 	rm -rf "$w" && install -d -o "$CONV_USER" -g "$CONV_USER" "$w" "$w/out"
@@ -168,12 +168,10 @@ create)
 	mkdir -p "$D/ssh"
 	[[ -f "$D/ssh/id_ed25519" ]] || ssh-keygen -q -t ed25519 -N '' -C gaia-t23-guests -f "$D/ssh/id_ed25519"
 	network
-	for n in gaia-t23-linux2 gaia-t23-uefi gaia-t23-win; do
-		virsh dominfo "$n" >/dev/null 2>&1 && { echo "UNKNOWN: $n exists (destroy first)"; exit 3; }
-	done
-	linux_guest gaia-t23-linux2 bios 1
-	linux_guest gaia-t23-uefi efi 0
-	windows_guest
+	exists() { virsh dominfo "$1" >/dev/null 2>&1 && log "$1 exists already: kept"; }
+	exists gaia-t23-linux2 || linux_guest gaia-t23-linux2 bios 1
+	exists gaia-t23-uefi || linux_guest gaia-t23-uefi efi 0
+	exists gaia-t23-win || windows_guest
 	wait_up gaia-t23-linux2 22
 	wait_up gaia-t23-uefi 22
 	wait_up gaia-t23-win 5985
@@ -224,7 +222,7 @@ destroy)
 	done
 	virsh -q net-destroy "$NET" 2>/dev/null || true
 	virsh -q net-undefine "$NET" 2>/dev/null || true
-	rm -rf "$D/gaia-t23-win"
+	rm -rf "$CONV_HOME/t23-win"
 	fstrim -a 2>/dev/null || true
 	;;
 *)
