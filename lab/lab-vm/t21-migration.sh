@@ -24,12 +24,18 @@
 # state are the same before and after.
 #
 # Usage (on gaia-lab, as root, after setup.sh):  systemd-run --unit=gaia-t21 --collect -E HOME=/root lab/lab-vm/t21-migration.sh ESXI_IP
+#   lab/lab-vm/t21-migration.sh --gate OUT_DIR   verifies a run's readiness reports again and computes its gate from what
+#                                               the run recorded (no fixtures, no server), into OUT_DIR/gate.json
 # Env: PASSWORD_FILE (/root/.gaia-esxi-password, never printed), DATASTORE (datastore1), OUT_DIR (/root/t21-<UTC>),
 #      KEEP=1 keeps the fixtures and the server.
 # Exit: 0 OK / 2 CRITICAL (a gate failed) / 3 UNKNOWN (not checked, also when the harness failed).
 set -euo pipefail
 
-ESXI_IP="${1:?ESXi host IP}"
+if [[ "${1:-}" == --gate ]]; then
+	GATE_ONLY=1 OUT_DIR="${2:?OUT_DIR}" ESXI_IP=-
+else
+	ESXI_IP="${1:?ESXi host IP}"
+fi
 PASSWORD_FILE="${PASSWORD_FILE:-/root/.gaia-esxi-password}"
 DATASTORE="${DATASTORE:-datastore1}"
 OUT_DIR="${OUT_DIR:-/root/t21-$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -66,10 +72,6 @@ if [[ ! -s "$PASSWORD_FILE" ]] || [[ "$(stat -c %a "$PASSWORD_FILE")" != 600 ]];
 fi
 [[ -e /dev/kvm ]] || { echo "UNKNOWN: /dev/kvm is missing"; exit 3; }
 [[ -s "$VIRTIO_ISO" ]] || { echo "UNKNOWN: $VIRTIO_ISO is missing (T11's download)"; exit 3; }
-mkdir -p "$OUT_DIR/reports"
-exec > >(tee "$OUT_DIR/t21.log") 2>&1
-ln -sfn "$OUT_DIR" /root/t21-latest
-
 section() { printf '\n== %s\n' "$*"; }
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 gaia() { "$BIN/gaia" "$@"; }
@@ -113,6 +115,96 @@ rm -f /tmp/gaia-t21-ls
 EOF
 	(($(grep -c '^  ' "$1") >= 3 * 5)) || { echo "UNKNOWN: no complete folder listing in $1"; cat "$1"; exit 3; }
 }
+
+# finish verifies the readiness reports, proves zero writes and computes the gate, from OUT_DIR only.
+finish() {
+section "readiness reports: gaia evidence verify and the independent verifier (bundle mode)"
+reports='[]'
+for f in "$OUT_DIR"/check-*.json; do
+	id=$(jq -r .id "$f")
+	d="$OUT_DIR/reports/$id"
+	if [[ -z "${GATE_ONLY:-}" ]]; then
+		mkdir -p "$d"
+		api migration-checks report "$id" -o "$d/report.tar.gz" >/dev/null
+		tar -C "$d" -xzf "$d/report.tar.gz"
+	fi
+	root=$(find "$d" -mindepth 1 -maxdepth 1 -type d -name 'gaia-readiness-*')
+	bundle=$(jq -r .bundle "$root/readiness.json")
+	rc=0
+	gaia evidence verify -pubkey "$root/keys/evidence-key-current.pub" -bundle "$root/bundles/$bundle" -json >"$d/gaia-verify.json" || rc=$?
+	prc=0
+	python3 -I "$PYV" bundle "$root/bundles/$bundle" --key "$root/keys/evidence-key-current.pub" --json >"$d/python-verify.json" || prc=$?
+	sums=true
+	(cd "$root" && sha256sum --quiet -c SHA256SUMS) || sums=false
+	reports=$(jq -c --arg vm "$(jq -r .vm "$root/readiness.json")" --argjson id "$id" --argjson rc "$rc" --argjson prc "$prc" --argjson sums "$sums" \
+		--slurpfile g "$d/gaia-verify.json" --slurpfile p "$d/python-verify.json" --slurpfile r "$root/readiness.json" \
+		'. + [{check: $id, vm: $vm, readiness: $r[0].readiness, sha256sums: $sums, gaia: {exit: $rc, verdict: $g[0].verdict},
+		       python: {exit: $prc, verdict: $p[0].verdict}}]' <<<"$reports")
+	cp "$root/readiness.json" "$OUT_DIR/reports/$id-readiness.json"
+	cp "$root/README.txt" "$OUT_DIR/reports/$id-README.txt"
+done
+echo "$reports" | jq -c '.[]'
+
+section "read-only proof"
+if [[ -z "${GATE_ONLY:-}" ]]; then # every call: the bundles' call logs and the inventory's
+	: >"$OUT_DIR/calls.jsonl"
+	for f in "$OUT_DIR"/reports/*/gaia-readiness-*/bundles/*/migration/calls.jsonl; do cat "$f" >>"$OUT_DIR/calls.jsonl"; done
+	cat "$SRV_HOME/data/migration/source-$src-calls.jsonl" >>"$OUT_DIR/calls.jsonl"
+fi
+jq -r '[.method, .path, (.op // "-"), .allowed, (.status // "-")] | @tsv' "$OUT_DIR/calls.jsonl" | sort | uniq -c
+tasks=$(write_tasks "$OUT_DIR/hostd-window.log")
+reads=$(read_tasks "$OUT_DIR/hostd-window.log")
+gets=$(jq -s 'map(select(.method == "GET")) | length' "$OUT_DIR/calls.jsonl")
+echo "hostd.log while the server ran the checks: write tasks $tasks, read tasks $reads (GET /folder calls: $gets)"
+grep 'Task Created' "$OUT_DIR/hostd-window.log" | sed 's/.*Task Created : /  /' | sort | uniq -c || true
+if diff -u "$OUT_DIR/host-before.txt" "$OUT_DIR/host-after.txt"; then host_unchanged=true; else host_unchanged=false; fi
+echo "fixture VMs (power state, folder listing) unchanged: $host_unchanged"
+
+section "gate (CLAUDE.md T21)"
+image=$(jq -r .image "$OUT_DIR/convert.json")
+fixture_tasks=$(write_tasks "$OUT_DIR/hostd-fixture.log")
+step='def step(n): (.detail.checks // []) | map(select(.name == n)) | first // {};'
+jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$reports" --arg image "$image" \
+	--argjson tasks "$tasks" --argjson reads "$reads" --argjson gets "$gets" --argjson fixture_tasks "${fixture_tasks:-0}" \
+	--argjson host_unchanged "$host_unchanged" --slurpfile conv "$OUT_DIR/converter.json" \
+	--slurpfile lin "$OUT_DIR/check-gaia-t8-linux.json" --slurpfile brk "$OUT_DIR/check-gaia-t8-broken.json" \
+	--slurpfile uefi "$OUT_DIR/check-gaia-t21-uefi.json" --slurpfile win "$OUT_DIR/check-gaia-t11-win.json" \
+	--slurpfile wbrk "$OUT_DIR/check-gaia-t21-win-broken.json" --slurpfile nov "$OUT_DIR/check-gaia-t11-win-no-virtio.json" "$step"'
+	def s(x): {readiness: x.readiness, reason: x.reason, firmware: x.firmware, bundle: x.bundle_id,
+	           steps: [(x.detail.checks // [])[] | {name, verdict, detail: (.detail | .[0:240])}]};
+	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
+	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
+	 b_t11_windows: {ready: s($win[0]), broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
+	                 pass: ($win[0].readiness == "OK" and ($win[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse") or (contains("NTLM NEGOTIATE with a CHALLENGE from computer") and test("Windows [0-9]+[.][0-9]+ build [0-9]+"))))
+	                        and ($win[0] | step("rdp").verdict) == "OK"
+	                        and $wbrk[0].readiness == "CRITICAL" and ($wbrk[0] | step("boot").detail | contains("WinRM answers only from a running Windows"))
+	                        and $nov[0].readiness == "UNKNOWN" and ($nov[0] | step("conversion").detail | contains("virtio-win")))},
+	 c_uefi: {check: s($uefi[0]),
+	          pass: ($uefi[0].readiness == "OK" and $uefi[0].firmware == "efi" and ($uefi[0] | step("firmware").detail | startswith("UEFI")))},
+	 d_zero_writes: {calls: ($calls | length), blocked: ($calls | map(select(.allowed | not)) | length),
+	                 ops: ($calls | map(.op // .method) | unique), hostd_write_tasks_during_checks: $tasks,
+	                 hostd_read_tasks_during_checks: $reads, get_folder_calls: $gets, hostd_write_tasks_by_fixtures_positive_control: $fixture_tasks,
+	                 fixture_vms_unchanged: $host_unchanged,
+	                 pass: (($calls | length) > 0 and ($calls | all(.allowed)) and $tasks == 0 and $reads == $gets and $fixture_tasks > 0 and $host_unchanged)},
+	 e_reports: {reports: $reports, pass: ($reports | length == 6 and all(.sha256sums and .gaia.exit == 0 and .gaia.verdict == "OK" and .python.exit == 0 and .python.verdict == "OK"))},
+	 f_converter: {image: $image, versions: $conv[0].info.versions, virtio_win: ($conv[0].info.virtio_win | {version, state, sha256}),
+	               bundles_name_the_image: ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)),
+	               pass: ($conv[0].info.image == $image and $conv[0].info.image_present and $conv[0].info.virtio_win.state == "ok"
+	                      and ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)))}}
+	| . + {verdict: (if [.a_t8_linux, .b_t11_windows, .c_uefi, .d_zero_writes, .e_reports, .f_converter] | all(.pass) then "OK" else "CRITICAL" end)}' |
+	tee "$OUT_DIR/gate.json" | jq -c '{verdict, a: .a_t8_linux.pass, b: .b_t11_windows.pass, c: .c_uefi.pass, d: .d_zero_writes.pass, e: .e_reports.pass, f: .f_converter.pass}'
+echo "out: $OUT_DIR"
+[[ $(jq -r .verdict "$OUT_DIR/gate.json") == OK ]]
+}
+
+if [[ -n "${GATE_ONLY:-}" ]]; then
+	rc=0
+	finish 2>&1 | tee "$OUT_DIR/gate.log" || rc=$?
+	exit $((rc ? 2 : 0))
+fi
+mkdir -p "$OUT_DIR/reports"
+exec > >(tee "$OUT_DIR/t21.log") 2>&1
+ln -sfn "$OUT_DIR" /root/t21-latest
 
 cleanup() {
 	[[ "${KEEP:-}" == 1 ]] && return 0
@@ -258,7 +350,6 @@ section "checks: Windows before virtio-win is in place (ADR-005 §2)"
 check gaia-t11-win windows-rdp
 wait_check gaia-t11-win
 cp "$OUT_DIR/check-gaia-t11-win.json" "$OUT_DIR/check-gaia-t11-win-no-virtio.json"
-no_virtio_id=${CHECK_ID[gaia-t11-win]}
 
 section "virtio-win 0.1.302 (the operator's download, checked against the pinned sha256)"
 install -m 0644 -o "$CONV_USER" -g "$CONV_USER" "$VIRTIO_ISO" "$CONV_HOME/virtio-win-0.1.302.iso"
@@ -272,75 +363,4 @@ for vm in "${LINUX_VMS[@]}" "${WIN_VMS[@]}"; do wait_check "$vm"; done
 hostd_since "$hostd_checks" "$OUT_DIR/hostd-window.log"
 host_state "$OUT_DIR/host-after.txt"
 
-section "readiness reports: gaia evidence verify and the independent verifier (bundle mode)"
-reports='[]'
-for key in "${LINUX_VMS[@]}" "${WIN_VMS[@]}" no-virtio; do
-	id=${CHECK_ID[$key]:-}
-	[[ "$key" == no-virtio ]] && id=$no_virtio_id
-	d="$OUT_DIR/reports/$id"
-	mkdir -p "$d"
-	api migration-checks report "$id" -o "$d/report.tar.gz" >/dev/null
-	tar -C "$d" -xzf "$d/report.tar.gz"
-	root=$(find "$d" -mindepth 1 -maxdepth 1 -type d)
-	bundle=$(jq -r .bundle "$root/readiness.json")
-	rc=0
-	gaia evidence verify -pubkey "$root/keys/evidence-key-current.pub" -bundle "$root/bundles/$bundle" -json >"$d/gaia-verify.json" || rc=$?
-	prc=0
-	python3 -I "$PYV" bundle "$root/bundles/$bundle" --key "$root/keys/evidence-key-current.pub" --json >"$d/python-verify.json" || prc=$?
-	sums=true
-	(cd "$root" && sha256sum --quiet -c SHA256SUMS) || sums=false
-	reports=$(jq -c --arg vm "$(jq -r .vm "$root/readiness.json")" --argjson id "$id" --argjson rc "$rc" --argjson prc "$prc" --argjson sums "$sums" \
-		--slurpfile g "$d/gaia-verify.json" --slurpfile p "$d/python-verify.json" --slurpfile r "$root/readiness.json" \
-		'. + [{check: $id, vm: $vm, readiness: $r[0].readiness, sha256sums: $sums, gaia: {exit: $rc, verdict: $g[0].verdict},
-		       python: {exit: $prc, verdict: $p[0].verdict}}]' <<<"$reports")
-	cp "$root/readiness.json" "$OUT_DIR/reports/$id-readiness.json"
-	cp "$root/README.txt" "$OUT_DIR/reports/$id-README.txt"
-done
-echo "$reports" | jq -c '.[]'
-
-section "read-only proof"
-: >"$OUT_DIR/calls.jsonl"
-for f in "$OUT_DIR"/reports/*/gaia-readiness-*/bundles/*/migration/calls.jsonl; do cat "$f" >>"$OUT_DIR/calls.jsonl"; done
-cat "$SRV_HOME/data/migration/source-$src-calls.jsonl" >>"$OUT_DIR/calls.jsonl"
-jq -r '[.method, .path, (.op // "-"), .allowed, (.status // "-")] | @tsv' "$OUT_DIR/calls.jsonl" | sort | uniq -c
-tasks=$(write_tasks "$OUT_DIR/hostd-window.log")
-reads=$(read_tasks "$OUT_DIR/hostd-window.log")
-gets=$(jq -s 'map(select(.method == "GET")) | length' "$OUT_DIR/calls.jsonl")
-echo "hostd.log while the server ran the checks: write tasks $tasks, read tasks $reads (GET /folder calls: $gets)"
-grep 'Task Created' "$OUT_DIR/hostd-window.log" | sed 's/.*Task Created : /  /' | sort | uniq -c || true
-if diff -u "$OUT_DIR/host-before.txt" "$OUT_DIR/host-after.txt"; then host_unchanged=true; else host_unchanged=false; fi
-echo "fixture VMs (power state, folder listing) unchanged: $host_unchanged"
-
-section "gate (CLAUDE.md T21)"
-step='def step(n): (.detail.checks // []) | map(select(.name == n)) | first // {};'
-jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$reports" --arg image "$image" \
-	--argjson tasks "$tasks" --argjson reads "$reads" --argjson gets "$gets" --argjson fixture_tasks "${fixture_tasks:-0}" \
-	--argjson host_unchanged "$host_unchanged" --slurpfile conv "$OUT_DIR/converter.json" \
-	--slurpfile lin "$OUT_DIR/check-gaia-t8-linux.json" --slurpfile brk "$OUT_DIR/check-gaia-t8-broken.json" \
-	--slurpfile uefi "$OUT_DIR/check-gaia-t21-uefi.json" --slurpfile win "$OUT_DIR/check-gaia-t11-win.json" \
-	--slurpfile wbrk "$OUT_DIR/check-gaia-t21-win-broken.json" --slurpfile nov "$OUT_DIR/check-gaia-t11-win-no-virtio.json" "$step"'
-	def s(x): {readiness: x.readiness, reason: x.reason, firmware: x.firmware, bundle: x.bundle_id,
-	           steps: [(x.detail.checks // [])[] | {name, verdict, detail: (.detail | .[0:240])}]};
-	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
-	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
-	 b_t11_windows: {ready: s($win[0]), broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
-	                 pass: ($win[0].readiness == "OK" and ($win[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse") or (contains("NTLM NEGOTIATE with a CHALLENGE from computer") and test("Windows [0-9]+[.][0-9]+ build [0-9]+")))))
-	                        and ($win[0] | step("rdp").verdict) == "OK"
-	                        and $wbrk[0].readiness == "CRITICAL" and ($wbrk[0] | step("boot").detail | contains("WinRM answers only from a running Windows"))
-	                        and $nov[0].readiness == "UNKNOWN" and ($nov[0] | step("conversion").detail | contains("virtio-win")))},
-	 c_uefi: {check: s($uefi[0]),
-	          pass: ($uefi[0].readiness == "OK" and $uefi[0].firmware == "efi" and ($uefi[0] | step("firmware").detail | startswith("UEFI")))},
-	 d_zero_writes: {calls: ($calls | length), blocked: ($calls | map(select(.allowed | not)) | length),
-	                 ops: ($calls | map(.op // .method) | unique), hostd_write_tasks_during_checks: $tasks,
-	                 hostd_read_tasks_during_checks: $reads, get_folder_calls: $gets, hostd_write_tasks_by_fixtures_positive_control: $fixture_tasks,
-	                 fixture_vms_unchanged: $host_unchanged,
-	                 pass: (($calls | length) > 0 and ($calls | all(.allowed)) and $tasks == 0 and $reads == $gets and $fixture_tasks > 0 and $host_unchanged)},
-	 e_reports: {reports: $reports, pass: ($reports | length == 6 and all(.sha256sums and .gaia.exit == 0 and .gaia.verdict == "OK" and .python.exit == 0 and .python.verdict == "OK"))},
-	 f_converter: {image: $image, versions: $conv[0].info.versions, virtio_win: ($conv[0].info.virtio_win | {version, state, sha256}),
-	               bundles_name_the_image: ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)),
-	               pass: ($conv[0].info.image == $image and $conv[0].info.image_present and $conv[0].info.virtio_win.state == "ok"
-	                      and ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)))}}
-	| . + {verdict: (if [.a_t8_linux, .b_t11_windows, .c_uefi, .d_zero_writes, .e_reports, .f_converter] | all(.pass) then "OK" else "CRITICAL" end)}' |
-	tee "$OUT_DIR/gate.json" | jq -c '{verdict, a: .a_t8_linux.pass, b: .b_t11_windows.pass, c: .c_uefi.pass, d: .d_zero_writes.pass, e: .e_reports.pass, f: .f_converter.pass}'
-echo "out: $OUT_DIR"
-[[ $(jq -r .verdict "$OUT_DIR/gate.json") == OK ]] || exit 2
+finish || exit 2
