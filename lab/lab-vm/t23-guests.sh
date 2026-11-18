@@ -180,7 +180,7 @@ create)
 status)
 	for n in gaia-t23-linux2 gaia-t23-uefi gaia-t23-win; do
 		printf '%s: %s, %s, firmware %s, disks %s\n' "$n" "$(virsh domstate "$n" 2>/dev/null || echo missing)" "${IP[$n]}" \
-			"$(virsh dumpxml "$n" 2>/dev/null | grep -q "firmware='efi'" && echo efi || echo bios)" \
+			"$(virsh dumpxml "$n" 2>/dev/null | grep -qE "firmware='efi'|type='pflash'" && echo efi || echo bios)" \
 			"$(virsh domblklist "$n" --details 2>/dev/null | awk '$2 == "disk" {print $3}' | paste -sd, -)"
 	done
 	;;
