@@ -57,8 +57,16 @@ cmd_dist() {
 	v=$(version)
 	epoch=$(git log -1 --format=%ct)
 	rm -rf "$out" && mkdir -p "$out" # only this version's packages: an older one cannot be copied by mistake
+	out=$(cd "$out" && pwd)
 	work=$(mktemp -d)
 	trap 'rm -rf "$work"' RETURN
+	# A tree without changes to tracked files is built from a fresh clone of its commit: files git does not track
+	# cannot get into the packages, and Go's vcs.modified (which counts untracked files too) stays false.
+	if [[ "$v" != *.dirty ]]; then
+		git clone -q --no-local "$repo_root" "$work/src"
+		git -C "$work/src" checkout -q "$(git rev-parse HEAD)"
+		cd "$work/src"
+	fi
 	local ldflags="-s -w -buildid= -X github.com/Warewave-Technology/gaia/internal/buildinfo.Version=$v"
 	go build -trimpath -o "$work/mkpkg" ./scripts/mkpkg
 
@@ -92,6 +100,7 @@ cmd_dist() {
 	(cd "$out" && sha256 -- *.deb *.tar.gz BUILDINFO.txt >SHA256SUMS)
 	cat "$out/SHA256SUMS"
 	echo "version $v in $out/"
+	cd "$repo_root"
 }
 
 cmd_sign() {
