@@ -52,7 +52,7 @@ set -E
 trap 'echo "UNKNOWN: harness failed at line $LINENO: $BASH_COMMAND"; exit 3' ERR
 
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
-log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; } # stderr: stdout carries JSON
 section() { printf '\n== %s\n' "$*"; }
 api() { HOME=$WORK "$BIN/gaia" "$@" -json; }
 

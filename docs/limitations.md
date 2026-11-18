@@ -164,6 +164,12 @@ fixtures) are in the reports, not here.
 - **Secure Boot is recorded, not checked**: a UEFI guest boots with OVMF without Secure Boot. [T21]
   *Why it waits:* checking it needs OVMF's Secure Boot variables and enrolled keys in the sandbox; no MVP guest
   needs it.
+- **A Windows Server 2022 converted with virtio-win 0.1.302 restarts on every boot**: virt-v2v's first-boot script
+  cannot install the `smbus` driver ("a root certificate which is not trusted") and retries it on the next boot, for
+  ever. Since T23 the check sees it (Windows must keep answering WinRM for a minute) and says `CRITICAL`; Gaia does
+  not work around it in the converted disk. [T23]
+  *Why it waits:* leaving the driver out changes what virt-v2v makes, which ADR-005 leaves to virt-v2v; a newer
+  virtio-win, or an option to drop drivers, needs the architect's decision.
 - **Windows guests need virtio-win 0.1.302, downloaded by the operator**; without it a Windows check is `UNKNOWN`.
   [T11, T21]
   *Why it waits:* ADR-005 has the operator supply it (Gaia does not redistribute it); its sha256 is pinned.
