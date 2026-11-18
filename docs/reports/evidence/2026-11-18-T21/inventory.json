@@ -1,0 +1,83 @@
+{
+  "source": "192.168.1.29",
+  "product": "VMware ESXi 8.0.3 build-24677879",
+  "vms": [
+    {
+      "name": "gaia-t11-win",
+      "power_state": "poweredOff",
+      "guest_id": "windows2019srvNext_64Guest",
+      "guest_full_name": "Microsoft Windows Server 2022 (64-bit)",
+      "firmware": "bios",
+      "secure_boot": false,
+      "cpus": 2,
+      "memory_mib": 4096,
+      "disks": 1,
+      "disk_bytes": 34359738368,
+      "has_snapshots": false,
+      "template": false,
+      "checkable": ""
+    },
+    {
+      "name": "gaia-t21-uefi",
+      "power_state": "poweredOff",
+      "guest_id": "debian12_64Guest",
+      "guest_full_name": "Debian GNU/Linux 12 (64-bit)",
+      "firmware": "efi",
+      "secure_boot": false,
+      "cpus": 2,
+      "memory_mib": 1024,
+      "disks": 1,
+      "disk_bytes": 3221225472,
+      "has_snapshots": false,
+      "template": false,
+      "checkable": ""
+    },
+    {
+      "name": "gaia-t21-win-broken",
+      "power_state": "poweredOff",
+      "guest_id": "windows2019srvNext_64Guest",
+      "guest_full_name": "Microsoft Windows Server 2022 (64-bit)",
+      "firmware": "bios",
+      "secure_boot": false,
+      "cpus": 2,
+      "memory_mib": 4096,
+      "disks": 1,
+      "disk_bytes": 34359738368,
+      "has_snapshots": false,
+      "template": false,
+      "checkable": ""
+    },
+    {
+      "name": "gaia-t8-broken",
+      "power_state": "poweredOff",
+      "guest_id": "debian12_64Guest",
+      "guest_full_name": "Debian GNU/Linux 12 (64-bit)",
+      "firmware": "bios",
+      "secure_boot": false,
+      "cpus": 2,
+      "memory_mib": 1024,
+      "disks": 1,
+      "disk_bytes": 3221225472,
+      "has_snapshots": false,
+      "template": false,
+      "checkable": ""
+    },
+    {
+      "name": "gaia-t8-linux",
+      "power_state": "poweredOff",
+      "guest_id": "debian12_64Guest",
+      "guest_full_name": "Debian GNU/Linux 12 (64-bit)",
+      "firmware": "bios",
+      "secure_boot": false,
+      "cpus": 2,
+      "memory_mib": 1024,
+      "disks": 1,
+      "disk_bytes": 3221225472,
+      "has_snapshots": false,
+      "template": false,
+      "checkable": ""
+    }
+  ],
+  "calls": 3,
+  "blocked_calls": 0
+}

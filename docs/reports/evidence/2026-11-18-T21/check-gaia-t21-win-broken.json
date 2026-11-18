@@ -1,0 +1,152 @@
+{
+  "id": 6,
+  "source_id": 1,
+  "vm": "gaia-t21-win-broken",
+  "job_id": 6,
+  "config": {
+    "vm": "gaia-t21-win-broken",
+    "template": "windows-rdp"
+  },
+  "readiness": "CRITICAL",
+  "reason": "boot critical: the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985",
+  "bundle_id": "gaia-t21-win-broken-20261118T010015Z-feb275",
+  "firmware": "bios",
+  "guest_id": "windows2019srvNext_64Guest",
+  "detail": {
+    "source": "192.168.1.29",
+    "product": "VMware ESXi 8.0.3 build-24677879",
+    "checks": [
+      {
+        "name": "source_vm",
+        "type": "inventory",
+        "verdict": "OK",
+        "seconds": 0.000224439,
+        "detail": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+      },
+      {
+        "name": "cold",
+        "type": "power_state",
+        "verdict": "OK",
+        "seconds": 1.5e-7,
+        "detail": "poweredOff"
+      },
+      {
+        "name": "layout",
+        "type": "files",
+        "verdict": "OK",
+        "seconds": 0.00000628,
+        "detail": "3 files to read, all in [datastore1] gaia-t21-win-broken"
+      },
+      {
+        "name": "download",
+        "type": "datastore_http",
+        "verdict": "OK",
+        "seconds": 151.838962025,
+        "detail": "3 files, 34359739302 bytes in 151.8 s (GET /folder, sha256 in downloads.json)"
+      },
+      {
+        "name": "conversion",
+        "type": "virt-v2v",
+        "verdict": "OK",
+        "seconds": 74.881497078,
+        "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:02), virtio-win drivers in 74.8 s"
+      },
+      {
+        "name": "firmware",
+        "type": "firmware",
+        "verdict": "OK",
+        "seconds": 4.7e-7,
+        "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+      },
+      {
+        "name": "boot",
+        "type": "winrm",
+        "verdict": "CRITICAL",
+        "seconds": 300.191878476,
+        "detail": "the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985"
+      },
+      {
+        "name": "rdp",
+        "type": "rdp",
+        "verdict": "UNKNOWN",
+        "seconds": 0,
+        "detail": "not run: the guest did not boot"
+      },
+      {
+        "name": "image_unchanged",
+        "type": "image_hash",
+        "verdict": "OK",
+        "seconds": 0,
+        "detail": "sha256 before and after are equal"
+      }
+    ],
+    "timings_s": {
+      "conversion": 74.804010486,
+      "download": 151.838951316,
+      "handover": 30.719772446,
+      "image_hash": 32.400031678,
+      "sandbox_setup": 1.5774511530000002,
+      "shutdown": 0.379845042,
+      "total": 344.808712909
+    },
+    "converter": {
+      "state": "converted",
+      "detail": "1 disk(s) in 74.8 s",
+      "seconds": 74.804010486,
+      "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+      "virtio_win": {
+        "path": "/var/lib/gaia-convert/virtio-win-0.1.302.iso",
+        "version": "0.1.302",
+        "state": "ok",
+        "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+        "want_sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+        "url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+        "detail": "virtio-win 0.1.302, sha256 matches"
+      },
+      "disks": [
+        "gaia-t21-win-broken-sda"
+      ],
+      "domain_xml": "gaia-t21-win-broken.xml",
+      "log": "virt-v2v.log",
+      "command": [
+        "podman",
+        "--cgroup-manager=cgroupfs",
+        "run",
+        "--rm",
+        "--init",
+        "--network=none",
+        "--cgroups=disabled",
+        "--cap-drop=all",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--group-add=keep-groups",
+        "--device=/dev/kvm",
+        "--volume=/var/lib/gaia-convert/jobs/mc6/in:/in:ro",
+        "--volume=/var/lib/gaia-convert/jobs/mc6-out:/out",
+        "--volume=/var/lib/gaia-convert/virtio-win-0.1.302.iso:/virtio-win.iso:ro",
+        "--env=VIRTIO_WIN=/virtio-win.iso",
+        "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+        "virt-v2v",
+        "-i",
+        "vmx",
+        "/in/gaia-t21-win-broken.vmx",
+        "-o",
+        "local",
+        "-os",
+        "/out",
+        "-of",
+        "qcow2",
+        "-on",
+        "gaia-t21-win-broken"
+      ]
+    },
+    "vsphere_calls": 6,
+    "vsphere_blocked_calls": 0,
+    "bundle": "gaia-t21-win-broken-20261118T010015Z-feb275",
+    "ledger_seq": 7,
+    "errors": []
+  },
+  "created_at": "2026-11-18T00:37:03.176327816Z",
+  "finished_at": "2026-11-18T01:06:01.100192192Z"
+}

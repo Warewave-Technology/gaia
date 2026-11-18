@@ -1,0 +1,60 @@
+{
+  "server": {
+    "version": "5fb7cfb5bf1e",
+    "schema_version": 8
+  },
+  "export": {
+    "bytes": 3717302,
+    "sha256sums_ok": true,
+    "head": "ledger-head-1.json",
+    "head_seq": 123
+  },
+  "trust_anchor": {
+    "export": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "server": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "daily_report": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+  },
+  "as_exported": {
+    "gaia": {
+      "exit": 0,
+      "verdict": "OK"
+    },
+    "python": {
+      "exit": 0,
+      "verdict": "OK"
+    }
+  },
+  "truncated_below_head": {
+    "gaia": {
+      "exit": 2,
+      "codes": [
+        "bundle_unlisted",
+        "ledger_truncated"
+      ]
+    },
+    "python": {
+      "exit": 2,
+      "codes": [
+        "bundle_unlisted",
+        "ledger_truncated"
+      ]
+    }
+  },
+  "bundle_file_changed": {
+    "file": "bundles/gaia-t17-web-20261116T222922Z-dfe7e1/result.json",
+    "gaia": {
+      "exit": 2,
+      "codes": [
+        "file_modified"
+      ]
+    },
+    "python": {
+      "exit": 2,
+      "codes": [
+        "file_modified"
+      ]
+    }
+  },
+  "pass": true,
+  "verdict": "OK"
+}

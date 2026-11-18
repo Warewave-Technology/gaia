@@ -1,0 +1,28 @@
+Migration readiness report: gaia-t21-win-broken on esxi (192.168.1.29), check 6, 2026-11-18T01:06:01.100192192Z.
+
+Readiness: CRITICAL
+  boot critical: the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985
+
+Steps and checks
+  source_vm          OK       [datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NI…
+  cold               OK       poweredOff
+  layout             OK       3 files to read, all in [datastore1] gaia-t21-win-broken
+  download           OK       3 files, 34359739302 bytes in 151.8 s (GET /folder, sha256 in downloads.json)
+  conversion         OK       1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:02), virtio-win drivers in 74.8 s
+  firmware           OK       BIOS on the source and in the sandbox (SeaBIOS)
+  boot               CRITICAL the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 thr…
+  rdp                UNKNOWN  not run: the guest did not boot
+  image_unchanged    OK       sha256 before and after are equal
+
+Every step ran against the source with read-only calls only (ADR-003): 6 vSphere calls, 0 blocked.
+The signed bundle (bundles/gaia-t21-win-broken-20261118T010015Z-feb275) holds the source's facts, the download hashes, the converter's image and log, the
+converted domain, the console screenshots and the serial log, and the call log.
+
+Verify, without Gaia's server
+  1. Compare the trust anchor's key_id, e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324, with the one recorded when Gaia was installed.
+  2. The bundle, with Gaia's command-line tool or the independent Python verifier (Gaia's source,
+     docs/reports/evidence/2026-11-17-T19/independent-verifier/verify.py):
+       gaia evidence verify -pubkey keys/evidence-key-current.pub -bundle bundles/gaia-t21-win-broken-20261118T010015Z-feb275
+       python3 -I verify.py bundle bundles/gaia-t21-win-broken-20261118T010015Z-feb275 --key keys/evidence-key-current.pub
+  3. Its ledger entry: line 7 of ledger.jsonl names bundle_sha256 9a06e8a0a06ce0e9797eeebbdd88977eb1db5b125daa37bfae17b51321e26fb1, signed and chained from anchor.pub. The
+     auditor's export (all bundles) verifies the whole ledger: gaia evidence verify -pubkey anchor.pub -ledger ...

@@ -1,0 +1,48 @@
+{
+  "schema": {
+    "before": 7,
+    "after": 8
+  },
+  "version": {
+    "before": "e8e684818d7d",
+    "after": "5fb7cfb5bf1e"
+  },
+  "points": {
+    "before": 320,
+    "after": 321,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T21:50:45.094379593Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-17T21:50:45.094379593Z"
+    }
+  ],
+  "status_changes_during_upgrade": [],
+  "jobs_failed_during_upgrade": [],
+  "next_backup": {
+    "id": 482,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 481,
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 97,
+    "intact": true,
+    "head_sha256": "2488ebdf71a55f5540d33e55f4cfa8f71b3cda2a5e6a1bbf769531ed59ac2055",
+    "first_broken_seq": 0
+  },
+  "pass": true,
+  "verdict": "OK"
+}

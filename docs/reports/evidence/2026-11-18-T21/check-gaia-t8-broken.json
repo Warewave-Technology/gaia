@@ -1,0 +1,158 @@
+{
+  "id": 3,
+  "source_id": 1,
+  "vm": "gaia-t8-broken",
+  "job_id": 3,
+  "config": {
+    "vm": "gaia-t8-broken",
+    "template": "linux-basic",
+    "checks": [
+      {
+        "name": "health",
+        "type": "http",
+        "port": 8080,
+        "path": "/health",
+        "expect_body": "ok"
+      }
+    ]
+  },
+  "readiness": "CRITICAL",
+  "reason": "boot critical: no match for \"(?m)login: *$\" on the serial console within 300 s",
+  "bundle_id": "gaia-t8-broken-20261118T004134Z-d95774",
+  "firmware": "bios",
+  "guest_id": "debian12_64Guest",
+  "detail": {
+    "source": "192.168.1.29",
+    "product": "VMware ESXi 8.0.3 build-24677879",
+    "checks": [
+      {
+        "name": "source_vm",
+        "type": "inventory",
+        "verdict": "OK",
+        "seconds": 0.000235139,
+        "detail": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+      },
+      {
+        "name": "cold",
+        "type": "power_state",
+        "verdict": "OK",
+        "seconds": 1.1e-7,
+        "detail": "poweredOff"
+      },
+      {
+        "name": "layout",
+        "type": "files",
+        "verdict": "OK",
+        "seconds": 0.00000567,
+        "detail": "3 files to read, all in [datastore1] gaia-t8-broken"
+      },
+      {
+        "name": "download",
+        "type": "datastore_http",
+        "verdict": "OK",
+        "seconds": 21.231589315,
+        "detail": "3 files, 3221226474 bytes in 21.2 s (GET /folder, sha256 in downloads.json)"
+      },
+      {
+        "name": "conversion",
+        "type": "virt-v2v",
+        "verdict": "OK",
+        "seconds": 103.964927372,
+        "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:02) in 104.0 s"
+      },
+      {
+        "name": "firmware",
+        "type": "firmware",
+        "verdict": "OK",
+        "seconds": 6e-7,
+        "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+      },
+      {
+        "name": "boot",
+        "type": "boot_serial",
+        "verdict": "CRITICAL",
+        "seconds": 300.174174494,
+        "attempts": 301,
+        "detail": "no match for \"(?m)login: *$\" on the serial console within 300 s"
+      },
+      {
+        "name": "ssh",
+        "type": "tcp",
+        "verdict": "UNKNOWN",
+        "seconds": 0,
+        "detail": "not run: the guest did not boot"
+      },
+      {
+        "name": "health",
+        "type": "http",
+        "verdict": "UNKNOWN",
+        "seconds": 0,
+        "detail": "not run: the guest did not boot"
+      },
+      {
+        "name": "image_unchanged",
+        "type": "image_hash",
+        "verdict": "OK",
+        "seconds": 0,
+        "detail": "sha256 before and after are equal"
+      }
+    ],
+    "timings_s": {
+      "conversion": 103.962697085,
+      "download": 21.231576815,
+      "handover": 1.14710391,
+      "image_hash": 0.812773215,
+      "sandbox_setup": 2.604503668,
+      "shutdown": 0.386937785,
+      "total": 305.955753373
+    },
+    "converter": {
+      "state": "converted",
+      "detail": "1 disk(s) in 104.0 s",
+      "seconds": 103.962697085,
+      "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+      "disks": [
+        "gaia-t8-broken-sda"
+      ],
+      "domain_xml": "gaia-t8-broken.xml",
+      "log": "virt-v2v.log",
+      "command": [
+        "podman",
+        "--cgroup-manager=cgroupfs",
+        "run",
+        "--rm",
+        "--init",
+        "--network=none",
+        "--cgroups=disabled",
+        "--cap-drop=all",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--group-add=keep-groups",
+        "--device=/dev/kvm",
+        "--volume=/var/lib/gaia-convert/jobs/mc3/in:/in:ro",
+        "--volume=/var/lib/gaia-convert/jobs/mc3-out:/out",
+        "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+        "virt-v2v",
+        "-i",
+        "vmx",
+        "/in/gaia-t8-broken.vmx",
+        "-o",
+        "local",
+        "-os",
+        "/out",
+        "-of",
+        "qcow2",
+        "-on",
+        "gaia-t8-broken"
+      ]
+    },
+    "vsphere_calls": 6,
+    "vsphere_blocked_calls": 0,
+    "bundle": "gaia-t8-broken-20261118T004134Z-d95774",
+    "ledger_seq": 4,
+    "errors": []
+  },
+  "created_at": "2026-11-18T00:37:02.611607476Z",
+  "finished_at": "2026-11-18T00:46:40.912112881Z"
+}

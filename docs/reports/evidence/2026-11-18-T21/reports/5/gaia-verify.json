@@ -1,0 +1,19 @@
+{
+  "anchor_key_id": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+  "checked_at": "2026-11-18T01:08:31.534528475Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+  "report": {
+    "dir": "/root/t21-20261118T002229Z/reports/5/gaia-readiness-gaia-t11-win-5/bundles/gaia-t11-win-20261118T005350Z-6752a4",
+    "format": "v1",
+    "bundle_id": "gaia-t11-win-20261118T005350Z-6752a4",
+    "bundle_sha256": "a326e842923d7b9e98a9fa2b32feeb60df6936dfbcc88bd4a3fe94e401326f1a",
+    "key_id": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+    "files": 18,
+    "verdict": "OK",
+    "findings": [],
+    "problems": []
+  },
+  "verdict": "OK"
+}

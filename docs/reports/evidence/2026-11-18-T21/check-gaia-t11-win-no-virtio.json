@@ -1,0 +1,93 @@
+{
+  "id": 1,
+  "source_id": 1,
+  "vm": "gaia-t11-win",
+  "job_id": 1,
+  "config": {
+    "vm": "gaia-t11-win",
+    "template": "windows-rdp"
+  },
+  "readiness": "UNKNOWN",
+  "reason": "conversion unknown: a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+  "bundle_id": "gaia-t11-win-20261118T003658Z-4a3580",
+  "firmware": "bios",
+  "guest_id": "windows2019srvNext_64Guest",
+  "detail": {
+    "source": "192.168.1.29",
+    "product": "VMware ESXi 8.0.3 build-24677879",
+    "checks": [
+      {
+        "name": "source_vm",
+        "type": "inventory",
+        "verdict": "OK",
+        "seconds": 0.000287998,
+        "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+      },
+      {
+        "name": "cold",
+        "type": "power_state",
+        "verdict": "OK",
+        "seconds": 2.2e-7,
+        "detail": "poweredOff"
+      },
+      {
+        "name": "layout",
+        "type": "files",
+        "verdict": "OK",
+        "seconds": 0.00000578,
+        "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+      },
+      {
+        "name": "download",
+        "type": "datastore_http",
+        "verdict": "OK",
+        "seconds": 150.154051845,
+        "detail": "3 files, 34359739281 bytes in 150.2 s (GET /folder, sha256 in downloads.json)"
+      },
+      {
+        "name": "conversion",
+        "type": "virt-v2v",
+        "verdict": "UNKNOWN",
+        "seconds": 0.048338361,
+        "detail": "a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso"
+      },
+      {
+        "name": "firmware",
+        "type": "migration",
+        "verdict": "UNKNOWN",
+        "seconds": 0,
+        "detail": "not run: the conversion did not finish"
+      },
+      {
+        "name": "boot",
+        "type": "winrm",
+        "verdict": "UNKNOWN",
+        "seconds": 0,
+        "detail": "not run: the conversion failed"
+      }
+    ],
+    "timings_s": {
+      "conversion": 0,
+      "download": 150.154043825,
+      "total": 0.000175339
+    },
+    "converter": {
+      "state": "not_run",
+      "detail": "a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+      "seconds": 0,
+      "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+      "disks": [],
+      "domain_xml": "",
+      "log": "virt-v2v.log",
+      "command": null
+    },
+    "vsphere_calls": 6,
+    "vsphere_blocked_calls": 0,
+    "bundle": "gaia-t11-win-20261118T003658Z-4a3580",
+    "ledger_seq": 2,
+    "errors": []
+  },
+  "created_at": "2026-11-18T00:34:16.771380146Z",
+  "finished_at": "2026-11-18T00:36:58.965889725Z"
+}

@@ -1,0 +1,19 @@
+{
+  "anchor_key_id": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+  "checked_at": "2026-11-18T01:08:32.484127648Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+  "report": {
+    "dir": "/root/t21-20261118T002229Z/reports/3/gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261118T004134Z-d95774",
+    "format": "v1",
+    "bundle_id": "gaia-t8-broken-20261118T004134Z-d95774",
+    "bundle_sha256": "450adcf4070c6753035fd451143d4cc80ae46c61746ea0f0207bcc4c19908a6f",
+    "key_id": "e5c66f784781cbd1fa5568bd6804f7cdb54f931d75235c884e0c18299d0f1324",
+    "files": 18,
+    "verdict": "OK",
+    "findings": [],
+    "problems": []
+  },
+  "verdict": "OK"
+}

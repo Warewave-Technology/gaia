@@ -1,0 +1,143 @@
+{
+  "bundle": "gaia-t21-uefi-20261118T004822Z-ee68cf",
+  "check": 4,
+  "checked_at": "2026-11-18T00:49:07.705039267Z",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000150049,
+      "detail": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware efi, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 2.2e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000489,
+      "detail": "3 files to read, all in [datastore1] gaia-t21-uefi"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 21.510660355,
+      "detail": "3 files, 3221226470 bytes in 21.5 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 75.38641729,
+      "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, efi, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:03) in 75.4 s"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 6.6e-7,
+      "detail": "UEFI on the source and in the sandbox (OVMF)"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 34.113567697,
+      "attempts": 35,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t21-uefi login:\""
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "OK",
+      "seconds": 34.762180497,
+      "attempts": 1,
+      "detail": "connected to 10.254.0.88:22"
+    },
+    {
+      "name": "health",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 34.929719224,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.88:8080/health: 200"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "converter": {
+    "state": "converted",
+    "detail": "1 disk(s) in 75.4 s",
+    "seconds": 75.385060959,
+    "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+    "disks": [
+      "gaia-t21-uefi-sda"
+    ],
+    "domain_xml": "gaia-t21-uefi.xml",
+    "log": "virt-v2v.log",
+    "command": [
+      "podman",
+      "--cgroup-manager=cgroupfs",
+      "run",
+      "--rm",
+      "--init",
+      "--network=none",
+      "--cgroups=disabled",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--userns=keep-id",
+      "--group-add=keep-groups",
+      "--device=/dev/kvm",
+      "--volume=/var/lib/gaia-convert/jobs/mc4/in:/in:ro",
+      "--volume=/var/lib/gaia-convert/jobs/mc4-out:/out",
+      "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "virt-v2v",
+      "-i",
+      "vmx",
+      "/in/gaia-t21-uefi.vmx",
+      "-o",
+      "local",
+      "-os",
+      "/out",
+      "-of",
+      "qcow2",
+      "-on",
+      "gaia-t21-uefi"
+    ]
+  },
+  "firmware": "efi",
+  "guest_id": "debian12_64Guest",
+  "ledger_seq": 5,
+  "readiness": "OK",
+  "reason": "ready for KVM: converted in 75 s, booted in 34 s, all 10 checks passed, 6 vSphere calls, all read-only",
+  "source": "esxi",
+  "source_host": "192.168.1.29",
+  "source_product": "VMware ESXi 8.0.3 build-24677879",
+  "timings_s": {
+    "boot": 34.113567697,
+    "conversion": 75.385060959,
+    "download": 21.510649175,
+    "handover": 2.716270894,
+    "image_hash": 0.820269767,
+    "ready": 34.929719224,
+    "sandbox_setup": 3.0850745,
+    "shutdown": 4.003456375,
+    "total": 44.494118408
+  },
+  "vm": "gaia-t21-uefi",
+  "vsphere_blocked_calls": 0,
+  "vsphere_calls": 6
+}
