@@ -23,6 +23,9 @@
 #   systemd-run --unit=gaia-t17-2 --collect -E HOME=/root lab/lab-vm/t17-drill.sh part2 <B ip>
 # Env: INTERVAL_S (300: backups), TEST_INTERVAL_S (600), RPO_S (1200), RTO_S (600), MAX_PROOF_S (1800),
 #      PHASE_TIMEOUT_S (2400), HOST_ADDR (gaia-lab's address).
+#      upgrade only: PKG_DIR (a signed release directory instead of make dist; checked as install.md step 2), DURING
+#      (backup or restore_test: upgrade while such a job of the VM runs), RUN (suffix of the out directory).
+#      Since T22 the upgrade gate also needs no status change and no failed job during the upgrade (the stop drains).
 # Exit: 0 OK / 2 CRITICAL (a gate failed) / 3 UNKNOWN (not checked, also when the harness failed).
 set -euo pipefail
 
@@ -68,7 +71,23 @@ on() { ssh "${sshopts[@]}" "gaia@$1" sudo bash -s; }
 put() { scp -q "${sshopts[@]}" "$2" "gaia@$1:$3"; }
 state() { printf '%s=%q\n' "$1" "$2" >>"$D/state.env"; }
 
-pkg_of() { ls "$1"/dist/gaia-*-linux-amd64.tar.gz; }
+# pkg_of DIR: the server package in DIR/dist (or DIR itself): the .deb since release 0.1.0 (T22), the tar.gz before.
+pkg_of() {
+	local d=$1/dist
+	[[ -d "$d" ]] || d=$1
+	ls "$d"/gaia_*_amd64.deb 2>/dev/null || ls "$d"/gaia-*-linux-amd64.tar.gz
+}
+# cli_of PACKAGE: the workstation's gaia command of the same version (linux amd64; before 0.1.0 the package itself).
+cli_of() {
+	local v
+	case "$1" in
+	*.deb)
+		v=$(basename "$1" _amd64.deb)
+		echo "$(dirname "$1")/gaia-${v#gaia_}-linux-amd64.tar.gz"
+		;;
+	*) echo "$1" ;;
+	esac
+}
 
 # wait_ssh IP: until the server answers and cloud-init is done.
 wait_ssh() {
@@ -84,6 +103,15 @@ wait_ssh() {
 # install_gaia IP PACKAGE: install guide step 3 (as root on the server), for the package given.
 install_gaia() {
 	local ip=$1 pkg=$2 v
+	if [[ "$pkg" == *.deb ]]; then
+		put "$ip" "$pkg" /tmp/
+		put "$ip" "$(dirname "$pkg")/SHA256SUMS" /tmp/
+		on "$ip" <<EOF
+set -euo pipefail
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && DEBIAN_FRONTEND=noninteractive apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ./$(basename "$pkg") >/dev/null && gaia version
+EOF
+		return
+	fi
 	v=$(basename "$pkg" -linux-amd64.tar.gz)
 	put "$ip" "$pkg" /tmp/
 	on "$ip" <<EOF
@@ -115,9 +143,10 @@ EOF
 }
 
 workstation_cli() { # PACKAGE: the gaia command of that version on the workstation (guide step 6)
-	local v
-	v=$(basename "$1" -linux-amd64.tar.gz)
-	tar -C "$D" -xzf "$1"
+	local v tgz
+	tgz=$(cli_of "$1")
+	v=$(basename "$tgz" -linux-amd64.tar.gz)
+	tar -C "$D" -xzf "$tgz"
 	install -d "$WS/bin"
 	install -m 0755 "$D/$v-linux-amd64/gaia" "$WS/bin/gaia"
 }
@@ -476,7 +505,7 @@ upgrade)
 	# shellcheck disable=SC1091
 	. "$D/state.env"
 	rev=$(git -C "$repo_root" rev-parse --short=12 HEAD)
-	OUT=$D/out/upgrade-$rev
+	OUT=$D/out/upgrade-$rev${RUN:+-$RUN}
 	mkdir -p "$OUT"
 	exec > >(tee -a "$OUT/upgrade.log") 2>&1
 	relogin "$B"
@@ -485,17 +514,57 @@ upgrade)
 	section "server B ($B) before: $(jq -r '"\(.version), schema \(.schema_version)"' "$OUT/before-system.json")"
 	snapshot before
 	section "package (guide step 2) and upgrade (step 12, as root on B)"
-	rm -rf "$repo_root/dist"
-	make -C "$repo_root" dist | tail -1
-	NEW=$(pkg_of "$repo_root")
-	v=$(basename "$NEW" -linux-amd64.tar.gz)
+	if [[ -n "${PKG_DIR:-}" ]]; then # a release made elsewhere (T22: signed on the workstation), checked as step 2 does
+		NEW=$(pkg_of "$PKG_DIR")
+		(cd "$PKG_DIR" && ssh-keygen -Y verify -f "$repo_root/packaging/release/allowed_signers" -I release@gaia -n gaia-release -s SHA256SUMS.sig <SHA256SUMS && sha256sum -c SHA256SUMS)
+	else
+		rm -rf "$repo_root/dist"
+		make -C "$repo_root" dist | tail -1
+		NEW=$(pkg_of "$repo_root")
+	fi
+	during='{}'
+	if [[ -n "${DURING:-}" ]]; then # upgrade while a job of this kind runs (T22: the stop waits for it)
+		section "waiting for a running $DURING job"
+		for ((i = 0; i < PHASE_TIMEOUT_S / 5; i++)); do
+			during=$(api jobs list vm_id="$vm_id" limit=20 | jq -c --arg k "$DURING" '[.[] | select(.kind == $k and .state == "running")][0] // {}')
+			[[ "$during" != '{}' ]] && break
+			sleep 5
+		done
+		[[ "$during" != '{}' ]] || { echo "UNKNOWN: no running $DURING job in $PHASE_TIMEOUT_S s"; exit 3; }
+		echo "$during" | tee "$OUT/during.json"
+	fi
 	put "$B" "$NEW" /tmp/
-	on "$B" <<EOF | tee "$OUT/step12.txt"
+	if [[ "$NEW" == *.deb ]]; then
+		put "$B" "$(dirname "$NEW")/SHA256SUMS" /tmp/
+		deb=$(basename "$NEW")
+		on "$B" <<EOF | tee "$OUT/step12.txt"
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS
+if [[ -e /usr/local/bin/gaia ]]; then # step 12, "From an install without the package"
+	units=(gaia gaia-sandbox)
+	if [[ -e /etc/systemd/system/gaia-convert.service ]]; then units+=(gaia-convert); fi
+	time systemctl disable --now "\${units[@]}"
+	rm -f /etc/systemd/system/gaia.service /etc/systemd/system/gaia-sandbox.service /etc/systemd/system/gaia-convert.service /usr/local/bin/gaia
+	systemctl daemon-reload
+	apt-get install -y ./$deb
+	systemctl enable --now "\${units[@]}"
+elif [[ "\$(dpkg-query -W -f '\${Version}' gaia 2>/dev/null)" == "\$(dpkg-deb -f ./$deb Version)" ]]; then
+	time apt-get install -y --reinstall ./$deb # the same version: the old prerm stops gaia, postinst starts it
+else
+	time apt-get install -y ./$deb # step 12
+fi
+sleep 3 && systemctl is-active gaia-sandbox gaia && gaia version
+EOF
+	else
+		v=$(basename "$NEW" -linux-amd64.tar.gz)
+		on "$B" <<EOF | tee "$OUT/step12.txt"
 set -euo pipefail
 cd /tmp && rm -rf $v-linux-amd64 && tar xzf $v-linux-amd64.tar.gz && cd $v-linux-amd64 && sha256sum -c SHA256SUMS
 install -m 0755 gaia /usr/local/bin/gaia && install -m 0644 gaia.service gaia-sandbox.service /etc/systemd/system/ && systemctl daemon-reload && systemctl try-restart gaia-sandbox && systemctl restart gaia
 sleep 3 && systemctl is-active gaia-sandbox gaia
 EOF
+	fi
 	workstation_cli "$NEW"
 	for ((i = 0; i < 30; i++)); do api system >"$OUT/after-system.json" 2>/dev/null && break; sleep 2; done
 	jq -c '{version, schema_version, migrations: [.migrations[] | {version, name, applied_at}]}' "$OUT/after-system.json"
@@ -510,7 +579,7 @@ EOF
 		--slurpfile s0 "$OUT/before-status.json" --slurpfile s1 "$OUT/after-status.json" \
 		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" \
 		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --slurpfile c1 "$OUT/after-state-changes.json" \
-		--argjson since "$since" --arg started "$started" '
+		--argjson since "$since" --arg started "$started" --argjson during "$during" '
 		($j1[0] | map(select(.id > $since))) as $new
 		| ($p1[0] | map(.id)) as $after_ids
 		| {schema: {before: $b0[0].schema_version, after: $b1[0].schema_version}, version: {before: $b0[0].version, after: $b1[0].version},
@@ -520,9 +589,11 @@ EOF
 		   jobs_failed_during_upgrade: [$j1[0][] | select(.state == "failed" and .finished_at >= $started) | {id, kind, error}],
 		   next_backup: ($new | map(select(.kind == "backup")) | last | {id, state, reason}),
 		   next_test: ($new | map(select(.kind == "restore_test")) | last | {id, state}),
+		   during: (if $during.id then {id: $during.id, kind: $during.kind, state: ($j1[0][] | select(.id == $during.id) | .state)} else null end),
 		   audit: $a1[0]}
 		| . + {pass: (.schema.after >= .schema.before and .points.missing_after == [] and .next_backup.state == "ok" and .next_test.state == "ok"
-		              and .audit.intact and (.status_after | length > 0 and all(.status == "OK")))}
+		              and .audit.intact and (.status_after | length > 0 and all(.status == "OK"))
+		              and .status_changes_during_upgrade == [] and .jobs_failed_during_upgrade == [] and (.during == null or .during.state == "ok"))}
 		| . + {verdict: (if .pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json"
 	stamp upgrade-end
 	[[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2

@@ -1,0 +1,13 @@
+#!/bin/sh
+# gaia package: after its files are gone. Gaia's data (/var/lib/gaia, /etc/gaia, /srv/gaia, the repositories) and
+# the user gaia stay, also on purge: they hold the backups. install.md step 14 removes them.
+set -e
+
+case "$1" in
+remove | purge)
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload
+	fi
+	;;
+esac
+exit 0

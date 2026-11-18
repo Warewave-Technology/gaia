@@ -1,4 +1,4 @@
-# Gaia's restore-test sandbox helper (ADR-007 §5, internal/sandbox). Installed by docs/install.md.
+# Gaia's restore-test sandbox helper (ADR-007 §5, internal/sandbox). Installed by the gaia package (docs/install.md).
 # It runs as root because the isolated sandbox network needs it (network namespace, veth, dnsmasq). It boots only
 # disks gaia server restored into /var/lib/gaia-sandbox/images, and answers only on a socket for the group gaia.
 [Unit]
@@ -11,7 +11,7 @@ Wants=libvirtd.service
 # notify: ready once its directories and socket exist, so gaia.service (After=) starts after that.
 Type=notify
 NotifyAccess=main
-ExecStart=/usr/local/bin/gaia sandbox serve
+ExecStart=/usr/bin/gaia sandbox serve
 Restart=on-failure
 RestartSec=5
 

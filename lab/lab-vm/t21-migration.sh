@@ -289,7 +289,7 @@ jq -n --arg i "$image" '{image: $i}' >/etc/gaia/convert.json
 chmod 0644 /etc/gaia/convert.json
 cp /etc/gaia/convert.json "$OUT_DIR/convert.json"
 install -m 0755 "$BIN/gaia" "$SRV_BIN"
-sed -e "s|^ExecStart=/usr/local/bin/gaia |ExecStart=$SRV_BIN |" "$repo_root/packaging/systemd/gaia-convert.service" >/run/systemd/system/gaia-convert.service
+sed -e "s|^ExecStart=/usr/bin/gaia |ExecStart=$SRV_BIN |" "$repo_root/packaging/systemd/gaia-convert.service" >/run/systemd/system/gaia-convert.service
 
 section "gaia server and sandbox helper (packaged units)"
 useradd --system --home-dir "$SRV_HOME" --shell /usr/sbin/nologin -G "$CONV_USER" "$SRV_USER"

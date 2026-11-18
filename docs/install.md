@@ -1,12 +1,14 @@
 # Installing gaia server
 
-This guide installs `gaia server` (ADR-007) on a clean Debian 12 machine and checks that it works. It takes about
-15 minutes. Every command is meant to be copied as it is; replace only what is in `<angle brackets>`.
+This guide installs `gaia server` (ADR-007) from a signed release on a clean Debian 12 machine and checks that it
+works. It takes about 15 minutes. Every command is meant to be copied as it is; replace only what is in
+`<angle brackets>`.
 
 What this version does: users and roles, the API and the command line, the audit log, repositories, scheduled
 backups of VMs on KVM hosts, restore tests with signed evidence, the status of every VM, the screens for operators
-and auditors with the evidence export (step 10c), backups of Gaia's own state, and a recovery kit to rebuild a lost
-Gaia server (step 13).
+and auditors with the evidence export (step 10c), read-only migration checks of VMware VMs (step 10d), backups of
+Gaia's own state, and a recovery kit to rebuild a lost Gaia server (step 13). Known limits are in
+`docs/limitations.md` in the repository.
 
 ## 1. What you need
 
@@ -15,52 +17,71 @@ Gaia server (step 13).
 - **For restore tests** (step 10): the server boots restored VMs itself, so it needs KVM (`ls /dev/kvm` shows the
   device; in a VM, nested virtualisation must be on), 1–2 GiB RAM more per test VM, and free disk under
   `/var/lib/gaia-sandbox` for the largest VM's disks.
-- **Build machine:** any machine with this repository and Go (the version in `go.mod`). This is where you make the
-  package. Your Mac is fine.
+- **Workstation:** the machine you run the `gaia` command on and keep the recovery kit on (Linux or macOS), with
+  OpenSSH (it checks the release's signature). Your Mac is fine.
 
-## 2. Make the package (on the build machine)
+## 2. Get the release and check its signature (on the workstation)
 
-```bash
-cd <path to the gaia repository> && make dist
+A release is five kinds of files, all with the same `<version>` (for example `0.1.0`):
+
+| File | What it is |
+|---|---|
+| `gaia_<version>_amd64.deb` | The server package: the program, its three services, this guide |
+| `gaia-<version>-<os>-<arch>.tar.gz` | The `gaia` command alone, for workstations (`linux` or `darwin`, `amd64` or `arm64`) |
+| `BUILDINFO.txt` | The version, the source commit and the Go version it was built with |
+| `SHA256SUMS` | The checksum of every file above |
+| `SHA256SUMS.sig` | The signature of `SHA256SUMS` by Gaia's release key |
+
+Download all of them into one empty directory, from the release page
+(`https://github.com/Warewave-Technology/gaia/releases`) or from whoever gave you the release.
+
+Gaia's release key is this one line. Copy it from this guide, not from the release directory, into a file
+`allowed_signers` next to the release files:
+
+```
+@RELEASE_SIGNER@
 ```
 
-It prints the package's name, for example `dist/gaia-b2c12e5-linux-amd64.tar.gz`; `<version>` below is the part
-between `gaia-` and `-linux` (here `b2c12e5`). Copy it to the server, as any user who can log in there:
+Its fingerprint is `@RELEASE_FINGERPRINT@`. Then, in that directory, check the signature and every checksum:
 
 ```bash
-scp dist/gaia-<version>-linux-amd64.tar.gz <user>@<server>:/tmp/
+ssh-keygen -Y verify -f allowed_signers -I release@gaia -n gaia-release -s SHA256SUMS.sig < SHA256SUMS && (sha256sum -c SHA256SUMS || shasum -a 256 -c SHA256SUMS)
 ```
+
+It must print `Good "gaia-release" signature for release@gaia with ED25519 key @RELEASE_FINGERPRINT@` and then one
+line per file, each ending in `OK`. If not, **stop**: the files are not the release.
+
+Copy the server package and the checksums to the server, as any user who can log in there:
+
+```bash
+scp gaia_<version>_amd64.deb SHA256SUMS <user>@<server>:/tmp/
+```
+
+(To build the packages yourself from the repository instead: `make dist` puts them, unsigned, in `dist/`.)
 
 ## 3. Install (on the server, as root)
 
 Log in to the server and become root (`su -`, or `sudo -i`). Steps 3 to 5 and 8 run as root.
 
-Unpack the package and check it:
+Check the package again on the server and install it:
 
 ```bash
-cd /tmp && tar xzf gaia-<version>-linux-amd64.tar.gz && cd gaia-<version>-linux-amd64 && sha256sum -c SHA256SUMS
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get update && apt-get install -y ./gaia_<version>_amd64.deb && gaia version
 ```
 
-Every line must end in `OK`.
+`sha256sum` must say `OK`, and the last line `gaia <version> (...)`.
 
-Create the `gaia` user and its directories, and install the program:
+The package installs `/usr/bin/gaia`, creates the user `gaia` and its directories (`/var/lib/gaia`, `/etc/gaia`,
+`/srv/gaia`), and installs three services, none of them started yet:
 
-```bash
-useradd --system --user-group --home-dir /var/lib/gaia --shell /usr/sbin/nologin gaia
-install -d -o gaia -g gaia -m 0750 /var/lib/gaia /etc/gaia /srv/gaia
-install -m 0755 gaia /usr/local/bin/gaia
-install -m 0644 gaia.service /etc/systemd/system/gaia.service
-```
+| Service | What it does | Runs as |
+|---|---|---|
+| `gaia` | The server: the API, the screens, backups, restore tests, evidence | `gaia`, with no privileges at all |
+| `gaia-sandbox` | Boots restored VMs for restore tests in an isolated network (step 10b). It only boots disks the server puts into `/var/lib/gaia-sandbox/images`, and only members of the group `gaia` can talk to it | root (the isolated network needs it) |
+| `gaia-convert` | Converts VMware VMs for migration checks (step 10d, optional) | `gaia-convert` |
 
-For restore tests, install KVM and libvirt, and the sandbox helper. The helper is a second, small service that runs
-as root: booting a restored VM in an isolated network needs root, and the main service has no privileges at all.
-It only boots disks the main service puts into `/var/lib/gaia-sandbox/images`, and only members of the group `gaia`
-can talk to it.
-
-```bash
-apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients dnsmasq-base iproute2
-install -m 0644 gaia-sandbox.service /etc/systemd/system/gaia-sandbox.service
-```
+It also brings KVM, libvirt and dnsmasq, which restore tests need (the package's recommended packages). On a
+server that will not run restore tests, add `--no-install-recommends` to `apt-get install`.
 
 ## 4. Set up Gaia (on the server, as root)
 
@@ -93,6 +114,10 @@ systemctl daemon-reload && systemctl enable --now gaia-sandbox gaia && systemctl
 
 Both should say `active (running)`. Without restore tests, leave `gaia-sandbox` out of the first command.
 
+Stopping `gaia` (`systemctl stop gaia`, a reboot, an upgrade) waits for running backups and restore tests to end,
+up to 10 minutes (`stop_drain` in `/etc/gaia/server.json`); then it ends them. A job ended so is recorded as failed
+with the reason and queued again when the service starts.
+
 The log is in the journal:
 
 ```bash
@@ -105,8 +130,14 @@ If the server has a firewall, open TCP 8443 for the machines that run the `gaia`
 
 ## 6. Log in
 
-Run the `gaia` command on the server itself, or copy `/usr/local/bin/gaia` to your workstation. On a Mac, build it
-with `make build` and use `bin/gaia`.
+On the workstation, unpack the `gaia` command for it from the release directory of step 2 and put it on your
+`PATH` (here for a Mac with Apple silicon; `linux-amd64` on a Linux PC):
+
+```bash
+tar xzf gaia-<version>-darwin-arm64.tar.gz && sudo install -m 0755 gaia-<version>-darwin-arm64/gaia /usr/local/bin/gaia && gaia version
+```
+
+(The `gaia` command on the server works too.)
 
 ```bash
 gaia login -server https://<server>:8443 -user admin
@@ -125,7 +156,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`7`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`8`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -405,6 +436,17 @@ gaia quarantine list
 The damaged copy stays in the repository until maintenance frees it. Find out why it was damaged (the disk, the
 storage) before you trust that storage again.
 
+A failed point keeps its VM `CRITICAL` (`integrity check failed for point(s) [...]`) until retention prunes it,
+even when newer points are proven: the damage is real until someone decides it no longer matters. Once the next
+backup is proven (its restore test passed), an admin can remove the failed point, with the reason, which is
+recorded on the point and in the audit log:
+
+```bash
+gaia points forget <point id> reason="<why it may go>"
+```
+
+Only a failed point can be forgotten; its data is deleted from the repository as retention would.
+
 To prove a point restores, without touching the VM: `gaia points restore-check <point id>` restores each disk to a
 scratch file on the Gaia server, prints its sha256, and deletes it. It needs free space for the largest disk under
 `/var/lib/gaia`.
@@ -515,12 +557,12 @@ never as gaia server. As root on the server:
    install -d -o gaia-convert -g gaia-convert -m 2770 /var/lib/gaia-convert/jobs
    ```
 
-3. Build the converter image from the package's `converter/Containerfile` (about 10 minutes; it downloads Fedora's
+3. Build the converter image from the package's `Containerfile` (about 10 minutes; it downloads Fedora's
    packages), as `gaia-convert`, and print its ID:
 
    ```bash
    install -d -o gaia-convert -g gaia-convert /var/lib/gaia-convert/build /var/lib/gaia-convert/tmp
-   install -m 0644 converter/Containerfile /var/lib/gaia-convert/build/
+   install -m 0644 /usr/share/gaia/converter/Containerfile /var/lib/gaia-convert/build/
    systemd-run --wait --pipe --uid=gaia-convert --gid=gaia-convert -p RuntimeDirectory=gaia-convert \
      -p WorkingDirectory=/var/lib/gaia-convert/build -E HOME=/var/lib/gaia-convert \
      -E XDG_RUNTIME_DIR=/run/gaia-convert -E TMPDIR=/var/lib/gaia-convert/tmp \
@@ -548,8 +590,6 @@ never as gaia server. As root on the server:
 5. Start the converter service, then restart gaia server (it joined a group), and check:
 
    ```bash
-   install -m 0644 gaia-convert.service /etc/systemd/system/
-   systemctl daemon-reload
    systemctl enable --now gaia-convert
    systemctl restart gaia
    gaia convert info
@@ -596,13 +636,33 @@ gaia api GET /api/v1/hosts
 
 ## 12. Upgrading
 
-1. Make and copy a new package (step 2) and unpack it (step 3, first command).
-2. On the server, as root, in the unpacked package's directory, replace the program and the service files, and
-   restart:
+1. Get the new release and check its signature (step 2), and copy its server package and `SHA256SUMS` to the
+   server.
+2. On the server, as root:
 
    ```bash
-   install -m 0755 gaia /usr/local/bin/gaia && install -m 0644 gaia.service gaia-sandbox.service /etc/systemd/system/ && systemctl daemon-reload && systemctl try-restart gaia-sandbox && systemctl restart gaia && gaia system
+   cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get install -y ./gaia_<new version>_amd64.deb
    ```
+
+   It stops `gaia` first. The stop waits for running backups and restore tests to end (up to 10 minutes, step 5;
+   it prints `stopping gaia; it waits for running jobs`), then the new version starts with the services that were
+   running. The last line says `gaia: restarted; check with: gaia system`.
+3. On the workstation, unpack the new `gaia` command (step 6) and check: `gaia system` shows the new version.
+
+**From an install without the package** (before release 0.1.0, installed with `install` into `/usr/local/bin`):
+the old service files in `/etc/systemd/system` would run in place of the package's, so the package refuses to
+install over them. Remove them first, as root (add `gaia-convert` to the first and last command and its file to
+the second if you set up migration checks):
+
+```bash
+systemctl disable --now gaia gaia-sandbox
+rm -f /etc/systemd/system/gaia.service /etc/systemd/system/gaia-sandbox.service /etc/systemd/system/gaia-convert.service /usr/local/bin/gaia && systemctl daemon-reload
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get install -y ./gaia_<new version>_amd64.deb
+systemctl enable --now gaia-sandbox gaia
+```
+
+Your settings stay: `/etc/gaia`, `/var/lib/gaia`, the repositories, and `systemctl edit` changes
+(`/etc/systemd/system/gaia.service.d`).
 
 A new version brings its database migrations with it. They run when the service starts, and `gaia system` shows the
 new schema version. Gaia refuses to start on a database written by a newer version: do not downgrade.
@@ -679,16 +739,23 @@ new Debian 12 machine (step 1).
 
 ## 14. Removing Gaia
 
-This deletes everything Gaia wrote. The repository and its backups are deleted too if they are under `/srv/gaia`.
+`apt-get purge gaia` removes the program and the services but keeps Gaia's data. This deletes everything Gaia
+wrote too; the repository and its backups are deleted if they are under `/srv/gaia`:
 
 ```bash
-systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/local/bin/gaia && rm -rf /etc/gaia /var/lib/gaia /srv/gaia && userdel gaia
+apt-get purge -y gaia && rm -rf /etc/gaia /var/lib/gaia /var/lib/gaia-sandbox /srv/gaia && userdel gaia
 ```
+
+With migration checks (step 10d), also: `rm -rf /var/lib/gaia-convert && userdel gaia-convert`.
 
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
+| `ssh-keygen -Y verify` does not say `Good "gaia-release" signature` | The files are not the release, or `allowed_signers` is not the line from step 2. Do not install them. |
+| `apt-get install` stops with `... overrides the packaged unit` | An install without the package is still there: step 12, "From an install without the package". Then `dpkg --configure gaia`. |
+| `apt-get install` waits after `stopping gaia` | It waits for running jobs (step 5), up to 10 minutes. |
+| macOS: `"gaia" cannot be opened because the developer cannot be verified` | The browser marked the download. After the signature check of step 2: `sudo xattr -d com.apple.quarantine /usr/local/bin/gaia`. |
 | `gaia login` cannot connect | The service is not running (step 5), or a firewall blocks 8443. |
 | The certificate sha256 at login differs from step 4 | Do not log in. If the server was set up again, use the new value from that `init`. |
 | `the server's certificate is not the one pinned at login` | The server's certificate changed. Log in again only if that was on purpose. |
@@ -714,4 +781,4 @@ systemctl disable --now gaia && rm -f /etc/systemd/system/gaia.service /usr/loca
 | `gaia status` ends with `WARNING notifications: ...` | No channel, or the last message of one failed: `gaia notifications list` shows `last_error`; fix it and `gaia channels test <id>` (step 8c). |
 | A channel's messages fail with `x509: certificate signed by unknown authority` | Add the channel again with `ca_file=` (turn the old one off first). |
 | `CRITICAL evidence ledger: ... ledger_truncated` | The ledger is shorter than the last daily report or the catalog says: entries were cut off. Do not trust the evidence until you know why; the problems list names the entries. Keep the daily reports. |
-| A verification is `critical` and `gaia quarantine list` shows contents | The repository's storage damaged data. The affected VMs back up full next; check the disk or storage (step 10). |
+| A verification is `critical` and `gaia quarantine list` shows contents | The repository's storage damaged data. The affected VMs back up full next; check the disk or storage (step 10). Once a newer point is proven, `gaia points forget` (step 10) clears the `CRITICAL`. |

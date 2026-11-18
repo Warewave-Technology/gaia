@@ -1,0 +1,19 @@
+Package: gaia
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: @MAINTAINER@
+Section: admin
+Priority: optional
+Homepage: https://github.com/Warewave-Technology/gaia
+Recommends: qemu-system-x86, qemu-utils, libvirt-daemon-system, libvirt-clients, dnsmasq-base, iproute2
+Suggests: podman, uidmap, crun, catatonit, fuse-overlayfs, ovmf
+Description: backup and recoverability server with proven restores
+ Gaia backs up VMs on KVM hosts over SSH, restores them in an isolated sandbox
+ on a schedule to prove they boot, and records every proof as signed evidence
+ an auditor can verify offline. It also checks, read-only, whether VMware VMs
+ would run on KVM.
+ .
+ The package installs the program (/usr/bin/gaia) and its three services:
+ gaia (the server), gaia-sandbox (restore tests) and gaia-convert (migration
+ checks). None is started until it is set up: see
+ /usr/share/doc/gaia/install.md.

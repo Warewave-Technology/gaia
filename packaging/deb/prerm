@@ -1,0 +1,20 @@
+#!/bin/sh
+# gaia package: before its files are replaced (upgrade) or removed. gaia.service stops first: a stop waits for running
+# jobs up to stop_drain (default 10 minutes) and the new package's postinst starts it again.
+set -e
+
+[ -d /run/systemd/system ] || exit 0
+case "$1" in
+upgrade)
+	if systemctl is-active --quiet gaia.service; then
+		mkdir -p /run/gaia-package
+		touch /run/gaia-package/restart
+		echo "gaia: stopping gaia; it waits for running jobs (up to stop_drain, 10 minutes by default)"
+		systemctl stop gaia.service
+	fi
+	;;
+remove | deconfigure)
+	systemctl disable --now gaia.service gaia-sandbox.service gaia-convert.service
+	;;
+esac
+exit 0

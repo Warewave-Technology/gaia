@@ -1,19 +1,22 @@
-# gaia server (ADR-007 §1). Installed by docs/install.md.
+# gaia server (ADR-007 §1). Installed by the gaia package (docs/install.md).
 # A repository outside /srv/gaia needs its path in ReadWritePaths (systemctl edit gaia).
 [Unit]
 Description=Gaia backup and recoverability server
 Documentation=https://github.com/Warewave-Technology/gaia/blob/main/docs/install.md
-After=network-online.target gaia-sandbox.service
+After=network-online.target gaia-sandbox.service gaia-convert.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=gaia
 Group=gaia
-ExecStart=/usr/local/bin/gaia server run -config /etc/gaia/server.json
+ExecStart=/usr/bin/gaia server run -config /etc/gaia/server.json
 Restart=on-failure
 RestartSec=5
 UMask=0027
+# A stop waits for running jobs up to stop_drain (server.json, default 10m), then ends them; the next start queues an
+# ended backup or restore test again. This must be longer than stop_drain.
+TimeoutStopSec=15min
 
 # Hardening: the server writes only its data directory and its repositories.
 NoNewPrivileges=yes

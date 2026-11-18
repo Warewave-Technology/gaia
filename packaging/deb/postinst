@@ -1,0 +1,32 @@
+#!/bin/sh
+# gaia package: after the files are in place. A first install creates the user gaia and its directories and starts
+# nothing (install.md steps 4 and 5 set Gaia up first). An upgrade starts again what the old package's prerm stopped.
+set -e
+
+case "$1" in
+configure)
+	getent group gaia >/dev/null || groupadd --system gaia
+	getent passwd gaia >/dev/null || useradd --system --gid gaia --home-dir /var/lib/gaia --shell /usr/sbin/nologin gaia
+	for d in /var/lib/gaia /etc/gaia /srv/gaia; do
+		[ -d "$d" ] || install -d -o gaia -g gaia -m 0750 "$d"
+	done
+	for u in gaia gaia-sandbox gaia-convert; do
+		# A unit in /etc/systemd/system from an install without the package would run in place of this one.
+		if [ -e "/etc/systemd/system/$u.service" ]; then
+			echo "gaia: /etc/systemd/system/$u.service overrides the packaged unit (from an install without the package):" >&2
+			echo "gaia: remove it and /usr/local/bin/gaia, then run: dpkg --configure gaia (install.md step 12)" >&2
+			exit 1
+		fi
+	done
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload
+		if [ -e /run/gaia-package/restart ]; then
+			systemctl try-restart gaia-sandbox.service gaia-convert.service
+			systemctl start gaia.service
+			rm -f /run/gaia-package/restart
+			echo "gaia: restarted; check with: gaia system"
+		fi
+	fi
+	;;
+esac
+exit 0

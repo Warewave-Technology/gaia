@@ -1,4 +1,4 @@
-# Gaia's converter service for migration checks (ADR-005 §1, internal/convert). Installed by docs/install.md.
+# Gaia's converter service for migration checks (ADR-005 §1, internal/convert). Installed by the gaia package (docs/install.md).
 # It runs as its own unprivileged user, gaia-convert: virt-v2v runs in the pinned converter image under rootless
 # podman, with no network and no capabilities. Its socket is for the group gaia-convert, which only gaia server's
 # user joins; it reads only the job directories gaia server makes in /var/lib/gaia-convert/jobs.
@@ -18,7 +18,7 @@ UMask=0007
 Environment=HOME=/var/lib/gaia-convert XDG_RUNTIME_DIR=/run/gaia-convert TMPDIR=/var/lib/gaia-convert/tmp
 RuntimeDirectory=gaia-convert
 RuntimeDirectoryMode=0750
-ExecStart=/usr/local/bin/gaia convert serve -config /etc/gaia/convert.json
+ExecStart=/usr/bin/gaia convert serve -config /etc/gaia/convert.json
 Restart=on-failure
 RestartSec=5
 
