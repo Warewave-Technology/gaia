@@ -59,7 +59,7 @@ linux_guest() {
 	local disks="<disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$LV/$n-vda.qcow2'/><target dev='vda' bus='virtio'/></disk>"
 	if ((data)); then
 		qemu-img create -q -f qcow2 "$LV/$n-vdb.qcow2" 2G
-		disks+="<disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$LV/$n-vdb.qcow2'/><target dev='vdb' bus='virtio'/></disk>"
+		disks+="<disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$LV/$n-vdb.qcow2'/><target dev='vdb' bus='virtio'/><serial>gaia-data</serial></disk>"
 	fi
 	cat >"$w/user-data" <<EOF
 #cloud-config
@@ -71,11 +71,13 @@ write_files:
     permissions: '0755'
     content: |
       #!/bin/bash
-      # T23 workload: a little data all the time (on /data when the VM has a data disk)
+      # T23 workload: a little data all the time (on /data when the VM has its data disk, serial gaia-data; the
+      # cloud-init seed is a virtio disk too, so a disk name like vdb says nothing)
       set -eu
       dir=/var/lib/gaia-churn
-      if [ -b /dev/vdb ]; then
-        blkid /dev/vdb >/dev/null 2>&1 || mkfs.ext4 -q -L gaia-data /dev/vdb
+      data=/dev/disk/by-id/virtio-gaia-data
+      if [ -b \$data ]; then
+        blkid \$data >/dev/null 2>&1 || mkfs.ext4 -q -L gaia-data \$data
         grep -q gaia-data /etc/fstab || echo 'LABEL=gaia-data /data ext4 defaults 0 2' >> /etc/fstab
         mkdir -p /data && mount -a && dir=/data
       fi
@@ -116,6 +118,14 @@ EOF
 	virsh -q autostart "$n" && virsh -q start "$n"
 }
 
+# no_smbus DISK: virtio-win 0.1.302's smbus driver does not install on Windows Server 2022 ("terminated in a root
+# certificate which is not trusted"), and virt-v2v's first-boot script then exits 249, "retrying on next boot": Windows
+# restarts on every boot, for ever (found in T23). The driver is not needed; without it the script ends.
+no_smbus() {
+	printf '%s\n' 'glob rm-f /Windows/Drivers/Virtio/smbus*' 'ls /Windows/Drivers/Virtio' >"$D/no-smbus.gf"
+	LIBGUESTFS_BACKEND=direct guestfish --rw -a "$1" -i -f "$D/no-smbus.gf" | paste -sd ' ' -
+}
+
 windows_guest() {
 	local n=gaia-t23-win w=$CONV_HOME/t23-win image # gaia-convert cannot enter /root
 	echo "$VIRTIO_SHA256  $VIRTIO_ISO" | sha256sum -c --quiet
@@ -134,6 +144,7 @@ windows_guest() {
 			>$w/virt-v2v.log 2>&1"
 	tail -3 "$w/virt-v2v.log"
 	mv "$w/out/$n-sda" "$LV/$n-vda.qcow2"
+	no_smbus "$LV/$n-vda.qcow2"
 	rm -f "$w/in.qcow2" "$w/virtio-win.iso"
 	chown libvirt-qemu:libvirt-qemu "$LV/$n-vda.qcow2"
 	qemu-img info "$LV/$n-vda.qcow2" | sed -n '1,4p'
