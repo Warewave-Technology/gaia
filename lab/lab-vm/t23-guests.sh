@@ -122,8 +122,11 @@ EOF
 # certificate which is not trusted"), and virt-v2v's first-boot script then exits 249, "retrying on next boot": Windows
 # restarts on every boot, for ever (found in T23). The driver is not needed; without it the script ends.
 no_smbus() {
-	printf '%s\n' 'glob rm-f /Windows/Drivers/Virtio/smbus*' 'ls /Windows/Drivers/Virtio' >"$D/no-smbus.gf"
-	LIBGUESTFS_BACKEND=direct guestfish --rw -a "$1" -i -f "$D/no-smbus.gf" | paste -sd ' ' -
+	local root
+	root=$(LIBGUESTFS_BACKEND=direct guestfish --ro -a "$1" -i inspect-get-roots | head -1)
+	# ntfsfix: a Windows that was not shut down cleanly mounts read-only otherwise
+	printf '%s\n' run "ntfsfix $root" "mount $root /" 'glob rm-f /Windows/Drivers/VirtIO/smbus*' 'ls /Windows/Drivers/VirtIO' >"$D/no-smbus.gf"
+	LIBGUESTFS_BACKEND=direct guestfish --rw -a "$1" -f "$D/no-smbus.gf" | paste -sd ' ' -
 }
 
 windows_guest() {
