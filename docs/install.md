@@ -68,7 +68,7 @@ Log in to the server and become root (`su -`, or `sudo -i`). Steps 3 to 5 and 8 
 Check the package again on the server and install it:
 
 ```bash
-cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get update && apt-get install -y ./gaia_<version>_amd64.deb && gaia version
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get update && apt-get -o DPkg::Lock::Timeout=300 install -y ./gaia_<version>_amd64.deb && gaia version
 ```
 
 `sha256sum` must say `OK`, and the last line `gaia <version> (...)`.
@@ -643,7 +643,7 @@ gaia api GET /api/v1/hosts
 2. On the server, as root:
 
    ```bash
-   cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get install -y ./gaia_<new version>_amd64.deb
+   cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Timeout=300 install -y ./gaia_<new version>_amd64.deb
    ```
 
    It stops `gaia` first. The stop waits for running backups and restore tests to end (up to 10 minutes, step 5;
@@ -653,13 +653,15 @@ gaia api GET /api/v1/hosts
 
 **From an install without the package** (before release 0.1.0, installed with `install` into `/usr/local/bin`):
 the old service files in `/etc/systemd/system` would run in place of the package's, so the package refuses to
-install over them. Remove them first, as root (add `gaia-convert` to the first and last command and its file to
-the second if you set up migration checks):
+install over them. A version without the package does not wait for running jobs when it stops: first check on the
+workstation that `gaia jobs list` shows no job `running` (a restore test takes a few minutes). Then remove the old
+files, as root (add `gaia-convert` to the first and last command if you set up migration checks). Gaia is stopped
+from the first command until the last; if `apt-get` stops with an error, fix it and run it again:
 
 ```bash
 systemctl disable --now gaia gaia-sandbox
 rm -f /etc/systemd/system/gaia.service /etc/systemd/system/gaia-sandbox.service /etc/systemd/system/gaia-convert.service /usr/local/bin/gaia && systemctl daemon-reload
-cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get install -y ./gaia_<new version>_amd64.deb
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Timeout=300 install -y ./gaia_<new version>_amd64.deb
 systemctl enable --now gaia-sandbox gaia
 ```
 
@@ -757,6 +759,7 @@ With migration checks (step 10d), also: `rm -rf /var/lib/gaia-convert && userdel
 | `ssh-keygen -Y verify` does not say `Good "gaia-release" signature` | The files are not the release, or `allowed_signers` is not the line from step 2. Do not install them. |
 | `apt-get install` stops with `... overrides the packaged unit` | An install without the package is still there: step 12, "From an install without the package". Then `dpkg --configure gaia`. |
 | `apt-get install` waits after `stopping gaia` | It waits for running jobs (step 5), up to 10 minutes. |
+| `apt-get` says `Could not get lock /var/lib/dpkg/lock-frontend` | Another `apt-get` runs (often Debian's automatic updates); the commands wait 5 minutes for it. Run the same command again when it is done. |
 | macOS: `"gaia" cannot be opened because the developer cannot be verified` | The browser marked the download. After the signature check of step 2: `sudo xattr -d com.apple.quarantine /usr/local/bin/gaia`. |
 | `gaia login` cannot connect | The service is not running (step 5), or a firewall blocks 8443. |
 | The certificate sha256 at login differs from step 4 | Do not log in. If the server was set up again, use the new value from that `init`. |

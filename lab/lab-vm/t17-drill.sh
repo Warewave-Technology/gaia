@@ -108,7 +108,7 @@ install_gaia() {
 		put "$ip" "$(dirname "$pkg")/SHA256SUMS" /tmp/
 		on "$ip" <<EOF
 set -euo pipefail
-cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && DEBIAN_FRONTEND=noninteractive apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ./$(basename "$pkg") >/dev/null && gaia version
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && DEBIAN_FRONTEND=noninteractive apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y -qq ./$(basename "$pkg") >/dev/null && gaia version
 EOF
 		return
 	fi
@@ -547,12 +547,12 @@ if [[ -e /usr/local/bin/gaia ]]; then # step 12, "From an install without the pa
 	time systemctl disable --now "\${units[@]}"
 	rm -f /etc/systemd/system/gaia.service /etc/systemd/system/gaia-sandbox.service /etc/systemd/system/gaia-convert.service /usr/local/bin/gaia
 	systemctl daemon-reload
-	apt-get install -y ./$deb
+	apt-get -o DPkg::Lock::Timeout=300 install -y ./$deb
 	systemctl enable --now "\${units[@]}"
 elif [[ "\$(dpkg-query -W -f '\${Version}' gaia 2>/dev/null)" == "\$(dpkg-deb -f ./$deb Version)" ]]; then
-	time apt-get install -y --reinstall ./$deb # the same version: the old prerm stops gaia, postinst starts it
+	time apt-get -o DPkg::Lock::Timeout=300 install -y --reinstall ./$deb # the same version: the old prerm stops gaia, postinst starts it
 else
-	time apt-get install -y ./$deb # step 12
+	time apt-get -o DPkg::Lock::Timeout=300 install -y ./$deb # step 12
 fi
 sleep 3 && systemctl is-active gaia-sandbox gaia && gaia version
 EOF

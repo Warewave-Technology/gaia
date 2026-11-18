@@ -167,7 +167,7 @@ put "$D/kit.pass" /tmp/kit.pass
 on <<EOF | tee "$OUT/c-step3.txt"
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get update && apt-get install -y ./$DEB && gaia version
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get update && apt-get -o DPkg::Lock::Timeout=300 install -y ./$DEB && gaia version
 EOF
 on <<'EOF' >"$OUT/c-installed.txt"
 set -euo pipefail
@@ -229,7 +229,7 @@ users_before=$(ws users list -json | jq -c '[.[].username] | sort')
 on <<EOF | tee "$OUT/d-reinstall.txt"
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-cd /tmp && apt-get install -y --reinstall ./$DEB && sleep 3 && systemctl is-active gaia-sandbox gaia
+cd /tmp && apt-get -o DPkg::Lock::Timeout=300 install -y --reinstall ./$DEB && sleep 3 && systemctl is-active gaia-sandbox gaia
 EOF
 for ((i = 0; i < 30; i++)); do ws system -json >"$OUT/d-system.json" 2>/dev/null && break; sleep 2; done
 jq -n --slurpfile sys "$OUT/d-system.json" --argjson before "$users_before" --argjson after "$(ws users list -json | jq -c '[.[].username] | sort')" \
@@ -247,7 +247,7 @@ echo "binary: \$(test -e /usr/bin/gaia && echo present || echo gone)"
 echo "unit: \$(test -e /lib/systemd/system/gaia.service && echo present || echo gone)"
 echo "data: \$(test -s /var/lib/gaia/gaia.db && test -s /etc/gaia/server.json && test -d /srv/gaia/main && echo kept || echo lost)"
 echo "user: \$(id -u gaia >/dev/null 2>&1 && echo kept || echo gone)"
-cd /tmp && apt-get install -y ./$DEB >/dev/null && systemctl enable --now gaia-sandbox gaia && sleep 3 && systemctl is-active gaia
+cd /tmp && apt-get -o DPkg::Lock::Timeout=300 install -y ./$DEB >/dev/null && systemctl enable --now gaia-sandbox gaia && sleep 3 && systemctl is-active gaia
 EOF
 for ((i = 0; i < 30; i++)); do ws whoami >/dev/null 2>&1 && break; sleep 2; done
 ws whoami >"$OUT/e-whoami.txt" 2>&1 || true
