@@ -1,0 +1,23 @@
+From: Gaia T23 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: gaia-t23-linux2: CRITICAL -> OK
+Date: Wed, 18 Nov 2026 13:23:18 +0000
+Message-ID: <gaia-15-status-182@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: status
+Content-Type: multipart/mixed; boundary=775e9128a916521ddd6b8f6055fd1558daf00e60a67671ec839b3348ea01
+
+--775e9128a916521ddd6b8f6055fd1558daf00e60a67671ec839b3348ea01
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+VM gaia-t23-linux2 is OK (was CRITICAL) since 2026-11-18T13:23:13.760353328=
+Z.
+Why: point 16 is proven by test 7: proven RPO 3m39s <=3D 30m0s, proven RTO =
+21s <=3D 15m0s, proof age 0s <=3D 20m0s
+
+--=20
+Gaia, installation gaia-lab (evidence key 7a9ed39106e7d84e255f96ad4528beebd=
+e02c1519e6b5c601d2ba1dcaba5126e)
+
+--775e9128a916521ddd6b8f6055fd1558daf00e60a67671ec839b3348ea01--

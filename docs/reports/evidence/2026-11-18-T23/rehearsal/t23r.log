@@ -1,0 +1,372 @@
+[12:50:46] phases: baseline unbootable damage sandbox checkpoint rebuild; out /root/t23r-20261118T125046Z; repository 695c12f98658
+
+== build and server (packaged units)
+{"version":"695c12f98658","schema_version":8}
+
+== repository (step 7), recovery kit saved off the server (step 8b)
+{"id":1,"name":"main","splitter":"FIXED-1M"}
+wrote gaia-recovery-kit-2.age (recovery kit 2)
+Recovery kit 2 opens with the passphrase and is the server's newest: confirmed.
+
+== notification channels (step 8c): notify-sink
+Running as unit: gaia-t23r-sink.service
+{"id":1,"name":"mail","events":["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]}
+{"id":2,"name":"hook","events":["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]}
+
+== host (step 10): gaia-lab over SSH as gaia-t23r-backup
+{"libvirt":"9.0.0","qemu":"7.2.22","domains":["gaia-t17-web","gaia-t23-linux2","gaia-t23-uefi","gaia-t23-win"],"seconds":0.302680275}
+
+== policies and VMs (steps 10, 10b)
+[12:58:25] gaia-t23-linux2 is VM 1 (policy 1)
+[12:58:25] gaia-t23-uefi is VM 2 (policy 1)
+[12:58:25] gaia-t23-win is VM 3 (policy 2)
+
+== baseline: every VM OK
+[12:59:42] gaia-t23-linux2 is OK: point 1 is proven by test 1: proven RPO 1m8s <= 30m0s, proven RTO 21s <= 15m0s, proof age 7s <= 20m0s
+[13:00:59] gaia-t23-uefi is OK: point 2 is proven by test 2: proven RPO 2m20s <= 30m0s, proven RTO 36s <= 15m0s, proof age 13s <= 20m0s
+[13:08:23] gaia-t23-win is OK: point 3 is proven by test 3: proven RPO 9m28s <= 30m0s, proven RTO 5m12s <= 15m0s, proof age 6s <= 20m0s
+{
+  "vms": [
+    {
+      "status": "OK",
+      "reason": "point 1 is proven by test 1: proven RPO 1m8s <= 30m0s, proven RTO 21s <= 15m0s, proof age 7s <= 20m0s"
+    },
+    {
+      "status": "OK",
+      "reason": "point 2 is proven by test 2: proven RPO 2m20s <= 30m0s, proven RTO 36s <= 15m0s, proof age 13s <= 20m0s"
+    },
+    {
+      "status": "OK",
+      "reason": "point 3 is proven by test 3: proven RPO 9m28s <= 30m0s, proven RTO 5m12s <= 15m0s, proof age 6s <= 20m0s"
+    }
+  ],
+  "pass": true
+}
+
+== unbootable: gaia-t23-linux2's boot code zeroed in the running guest
+boot code of /dev/vda zeroed (copy in /root/mbr-boot-code)
+{"id":10,"kind":"backup","state":"ok"}
+[13:14:23] gaia-t23-linux2 is CRITICAL: the latest restore test (4, point 8) is CRITICAL: boot CRITICAL: no match for "(?m)login: *$" on the serial console within 300 s
+[13:14:23] notified: Gaia gaia-lab: gaia-t23-linux2: OK -> CRITICAL
+
+== unbootable: boot code back
+boot code of /dev/vda written back
+{"id":19,"kind":"backup","state":"ok"}
+{"id":20,"kind":"restore_test","state":"ok"}
+[13:23:19] gaia-t23-linux2 is OK: point 16 is proven by test 7: proven RPO 3m45s <= 30m0s, proven RTO 21s <= 15m0s, proof age 6s <= 20m0s
+[13:23:20] notified: Gaia gaia-lab: gaia-t23-linux2: CRITICAL -> OK
+{
+  "test_job": {
+    "id": 13,
+    "state": "ok",
+    "reason": "requested by admin"
+  },
+  "status": {
+    "status": "CRITICAL",
+    "rule": "latest_test_critical",
+    "reason": "the latest restore test (4, point 8) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+  },
+  "notified": {
+    "event": "status",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: OK -> CRITICAL"
+  },
+  "after_fix": {
+    "status": "OK",
+    "reason": "point 16 is proven by test 7: proven RPO 3m45s <= 30m0s, proven RTO 21s <= 15m0s, proof age 6s <= 20m0s"
+  },
+  "notified_after_fix": {
+    "event": "status",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: CRITICAL -> OK"
+  },
+  "pass": true
+}
+
+== damage: a byte of a repository pack flipped
+[13:23:20] flipped byte 10998630 of /var/lib/gaia-t23r/repo/main/p/747/f75e21d38be7fd95d3aebce890cd9-sf8c30580b715802f147.f (21997261 bytes)
+{"id":2,"state":"critical","points_checked":16,"affected":[{"point_id":2,"vm_id":2,"disk":"vda","contents":["d3a7fab39a9c8248e98c9a262d8fa9be"]},{"point_id":4,"vm_id":2,"disk":"vda","contents":["d3a7fab39a9c8248e98c9a262d8fa9be"]},{"point_id":7,"vm_id":2,"disk":"vda","contents":["d3a7fab39a9c8248e98c9a262d8fa9be"]},{"point_id":10,"vm_id":2,"disk":"vda","contents":["d3a7fab39a9c8248e98c9a262d8fa9be"]},{"point_id":14,"vm_id":2,"disk":"vda","contents":["d3a7fab39a9c8248e98c9a262d8fa9be"]}]}
+[13:26:25] notified: Gaia gaia-lab: repository main: verification 2 found damage in 5 point disk(s)
+[13:26:25] notified: Gaia gaia-lab: damaged repository contents quarantined (verification 2)
+[13:26:26] gaia-t23-uefi is CRITICAL: integrity check failed for point(s) [2 4 7 10 14]
+[13:26:26] notified: Gaia gaia-lab: gaia-t23-uefi: OK -> CRITICAL
+[13:30:24] notified: Gaia gaia-lab: gaia-t23-uefi: the backup was full (repository verification 2 quarantined damaged contents used by point 14)
+{"id":32,"kind":"restore_test","state":"ok"}
+[13:35:53] gaia-t23-uefi after a new proven point: {"status":"CRITICAL","rule":"integrity_failed"} (ADR-007 B4.3)
+{"id":14,"state":"pruned"}
+{"id":10,"state":"pruned"}
+{"id":7,"state":"pruned"}
+{"id":4,"state":"pruned"}
+{"id":2,"state":"pruned"}
+[13:35:56] gaia-t23-uefi is OK: point 23 is proven by test 11: proven RPO 4m22s <= 30m0s, proven RTO 32s <= 15m0s, proof age 5s <= 20m0s
+{
+  "verification": {
+    "id": 2,
+    "state": "critical",
+    "points_checked": 16,
+    "affected": [
+      {
+        "point_id": 2,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 4,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 7,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 10,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 14,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      }
+    ]
+  },
+  "notified": [
+    {
+      "event": "integrity",
+      "vm": null,
+      "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 5 point disk(s)"
+    },
+    {
+      "event": "quarantine",
+      "vm": null,
+      "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-uefi",
+      "subject": "Gaia gaia-lab: gaia-t23-uefi: OK -> CRITICAL"
+    },
+    {
+      "event": "full_backup",
+      "vm": "gaia-t23-uefi",
+      "subject": "Gaia gaia-lab: gaia-t23-uefi: the backup was full (repository verification 2 quarantined damaged contents used by point 14)"
+    }
+  ],
+  "vms": [
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "CRITICAL",
+      "reason": "integrity check failed for point(s) [2 4 7 10 14]"
+    }
+  ],
+  "after_forget": [
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK",
+      "reason": "point 23 is proven by test 11: proven RPO 4m22s <= 30m0s, proven RTO 32s <= 15m0s, proof age 5s <= 20m0s"
+    }
+  ],
+  "pass": true
+}
+
+== sandbox: the helper stopped
+{"id":37,"state":"failed","error":"sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"}
+[13:40:24] notified: Gaia gaia-lab: restore_test job 37 of gaia-t23-linux2 failed
+{"status":"OK","notes":["restore test 13 (point 25) could not run: not tested: sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"]}
+[13:55:11] gaia-t23-linux2 is WARNING: the proof (test 10) is 20m13s old, over the maximum 20m0s
+[13:55:11] notified: Gaia gaia-lab: gaia-t23-linux2: OK -> WARNING
+
+== sandbox: the helper started again
+[14:02:23] gaia-t23-linux2 is OK: point 40 is proven by test 19: proven RPO 1m48s <= 30m0s, proven RTO 23s <= 15m0s, proof age 6s <= 20m0s
+[14:03:09] gaia-t23-uefi is OK: point 41 is proven by test 20: proven RPO 1m24s <= 30m0s, proven RTO 31s <= 15m0s, proof age 3s <= 20m0s
+[14:03:09] gaia-t23-win is OK: point 36 is proven by test 18: proven RPO 9m35s <= 30m0s, proven RTO 4m52s <= 15m0s, proof age 1m39s <= 20m0s
+[14:03:09] notified: Gaia gaia-lab: gaia-t23-linux2: WARNING -> OK
+{
+  "test_job": {
+    "id": 37,
+    "state": "failed",
+    "error": "sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"
+  },
+  "notified": [
+    {
+      "event": "job_failed",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: restore_test job 37 of gaia-t23-linux2 failed"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: gaia-t23-linux2: OK -> WARNING"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: gaia-t23-linux2: WARNING -> OK"
+    }
+  ],
+  "note": [
+    "restore test 13 (point 25) could not run: not tested: sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"
+  ],
+  "status": {
+    "status": "WARNING",
+    "rule": "proof_too_old",
+    "reason": "the proof (test 10) is 20m13s old, over the maximum 20m0s"
+  },
+  "pass": true
+}
+
+== checkpoint: gaia-t23-linux2's newest checkpoint deleted on the host
+Domain checkpoint gaia-1-60 deleted
+
+deleted checkpoint gaia-1-60 of gaia-t23-linux2; left: gaia-1-56 
+{"id":42,"kind":"full","reason":"full: checkpoint gaia-1-60 of point 40 is not on the host","check_state":"ok"}
+[14:03:30] notified: Gaia gaia-lab: gaia-t23-linux2: the backup was full (checkpoint gaia-1-60 of point 40 is not on the host)
+{"status":"OK","reason":"point 40 is proven by test 19: proven RPO 2m56s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m14s <= 20m0s","notes":["the newest backup (point 42) is a full backup: checkpoint gaia-1-60 of point 40 is not on the host"]}
+{
+  "backup_job": {
+    "id": 62,
+    "state": "ok"
+  },
+  "point": {
+    "id": 42,
+    "kind": "full",
+    "reason": "full: checkpoint gaia-1-60 of point 40 is not on the host",
+    "check_state": "ok"
+  },
+  "notified": {
+    "event": "full_backup",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: the backup was full (checkpoint gaia-1-60 of point 40 is not on the host)"
+  },
+  "status": {
+    "status": "OK",
+    "reason": "point 40 is proven by test 19: proven RPO 2m56s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m14s <= 20m0s",
+    "notes": [
+      "the newest backup (point 42) is a full backup: checkpoint gaia-1-60 of point 40 is not on the host"
+    ]
+  },
+  "pass": true
+}
+
+== rebuild: a daily report (the external anchor), then the server is lost
+{"id":2,"head_seq":15}
+[14:03:41] notified: Gaia gaia-lab: daily report 2026-11-18: 3 OK
+[14:03:42] lost: data and config moved away
+
+== rebuild: restore-state from the kit and the repository (step 13)
+{"verdict":"WARNING","problems":["notification channel mail: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 1 enabled=false) and add it again under a new name","notification channel hook: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 2 enabled=false) and add it again under a new name"]}
+[{"vm":"gaia-t23-linux2","status":"OK","reason":"point 40 is proven by test 19: proven RPO 3m13s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m30s <= 20m0s"},{"vm":"gaia-t23-uefi","status":"OK","reason":"point 41 is proven by test 20: proven RPO 2m3s <= 30m0s, proven RTO 31s <= 15m0s, proof age 42s <= 20m0s"},{"vm":"gaia-t23-win","status":"OK","reason":"point 36 is proven by test 18: proven RPO 10m14s <= 30m0s, proven RTO 4m52s <= 15m0s, proof age 2m18s <= 20m0s"}]
+
+== rebuild: the ledger against the last daily report, the channels again, a daily report
+{"verdict":"OK","findings":[]}
+{"id":1,"name":"mail","enabled":false}
+{"id":2,"name":"hook","enabled":false}
+{"id":3,"name":"mail-rebuilt","events":["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]}
+{"id":4,"name":"hook-rebuilt","events":["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]}
+{"id":3}
+[14:03:59] notified: Gaia gaia-lab: daily report 2026-11-18: 3 OK
+
+== rebuild: the next backups continue
+{"vm":"gaia-t23-linux2","id":44,"kind":"incremental","reason":"incremental from point 42 (checkpoint gaia-1-62)"}
+{"vm":"gaia-t23-uefi","id":45,"kind":"incremental","reason":"incremental from point 41 (checkpoint gaia-2-61)"}
+{"vm":"gaia-t23-win","id":46,"kind":"incremental","reason":"incremental from point 43 (checkpoint gaia-3-63)"}
+{
+  "restore_state": {
+    "verdict": "WARNING",
+    "problems": [
+      "notification channel mail: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 1 enabled=false) and add it again under a new name",
+      "notification channel hook: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 2 enabled=false) and add it again under a new name"
+    ]
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t23-linux2",
+      "status": "OK"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "status": "OK"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t23-linux2",
+      "status": "OK",
+      "reason": "point 40 is proven by test 19: proven RPO 3m13s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m30s <= 20m0s"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK",
+      "reason": "point 41 is proven by test 20: proven RPO 2m3s <= 30m0s, proven RTO 31s <= 15m0s, proof age 42s <= 20m0s"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "status": "OK",
+      "reason": "point 36 is proven by test 18: proven RPO 10m14s <= 30m0s, proven RTO 4m52s <= 15m0s, proof age 2m18s <= 20m0s"
+    }
+  ],
+  "ledger": {
+    "verdict": "OK",
+    "findings": []
+  },
+  "daily_report": {
+    "event": "daily_report",
+    "vm": null,
+    "subject": "Gaia gaia-lab: daily report 2026-11-18: 3 OK"
+  },
+  "rebuilt_line_mailed": true,
+  "next_backups": [
+    {
+      "vm": "gaia-t23-linux2",
+      "id": 44,
+      "kind": "incremental",
+      "reason": "incremental from point 42 (checkpoint gaia-1-62)"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "id": 45,
+      "kind": "incremental",
+      "reason": "incremental from point 41 (checkpoint gaia-2-61)"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "id": 46,
+      "kind": "incremental",
+      "reason": "incremental from point 43 (checkpoint gaia-3-63)"
+    }
+  ],
+  "pass": true
+}
+
+== gate (CLAUDE.md T23, rehearsal)
+{
+  "baseline": true,
+  "unbootable": true,
+  "damage": true,
+  "sandbox": true,
+  "checkpoint": true,
+  "rebuild": true,
+  "verdict": "OK"
+}
+[14:08:30] out: /root/t23r-20261118T125046Z (the server stays until: lab/lab-vm/t23-rehearsal.sh cleanup)

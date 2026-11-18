@@ -1,0 +1,27 @@
+{
+  "test_job": {
+    "id": 13,
+    "state": "ok",
+    "reason": "requested by admin"
+  },
+  "status": {
+    "status": "CRITICAL",
+    "rule": "latest_test_critical",
+    "reason": "the latest restore test (4, point 8) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+  },
+  "notified": {
+    "event": "status",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: OK -> CRITICAL"
+  },
+  "after_fix": {
+    "status": "OK",
+    "reason": "point 16 is proven by test 7: proven RPO 3m45s <= 30m0s, proven RTO 21s <= 15m0s, proof age 6s <= 20m0s"
+  },
+  "notified_after_fix": {
+    "event": "status",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: CRITICAL -> OK"
+  },
+  "pass": true
+}

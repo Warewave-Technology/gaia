@@ -1,0 +1,25 @@
+{
+  "backup_job": {
+    "id": 62,
+    "state": "ok"
+  },
+  "point": {
+    "id": 42,
+    "kind": "full",
+    "reason": "full: checkpoint gaia-1-60 of point 40 is not on the host",
+    "check_state": "ok"
+  },
+  "notified": {
+    "event": "full_backup",
+    "vm": "gaia-t23-linux2",
+    "subject": "Gaia gaia-lab: gaia-t23-linux2: the backup was full (checkpoint gaia-1-60 of point 40 is not on the host)"
+  },
+  "status": {
+    "status": "OK",
+    "reason": "point 40 is proven by test 19: proven RPO 2m56s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m14s <= 20m0s",
+    "notes": [
+      "the newest backup (point 42) is a full backup: checkpoint gaia-1-60 of point 40 is not on the host"
+    ]
+  },
+  "pass": true
+}

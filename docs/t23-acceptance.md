@@ -133,8 +133,8 @@ kodu sıfırlanır; misafir çalışmaya devam eder). Sonra `gaia-t23-linux2`'ni
 
 | Beklenen | Gördüğün |
 |---|---|
-| Test `CRITICAL`, ekran görüntüsünde boot yok, kontrol: seri konsolda `login:` yok | |
-| VM `CRITICAL`, neden: `the latest restore test (N, point M) is CRITICAL: boot ...` | |
+| Test `CRITICAL` (test 5 dakika boyunca açılış bekler), ekran görüntüsünde açılış yok | |
+| VM `CRITICAL`, neden: `the latest restore test (N, point M) is CRITICAL: boot CRITICAL: no match for "(?m)login: *$" on the serial console within 300 s` | |
 | Bildirim (mail + webhook): `gaia-t23-linux2: OK -> CRITICAL`, nedenle | |
 
 Geri al: `/root/gaia/lab/lab-vm/t23-guests.sh fix-boot gaia-t23-linux2`, sonra yine **Back up now** ve **Test a restore now**.
@@ -155,7 +155,7 @@ Mac'ten tam doğrulama: `gaia repositories verify 1 mode=full`, sonra `gaia veri
 |---|---|
 | Doğrulama `critical`, etkilenen nokta(lar) ve içerik ID'leri | |
 | Etkilenen VM(ler) `CRITICAL`, neden: `integrity check failed for point(s) [...]` | |
-| Bildirimler: `integrity` (`verification N found damage ...`), `quarantine`, ve her etkilenen VM için `status` `OK -> CRITICAL` | |
+| Bildirimler: `integrity` (`repository main: verification N found damage in K point disk(s)`), `quarantine` (`damaged repository contents quarantined (verification N)`), ve her etkilenen VM için `status` `OK -> CRITICAL` | |
 | `gaia quarantine list` içeriği gösteriyor | |
 
 Etkilenen her VM için **Back up now**:
@@ -172,7 +172,7 @@ A'da: `systemctl stop gaia-sandbox`. Sonra `gaia-t23-linux2` için **Test a rest
 | Beklenen | Gördüğün |
 |---|---|
 | Test işi `failed`, hata `sandbox helper ...`; bildirim `job_failed`: `restore_test job N of gaia-t23-linux2 failed` | |
-| Overview'da VM'in altında not: `restore test N (point M) could not run: ...` (durum hâlâ `OK`) | |
+| Overview'da VM'in altında not: `restore test N (point M) could not run: not tested: sandbox helper at ...: connect: no such file or directory` (durum hâlâ `OK`) | |
 | Kanıt 1,5 saati geçince (`max_proof_age_s`) VM'ler `WARNING`, neden `the proof (test N) is ... old, over the maximum 1h30m0s`; `status` bildirimi | |
 
 `WARNING`'i görmek için 1,5 saate kadar beklemen gerekebilir (testler saatte bir; durdurmadan önceki son kanıt kadar). Sonra A'da: `systemctl start gaia-sandbox`.
@@ -222,7 +222,7 @@ alıcıda değişiklik gerekmez.
 
 | Beklenen | Gördüğün |
 |---|---|
-| `restore-state` `OK` (ya da `WARNING` ve son dakikaların listesi) | |
+| `restore-state` `WARNING`, problemler yalnızca iki kanal için: `notification channel mail: its secret (SMTP password or webhook secret) is not on this server: ...` ve aynısı `hook` için (beklenen: sırlar kit'te değil). Başka bir problem varsa (ör. son dakikalarda biten işler) metniyle buraya yaz | |
 | Login'den sonra Overview: üç VM, kayıptan önceki durumlarıyla | |
 | Ledger, kayıptan önceki günlük rapora karşı doğrulanıyor (kılavuz 13, adım 6) | |
 | Kanallar sırları olmadan geldi; kapatıp yeni adla ekledin (kılavuz 13, adım 6); `gaia daily-reports run` sonrası gelen raporda `REBUILT: this server was rebuilt ...` satırı | |

@@ -1,0 +1,3 @@
+Domain checkpoint gaia-1-60 deleted
+
+deleted checkpoint gaia-1-60 of gaia-t23-linux2; left: gaia-1-56 

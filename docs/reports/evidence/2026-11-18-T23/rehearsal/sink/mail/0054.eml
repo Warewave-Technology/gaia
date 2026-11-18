@@ -1,0 +1,111 @@
+From: Gaia T23 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: daily report 2026-11-18: 3 OK
+Date: Wed, 18 Nov 2026 14:03:33 +0000
+Message-ID: <gaia-53-daily_report-2@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: daily_report
+Content-Type: multipart/mixed; boundary=171fdc4d54ac1406e9e17754a463713b0ff1634d31ab8137f2f77b132b4e
+
+--171fdc4d54ac1406e9e17754a463713b0ff1634d31ab8137f2f77b132b4e
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+Daily report 2 of Gaia gaia-lab (695c12f98658), 2026-11-18T14:03:31.3303915=
+66Z
+
+OK        gaia-t23-linux2  since 2026-11-18T14:02:17.476535543Z
+          proven RPO 2m56s, proven RTO 23s, proof age 1m14s, theoretical RP=
+O 12s
+          point 40 is proven by test 19: proven RPO 2m56s <=3D 30m0s, prove=
+n RTO 23s <=3D 15m0s, proof age 1m14s <=3D 20m0s
+OK        gaia-t23-uefi  since 2026-11-18T14:03:05.615617676Z
+          proven RPO 1m46s, proven RTO 31s, proof age 26s, theoretical RPO =
+1m46s
+          point 41 is proven by test 20: proven RPO 1m46s <=3D 30m0s, prove=
+n RTO 31s <=3D 15m0s, proof age 26s <=3D 20m0s
+OK        gaia-t23-win  since 2026-11-18T14:01:30.674684112Z
+          proven RPO 9m57s, proven RTO 4m52s, proof age 2m1s, theoretical R=
+PO 4m57s
+          point 36 is proven by test 18: proven RPO 9m57s <=3D 30m0s, prove=
+n RTO 4m52s <=3D 15m0s, proof age 2m1s <=3D 20m0s
+
+Evidence ledger: OK, 15 entries.
+Ledger head (signed, evidence key 7a9ed39106e7d84e255f96ad4528beebde02c1519=
+e6b5c601d2ba1dcaba5126e):
+{"format":"restore-evidence-head","format_version":1,"time":"2026-11-18T14:=
+03:31.330391566Z","key_id":"7a9ed39106e7d84e255f96ad4528beebde02c1519e6b5c6=
+01d2ba1dcaba5126e","seq":15,"entry_sha256":"c91dbb749b98d4af55c945b59878741=
+d01da6f23e654fe01f93ca232eca2e362"}
+Recovery kit: recovery kit 2 was saved off the server on 2026-11-18T12:58:2=
+3.133785067Z by admin
+
+The attached JSON is this report with the signed ledger head. Keep this rep=
+ort. To check the evidence ledger later against the head recorded here, wit=
+h the installation's evidence public key (the trust anchor) and an export o=
+f the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger =
+ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut =
+off or rewritten after this report is CRITICAL (ledger_truncated, head_mism=
+atch).
+
+
+--=20
+Gaia, installation gaia-lab (evidence key 7a9ed39106e7d84e255f96ad4528beebd=
+e02c1519e6b5c601d2ba1dcaba5126e)
+
+--171fdc4d54ac1406e9e17754a463713b0ff1634d31ab8137f2f77b132b4e
+Content-Disposition: attachment; filename="gaia-daily-report-2.json"
+Content-Transfer-Encoding: base64
+Content-Type: application/json; name="gaia-daily-report-2.json"
+
+eyJmb3JtYXQiOiJnYWlhLWRhaWx5LXJlcG9ydCIsImZvcm1hdF92ZXJzaW9uIjoxLCJpZCI6Miwi
+aW5zdGFsbGF0aW9uIjoiZ2FpYS1sYWIiLCJ2ZXJzaW9uIjoiNjk1YzEyZjk4NjU4IiwiZXZpZGVu
+Y2Vfa2V5X2lkIjoiN2E5ZWQzOTEwNmU3ZDg0ZTI1NWY5NmFkNDUyOGJlZWJkZTAyYzE1MTllNmI1
+YzYwMWQyYmExZGNhYmE1MTI2ZSIsImdlbmVyYXRlZF9hdCI6IjIwMjYtMTEtMThUMTQ6MDM6MzEu
+MzMwMzkxNTY2WiIsInJlYXNvbiI6InJlcXVlc3RlZCBieSBhZG1pbiIsInN1bW1hcnkiOnsiT0si
+OjN9LCJ2bXMiOlt7InZtIjoiZ2FpYS10MjMtbGludXgyIiwic3RhdHVzIjoiT0siLCJzaW5jZSI6
+IjIwMjYtMTEtMThUMTQ6MDI6MTcuNDc2NTM1NTQzWiIsInJlYXNvbiI6InBvaW50IDQwIGlzIHBy
+b3ZlbiBieSB0ZXN0IDE5OiBwcm92ZW4gUlBPIDJtNTZzIFx1MDAzYz0gMzBtMHMsIHByb3ZlbiBS
+VE8gMjNzIFx1MDAzYz0gMTVtMHMsIHByb29mIGFnZSAxbTE0cyBcdTAwM2M9IDIwbTBzIiwidGhl
+b3JldGljYWxfcnBvX3MiOjExLjc5MDAzNDI2OSwicHJvdmVuX3Jwb19zIjoxNzYuMzcxOTIxLCJw
+cm92ZW5fcnRvX3MiOjIzLjQyNTA0MDY0MiwicHJvb2ZfYWdlX3MiOjczLjg4NjAyNjgzfSx7InZt
+IjoiZ2FpYS10MjMtdWVmaSIsInN0YXR1cyI6Ik9LIiwic2luY2UiOiIyMDI2LTExLTE4VDE0OjAz
+OjA1LjYxNTYxNzY3NloiLCJyZWFzb24iOiJwb2ludCA0MSBpcyBwcm92ZW4gYnkgdGVzdCAyMDog
+cHJvdmVuIFJQTyAxbTQ2cyBcdTAwM2M9IDMwbTBzLCBwcm92ZW4gUlRPIDMxcyBcdTAwM2M9IDE1
+bTBzLCBwcm9vZiBhZ2UgMjZzIFx1MDAzYz0gMjBtMHMiLCJ0aGVvcmV0aWNhbF9ycG9fcyI6MTA2
+LjAzMzE4MTA2MiwicHJvdmVuX3Jwb19zIjoxMDYuMDMzMTgxMDYyLCJwcm92ZW5fcnRvX3MiOjMx
+LjI1NDM3MzIxMTk5OTk5NywicHJvb2ZfYWdlX3MiOjI1Ljc0NDQzNjUwNH0seyJ2bSI6ImdhaWEt
+dDIzLXdpbiIsInN0YXR1cyI6Ik9LIiwic2luY2UiOiIyMDI2LTExLTE4VDE0OjAxOjMwLjY3NDY4
+NDExMloiLCJyZWFzb24iOiJwb2ludCAzNiBpcyBwcm92ZW4gYnkgdGVzdCAxODogcHJvdmVuIFJQ
+TyA5bTU3cyBcdTAwM2M9IDMwbTBzLCBwcm92ZW4gUlRPIDRtNTJzIFx1MDAzYz0gMTVtMHMsIHBy
+b29mIGFnZSAybTFzIFx1MDAzYz0gMjBtMHMiLCJ0aGVvcmV0aWNhbF9ycG9fcyI6Mjk2LjgzMTc0
+MjI2MiwicHJvdmVuX3Jwb19zIjo1OTcuMDQ2ODQ2MzM5LCJwcm92ZW5fcnRvX3MiOjI5MS45Mjc1
+NzMxNjEsInByb29mX2FnZV9zIjoxMjAuNzYyMzk2NTU0fV0sImxlZGdlcl9jaGVjayI6eyJpZCI6
+MiwiY2hlY2tlZF9hdCI6IjIwMjYtMTEtMThUMTQ6MDM6MzEuMzI3NzQxNjc5WiIsInJlYXNvbiI6
+ImRhaWx5IHJlcG9ydCIsInZlcmRpY3QiOiJPSyIsImVudHJpZXMiOjE1LCJoZWFkX3NlcSI6MTUs
+ImhlYWRfc2hhMjU2IjoiYzkxZGJiNzQ5Yjk4ZDRhZjU1Yzk0NWI1OTg3ODc0MWQwMWRhNmYyM2U2
+NTRmZTAxZjkzY2EyMzJlY2EyZTM2MiIsInByb2JsZW1zIjpbXX0sImxlZGdlcl9oZWFkIjp7InBh
+eWxvYWQiOiJ7XCJmb3JtYXRcIjpcInJlc3RvcmUtZXZpZGVuY2UtaGVhZFwiLFwiZm9ybWF0X3Zl
+cnNpb25cIjoxLFwidGltZVwiOlwiMjAyNi0xMS0xOFQxNDowMzozMS4zMzAzOTE1NjZaXCIsXCJr
+ZXlfaWRcIjpcIjdhOWVkMzkxMDZlN2Q4NGUyNTVmOTZhZDQ1MjhiZWViZGUwMmMxNTE5ZTZiNWM2
+MDFkMmJhMWRjYWJhNTEyNmVcIixcInNlcVwiOjE1LFwiZW50cnlfc2hhMjU2XCI6XCJjOTFkYmI3
+NDliOThkNGFmNTVjOTQ1YjU5ODc4NzQxZDAxZGE2ZjIzZTY1NGZlMDFmOTNjYTIzMmVjYTJlMzYy
+XCJ9Iiwic2lnIjoiVlprRkNmdGZ1dzZxbThGYS8wL0s2blR1RUtJWld3ZFM1NjJvQkROVHF1SDVl
+RE15aDBpRGh3bkxlKzRYRmRyU3JpWFMzalNrekRzNWFoZzhXVVNiQmc9PSJ9LCJyZWNvdmVyeV9r
+aXQiOnsic3RhdGUiOiJjb25maXJtZWQiLCJnZW5lcmF0aW9uIjoyLCJ0ZXh0IjoicmVjb3Zlcnkg
+a2l0IDIgd2FzIHNhdmVkIG9mZiB0aGUgc2VydmVyIG9uIDIwMjYtMTEtMThUMTI6NTg6MjMuMTMz
+Nzg1MDY3WiBieSBhZG1pbiIsImNvbmZpcm1lZF9hdCI6IjIwMjYtMTEtMThUMTI6NTg6MjMuMTMz
+Nzg1MDY3WiIsImNvbmZpcm1lZF9ieSI6ImFkbWluIn0sImxhc3RfcmVidWlsZCI6bnVsbCwibm90
+aWZpY2F0aW9ucyI6eyJzdGF0ZSI6Ik9LIiwiY2hhbm5lbHMiOjIsImVuYWJsZWQiOjIsInRleHQi
+OiIyIGNoYW5uZWwocykgZW5hYmxlZCwgdGhlIGxhc3QgbWVzc2FnZSBvZiBlYWNoIHdhcyBzZW50
+IG9yIGlzIHdhaXRpbmciLCJmYWlsaW5nIjpbXX0sImhvd190b192ZXJpZnkiOiJLZWVwIHRoaXMg
+cmVwb3J0LiBUbyBjaGVjayB0aGUgZXZpZGVuY2UgbGVkZ2VyIGxhdGVyIGFnYWluc3QgdGhlIGhl
+YWQgcmVjb3JkZWQgaGVyZSwgd2l0aCB0aGUgaW5zdGFsbGF0aW9uJ3MgZXZpZGVuY2UgcHVibGlj
+IGtleSAodGhlIHRydXN0IGFuY2hvcikgYW5kIGFuIGV4cG9ydCBvZiB0aGUgbGVkZ2VyIGFuZCBi
+dW5kbGVzOiAgZ2FpYSBldmlkZW5jZSB2ZXJpZnkgLXB1YmtleSBhbmNob3IucHViIC1sZWRnZXIg
+bGVkZ2VyLmpzb25sIC1ldmlkZW5jZS1kaXIgYnVuZGxlcyAtaGVhZCBUSElTLVJFUE9SVC5qc29u
+ICAtLSBhIGxlZGdlciBjdXQgb2ZmIG9yIHJld3JpdHRlbiBhZnRlciB0aGlzIHJlcG9ydCBpcyBD
+UklUSUNBTCAobGVkZ2VyX3RydW5jYXRlZCwgaGVhZF9taXNtYXRjaCkuIiwicHJvYmxlbXMiOltd
+fQ==
+
+--171fdc4d54ac1406e9e17754a463713b0ff1634d31ab8137f2f77b132b4e--

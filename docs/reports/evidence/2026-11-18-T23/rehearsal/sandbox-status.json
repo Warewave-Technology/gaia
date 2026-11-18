@@ -1,0 +1,20 @@
+{
+  "vm_id": 1,
+  "vm": "gaia-t23-linux2",
+  "changed_at": "2026-11-18T13:55:03.555588853Z",
+  "status": "WARNING",
+  "theoretical_rpo_s": 276.762065929,
+  "proven_rpo_s": 1472.287045891,
+  "proven_rto_s": 20.788237797,
+  "proof_age_s": 1213.04100985,
+  "reasons": [
+    {
+      "status": "WARNING",
+      "rule": "proof_too_old",
+      "text": "the proof (test 10) is 20m13s old, over the maximum 20m0s"
+    }
+  ],
+  "notes": [
+    "restore test 16 (point 31) could not run: not tested: sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"
+  ]
+}

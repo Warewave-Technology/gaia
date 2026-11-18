@@ -1,0 +1,71 @@
+{
+  "restore_state": {
+    "verdict": "WARNING",
+    "problems": [
+      "notification channel mail: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 1 enabled=false) and add it again under a new name",
+      "notification channel hook: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 2 enabled=false) and add it again under a new name"
+    ]
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t23-linux2",
+      "status": "OK"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "status": "OK"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t23-linux2",
+      "status": "OK",
+      "reason": "point 40 is proven by test 19: proven RPO 3m13s <= 30m0s, proven RTO 23s <= 15m0s, proof age 1m30s <= 20m0s"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK",
+      "reason": "point 41 is proven by test 20: proven RPO 2m3s <= 30m0s, proven RTO 31s <= 15m0s, proof age 42s <= 20m0s"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "status": "OK",
+      "reason": "point 36 is proven by test 18: proven RPO 10m14s <= 30m0s, proven RTO 4m52s <= 15m0s, proof age 2m18s <= 20m0s"
+    }
+  ],
+  "ledger": {
+    "verdict": "OK",
+    "findings": []
+  },
+  "daily_report": {
+    "event": "daily_report",
+    "vm": null,
+    "subject": "Gaia gaia-lab: daily report 2026-11-18: 3 OK"
+  },
+  "rebuilt_line_mailed": true,
+  "next_backups": [
+    {
+      "vm": "gaia-t23-linux2",
+      "id": 44,
+      "kind": "incremental",
+      "reason": "incremental from point 42 (checkpoint gaia-1-62)"
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "id": 45,
+      "kind": "incremental",
+      "reason": "incremental from point 41 (checkpoint gaia-2-61)"
+    },
+    {
+      "vm": "gaia-t23-win",
+      "id": 46,
+      "kind": "incremental",
+      "reason": "incremental from point 43 (checkpoint gaia-3-63)"
+    }
+  ],
+  "pass": true
+}

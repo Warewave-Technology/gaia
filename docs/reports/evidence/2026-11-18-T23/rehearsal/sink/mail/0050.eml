@@ -1,0 +1,22 @@
+From: Gaia T23 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: gaia-t23-uefi: WARNING -> OK
+Date: Wed, 18 Nov 2026 14:03:08 +0000
+Message-ID: <gaia-49-status-471@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: status
+Content-Type: multipart/mixed; boundary=8eda33696d117b0045072c5573c76f3af3ca7e52b89d14ccaed912b113d0
+
+--8eda33696d117b0045072c5573c76f3af3ca7e52b89d14ccaed912b113d0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+VM gaia-t23-uefi is OK (was WARNING) since 2026-11-18T14:03:05.615666505Z.
+Why: point 41 is proven by test 20: proven RPO 1m20s <=3D 30m0s, proven RTO=
+ 31s <=3D 15m0s, proof age 0s <=3D 20m0s
+
+--=20
+Gaia, installation gaia-lab (evidence key 7a9ed39106e7d84e255f96ad4528beebd=
+e02c1519e6b5c601d2ba1dcaba5126e)
+
+--8eda33696d117b0045072c5573c76f3af3ca7e52b89d14ccaed912b113d0--

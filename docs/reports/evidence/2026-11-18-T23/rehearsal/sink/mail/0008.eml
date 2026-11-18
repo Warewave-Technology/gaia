@@ -1,0 +1,23 @@
+From: Gaia T23 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: gaia-t23-linux2: UNKNOWN -> OK
+Date: Wed, 18 Nov 2026 12:59:38 +0000
+Message-ID: <gaia-7-status-50@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: status
+Content-Type: multipart/mixed; boundary=333774c57f519630a2bf8c5a92266372a452e25bc1e5bdd8a63efbc2694a
+
+--333774c57f519630a2bf8c5a92266372a452e25bc1e5bdd8a63efbc2694a
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+VM gaia-t23-linux2 is OK (was UNKNOWN) since 2026-11-18T12:59:35.276959827Z=
+.
+Why: point 1 is proven by test 1: proven RPO 1m1s <=3D 30m0s, proven RTO 21=
+s <=3D 15m0s, proof age 0s <=3D 20m0s
+
+--=20
+Gaia, installation gaia-lab (evidence key 7a9ed39106e7d84e255f96ad4528beebd=
+e02c1519e6b5c601d2ba1dcaba5126e)
+
+--333774c57f519630a2bf8c5a92266372a452e25bc1e5bdd8a63efbc2694a--

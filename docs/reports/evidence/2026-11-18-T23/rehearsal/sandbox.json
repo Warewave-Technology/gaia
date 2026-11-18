@@ -1,0 +1,33 @@
+{
+  "test_job": {
+    "id": 37,
+    "state": "failed",
+    "error": "sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"
+  },
+  "notified": [
+    {
+      "event": "job_failed",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: restore_test job 37 of gaia-t23-linux2 failed"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: gaia-t23-linux2: OK -> WARNING"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-linux2",
+      "subject": "Gaia gaia-lab: gaia-t23-linux2: WARNING -> OK"
+    }
+  ],
+  "note": [
+    "restore test 13 (point 25) could not run: not tested: sandbox helper at /run/gaia-t23r-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-t23r-sandbox/sandbox.sock: connect: no such file or directory"
+  ],
+  "status": {
+    "status": "WARNING",
+    "rule": "proof_too_old",
+    "reason": "the proof (test 10) is 20m13s old, over the maximum 20m0s"
+  },
+  "pass": true
+}

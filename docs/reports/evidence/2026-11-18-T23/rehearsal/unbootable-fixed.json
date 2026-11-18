@@ -1,0 +1,18 @@
+{
+  "vm_id": 1,
+  "vm": "gaia-t23-linux2",
+  "changed_at": "2026-11-18T13:23:13.760304209Z",
+  "status": "OK",
+  "theoretical_rpo_s": 225.276807171,
+  "proven_rpo_s": 225.276807171,
+  "proven_rto_s": 20.60933824,
+  "proof_age_s": 6.19439154,
+  "reasons": [
+    {
+      "status": "OK",
+      "rule": "proven",
+      "text": "point 16 is proven by test 7: proven RPO 3m45s \u003c= 30m0s, proven RTO 21s \u003c= 15m0s, proof age 6s \u003c= 20m0s"
+    }
+  ],
+  "notes": []
+}

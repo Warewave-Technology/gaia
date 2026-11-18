@@ -1,0 +1,9 @@
+{
+  "baseline": true,
+  "unbootable": true,
+  "damage": true,
+  "sandbox": true,
+  "checkpoint": true,
+  "rebuild": true,
+  "verdict": "OK"
+}

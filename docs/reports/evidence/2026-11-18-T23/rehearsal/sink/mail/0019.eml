@@ -1,0 +1,21 @@
+From: Gaia T23 <gaia@lab.test>
+To: ops@lab.test
+Subject: Gaia gaia-lab: gaia-t23-uefi: OK -> CRITICAL
+Date: Wed, 18 Nov 2026 13:26:18 +0000
+Message-ID: <gaia-18-status-207@gaia-lab>
+MIME-Version: 1.0
+X-Gaia-Event: status
+Content-Type: multipart/mixed; boundary=1afc29cd263f6e2829a217452c6d9100e7e2cbcef212cae0d44989324682
+
+--1afc29cd263f6e2829a217452c6d9100e7e2cbcef212cae0d44989324682
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+VM gaia-t23-uefi is CRITICAL (was OK) since 2026-11-18T13:26:15.908322054Z.
+Why: integrity check failed for point(s) [2 4 7 10 14]
+
+--=20
+Gaia, installation gaia-lab (evidence key 7a9ed39106e7d84e255f96ad4528beebd=
+e02c1519e6b5c601d2ba1dcaba5126e)
+
+--1afc29cd263f6e2829a217452c6d9100e7e2cbcef212cae0d44989324682--

@@ -1,0 +1,69 @@
+{
+  "command": "server restore-state",
+  "result": {
+    "verdict": "WARNING",
+    "problems": [
+      "notification channel mail: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 1 enabled=false) and add it again under a new name",
+      "notification channel hook: its secret (SMTP password or webhook secret) is not on this server: disable it (gaia channels set 2 enabled=false) and add it again under a new name"
+    ],
+    "config": "/var/lib/gaia-t23r/server.json",
+    "data_dir": "/var/lib/gaia-t23r/data",
+    "recovery_kit_generation_used": 2,
+    "recovery_kit": "/var/lib/gaia-t23r/data/recovery/gaia-recovery-kit.age",
+    "recovery_kit_generation": 3,
+    "evidence_key_id": "7a9ed39106e7d84e255f96ad4528beebde02c1519e6b5c601d2ba1dcaba5126e",
+    "tls_certificate_sha256": "7E:F3:61:22:FD:D0:94:67:3D:ED:48:F2:76:69:08:A7:11:48:13:B9:7D:23:32:D8:FC:9C:70:7C:3E:8F:52:5B",
+    "state_backup": {
+      "id": "6b7bc10f2438b213d77d33a258057784",
+      "backup_id": "15",
+      "created": "2026-11-18T14:03:42Z",
+      "hostname": "gaia-lab",
+      "gaia_version": "695c12f98658",
+      "schema_version": 8,
+      "available": 15,
+      "bytes": 527360,
+      "sha256": "9a2c7e84d5503a29085ae5e005995365e13583cdc3f3036060e4d84ecf02dd2a"
+    },
+    "repositories": [
+      {
+        "name": "main",
+        "location": "/var/lib/gaia-t23r/repo/main",
+        "moved": false,
+        "connected": true,
+        "points_not_in_catalog": []
+      }
+    ],
+    "catalog": {
+      "hosts": 1,
+      "vms": 3,
+      "repositories": 1,
+      "policies": 2,
+      "jobs": 63,
+      "points": 43,
+      "present_points": 33,
+      "restore_tests": 20,
+      "evidence_bundles": 14,
+      "users": 1,
+      "audit_entries": 61,
+      "state_changes": 495
+    },
+    "evidence": {
+      "restored": 14,
+      "missing_from_repository": [],
+      "not_in_catalog": []
+    },
+    "ledger": {
+      "verdict": "OK",
+      "entries": 15,
+      "keys": [
+        "7a9ed39106e7d84e255f96ad4528beebde02c1519e6b5c601d2ba1dcaba5126e"
+      ],
+      "problems": []
+    },
+    "interrupted_jobs": 0,
+    "sessions_ended": 1,
+    "restore_tag": "ceca35",
+    "migrated_versions": []
+  },
+  "verdict": "WARNING"
+}

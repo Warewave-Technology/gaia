@@ -1,0 +1,86 @@
+{
+  "verification": {
+    "id": 2,
+    "state": "critical",
+    "points_checked": 16,
+    "affected": [
+      {
+        "point_id": 2,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 4,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 7,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 10,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      },
+      {
+        "point_id": 14,
+        "vm_id": 2,
+        "disk": "vda",
+        "contents": [
+          "d3a7fab39a9c8248e98c9a262d8fa9be"
+        ]
+      }
+    ]
+  },
+  "notified": [
+    {
+      "event": "integrity",
+      "vm": null,
+      "subject": "Gaia gaia-lab: repository main: verification 2 found damage in 5 point disk(s)"
+    },
+    {
+      "event": "quarantine",
+      "vm": null,
+      "subject": "Gaia gaia-lab: damaged repository contents quarantined (verification 2)"
+    },
+    {
+      "event": "status",
+      "vm": "gaia-t23-uefi",
+      "subject": "Gaia gaia-lab: gaia-t23-uefi: OK -> CRITICAL"
+    },
+    {
+      "event": "full_backup",
+      "vm": "gaia-t23-uefi",
+      "subject": "Gaia gaia-lab: gaia-t23-uefi: the backup was full (repository verification 2 quarantined damaged contents used by point 14)"
+    }
+  ],
+  "vms": [
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "CRITICAL",
+      "reason": "integrity check failed for point(s) [2 4 7 10 14]"
+    }
+  ],
+  "after_forget": [
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK",
+      "reason": "point 23 is proven by test 11: proven RPO 4m22s <= 30m0s, proven RTO 32s <= 15m0s, proof age 5s <= 20m0s"
+    }
+  ],
+  "pass": true
+}
