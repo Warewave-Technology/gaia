@@ -1,0 +1,3 @@
+root@gaia-t23-b:/tmp# gaia evidence verify -pubkey /var/lib/gaia/keys/evidence-key.pub -ledger /var/lib/gaia/evidence/ledger.jsonl -evidence-dir /var/lib/gaia/evidence/bundles -head gaia-report.json 
+evidence: OK (trust anchor a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff)
+  head 1: entry 54 663590e7c5a42db9be340549d6397871b5ad2db2d45429f77dbd18588831d0a7 of 2026-11-19T13:51:11.123783536Z: OK

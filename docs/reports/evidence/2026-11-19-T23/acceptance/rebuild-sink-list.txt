@@ -1,0 +1,7 @@
+root@gaia-lab:~# /root/gaia/lab/lab-vm/t23-sink.sh list 6
+2026-11-19T13:49:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:49:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:51:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:51:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T15:36:54Z    mail    daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
+2026-11-19T15:36:54Z    webhook daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
