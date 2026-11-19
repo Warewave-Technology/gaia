@@ -210,18 +210,19 @@ func (c Config) EvidenceLedger() string   { return c.ledgerPath() }
 
 // Server is a running gaia server.
 type Server struct {
-	cfg       Config
-	cfgPath   string
-	db        *store.DB
-	log       *slog.Logger
-	routes    []route
-	handler   http.Handler
-	started   time.Time
-	backupMu  sync.Mutex
-	version   string
-	openapi   []byte
-	sshKey    hostconn.Key
-	repoLocks repoLocks
+	cfg        Config
+	cfgPath    string
+	db         *store.DB
+	log        *slog.Logger
+	routes     []route
+	recomputed recomputeState // the status table's newest full recompute (statuscache.go)
+	handler    http.Handler
+	started    time.Time
+	backupMu   sync.Mutex
+	version    string
+	openapi    []byte
+	sshKey     hostconn.Key
+	repoLocks  repoLocks
 	// Kopia's full safety (24 h before an unreferenced content may go); tests use none.
 	maintenanceSafety maintenance.SafetyParameters
 	logins            *loginGuard

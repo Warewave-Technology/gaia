@@ -780,6 +780,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reason-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The closed list of reason codes and its version (docs/reason-codes.md) */
+        get: operations["get_reason_codes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recovery-kit": {
         parameters: {
             query?: never;
@@ -935,6 +952,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find VMs, hosts and policies by name and a point by id */
+        get: operations["get_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/state-backups": {
         parameters: {
             query?: never;
@@ -977,10 +1011,44 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every VM's status, computed now */
+        /** VMs' statuses from the status table, in VM id order */
         get: operations["get_status"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/status/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare the status table with the status model for every VM (T24) */
+        get: operations["get_status_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/status/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute every VM's status now */
+        post: operations["post_status_recompute"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1091,6 +1159,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/views/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Needs attention: the VMs that are not OK, grouped by reason code and scope (T24) */
+        get: operations["get_views_attention"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/views/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Coverage by host, policy or tag: each group's VMs by status, worst first (T24) */
+        get: operations["get_views_coverage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/views/fleet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The overview's headline: VMs that can return, by status, the worst proven RPO (T24) */
+        get: operations["get_views_fleet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/views/migration": {
         parameters: {
             query?: never;
@@ -1117,6 +1236,23 @@ export interface paths {
         };
         /** The overview screen: every VM's status, proven point, targets and recent history, worst first */
         get: operations["get_views_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/views/vm-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The VM table: filtered, worst first then oldest proof, in pages (T24) */
+        get: operations["get_views_vm_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1231,6 +1367,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vms/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a VM's tags ("key" or "key:value") */
+        put: operations["put_vms_by_id_tags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vms/{id}/tests": {
         parameters: {
             query?: never;
@@ -1257,6 +1410,29 @@ export interface components {
             name: string;
             sha256: string;
             version: number;
+        };
+        AttentionExample: {
+            reason: string;
+            vm: string;
+            vm_id: number;
+        };
+        AttentionGroup: {
+            cause: string;
+            code: string;
+            count: number;
+            example: components["schemas"]["AttentionExample"];
+            hosts: components["schemas"]["NameCount"][];
+            policies: components["schemas"]["NameCount"][];
+            scope: components["schemas"]["Scope"] | null;
+            since: string;
+            status: string;
+        };
+        AttentionView: {
+            clock: components["schemas"]["ServerClock"];
+            groups: components["schemas"]["AttentionGroup"][];
+            next: string;
+            total: number;
+            vms: number;
         };
         AuditCheck: {
             entries: number;
@@ -1347,6 +1523,25 @@ export interface components {
             info?: components["schemas"]["Info"] | null;
             reachable: boolean;
         };
+        CoverageGroup: {
+            by_status: {
+                [key: string]: number;
+            };
+            id: number;
+            name: string;
+            oldest_proof_s: number | null;
+            vms: number;
+            worst_proven_rpo: components["schemas"]["FleetWorst"] | null;
+        };
+        CoverageView: {
+            by: string;
+            clock: components["schemas"]["ServerClock"];
+            groups: components["schemas"]["CoverageGroup"][];
+            healthy: number;
+            next: string;
+            shown: number;
+            total: number;
+        };
         DailyReport: {
             generated_at: string;
             head_seq: number;
@@ -1380,6 +1575,30 @@ export interface components {
             test_id: number | null;
             verdict: string;
             vm_id: number | null;
+        };
+        FleetView: {
+            by_status: {
+                [key: string]: number;
+            };
+            can_return: number;
+            cannot: number;
+            causes: number;
+            clock: components["schemas"]["ServerClock"];
+            ledger: components["schemas"]["LedgerSummary"];
+            notifications: components["schemas"]["NotifySummary"];
+            reason_codes_version: number;
+            recovery_kit: components["schemas"]["KitSummary"];
+            running: components["schemas"]["JobCount"][];
+            status_recompute: components["schemas"]["RecomputeStats"] | null;
+            uncomputed: number;
+            vms: number;
+            worst_proven_rpo: components["schemas"]["FleetWorst"] | null;
+        };
+        FleetWorst: {
+            proven_rpo_s: number;
+            rpo_target_s: number | null;
+            vm: string;
+            vm_id: number;
         };
         Health: {
             status: string;
@@ -1428,6 +1647,11 @@ export interface components {
             started_at: string;
             state: string;
             vm_id: number | null;
+        };
+        JobCount: {
+            count: number;
+            kind: string;
+            state: string;
         };
         JobInfo: {
             checkpoint: string;
@@ -1581,6 +1805,11 @@ export interface components {
             converter: components["schemas"]["ConverterState"];
             sources: components["schemas"]["MigrationSource"][];
         };
+        NameCount: {
+            count: number;
+            id: number;
+            name: string;
+        };
         Notification: {
             attempts: number;
             /** @description any JSON value */
@@ -1664,6 +1893,12 @@ export interface components {
         PointForget: {
             reason: string;
         };
+        PointHit: {
+            id: number;
+            taken_at: string;
+            vm: string;
+            vm_id: number;
+        };
         Policy: {
             backup_interval_s: number;
             check_template: string;
@@ -1736,6 +1971,27 @@ export interface components {
             scope: components["schemas"]["Scope"] | null;
             status: string;
             text: string;
+        };
+        ReasonCode: {
+            cause: string;
+            code: string;
+            means: string;
+            params: string[];
+            rule: string;
+            scope: string;
+            status: string;
+        };
+        ReasonCodes: {
+            codes: components["schemas"]["ReasonCode"][];
+            version: number;
+        };
+        RecomputeStats: {
+            at: string;
+            changed: number;
+            errors: number;
+            reason: string;
+            seconds: number;
+            vms: number;
         };
         RecoveryKit: {
             confirmed_at: string;
@@ -1822,6 +2078,13 @@ export interface components {
             kind: string;
             name: string;
         };
+        SearchView: {
+            hosts: components["schemas"]["NameCount"][];
+            points: components["schemas"]["PointHit"][];
+            policies: components["schemas"]["NameCount"][];
+            q: string;
+            vms: components["schemas"]["NameCount"][];
+        };
         ServerClock: {
             now: string;
             offset_s: number;
@@ -1892,6 +2155,20 @@ export interface components {
             seq: number;
             to: string;
         };
+        StatusCheck: {
+            at: string;
+            differ: components["schemas"]["StatusDiffer"][];
+            due: number;
+            equal: number;
+            seconds: number;
+            verdict: string;
+            vms: number;
+        };
+        StatusDiffer: {
+            model: string;
+            stored: string;
+            vm_id: number;
+        };
         SystemInfo: {
             clock: components["schemas"]["ServerClock"];
             daily_report_at: string;
@@ -1908,6 +2185,9 @@ export interface components {
             state_backup_at: string;
             state_backup_repository: string;
             version: string;
+        };
+        TagsInput: {
+            tags: string[];
         };
         Targets: {
             max_proof_age_s: number;
@@ -1977,6 +2257,35 @@ export interface components {
             name: string;
             policy_id: number | null;
             uuid: string;
+        };
+        VMListRow: {
+            code: string;
+            events: components["schemas"]["TimelineEvent"][];
+            host: string;
+            host_id: number;
+            notes: components["schemas"]["Reason"][];
+            policy: string;
+            policy_id: number | null;
+            proof_age_s: number | null;
+            proven: components["schemas"]["Proven"] | null;
+            proven_rpo_s: number | null;
+            proven_rto_s: number | null;
+            reason: string;
+            scope: components["schemas"]["Scope"] | null;
+            since: string;
+            status: string;
+            tags: string[];
+            targets: components["schemas"]["Targets"] | null;
+            theoretical_rpo_s: number | null;
+            vm: string;
+            vm_id: number;
+        };
+        VMListView: {
+            clock: components["schemas"]["ServerClock"];
+            next: string;
+            rows: components["schemas"]["VMListRow"][];
+            total: number;
+            window_s: number;
         };
         VMOverview: {
             activity: components["schemas"]["Job"][];
@@ -5957,6 +6266,62 @@ export interface operations {
             };
         };
     };
+    get_reason_codes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReasonCodes"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_recovery_kit: {
         parameters: {
             query?: never;
@@ -6748,6 +7113,67 @@ export interface operations {
             };
         };
     };
+    get_search: {
+        parameters: {
+            query?: {
+                /** @description the text */
+                q?: string;
+                /** @description at most this many of each (default 8, at most 50) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_state_backups: {
         parameters: {
             query?: {
@@ -6948,7 +7374,12 @@ export interface operations {
     };
     get_status: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description after this VM id */
+                after?: number;
+                /** @description at most this many (default 100, at most 1000) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6993,6 +7424,136 @@ export interface operations {
             };
             /** @description Internal error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_status_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusCheck"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_status_recompute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecomputeStats"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7561,6 +8122,188 @@ export interface operations {
             };
         };
     };
+    get_views_attention: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                after?: number;
+                /** @description at most this many groups (default 50, at most 200) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttentionView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_coverage: {
+        parameters: {
+            query?: {
+                /** @description host (default), policy or tag */
+                by?: string;
+                /** @description true: also the groups whose VMs are all OK */
+                all?: boolean;
+                /** @description a previous answer's next */
+                after?: number;
+                /** @description at most this many groups (default 50, at most 200) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_fleet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_views_migration: {
         parameters: {
             query?: never;
@@ -7633,6 +8376,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_vm_list: {
+        parameters: {
+            query?: {
+                /** @description comma-separated: OK, WARNING, UNKNOWN, CRITICAL */
+                status?: string;
+                /** @description true: only VMs that are not OK */
+                attention?: boolean;
+                /** @description only this host's */
+                host_id?: number;
+                /** @description only this policy's */
+                policy_id?: number;
+                /** @description key or key:value */
+                tag?: string;
+                /** @description the deciding reason's code */
+                code?: string;
+                /** @description with code: the scope's kind */
+                scope_kind?: string;
+                /** @description with code: the scope's id */
+                scope_id?: number;
+                /** @description a VM, host or policy name, or a point id */
+                q?: string;
+                /** @description name; default: worst first */
+                sort?: string;
+                /** @description a previous answer's next */
+                after?: string;
+                /** @description at most this many (default 50, at most 200) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMListView"];
                 };
             };
             /** @description Invalid request */
@@ -8415,6 +9239,95 @@ export interface operations {
             };
             /** @description Internal error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    put_vms_by_id_tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

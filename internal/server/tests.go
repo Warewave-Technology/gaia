@@ -363,32 +363,28 @@ func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*
 
 // refreshStatus computes a VM's status now and stores it; a change is recorded with its reason.
 func (s *Server) refreshStatus(ctx context.Context, vmID int64) (status.Result, error) {
-	in, err := s.statusInput(ctx, vmID)
-	if err != nil {
-		return status.Result{}, err
-	}
-	r := status.Compute(in)
-	changed, err := s.db.SetVMStatus(ctx, vmID, r.Status, r.Reasons[0].Text, r)
-	if err != nil {
-		return r, err
-	}
-	if changed {
-		s.log.Info("VM status changed", "vm", vmID, "status", r.Status, "reason", r.Reasons[0].Text)
-	}
-	return r, nil
+	r, _, err := s.refreshStatusOf(ctx, vmID)
+	return r, err
 }
 
-// refreshAllStatuses refreshes every VM's status: time alone changes it (RPO and proof age grow).
-func (s *Server) refreshAllStatuses(ctx context.Context) error {
-	vms, err := s.db.VMs(ctx, 0)
+// refreshStatusChanged is refreshStatus that says whether the status changed.
+func (s *Server) refreshStatusChanged(ctx context.Context, vmID int64) (bool, error) {
+	_, changed, err := s.refreshStatusOf(ctx, vmID)
+	return changed, err
+}
+
+func (s *Server) refreshStatusOf(ctx context.Context, vmID int64) (status.Result, bool, error) {
+	in, err := s.statusInput(ctx, vmID)
 	if err != nil {
-		return err
+		return status.Result{}, false, err
 	}
-	var errs []error
-	for _, vm := range vms {
-		if _, err := s.refreshStatus(ctx, vm.ID); err != nil {
-			errs = append(errs, fmt.Errorf("VM %s: %w", vm.Name, err))
-		}
+	r := status.Compute(in)
+	changed, err := s.db.SetVMStatus(ctx, vmID, r.Status, r.Reasons[0].Text, r, statusRow(in, r))
+	if err != nil {
+		return r, false, err
 	}
-	return errors.Join(errs...)
+	if changed {
+		s.log.Info("VM status changed", "vm", vmID, "status", r.Status, "code", r.Reasons[0].Code, "reason", r.Reasons[0].Text)
+	}
+	return r, changed, nil
 }

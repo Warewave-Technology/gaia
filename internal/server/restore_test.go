@@ -222,7 +222,7 @@ func testRestoreState(t *testing.T, s3 string) {
 	if rt := test(clock); rt.Verdict != "OK" {
 		t.Fatalf("first test %+v", rt)
 	}
-	if err := f.s.refreshAllStatuses(ctx); err != nil {
+	if _, err := f.s.recompute(ctx, nil, "test"); err != nil {
 		t.Fatal(err)
 	}
 	if b, err := f.s.BackupState(ctx, "admin", "drill"); err != nil || b.State != "ok" {

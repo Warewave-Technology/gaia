@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // FinishRestoreTest records a test's verdict. The change from UNKNOWN (running) to the verdict is a state change
@@ -140,7 +141,8 @@ func (d *DB) StatusFacts(ctx context.Context, vmID int64) (StatusFacts, error) {
 	return f, rows.Err()
 }
 
-// VMStatus is the status last computed for a VM.
+// VMStatus is the status last computed for a VM, with what the views read: the deciding reason's code and scope, and
+// the inputs of the time-driven figures (unix seconds), so an age is read at the time it is shown.
 type VMStatus struct {
 	VMID       int64           `json:"vm_id"`
 	Status     string          `json:"status"`
@@ -148,34 +150,90 @@ type VMStatus struct {
 	Result     json.RawMessage `json:"result"`
 	ChangedAt  string          `json:"changed_at"`
 	ComputedAt string          `json:"computed_at"`
+	StatusRow
+}
+
+// StatusRow is what a computation stores besides the status and its result.
+type StatusRow struct {
+	Rank             int      `json:"rank"` // CRITICAL 0, UNKNOWN 1, WARNING 2, OK 3
+	Since            *float64 `json:"since"`
+	Code             string   `json:"code"`
+	ScopeKind        string   `json:"scope_kind"`
+	ScopeID          int64    `json:"scope_id"`
+	ScopeName        string   `json:"scope_name"`
+	NewestPointID    *int64   `json:"newest_point_id"`
+	NewestTakenAt    *float64 `json:"newest_taken_at"`
+	ProvenPointID    *int64   `json:"proven_point_id"`
+	ProvenTakenAt    *float64 `json:"proven_taken_at"`
+	ProvenTestID     *int64   `json:"proven_test_id"`
+	ProvenFinishedAt *float64 `json:"proven_finished_at"`
+	ProvenRTOS       *float64 `json:"proven_rto_s"`
+	RPOTargetS       *int64   `json:"rpo_target_s"`
+	RTOTargetS       *int64   `json:"rto_target_s"`
+	MaxProofAgeS     *int64   `json:"max_proof_age_s"`
+	NextChangeAt     *float64 `json:"next_change_at"`
+}
+
+const statusCols = `vm_id, status, reason, result, changed_at, computed_at, rank, since, code, scope_kind, scope_id, scope_name,
+	newest_point_id, newest_taken_at, proven_point_id, proven_taken_at, proven_test_id, proven_finished_at, proven_rto_s,
+	rpo_target_s, rto_target_s, max_proof_age_s, next_change_at`
+
+func scanStatus(s interface{ Scan(...any) error }) (VMStatus, error) {
+	var v VMStatus
+	var res string
+	err := s.Scan(&v.VMID, &v.Status, &v.Reason, &res, &v.ChangedAt, &v.ComputedAt, &v.Rank, &v.Since, &v.Code, &v.ScopeKind, &v.ScopeID,
+		&v.ScopeName, &v.NewestPointID, &v.NewestTakenAt, &v.ProvenPointID, &v.ProvenTakenAt, &v.ProvenTestID, &v.ProvenFinishedAt,
+		&v.ProvenRTOS, &v.RPOTargetS, &v.RTOTargetS, &v.MaxProofAgeS, &v.NextChangeAt)
+	v.Result = json.RawMessage(res)
+	return v, err
 }
 
 // SetVMStatus stores a VM's newly computed status. A change of status is a state change (entity vm_status) with the
 // deciding reason; the same status again only updates the figures and the time.
-func (d *DB) SetVMStatus(ctx context.Context, vmID int64, status, reason string, result any) (changed bool, err error) {
+func (d *DB) SetVMStatus(ctx context.Context, vmID int64, status, reason string, result any, row StatusRow) (changed bool, err error) {
 	b, err := json.Marshal(result)
 	if err != nil {
 		return false, err
 	}
 	err = d.tx(ctx, func(tx *sql.Tx) error {
-		var old string
-		err := tx.QueryRowContext(ctx, `SELECT status FROM vm_status WHERE vm_id = ?`, vmID).Scan(&old)
-		now := d.ts()
+		var old, oldChanged string
+		var oldSince *float64
+		err := tx.QueryRowContext(ctx, `SELECT status, changed_at, since FROM vm_status WHERE vm_id = ?`, vmID).Scan(&old, &oldChanged, &oldSince)
+		t := d.now().UTC()
+		now := t.Format(time.RFC3339Nano)
+		unix := float64(t.UnixNano()) / 1e9
+		set := `rank = ?, code = ?, scope_kind = ?, scope_id = ?, scope_name = ?, newest_point_id = ?, newest_taken_at = ?,
+			proven_point_id = ?, proven_taken_at = ?, proven_test_id = ?, proven_finished_at = ?, proven_rto_s = ?, rpo_target_s = ?,
+			rto_target_s = ?, max_proof_age_s = ?, next_change_at = ?`
+		vals := []any{row.Rank, row.Code, row.ScopeKind, row.ScopeID, row.ScopeName, row.NewestPointID, row.NewestTakenAt,
+			row.ProvenPointID, row.ProvenTakenAt, row.ProvenTestID, row.ProvenFinishedAt, row.ProvenRTOS, row.RPOTargetS,
+			row.RTOTargetS, row.MaxProofAgeS, row.NextChangeAt}
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			if _, err := tx.ExecContext(ctx, `INSERT INTO vm_status (vm_id, status, reason, result, changed_at, computed_at) VALUES (?, ?, ?, ?, ?, ?)`,
-				vmID, status, reason, string(b), now, now); err != nil {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO vm_status (vm_id, status, reason, result, changed_at, computed_at, since) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				vmID, status, reason, string(b), now, now, unix); err != nil {
 				return err
 			}
 		case err != nil:
 			return err
 		case old != status:
-			if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET status = ?, reason = ?, result = ?, changed_at = ?, computed_at = ? WHERE vm_id = ?`,
-				status, reason, string(b), now, now, vmID); err != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET status = ?, reason = ?, result = ?, changed_at = ?, computed_at = ?, since = ? WHERE vm_id = ?`,
+				status, reason, string(b), now, now, unix, vmID); err != nil {
 				return err
 			}
 		default:
-			_, err := tx.ExecContext(ctx, `UPDATE vm_status SET reason = ?, result = ?, computed_at = ? WHERE vm_id = ?`, reason, string(b), now, vmID)
+			since := oldSince
+			if since == nil { // a row from before schema 9
+				if c, err := time.Parse(time.RFC3339Nano, oldChanged); err == nil {
+					u := float64(c.UnixNano()) / 1e9
+					since = &u
+				}
+			}
+			_, err := tx.ExecContext(ctx, `UPDATE vm_status SET reason = ?, result = ?, computed_at = ?, since = ?, `+set+` WHERE vm_id = ?`,
+				append(append([]any{reason, string(b), now, since}, vals...), vmID)...)
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET `+set+` WHERE vm_id = ?`, append(vals, vmID)...); err != nil {
 			return err
 		}
 		changed = true
@@ -186,16 +244,17 @@ func (d *DB) SetVMStatus(ctx context.Context, vmID int64, status, reason string,
 
 // VMStatuses lists the stored statuses, of one VM if vmID > 0.
 func (d *DB) VMStatuses(ctx context.Context, vmID int64) ([]VMStatus, error) {
-	scan := func(s interface{ Scan(...any) error }) (VMStatus, error) {
-		var v VMStatus
-		var res string
-		err := s.Scan(&v.VMID, &v.Status, &v.Reason, &res, &v.ChangedAt, &v.ComputedAt)
-		v.Result = json.RawMessage(res)
-		return v, err
-	}
-	q := `SELECT vm_id, status, reason, result, changed_at, computed_at FROM vm_status`
+	q := `SELECT ` + statusCols + ` FROM vm_status`
 	if vmID > 0 {
-		return rowsOf(ctx, d.db, scan, q+` WHERE vm_id = ?`, vmID)
+		return rowsOf(ctx, d.db, scanStatus, q+` WHERE vm_id = ?`, vmID)
 	}
-	return rowsOf(ctx, d.db, scan, q+` ORDER BY vm_id`)
+	return rowsOf(ctx, d.db, scanStatus, q+` ORDER BY vm_id`)
+}
+
+// DueStatuses lists the VMs whose stored status time alone has changed by now (unix seconds), and those without one.
+func (d *DB) DueStatuses(ctx context.Context, now float64) ([]int64, error) {
+	return rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (int64, error) {
+		var id int64
+		return id, s.Scan(&id)
+	}, `SELECT v.id FROM vms v LEFT JOIN vm_status s ON s.vm_id = v.id WHERE s.vm_id IS NULL OR s.next_change_at <= ? ORDER BY v.id`, now)
 }

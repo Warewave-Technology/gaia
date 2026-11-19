@@ -60,14 +60,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8}) || Latest() != 8 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9}) || Latest() != 9 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 8 || applied[7].Name != "0008_migration_checks.sql" {
+	if err != nil || len(applied) != 9 || applied[8].Name != "0009_scale.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }

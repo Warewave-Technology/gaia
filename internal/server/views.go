@@ -174,7 +174,12 @@ func (s *Server) vmOverview(ctx context.Context, vm store.VM, now time.Time, hos
 
 // timeline is the VM's history strip: the last historyWindow of points, tests and failed backups, oldest first.
 func (s *Server) timeline(ctx context.Context, vmID int64, now time.Time) ([]TimelineEvent, error) {
-	since := now.Add(-historyWindow)
+	return s.timelineSince(ctx, vmID, now, historyWindow)
+}
+
+// timelineSince is the history strip of the last window.
+func (s *Server) timelineSince(ctx context.Context, vmID int64, now time.Time, window time.Duration) ([]TimelineEvent, error) {
+	since := now.Add(-window)
 	tl, err := s.db.VMTimeline(ctx, vmID, since)
 	if err != nil {
 		return nil, err

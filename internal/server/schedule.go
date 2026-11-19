@@ -56,7 +56,7 @@ func (s *Server) tick(ctx context.Context, now time.Time) error {
 	if err := s.startDueVerifications(ctx, now); err != nil {
 		return err
 	}
-	return s.refreshAllStatuses(ctx)
+	return s.refreshStatuses(ctx, now)
 }
 
 // queueDueBackups queues a backup for every VM with a policy whose last backup job is at least its interval old.

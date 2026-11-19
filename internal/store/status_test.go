@@ -86,7 +86,7 @@ func TestStatusFactsAndVMStatus(t *testing.T) {
 		st      string
 		changed bool
 	}{{"UNKNOWN", true}, {"UNKNOWN", false}, {"OK", true}, {"CRITICAL", true}, {"CRITICAL", false}} {
-		ch, err := d.SetVMStatus(ctx, v.ID, c.st, "reason "+c.st, map[string]any{"i": i})
+		ch, err := d.SetVMStatus(ctx, v.ID, c.st, "reason "+c.st, map[string]any{"i": i}, StatusRow{Rank: RankOf(c.st)})
 		if err != nil || ch != c.changed {
 			t.Fatalf("set %d %s: changed %v %v", i, c.st, ch, err)
 		}

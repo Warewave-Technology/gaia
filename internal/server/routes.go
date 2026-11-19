@@ -124,21 +124,13 @@ type VMStatus struct {
 	status.Result
 }
 
-// vmStatus computes a VM's status now, stores it (a change is recorded) and returns it.
+// vmStatus is a VM's stored status, as it reads now (the status table, statuscache.go).
 func (s *Server) vmStatus(ctx context.Context, vm store.VM) (VMStatus, error) {
-	r, err := s.refreshStatus(ctx, vm.ID)
+	r, row, err := s.storedStatus(ctx, vm.ID)
 	if err != nil {
 		return VMStatus{}, err
 	}
-	st, err := s.db.VMStatuses(ctx, vm.ID)
-	if err != nil {
-		return VMStatus{}, err
-	}
-	out := VMStatus{VMID: vm.ID, VM: vm.Name, Result: r}
-	if len(st) == 1 {
-		out.ChangedAt = st[0].ChangedAt
-	}
-	return out, nil
+	return VMStatus{VMID: vm.ID, VM: vm.Name, ChangedAt: row.ChangedAt, Result: r}, nil
 }
 
 // SystemInfo describes the installation.
@@ -220,22 +212,31 @@ func (s *Server) table() []route {
 				_, err := c.w.Write(s.openapi)
 				return http.StatusOK, nil, err
 			}},
-		{method: "GET", path: "/api/v1/status", summary: "Every VM's status, computed now", roles: anyRole, out: []VMStatus{},
+		{method: "GET", path: "/api/v1/status", summary: "VMs' statuses from the status table, in VM id order", roles: anyRole, out: []VMStatus{},
+			query: append([]param{{"after", "integer", "after this VM id"}}, limit...),
 			h: func(c *call) (int, any, error) {
-				vms, err := s.db.VMs(c.r.Context(), 0)
+				after, err := c.intQuery("after", 0, 0)
 				if err != nil {
 					return 0, nil, err
 				}
-				out := []VMStatus{}
-				for _, vm := range vms {
-					v, err := s.vmStatus(c.r.Context(), vm)
-					if err != nil {
-						return 0, nil, fmt.Errorf("VM %s: %w", vm.Name, err)
-					}
-					out = append(out, v)
+				n, err := c.intQuery("limit", 1000, 1000)
+				if err != nil {
+					return 0, nil, err
 				}
-				return http.StatusOK, out, nil
+				return list(s.statusPage(c.r.Context(), after, int(n)))
 			}},
+		{method: "GET", path: "/api/v1/status/check", summary: "Compare the status table with the status model for every VM (T24)", roles: adminAudit,
+			out: StatusCheck{}, h: func(c *call) (int, any, error) { return one(s.checkStatuses(c.r.Context())) }},
+		{method: "POST", path: "/api/v1/status/recompute", summary: "Recompute every VM's status now", roles: adminOnly, out: RecomputeStats{},
+			h: func(c *call) (int, any, error) {
+				st, err := s.recompute(c.r.Context(), nil, "requested by "+c.user.Username)
+				c.detail = fmt.Sprintf("%d VMs, %d changed", st.VMs, st.Changed)
+				return one(st, err)
+			}},
+		{method: "GET", path: "/api/v1/reason-codes", summary: "The closed list of reason codes and its version (docs/reason-codes.md)", roles: anyRole,
+			out: ReasonCodes{}, h: reasonCodes},
+		{method: "GET", path: "/api/v1/search", summary: "Find VMs, hosts and policies by name and a point by id", roles: anyRole, out: SearchView{},
+			query: []param{{"q", "string", "the text"}, {"limit", "integer", "at most this many of each (default 8, at most 50)"}}, h: s.searchView},
 		{method: "GET", path: "/api/v1/system", summary: "Version, schema and the evidence trust anchor", roles: anyRole, out: SystemInfo{}, h: s.systemInfo},
 
 		// --- users ---
@@ -307,7 +308,11 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				c.detail = "changed"
-				return one(s.db.UpdateHost(c.r.Context(), id, p))
+				h, err := s.db.UpdateHost(c.r.Context(), id, p)
+				if err == nil {
+					err = s.db.MarkStatusesDue(c.r.Context(), id, 0) // the host's name is in its VMs' reasons
+				}
+				return one(h, err)
 			}},
 		{method: "DELETE", path: "/api/v1/hosts/{id}", summary: "Remove a host without VMs", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "host", s.db.DeleteHost) }},
@@ -415,8 +420,14 @@ func (s *Server) table() []route {
 				if p.PolicyID != nil {
 					c.detail = fmt.Sprintf("policy_id %d", *p.PolicyID)
 				}
-				return one(s.db.UpdateVM(c.r.Context(), id, p))
+				vm, err := s.db.UpdateVM(c.r.Context(), id, p)
+				if err == nil && p.PolicyID != nil {
+					_, err = s.refreshStatus(c.r.Context(), id) // a new policy, new targets
+				}
+				return one(vm, err)
 			}},
+		{method: "PUT", path: "/api/v1/vms/{id}/tags", summary: "Replace a VM's tags (\"key\" or \"key:value\")", roles: writers, in: TagsInput{}, out: []string{},
+			example: `{"tags":["env:prod"]}`, h: s.setTags},
 		{method: "DELETE", path: "/api/v1/vms/{id}", summary: "Remove a VM without points", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "VM", s.db.DeleteVM) }},
 		{method: "POST", path: "/api/v1/vms/{id}/backups", summary: "Queue a backup of the VM now", roles: writers, out: store.Job{}, status: http.StatusAccepted,
@@ -712,7 +723,11 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				c.detail = "changed"
-				return one(s.db.UpdatePolicy(c.r.Context(), id, p))
+				pol, err := s.db.UpdatePolicy(c.r.Context(), id, p)
+				if err == nil {
+					err = s.db.MarkStatusesDue(c.r.Context(), 0, id) // the targets decide its VMs' status
+				}
+				return one(pol, err)
 			}},
 		{method: "DELETE", path: "/api/v1/policies/{id}", summary: "Remove a policy no VM uses", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "policy", s.db.DeletePolicy) }},
@@ -843,6 +858,22 @@ func (s *Server) table() []route {
 			roles: anyRole, out: OverviewView{}, h: s.overviewView},
 		{method: "GET", path: "/api/v1/views/vms/{id}", summary: "One VM's page: status, history, tests, points and evidence",
 			roles: anyRole, out: VMView{}, h: s.vmView},
+		{method: "GET", path: "/api/v1/views/fleet", summary: "The overview's headline: VMs that can return, by status, the worst proven RPO (T24)",
+			roles: anyRole, out: FleetView{}, h: s.fleetView},
+		{method: "GET", path: "/api/v1/views/attention", summary: "Needs attention: the VMs that are not OK, grouped by reason code and scope (T24)",
+			roles: anyRole, out: AttentionView{}, query: []param{{"after", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many groups (default 50, at most 200)"}},
+			h: s.attentionView},
+		{method: "GET", path: "/api/v1/views/coverage", summary: "Coverage by host, policy or tag: each group's VMs by status, worst first (T24)",
+			roles: anyRole, out: CoverageView{}, query: []param{{"by", "string", "host (default), policy or tag"}, {"all", "boolean", "true: also the groups whose VMs are all OK"},
+				{"after", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many groups (default 50, at most 200)"}},
+			h: s.coverageView},
+		{method: "GET", path: "/api/v1/views/vm-list", summary: "The VM table: filtered, worst first then oldest proof, in pages (T24)",
+			roles: anyRole, out: VMListView{}, query: []param{{"status", "string", "comma-separated: OK, WARNING, UNKNOWN, CRITICAL"},
+				{"attention", "boolean", "true: only VMs that are not OK"}, {"host_id", "integer", "only this host's"}, {"policy_id", "integer", "only this policy's"},
+				{"tag", "string", "key or key:value"}, {"code", "string", "the deciding reason's code"}, {"scope_kind", "string", "with code: the scope's kind"},
+				{"scope_id", "integer", "with code: the scope's id"}, {"q", "string", "a VM, host or policy name, or a point id"}, {"sort", "string", "name; default: worst first"},
+				{"after", "string", "a previous answer's next"}, {"limit", "integer", "at most this many (default 50, at most 200)"}},
+			h: s.vmListView},
 		{method: "GET", path: "/api/v1/views/migration", summary: "The migration screen: the converter, the sources and the checks (T21)",
 			roles: anyRole, out: MigrationView{}, h: s.migrationView},
 		{method: "GET", path: "/api/v1/evidence/{id}/export", summary: "Export a bundle with the ledger and the trust anchor (tar.gz, ADR-006)",
