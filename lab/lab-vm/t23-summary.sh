@@ -18,7 +18,8 @@ jq -n --slurpfile jobs "$d/jobs.json" --slurpfile tests "$d/tests.json" --slurpf
 	  first_job: ($jobs[0] | map(.created_at) | min),
 	  newest_job: ($jobs[0] | map(.created_at) | max),
 	  schedule_hours: ((($jobs[0] | map(.created_at | t) | max) - ($jobs[0] | map(.created_at | t) | min)) / 3600 * 100 | floor / 100),
-	  # each VM'"'"'s scheduled backups, one after another: every 30 minutes, so a gap over 35 minutes is the server down
+	  # the backups of each VM (scheduled or asked for), one after another: due every 30 minutes, so a gap over 35
+	  # minutes is the server down
 	  schedule_gaps_over_35m: [$sched | group_by(.vm_id)[] as $v | range(1; $v | length) as $i
 	      | {vm: name($v[0].vm_id), from: $v[$i-1].created_at[0:19], to: $v[$i].created_at[0:19], min: ((($v[$i].created_at | t) - ($v[$i-1].created_at | t)) / 60 | floor)}
 	      | select(.min > 35)],
