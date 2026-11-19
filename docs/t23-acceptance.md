@@ -280,23 +280,23 @@ cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Ti
 
 Mac'te yeni `gaia`'yı aç (`gaia-0.1.2-darwin-arm64.tar.gz`), `gaia system` `0.1.2` desin.
 
-- [ ] Yükseltme sonunda `gaia: restarted; check with: gaia system`; Overview'da üç VM aynı durumda.
+- [x] Yükseltme sonunda `gaia: restarted; check with: gaia system`; Overview'da üç VM aynı durumda.
 
 **4.4 tekrar:** gaia-lab'de `/root/gaia/lab/lab-vm/t23-guests.sh delete-checkpoint gaia-t23-linux2`, sonra **Back up now**.
 Not, bu full nokta en yeni nokta olduğu sürece görünür: bir sonraki yedekte (en geç 30 dakika) kalkar, o yüzden hemen bak.
 
 | Beklenen | Gördüğün |
 |---|---|
-| Yedek koşarken VM adının altında `backup running (job N, since ...)`; sayfayı yenilemeden biter, gösterge kalkar | |
-| Overview'da gerekçenin altında, açık: `note` `the newest backup (point M) is a full backup: checkpoint ... is not on the host` | |
-| VM sayfasında başlığın altında aynı not; noktalar tablosunda yeni noktanın **Why**'ı `checkpoint ... of point N is not on the host` | |
+| Yedek koşarken VM adının altında `backup running (job N, since ...)`; sayfayı yenilemeden biter, gösterge kalkar | Beklendiği gibi |
+| Overview'da gerekçenin altında, açık: `note` `the newest backup (point M) is a full backup: checkpoint ... is not on the host` | Beklendiği gibi |
+| VM sayfasında başlığın altında aynı not; noktalar tablosunda yeni noktanın **Why**'ı `checkpoint ... of point N is not on the host` | Beklendiği gibi |
 
 **4.3 tekrar:** B'de `systemctl stop gaia-sandbox`, sonra `gaia-t23-linux2` için **Test a restore now**.
 
 | Beklenen | Gördüğün |
 |---|---|
-| Test beklerken ve koşarken göstergede `restore test waiting` / `restore test running` | |
-| Overview'da gerekçenin altında, açık: `note` `restore test N (point M) could not run: not tested: sandbox helper at ...` | |
+| Test beklerken ve koşarken göstergede `restore test waiting` / `restore test running` | Beklendiği gibi |
+| Overview'da gerekçenin altında, açık: `note` `restore test N (point M) could not run: not tested: sandbox helper at ...` | Beklendiği gibi |
 
 Sonra B'de `systemctl start gaia-sandbox`; bir sonraki test `OK` olunca not kalkar.
 
