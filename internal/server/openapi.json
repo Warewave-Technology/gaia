@@ -2909,6 +2909,12 @@
       "VMOverview": {
         "additionalProperties": false,
         "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            },
+            "type": "array"
+          },
           "changed_at": {
             "type": "string"
           },
@@ -2991,6 +2997,7 @@
           }
         },
         "required": [
+          "activity",
           "changed_at",
           "events",
           "host",

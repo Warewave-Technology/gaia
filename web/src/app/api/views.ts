@@ -11,18 +11,26 @@ export type TimelineEvent = components['schemas']['TimelineEvent']
 export type SystemInfo = components['schemas']['SystemInfo']
 export type EvidenceBundle = components['schemas']['EvidenceBundle']
 
-// The screens refresh on their own: the status changes with time alone (RPO and proof age grow).
-const REFRESH = 30_000
+// The screens refresh on their own: the status changes with time alone (RPO and proof age grow), and faster while
+// a job runs or waits, so its end shows within seconds. They refresh in a background tab too: a wall screen is one.
+const REFRESH = 15_000
+const BUSY = 5_000
 
 export function useOverview() {
-  return useQuery({ queryKey: ['views', 'overview'], queryFn: () => unwrap(api.GET('/api/v1/views/overview')), refetchInterval: REFRESH })
+  return useQuery({
+    queryKey: ['views', 'overview'],
+    queryFn: () => unwrap(api.GET('/api/v1/views/overview')),
+    refetchInterval: (q) => (q.state.data?.vms.some((v) => v.activity.length > 0) ? BUSY : REFRESH),
+    refetchIntervalInBackground: true,
+  })
 }
 
 export function useVMView(id: number) {
   return useQuery({
     queryKey: ['views', 'vm', id],
     queryFn: () => unwrap(api.GET('/api/v1/views/vms/{id}', { params: { path: { id } } })),
-    refetchInterval: REFRESH,
+    refetchInterval: (q) => ((q.state.data?.status.activity.length ?? 0) > 0 ? BUSY : REFRESH),
+    refetchIntervalInBackground: true,
   })
 }
 

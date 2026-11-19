@@ -6,7 +6,7 @@ import { ApiError } from '../api/errors'
 import { can, useMe } from '../api/session'
 import { useVMAction, useVMView, type TestView, type VMView } from '../api/views'
 import { Failed, Loading } from '../layout/States'
-import { Button, DataTable, HistoryStrip, Legend, Notice, ProofBar, RowToggle, StatusChip, asStatus, by, type Column } from '../ui'
+import { Activity, Button, DataTable, HistoryStrip, Legend, Notice, ProofBar, RowToggle, StatusChip, asStatus, by, type Column } from '../ui'
 import s from './VMPage.module.css'
 
 /** One VM (L3): where it can return to, how that is proven, and the record behind it. */
@@ -51,6 +51,13 @@ function VMBody({ v }: { v: VMView }) {
             {t.since(asStatus(st.status), at(st.changed_at))} {t.where(v.host.name, v.host.address)}
             {pol && <>, {t.policy} <b>{pol.name}</b></>}{v.repository && <>, {t.repository} <b>{v.repository.name}</b></>}.
           </p>
+          {st.reasons.length > 0 && (
+            <ul className={s.reasons}>
+              {st.reasons.map((x, i) => <li key={i}><StatusChip status={x.status} size="xs" /><span>{x.text}</span></li>)}
+              {st.notes.map((n, i) => <li key={`n${i}`}><span className={s.nl}>{tt.overview.note}</span><span>{n}</span></li>)}
+            </ul>
+          )}
+          <Activity jobs={st.activity} fmt={fmt} wide />
         </div>
         <div className={s.answer}>
           {st.proven ? (
@@ -262,6 +269,7 @@ function PointsTable({ v, fmt }: { v: VMView; fmt: Fmt }) {
     { key: 'taken', header: t.col.taken, numeric: true, compare: by((p) => p.taken_at), cell: (p) => `${fmt.date(p.taken_at)} ${fmt.clock(p.taken_at)}` },
     { key: 'kind', header: t.col.kind, compare: by((p) => p.kind), cell: (p) => p.kind },
     { key: 'size', header: t.col.size, numeric: true, compare: by((p) => p.bytes), cell: (p) => `${Math.round(p.bytes / 1048576)} MiB` },
+    { key: 'why', header: t.col.why, clip: true, cell: (p) => <span title={p.reason}>{p.reason}</span> },
     { key: 'check', header: t.col.check, compare: by(check), cell: (p) => <StatusChip status={check(p)} size="xs" /> },
     {
       key: 'test', header: t.col.test, cell: (p) => (

@@ -4,7 +4,7 @@ import { dur } from '../../lib/duration'
 import { serverTime, type Fmt } from '../../lib/time'
 import { useOverview, type OverviewView, type VMOverview } from '../api/views'
 import { Failed, Loading } from '../layout/States'
-import { GaiaMark, HistoryStrip, Legend, Notice, ProofBar, ProofScale, StatusChip, asStatus } from '../ui'
+import { Activity, GaiaMark, HistoryStrip, Legend, Notice, ProofBar, ProofScale, StatusChip, asStatus } from '../ui'
 import s from './Overview.module.css'
 
 const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
@@ -94,6 +94,7 @@ function Row({ r, fmt, now, windowS }: { r: VMOverview; fmt: Fmt; now: string; w
         <StatusChip status={st} />
         <Link className={s.vm} to={`/vms/${r.vm_id}`}>{r.vm}</Link>
         <span className={s.sub}>{r.host}{r.policy ? '' : `, ${t.noPolicy}`}</span>
+        <Activity jobs={r.activity} fmt={fmt} />
       </th>
       <td className={s.cRet}>
         {r.proven ? (
@@ -129,12 +130,16 @@ function Row({ r, fmt, now, windowS }: { r: VMOverview; fmt: Fmt; now: string; w
       </td>
       <td className={s.cWhy}>
         <p>{r.reasons[0]?.text}</p>
-        {(r.reasons.length > 1 || r.notes.length > 0) && (
+        {r.notes.length > 0 && (
+          <ul className={s.notes}>
+            {r.notes.map((n, i) => <li key={i}><span className={s.nl}>{t.note}</span><span>{n}</span></li>)}
+          </ul>
+        )}
+        {r.reasons.length > 1 && (
           <details>
-            <summary>{t.reasons}</summary>
+            <summary>{t.moreReasons(r.reasons.length - 1)}</summary>
             <ul>
-              {r.reasons.map((x, i) => <li key={i}><StatusChip status={x.status} size="xs" /><span>{x.text}</span></li>)}
-              {r.notes.map((n, i) => <li key={`n${i}`} className={s.note}><span className={s.nl}>{t.note}</span><span>{n}</span></li>)}
+              {r.reasons.slice(1).map((x, i) => <li key={i}><StatusChip status={x.status} size="xs" /><span>{x.text}</span></li>)}
             </ul>
           </details>
         )}

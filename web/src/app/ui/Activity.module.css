@@ -1,0 +1,8 @@
+.act { display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; max-width: 260px; font-size: var(--text-sm); color: var(--blue); }
+.act.wide { max-width: none; }
+.txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wide .txt { white-space: normal; }
+.spin { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--blue); border-right-color: transparent; animation: spin 0.9s linear infinite; }
+.wait { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 2px dotted var(--blue); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; border-right-color: var(--blue); } }

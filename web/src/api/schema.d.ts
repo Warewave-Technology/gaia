@@ -1952,6 +1952,7 @@ export interface components {
             uuid: string;
         };
         VMOverview: {
+            activity: components["schemas"]["Job"][];
             changed_at: string;
             events: components["schemas"]["TimelineEvent"][];
             host: string;

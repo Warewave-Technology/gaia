@@ -184,6 +184,12 @@ func (s *Server) createRepository(c *call) (int, any, error) {
 		} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return 0, nil, fmt.Errorf("%w: %s: %v", store.ErrInvalid, in.Location, err)
 		}
+		// Made here, so that a directory the server may not write (a disk mounted on /srv/gaia after the package
+		// made it) is named as such, not as a missing path deep in the storage layer.
+		if err := os.MkdirAll(in.Location, 0o750); err != nil {
+			return 0, nil, fmt.Errorf("%w: the server cannot make %s: %v (the directory it goes in must belong to the gaia user: chown gaia:gaia <that directory>; "+
+				"outside /srv/gaia the service also needs it in ReadWritePaths, install.md step 7)", store.ErrInvalid, in.Location, err)
+		}
 	} else if empty, err := diskstore.Empty(ctx, o); err != nil {
 		return 0, nil, fmt.Errorf("%w: %v", store.ErrInvalid, err)
 	} else if !empty {

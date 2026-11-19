@@ -14,6 +14,11 @@ h2 { font-size: var(--text-md); font-weight: 600; margin: 0 0 14px; }
 .id h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.018em; line-height: 1.1; }
 .sub { flex-basis: 100%; margin: 2px 0 0; color: var(--fg4); }
 .sub b { color: var(--fg2); font-weight: 500; }
+.reasons { flex-basis: 100%; list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 5px; color: var(--fg2); font-size: 13.5px; line-height: 1.45; }
+.reasons li { display: flex; align-items: baseline; gap: 8px; }
+.reasons li > span:last-child { overflow-wrap: anywhere; }
+.nl { flex: none; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--fg4); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 1px 5px; }
+.id > [role="status"] { flex-basis: 100%; margin-top: 0; }
 .answer { display: flex; flex-direction: column; gap: 4px; align-self: start; }
 .lbl { font-size: 12.5px; color: var(--fg4); }
 .when { font-size: var(--text-hero); line-height: 1; font-weight: 500; color: var(--fg0); letter-spacing: -0.03em; margin: 2px 0 8px; font-variant-numeric: tabular-nums; }

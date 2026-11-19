@@ -171,7 +171,9 @@ gaia repositories add name=main location=/srv/gaia/main
 ```
 
 It asks for the recovery kit's passphrase from step 4: a new repository means a new recovery kit that can open
-it. The answer shows `splitter: FIXED-1M` and `hash: BLAKE2B-256-128`. The directory must be empty or not exist. If it
+it. The answer shows `splitter: FIXED-1M` and `hash: BLAKE2B-256-128`. The directory must be empty or not exist, and
+the directory it goes in must belong to the `gaia` user. The package makes `/srv/gaia` so; a disk you mount on
+`/srv/gaia` after that (a repository on its own disk) belongs to root until you run `chown gaia:gaia /srv/gaia`. If it
 is not under `/srv/gaia`, the service may not write there. In that case, run `systemctl edit gaia`, add this
 section, and restart:
 
@@ -192,7 +194,8 @@ gaia repositories add name=main kind=s3 location=https://<endpoint>:<port>/<buck
 - It asks for the secret access key, then for the kit passphrase. Never put the secret key on the command line.
 - `<folder>` is optional. Nothing may be stored under it yet.
 - If the endpoint's TLS certificate is not signed by a CA the server trusts (a self-signed one), add
-  `s3_ca_file=<CA certificate file>`: Gaia then checks the certificate against that file.
+  `s3_ca_file=<CA certificate file>`: Gaia then checks the certificate against that file. The file is on the computer
+  where you run `gaia`: the command sends its certificates to the server.
 - `http://` instead of `https://` sends everything unencrypted on the network except the backup data itself, which
   Kopia encrypts. Use it only on a network you trust.
 - Add `?region=<name>` to the location if the storage needs a region.
@@ -270,7 +273,8 @@ GAIA_SMTP_PASSWORD='the mail account password' gaia channels add name=ops-mail k
 ```
 
 Leave out `username` (and the password) if the mail server takes mail from the Gaia server without logging in. Add
-`ca_file=/path/ca.pem` if the mail server's certificate is signed by your own CA.
+`ca_file=/path/ca.pem` if the mail server's or the webhook's certificate is signed by your own CA. The file is on the
+computer where you run `gaia` (not on the server): the command sends its certificates to the server.
 
 A **webhook** (an HTTPS endpoint of your chat or ticket system, or your own receiver):
 
@@ -786,6 +790,7 @@ With migration checks (step 10d), also: `rm -rf /var/lib/gaia-convert && userdel
 | `gaia status` ends with `WARNING recovery kit: ...` | Do what it says: `gaia kit save` (step 8b), or `gaia kit regenerate` and then `gaia kit save`. |
 | `the passphrase does not open the current recovery kit` | Use the kit passphrase from step 4 (not the admin password). |
 | `restore-state`: `... is not empty` | The data directory must be empty. A failed `restore-state` empties it again itself; anything else in it is not Gaia's. |
+| `repositories add`: `the server cannot make <path>: ... permission denied` | The directory above it belongs to root (a disk mounted on `/srv/gaia`): `chown gaia:gaia /srv/gaia` (step 7). |
 | `restore-state`: `the state repository ... cannot be opened` | Mount the repository, or give its path with `-repository <name>=<path>`; its files must belong to `gaia`. |
 | `restore-state`: `... belong to different installations` | The kit is not the one of the server that wrote this repository. |
 | S3: `x509: certificate signed by unknown authority` | The endpoint's certificate is self-signed: add `s3_ca_file=<CA file>` (step 7b). |

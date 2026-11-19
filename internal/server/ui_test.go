@@ -144,6 +144,17 @@ func TestViews(t *testing.T) {
 	if row.VM != "seed-vm" || row.Targets == nil || row.Targets.RPOS != 3600 || row.Host != "seed-host" || row.Policy != "seed" || ov.Clock.Zone == "" {
 		t.Fatalf("overview row: %+v %+v", row, ov.Clock)
 	}
+	if row.Activity == nil || len(row.Activity) != 0 {
+		t.Fatalf("activity with no open job: %+v", row.Activity)
+	}
+	queued, err := f.s.db.CreateJob(ctx, "admin", "restore_test", &vmID, "requested by admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st := f.do(f.tokens[store.RoleAuditor], "GET", "/api/v1/views/overview", "", &ov); st != 200 || len(ov.VMs[0].Activity) != 1 ||
+		ov.VMs[0].Activity[0].ID != queued.ID || ov.VMs[0].Activity[0].State != "queued" {
+		t.Fatalf("activity with a queued test: %d %+v", st, ov.VMs[0].Activity)
+	}
 	var vv VMView
 	if st := f.do(f.tokens[store.RoleOperator], "GET", "/api/v1/views/vms/"+itoa(vmID), "", &vv); st != 200 || vv.VM.ID != vmID || vv.Policy == nil || vv.Repository == nil {
 		t.Fatalf("vm view: %d %+v", st, vv)

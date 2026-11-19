@@ -36,9 +36,15 @@ export const en = {
     provenBy: (test: number, at: string) => `proven by test ${test} at ${at}`,
     target: (d: string) => `target ${d}`,
     max: (d: string) => `max ${d}`,
-    reasons: 'Reasons',
+    moreReasons: (n: number) => (n === 1 ? '1 more reason' : `${n} more reasons`),
     note: 'note',
     noPolicy: 'no policy',
+  },
+  activity: {
+    kind: (k: string) => (k === 'backup' ? 'backup' : k === 'restore_test' ? 'restore test' : k === 'migration_check' ? 'migration check' : k),
+    running: (what: string, id: number, at: string) => `${what} running (job ${id}, since ${at})`,
+    queued: (what: string, id: number, at: string) => `${what} waiting (job ${id}, queued ${at})`,
+    more: (n: number) => `, ${n} more`,
   },
   legend: {
     proven: 'proven RPO', newest: 'newest backup', target: 'target', backup: 'backup', passed: 'restore test passed',

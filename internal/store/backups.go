@@ -179,6 +179,11 @@ func (d *DB) OpenJob(ctx context.Context, vmID int64, kind string) (Job, bool, e
 	return j, err == nil, err
 }
 
+// OpenJobs lists a VM's queued and running jobs of every kind, oldest first.
+func (d *DB) OpenJobs(ctx context.Context, vmID int64) ([]Job, error) {
+	return rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE vm_id = ? AND state IN ('queued', 'running') ORDER BY id`, vmID)
+}
+
 // LastJob returns a VM's newest job of a kind, if any.
 func (d *DB) LastJob(ctx context.Context, vmID int64, kind string) (Job, bool, error) {
 	j, err := scanJob(d.db.QueryRowContext(ctx, `SELECT `+jobCols+` FROM jobs WHERE vm_id = ? AND kind = ? ORDER BY id DESC LIMIT 1`, vmID, kind))

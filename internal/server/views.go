@@ -77,6 +77,8 @@ type VMOverview struct {
 	Targets *Targets        `json:"targets"`
 	Proven  *Proven         `json:"proven"`
 	Events  []TimelineEvent `json:"events"`
+	// Activity is what the server does for the VM now: its queued and running jobs, oldest first.
+	Activity []store.Job `json:"activity"`
 }
 
 // OverviewView is the overview screen: every VM, worst first, and the installation's own state.
@@ -162,6 +164,9 @@ func (s *Server) vmOverview(ctx context.Context, vm store.VM, now time.Time, hos
 			TestFinishedAt: f.Passing.FinishedAt, BundleID: f.Passing.BundleID}
 	}
 	if row.Events, err = s.timeline(ctx, vm.ID, now); err != nil {
+		return row, err
+	}
+	if row.Activity, err = s.db.OpenJobs(ctx, vm.ID); err != nil {
 		return row, err
 	}
 	return row, nil

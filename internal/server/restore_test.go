@@ -44,6 +44,18 @@ func TestRecoveryKitAPI(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(f.dir, "repo")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("a repository was made although the passphrase was wrong: %v", err)
 	}
+	// A directory the server may not write in (T23: a disk mounted on /srv/gaia belonged to root): a 400 that says so.
+	ro := filepath.Join(f.dir, "mounted")
+	if err := os.Mkdir(ro, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	var ae apiError
+	if os.Geteuid() == 0 {
+		// root writes anywhere: nothing to show
+	} else if st := f.do(admin, "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`,
+		filepath.Join(ro, "main"), kitPassphrase), &ae); st != 400 || !strings.Contains(ae.Error, "cannot make") || !strings.Contains(ae.Error, "chown gaia:gaia") {
+		t.Fatalf("a repository in a directory the server cannot write: %d %+v", st, ae)
+	}
 	if st := f.do(admin, "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`,
 		filepath.Join(f.dir, "repo"), kitPassphrase), nil); st != 201 {
 		t.Fatalf("repository: %d", st)
