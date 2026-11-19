@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -83,12 +83,15 @@ type VMOverview struct {
 
 // OverviewView is the overview screen: every VM, worst first, and the installation's own state.
 type OverviewView struct {
-	Clock         ServerClock   `json:"clock"`
-	WindowS       int64         `json:"window_s"`
-	VMs           []VMOverview  `json:"vms"`
-	Ledger        LedgerSummary `json:"ledger"`
-	RecoveryKit   KitSummary    `json:"recovery_kit"`
-	Notifications NotifySummary `json:"notifications"`
+	Clock         ServerClock    `json:"clock"`
+	WindowS       int64          `json:"window_s"`
+	VMs           []VMOverview   `json:"vms"`       // a page, worst first then oldest proof
+	Total         int            `json:"total"`     // every VM
+	ByStatus      map[string]int `json:"by_status"` // every VM by status
+	Next          string         `json:"next"`      // after= for the next page; empty on the last
+	Ledger        LedgerSummary  `json:"ledger"`
+	RecoveryKit   KitSummary     `json:"recovery_kit"`
+	Notifications NotifySummary  `json:"notifications"`
 }
 
 var statusRank = map[string]int{"CRITICAL": 0, "UNKNOWN": 1, "WARNING": 2, "OK": 3}
@@ -96,26 +99,31 @@ var statusRank = map[string]int{"CRITICAL": 0, "UNKNOWN": 1, "WARNING": 2, "OK":
 func (s *Server) overviewView(c *call) (int, any, error) {
 	ctx := c.r.Context()
 	now := s.now()
-	vms, err := s.db.VMs(ctx, 0)
+	n, err := c.intQuery("limit", 500, 500)
 	if err != nil {
 		return 0, nil, err
 	}
-	out := OverviewView{Clock: serverClock(now), WindowS: int64(historyWindow / time.Second), VMs: []VMOverview{}}
-	hosts := map[int64]string{}
-	for _, vm := range vms {
-		row, err := s.vmOverview(ctx, vm, now, hosts)
+	// From the status table, worst first then oldest proof, in pages (T24): the T20 screen reads the first page.
+	rows, total, err := s.db.ListVMs(ctx, store.VMFilter{After: c.r.URL.Query().Get("after"), Limit: int(n)})
+	if err != nil {
+		return 0, nil, err
+	}
+	fc, err := s.db.FleetCounts(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	out := OverviewView{Clock: serverClock(now), WindowS: int64(historyWindow / time.Second), VMs: []VMOverview{}, Total: total,
+		ByStatus: map[string]int{status.Critical: fc.Critical, status.Unknown: fc.Unknown, status.Warning: fc.Warning, status.OK: fc.OK}}
+	for _, r := range rows {
+		row, err := s.overviewRow(ctx, r, now)
 		if err != nil {
-			return 0, nil, fmt.Errorf("VM %s: %w", vm.Name, err)
+			return 0, nil, fmt.Errorf("VM %s: %w", r.Name, err)
 		}
 		out.VMs = append(out.VMs, row)
 	}
-	sort.SliceStable(out.VMs, func(i, j int) bool {
-		a, b := out.VMs[i], out.VMs[j]
-		if statusRank[a.Status] != statusRank[b.Status] {
-			return statusRank[a.Status] < statusRank[b.Status]
-		}
-		return proofAge(a) > proofAge(b)
-	})
+	if len(rows) == int(n) {
+		out.Next = rows[len(rows)-1].Cursor
+	}
 	if out.Ledger, err = s.ledgerSummary(ctx); err != nil {
 		return 0, nil, err
 	}
@@ -128,12 +136,29 @@ func (s *Server) overviewView(c *call) (int, any, error) {
 	return http.StatusOK, out, nil
 }
 
-// proofAge orders VMs of one status: the oldest proof (or none) first.
-func proofAge(v VMOverview) float64 {
-	if v.ProofAge == nil {
-		return 1e18
+// overviewRow is one VM of the overview, from its status table row.
+func (s *Server) overviewRow(ctx context.Context, r store.VMRow, now time.Time) (VMOverview, error) {
+	lr, err := s.vmListRow(ctx, r, now)
+	if err != nil {
+		return VMOverview{}, err
 	}
-	return *v.ProofAge
+	res := status.Result{Status: lr.Status, Reasons: []status.Reason{}, Notes: []string{}, NoteReasons: []status.Reason{}}
+	if r.Status.VMID != 0 {
+		if res, err = renderStatus(r.Status, now); err != nil {
+			return VMOverview{}, err
+		}
+	} else {
+		res.Reasons = append(res.Reasons, status.Reason{Status: status.Unknown, Code: status.NoRule, Text: lr.Reason})
+	}
+	row := VMOverview{VMStatus: VMStatus{VMID: r.ID, VM: r.Name, ChangedAt: r.Status.ChangedAt, Result: res}, Host: r.Host, Policy: r.Policy,
+		Targets: lr.Targets, Proven: lr.Proven, Events: []TimelineEvent{}}
+	if row.Events, err = s.timeline(ctx, r.ID, now); err != nil {
+		return row, err
+	}
+	if row.Activity, err = s.db.OpenJobs(ctx, r.ID); err != nil {
+		return row, err
+	}
+	return row, nil
 }
 
 func (s *Server) vmOverview(ctx context.Context, vm store.VM, now time.Time, hosts map[int64]string) (VMOverview, error) {

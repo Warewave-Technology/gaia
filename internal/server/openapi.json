@@ -1809,17 +1809,29 @@
       "OverviewView": {
         "additionalProperties": false,
         "properties": {
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
           "clock": {
             "$ref": "#/components/schemas/ServerClock"
           },
           "ledger": {
             "$ref": "#/components/schemas/LedgerSummary"
           },
+          "next": {
+            "type": "string"
+          },
           "notifications": {
             "$ref": "#/components/schemas/NotifySummary"
           },
           "recovery_kit": {
             "$ref": "#/components/schemas/KitSummary"
+          },
+          "total": {
+            "type": "integer"
           },
           "vms": {
             "items": {
@@ -1832,10 +1844,13 @@
           }
         },
         "required": [
+          "by_status",
           "clock",
           "ledger",
+          "next",
           "notifications",
           "recovery_kit",
+          "total",
           "vms",
           "window_s"
         ],

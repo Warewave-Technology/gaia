@@ -1833,10 +1833,15 @@ export interface components {
             text: string;
         };
         OverviewView: {
+            by_status: {
+                [key: string]: number;
+            };
             clock: components["schemas"]["ServerClock"];
             ledger: components["schemas"]["LedgerSummary"];
+            next: string;
             notifications: components["schemas"]["NotifySummary"];
             recovery_kit: components["schemas"]["KitSummary"];
+            total: number;
             vms: components["schemas"]["VMOverview"][];
             window_s: number;
         };
