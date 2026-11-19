@@ -2148,6 +2148,7 @@ export interface components {
         StateChange: {
             actor: string;
             at: string;
+            code: string;
             entity: string;
             entity_id: number;
             from: string;

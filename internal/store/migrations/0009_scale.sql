@@ -38,3 +38,7 @@ CREATE INDEX points_vm_checked ON points (vm_id, state, check_state, taken_at);
 CREATE INDEX restore_tests_vm_verdict ON restore_tests (vm_id, verdict, id);
 CREATE INDEX points_vm_taken ON points (vm_id, taken_at);
 CREATE INDEX restore_tests_vm_finished ON restore_tests (vm_id, finished_at);
+
+-- A VM status change records the deciding reason's code with its sentence, so a notification or a reader later
+-- knows the cause as it was (ADR-007 C3); '' for every other change.
+ALTER TABLE state_changes ADD COLUMN code TEXT NOT NULL DEFAULT '';

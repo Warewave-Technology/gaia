@@ -140,17 +140,22 @@ type StateChange struct {
 	To       string `json:"to"`
 	Reason   string `json:"reason"`
 	Actor    string `json:"actor"`
+	Code     string `json:"code"` // a VM status change: the deciding reason's code (docs/reason-codes.md)
 }
 
 func (d *DB) recordState(ctx context.Context, tx *sql.Tx, entity string, id int64, from, to, reason, actor string) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		d.ts(), entity, id, from, to, reason, actor)
+	return d.recordStateCode(ctx, tx, entity, id, from, to, reason, actor, "")
+}
+
+func (d *DB) recordStateCode(ctx context.Context, tx *sql.Tx, entity string, id int64, from, to, reason, actor, code string) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.ts(), entity, id, from, to, reason, actor, code)
 	return err
 }
 
 // StateChanges lists the recorded changes of one entity (entity "" lists all), oldest first.
 func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after int64, limit int) ([]StateChange, error) {
-	q := `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor FROM state_changes WHERE seq > ?`
+	q := `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor, code FROM state_changes WHERE seq > ?`
 	args := []any{after}
 	if entity != "" {
 		q += ` AND entity = ?`
@@ -168,7 +173,7 @@ func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after in
 	out := []StateChange{}
 	for rows.Next() {
 		var c StateChange
-		if err := rows.Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor); err != nil {
+		if err := rows.Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor, &c.Code); err != nil {
 			return nil, err
 		}
 		out = append(out, c)

@@ -237,7 +237,7 @@ func (d *DB) SetVMStatus(ctx context.Context, vmID int64, status, reason string,
 			return err
 		}
 		changed = true
-		return d.recordState(ctx, tx, "vm_status", vmID, old, status, reason, "system")
+		return d.recordStateCode(ctx, tx, "vm_status", vmID, old, status, reason, "system", row.Code)
 	})
 	return changed, err
 }

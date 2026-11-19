@@ -46,7 +46,7 @@ func fleetFixture(t *testing.T) (*fixture, map[string]int64, time.Time) {
 	for i := 1; i <= 3; i++ {
 		cases = append(cases, vmCase{fmt.Sprintf("db-%d", i), "kvm-a", func(id int64) status.Input {
 			return status.Input{Targets: targets, NewestChecked: &status.Point{ID: id, TakenAt: ago(200 + i)}, LatestTest: good(id), LatestPassingTest: good(id),
-				Host: &status.Scope{Kind: status.ScopeHost, ID: hosts["kvm-a"], Name: "kvm-a"},
+				Host:         &status.Scope{Kind: status.ScopeHost, ID: hosts["kvm-a"], Name: "kvm-a"},
 				FailedBackup: &status.Backup{JobID: 900 + id, FinishedAt: ago(5), Error: "dial tcp: i/o timeout", Unreachable: true}}
 		}})
 	}

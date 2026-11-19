@@ -59,14 +59,17 @@ const rebuildShown = 48 * time.Hour
 
 // ReportVM is one VM's line in the report.
 type ReportVM struct {
-	VM             string   `json:"vm"`
-	Status         string   `json:"status"`
-	Since          string   `json:"since"`
-	Reason         string   `json:"reason"`
-	TheoreticalRPO *float64 `json:"theoretical_rpo_s"`
-	ProvenRPO      *float64 `json:"proven_rpo_s"`
-	ProvenRTO      *float64 `json:"proven_rto_s"`
-	ProofAge       *float64 `json:"proof_age_s"`
+	VM             string        `json:"vm"`
+	Status         string        `json:"status"`
+	Since          string        `json:"since"`
+	Reason         string        `json:"reason"`
+	Code           string        `json:"code"`  // the deciding reason's code (docs/reason-codes.md)
+	Scope          *status.Scope `json:"scope"` // its shared cause, if any
+	Codes          []string      `json:"codes"` // every reason's code, worst first
+	TheoreticalRPO *float64      `json:"theoretical_rpo_s"`
+	ProvenRPO      *float64      `json:"proven_rpo_s"`
+	ProvenRTO      *float64      `json:"proven_rto_s"`
+	ProofAge       *float64      `json:"proof_age_s"`
 }
 
 // NotifySummary is the state of the notification channels.
@@ -231,7 +234,12 @@ func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (sto
 			doc.Summary[status.Unknown]++
 			continue
 		}
+		codes := []string{}
+		for _, x := range st.Reasons {
+			codes = append(codes, string(x.Code))
+		}
 		doc.VMs = append(doc.VMs, ReportVM{VM: vm.Name, Status: st.Status, Since: st.ChangedAt, Reason: st.Reasons[0].Text,
+			Code: string(st.Reasons[0].Code), Scope: st.Reasons[0].Scope, Codes: codes,
 			TheoreticalRPO: st.TheoreticalRPO, ProvenRPO: st.ProvenRPO, ProvenRTO: st.ProvenRTO, ProofAge: st.ProofAge})
 		doc.Summary[st.Status]++
 	}

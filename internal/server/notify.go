@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -112,6 +113,10 @@ type Event struct {
 	Change        *store.StateChange `json:"state_change,omitempty"`
 	VM            string             `json:"vm,omitempty"`
 	Job           *store.Job         `json:"job,omitempty"`
+	// A status change: the deciding reason's code when it changed, and every reason of the VM's status now (when it
+	// is still the status the change went to), with codes, scopes and parameters (ADR-007 C3).
+	Code    string          `json:"code,omitempty"`
+	Reasons []status.Reason `json:"reasons,omitempty"`
 	// Daily report only: the report, and its signed ledger head on top, so the saved body works with
 	// gaia evidence verify -head.
 	LedgerHead json.RawMessage `json:"ledger_head,omitempty"`
@@ -356,9 +361,17 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		if from == "" {
 			from = "(new)"
 		}
-		ev.Event, ev.VM = evStatus, vm.Name
+		ev.Event, ev.VM, ev.Code = evStatus, vm.Name, sc.Code
 		ev.Subject = fmt.Sprintf("%s: %s -> %s", vm.Name, from, sc.To)
 		ev.Text = fmt.Sprintf("VM %s is %s (was %s) since %s.\nWhy: %s", vm.Name, sc.To, from, sc.At, sc.Reason)
+		if sc.Code != "" {
+			ev.Text += "\nCode: " + sc.Code
+		}
+		if r, _, err := s.storedStatus(ctx, vm.ID); err != nil {
+			return nil, err
+		} else if r.Status == sc.To {
+			ev.Reasons = r.Reasons
+		}
 	case sc.Entity == "job" && sc.To == "failed":
 		j, err := s.db.Job(ctx, sc.EntityID)
 		if err != nil {

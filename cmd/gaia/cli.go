@@ -49,7 +49,7 @@ type resource struct {
 var resources = map[string]resource{
 	"users":            {"/api/v1/users", []string{"list", "get", "add", "set", "unlock"}},
 	"hosts":            {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
-	"vms":              {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status"}},
+	"vms":              {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status", "tags"}},
 	"repositories":     {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
 	"policies":         {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
 	"jobs":             {"/api/v1/jobs", []string{"list", "get"}},
@@ -265,6 +265,8 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("POST", res.path+"/"+id+"/tests", nil)
 	case "status":
 		return call("GET", res.path+"/"+id+"/status", nil)
+	case "tags": // gaia vms tags ID [key|key:value ...]: replaces the VM's tags (none: removes them)
+		return call("PUT", res.path+"/"+id+"/tags", map[string]any{"tags": append([]string{}, rest...)})
 	case "trust", "verify", "maintenance", "forget":
 		body, err := keyValues(rest)
 		if err != nil {
@@ -596,28 +598,52 @@ func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool
 		ProofAge       *float64 `json:"proof_age_s"`
 		Reasons        []struct {
 			Status string `json:"status"`
+			Code   string `json:"code"`
 			Text   string `json:"text"`
 		} `json:"reasons"`
 		Notes []string `json:"notes"`
 	}
-	path := "/api/v1/status"
-	if len(args) > 0 {
-		path = "/api/v1/vms/" + url.PathEscape(args[0]) + "/status"
-	}
-	b, _, err := c.Do(ctx, "GET", path, nil)
-	if err != nil {
-		return fail(asJSON, "status", err)
+	if len(args) > 0 && (args[0] == "check" || args[0] == "recompute") {
+		return cliStatusTable(ctx, c, args[0], asJSON)
 	}
 	var vs []vmStatus
+	var b []byte
 	if len(args) > 0 {
+		var err error
+		if b, _, err = c.Do(ctx, "GET", "/api/v1/vms/"+url.PathEscape(args[0])+"/status", nil); err != nil {
+			return fail(asJSON, "status", err)
+		}
 		var v vmStatus
-		err = json.Unmarshal(b, &v)
+		if err := json.Unmarshal(b, &v); err != nil {
+			return fail(asJSON, "status", err)
+		}
 		vs = []vmStatus{v}
 	} else {
-		err = json.Unmarshal(b, &vs)
-	}
-	if err != nil {
-		return fail(asJSON, "status", err)
+		// Every page: the exit code is the worst status of every VM, never of the first thousand.
+		var all []json.RawMessage
+		for after := int64(0); ; {
+			page, _, err := c.Do(ctx, "GET", fmt.Sprintf("/api/v1/status?after=%d&limit=1000", after), nil)
+			if err != nil {
+				return fail(asJSON, "status", err)
+			}
+			var raw []json.RawMessage
+			var got []vmStatus
+			if err := json.Unmarshal(page, &raw); err != nil {
+				return fail(asJSON, "status", err)
+			}
+			if err := json.Unmarshal(page, &got); err != nil {
+				return fail(asJSON, "status", err)
+			}
+			all, vs = append(all, raw...), append(vs, got...)
+			if len(got) < 1000 {
+				break
+			}
+			after = got[len(got)-1].VMID
+		}
+		var err error
+		if b, err = json.Marshal(all); err != nil {
+			return fail(asJSON, "status", err)
+		}
 	}
 	worst := "OK"
 	if len(vs) == 0 {
@@ -647,14 +673,14 @@ func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool
 		return time.Duration(*s * float64(time.Second)).Round(time.Second).String()
 	}
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "VM\tSTATUS\tSINCE\tTHEORETICAL RPO\tPROVEN RPO\tPROVEN RTO\tPROOF AGE\tREASON")
+	fmt.Fprintln(tw, "VM\tSTATUS\tSINCE\tTHEORETICAL RPO\tPROVEN RPO\tPROVEN RTO\tPROOF AGE\tCODE\tREASON")
 	for _, v := range vs {
-		reason := "-"
+		reason, code := "-", "-"
 		if len(v.Reasons) > 0 {
-			reason = v.Reasons[0].Text
+			reason, code = v.Reasons[0].Text, v.Reasons[0].Code
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", v.VM, v.Status, v.ChangedAt, d(v.TheoreticalRPO), d(v.ProvenRPO),
-			d(v.ProvenRTO), d(v.ProofAge), reason)
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", v.VM, v.Status, v.ChangedAt, d(v.TheoreticalRPO), d(v.ProvenRPO),
+			d(v.ProvenRTO), d(v.ProofAge), code, reason)
 	}
 	tw.Flush()
 	if len(args) > 0 && len(vs) == 1 {
@@ -700,6 +726,56 @@ func cliStatus(ctx context.Context, c *client.Client, args []string, asJSON bool
 				fmt.Printf("%s notifications: %s\n", info.Notifications.State, info.Notifications.Text)
 			}
 		}
+	}
+	return code
+}
+
+// cliStatusTable is `gaia status check` (the status table against the status model, exit 0 OK / 2 when a VM differs)
+// and `gaia status recompute` (every VM's status now; admins).
+func cliStatusTable(ctx context.Context, c *client.Client, what string, asJSON bool) int {
+	method, path := "GET", "/api/v1/status/check"
+	if what == "recompute" {
+		method, path = "POST", "/api/v1/status/recompute"
+	}
+	b, _, err := c.Do(ctx, method, path, nil)
+	if err != nil {
+		return fail(asJSON, "status "+what, err)
+	}
+	var r struct {
+		VMs     int     `json:"vms"`
+		Equal   int     `json:"equal"`
+		Due     int     `json:"due"`
+		Changed int     `json:"changed"`
+		Errors  int     `json:"errors"`
+		Seconds float64 `json:"seconds"`
+		Verdict string  `json:"verdict"`
+		Differ  []struct {
+			VMID   int64  `json:"vm_id"`
+			Stored string `json:"stored"`
+			Model  string `json:"model"`
+		} `json:"differ"`
+	}
+	if err := json.Unmarshal(b, &r); err != nil {
+		return fail(asJSON, "status "+what, err)
+	}
+	code := 0
+	if what == "check" && r.Verdict != "OK" {
+		code = 2
+	}
+	if what == "recompute" && r.Errors > 0 {
+		code = 3
+	}
+	if asJSON {
+		os.Stdout.Write(b)
+		return code
+	}
+	if what == "recompute" {
+		fmt.Printf("recomputed %d VMs in %.3f s: %d changed status, %d errors\n", r.VMs, r.Seconds, r.Changed, r.Errors)
+		return code
+	}
+	fmt.Printf("%s: %d VMs, %d equal to the status model, %d due at the next tick, %d differ (%.3f s)\n", r.Verdict, r.VMs, r.Equal, r.Due, len(r.Differ), r.Seconds)
+	for _, d := range r.Differ {
+		fmt.Printf("  VM %d\n    stored %s\n    model  %s\n", d.VMID, d.Stored, d.Model)
 	}
 	return code
 }

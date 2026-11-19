@@ -3118,6 +3118,9 @@
           "at": {
             "type": "string"
           },
+          "code": {
+            "type": "string"
+          },
           "entity": {
             "type": "string"
           },
@@ -3140,6 +3143,7 @@
         "required": [
           "actor",
           "at",
+          "code",
           "entity",
           "entity_id",
           "from",

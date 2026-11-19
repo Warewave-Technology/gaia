@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -209,7 +210,11 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 	hook, sink := notifyChannels(t, f)
 	vmID, repoID, verID, jobID := f.ids["vms"], f.ids["repositories"], f.ids["verifications"], f.ids["jobs"]
 
-	// status: the VM gets its first status
+	// status: the VM's status changes (its first was computed when it was registered, before the channels)
+	pts, _ := f.s.db.Points(ctx, vmID, 1)
+	if _, err := f.s.db.SetPointCheck(ctx, "system", pts[0].ID, false, "test: a failed check"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := f.s.refreshStatus(ctx, vmID); err != nil {
 		t.Fatal(err)
 	}
@@ -269,6 +274,15 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 	if !slices.Equal(got, want) || len(hook.bad) > 0 {
 		t.Fatalf("webhook got %v (problems %v), want %v", got, hook.bad, want)
 	}
+	// A status change carries the deciding reason's code (ADR-007 C3).
+	hook.mu.Lock()
+	for _, e := range hook.events {
+		if e.Event == evStatus && (e.Code == "" || e.Change == nil || e.Change.Code != e.Code) {
+			hook.mu.Unlock()
+			t.Fatalf("a status event without its code: %+v", e)
+		}
+	}
+	hook.mu.Unlock()
 	sink.mu.Lock()
 	defer sink.mu.Unlock()
 	var subjects, mailed []string
@@ -294,7 +308,7 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 	if !slices.Equal(mailed, want) {
 		t.Fatalf("mail got %v, want %v (subjects %q)", mailed, want, subjects)
 	}
-	if !slices.ContainsFunc(subjects, func(s string) bool { return strings.Contains(s, "seed-vm: (new) -> ") }) {
+	if !slices.ContainsFunc(subjects, func(s string) bool { return strings.Contains(s, "seed-vm: UNKNOWN -> CRITICAL") }) {
 		t.Fatalf("no status subject among %q", subjects)
 	}
 	if !slices.ContainsFunc(subjects, func(s string) bool {
@@ -350,7 +364,10 @@ func TestNotificationRetry(t *testing.T) {
 	hook.mu.Lock()
 	hook.status = 503
 	hook.mu.Unlock()
-	if _, err := f.s.refreshStatus(ctx, f.ids["vms"]); err != nil {
+	// A status change after the channels exist (the VM's first status was computed when it was registered).
+	fake := status.Result{Status: status.Critical, Reasons: []status.Reason{{Status: status.Critical, Rule: "no_rule", Code: status.NoRule, Text: "test"}},
+		Notes: []string{}, NoteReasons: []status.Reason{}}
+	if _, err := f.s.db.SetVMStatus(ctx, f.ids["vms"], status.Critical, "test", fake, store.StatusRow{Code: string(status.NoRule)}); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.s.notifyOnce(ctx, time.Now()); err != nil {

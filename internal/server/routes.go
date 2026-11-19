@@ -396,6 +396,9 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				v, err := s.db.CreateVM(c.r.Context(), c.user.Username, in)
+				if err == nil {
+					_, err = s.refreshStatus(c.r.Context(), v.ID) // in the status table from the start (UNKNOWN until proven)
+				}
 				return created(c, "VM "+in.Name, v, v.ID, err)
 			}},
 		{method: "GET", path: "/api/v1/vms/{id}", summary: "One VM", roles: anyRole, out: store.VM{},
