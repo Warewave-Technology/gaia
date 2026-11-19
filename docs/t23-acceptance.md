@@ -261,6 +261,46 @@ Kendi sözlerinle, Türkçe:
 Bir denetçi gözüyle: `ui-auditor` gibi bir auditor kullanıcısıyla giriş yap ve **Evidence** ekranından export al
 (kılavuz 10c), ya da `gaia evidence export-all`. Export'un README'si çevrimdışı doğrulamayı anlatıyor.
 
+## 8. 0.1.2 ile tekrar bakış (notlarının düzeltmeleri)
+
+0.1.2 notlarını düzeltiyor: ekranlar şu an çalışan işi gösteriyor (VM adının altında mavi dönen gösterge ve metin),
+notlar gerekçenin altında açık duruyor, noktalar tablosunda **Why** sütunu var (satır açılınca tam metin), ekranlar iş
+çalışırken 5 sn'de bir, boştayken 15 sn'de bir kendini yeniliyor. Sunucu B (`gaia-t23-b`, `192.168.1.122`) üzerinde,
+**kılavuz adım 12** ile (release dosyaları Mac'te `releases/0.1.2/`):
+
+```bash
+cd ~/Desktop/Works/Warewave/projects/gaia/releases/0.1.2 && ssh-keygen -Y verify -f ../../packaging/release/allowed_signers -I release@gaia -n gaia-release -s SHA256SUMS.sig < SHA256SUMS && shasum -a 256 -c SHA256SUMS && scp gaia_0.1.2_amd64.deb SHA256SUMS gaia@192.168.1.122:/tmp/
+```
+
+B'de, root olarak:
+
+```bash
+cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Timeout=300 install -y ./gaia_0.1.2_amd64.deb
+```
+
+Mac'te yeni `gaia`'yı aç (`gaia-0.1.2-darwin-arm64.tar.gz`), `gaia system` `0.1.2` desin.
+
+- [ ] Yükseltme sonunda `gaia: restarted; check with: gaia system`; Overview'da üç VM aynı durumda.
+
+**4.4 tekrar:** gaia-lab'de `/root/gaia/lab/lab-vm/t23-guests.sh delete-checkpoint gaia-t23-linux2`, sonra **Back up now**.
+
+| Beklenen | Gördüğün |
+|---|---|
+| Yedek koşarken VM adının altında `backup running (job N, since ...)`; sayfayı yenilemeden biter, gösterge kalkar | |
+| Overview'da gerekçenin altında, açık: `note` `the newest backup (point M) is a full backup: checkpoint ... is not on the host` | |
+| VM sayfasında başlığın altında aynı not; noktalar tablosunda yeni noktanın **Why**'ı `checkpoint ... of point N is not on the host` | |
+
+**4.3 tekrar:** B'de `systemctl stop gaia-sandbox`, sonra `gaia-t23-linux2` için **Test a restore now**.
+
+| Beklenen | Gördüğün |
+|---|---|
+| Test beklerken ve koşarken göstergede `restore test waiting` / `restore test running` | |
+| Overview'da gerekçenin altında, açık: `note` `restore test N (point M) could not run: not tested: sandbox helper at ...` | |
+
+Sonra B'de `systemctl start gaia-sandbox`; bir sonraki test `OK` olunca not kalkar.
+
+Not: ______________________________________________
+
 ## Notlar
 
 | Saat | Adım | Ne oldu |
