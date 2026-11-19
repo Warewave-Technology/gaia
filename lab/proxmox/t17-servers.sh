@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# fixture: the Gaia servers of the T17 disaster-recovery drill and the T23 MVP acceptance (names gaia-t17-* and
-# gaia-t23-*), on the Proxmox host. Server A protects a VM and
+# fixture: the Gaia servers of the T17 disaster-recovery drill, the T23 MVP acceptance and the T24 scale gate (names
+# gaia-t17-*, gaia-t23-*, gaia-t24-*), on the Proxmox host. Server A protects a VM and
 # is lost; server B is a fresh machine that takes over with the recovery kit and A's repository disk, which survives
 # A (like a SAN volume or a second disk moved to the new machine).
 #
@@ -31,7 +31,7 @@ DEBIAN_IMG_SHA512="485a390d1c5e3a9f57ebb903654c21044c5d5b5b94de126d28b9d0cd96011
 command -v qm >/dev/null || { echo "run this on a Proxmox host"; exit 3; }
 
 name_of() { qm config "$1" | awk '$1 == "name:" { print $2 }'; }
-ours() { [[ "$(name_of "$1")" == gaia-t17-* || "$(name_of "$1")" == gaia-t23-* ]] || { echo "VM $1 is '$(name_of "$1")', not a gaia-t17- or gaia-t23- VM: refusing"; exit 3; }; }
+ours() { [[ "$(name_of "$1")" =~ ^gaia-t(17|23|24)- ]] || { echo "VM $1 is '$(name_of "$1")', not a gaia-t17-, gaia-t23- or gaia-t24- VM: refusing"; exit 3; }; }
 
 ip_of() {
 	local i
@@ -46,7 +46,7 @@ ip_of() {
 case "${1:-}" in
 create)
 	vmid=${2:?VMID} name=${3:?NAME} keys=${4:?PUBKEYS}
-	[[ "$name" == gaia-t17-* || "$name" == gaia-t23-* ]] || { echo "NAME must start with gaia-t17- or gaia-t23-"; exit 3; }
+	[[ "$name" =~ ^gaia-t(17|23|24)- ]] || { echo "NAME must start with gaia-t17-, gaia-t23- or gaia-t24-"; exit 3; }
 	if qm status "$vmid" >/dev/null 2>&1; then echo "VMID $vmid is in use ($(name_of "$vmid"))"; exit 3; fi
 	echo "${DEBIAN_IMG_SHA512}  ${DEBIAN_IMG}" | sha512sum -c --quiet
 	qm create "$vmid" --name "$name" --ostype l26 --machine q35 --cpu host --cores "$CORES" --memory "$MEMORY" \
