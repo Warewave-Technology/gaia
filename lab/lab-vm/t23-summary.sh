@@ -12,16 +12,16 @@ jq -n --slurpfile jobs "$d/jobs.json" --slurpfile tests "$d/tests.json" --slurpf
 	--slurpfile vs "$d/vms-status.json" --slurpfile sc <(jq -s . "$d/state-changes.jsonl") '
 	def t: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601;
 	def name($id): ($vms[0][] | select(.id == $id) | .name) // ($id | tostring);
-	($jobs[0] | map(select(.kind == "backup" and (.reason | startswith("schedule")))) | sort_by(.created_at)) as $sched
+	($jobs[0] | map(select(.kind == "backup")) | sort_by(.created_at)) as $sched
 	| {
 	  version: $sys[0].version,
 	  first_job: ($jobs[0] | map(.created_at) | min),
 	  newest_job: ($jobs[0] | map(.created_at) | max),
 	  schedule_hours: ((($jobs[0] | map(.created_at | t) | max) - ($jobs[0] | map(.created_at | t) | min)) / 3600 * 100 | floor / 100),
-	  # scheduled backups of any VM, one after another: with 3 VMs every 30 minutes, a gap over 20 minutes is the server down
-	  schedule_gaps_over_20m: [range(1; $sched | length) as $i
-	      | {from: $sched[$i-1].created_at[0:19], to: $sched[$i].created_at[0:19], min: ((($sched[$i].created_at | t) - ($sched[$i-1].created_at | t)) / 60 | floor)}
-	      | select(.min > 20)],
+	  # each VM'"'"'s scheduled backups, one after another: every 30 minutes, so a gap over 35 minutes is the server down
+	  schedule_gaps_over_35m: [$sched | group_by(.vm_id)[] as $v | range(1; $v | length) as $i
+	      | {vm: name($v[0].vm_id), from: $v[$i-1].created_at[0:19], to: $v[$i].created_at[0:19], min: ((($v[$i].created_at | t) - ($v[$i-1].created_at | t)) / 60 | floor)}
+	      | select(.min > 35)],
 	  status_changes: [$sc[0][] | select(.entity == "vm_status") | {at: .at[0:19], vm: name(.entity_id), from, to, reason}],
 	  failed_jobs: [$jobs[0][] | select(.state == "failed") | {id, kind, vm: name(.vm_id), created_at: .created_at[0:19], error}],
 	  tests: [$tests[0] | group_by(.vm_id)[] | {vm: name(.[0].vm_id), count: length,
