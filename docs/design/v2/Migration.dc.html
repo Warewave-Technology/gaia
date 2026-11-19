@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Migration check</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:28px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:30px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.pri{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+tr.pick{cursor:pointer}
+tr.pick:hover td{background:#282828}
+tr.sel td{background:#32302f}
+.of{display:block;font-size:11.5px;color:#a89984}
+.box{overflow-x:auto}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid #3c3836;border-radius:3px}
+.flow div{padding:12px 14px;border-right:1px solid #3c3836;display:flex;flex-direction:column;gap:3px}
+.flow div:last-child{border-right:0}
+.flow b{color:#fbf1c7;font-weight:600}
+.find2{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid #3c3836}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a class="on" href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <section style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px">Will it run on KVM before I move it?</span>
+        <h1>Migration check</h1>
+        <p class="sub" style="margin: 0; font-size: 13.5px; max-width: 760px">Source <span class="mono" style="color: #d5c4a1">vcenter-old.corp</span>, read-only API user. Gaia only reads disks over the datastore and converts a copy here; it never writes to VMware.</p>
+      </div>
+      <div style="display: flex; gap: 8px"><button class="btn" type="button">Sources</button><button class="btn pri" type="button">Check selected VMs</button></div>
+    </section>
+
+    <section style="display: flex; gap: 10px; flex-wrap: wrap">
+      <span class="chip ok"><b>✓</b> READY</span><span class="sub" style="margin-right: 14px">31</span>
+      <span class="chip warn">▲ READY WITH WARNINGS</span><span class="sub" style="margin-right: 14px">12</span>
+      <span class="chip crit">◆ NOT READY</span><span class="sub" style="margin-right: 14px">4</span>
+      <span class="chip unk">? NOT CHECKED</span><span class="sub">97 of 144 VMs</span>
+    </section>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 28px; align-items: start">
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col">VM</th><th scope="col">Guest</th><th scope="col">Result</th><th scope="col">Checked</th></tr></thead>
+          <tbody>
+            <sc-for list="{{vms}}" as="v" hint-placeholder-count="7">
+              <tr class="{{v.rowCls}}" onClick="{{v.pick}}">
+                <td><span class="mono" style="color: #fbf1c7">{{v.name}}</span><span class="of">{{v.size}}</span></td>
+                <td style="color: #d5c4a1">{{v.os}}</td>
+                <td><span class="chip {{v.cls}}">{{v.word}}</span></td>
+                <td class="sub">{{v.at}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><h2 class="mono" style="font-weight: 500">{{s.name}}</h2><span class="chip {{s.cls}}">{{s.word}}</span><span class="sub">{{s.at}}</span></div>
+        <p style="margin: 0; color: #d5c4a1; font-size: 15px">{{s.verdict}}</p>
+        <div class="flow">
+          <div><span class="sub">1 · Read</span><b>{{s.f1}}</b><span class="sub">datastore HTTP</span></div>
+          <div><span class="sub">2 · Convert</span><b>{{s.f2}}</b><span class="sub">virt-v2v</span></div>
+          <div><span class="sub">3 · Boot test</span><b>{{s.f3}}</b><span class="sub">sandbox</span></div>
+          <div><span class="sub">4 · Checks</span><b>{{s.f4}}</b><span class="sub">{{s.f4s}}</span></div>
+        </div>
+        <div>
+          <sc-for list="{{s.items}}" as="i" hint-placeholder-count="4">
+            <div class="find2"><span style="{{i.color}}">{{i.mark}}</span><span><span style="color: #fbf1c7">{{i.t}}</span><span class="of" style="font-size: 12.5px; color: #bdae93">{{i.d}}</span></span></div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><button class="btn" type="button">Readiness report (PDF)</button><button class="btn" type="button">Open evidence</button><button class="btn" type="button">Check again</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { sel: 1 }; }
+  renderVals() {
+    var self = this;
+    var T = { ok: ['ok', '✓ READY'], warn: ['warn', '▲ WARNINGS'], crit: ['crit', '◆ NOT READY'], unk: ['unk', '? NOT CHECKED'] };
+    var M = { ok: ['✓', 'color: #b8bb26'], warn: ['▲', 'color: #fabd2f'], crit: ['◆', 'color: #fb4934'] };
+    var it = function (k, t, d) { return { mark: M[k][0], color: M[k][1], t: t, d: d }; };
+    var vms = [
+      { name: 'web-legacy-04', size: '2 disks · 80 GB', os: 'Ubuntu 20.04', t: 'ok', at: 'today 12:20',
+        verdict: 'Boots on KVM and passes every check. Safe to plan its move.', f: ['80 GB', '6 min', 'ready 38 s', '3 of 3'], f4s: 'login, nginx :443',
+        items: [it('ok', 'Disks converted to virtio', 'vda, vdb; file systems clean'), it('ok', 'Network mapped', 'VM Network → br-prod, MAC kept'), it('ok', 'Services answered', 'nginx :443 within 12 s of login')] },
+      { name: 'erp-legacy-01', size: '3 disks · 410 GB', os: 'Windows Server 2019', t: 'warn', at: 'today 13:51',
+        verdict: 'Boots on KVM and the application answers, but 2 things need attention before the move.', f: ['410 GB', '31 min', 'ready 4 min 52 s', '4 of 4'], f4s: 'WinRM, RDP, :1433',
+        items: [it('ok', 'virtio storage and network drivers installed', 'from virtio-win 0.1.266 supplied by the operator'), it('warn', 'No driver for 1 device', 'PCI SMBus controller. Windows runs; install the virtio-win driver or accept it.'), it('warn', 'Static IP will be lost', 'The NIC changes; set 10.20.1.15 again on the new adapter, or Gaia can inject it.'), it('ok', 'SQL Server answered on :1433', 'after the 60 s settle window')] },
+      { name: 'ora-fin-02', size: '6 disks · 1.9 TB', os: 'Oracle Linux 7', t: 'crit', at: 'today 10:05',
+        verdict: 'Does not boot on KVM. Moving it now would fail.', f: ['1.9 TB', '1 h 50 min', 'failed', '—'], f4s: 'not run',
+        items: [it('ok', 'Disks converted', '6 disks, LVM found'), it('crit', 'Kernel cannot find the root disk', 'UEK 4.1 initramfs has no virtio_blk. Rebuild initramfs with virtio drivers on the source, then check again.'), it('crit', 'Raw device mapping skipped', '1 RDM disk is not reachable over the datastore. Copy its data another way.')] },
+      { name: 'print-srv-01', size: '1 disk · 60 GB', os: 'Windows Server 2016', t: 'unk', at: 'never',
+        verdict: 'Not checked yet. A check copies its disks once, converts them here and boots the copy in the sandbox.', f: ['—', '—', '—', '—'], f4s: '',
+        items: [] },
+      { name: 'git-old', size: '1 disk · 200 GB', os: 'Debian 10', t: 'ok', at: 'yesterday', verdict: 'Boots on KVM and passes every check.', f: ['200 GB', '14 min', 'ready 29 s', '2 of 2'], f4s: 'login, :22', items: [it('ok', 'Disks converted to virtio', 'vda')] },
+      { name: 'mail-relay', size: '1 disk · 40 GB', os: 'CentOS 7', t: 'ok', at: 'yesterday', verdict: 'Boots on KVM and passes every check.', f: ['40 GB', '4 min', 'ready 33 s', '2 of 2'], f4s: 'login, :25', items: [it('ok', 'Disks converted to virtio', 'vda')] },
+      { name: 'dc-old-02', size: '1 disk · 90 GB', os: 'Windows Server 2012 R2', t: 'warn', at: 'yesterday', verdict: 'Boots, with a warning: this OS is out of vendor support.', f: ['90 GB', '9 min', 'ready 5 min 10 s', '2 of 2'], f4s: 'WinRM, :389', items: [it('warn', 'Out of support', 'Windows Server 2012 R2 receives no updates.')] }
+    ];
+    var s = vms[this.state.sel];
+    return {
+      vms: vms.map(function (v, i) { return { name: v.name, size: v.size, os: v.os, cls: T[v.t][0], word: T[v.t][1], at: v.at, rowCls: 'pick' + (i === self.state.sel ? ' sel' : ''), pick: function () { self.setState({ sel: i }); } }; }),
+      s: { name: s.name, cls: T[s.t][0], word: T[s.t][1], at: 'checked ' + s.at, verdict: s.verdict, f1: s.f[0], f2: s.f[1], f3: s.f[2], f4: s.f[3], f4s: s.f4s, items: s.items }
+    };
+  }
+}
+</script>
+</body>
+</html>

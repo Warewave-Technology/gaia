@@ -1,9 +1,9 @@
-# CLAUDE.md — Gaia, Phase 3 (MVP), package M2
+# CLAUDE.md — Gaia, Phase 3, package M3 (scale, proof capacity, strict sign-in, UI v2)
 
 You are the implementation engineer for **Gaia**, a free (AGPL-3.0-or-later) end-to-end backup and
-recoverability platform. The feasibility study ended with **GO** on 2026-11-16. Read `README.md`, every file in
-`docs/adr/` (new: **ADR-007 amendments B1–B5** and a note in ADR-006) and the reports in
-`docs/reports/` before you change anything.
+recoverability platform. The MVP was accepted in T23 (2026-11-19). Read `README.md`, every file in `docs/adr/`
+(new: **ADR-008**, **ADR-007 amendments C1–C10**, **ADR-005 amendments A–E**, a note in ADR-006), the design
+reference in `docs/design/v2/` and the reports in `docs/reports/` before you change anything.
 
 ## Who does what
 
@@ -22,7 +22,8 @@ tell him what output to send back.
 1. **ADR decisions are not yours to change.** If an ADR looks wrong, keep going within it and raise it in your
    report under "ADR'lerden sapmalar / öneriler" marked `ONAY GEREKİYOR`. Never silently deviate.
 2. Go is the main language (ADR-001). No cgo, no FFI. Other languages/tools only across process or network
-   boundaries. libvirt through `github.com/digitalocean/go-libvirt`; SQLite through `modernc.org/sqlite` (ADR-007).
+   boundaries. libvirt through `github.com/digitalocean/go-libvirt`; SQLite through `modernc.org/sqlite`.
+   The UI is React/TypeScript (ADR-007 C2); `web/dist` stays committed and embedded, no CDN.
 3. New third-party dependencies need a one-line justification in your report. Prefer the standard library.
 4. **An unchecked state is never green.** Anything not verified is UNKNOWN, never OK. Verdicts use the four-level
    model: OK / WARNING / CRITICAL / UNKNOWN, exit codes 0 / 1 / 2 / 3.
@@ -33,99 +34,130 @@ tell him what output to send back.
 8. Keep `go.sum` committed; CI must stay green (`make check`).
 9. **Never call a write API against a VMware migration source** (ADR-003 §2). Lab fixtures only via scripts
    labelled `fixture`, outside `cmd/` and `internal/`.
-10. Throughput gates use ADR-004 **A6** (reference = max(source read, repository write)); CPU budget per A7.
-11. **No unauthenticated data or control channel** to a protected host: SSH only, NBD on unix sockets (ADR-007 §3).
-12. Product code from now on is production code: errors are never swallowed, every state change of a job, point,
-    test or VM status is recorded with a timestamp, and schema changes come with migrations.
-13. **Privilege separation (ADR-007 B1):** only `gaia-sandbox.service` runs as root; it never listens on a network.
-    Never give `gaia.service` capabilities.
+10. Throughput gates use ADR-004 **A6**; CPU budget per A7.
+11. **No unauthenticated data or control channel** to a protected host: SSH only, NBD on unix sockets.
+12. Product code is production code: errors are never swallowed, every state change of a job, point, test or VM
+    status is recorded with a timestamp, and schema changes come with migrations. Keep the upgrade test from the
+    previous release for every schema change (now: `0.1.2` → this package).
+13. **Privilege separation (ADR-007 B1, C5): three units, one binary.** Only `gaia-sandbox.service` runs as root
+    and it never listens on a network; `gaia-convert.service` keeps its own user and T21's bounding set. Never give
+    `gaia.service` capabilities. Parallel slots (C4) live inside `gaia-sandbox.service`.
+14. **Sign-in is strict (ADR-008).** No code path may skip the second factor, step-up, or the session limits —
+    including tests helpers compiled into the product, debug flags and the CLI. A setting marked fixed in ADR-008
+    has no switch.
+15. **Scale is measured, not assumed (ADR-007 C1).** Any list or view endpoint is paginated, and the T24 synthetic
+    catalog is part of `make check` at a reduced size and of each gate at full size.
 
 ## Where we are
 
-M1 is done (reports `2026-11-16-T12.md` … `T16.md`, all `PASS`): Track B gate closed (1.249 under A6, CPU budget
-4.292 CPU-s/GB), evidence spec v1 with 41 vectors and an independent verifier, `gaia server` with roles and an
-append-only audit log, scheduled SSH backups with injected-failure tests, and the status model with exhaustive tests.
+M1 and M2 are done (reports T12–T23, all `PASS`). The MVP works for a handful of VMs. Yiğit's acceptance answer
+(T23) set the direction for M3: *"bu ürün, binlerce vm'i kontrol edecek. O yüzden buna göre anlaşılır, kolay
+bulunabilir bir sistem yapmamız şart."* He also wants restore tests in parallel and strict sign-in. On 2026-11-20
+he approved a UI prototype for all of this: `docs/design/v2/` (see its README).
 
-M2 turns this into something an operator and an auditor can use. Package M2 ends with the **MVP acceptance** (T23).
-
-## Package M2 tasks (do them in this order)
+## Package M3 tasks (do them in this order)
 
 Each task ends with a report (see "Reporting"). Do not start the next task before the report of the current one
-exists. Keep the free-space checks, cache handling and `fstrim` in every lab runner. Keep Yiğit's T14 test VM: it is
-the upgrade path test for every schema change in M2.
+exists. Keep the free-space checks, cache handling and `fstrim` in every lab runner.
 
-### T17 — Recovery kit and state restore (ADR-007 B5)
-- `gaia server init` and every repository creation write a recovery kit in **age** format (passphrase/scrypt),
-  holding repository passwords and the evidence signing key. The install guide makes storing it off the server
-  an explicit, checked step.
-- `gaia server restore-state` rebuilds a server from the kit and the repository alone.
-- **Output:** report `T17`. Gate: **disaster-recovery drill** — destroy a server that protects one VM; on a fresh
-  VM, from the guide, the kit and the repository only: Gaia comes back with its catalog, ledger and status, the next
-  backup continues the chain (or is full with a recorded reason), and the ledger verifies across the rebuild. Also
-  show the kit opens with the standalone `age` tool.
+### T24 — Control plane at scale: reason codes, status table, paginated views (ADR-007 C1, C3)
+- **Reason codes (C3):** a closed, documented list of codes with parameters and the sentence built from them.
+  Every existing reason maps to one; an unmapped reason is a test failure. Codes appear in the API, CLI JSON,
+  notifications and daily report.
+- **Status table:** the status model's output per VM is stored (`vm_status`: status, since, codes, Proven/Theoretical
+  RPO inputs, proven point, proof age inputs) and updated on every event that can change it, plus a periodic
+  recompute for time-driven changes (RPO and proof age grow with the clock). The truth-table function stays the
+  single source; the table is its cache, and a check compares both over the whole catalog.
+- **Views for the v2 screens**, each one request per screen region, all paginated:
+  fleet summary (counts per status, "can return" count, worst proven RPO); needs-attention groups by
+  `(code, scope)` with counts; coverage by host / policy / tag; VM list with filter (status, host, policy, tag,
+  code), sort (worst first, then oldest proof) and text search over VM, host, policy and point id.
+- **Tags:** VMs get free-form tags (`key` or `key:value`), settable via API/CLI, used for grouping.
+- **Synthetic catalog:** `lab/scale/gen` (outside `cmd/` and `internal/`, labelled `fixture`) fills a database
+  with N VMs, hosts, policies, points, tests and state changes with realistic distributions and seeded failures.
+- **Output:** report `T24`. Gate, on a VM with Yiğit's B server's size (state it): with **5,000 VMs, 100 hosts,
+  3 M points**: (a) p95 over 200 requests of every view endpoint ≤ 300 ms, search ≤ 150 ms, server RSS stated;
+  (b) the status table equals the truth-table function for every VM after a 24 h simulated clock run with events;
+  (c) a full recompute takes ≤ 30 s. Paste the measurements verbatim.
 
-### T18 — Integrity quarantine, S3 and login protection (ADR-007 B3, §4)
-- B3: damaged contents removed from the index, affected points `failed` with content IDs, next backup full with
-  the reason, audit entry. Extend T15's corruption test to prove a new point no longer reuses the damaged content.
-- S3-compatible repositories (MinIO in the lab), same defaults and same tests as filesystem repositories.
-- Login rate limiting / lockout with audit entries.
-- **Output:** report `T18`. Gate: (a) after a damaged content is found, the next backup's points restore
-  byte-identical, (b) the T15 scheduled-backup gate passes on an S3 repository (≥ 4 cycles is enough),
-  (c) repeated bad logins are throttled and audited.
+### T25 — Parallel restore tests and proof capacity (ADR-007 C4)
+- Slots inside `gaia-sandbox.service`: per-slot netns, veth, dnsmasq, overlay, address range; memory admission;
+  `max_parallel_tests` default from memory and CPUs (cap 8), overridable.
+- **Isolation test:** a guest in slot A cannot reach a guest in slot B, the host, or the outside (prove each).
+- Queue order per C4, with `queue_position` and `estimated_start` in the API.
+- **Capacity:** demand, capacity, coverage, slots needed, and VMs whose proofs will expire before their next test,
+  in an API view; a `what-if` endpoint that takes a changed policy or slot count and returns the same numbers
+  without saving anything.
+- **Output:** report `T25`. Gate on the lab: (a) the isolation test passes for every pair in 4 slots; (b) with
+  1, 2, 4 slots and the same set of Linux test VMs, tests per hour (median of ≥ 3 runs) and per-test verdicts
+  identical to serial; (c) with one Windows guest among them, its RTO is reported per test and the Linux tests are
+  not delayed beyond admission; (d) the capacity numbers for the T24 catalog match a hand-checked spreadsheet of
+  the same inputs (include it).
 
-### T19 — Notifications, daily report and external ledger anchoring (ADR-007 §10)
-- Email (SMTP) and webhook. Events: status changes (with reasons), failed jobs, integrity quarantine, ledger
-  problems. A daily report per installation: each VM's status, Proven RPO / RTO, and the **ledger head**
-  (sequence and hash, signed).
-- `gaia evidence verify` accepts a received daily report as an external anchor and detects ledger truncation
-  (closes spec §11.1). Add conformance vectors for it.
-- **Output:** report `T19`. Gate: (a) every listed event reaches a test SMTP sink and a webhook receiver in the lab,
-  (b) truncating the ledger after a daily report is detected using that report.
+### T26 — Strict sign-in (ADR-008)
+- Everything in ADR-008 §1–§10: local second factor (WebAuthn, TOTP, recovery codes), password rules with the
+  embedded blocklist, optional expiry, server-side sessions with idle / absolute limits and `X-Gaia-Background`,
+  session limits and revocation, step-up bound to the action, failed-attempt delays and lockout, auditor expiry,
+  API tokens, break-glass, OIDC with group → role mapping and 10-minute refresh, the device grant for the CLI.
+- The M2 CLI tokens stop working at the upgrade (§9); release notes say so.
+- **Lab IdP:** Keycloak in a container on the lab network, configured by a `fixture` script (realm, client, groups
+  `gaia-admins`, `gaia-operators`, `internal-audit`, users with TOTP).
+- **Output:** report `T26`. Gate: a test per ADR-008 rule (list them as a table: rule → test → result), including
+  (a) no API call that changes state succeeds without a session or token; (b) every §4 action fails without a
+  fresh factor and with a factor older than 120 s or bound to another action; (c) background requests do not keep
+  a session alive; (d) an OIDC user removed from the group loses access within 10 min; (e) with Keycloak stopped,
+  break-glass sign-in works and notifies admins, and SSO sessions refuse step-up with `idp_unreachable`;
+  (f) the T20 role matrix passes with OIDC users and local users.
 
-### T20 — Operator and auditor UI (ADR-007 §7; core matrix #4)
-- **Step 1, before wiring anything:** a static HTML mock-up with real lab data of (1) the status screen, (2) one
-  VM's page. Give Yiğit the way to open it and **stop until he approves or changes it.** Record his decisions as
-  "PO kararı" in the report.
-- Status screen: every VM with status, Theoretical RPO, Proven RPO, Proven RTO, proof age, and the **reasons** in
-  words. Status is never shown by colour alone (text label too). `UNKNOWN` never looks healthy.
-- VM page: status timeline (`state_changes`), points, restore tests with screenshots and check results, signature
-  state of each bundle.
-- Auditor: read-only views and an **evidence export** (bundles, ledger, public keys, the latest daily report, the
-  spec version, and how to verify offline).
-- Go `html/template` + vendored htmx, no CDN, no Node toolchain; works without JavaScript for reading.
-- **Output:** report `T20`. Gate: (a) Yiğit's approval of the mock-up and of the finished screens, (b) an auditor
-  export verifies with `gaia evidence verify` **and** with the independent Python verifier from T13, (c) a role test
-  for every page like T14's matrix.
+### T27 — UI v2 (ADR-007 C2; design reference `docs/design/v2/`)
+- Build the screens of the prototype on the existing stack and components: Overview, VM page, Proof capacity,
+  Activity, Migration check, Evidence (auditor), Inventory (hosts, policies, repositories, users, audit log),
+  Sign-in and security, and the sign-in flows (sign in, second factor, enrolment, expired password, step-up dialog,
+  idle sign-out, locked).
+- Keep the approved T20 language (gruvbox, IBM Plex, shape + word + colour, bullet graphs, history strips,
+  tables not cards, `UNKNOWN` hatched). The prototype's numbers are sample data; every number on a real screen
+  comes from the API. Where the prototype shows something the API cannot know, leave it out and list it.
+- Global search (`/` focuses it) over VMs, hosts, policies and points; URLs keep filters, so a filtered view can be
+  shared.
+- Policy editing shows the capacity effect (T25 `what-if`) before saving. Destructive buttons use the step-up
+  dialog. The damaged-point "forget" action (ADR-007 C6) is offered on the VM page.
+- **Step 1:** screenshots of every screen with real lab data **and** with the T24 synthetic catalog (5,000 VMs);
+  stop until Yiğit approves or changes them. Record his decisions as "PO kararı".
+- **Output:** report `T27`. Gate: (a) Yiğit's approval; (b) the role matrix test covers every new page and action;
+  (c) with the 5,000-VM catalog, the overview is interactive within 2 s of navigation on the lab browser, and
+  every list scrolls without loading all rows; (d) no screen shows status by colour alone (automated check of the
+  rendered DOM for the text label next to every status mark).
 
-### T21 — Migration check in the server (ADR-003, ADR-005)
-- Converter container (Fedora-based, `Containerfile` in the repo, pinned by digest; virt-v2v + rhsrvany);
-  virtio-win supplied by the operator, checked against a pinned sha256 (missing → `UNKNOWN`).
-- `windows-basic` template: protocol-level **WinRM** probe first, RDP when enabled. UEFI boot detection.
-- Migration checks as server jobs (API, CLI, UI page) with a per-VM readiness report export.
-- **Output:** report `T21`. Gate: T8 and T11 pass again **through the server** (Linux and Windows, zero writes to
-  ESXi), plus one UEFI guest; the WinRM check explains why it cannot pass on a broken boot.
+### T28 — Migration and evidence follow-ups (ADR-005 A–E, ADR-007 C7–C9)
+- Re-run T21's Windows gate with `settle_s` (ADR-005 B). If the earlier `OK` was a false positive, say so plainly.
+- `smbus`: measure the newest virtio-win on the T21 Server 2022 conversion; pin it if it installs the driver,
+  otherwise implement `exclude_drivers` (ADR-005 C) and show the warning in the readiness report.
+- `driver_install_loop` reason code; `migration_check_finished` notification; notification categories (C8) with
+  the migration of M2 channels; signed `SHA256SUMS` and the export bundle (C7) with new conformance vectors if the
+  spec needs them (ADR-006 note); `last_rebuild` / `REBUILT` stays as built.
+- **Output:** report `T28`. Gate: (a) T21 Windows passes with `settle_s`, or fails with a stated reason and a
+  plan; (b) an export verifies with `gaia evidence verify` and the independent Python verifier, and its export
+  bundle is in the ledger; (c) an M2 channel receives a new event in its category after the upgrade.
 
-### T22 — Hardening sweep
-- Go through every report since T0 and list each known limitation that is still open; fix those that block real use
-  of the MVP, and list the rest in `docs/limitations.md` with the reason they wait. Include the release build:
-  versioned packages, checksums, and a signed release.
-- **Output:** report `T22`. Gate: `docs/limitations.md` exists and every item in it names its reason; a signed
-  release package installs from the guide.
-
-### T23 — MVP acceptance
-- Yiğit installs the release from T22 on a clean VM from the guide alone and protects at least: a 2-disk Linux VM,
-  the Windows VM from T11's conversion (on KVM), and a UEFI VM, for at least 24 hours of schedules.
-- Acceptance scenario (write it as a checklist Yiğit can follow): a guest made unbootable, a damaged repository
-  content, the sandbox stopped, a deleted checkpoint, a lost server restored from the recovery kit — each must show
-  up on the status screen and in notifications with the right status and reason.
-- **Output:** report `T23` with Yiğit's answers to two questions, in his words: *"Ekrana baktığımda, o an hangi
-  noktaya dönebileceğimi biliyor muyum?"* and *"Bunun çalışacağından emin miyim, ve bunu bir denetçiye kanıtlayabilir
-  miyim?"* Gate: both answers yes, every scenario item shown correctly.
+### T29 — M3 acceptance and release 0.2.0
+- Release `0.2.0` as in T22 (packages, checksums, signature). The upgrade from `0.1.2` is part of the test.
+- Yiğit upgrades his T23 server to `0.2.0` following the guide and turns on SSO against the lab Keycloak. A second,
+  clean instance gets the T24 synthetic catalog for the scale part.
+- Acceptance checklist for Yiğit (each line with the command whose output he pastes, per T23's lesson):
+  a host made unreachable shows as **one** group with all its VMs; proof capacity with 1 slot and with 4 slots
+  matches what happens over 6 hours; a sign-in from a new browser is reported; an idle session ends; a destructive
+  action without step-up is refused; Keycloak stopped → break-glass works and is reported; the overview of the
+  5,000-VM instance answers his questions as fast as the small one.
+- **Output:** report `T29` with Yiğit's answers, in his words, to: *"Binlerce VM arasında sorunlu olanı ve
+  nedenini hemen bulabiliyor muyum?"* and *"Giriş çıkışların yeterince sıkı olduğuna güveniyor muyum?"*
+  Gate: both answers yes, every checklist line shown correctly.
 
 ### Backlog (do **not** start)
-Delta or binary block index (then `FIXED-256K`); OIDC; remote sandbox host; per-host SSH connection pool; RFC 3161
-timestamps; vCenter, multiple datacenters, TLS verification and VMs with snapshots as migration sources; thin-disk
-zeros over the network; `virt-v2v` error classification; Proxmox adapter; KubeVirt; hot migration check.
+Remote sandbox hosts (next after M3, ADR-007 C1); delta or binary block index (then `FIXED-256K`); per-host SSH
+connection pool; RFC 3161 timestamps; SAML, SCIM, multiple IdPs; vCenter, multiple datacenters, TLS verification
+and VMs with snapshots as migration sources; thin-disk zeros over the network; `virt-v2v` error classification;
+Proxmox adapter; KubeVirt; hot migration check; Windows VSS agent; publishing the converter image to a registry
+(waits for the release-location decision).
 
 ## Reporting
 
@@ -140,3 +172,4 @@ Turkish, with technical terms in English. Rules:
 - Keep "Mimara özet" to 15 lines. Put `ONAY GEREKİYOR` items there too.
 - Product owner decisions you receive directly from Yiğit: record them in the report as "PO kararı" with the date;
   the architect writes them into the ADRs.
+- A checklist line that says "as expected" must be backed by a pasted command output (T23 lesson).

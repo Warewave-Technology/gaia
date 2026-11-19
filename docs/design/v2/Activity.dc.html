@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Activity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:28px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+.run{color:#8ec07c;border-color:#427b58}
+h1{margin:0;font-size:30px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.seg{display:inline-flex;border:1px solid #504945;border-radius:3px;overflow:hidden;flex-wrap:wrap}
+.seg button{background:transparent;border:0;border-right:1px solid #504945;color:#bdae93;font:inherit;font-size:12.5px;padding:0 12px;height:30px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#32302f;color:#fbf1c7}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.num{text-align:right}
+.of{display:block;font-size:11.5px;color:#a89984}
+.box{overflow-x:auto}
+.prog{height:4px;background:#3c3836;margin-top:6px;width:160px}
+.prog i{display:block;height:4px;background:#8ec07c}
+.stat{display:flex;flex-direction:column;gap:2px;padding:0 22px 0 0;border-right:1px solid #3c3836}
+.stat:last-child{border-right:0}
+.stat b{font-size:21px;color:#fbf1c7;font-weight:600}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a class="on" href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <section style="display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-right: 28px"><span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px">What is Gaia doing?</span><h1>Activity</h1></div>
+      <div class="stat"><span class="sub">Running</span><b>45</b><span class="sub">38 backups · 6 tests · 1 verify</span></div>
+      <div class="stat"><span class="sub">Queued</span><b>412</b><span class="sub">100 backups · 312 tests</span></div>
+      <div class="stat"><span class="sub">Last hour</span><b>1,944</b><span class="sub">finished · 9 failed</span></div>
+      <div class="stat"><span class="sub">Read from hosts, last hour</span><b>3.1 TB</b><span class="sub">of 7.4 TB changed data today</span></div>
+    </section>
+
+    <section style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+      <div class="seg" role="group" aria-label="Kind">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5"><button type="button" class="{{k.cls}}" onClick="{{k.pick}}">{{k.label}}</button></sc-for>
+      </div>
+      <div class="seg" role="group" aria-label="State">
+        <sc-for list="{{states}}" as="k" hint-placeholder-count="4"><button type="button" class="{{k.cls}}" onClick="{{k.pick}}">{{k.label}}</button></sc-for>
+      </div>
+      <button class="btn" type="button">Host: any</button>
+      <button class="btn" type="button">Started by: anyone</button>
+      <span class="sub" style="margin-left: auto">Updates every 5 s · newest first</span>
+    </section>
+
+    <section class="box">
+      <table>
+        <thead><tr><th scope="col" style="width: 120px">State</th><th scope="col">Job</th><th scope="col">Target</th><th scope="col">Progress</th><th scope="col">Started</th><th scope="col" class="num">Took</th><th scope="col">By</th></tr></thead>
+        <tbody>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <tr>
+              <td><span class="chip {{r.cls}}">{{r.word}}</span></td>
+              <td><span style="color: #fbf1c7">{{r.kind}}</span><span class="of mono">{{r.id}}</span></td>
+              <td><a href="VM.dc.html" class="mono">{{r.target}}</a><span class="of">{{r.where}}</span></td>
+              <td style="color: #d5c4a1">{{r.text}}<sc-if value="{{r.bar}}" hint-placeholder-val="{{false}}"><div class="prog"><i style="{{r.w}}"></i></div></sc-if></td>
+              <td class="mono" style="color: #bdae93">{{r.at}}</td>
+              <td class="num mono">{{r.took}}</td>
+              <td class="sub">{{r.by}}</td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </section>
+    <p class="sub" style="margin: 0">Showing {{shown}}. Jobs older than 30 days are summarised in the daily reports; their evidence stays in the ledger.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { kind: 'all', st: 'all' }; }
+  renderVals() {
+    var self = this, kind = this.state.kind, st = this.state.st;
+    var T = { run: ['run', '● RUNNING'], ok: ['ok', '✓ DONE'], fail: ['crit', '◆ FAILED'], q: ['unk', '? QUEUED'], warn: ['warn', '▲ DONE, WARNING'] };
+    var all = [
+      ['run', 'test', 'Restore test', 'test 71410', 'web-shop-12', 'sandbox slot 1 · point 88611', 'booting, login prompt expected', 70, '14:31:40', '31 s', 'schedule'],
+      ['run', 'backup', 'Incremental backup', 'job 501223', 'db-ledger-03', 'kvm-07 → s3-ank-01', '1.4 of 2.0 GB changed blocks · 412 MB/s', 70, '14:30:00', '2 min 10 s', 'schedule'],
+      ['run', 'verify', 'Repository verify', 'job 501090', 's3-ank-01', 'full content check', '25.5 of 41.2 TB · 2 damaged so far', 62, '07:00:00', '7 h 32 min', 'schedule'],
+      ['run', 'backup', 'Full backup', 'job 501230', 'fin-report-07', 'kvm-11 → s3-ank-01 · after quarantine', '310 of 820 GB', 38, '14:12:05', '20 min', 'system'],
+      ['fail', 'test', 'Restore test', 'test 71402', 'db-ledger-03', 'sandbox slot 4 · point 88540', 'no bootable device after 120 s', 0, '14:03:50', '2 min 14 s', 'schedule'],
+      ['ok', 'test', 'Restore test', 'test 71399', 'mq-broker-01', 'sandbox slot 2 · point 88501', 'ready in 44 s · 3 of 3 checks', 0, '14:02:10', '52 s', 'schedule'],
+      ['fail', 'backup', 'Incremental backup', 'job 501180', 'mq-broker-01', 'kvm-14', 'SSH: connection timed out (3 tries)', 0, '14:00:00', '1 min 30 s', 'schedule'],
+      ['warn', 'test', 'Restore test', 'test 71380', 'win-file-05', 'sandbox slot 6 · point 88290', 'ready in 7 min 40 s, over 5 min target', 0, '13:48:00', '8 min 02 s', 'schedule'],
+      ['ok', 'migration', 'Migration check', 'mig 112', 'erp-legacy-01', 'vcenter-old → convert → test', 'boots on KVM · 2 warnings', 0, '13:10:00', '41 min', 'yigit'],
+      ['q', 'test', 'Restore test', 'queued #1', 'db-ledger-03', 'retest after failures', 'starts about 14:33', 0, '—', '—', 'system']
+    ];
+    var rows = all.filter(function (r) {
+      var okKind = kind === 'all' || r[1] === kind;
+      var okSt = st === 'all' || (st === 'run' && r[0] === 'run') || (st === 'fail' && (r[0] === 'fail' || r[0] === 'warn')) || (st === 'q' && r[0] === 'q');
+      return okKind && okSt;
+    }).map(function (r) { return { cls: T[r[0]][0], word: T[r[0]][1], kind: r[2], id: r[3], target: r[4], where: r[5], text: r[6], bar: r[7] > 0, w: 'width: ' + r[7] + '%', at: r[8], took: r[9], by: r[10] }; });
+    var mk = function (list, key, cur) { return list.map(function (x) { return { label: x[1], cls: x[0] === cur ? 'on' : '', pick: function () { var o = {}; o[key] = x[0]; self.setState(o); } }; }); };
+    return {
+      kinds: mk([['all', 'All'], ['backup', 'Backups'], ['test', 'Restore tests'], ['verify', 'Verify'], ['migration', 'Migration']], 'kind', kind),
+      states: mk([['all', 'Any state'], ['run', 'Running'], ['fail', 'Failed or warning'], ['q', 'Queued']], 'st', st),
+      rows: rows, shown: rows.length + ' of 2,401 jobs today'
+    };
+  }
+}
+</script>
+</body>
+</html>

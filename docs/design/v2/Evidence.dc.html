@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Evidence</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:30px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:30px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.pri{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2;font-weight:600}
+.btn.on{background:#504945;color:#fbf1c7}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.num{text-align:right}
+.of{display:block;font-size:11.5px;color:#a89984}
+.box{overflow-x:auto}
+.kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid #3c3836}
+.chain{display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 0}
+.blk{flex:0 0 auto;border:1px solid #504945;border-radius:3px;padding:6px 10px;background:#282828;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#bdae93}
+.blk b{display:block;color:#fbf1c7;font-weight:500}
+.lnk{flex:0 0 22px;height:1px;background:#665c54}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a href="Evidence.dc.html" class="on">Evidence</a>
+    </nav>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">a.kaya<span class="role">auditor</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <section style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px">Can this be proven to someone who does not trust Gaia?</span>
+        <h1 style="font-size: 40px; line-height: 1.1">Yes. The ledger is intact and every entry is signed.</h1>
+        <p style="margin: 0; color: #d5c4a1; font-size: 15px">184,220 entries from the genesis entry on 2 Oct to 14:30 today. Every hash link and signature was checked at 14:30. The head was last published in the 06:00 daily report, so entries before that cannot be rewritten without the report's recipients noticing.</p>
+        <div class="chain" aria-label="Ledger chain, newest at right">
+          <div class="blk"><b>genesis</b>2 Oct · key 7f3a…</div><div class="lnk"></div>
+          <div class="blk"><b>rotate</b>9 Nov · key c21e…</div><div class="lnk"></div>
+          <div class="blk" style="border-style: dashed">… 184,105 entries</div><div class="lnk"></div>
+          <div class="blk" style="border-color: #8ec07c"><b>anchored head</b>06:00 · 9b41e0…</div><div class="lnk"></div>
+          <div class="blk"><b>112 since</b>not yet anchored</div><div class="lnk"></div>
+          <div class="blk" style="border-color: #d5c4a1"><b>head</b>14:30 · e07c52…</div>
+        </div>
+      </div>
+      <dl style="margin: 0; border-top: 1px solid #3c3836">
+        <div class="kv"><dt class="sub">Ledger check</dt><dd style="margin: 0"><span class="chip ok"><b>✓</b> OK</span> 184,220 of 184,220 entries verified</dd></div>
+        <div class="kv"><dt class="sub">Signing key</dt><dd style="margin: 0" class="mono">c21e…94ad <span class="sub" style="font-family: 'IBM Plex Sans'">ed25519, since 9 Nov (rotated from 7f3a…)</span></dd></div>
+        <div class="kv"><dt class="sub">Last anchor</dt><dd style="margin: 0">06:00 daily report, head <span class="mono">9b41e0…</span>, sent to 3 recipients</dd></div>
+        <div class="kv"><dt class="sub">Format</dt><dd style="margin: 0">Restore Evidence Format v1 · <a href="Evidence.dc.html">spec (CC0)</a> · checkable without Gaia</dd></div>
+      </dl>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; border: 1px solid #3c3836; background: #282828; border-radius: 3px">
+      <h2>Export for an audit</h2>
+      <div style="display: flex; gap: 22px; flex-wrap: wrap; align-items: end">
+        <div style="display: flex; flex-direction: column; gap: 4px"><span class="sub">Period</span><span style="display: flex; gap: 6px"><button type="button" class="btn {{p30}}" onClick="{{setP30}}">Last 30 days</button><button type="button" class="btn {{pq}}" onClick="{{setPq}}">This quarter</button><button type="button" class="btn">Custom…</button></span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><span class="sub">Scope</span><span style="display: flex; gap: 6px"><button type="button" class="btn {{sAll}}" onClick="{{setAll}}">All VMs</button><button type="button" class="btn {{sTag}}" onClick="{{setTag}}">Tag: payments</button></span></div>
+        <button type="button" class="btn pri" style="margin-left: auto">Export {{count}} tests</button>
+      </div>
+      <p class="sub" style="margin: 0">{{exportNote}}</p>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap"><h2>What the period shows</h2><span class="sub">{{scopeWord}}</span></div>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col">Control</th><th scope="col">Result</th><th scope="col">Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Every VM in scope had a restore test that passed</td><td><span class="chip warn">▲ 14 VMS NOT YET</span> <span style="color: #d5c4a1">2,404 of 2,418; the 14 were added today</span></td><td><a href="Evidence.dc.html">list</a></td></tr>
+            <tr><td>Proven RPO stayed within target</td><td><span class="chip warn">▲ 97.6 % OF HOURS</span> <span style="color: #d5c4a1">breaches: 31, longest 15 h 52 min (fin-report-07)</span></td><td><a href="Evidence.dc.html">breaches</a></td></tr>
+            <tr><td>Failed tests were followed up</td><td><span class="chip ok"><b>✓</b> YES</span> <span style="color: #d5c4a1">212 failures, each with a retest or an operator note</span></td><td><a href="Evidence.dc.html">failures</a></td></tr>
+            <tr><td>Damaged repository content was isolated</td><td><span class="chip ok"><b>✓</b> YES</span> <span style="color: #d5c4a1">1 event (today 07:40), 47 points quarantined</span></td><td><a href="Evidence.dc.html">event</a></td></tr>
+            <tr><td>Evidence was not altered</td><td><span class="chip ok"><b>✓</b> YES</span> <span style="color: #d5c4a1">chain and signatures verified; 19 anchors delivered</span></td><td><a href="Evidence.dc.html">anchors</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2>Latest entries</h2>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col" class="num">#</th><th scope="col">When</th><th scope="col">Entry</th><th scope="col">VM</th><th scope="col">Result</th><th scope="col">Hash</th></tr></thead>
+          <tbody>
+            <tr><td class="num mono sub">184220</td><td class="mono">14:30:02</td><td>test</td><td><a href="VM.dc.html" class="mono">web-shop-11</a></td><td><span class="chip ok"><b>✓</b> PASSED</span> <span class="sub">RTO 47 s</span></td><td class="mono sub">e07c52…</td></tr>
+            <tr><td class="num mono sub">184219</td><td class="mono">14:29:15</td><td>test</td><td><a href="VM.dc.html" class="mono">app-core-07</a></td><td><span class="chip ok"><b>✓</b> PASSED</span> <span class="sub">RTO 51 s</span></td><td class="mono sub">51ab9d…</td></tr>
+            <tr><td class="num mono sub">184218</td><td class="mono">14:05:44</td><td>test</td><td><a href="VM.dc.html" class="mono">db-ledger-03</a></td><td><span class="chip crit">◆ FAILED</span> <span class="sub">no bootable device</span></td><td class="mono sub">0f62c3…</td></tr>
+            <tr><td class="num mono sub">184217</td><td class="mono">14:00:12</td><td>operator note</td><td><a href="VM.dc.html" class="mono">db-ledger-03</a></td><td style="color: #d5c4a1">yigit: “kvm-07 firmware change, checking”</td><td class="mono sub">a3d870…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { period: 30, scope: 'all' }; }
+  renderVals() {
+    var self = this, p = this.state.period, s = this.state.scope;
+    var base = p === 30 ? 148210 : 96440;
+    var count = s === 'all' ? base : Math.round(base * 0.04);
+    return {
+      p30: p === 30 ? 'on' : '', pq: p === 90 ? 'on' : '',
+      setP30: function () { self.setState({ period: 30 }); }, setPq: function () { self.setState({ period: 90 }); },
+      sAll: s === 'all' ? 'on' : '', sTag: s === 'tag' ? 'on' : '',
+      setAll: function () { self.setState({ scope: 'all' }); }, setTag: function () { self.setState({ scope: 'tag' }); },
+      count: count.toLocaleString('en-US'),
+      scopeWord: (s === 'all' ? 'All 2,418 VMs' : '96 VMs tagged payments') + ', ' + (p === 30 ? 'last 30 days' : 'since 2 Oct'),
+      exportNote: 'One archive: the evidence entries, their ledger segment from genesis, the public keys, every anchor in the period and a README with the commands to check it offline. About ' + Math.max(1, Math.round(count / 2600)) + ' GB with screenshots. The export itself is written to the ledger.'
+    };
+  }
+}
+</script>
+</body>
+</html>

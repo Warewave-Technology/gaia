@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Sign-in and security</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.side{flex:1 1 200px;max-width:220px;display:flex;flex-direction:column;gap:2px}
+.side a{display:flex;justify-content:space-between;padding:8px 12px;border-left:2px solid transparent;color:#bdae93;font-size:14px}
+.side a:hover{color:#fbf1c7;text-decoration:none}
+.side a.on{border-color:#d5c4a1;color:#fbf1c7;background:#282828}
+.side a span{color:#a89984;font-size:12px}
+.content{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:30px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:26px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.on{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2}
+.btn.danger{color:#fb4934;border-color:#6f2420;background:#3a1716}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.of{display:block;font-size:11.5px;color:#a89984}
+.box{overflow-x:auto}
+.row{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;padding:13px 0;border-bottom:1px solid #3c3836;align-items:start}
+.row dt{color:#d5c4a1}
+.row dt span{display:block;color:#a89984;font-size:12px;margin-top:2px}
+.row dd{margin:0;display:flex;flex-direction:column;gap:6px}
+.val{color:#fbf1c7;font-weight:500}
+.lock{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 6px;align-self:flex-start}
+.panel{display:flex;flex-direction:column;gap:0;border-top:1px solid #504945}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a class="on" href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <nav class="side" aria-label="Inventory">
+      <a href="Inventory.dc.html">Hosts<span>38</span></a>
+      <a href="Inventory.dc.html">Policies<span>4</span></a>
+      <a href="Inventory.dc.html">Repositories<span>3</span></a>
+      <a href="Inventory.dc.html">Users<span>7</span></a>
+      <a class="on" href="Security.dc.html">Sign-in and security</a>
+      <a href="Inventory.dc.html">Audit log<span>9,412</span></a>
+    </nav>
+    <div class="content">
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h1>Sign-in and security</h1>
+        <p class="sub" style="margin: 0; max-width: 760px; font-size: 13.5px">Who can sign in, how, and for how long. Every change here asks for your security key, is written to the audit log and is listed in the next daily report. Settings marked <span class="lock">fixed</span> cannot be turned off.</p>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><h2>Single sign-on (OIDC)</h2>
+          <span style="display: flex; gap: 6px"><button type="button" class="btn {{ssoOn}}" onClick="{{setSsoOn}}">On</button><button type="button" class="btn {{ssoOff}}" onClick="{{setSsoOff}}">Off</button></span>
+          <sc-if value="{{sso}}" hint-placeholder-val="{{true}}"><span class="chip ok"><b>✓</b> CONNECTED</span><span class="sub">discovery checked 14:00</span></sc-if>
+        </div>
+        <sc-if value="{{sso}}" hint-placeholder-val="{{true}}">
+          <dl class="panel" style="margin: 0">
+            <div class="row"><dt>Issuer</dt><dd><span class="val mono">https://sso.warewave.tech/realms/ops</span></dd></div>
+            <div class="row"><dt>Client<span>confidential client, PKCE, code flow only</span></dt><dd><span class="val mono">gaia-prod</span><span class="sub">secret set 2 Oct · stored encrypted, never shown again</span></dd></div>
+            <div class="row"><dt>Roles from groups<span>claim: groups</span></dt><dd>
+              <span><span class="mono val">gaia-admins</span> → admin · <span class="mono val">gaia-operators</span> → operator · <span class="mono val">internal-audit</span> → auditor</span>
+              <span class="sub">No matching group, no access. Groups are read again at every session refresh, so removing someone in the IdP takes effect within 10 minutes.</span></dd></div>
+            <div class="row"><dt>Second factor<span>for SSO users</span></dt><dd><span class="val">Required from the IdP (acr = mfa)</span><span class="sub">Gaia rejects ID tokens without it. Destructive actions send the user back to the IdP to sign in again with a second factor.</span></dd></div>
+          </dl>
+        </sc-if>
+        <sc-if value="{{noSso}}" hint-placeholder-val="{{false}}"><p class="sub" style="margin: 0">Everyone uses local accounts with a second factor.</p></sc-if>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <h2>Local accounts</h2>
+        <dl class="panel" style="margin: 0">
+          <div class="row"><dt>Who may use one<span>{{localHint}}</span></dt><dd><span class="val">{{localWho}}</span></dd></div>
+          <div class="row"><dt>Break-glass admins</dt><dd><span class="val">2: yigit, m.demir</span><span class="sub">At least one is required <span class="lock">fixed</span> Gaia must stay reachable when the IdP is down. A break-glass sign-in alerts every admin.</span></dd></div>
+          <div class="row"><dt>Second factor</dt><dd><span class="val">Required for every local account <span class="lock">fixed</span></span><span class="sub">Security key (WebAuthn) or authenticator app (TOTP). Admins: security key only.</span></dd></div>
+          <div class="row"><dt>Password rules</dt><dd><span class="val">At least 15 characters, checked against breached passwords, not one of the last 5</span><span class="sub">No composition rules: length does the work. Stored with argon2id.</span></dd></div>
+          <div class="row"><dt>Periodic password change<span>{{rotHint}}</span></dt><dd>
+            <span style="display: flex; gap: 6px; flex-wrap: wrap"><button type="button" class="btn {{r0}}" onClick="{{setR0}}">Only after compromise</button><button type="button" class="btn {{r90}}" onClick="{{setR90}}">Every 90 days</button><button type="button" class="btn {{r180}}" onClick="{{setR180}}">Every 180 days</button></span>
+            <span class="sub">{{rotNote}}</span></dd></div>
+          <div class="row"><dt>Failed attempts</dt><dd><span class="val">Pause the account 15 min after 10 failures; slow down from the 3rd</span><span class="sub">Admins are notified at the pause. Per account and per address.</span></dd></div>
+          <div class="row"><dt>Auditor accounts</dt><dd><span class="val">Expire after 30 days unless renewed</span><span class="sub">Audits end; their access should too.</span></dd></div>
+        </dl>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <h2>Sessions</h2>
+        <dl class="panel" style="margin: 0">
+          <div class="row"><dt>Sign out when idle</dt><dd><span class="val">15 minutes</span><span class="sub">Watching a page is not activity; the overview refreshing itself does not keep you signed in.</span></dd></div>
+          <div class="row"><dt>Sign in again after</dt><dd><span class="val">8 hours, whatever you are doing</span></dd></div>
+          <div class="row"><dt>Ask for the factor again before</dt><dd><span class="val">restore over a running VM · forget or delete points · user and role changes · signing key rotation · weakening a policy · changes on this page · evidence export</span><span class="sub"><span class="lock">fixed</span> Not remembered between actions.</span></dd></div>
+          <div class="row"><dt>Sessions per user</dt><dd><span class="val">3; a fourth signs out the oldest</span></dd></div>
+          <div class="row"><dt>Cookies</dt><dd><span class="val mono">__Host-</span><span class="sub">Secure, HttpOnly, SameSite=Strict, path /. Ended on the server at sign-out, not only cleared in the browser. <span class="lock">fixed</span></span></dd></div>
+          <div class="row"><dt>On password, factor or role change</dt><dd><span class="val">End all of that user's other sessions <span class="lock">fixed</span></span></dd></div>
+        </dl>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><h2>Signed in now</h2><span class="sub">5 sessions</span><button type="button" class="btn danger" style="margin-left: auto">Sign out everyone but me</button></div>
+        <div class="box">
+          <table>
+            <thead><tr><th scope="col">User</th><th scope="col">How</th><th scope="col">From</th><th scope="col">Started</th><th scope="col">Last active</th><th scope="col"><span style="position: absolute; left: -9999px">Action</span></th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">yigit</span> <span class="sub">this session</span><span class="of">admin</span></td><td>local · security key</td><td class="mono">10.4.2.7<span class="of" style="font-family: 'IBM Plex Sans'">Firefox, Linux</span></td><td>08:12</td><td>now</td><td></td></tr>
+              <tr><td><span class="mono">a.kaya</span><span class="of">auditor · expires 14 Dec</span></td><td>SSO</td><td class="mono">10.4.2.18<span class="of" style="font-family: 'IBM Plex Sans'">Edge, Windows</span></td><td>14:20</td><td>14:31</td><td><button type="button" class="btn">Sign out</button></td></tr>
+              <tr><td><span class="mono">m.demir</span><span class="of">operator</span></td><td>SSO</td><td class="mono">10.4.3.40<span class="of" style="font-family: 'IBM Plex Sans'">Chrome, macOS</span></td><td>13:05</td><td>14:22</td><td><button type="button" class="btn">Sign out</button></td></tr>
+              <tr><td><span class="mono">s.yilmaz</span><span class="of">operator</span></td><td>SSO</td><td class="mono">10.8.0.12<span class="of" style="font-family: 'IBM Plex Sans'">VPN · Firefox, Linux</span></td><td>11:40</td><td>14:18</td><td><button type="button" class="btn">Sign out</button></td></tr>
+              <tr><td><span class="mono">s.yilmaz</span><span class="of">operator</span></td><td><span class="chip warn">▲ NEW DEVICE</span></td><td class="mono">10.8.0.31<span class="of" style="font-family: 'IBM Plex Sans'">VPN · Chrome, Android</span></td><td>14:10</td><td>14:10</td><td><button type="button" class="btn">Sign out</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <a href="Inventory.dc.html" class="sub">All sign-ins, sign-outs and failures are in the audit log</a>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { sso: true, rot: 0 }; }
+  renderVals() {
+    var self = this, sso = this.state.sso, rot = this.state.rot;
+    var notes = {
+      0: 'Recommended with a required second factor: NIST SP 800-63B-4 says not to force periodic changes, and PCI DSS 8.3.9 does not apply where MFA is used. A change is forced when a password shows up in a breach list or an admin resets it.',
+      90: 'For auditors who still ask for it. Users get a reminder 14 days before; at expiry they must set a new password before anything else. Break-glass admins included.',
+      180: 'Users get a reminder 14 days before; at expiry they must set a new password before anything else. Break-glass admins included.'
+    };
+    return {
+      sso: sso, noSso: !sso,
+      ssoOn: sso ? 'on' : '', ssoOff: sso ? '' : 'on',
+      setSsoOn: function () { self.setState({ sso: true }); }, setSsoOff: function () { self.setState({ sso: false }); },
+      localWho: sso ? 'Break-glass admins only' : 'Every user',
+      localHint: sso ? 'with SSO on, everyone else must use SSO' : 'SSO is off',
+      r0: rot === 0 ? 'on' : '', r90: rot === 90 ? 'on' : '', r180: rot === 180 ? 'on' : '',
+      setR0: function () { self.setState({ rot: 0 }); }, setR90: function () { self.setState({ rot: 90 }); }, setR180: function () { self.setState({ rot: 180 }); },
+      rotHint: rot === 0 ? 'local accounts only' : 'local accounts only; SSO passwords follow the IdP',
+      rotNote: notes[rot]
+    };
+  }
+}
+</script>
+</body>
+</html>

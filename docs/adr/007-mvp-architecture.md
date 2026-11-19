@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (see "Amendments"; they win over the text above them).
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5) and 2026-11-20 (C1–C10); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -113,3 +113,83 @@ evidence signing key. Therefore:
   (`filippo.io/age`, scrypt recipient). An operator can open it with the standalone `age` tool, without Gaia.
 - `gaia server restore-state` rebuilds a server from a recovery kit and the repository alone.
 - The install guide makes storing the kit off the server a step that cannot be skipped silently.
+
+## Amendments (2026-11-20, after M2)
+
+Decisions on the `ONAY GEREKİYOR` items of reports T20–T23, approved by the product owner. The UI prototype
+approved on 2026-11-20 is in `docs/design/v2/`.
+
+### C1. Design target: thousands of VMs (amends "Scope of the MVP")
+
+The PO's T23 answer: the product will watch thousands of VMs. The design target becomes:
+- **Control plane** (catalog, status model, API, UI, scheduler): **5,000 VMs, 100 hosts, 3 million points** on one
+  Gaia server, measured with a synthetic catalog (T24 gate).
+- **Data path and proof** scale with hosts and sandbox slots, not with the server. Proof capacity is shown, never
+  assumed (C4). A remote sandbox host is the next step after M3, not part of it.
+
+### C2. UI stack (amends §7; T20 item 1)
+
+Accepted: React 19 + TypeScript (strict) + Vite, as T20 built it. Kept from §7: no CDN, fonts vendored, `web/dist`
+committed and embedded in the binary, `go build` and installs need no Node, CI checks that `dist` matches the
+source. Changed: reading in the browser needs JavaScript; without it the page says so and points to `gaia status`
+and the API, which stay complete.
+
+### C3. Reason codes (refines "The status model")
+
+Every reason that can make a VM non-OK has a **stable machine code** (e.g. `test_failed_boot`,
+`repo_content_damaged`, `no_backup_in_rpo`, `host_unreachable`, `never_proven`, `proof_too_old`, `rto_over_target`,
+`test_not_run`), plus parameters (host, repository, test id) and a human sentence built from them. The overview's
+"Needs attention" groups VMs by `(code, cause scope)`, so one host failure is one row, not 41. Codes are part of
+the API contract and versioned with it.
+
+### C4. Parallel restore tests and proof capacity (amends §5; T23 item 5)
+
+- The sandbox runs up to `max_parallel_tests` tests at once (default: computed from the host's memory and CPUs,
+  capped at 8). Each slot has its own network namespace, veth, dnsmasq, overlay and IP range; slots cannot reach
+  each other (tested). Admission is by memory: a test starts only if guest RAM + a fixed overhead fits under the
+  sandbox's memory limit.
+- Queue order: retests of `CRITICAL` VMs, then never-proven VMs, then by time to proof expiry, then by policy.
+  The order is part of the API (`queue_position`, `estimated_start`).
+- **Proof capacity** is computed, not guessed: demand = Σ over VMs of (tests per day from the policy × that VM's
+  median test duration over its last 10 tests, or the OS-class median if it has none); capacity = slots × 24 h.
+  The API and the UI show coverage, the VMs whose proofs will expire before their next test, and the slots needed.
+  Policy edits show their effect on capacity before saving.
+- The B1 privilege split is unchanged: slots live inside `gaia-sandbox.service`.
+
+### C5. Third unit for conversion (amends B1; T21 item 2)
+
+Accepted: `gaia-convert.service`, own user, no network listener, a socket shared only with `gaia.service`,
+rootless podman with the bounding set T21 measured. B1 now reads "three units, one binary"; only
+`gaia-sandbox.service` runs as root. Rule 13 in CLAUDE.md is updated.
+
+### C6. Forgetting damaged points (B4.3; T20 item 4, T22 item 1)
+
+Accepted as built in T22 (option a): `gaia points forget`, admin only, `failed` points only, reason required.
+From M3 the UI offers it on a damaged point, behind step-up (ADR-008 §4).
+
+### C7. Evidence export (T20 item 3)
+
+Accepted as built, plus: the export's `SHA256SUMS` is signed by the installation's evidence key, and every
+export is recorded as an **evidence bundle** (its manifest names who, scope, period and the SUMS hash) with its
+ledger entry, so v1 verifiers check it unchanged. The signature is a convenience for integrity in
+transit, not a trust anchor; the README keeps the key_id comparison against an externally received daily report
+as the first step.
+
+### C8. Notifications (T23 item 1, T21 open question)
+
+- `full_backup` (with its reason) is accepted as an event.
+- New: `migration_check_finished` for results other than `OK`, plus the ADR-008 events `breakglass_signin`,
+  `account_locked`, `new_device_signin`, `settings_changed`.
+- Channels subscribe to **categories** (status, jobs, integrity, security, migration), not to a fixed event list,
+  so new events in a category reach existing channels. The migration from M2's lists keeps every channel's current
+  events and maps it to the categories it covered.
+
+### C9. Daily report after a rebuild (T23 item 2)
+
+Accepted: `last_rebuild` field and a `REBUILT:` line for 48 hours after `restore-state`.
+
+### C10. Packaging and accounts (T22 item 2, open questions)
+
+Accepted: the `.deb` layout from T22. The T20 review users (`ui-review`, `ui-auditor`) are disabled before any
+further acceptance run. The release location is a PO decision that is still open; until then releases are
+published by hand as T22 documented.

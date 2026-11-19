@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Fleet overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{--page:#1d2021;--surface:#282828;--raised:#32302f;--line:#3c3836;--line2:#504945;--fg0:#fbf1c7;--fg1:#ebdbb2;--fg2:#d5c4a1;--fg3:#bdae93;--fg4:#a89984;--red:#fb4934;--yellow:#fabd2f;--green:#b8bb26;--purple:#d3869b;--aqua:#8ec07c;--blue:#83a598;--redt:#3a1716;--redl:#6f2420;--yelt:#362a12;--yell:#6b5014;--purt:#33262d;--purl:#6e4a59}
+.g{background:var(--page);color:var(--fg1);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;color:var(--fg0);font-weight:600;font-size:15px}
+.inst{color:var(--fg4);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:var(--fg3);font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--fg0);text-decoration:none}
+.nav a.on{color:var(--fg0);border-color:var(--fg2)}
+.find{flex:1 1 220px;display:flex;align-items:center;gap:8px;max-width:380px;background:var(--page);border:1px solid var(--line2);border-radius:3px;padding:0 10px;height:32px;color:var(--fg4);font-size:13px}
+.find input{flex:1;background:transparent;border:0;color:var(--fg1);font:inherit;outline:none}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line2);border-radius:3px;padding:0 5px;color:var(--fg4)}
+.clock{margin-left:auto;color:var(--fg2);font-size:13px}
+.clock span{color:var(--fg4);font-size:11.5px;margin-left:6px}
+.user{color:var(--fg3);font-size:13px}
+.role{font-size:11px;color:var(--fg4);border:1px solid var(--line2);border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:30px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:var(--red);background:var(--redt);border-color:var(--redl)}
+.warn{color:var(--yellow);background:var(--yelt);border-color:var(--yell)}
+.unk{color:var(--purple);border-color:var(--purl);background:repeating-linear-gradient(135deg,var(--purt) 0 4px,transparent 4px 8px)}
+.ok{color:var(--fg3);border-color:var(--line2)}
+.ok b{color:var(--green)}
+h1{margin:0;font-size:30px;font-weight:600;color:var(--fg0);letter-spacing:-.01em}
+h2{margin:0;font-size:16px;font-weight:600;color:var(--fg0)}
+.sub{color:var(--fg4);font-size:12.5px}
+.sample{font-size:11px;color:var(--fg4);border:1px dashed var(--line2);border-radius:3px;padding:1px 7px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line2);border-radius:3px;background:var(--raised);color:var(--fg1);font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--fg4);color:var(--fg0)}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.seg button{background:transparent;border:0;border-right:1px solid var(--line2);color:var(--fg3);font:inherit;font-size:12.5px;padding:0 12px;height:30px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--raised);color:var(--fg0)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:var(--fg4);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.num{text-align:right}
+.fig b{color:var(--fg0);font-weight:600}
+.of{display:block;font-size:11.5px;color:var(--fg4)}
+.over{color:var(--red) !important}
+.box{overflow-x:auto}
+.strip{display:flex;gap:2px;align-items:flex-end;height:18px}
+.strip i{display:block;width:6px;height:6px;background:var(--line2)}
+.strip i.b{height:6px;background:#665c54}
+.strip i.p{height:14px;background:var(--aqua)}
+.strip i.f{height:18px;background:var(--red)}
+.strip i.u{height:14px;background:repeating-linear-gradient(135deg,var(--purple) 0 2px,transparent 2px 4px)}
+.strip i.r{height:18px;background:var(--fg0);width:2px}
+.pbar{position:relative;height:8px;width:150px;background:#2b2a29;border-radius:1px;margin:3px 0 4px}
+.pbar .v{position:absolute;left:0;top:0;bottom:0;background:var(--fg3)}
+.pbar .v.bad{background:var(--red)}
+.pbar .t{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg0)}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html" aria-label="Gaia overview">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>
+      Gaia
+    </a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#a89984" stroke-width="2"></circle><path d="M20 20l-4-4" stroke="#a89984" stroke-width="2" stroke-linecap="round"></path></svg><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"><span class="kbd">/</span></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <section style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+          <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px">Can I return right now?</span>
+          <span class="sample">Sample data</span>
+        </div>
+        <h1 style="font-size: 54px; line-height: 1; font-weight: 600">2,371 <span style="font-size: 26px; color: #a89984; font-weight: 400">of 2,418 VMs</span></h1>
+        <p style="margin: 0; font-size: 16px; color: #d5c4a1; max-width: 640px">can return to a point that a restore test proved within its targets. <b style="color: #fbf1c7">47 cannot</b>, for 6 reasons below. The fleet's worst proven RPO is <b style="color: #fb4934">9 h 41 min</b> (db-ledger-03, target 1 h).</p>
+        <ul style="list-style: none; margin: 6px 0 0; padding: 0; display: flex; gap: 10px; flex-wrap: wrap" aria-label="VMs by status">
+          <li><a href="#attention" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #6f2420; background: #3a1716; border-radius: 3px; text-decoration: none"><span style="font-size: 22px; font-weight: 600; color: #fbf1c7">9</span><span class="chip crit">◆ CRITICAL</span></a></li>
+          <li><a href="#attention" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #6e4a59; border-radius: 3px; text-decoration: none"><span style="font-size: 22px; font-weight: 600; color: #fbf1c7">14</span><span class="chip unk">? UNKNOWN</span></a></li>
+          <li><a href="#attention" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #6b5014; border-radius: 3px; text-decoration: none"><span style="font-size: 22px; font-weight: 600; color: #fbf1c7">24</span><span class="chip warn">▲ WARNING</span></a></li>
+          <li><a href="#vms" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #504945; border-radius: 3px; text-decoration: none"><span style="font-size: 22px; font-weight: 600; color: #d5c4a1">2,371</span><span class="chip ok"><b>✓</b> OK</span></a></li>
+        </ul>
+      </div>
+      <dl style="margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid #3c3836">
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid #3c3836">
+          <dt class="sub">Proof capacity</dt>
+          <dd style="margin: 0"><span class="chip warn">▲ BEHIND</span> <span style="color: #d5c4a1">Policies ask for <b style="color: #fbf1c7">5,616</b> restore tests a day; 6 sandbox slots cover <b style="color: #fbf1c7">94 %</b>. 19 VMs will pass their maximum proof age by 18:00.</span> <a href="Capacity.dc.html">Plan capacity</a></dd>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid #3c3836">
+          <dt class="sub">Evidence ledger</dt>
+          <dd style="margin: 0"><span class="chip ok"><b>✓</b> OK</span> <span style="color: #d5c4a1">184,220 entries, checked 14:30. Head anchored in the 06:00 daily report, delivered to 3 recipients.</span></dd>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid #3c3836">
+          <dt class="sub">Recovery kit</dt>
+          <dd style="margin: 0"><span class="chip ok"><b>✓</b> OK</span> <span style="color: #d5c4a1">Generation 4 stored off the server, confirmed 12 Nov by yigit.</span></dd>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid #3c3836">
+          <dt class="sub">Running now</dt>
+          <dd style="margin: 0; color: #d5c4a1">38 backups, 6 restore tests in 6 sandbox slots, repository verify <span class="mono">s3-ank-01</span> 62 %. <a href="Activity.dc.html">Activity</a></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="attention" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap">
+        <h2>Needs attention</h2>
+        <span class="sub">47 VMs, grouped by cause. One cause usually explains many VMs: fix the cause, not each VM.</span>
+      </div>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col" style="width: 130px">Status</th><th scope="col">Cause</th><th scope="col" class="num" style="width: 70px">VMs</th><th scope="col" style="width: 260px">Where</th><th scope="col" style="width: 90px">Since</th><th scope="col" style="width: 150px"><span style="position: absolute; left: -9999px">Action</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{groups}}" as="gr" hint-placeholder-count="6">
+              <tr style="{{gr.rowStyle}}">
+                <td><span class="chip {{gr.cls}}">{{gr.word}}</span></td>
+                <td><b style="color: #fbf1c7; font-weight: 600">{{gr.cause}}</b><span class="of" style="font-size: 13px; color: #bdae93; margin-top: 2px">{{gr.detail}}</span></td>
+                <td class="num fig"><b style="font-size: 18px">{{gr.count}}</b></td>
+                <td style="color: #d5c4a1">{{gr.scope}}</td>
+                <td class="mono" style="color: #bdae93; font-size: 12.5px">{{gr.since}}</td>
+                <td class="num"><button class="btn" type="button" onClick="{{gr.toggle}}">{{gr.label}}</button></td>
+              </tr>
+              <sc-if value="{{gr.open}}" hint-placeholder-val="{{false}}">
+                <tr>
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <table style="background: #282828">
+                      <thead><tr><th scope="col">VM</th><th scope="col">Can return to</th><th scope="col">Proven RPO</th><th scope="col">Last test</th></tr></thead>
+                      <tbody>
+                        <sc-for list="{{gr.vms}}" as="m" hint-placeholder-count="4">
+                          <tr>
+                            <td><a href="VM.dc.html" class="mono">{{m.name}}</a><span class="of">{{m.host}}</span></td>
+                            <td style="color: #d5c4a1">{{m.ret}}</td>
+                            <td class="fig"><b class="over">{{m.rpo}}</b><span class="of">target {{m.target}}</span></td>
+                            <td style="color: #bdae93">{{m.test}}</td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              </sc-if>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+        <h2>Coverage by {{groupWord}}</h2>
+        <div class="seg" role="group" aria-label="Group by">
+          <button type="button" class="{{byHost}}" onClick="{{setHost}}">Host</button>
+          <button type="button" class="{{byPolicy}}" onClick="{{setPolicy}}">Policy</button>
+          <button type="button" class="{{byTag}}" onClick="{{setTag}}">Tag</button>
+        </div>
+        <span class="sub">Each bar is every VM in the group, by status. Healthy groups stay quiet; worst first.</span>
+      </div>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col" style="width: 220px">{{groupWord}}</th><th scope="col" class="num" style="width: 70px">VMs</th><th scope="col">Status of every VM</th><th scope="col" style="width: 170px">Worst proven RPO</th><th scope="col" style="width: 130px">Oldest proof</th></tr></thead>
+          <tbody>
+            <sc-for list="{{cov}}" as="c" hint-placeholder-count="8">
+              <tr>
+                <td><a href="Main.dc.html" class="mono">{{c.name}}</a><span class="of">{{c.note}}</span></td>
+                <td class="num fig"><b>{{c.n}}</b></td>
+                <td style="vertical-align: middle">
+                  <div style="display: flex; height: 14px; gap: 1px; min-width: 260px" role="img" aria-label="{{c.aria}}">
+                    <span style="{{c.sCrit}}"></span><span style="{{c.sUnk}}"></span><span style="{{c.sWarn}}"></span><span style="{{c.sOk}}"></span>
+                  </div>
+                </td>
+                <td class="fig"><b class="{{c.rpoCls}}">{{c.rpo}}</b><span class="of">target {{c.target}}</span></td>
+                <td class="fig"><b>{{c.age}}</b></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub" style="margin: 0">Showing 8 of 38 hosts. The 30 hosts not shown have every VM OK. <a href="Main.dc.html">Show all 38</a></p>
+    </section>
+
+    <section id="vms" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+        <h2>VMs</h2>
+        <div class="seg" role="group" aria-label="Show">
+          <button type="button" class="on">Needs attention · 47</button>
+          <button type="button">All · 2,418</button>
+        </div>
+        <button class="btn" type="button">Status: any</button>
+        <button class="btn" type="button">Host: any</button>
+        <button class="btn" type="button">Policy: any</button>
+        <button class="btn" type="button">Tag: any</button>
+        <span class="sub" style="margin-left: auto">Sorted by: worst first, then oldest proof</span>
+      </div>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col">VM</th><th scope="col">Can return to</th><th scope="col">Proven RPO</th><th scope="col" class="num">Proven RTO</th><th scope="col" class="num">Proof age</th><th scope="col">Last 24 h</th><th scope="col">Why</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr>
+                <td style="white-space: nowrap"><span class="chip {{r.cls}}">{{r.word}}</span> <a href="VM.dc.html" class="mono" style="margin-left: 6px">{{r.name}}</a><span class="of">{{r.host}} · {{r.policy}}</span></td>
+                <td><b style="color: #fbf1c7; font-weight: 600">{{r.ret}}</b><span class="of">{{r.retSub}}</span></td>
+                <td class="fig"><div class="pbar" aria-hidden="true"><span class="v {{r.barCls}}" style="{{r.barW}}"></span><span class="t" style="{{r.tick}}"></span></div><b class="{{r.rpoCls}}">{{r.rpo}}</b><span class="of">target {{r.target}}</span></td>
+                <td class="num fig"><b class="{{r.rtoCls}}">{{r.rto}}</b><span class="of">target {{r.rtoT}}</span></td>
+                <td class="num fig"><b class="{{r.ageCls}}">{{r.age}}</b><span class="of">max {{r.ageT}}</span></td>
+                <td style="vertical-align: middle"><div class="strip" role="img" aria-label="{{r.stripAria}}"><sc-for list="{{r.strip}}" as="k" hint-placeholder-count="24"><i class="{{k}}"></i></sc-for></div></td>
+                <td style="color: #d5c4a1; max-width: 300px">{{r.why}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: center" class="sub">
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 6px; height: 6px; background: #665c54"></span>backup</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 6px; height: 14px; background: #8ec07c"></span>tested, OK</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 6px; height: 14px; background: #fb4934"></span>test failed</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 6px; height: 14px; background: repeating-linear-gradient(135deg,#d3869b 0 2px,transparent 2px 4px)"></span>test could not run</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 2px; height: 14px; background: #fbf1c7"></span>point you would return to</span>
+        <span style="margin-left: auto">Showing 8 of 47 · <a href="Main.dc.html">Next 40</a></span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2240}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: 0, by: 'host' }; }
+  renderVals() {
+    var self = this;
+    var tone = { crit: ['crit', '◆ CRITICAL'], unk: ['unk', '? UNKNOWN'], warn: ['warn', '▲ WARNING'] };
+    var raw = [
+      { t: 'crit', cause: 'Restore test failed to boot', detail: 'The guest stopped at "no bootable device" in the sandbox. Each VM still has an older proven point, but it is outside the RPO target.', count: 4, scope: 'kvm-07 ×3 · kvm-11 ×1', since: '09:12',
+        vms: [
+          { name: 'db-ledger-03', host: 'kvm-07', ret: 'Today 04:51 · point 88104', rpo: '9 h 41 min', target: '1 h', test: '14:05 · CRITICAL · no bootable device' },
+          { name: 'db-ledger-04', host: 'kvm-07', ret: 'Today 05:20 · point 88131', rpo: '9 h 12 min', target: '1 h', test: '13:58 · CRITICAL · no bootable device' },
+          { name: 'app-core-19', host: 'kvm-07', ret: 'Today 08:02 · point 88340', rpo: '6 h 30 min', target: '4 h', test: '14:11 · CRITICAL · no bootable device' },
+          { name: 'erp-batch-02', host: 'kvm-11', ret: 'Today 09:00 · point 88402', rpo: '5 h 32 min', target: '4 h', test: '13:40 · CRITICAL · kernel panic' }
+        ] },
+      { t: 'crit', cause: 'Repository content damaged', detail: 'Verification of s3-ank-01 found 2 damaged contents. Points that use them are quarantined; the next backups are full.', count: 3, scope: 'repository s3-ank-01', since: '07:40', vms: [] },
+      { t: 'crit', cause: 'No backup within the RPO target', detail: 'Host kvm-14 has not answered over SSH since 11:02 (connection timed out).', count: 2, scope: 'kvm-14', since: '11:02', vms: [] },
+      { t: 'unk', cause: 'Never proven', detail: 'Added today. Their first restore tests are queued; nothing is proven yet.', count: 14, scope: 'gold-db ×9 · std-linux ×5', since: '13:30', vms: [] },
+      { t: 'warn', cause: 'Proof older than its maximum age', detail: 'The sandbox is behind: these VMs have waited more than 6 h for a test.', count: 19, scope: 'std-windows ×16 · std-linux ×3', since: '10:15', vms: [] },
+      { t: 'warn', cause: 'Proven RTO over target', detail: 'Windows restore tests take 7–8 min against a 5 min target.', count: 5, scope: 'std-windows', since: 'yesterday', vms: [] }
+    ];
+    var groups = raw.map(function (g, i) {
+      var open = self.state.open === i;
+      return { cls: tone[g.t][0], word: tone[g.t][1], cause: g.cause, detail: g.detail, count: g.count, scope: g.scope, since: g.since,
+        vms: g.vms, open: open && g.vms.length > 0, label: open && g.vms.length ? 'Hide VMs' : 'Show ' + g.count + ' VMs',
+        rowStyle: open ? 'background: #282828' : '',
+        toggle: function () { self.setState({ open: self.state.open === i ? -1 : i }); } };
+    });
+    var seg = function (n, total, color, hatch) {
+      if (!n) return 'display: none';
+      var bg = hatch ? 'repeating-linear-gradient(135deg,' + color + ' 0 3px,transparent 3px 6px)' : color;
+      return 'flex: ' + n + ' 1 0; min-width: 4px; background: ' + bg;
+    };
+    var sets = {
+      host: [
+        ['kvm-07', 'rack A3 · libvirt 9.0', 64, 3, 0, 2, 59, '9 h 41 min', '1 h', '7 h 02 min'],
+        ['kvm-14', 'unreachable since 11:02', 41, 2, 0, 0, 39, '3 h 30 min', '1 h', '2 h 10 min'],
+        ['kvm-11', 'rack A4 · libvirt 9.0', 72, 1, 2, 4, 65, '5 h 32 min', '4 h', '6 h 40 min'],
+        ['kvm-22', 'rack B1 · libvirt 10.0', 58, 0, 6, 3, 49, '1 h 05 min', '1 h', '6 h 55 min'],
+        ['kvm-03', 'rack A1 · libvirt 9.0', 66, 0, 4, 5, 57, '58 min', '1 h', '6 h 20 min'],
+        ['kvm-30', 'rack C2 · libvirt 10.0', 70, 0, 2, 6, 62, '3 h 50 min', '4 h', '6 h 31 min'],
+        ['kvm-18', 'rack B3 · libvirt 9.0', 63, 0, 0, 3, 60, '44 min', '1 h', '6 h 12 min'],
+        ['kvm-09', 'rack A2 · libvirt 9.0', 61, 0, 0, 1, 60, '3 h 10 min', '4 h', '5 h 58 min']
+      ],
+      policy: [
+        ['gold-db', 'RPO 1 h · test every 6 h', 312, 6, 9, 2, 295, '9 h 41 min', '1 h', '7 h 02 min'],
+        ['std-windows', 'RPO 4 h · test every 6 h', 186, 0, 0, 21, 165, '4 h 10 min', '4 h', '8 h 40 min'],
+        ['std-linux', 'RPO 4 h · test every 12 h', 1704, 3, 5, 1, 1695, '5 h 32 min', '4 h', '11 h 50 min'],
+        ['dev', 'RPO 24 h · test daily', 216, 0, 0, 0, 216, '19 h 10 min', '24 h', '22 h 05 min']
+      ],
+      tag: [
+        ['payments', 'owner: core-banking', 96, 2, 3, 1, 90, '9 h 41 min', '1 h', '7 h 02 min'],
+        ['erp', 'owner: finance-it', 140, 1, 0, 4, 135, '5 h 32 min', '4 h', '6 h 40 min'],
+        ['web', 'owner: digital', 410, 0, 4, 6, 400, '3 h 58 min', '4 h', '6 h 51 min'],
+        ['internal', 'owner: it-ops', 902, 0, 2, 9, 891, '3 h 41 min', '4 h', '11 h 20 min']
+      ]
+    };
+    var by = this.state.by;
+    var cov = sets[by].map(function (x) {
+      var rpoBad = x[7] !== '58 min' && x[7] !== '44 min' && x[7] !== '19 h 10 min' && x[7] !== '3 h 10 min' && x[7] !== '3 h 50 min' && x[7] !== '3 h 58 min' && x[7] !== '3 h 41 min';
+      return { name: x[0], note: x[1], n: x[2], rpo: x[7], target: x[8], age: x[9], rpoCls: rpoBad ? 'over' : '',
+        sCrit: seg(x[3], x[2], '#fb4934'), sUnk: seg(x[4], x[2], '#d3869b', true), sWarn: seg(x[5], x[2], '#fabd2f'), sOk: seg(x[6], x[2], '#504945'),
+        aria: x[3] + ' critical, ' + x[4] + ' unknown, ' + x[5] + ' warning, ' + x[6] + ' OK' };
+    });
+    var mk = function (pattern) {
+      var m = { '.': '', b: 'b', p: 'p', f: 'f', u: 'u', r: 'r' };
+      return pattern.split('').map(function (ch) { return m[ch]; });
+    };
+    var rows = [
+      { t: 'crit', name: 'db-ledger-03', host: 'kvm-07', policy: 'gold-db', ret: 'Today 04:51', retSub: 'point 88104 · proven by test 71220', rpo: '9 h 41 min', target: '1 h', pct: 100, tk: 10, bad: true, rto: '52 s', rtoT: '5 min', age: '9 h 30 min', ageT: '6 h', ageBad: true, strip: 'bpbrbbbbfbbbbfbbbbfbbbbf', why: 'Latest test failed: no bootable device. Points after 04:51 are not proven.' },
+      { t: 'crit', name: 'db-ledger-04', host: 'kvm-07', policy: 'gold-db', ret: 'Today 05:20', retSub: 'point 88131 · proven by test 71241', rpo: '9 h 12 min', target: '1 h', pct: 100, tk: 10, bad: true, rto: '49 s', rtoT: '5 min', age: '9 h 05 min', ageT: '6 h', ageBad: true, strip: 'bbpbrbbbbbfbbbbfbbbbfbbb', why: 'Latest test failed: no bootable device.' },
+      { t: 'crit', name: 'fin-report-07', host: 's3-ank-01', policy: 'std-linux', ret: 'Yesterday 22:40', retSub: 'point 87410 · newer points quarantined', rpo: '15 h 52 min', target: '4 h', pct: 100, tk: 25, bad: true, rto: '46 s', rtoT: '5 min', age: '15 h 40 min', ageT: '12 h', ageBad: true, strip: 'pbbbbbbbbbbbbbbbbbbbbbbb', why: 'Points 87420–87466 use damaged content and were quarantined. Next backup is full.' },
+      { t: 'crit', name: 'mq-broker-01', host: 'kvm-14', policy: 'gold-db', ret: 'Today 11:00', retSub: 'point 88501 · proven by test 71399', rpo: '3 h 32 min', target: '1 h', pct: 100, tk: 28, bad: true, rto: '44 s', rtoT: '5 min', age: '3 h 20 min', ageT: '6 h', ageBad: false, strip: 'bbbpbbbbbpbbbbbr........', why: 'No backup since 11:00: host kvm-14 does not answer over SSH.' },
+      { t: 'unk', name: 'pay-gw-31', host: 'kvm-22', policy: 'gold-db', ret: 'Nothing proven yet', retSub: '3 points, first test queued (position 41)', rpo: '—', target: '1 h', pct: 0, tk: 10, bad: false, rto: '—', rtoT: '5 min', age: '—', ageT: '6 h', ageBad: false, strip: '...................bbbbb', why: 'Added 13:30. No restore test has passed yet.' },
+      { t: 'unk', name: 'pay-gw-32', host: 'kvm-22', policy: 'gold-db', ret: 'Nothing proven yet', retSub: '3 points, first test queued (position 42)', rpo: '—', target: '1 h', pct: 0, tk: 10, bad: false, rto: '—', rtoT: '5 min', age: '—', ageT: '6 h', ageBad: false, strip: '...................bbbbb', why: 'Added 13:30. No restore test has passed yet.' },
+      { t: 'warn', name: 'win-ad-02', host: 'kvm-03', policy: 'std-windows', ret: 'Today 06:10', retSub: 'point 88188 · proven by test 71188', rpo: '3 h 58 min', target: '4 h', pct: 99, tk: 100, bad: false, rto: '7 min 12 s', rtoT: '5 min', rtoBad: true, age: '8 h 22 min', ageT: '6 h', ageBad: true, strip: 'bbbbpbrbbbbbbbbbbbbbbbbb', why: 'Proof is 8 h 22 min old (max 6 h): waiting in the sandbox queue.' },
+      { t: 'warn', name: 'win-file-05', host: 'kvm-30', policy: 'std-windows', ret: 'Today 07:45', retSub: 'point 88290 · proven by test 71260', rpo: '3 h 47 min', target: '4 h', pct: 95, tk: 100, bad: false, rto: '7 min 40 s', rtoT: '5 min', rtoBad: true, age: '6 h 47 min', ageT: '6 h', ageBad: true, strip: 'bbbbbbpbrbbbbbbbbbbbbbbb', why: 'Proven RTO 7 min 40 s is over the 5 min target.' }
+    ];
+    rows = rows.map(function (r) {
+      return { cls: tone[r.t][0], word: tone[r.t][1], name: r.name, host: r.host, policy: r.policy, ret: r.ret, retSub: r.retSub,
+        rpo: r.rpo, target: r.target, rpoCls: r.bad ? 'over' : '', barCls: r.bad ? 'bad' : '',
+        barW: 'width: ' + Math.min(100, r.pct) + '%', tick: 'left: ' + r.tk + '%',
+        rto: r.rto, rtoT: r.rtoT, rtoCls: r.rtoBad ? 'over' : '', age: r.age, ageT: r.ageT, ageCls: r.ageBad ? 'over' : '',
+        strip: mk(r.strip), stripAria: 'Backups and restore tests over the last 24 hours', why: r.why };
+    });
+    var words = { host: 'Host', policy: 'Policy', tag: 'Tag' };
+    return {
+      groups: groups, cov: cov, rows: rows, groupWord: words[by],
+      byHost: by === 'host' ? 'on' : '', byPolicy: by === 'policy' ? 'on' : '', byTag: by === 'tag' ? 'on' : '',
+      setHost: function () { self.setState({ by: 'host' }); },
+      setPolicy: function () { self.setState({ by: 'policy' }); },
+      setTag: function () { self.setState({ by: 'tag' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

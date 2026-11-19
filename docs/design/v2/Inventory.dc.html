@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Inventory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.side{flex:1 1 200px;max-width:220px;display:flex;flex-direction:column;gap:2px}
+.side button{all:unset;cursor:pointer;display:flex;justify-content:space-between;padding:8px 12px;border-left:2px solid transparent;color:#bdae93;font-size:14px}
+.side button:hover{color:#fbf1c7}
+.side button.on{border-color:#d5c4a1;color:#fbf1c7;background:#282828}
+.side button span{color:#a89984;font-size:12px}
+.content{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:26px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.of{display:block;font-size:11.5px;color:#a89984}
+.box{overflow-x:auto}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a class="on" href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <nav class="side" aria-label="Inventory">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button type="button" class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}<span>{{t.n}}</span></button></sc-for>
+      <a href="Security.dc.html" style="padding: 8px 12px; border-left: 2px solid transparent; color: #bdae93; font-size: 14px">Sign-in and security</a>
+    </nav>
+    <div class="content">
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+        <h1>{{title}}</h1><span class="sub">{{hint}}</span>
+        <button class="btn" type="button" style="margin-left: auto">{{addLabel}}</button>
+      </div>
+      <div class="box">
+        <table>
+          <thead><tr><sc-for list="{{cols}}" as="c" hint-placeholder-count="5"><th scope="col">{{c}}</th></sc-for></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr>
+                <td><span class="mono" style="color: #fbf1c7">{{r.a}}</span><span class="of">{{r.as}}</span></td>
+                <td><sc-if value="{{r.chip}}" hint-placeholder-val="{{true}}"><span class="chip {{r.cls}}">{{r.word}}</span> </sc-if><span style="color: #d5c4a1">{{r.b}}</span></td>
+                <td style="color: #d5c4a1">{{r.c}}</td>
+                <td style="color: #d5c4a1">{{r.d}}</td>
+                <td class="sub">{{r.e}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub" style="margin: 0">{{foot}}</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 'hosts' }; }
+  renderVals() {
+    var self = this, tab = this.state.tab;
+    var C = function (t, w) { var m = { ok: ['ok', '✓ OK'], warn: ['warn', '▲ ' + w], crit: ['crit', '◆ ' + w], unk: ['unk', '? ' + w] }; return { chip: true, cls: m[t][0], word: t === 'ok' ? m.ok[1] : m[t][1] }; };
+    var R = function (a, as, st, b, c, d, e) { var x = st ? C(st[0], st[1]) : { chip: false }; x.a = a; x.as = as; x.b = b; x.c = c; x.d = d; x.e = e; return x; };
+    var data = {
+      hosts: { title: 'Hosts', n: '38', hint: 'KVM hosts Gaia backs up from, over SSH.', add: 'Add host', cols: ['Host', 'Connection', 'VMs', 'libvirt / checkpoints', 'Last contact'],
+        rows: [
+          R('kvm-14', 'rack B2', ['crit', 'UNREACHABLE'], 'SSH timed out', '41', 'libvirt 9.0 · yes', '11:02'),
+          R('kvm-07', 'rack A3', ['ok'], '', '64', 'libvirt 9.0 · yes', '14:32'),
+          R('kvm-11', 'rack A4', ['ok'], '', '72', 'libvirt 9.0 · yes', '14:32'),
+          R('kvm-22', 'rack B1', ['ok'], '', '58', 'libvirt 10.0 · yes', '14:31'),
+          R('kvm-30', 'rack C2', ['warn', 'HOST KEY CHANGED'], 'accepted by yigit 09:40', '70', 'libvirt 10.0 · yes', '14:32'),
+          R('sandbox-01', 'test sandbox', ['ok'], '6 slots, 48 of 192 GB', '—', 'libvirt 10.0', '14:32')
+        ], foot: 'Showing 6 of 38. Adding a host checks SSH, the host key, libvirt version and checkpoint support before it saves anything.' },
+      policies: { title: 'Policies', n: '4', hint: 'Targets each VM is judged against.', add: 'New policy', cols: ['Policy', 'Targets', 'Backup / test', 'VMs', 'Health checks'],
+        rows: [
+          R('gold-db', 'databases', null, 'RPO 1 h · RTO 5 min · proof age 6 h', 'backup 30 min · test 6 h', '312', 'login + postgres :5432'),
+          R('std-windows', 'Windows servers', null, 'RPO 4 h · RTO 5 min · proof age 6 h', 'backup 1 h · test 6 h', '186', 'WinRM, settle 60 s'),
+          R('std-linux', 'default', null, 'RPO 4 h · RTO 5 min · proof age 12 h', 'backup 1 h · test 12 h', '1,704', 'serial login'),
+          R('dev', 'non-production', null, 'RPO 24 h · RTO 15 min · proof age 24 h', 'backup 6 h · test 24 h', '216', 'serial login')
+        ], foot: 'Changing a policy shows its effect on proof capacity before you save it.' },
+      repos: { title: 'Repositories', n: '3', hint: 'Where points are stored.', add: 'Add repository', cols: ['Repository', 'Status', 'Used', 'Last verify', 'Quarantined'],
+        rows: [
+          R('s3-ank-01', 'S3 · Ankara', ['crit', 'DAMAGED'], '2 damaged contents found 07:40', '41.2 TB', 'running, 62 %', '47 points'),
+          R('nfs-ist-01', 'filesystem · Istanbul', ['ok'], '', '18.9 TB', 'yesterday 23:10, clean', '0'),
+          R('s3-offsite', 'S3 · off-site copy', ['ok'], '', '58.0 TB', '3 days ago, clean', '0')
+        ], foot: 'Verification reads every content and checks its hash. Damaged content is quarantined, never reused.' },
+      users: { title: 'Users', n: '7', hint: 'Roles: admin, operator, auditor.', add: 'Add user', cols: ['User', 'Role', 'Last sign-in', 'Can', 'Added'],
+        rows: [
+          R('yigit', 'Yiğit', null, 'admin', 'today 08:12', 'everything', '2 Oct'),
+          R('m.demir', 'ops', null, 'operator', 'today 13:05', 'back up, test, restore', '3 Oct'),
+          R('a.kaya', 'internal audit', null, 'auditor', 'today 14:20', 'read, export evidence', '15 Oct')
+        ], foot: 'Showing 3 of 7. Every change here is written to the audit log.' },
+      audit: { title: 'Audit log', n: '9,412', hint: 'Append-only. Who did what, from where.', add: 'Export', cols: ['When', 'Who', 'Action', 'Target', 'From'],
+        rows: [
+          R('14:20:11', 'today', null, 'a.kaya', 'signed in', '—', '10.4.2.18'),
+          R('14:00:12', 'today', null, 'yigit', 'added note', 'db-ledger-03', '10.4.2.7'),
+          R('09:40:03', 'today', null, 'yigit', 'accepted new host key', 'kvm-30', '10.4.2.7'),
+          R('08:12:40', 'today', null, 'yigit', 'signed in', '—', '10.4.2.7'),
+          R('07:41:02', 'today', null, 'system', 'quarantined 47 points', 's3-ank-01', 'gaia-01')
+        ], foot: 'Showing 5 of 9,412.' }
+    };
+    var order = [['hosts', 'Hosts'], ['policies', 'Policies'], ['repos', 'Repositories'], ['users', 'Users'], ['audit', 'Audit log']];
+    var d = data[tab];
+    return {
+      tabs: order.map(function (o) { return { label: o[1], n: data[o[0]].n, cls: o[0] === tab ? 'on' : '', pick: function () { self.setState({ tab: o[0] }); } }; }),
+      title: d.title, hint: d.hint, addLabel: d.add, cols: d.cols, rows: d.rows, foot: d.foot
+    };
+  }
+}
+</script>
+</body>
+</html>

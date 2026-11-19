@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Proof capacity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:30px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:30px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.sample{font-size:11px;color:#a89984;border:1px dashed #504945;border-radius:3px;padding:1px 7px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.on{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.num{text-align:right}
+.of{display:block;font-size:11.5px;color:#a89984}
+.over{color:#fb4934 !important}
+.box{overflow-x:auto}
+.cap{position:relative;height:26px;background:#2b2a29;border-radius:1px}
+.cap .lin{position:absolute;top:0;bottom:0;left:0;background:#8ec07c}
+.cap .win{position:absolute;top:0;bottom:0;background:#83a598}
+.cap .line{position:absolute;top:-8px;bottom:-8px;width:2px;background:#fbf1c7}
+.cap .gap{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#fb4934 0 3px,transparent 3px 7px);opacity:.75}
+input[type=range]{accent-color:#ebdbb2;width:260px}
+.hr{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:2px;align-items:end;height:90px;border-bottom:1px solid #504945}
+.hr div{display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.hr .d{background:#504945}
+.hr .s{background:#fabd2f}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a href="Main.dc.html">Overview</a>
+      <a class="on" href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <section style="display: flex; flex-direction: column; gap: 12px; max-width: 980px">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px">Can the sandbox keep every proof fresh?</span><span class="sample">Sample data · speeds from T23</span></div>
+      <h1 style="font-size: 44px; line-height: 1.05">{{headline}}</h1>
+      <p style="margin: 0; font-size: 16px; color: #d5c4a1">{{lede}}</p>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; border: 1px solid #3c3836; background: #282828; border-radius: 3px">
+      <div style="display: flex; gap: 28px; align-items: center; flex-wrap: wrap">
+        <label style="display: flex; flex-direction: column; gap: 4px"><span class="sub">Parallel test slots</span><span style="display: flex; gap: 12px; align-items: center"><input type="range" min="1" max="12" step="1" value="{{slots}}" onChange="{{onSlots}}" aria-label="Parallel test slots"><b style="font-size: 21px; color: #fbf1c7; min-width: 28px">{{slots}}</b></span></label>
+        <div style="display: flex; flex-direction: column; gap: 4px"><span class="sub">std-windows tests every</span><span style="display: flex; gap: 6px"><button type="button" class="btn {{w6}}" onClick="{{setW6}}">6 h</button><button type="button" class="btn {{w12}}" onClick="{{setW12}}">12 h</button><button type="button" class="btn {{w24}}" onClick="{{setW24}}">24 h</button></span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-left: auto; text-align: right"><span class="sub">Sandbox memory at peak</span><b style="font-size: 21px; color: #fbf1c7" class="{{memCls}}">{{mem}}</b><span class="sub">of 192 GB on sandbox-01</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px">
+        <div class="cap" role="img" aria-label="{{capAria}}">
+          <span class="lin" style="{{linW}}"></span><span class="win" style="{{winW}}"></span><span class="gap" style="{{gapW}}"></span><span class="line" style="{{lineL}}"></span>
+        </div>
+        <div style="display: flex; gap: 18px; flex-wrap: wrap" class="sub">
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; background: #8ec07c; display: inline-block"></span>Linux tests {{linH}} slot-hours/day</span>
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; background: #83a598; display: inline-block"></span>Windows tests {{winH}} slot-hours/day</span>
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 2px; height: 12px; background: #fbf1c7; display: inline-block"></span>capacity {{capH}} slot-hours/day</span>
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; background: repeating-linear-gradient(135deg,#fb4934 0 2px,transparent 2px 4px); display: inline-block"></span>not covered</span>
+        </div>
+      </div>
+      <p class="sub" style="margin: 0">One slot runs one restore test at a time. T23 measured one slot: about 80 Linux tests or 8 Windows tests an hour. Parallel slots are not built yet (decision pending); this assumes each slot is as fast as the first. Changing the slider or interval here only models; it changes nothing.</p>
+    </section>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <h2>Demand by policy</h2>
+        <div class="box">
+          <table>
+            <thead><tr><th scope="col">Policy</th><th scope="col" class="num">VMs</th><th scope="col">Test every</th><th scope="col" class="num">Tests / day</th><th scope="col" class="num">Minutes each</th><th scope="col" class="num">Slot-hours</th></tr></thead>
+            <tbody>
+              <sc-for list="{{pol}}" as="p" hint-placeholder-count="4">
+                <tr><td><a href="Inventory.dc.html" class="mono">{{p.name}}</a><span class="of">{{p.os}}</span></td><td class="num">{{p.vms}}</td><td>{{p.every}}</td><td class="num">{{p.tests}}</td><td class="num mono">{{p.min}}</td><td class="num"><b style="color: #fbf1c7">{{p.sh}}</b><span class="of">{{p.share}}</span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub" style="margin: 0">Windows is 8 % of VMs and {{winShare}} of test time: each test waits for WinRM and the settle window.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <h2>Proofs that expire in the next 24 h</h2>
+        <div class="hr" role="img" aria-label="Proofs expiring per hour">
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="24"><div title="{{h.tip}}"><span class="s" style="{{h.sh}}"></span><span class="d" style="{{h.dh}}"></span></div></sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between" class="sub mono"><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span><span>14:00</span></div>
+        <div style="display: flex; gap: 18px; flex-wrap: wrap" class="sub">
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; background: #504945; display: inline-block"></span>re-tested in time</span>
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; background: #fabd2f; display: inline-block"></span>will pass maximum proof age</span>
+        </div>
+        <p style="margin: 0; color: #d5c4a1">{{staleText}}</p>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap"><h2>Test queue</h2><span class="sub">312 waiting · ordered by: CRITICAL first, then never proven, then nearest to expiry</span></div>
+      <div class="box">
+        <table>
+          <thead><tr><th scope="col" class="num" style="width: 60px">#</th><th scope="col">VM</th><th scope="col">Why now</th><th scope="col">Point</th><th scope="col" class="num">Estimate</th><th scope="col">Starts</th></tr></thead>
+          <tbody>
+            <tr><td class="num sub">run</td><td><a href="VM.dc.html" class="mono">web-shop-12</a><span class="of">std-linux · slot 1 of 6 (5 more running)</span></td><td style="color: #d5c4a1">Proof expires 15:10</td><td class="mono">88611</td><td class="num mono">45 s</td><td><span style="color: #8ec07c">running, 31 s</span></td></tr>
+            <tr><td class="num sub">1</td><td><a href="VM.dc.html" class="mono">db-ledger-03</a><span class="of">gold-db</span></td><td><span class="chip crit">◆ CRITICAL</span> <span style="color: #d5c4a1">retest after 4 failures</span></td><td class="mono">88540</td><td class="num mono">50 s</td><td class="mono">14:33</td></tr>
+            <tr><td class="num sub">2</td><td><a href="VM.dc.html" class="mono">db-ledger-04</a><span class="of">gold-db</span></td><td><span class="chip crit">◆ CRITICAL</span> <span style="color: #d5c4a1">retest after 3 failures</span></td><td class="mono">88533</td><td class="num mono">50 s</td><td class="mono">14:34</td></tr>
+            <tr><td class="num sub">3</td><td><a href="VM.dc.html" class="mono">pay-gw-31</a><span class="of">gold-db</span></td><td><span class="chip unk">? UNKNOWN</span> <span style="color: #d5c4a1">never proven</span></td><td class="mono">88590</td><td class="num mono">48 s</td><td class="mono">14:35</td></tr>
+            <tr><td class="num sub">4</td><td><a href="VM.dc.html" class="mono">win-ad-02</a><span class="of">std-windows</span></td><td><span class="chip warn">▲ WARNING</span> <span style="color: #d5c4a1">proof 8 h 22 min old, max 6 h</span></td><td class="mono">88600</td><td class="num mono">7 min 30 s</td><td class="mono">14:36</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1720}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { slots: 6, win: 6 }; }
+  renderVals() {
+    var self = this;
+    var slots = this.state.slots, win = this.state.win;
+    var rows = [
+      { name: 'gold-db', os: 'Linux', vms: 312, every: 6, min: 0.75 },
+      { name: 'std-linux', os: 'Linux', vms: 1704, every: 12, min: 0.75 },
+      { name: 'std-windows', os: 'Windows', vms: 186, every: win, min: 7.5 },
+      { name: 'dev', os: 'Linux', vms: 216, every: 24, min: 0.75 }
+    ];
+    var linH = 0, winH = 0, tests = 0;
+    rows.forEach(function (r) { r.t = r.vms * 24 / r.every; r.h = r.t * r.min / 60; tests += r.t; if (r.os === 'Windows') winH += r.h; else linH += r.h; });
+    var need = linH + winH, cap = slots * 24;
+    var scale = Math.max(need, cap) * 1.08;
+    var pct = function (v) { return (v / scale * 100).toFixed(2) + '%'; };
+    var fmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var cover = Math.min(1, cap / need);
+    var slotsNeeded = Math.ceil(need / 24);
+    var stale = cover >= 1 ? 0 : Math.round(tests * (1 - cover));
+    var headline = cover >= 1 ? 'Yes, with ' + Math.round((cap - need) / cap * 100) + ' % to spare.' : 'No. It covers ' + Math.round(cover * 100) + ' % of what policies ask.';
+    var lede = cover >= 1
+      ? 'Policies ask for ' + fmt(tests) + ' restore tests a day across 2,418 VMs. ' + slots + ' slots can run them all; the queue drains every few hours.'
+      : 'Policies ask for ' + fmt(tests) + ' restore tests a day across 2,418 VMs. With ' + slots + (slots === 1 ? ' slot' : ' slots') + ', about ' + fmt(stale) + ' a day do not happen in time, so those proofs go stale. You need ' + slotsNeeded + ' slots, or longer test intervals.';
+    var hours = [];
+    for (var i = 0; i < 24; i++) {
+      var due = 40 + ((i * 37) % 23) * 3 + (i % 6 === 0 ? 60 : 0);
+      var s = Math.round(due * (1 - cover));
+      var max = 160;
+      hours.push({ sh: 'height: ' + (s / max * 100) + '%', dh: 'height: ' + ((due - s) / max * 100) + '%', tip: due + ' due, ' + s + ' late' });
+    }
+    var winShare = Math.round(winH / need * 100) + ' %';
+    return {
+      slots: slots, headline: headline, lede: lede,
+      onSlots: function (e) { self.setState({ slots: parseInt(e.target.value, 10) }); },
+      w6: win === 6 ? 'on' : '', w12: win === 12 ? 'on' : '', w24: win === 24 ? 'on' : '',
+      setW6: function () { self.setState({ win: 6 }); }, setW12: function () { self.setState({ win: 12 }); }, setW24: function () { self.setState({ win: 24 }); },
+      linW: 'width: ' + pct(Math.min(linH, need)), winW: 'left: ' + pct(linH) + '; width: ' + pct(winH),
+      gapW: cap < need ? 'left: ' + pct(cap) + '; width: ' + pct(need - cap) : 'display: none',
+      lineL: 'left: ' + pct(cap),
+      capAria: 'Need ' + fmt(need) + ' slot-hours a day, capacity ' + fmt(cap),
+      linH: fmt(linH), winH: fmt(winH), capH: fmt(cap),
+      mem: (slots * 8) + ' GB', memCls: slots * 8 > 192 ? 'over' : '',
+      winShare: winShare,
+      pol: rows.map(function (r) { return { name: r.name, os: r.os, vms: r.vms.toLocaleString('en-US'), every: r.every + ' h', tests: fmt(r.t), min: r.min < 1 ? '45 s' : '7 min 30 s', sh: r.h.toFixed(1), share: Math.round(r.h / need * 100) + ' % of time' }; }),
+      hours: hours,
+      staleText: cover >= 1 ? 'Every proof is re-tested before it expires.' : 'About ' + fmt(stale / 1) + ' proofs a day will pass their maximum age and turn WARNING. Windows VMs go first, because their tests are the longest.'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -28,3 +28,10 @@ Report T13: v1 is published in `docs/spec/evidence-v1.md` with 41 conformance ve
 written only from the specification matches all of them. Decision #5 is applied as written: the invitation to
 other projects is sent **after the MVP acceptance (package M2)**, when the format has run under real use and
 the ledger head is anchored outside Gaia (ADR-007 §10), which closes the truncation limit in spec §11.1.
+
+## Note (2026-11-20)
+
+Export records (ADR-007 C7) need no change to v1: v1 ledger entries are `key` or `bundle` only, so an export is
+written as an ordinary bundle whose manifest describes the export (unknown manifest members are ignored by v1
+verifiers, §2). Sign-in and settings changes go to the audit log, not the ledger. Any later need for a new
+ledger entry type is v1.1 with new conformance vectors; v1 stays verifiable.

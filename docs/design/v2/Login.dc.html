@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;min-height:100vh;display:flex;flex-direction:column}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.proto{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 28px;border-bottom:1px dashed #504945;background:#1d2021}
+.proto span{font-size:11px;color:#a89984;text-transform:uppercase;letter-spacing:.08em}
+.seg{display:inline-flex;border:1px solid #504945;border-radius:3px;overflow:hidden;flex-wrap:wrap}
+.seg button{background:transparent;border:0;border-right:1px solid #504945;color:#bdae93;font:inherit;font-size:12.5px;padding:0 12px;height:28px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#32302f;color:#fbf1c7}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:56px 20px}
+.card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;color:#fbf1c7;font-weight:600;font-size:18px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+h1{margin:0;font-size:21px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:#d5c4a1}
+label.f input{height:38px;background:#282828;border:1px solid #504945;border-radius:3px;color:#fbf1c7;font:inherit;font-size:14px;padding:0 10px;outline:none}
+label.f input:focus{border-color:#d5c4a1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:14px;cursor:pointer;width:100%;box-sizing:border-box}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.pri{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2;font-weight:600}
+.btn.danger{background:#3a1716;color:#fb4934;border-color:#6f2420;font-weight:600}
+.or{display:flex;align-items:center;gap:10px;color:#a89984;font-size:12px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:#3c3836}
+.note{padding:10px 12px;border:1px solid #3c3836;border-radius:3px;background:#282828;color:#d5c4a1;font-size:13px}
+.note.warn{border-color:#6b5014;background:#362a12;color:#fabd2f}
+.note.crit{border-color:#6f2420;background:#3a1716;color:#fb4934}
+.otp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.otp span{height:46px;border:1px solid #504945;border-radius:3px;background:#282828;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:20px;color:#fbf1c7}
+.otp span.cur{border-color:#d5c4a1}
+.rule{display:flex;gap:8px;font-size:13px;color:#d5c4a1}
+.rule b{color:#b8bb26;font-weight:600;width:14px}
+.rule b.no{color:#a89984}
+.foot{padding:14px 28px;border-top:1px solid #3c3836;display:flex;gap:18px;flex-wrap:wrap}
+.modalbg{position:relative;width:100%;max-width:980px;border:1px solid #3c3836;border-radius:3px;background:#282828;padding:24px;box-sizing:border-box;opacity:1}
+.dlg{max-width:460px;margin:0 auto;background:#32302f;border:1px solid #6f2420;border-radius:3px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:13px}
+.kv dt{color:#a89984}.kv dd{margin:0;color:#fbf1c7}
+</style>
+</helmet>
+<div class="g">
+  <div class="proto" aria-label="Prototype state">
+    <span>Prototype state</span>
+    <div class="seg" role="group">
+      <sc-for list="{{states}}" as="s" hint-placeholder-count="6"><button type="button" class="{{s.cls}}" onClick="{{s.pick}}">{{s.label}}</button></sc-for>
+    </div>
+  </div>
+
+  <div class="stage">
+    <sc-if value="{{isSignin}}" hint-placeholder-val="{{true}}">
+      <div class="card">
+        <div class="brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia <span class="inst" style="margin-left: auto">gaia-01.prod.ist</span></div>
+        <h1>Sign in</h1>
+        <a class="btn pri" href="Main.dc.html">Continue with Warewave SSO</a>
+        <div class="or">or a local account</div>
+        <label class="f">User name<input type="text" value="yigit" autocomplete="username"></label>
+        <label class="f">Password<input type="password" value="................" autocomplete="current-password"></label>
+        <button type="button" class="btn" onClick="{{toMfa}}">Continue</button>
+        <p class="sub" style="margin: 0">Local accounts need a second factor. Use one when SSO is down: Gaia must stay reachable when the identity provider is the thing being restored.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isMfa}}" hint-placeholder-val="{{false}}">
+      <div class="card">
+        <div class="brand">Gaia <span class="inst" style="margin-left: auto">gaia-01.prod.ist</span></div>
+        <h1>Second factor for yigit</h1>
+        <button type="button" class="btn pri">Use security key</button>
+        <div class="or">or the code from your authenticator app</div>
+        <div class="otp" aria-label="6-digit code"><span>4</span><span>1</span><span>9</span><span class="cur"></span><span></span><span></span></div>
+        <a class="btn" href="Main.dc.html">Verify</a>
+        <div class="note">Last sign-in: today 08:12 from 10.4.2.7, Firefox on Linux.</div>
+        <p class="sub" style="margin: 0">Lost your factor? An admin can reset it, or use a recovery code. Both are written to the audit log.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isExpired}}" hint-placeholder-val="{{false}}">
+      <div class="card">
+        <div class="brand">Gaia <span class="inst" style="margin-left: auto">gaia-01.prod.ist</span></div>
+        <h1>Choose a new password</h1>
+        <div class="note warn">Your password must be changed: this instance requires a new password every 90 days, and yours was set on 21 Aug.</div>
+        <label class="f">New password<input type="password" value="........................"></label>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div class="rule"><b>✓</b>At least 15 characters (24 now)</div>
+          <div class="rule"><b>✓</b>Not in the list of breached and common passwords</div>
+          <div class="rule"><b>✓</b>Not one of your last 5 passwords</div>
+          <div class="rule"><b>✓</b>Does not contain your user name or "gaia"</div>
+        </div>
+        <label class="f">Type it again<input type="password" value="........................"></label>
+        <a class="btn pri" href="Main.dc.html">Save and continue</a>
+        <p class="sub" style="margin: 0">Saving signs you out on every other device.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isStep}}" hint-placeholder-val="{{false}}">
+      <div class="modalbg">
+        <div class="sub" style="margin-bottom: 18px; opacity: .55">VM page · db-ledger-03 · Restore…</div>
+        <div class="dlg" role="dialog" aria-labelledby="st">
+          <h1 id="st" style="font-size: 18px">Confirm: restore over the running VM</h1>
+          <dl class="kv">
+            <dt>VM</dt><dd class="mono">db-ledger-03 on kvm-07</dd>
+            <dt>Point</dt><dd>Today 04:51 · 88104 · proven by test 71220</dd>
+            <dt>Replaces</dt><dd>the current disks (1.6 TB). Changes after 04:51 are lost.</dd>
+          </dl>
+          <label class="f">Type the VM name to confirm<input type="text" value="db-ledger-03"></label>
+          <button type="button" class="btn">Touch your security key</button>
+          <div style="display: flex; gap: 8px"><button type="button" class="btn" style="width: auto; flex: 1">Cancel</button><button type="button" class="btn danger" style="width: auto; flex: 1">Restore</button></div>
+          <p class="sub" style="margin: 0">Destructive and security actions ask for your factor again, even in an active session. This is not remembered.</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isIdle}}" hint-placeholder-val="{{false}}">
+      <div class="card">
+        <div class="brand">Gaia <span class="inst" style="margin-left: auto">gaia-01.prod.ist</span></div>
+        <h1>You were signed out</h1>
+        <div class="note">No activity for 15 minutes. Nothing you had open was changed; running jobs continue.</div>
+        <button type="button" class="btn pri" onClick="{{toSignin}}">Sign in again</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isLocked}}" hint-placeholder-val="{{false}}">
+      <div class="card">
+        <div class="brand">Gaia <span class="inst" style="margin-left: auto">gaia-01.prod.ist</span></div>
+        <h1>Too many attempts</h1>
+        <div class="note crit">Sign-in for this account is paused for 14 min 20 s after 10 failed attempts. Admins were notified.</div>
+        <p class="sub" style="margin: 0">The pause applies to the account from every address. If these attempts were not you, tell an admin: they can see each one in the audit log.</p>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="foot sub"><span>Gaia 0.4.0</span><span>AGPL-3.0-or-later</span><span>This system is monitored. Every sign-in is recorded.</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { s: 'signin' }; }
+  renderVals() {
+    var self = this, s = this.state.s;
+    var list = [['signin', 'Sign in'], ['mfa', 'Second factor'], ['expired', 'Password expired'], ['step', 'Confirm action'], ['idle', 'Idle sign-out'], ['locked', 'Locked']];
+    var go = function (k) { return function () { self.setState({ s: k }); }; };
+    return {
+      states: list.map(function (x) { return { label: x[1], cls: x[0] === s ? 'on' : '', pick: go(x[0]) }; }),
+      isSignin: s === 'signin', isMfa: s === 'mfa', isExpired: s === 'expired', isStep: s === 'step', isIdle: s === 'idle', isLocked: s === 'locked',
+      toMfa: go('mfa'), toSignin: go('signin')
+    };
+  }
+}
+</script>
+</body>
+</html>

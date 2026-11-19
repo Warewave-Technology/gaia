@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — VM db-ledger-03</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;gap:8px;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px;color:#a89984;font-size:13px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:22px 28px 64px;display:flex;flex-direction:column;gap:30px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+h1{margin:0;font-size:30px;font-weight:600;color:#fbf1c7}
+h2{margin:0;font-size:16px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.pri{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2;font-weight:600}
+.seg{display:inline-flex;border:1px solid #504945;border-radius:3px;overflow:hidden}
+.seg button{background:transparent;border:0;border-right:1px solid #504945;color:#bdae93;font:inherit;font-size:12.5px;padding:0 12px;height:30px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#32302f;color:#fbf1c7}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #3c3836;vertical-align:top}
+.num{text-align:right}
+.of{display:block;font-size:11.5px;color:#a89984}
+.over{color:#fb4934 !important}
+.box{overflow-x:auto}
+.bul{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid #3c3836;border-radius:3px;background:#282828}
+.track{position:relative;height:12px;background:#2b2a29}
+.track .b1{position:absolute;left:0;top:0;bottom:0;background:#353230}
+.track .b2{position:absolute;left:0;top:0;bottom:0;background:#423c38}
+.track .v{position:absolute;left:0;top:3px;bottom:3px;background:#d5c4a1}
+.track .v.bad{background:#fb4934}
+.track .t{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fbf1c7}
+.big{display:flex;gap:3px;align-items:flex-end;height:44px;border-bottom:1px solid #504945}
+.big i{display:block;flex:1 1 0;min-width:3px;height:10px;background:#665c54;cursor:pointer}
+.big i.p{height:30px;background:#8ec07c}
+.big i.f{height:44px;background:#fb4934}
+.big i.u{height:30px;background:repeating-linear-gradient(135deg,#d3869b 0 2px,transparent 2px 4px)}
+.big i.n{background:transparent}
+.big i.sel{outline:2px solid #fbf1c7;outline-offset:1px}
+.shot{aspect-ratio:16/10;background:#0e0e0e;border:1px solid #3c3836;border-radius:3px;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a89984;gap:2px}
+.step{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;padding:8px 0;border-bottom:1px solid #3c3836;align-items:baseline}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="Main.dc.html">Overview</a>
+      <a href="Capacity.dc.html">Proof capacity</a>
+      <a href="Activity.dc.html">Activity</a>
+      <a href="Migration.dc.html">Migration</a>
+      <a href="Evidence.dc.html">Evidence</a>
+      <a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>server time, Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span><a href="Login.dc.html" style="font-size: 13px">Sign out</a>
+  </header>
+
+  <main class="wrap">
+    <nav class="sub" aria-label="Breadcrumb"><a href="Main.dc.html">Overview</a> / <a href="Main.dc.html">Restore test failed to boot</a> / <span class="mono" style="color: #d5c4a1">db-ledger-03</span></nav>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+          <span class="chip crit">◆ CRITICAL</span><span class="sub">since 09:12 · 5 h 20 min</span>
+        </div>
+        <h1 class="mono" style="font-weight: 500">db-ledger-03</h1>
+        <div class="sub" style="font-size: 13px">host <a href="Inventory.dc.html" class="mono">kvm-07</a> · policy <a href="Inventory.dc.html" class="mono">gold-db</a> (RPO 1 h, RTO 5 min, test every 6 h) · repository <a href="Inventory.dc.html" class="mono">s3-ank-01</a> · tags payments, ledger · 4 disks, 1.6 TB</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button class="btn" type="button">Back up now</button>
+        <button class="btn pri" type="button">Test the newest point now</button>
+        <button class="btn" type="button">Restore…</button>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 18px 20px; border: 1px solid #6f2420; background: #2a1c1a; border-radius: 3px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11px">If it breaks now, you return to</span>
+        <div style="font-size: 30px; font-weight: 600; color: #fbf1c7">Today 04:51 <span style="font-size: 16px; color: #a89984; font-weight: 400">point 88104</span></div>
+        <div style="color: #d5c4a1">Proven by test <a href="#test" class="mono">71220</a> at 05:02: booted, login prompt in 41 s, 3 of 3 checks passed. Back running in about <b style="color: #fbf1c7">52 s</b>.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11px">Why it is critical</span>
+        <ul style="margin: 0; padding-left: 18px; color: #ebdbb2; display: flex; flex-direction: column; gap: 4px">
+          <li>The 4 tests since 05:02 failed: <b>no bootable device</b>. The points they tested are backed up but not proven.</li>
+          <li>Proven RPO is <b class="over">9 h 41 min</b> against a 1 h target.</li>
+        </ul>
+        <div class="sub">Same cause on 3 other VMs on kvm-07 and kvm-11. Likely a host or template change after 05:00, not this VM. <a href="Main.dc.html">See the group</a></div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+      <sc-for list="{{bullets}}" as="b" hint-placeholder-count="4">
+        <div class="bul">
+          <span class="sub">{{b.label}}</span>
+          <div><b class="{{b.cls}}" style="font-size: 21px; color: #fbf1c7; font-weight: 600">{{b.value}}</b> <span class="sub">target {{b.target}}</span></div>
+          <div class="track" aria-hidden="true"><span class="b2" style="width: 100%"></span><span class="b1" style="width: 50%"></span><span class="v {{b.vcls}}" style="{{b.w}}"></span><span class="t" style="{{b.t}}"></span></div>
+          <span class="sub">{{b.note}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+        <h2>History</h2>
+        <div class="seg" role="group" aria-label="Range">
+          <button type="button" class="{{r24}}" onClick="{{set24}}">24 h</button>
+          <button type="button" class="{{r7}}" onClick="{{set7}}">7 days</button>
+        </div>
+        <span class="sub">Short bar: backup. Tall: restore test. Click a bar to see that point.</span>
+      </div>
+      <div class="big" role="img" aria-label="Backups and tests">
+        <sc-for list="{{hist}}" as="h" hint-placeholder-count="48"><i class="{{h.cls}}" onClick="{{h.pick}}" title="{{h.tip}}"></i></sc-for>
+      </div>
+      <div style="display: flex; justify-content: space-between" class="sub mono"><span>{{histStart}}</span><span>{{histMid}}</span><span>now</span></div>
+      <div style="display: flex; gap: 16px; align-items: baseline; padding: 10px 14px; background: #282828; border: 1px solid #3c3836; border-radius: 3px; flex-wrap: wrap">
+        <span class="chip {{selCls}}">{{selWord}}</span>
+        <b style="color: #fbf1c7">{{selTitle}}</b>
+        <span style="color: #d5c4a1">{{selText}}</span>
+      </div>
+    </section>
+
+    <section id="test" style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap">
+          <h2>Latest test</h2><span class="chip crit">◆ FAILED</span><span class="sub mono">test 71402 · point 88540 · 14:05</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <figure style="margin: 0"><div class="shot"><span>SeaBIOS (version 1.16.3)</span><span>Booting from Hard Disk...</span></div><figcaption class="sub">+8 s</figcaption></figure>
+          <figure style="margin: 0"><div class="shot"><span>Boot failed: not a bootable disk</span></div><figcaption class="sub">+20 s</figcaption></figure>
+          <figure style="margin: 0"><div class="shot" style="border-color: #6f2420"><span style="color: #fb4934">No bootable device.</span></div><figcaption class="sub">+120 s, final</figcaption></figure>
+        </div>
+        <div>
+          <div class="step"><span style="color: #b8bb26">✓</span><span>Restore point 88540 into the sandbox (copy-on-write)</span><span class="sub mono">6 s</span></div>
+          <div class="step"><span style="color: #b8bb26">✓</span><span>Disk chain and content hashes match the manifest</span><span class="sub mono">2 s</span></div>
+          <div class="step"><span style="color: #fb4934">◆</span><span>Guest boots and shows a login prompt<span class="of">No bootable device after 120 s (timeout). Firmware: BIOS. The source VM boots UEFI since 05:14.</span></span><span class="sub mono">120 s</span></div>
+          <div class="step"><span style="color: #d3869b">?</span><span>Service checks (postgres :5432, /healthz)<span class="of">Not run: the guest did not boot.</span></span><span class="sub mono">—</span></div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><button class="btn" type="button">Open evidence 71402</button><button class="btn" type="button">Retry with UEFI firmware</button></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <h2>Points</h2>
+        <div class="box">
+          <table>
+            <thead><tr><th scope="col">Point</th><th scope="col">Taken</th><th scope="col" class="num">Changed</th><th scope="col">Proof</th></tr></thead>
+            <tbody>
+              <sc-for list="{{points}}" as="p" hint-placeholder-count="7">
+                <tr><td class="mono">{{p.id}}</td><td>{{p.at}}</td><td class="num mono">{{p.size}}</td><td><span class="chip {{p.cls}}">{{p.word}}</span> <span class="sub">{{p.note}}</span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <a href="Main.dc.html" class="sub">All 412 points · status history · audit entries for this VM</a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2140}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { range: 24, sel: 46 }; }
+  renderVals() {
+    var self = this;
+    var tone = { crit: ['crit', '◆ FAILED'], ok: ['ok', '✓ PROVEN'], unk: ['unk', '? NOT TESTED'], bk: ['ok', 'BACKUP'] };
+    var n = 48;
+    var hist = [];
+    for (var i = 0; i < n; i++) {
+      var hour = (14.5 - (n - 1 - i) * 0.5);
+      var h = ((Math.floor(hour) % 24) + 24) % 24;
+      var mm = hour % 1 ? '30' : '00';
+      var cls = 'b', kind = 'bk';
+      if (i === 29) { cls = 'p'; kind = 'ok'; }
+      if (i === 17 || i === 5) { cls = 'p'; kind = 'ok'; }
+      if (i === 33 || i === 38 || i === 42 || i === 46) { cls = 'f'; kind = 'crit'; }
+      if (i === 47) { cls = 'u'; kind = 'unk'; }
+      if (self.state.range === 7 && i % 3 === 0 && cls === 'b') { cls = 'n'; }
+      (function (idx, c, k, label) {
+        hist.push({ cls: c + (self.state.sel === idx ? ' sel' : ''), tip: label, k: k, label: label,
+          pick: function () { self.setState({ sel: idx }); } });
+      })(i, cls, kind, (h < 10 ? '0' : '') + h + ':' + mm);
+    }
+    var s = hist[this.state.sel] || hist[46];
+    var texts = {
+      crit: 'Backed up and restored, but the guest did not boot (no bootable device). Not a point you can count on.',
+      ok: 'Restored in the sandbox, booted, all checks passed. You can return here.',
+      unk: 'Backed up; the restore test is queued (position 3). Until it runs, this point is not proven.',
+      bk: 'Backed up and its chain is intact. Not tested on its own; a later proven point covers it only if it is newer.'
+    };
+    var bullets = [
+      { label: 'Proven RPO', value: '9 h 41 min', target: '1 h', cls: 'over', vcls: 'bad', w: 'width: 100%', t: 'left: 10%', note: 'Age of the newest proven point' },
+      { label: 'Theoretical RPO', value: '32 min', target: '1 h', cls: '', vcls: '', w: 'width: 53%', t: 'left: 100%', note: 'Age of the newest backup, proven or not' },
+      { label: 'Proven RTO', value: '52 s', target: '5 min', cls: '', vcls: '', w: 'width: 17%', t: 'left: 100%', note: 'Restore 11 s + ready 41 s, test 71220' },
+      { label: 'Proof age', value: '9 h 30 min', target: '6 h', cls: 'over', vcls: 'bad', w: 'width: 100%', t: 'left: 63%', note: 'Since the last passing test' }
+    ];
+    var pts = [
+      ['88540', 'Today 14:00', '2.1 GB', 'crit', 'test 71402 · no bootable device'],
+      ['88512', 'Today 13:30', '1.8 GB', 'bk', 'not tested'],
+      ['88470', 'Today 12:00', '2.4 GB', 'crit', 'test 71360 · no bootable device'],
+      ['88330', 'Today 07:00', '1.2 GB', 'crit', 'test 71251 · no bootable device'],
+      ['88104', 'Today 04:51', '0.9 GB', 'ok', 'test 71220 · 52 s'],
+      ['87820', 'Yesterday 22:51', '3.0 GB', 'ok', 'test 71102 · 49 s'],
+      ['87501', 'Yesterday 16:51', '2.7 GB', 'ok', 'test 70988 · 50 s']
+    ].map(function (p) { return { id: p[0], at: p[1], size: p[2], cls: tone[p[3]][0], word: tone[p[3]][1], note: p[4] }; });
+    return {
+      bullets: bullets, hist: hist, points: pts,
+      histStart: this.state.range === 24 ? 'yesterday 15:00' : '7 days ago', histMid: this.state.range === 24 ? '03:00' : '3 days ago',
+      r24: this.state.range === 24 ? 'on' : '', r7: this.state.range === 7 ? 'on' : '',
+      set24: function () { self.setState({ range: 24 }); }, set7: function () { self.setState({ range: 7 }); },
+      selCls: tone[s.k][0], selWord: tone[s.k][1], selTitle: 'Point at ' + s.label, selText: texts[s.k]
+    };
+  }
+}
+</script>
+</body>
+</html>
