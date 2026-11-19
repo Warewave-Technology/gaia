@@ -37,8 +37,8 @@ Proxmox'ta (root) VM'i oluştur, başlat ve adresini al:
 CORES=4 MEMORY=8192 ROOT_GB=40 REPO_GB=80 /root/t17-servers.sh create 9106 gaia-t23-a /root/.ssh/authorized_keys repo && /root/t17-servers.sh start 9106
 ```
 
-- [ ] Sunucu A'nın adresi: `________________` (aşağıda `<A>`)
-- [ ] `ssh gaia@<A>` ile girebiliyorsun.
+- [x] Sunucu A'nın adresi: `192.168.1.121` (aşağıda `<A>`)
+- [x] `ssh gaia@192.168.1.121` ile girebiliyorsun.
 
 Repository diskini (seri numarası `gaia-repo`) `/srv/gaia`'ya bağla. Bu kılavuzda yok: repository'nin sunucudan ayrı
 bir diskte olması, senaryo 5'te diskin yeni sunucuya taşınabilmesi için. A'da, root olarak:
@@ -47,23 +47,27 @@ bir diskte olması, senaryo 5'te diskin yeni sunucuya taşınabilmesi için. A'd
 dev=/dev/$(lsblk -dno NAME,SERIAL | awk '$2 == "gaia-repo" { print $1 }') && mkfs.ext4 -q -L gaia-repo "$dev" && mkdir -p /srv/gaia && echo 'LABEL=gaia-repo /srv/gaia ext4 defaults,nofail 0 2' >> /etc/fstab && systemctl daemon-reload && mount /srv/gaia && df -h /srv/gaia
 ```
 
-- [ ] `df` 80 GiB'lık bir diski `/srv/gaia`'da gösteriyor.
+- [x] `df` 80 GiB'lık bir diski `/srv/gaia`'da gösteriyor.
 
 ## 1. Kurulum: kılavuz adım 1–8b
 
 Kılavuzu baştan uygula. Release dosyaları Mac'te `releases/0.1.1/` altında; adım 2'deki "indir" yerine o dizini kullan.
 
-- [ ] **Adım 2:** `ssh-keygen -Y verify` `Good "gaia-release" signature ...` dedi ve her dosya `OK`.
-- [ ] **Adım 3:** paket kuruldu; `gaia version` `gaia 0.1.1 (...)` dedi.
-- [ ] **Adım 4:** `gaia server init`'te `-hostname <A>` kullandın. TLS sha256'yı ve trust anchor'ı yazdın; admin parolası
+- [x] **Adım 2:** `ssh-keygen -Y verify` `Good "gaia-release" signature ...` dedi ve her dosya `OK`.
+- [x] **Adım 3:** paket kuruldu; `gaia version` `gaia 0.1.1 (...)` dedi.
+- [x] **Adım 4:** `gaia server init`'te `-hostname <A>` kullandın. TLS sha256'yı ve trust anchor'ı yazdın; admin parolası
   ve kit passphrase'i şifre yöneticinde.
-- [ ] **Adım 5:** `gaia-sandbox` ve `gaia` `active (running)`.
-- [ ] **Adım 6:** Mac'e `gaia`'yı kurdun; `gaia login` sha256'yı sordu, adım 4'tekiyle aynıydı; `gaia system` şema `8`.
-- [ ] **Adım 7:** `gaia repositories add name=main location=/srv/gaia/main` (kit passphrase'ini sordu).
-- [ ] **Adım 8:** `gaia state-backups run` `ok`.
-- [ ] **Adım 8b:** kit Mac'te kaydedildi (`gaia kit save`), `gaia kit status` `confirmed`.
+- [x] **Adım 5:** `gaia-sandbox` ve `gaia` `active (running)`.
+- [x] **Adım 6:** Mac'e `gaia`'yı kurdun; `gaia login` sha256'yı sordu, adım 4'tekiyle aynıydı; `gaia system` şema `8`.
+- [x] **Adım 7:** `gaia repositories add name=main location=/srv/gaia/main` (kit passphrase'ini sordu).
+- [x] **Adım 8:** `gaia state-backups run` `ok`.
+- [x] **Adım 8b:** kit Mac'te kaydedildi (`gaia kit save`), `gaia kit status` `confirmed`.
 
-Not: ______________________________________________
+Not: 
+  - Repo oluşturma adımında "UNKNOWN: repositories: 500 internal: internal error (details in the server log)" hataso aldık. Server karşılığı aşağıda. Çözümü de /srv/gaia dizinini gaia kullanıcısına atamak oldu.
+```bash
+Nov 18 19:55:46 gaia-t23-a gaia[19417]: time=2026-11-18T19:55:46.579Z level=ERROR msg="request failed" route="POST /api/v1/repositories" user=admin error="creating the repository at /srv/gaia/main: repository storage /srv/gaia/main: cannot access storage path: stat /srv/gaia/main: no such file or directory"
+```
 
 ## 2. Bildirimler: kılavuz adım 8c
 
@@ -95,8 +99,11 @@ Gelenleri gaia-lab'de görürsün:
 sudo /root/gaia/lab/lab-vm/t23-sink.sh list
 ```
 
-- [ ] İki test mesajı listede (`mail` ve `webhook`).
+- [x] İki test mesajı listede (`mail` ve `webhook`).
 - [ ] İstersen gerçek bir posta kutusuna da bir kanal ekle (kılavuz 8c); zorunlu değil.
+
+Not: 
+  - ca sertifika yolu olarak sunucudaki değil, mac üzerindeki yolu istiyor.
 
 ## 3. Koruma: kılavuz adım 10 ve 10b
 
@@ -112,13 +119,13 @@ gaia vms add host_id=1 name=gaia-t23-uefi policy_id=1
 gaia vms add host_id=1 name=gaia-t23-win policy_id=2
 ```
 
-- [ ] Üç VM `OK` oldu (Overview ekranı; ilk yedek ve ilk test birkaç dakika sürer, Windows'unki en uzun).
-- [ ] VM sayfalarında: noktalar (`gaia-t23-linux2`'de iki disk `vda`, `vdb`), restore testleri ekran görüntüleriyle,
+- [x] Üç VM `OK` oldu (Overview ekranı; ilk yedek ve ilk test birkaç dakika sürer, Windows'unki en uzun).
+- [x] VM sayfalarında: noktalar (`gaia-t23-linux2`'de iki disk `vda`, `vdb`), restore testleri ekran görüntüleriyle,
   bundle'lar "signed".
-- [ ] `gaia-t23-uefi`'nin testinde makine `efi`, `gaia-t23-win`'inkinde WinRM kontrolü geçti.
-- [ ] Her VM için bir `status` bildirimi geldi (`(new) -> UNKNOWN`, sonra `UNKNOWN -> OK`).
+- [x] `gaia-t23-uefi`'nin testinde makine `efi`, `gaia-t23-win`'inkinde WinRM kontrolü geçti.
+- [x] Her VM için bir `status` bildirimi geldi (`(new) -> UNKNOWN`, sonra `UNKNOWN -> OK`).
 
-Başlangıç saati (24 saat buradan sayılır): `________________`
+Başlangıç saati (24 saat buradan sayılır): `23:30`
 
 ## 4. Senaryolar 1–4
 
@@ -133,13 +140,17 @@ kodu sıfırlanır; misafir çalışmaya devam eder). Sonra `gaia-t23-linux2`'ni
 
 | Beklenen | Gördüğün |
 |---|---|
-| Test `CRITICAL` (test 5 dakika boyunca açılış bekler), ekran görüntüsünde açılış yok | |
-| VM `CRITICAL`, neden: `the latest restore test (N, point M) is CRITICAL: boot CRITICAL: no match for "(?m)login: *$" on the serial console within 300 s` | |
-| Bildirim (mail + webhook): `gaia-t23-linux2: OK -> CRITICAL`, nedenle | |
+| Test `CRITICAL` (test 5 dakika boyunca açılış bekler), ekran görüntüsünde açılış yok | Beklendiği gibi |
+| VM `CRITICAL`, neden: `the latest restore test (N, point M) is CRITICAL: boot CRITICAL: no match for "(?m)login: *$" on the serial console within 300 s` | Beklendiği gibi |
+| Bildirim (mail + webhook): `gaia-t23-linux2: OK -> CRITICAL`, nedenle | Beklendiği gibi |
 
 Geri al: `/root/gaia/lab/lab-vm/t23-guests.sh fix-boot gaia-t23-linux2`, sonra yine **Back up now** ve **Test a restore now**.
 
-- [ ] VM `OK`, bildirim `gaia-t23-linux2: CRITICAL -> OK`.
+- [x] VM `OK`, bildirim `gaia-t23-linux2: CRITICAL -> OK`.
+
+Not:
+  - Çalışan jobu göremiyorum. Bu da jobun çalışıp çalışmadığına emin olamamama sebep oldu. Backup now'a ikinci kez bastım, job zaten çalışıyor uyarısı verdi. Aynı şekilde restore'a bastım, o da aynı. Fakat critical öncesi running olarak altta görebiliyordum. Bence sunucu üzerinde aktif çalışan bişey varsa isminin yanına bir mavi spinner koyalım, hover yapınca neyin çalıştığı yazsın.
+  - Job çok geç başlamış olabilir, kontrol edelim logları.
 
 ### 4.2 Repository'de hasarlı bir içerik
 
@@ -153,17 +164,20 @@ Mac'ten tam doğrulama: `gaia repositories verify 1 mode=full`, sonra `gaia veri
 
 | Beklenen | Gördüğün |
 |---|---|
-| Doğrulama `critical`, etkilenen nokta(lar) ve içerik ID'leri | |
-| Etkilenen VM(ler) `CRITICAL`, neden: `integrity check failed for point(s) [...]` | |
-| Bildirimler: `integrity` (`repository main: verification N found damage in K point disk(s)`), `quarantine` (`damaged repository contents quarantined (verification N)`), ve her etkilenen VM için `status` `OK -> CRITICAL` | |
-| `gaia quarantine list` içeriği gösteriyor | |
+| Doğrulama `critical`, etkilenen nokta(lar) ve içerik ID'leri | Beklendiği gibi |
+| Etkilenen VM(ler) `CRITICAL`, neden: `integrity check failed for point(s) [...]` | Beklendiği gibi |
+| Bildirimler: `integrity` (`repository main: verification N found damage in K point disk(s)`), `quarantine` (`damaged repository contents quarantined (verification N)`), ve her etkilenen VM için `status` `OK -> CRITICAL` | Beklendiği gibi |
+| `gaia quarantine list` içeriği gösteriyor | Beklendiği gibi |
 
 Etkilenen her VM için **Back up now**:
 
-- [ ] Yedek full, nedeni `full: repository verification N quarantined damaged contents ...`; `full_backup` bildirimi geldi.
-- [ ] **Test a restore now** `OK`. VM yine de `CRITICAL` (ADR-007 B4.3: hasarlı nokta durdukça).
-- [ ] Hasarlı noktayı unut: `gaia points list vm_id=<id>` ile `failed` noktayı bul, sonra
+- [x] Yedek full, nedeni `full: repository verification N quarantined damaged contents ...`; `full_backup` bildirimi geldi.
+- [x] **Test a restore now** `OK`. VM yine de `CRITICAL` (ADR-007 B4.3: hasarlı nokta durdukça).
+- [x] Hasarlı noktayı unut: `gaia points list vm_id=<id>` ile `failed` noktayı bul, sonra
   `gaia points forget <point id> reason="T23 4.2: storage damage, the next backup is proven"`. VM `OK`, bildirim `CRITICAL -> OK`.
+
+Not:
+  - UI kendini otomatik yenilemiyor. Her defasında refresh yapmam laızım. Buna bir çözüm bulalım.
 
 ### 4.3 Sandbox durdu
 
@@ -171,13 +185,16 @@ A'da: `systemctl stop gaia-sandbox`. Sonra `gaia-t23-linux2` için **Test a rest
 
 | Beklenen | Gördüğün |
 |---|---|
-| Test işi `failed`, hata `sandbox helper ...`; bildirim `job_failed`: `restore_test job N of gaia-t23-linux2 failed` | |
-| Overview'da VM'in altında not: `restore test N (point M) could not run: not tested: sandbox helper at ...: connect: no such file or directory` (durum hâlâ `OK`) | |
-| Kanıt 1,5 saati geçince (`max_proof_age_s`) VM'ler `WARNING`, neden `the proof (test N) is ... old, over the maximum 1h30m0s`; `status` bildirimi | |
+| Test işi `failed`, hata `sandbox helper ...`; bildirim `job_failed`: `restore_test job N of gaia-t23-linux2 failed` | Unknown oldu, `not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post "http://sandbox/v1/verify": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory` |
+| Overview'da VM'in altında not: `restore test N (point M) could not run: not tested: sandbox helper at ...: connect: no such file or directory` (durum hâlâ `OK`) | Overviewde bişey görmüyorum, değişiklik yok |
+| Kanıt 1,5 saati geçince (`max_proof_age_s`) VM'ler `WARNING`, neden `the proof (test N) is ... old, over the maximum 1h30m0s`; `status` bildirimi | Beklendiği gibi |
 
 `WARNING`'i görmek için 1,5 saate kadar beklemen gerekebilir (testler saatte bir; durdurmadan önceki son kanıt kadar). Sonra A'da: `systemctl start gaia-sandbox`.
 
-- [ ] Sonraki testler `OK`, VM'ler `OK`, bildirim `WARNING -> OK`.
+- [x] Sonraki testler `OK`, VM'ler `OK`, bildirim `WARNING -> OK`.
+
+Not:
+  - imaj testleri paralel olmuyor sanırım, çözülmesi gereken bir sorun bu. Şuanda 3 vm var, 300 vm için bu bir problem olur. Eğer paralelse de çok yavaş, bu da sorun.
 
 ### 4.4 Silinen checkpoint
 
@@ -185,19 +202,19 @@ gaia-lab'de: `/root/gaia/lab/lab-vm/t23-guests.sh delete-checkpoint gaia-t23-lin
 
 | Beklenen | Gördüğün |
 |---|---|
-| Yeni nokta `full`, nedeni `full: checkpoint ... of point N is not on the host` | |
-| Overview'da not: `the newest backup (point M) is a full backup: checkpoint ... is not on the host`; durum `OK` kalıyor (veri korunuyor) | |
-| Bildirim `full_backup`: `gaia-t23-linux2: the backup was full (checkpoint ... is not on the host)` | |
+| Yeni nokta `full`, nedeni `full: checkpoint ... of point N is not on the host` | Bu notu göremedim |
+| Overview'da not: `the newest backup (point M) is a full backup: checkpoint ... is not on the host`; durum `OK` kalıyor (veri korunuyor) | Bu notu göremedim |
+| Bildirim `full_backup`: `gaia-t23-linux2: the backup was full (checkpoint ... is not on the host)` | Beklendiği gibi |
 
 ## 5. 24 saat
 
 Hiçbir şeye dokunmadan bırak (senaryolar 1–4 bu sürenin içinde olabilir).
 
-- [ ] Ertesi sabah 07:00'de (sunucunun saati) günlük rapor geldi: her VM'in durumu, Proven RPO / RTO, ledger head.
+- [x] Ertesi sabah 07:00'de (sunucunun saati) günlük rapor geldi: her VM'in durumu, Proven RPO / RTO, ledger head.
   Ekini (`gaia-daily-report-<n>.json`) gaia-lab'den sakla: senaryo 5'te dış çapa olacak.
-- [ ] 24 saat dolduğunda üç VM `OK`. `gaia jobs list` içinde açıklanamayan `failed` iş yok (senaryoların bilerek
+- [x] 24 saat dolduğunda üç VM `OK`. `gaia jobs list` içinde açıklanamayan `failed` iş yok (senaryoların bilerek
   bozdukları dışında).
-- [ ] Overview'da, bakar bakmaz: hangi noktaya dönebileceğin (Proven RPO) ve bunun ne zaman kanıtlandığı.
+- [x] Overview'da, bakar bakmaz: hangi noktaya dönebileceğin (Proven RPO) ve bunun ne zaman kanıtlandığı.
 
 ## 6. Senaryo 5: kaybolan sunucu, recovery kit'ten geri
 
@@ -210,7 +227,7 @@ Proxmox'ta, root olarak: A'yı kapat (güç kesintisi gibi), yeni B'yi oluştur,
 qm stop 9106 --skiplock 1 && CORES=4 MEMORY=8192 ROOT_GB=40 /root/t17-servers.sh create 9107 gaia-t23-b /root/.ssh/authorized_keys && /root/t17-servers.sh move-disk 9106 9107 && /root/t17-servers.sh lose 9106 && /root/t17-servers.sh start 9107
 ```
 
-B'nin adresi: `________________` (aşağıda `<B>`). Sonra B'de **kılavuz adım 13**'ü uygula: kit Mac'te, passphrase
+B'nin adresi: `192.168.1.122` (aşağıda `<B>`). Sonra B'de **kılavuz adım 13**'ü uygula: kit Mac'te, passphrase
 şifre yöneticinde, repository diski B'de. Diski bağla: adım 0'daki komutu **`mkfs.ext4` olmadan** çalıştır:
 
 ```bash
@@ -222,12 +239,12 @@ alıcıda değişiklik gerekmez.
 
 | Beklenen | Gördüğün |
 |---|---|
-| `restore-state` `WARNING`, problemler yalnızca iki kanal için: `notification channel mail: its secret (SMTP password or webhook secret) is not on this server: ...` ve aynısı `hook` için (beklenen: sırlar kit'te değil). Başka bir problem varsa (ör. son dakikalarda biten işler) metniyle buraya yaz | |
-| Login'den sonra Overview: üç VM, kayıptan önceki durumlarıyla | |
-| Ledger, kayıptan önceki günlük rapora karşı doğrulanıyor (kılavuz 13, adım 6) | |
-| Kanallar sırları olmadan geldi; kapatıp yeni adla ekledin (kılavuz 13, adım 6); `gaia daily-reports run` sonrası gelen raporda `REBUILT: this server was rebuilt ...` satırı | |
-| Sonraki yedekler devam ediyor: incremental, ya da nedeni yazılı bir full | |
-| Sonraki restore testleri `OK` | |
+| `restore-state` `WARNING`, problemler yalnızca iki kanal için: `notification channel mail: its secret (SMTP password or webhook secret) is not on this server: ...` ve aynısı `hook` için (beklenen: sırlar kit'te değil). Başka bir problem varsa (ör. son dakikalarda biten işler) metniyle buraya yaz | Beklendiği gibi |
+| Login'den sonra Overview: üç VM, kayıptan önceki durumlarıyla | Beklendiği gibi |
+| Ledger, kayıptan önceki günlük rapora karşı doğrulanıyor (kılavuz 13, adım 6) | Beklendiği gibi |
+| Kanallar sırları olmadan geldi; kapatıp yeni adla ekledin (kılavuz 13, adım 6); `gaia daily-reports run` sonrası gelen raporda `REBUILT: this server was rebuilt ...` satırı | Beklendiği gibi |
+| Sonraki yedekler devam ediyor: incremental, ya da nedeni yazılı bir full | Beklendiği gibi |
+| Sonraki restore testleri `OK` | Beklendiği gibi |
 
 ## 7. İki soru
 
@@ -235,11 +252,11 @@ Kendi sözlerinle, Türkçe:
 
 1. **"Ekrana baktığımda, o an hangi noktaya dönebileceğimi biliyor muyum?"**
 
-   ______________________________________________________________
+   Evet, bence gayet açık bir şekilde belli oluyor.
 
 2. **"Bunun çalışacağından emin miyim, ve bunu bir denetçiye kanıtlayabilir miyim?"**
 
-   ______________________________________________________________
+   Evet, çalışacağına emin olabiliyorum. UI tarafında şuna dikkat etmek lazım sadece, bu ürün, binlerce vm'i kontrol edecek. O yüzden buna göre anlaşılır, kolay bulunabilir bir sistem yapmamız şart.
 
 Bir denetçi gözüyle: `ui-auditor` gibi bir auditor kullanıcısıyla giriş yap ve **Evidence** ekranından export al
 (kılavuz 10c), ya da `gaia evidence export-all`. Export'un README'si çevrimdışı doğrulamayı anlatıyor.

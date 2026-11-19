@@ -71,7 +71,9 @@ fixtures) are in the reports, not here.
 
 - **The sandbox helper boots one guest at a time**, and the server runs one restore test and one migration check at a
   time. [T16, T21]
-  *Why it waits:* parallel sandboxes need memory accounting on the server; the MVP's scale does not need them.
+  *Why it waits:* parallel sandboxes need memory accounting on the server; the MVP's scale does not need them. In
+  T23 one test took 44–49 s (Linux) and 425 s (Windows): one sandbox keeps up with about 80 Linux or 8 Windows VMs
+  tested every hour. The PO wants this solved before real fleets (T23, raised for approval).
 - **The boot timeout is 300 s and the same for every VM** (a broken VM holds the sandbox that long). [T16]
   *Why it waits:* a per-policy `boot_timeout_s` needs a schema change and a UI field; nothing in the MVP needs it.
 - **The sandbox's network card may sit at another PCI address than on the source host**, so a guest that names its
@@ -191,6 +193,10 @@ fixtures) are in the reports, not here.
 - **Reading the screens needs JavaScript**; without it they point to the command line and the export. [T20]
   *Why it waits:* the screens are a React application (PO decision 2026-11-17, raised for approval against ADR-007 §7
   in T20).
+- **The overview lists every VM on one page**, with no search, filter or grouping, and the server builds it with a
+  few queries per VM. [T23]
+  *Why it waits:* the MVP protects a handful of VMs; the PO asked for screens that stay clear with thousands (T23,
+  raised for approval), which is a design of its own.
 - **The screens were reviewed in Chromium and Safari only.** [T20]
   *Why it waits:* other browsers were not in the review; nothing browser-specific is used.
 

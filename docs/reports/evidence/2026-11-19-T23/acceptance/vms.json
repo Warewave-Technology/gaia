@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "host_id": 1,
+    "name": "gaia-t23-linux2",
+    "uuid": "451c1c25-ab41-4500-a91f-2c494a338b19",
+    "policy_id": 1,
+    "created_at": "2026-11-18T20:23:13.472030768Z",
+    "updated_at": "2026-11-18T20:23:14.690313931Z",
+    "full_backup_reason": ""
+  },
+  {
+    "id": 2,
+    "host_id": 1,
+    "name": "gaia-t23-uefi",
+    "uuid": "ca5e5af9-58f7-447b-bd98-781f120afde0",
+    "policy_id": 1,
+    "created_at": "2026-11-18T20:23:24.657817148Z",
+    "updated_at": "2026-11-18T20:23:29.544482137Z",
+    "full_backup_reason": ""
+  },
+  {
+    "id": 3,
+    "host_id": 1,
+    "name": "gaia-t23-win",
+    "uuid": "1c81ea3d-53ab-4970-91cb-ef7922106a14",
+    "policy_id": 2,
+    "created_at": "2026-11-18T20:23:34.433753717Z",
+    "updated_at": "2026-11-18T21:41:51.673340842Z",
+    "full_backup_reason": ""
+  }
+]

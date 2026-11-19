@@ -1,0 +1,137 @@
+[
+  {
+    "id": 2,
+    "generated_at": "2026-11-19T07:00:04.510086461Z",
+    "reason": "schedule: daily at 07:00",
+    "head_seq": 33,
+    "head_sha256": "f0363b32ffd04f44a8baae5794398e4bd8a6602d85abfae9bf31e646ae749253",
+    "ledger_head": {
+      "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T07:00:04.510086461Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":33,\"entry_sha256\":\"f0363b32ffd04f44a8baae5794398e4bd8a6602d85abfae9bf31e646ae749253\"}",
+      "sig": "qAwCBiUMHnMH0i7qePH4TOzqW8J+aLEBSWH+HmLBMrtsp7LhOXZAPxNtdRn7mxG0WZsyheh+H1Mw+z09I188DA=="
+    },
+    "report": {
+      "format": "gaia-daily-report",
+      "format_version": 1,
+      "id": 2,
+      "installation": "gaia-t23-a",
+      "version": "0.1.1 (a8f23b64a6c0)",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "generated_at": "2026-11-19T07:00:04.510086461Z",
+      "reason": "schedule: daily at 07:00",
+      "summary": {
+        "OK": 3
+      },
+      "vms": [
+        {
+          "vm": "gaia-t23-linux2",
+          "status": "OK",
+          "since": "2026-11-18T23:24:09.417312089Z",
+          "reason": "point 61 is proven by test 34: proven RPO 1h3m34s \u003c= 2h0m0s, proven RTO 22s \u003c= 15m0s, proof age 35m49s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 214.136607771,
+          "proven_rpo_s": 3814.090748152,
+          "proven_rto_s": 22.353709095,
+          "proof_age_s": 2149.390022334
+        },
+        {
+          "vm": "gaia-t23-uefi",
+          "status": "OK",
+          "since": "2026-11-18T23:25:01.78773766Z",
+          "reason": "point 63 is proven by test 35: proven RPO 36m23s \u003c= 2h0m0s, proven RTO 34s \u003c= 15m0s, proof age 34m45s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 394.266506018,
+          "proven_rpo_s": 2182.974617059,
+          "proven_rto_s": 33.589630387,
+          "proof_age_s": 2085.378628082
+        },
+        {
+          "vm": "gaia-t23-win",
+          "status": "OK",
+          "since": "2026-11-18T23:32:14.633277942Z",
+          "reason": "point 62 is proven by test 36: proven RPO 48m49s \u003c= 2h0m0s, proven RTO 4m42s \u003c= 15m0s, proof age 27m38s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 1129.236034758,
+          "proven_rpo_s": 2929.295920927,
+          "proven_rto_s": 282.401561205,
+          "proof_age_s": 1657.892168084
+        }
+      ],
+      "ledger_check": {
+        "id": 2,
+        "checked_at": "2026-11-19T07:00:04.506862539Z",
+        "reason": "daily report",
+        "verdict": "OK",
+        "entries": 33,
+        "head_seq": 33,
+        "head_sha256": "f0363b32ffd04f44a8baae5794398e4bd8a6602d85abfae9bf31e646ae749253",
+        "problems": []
+      },
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T07:00:04.510086461Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":33,\"entry_sha256\":\"f0363b32ffd04f44a8baae5794398e4bd8a6602d85abfae9bf31e646ae749253\"}",
+        "sig": "qAwCBiUMHnMH0i7qePH4TOzqW8J+aLEBSWH+HmLBMrtsp7LhOXZAPxNtdRn7mxG0WZsyheh+H1Mw+z09I188DA=="
+      },
+      "recovery_kit": {
+        "state": "confirmed",
+        "generation": 2,
+        "text": "recovery kit 2 was saved off the server on 2026-11-18T20:00:55.28603099Z by admin",
+        "confirmed_at": "2026-11-18T20:00:55.28603099Z",
+        "confirmed_by": "admin"
+      },
+      "last_rebuild": null,
+      "notifications": {
+        "state": "OK",
+        "channels": 2,
+        "enabled": 2,
+        "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+        "failing": []
+      },
+      "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+      "problems": []
+    }
+  },
+  {
+    "id": 1,
+    "generated_at": "2026-11-18T19:52:59.360901641Z",
+    "reason": "schedule: daily at 07:00",
+    "head_seq": 0,
+    "head_sha256": "",
+    "ledger_head": null,
+    "report": {
+      "format": "gaia-daily-report",
+      "format_version": 1,
+      "id": 1,
+      "installation": "gaia-t23-a",
+      "version": "0.1.1 (a8f23b64a6c0)",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "generated_at": "2026-11-18T19:52:59.360901641Z",
+      "reason": "schedule: daily at 07:00",
+      "summary": {},
+      "vms": [],
+      "ledger_check": {
+        "id": 1,
+        "checked_at": "2026-11-18T19:52:59.355986477Z",
+        "reason": "daily report (no evidence yet)",
+        "verdict": "OK",
+        "entries": 0,
+        "head_seq": 0,
+        "head_sha256": "",
+        "problems": []
+      },
+      "ledger_head": null,
+      "recovery_kit": {
+        "state": "not confirmed",
+        "generation": 1,
+        "text": "recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine"
+      },
+      "last_rebuild": null,
+      "notifications": {
+        "state": "WARNING",
+        "channels": 0,
+        "enabled": 0,
+        "text": "no notification channel is enabled: nobody is told when a VM's status changes",
+        "failing": []
+      },
+      "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+      "problems": [
+        "no ledger head: no evidence was sealed yet"
+      ]
+    }
+  }
+]

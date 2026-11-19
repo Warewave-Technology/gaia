@@ -1,0 +1,81 @@
+[
+  {
+    "id": 3,
+    "repository_id": 1,
+    "mode": "sampled",
+    "state": "ok",
+    "reason": "schedule",
+    "started_at": "2026-11-19T03:30:14.361096607Z",
+    "finished_at": "2026-11-19T03:30:28.483787917Z",
+    "points_checked": 43,
+    "points_skipped": 0,
+    "blocks_read": 4611,
+    "bytes_read": 4834983936,
+    "affected": [],
+    "error": ""
+  },
+  {
+    "id": 2,
+    "repository_id": 1,
+    "mode": "full",
+    "state": "critical",
+    "reason": "requested by admin",
+    "started_at": "2026-11-18T21:37:54.921597079Z",
+    "finished_at": "2026-11-18T21:39:35.43758652Z",
+    "points_checked": 10,
+    "points_skipped": 0,
+    "blocks_read": 56569,
+    "bytes_read": 59313750016,
+    "affected": [
+      {
+        "point_id": 3,
+        "vm_id": 3,
+        "disk": "vda",
+        "problems": [
+          "block 6097 (74a39ba4095cf5a703d722037806ec2c): unexpected content error: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed; damaged content 74a39ba4095cf5a703d722037806ec2c: stored bytes do not verify: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed"
+        ],
+        "contents": [
+          "74a39ba4095cf5a703d722037806ec2c"
+        ]
+      },
+      {
+        "point_id": 6,
+        "vm_id": 3,
+        "disk": "vda",
+        "problems": [
+          "block 6097 (74a39ba4095cf5a703d722037806ec2c): unexpected content error: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed; damaged content 74a39ba4095cf5a703d722037806ec2c: stored bytes do not verify: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed"
+        ],
+        "contents": [
+          "74a39ba4095cf5a703d722037806ec2c"
+        ]
+      },
+      {
+        "point_id": 9,
+        "vm_id": 3,
+        "disk": "vda",
+        "problems": [
+          "block 6097 (74a39ba4095cf5a703d722037806ec2c): unexpected content error: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed; damaged content 74a39ba4095cf5a703d722037806ec2c: stored bytes do not verify: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed"
+        ],
+        "contents": [
+          "74a39ba4095cf5a703d722037806ec2c"
+        ]
+      }
+    ],
+    "error": ""
+  },
+  {
+    "id": 1,
+    "repository_id": 1,
+    "mode": "sampled",
+    "state": "ok",
+    "reason": "schedule",
+    "started_at": "2026-11-18T19:59:29.359806778Z",
+    "finished_at": "2026-11-18T19:59:29.734470558Z",
+    "points_checked": 0,
+    "points_skipped": 0,
+    "blocks_read": 0,
+    "bytes_read": 0,
+    "affected": [],
+    "error": ""
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "repository_id": 1,
+    "verification_id": 2,
+    "content_id": "74a39ba4095cf5a703d722037806ec2c",
+    "pack": "p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147",
+    "reason": "stored bytes do not verify: invalid checksum at p102a6495fe58aff76e4952a03d177246-s4ec16f87fbe80a4e147 offset 10557005 length 853662/853662: decrypt: unable to decrypt content: cipher: message authentication failed",
+    "quarantined_at": "2026-11-18T21:39:35.426617041Z",
+    "manifest": "2233355b019329b63b3f582e5cb1da5b",
+    "points": [
+      3,
+      6,
+      9
+    ]
+  }
+]
