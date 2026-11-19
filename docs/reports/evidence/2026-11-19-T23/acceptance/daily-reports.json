@@ -1,5 +1,97 @@
 [
   {
+    "id": 3,
+    "generated_at": "2026-11-19T15:36:50.163124107Z",
+    "reason": "requested by admin",
+    "head_seq": 60,
+    "head_sha256": "f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69",
+    "ledger_head": {
+      "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+      "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+    },
+    "report": {
+      "format": "gaia-daily-report",
+      "format_version": 1,
+      "id": 3,
+      "installation": "gaia-t23-b",
+      "version": "0.1.2 (b9101efd5db2)",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "generated_at": "2026-11-19T15:36:50.163124107Z",
+      "reason": "requested by admin",
+      "summary": {
+        "OK": 3
+      },
+      "vms": [
+        {
+          "vm": "gaia-t23-linux2",
+          "status": "OK",
+          "since": "2026-11-18T23:24:09.417312089Z",
+          "reason": "point 117 is proven by test 62: proven RPO 17m5s \u003c= 2h0m0s, proven RTO 12s \u003c= 15m0s, proof age 13m45s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 1024.836298061,
+          "proven_rpo_s": 1024.836298061,
+          "proven_rto_s": 12.355625802,
+          "proof_age_s": 825.007148882
+        },
+        {
+          "vm": "gaia-t23-uefi",
+          "status": "OK",
+          "since": "2026-11-18T23:25:01.78773766Z",
+          "reason": "point 114 is proven by test 63: proven RPO 29m38s \u003c= 2h0m0s, proven RTO 29s \u003c= 15m0s, proof age 12m20s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 1778.278391469,
+          "proven_rpo_s": 1778.278391469,
+          "proven_rto_s": 29.367504107,
+          "proof_age_s": 740.236951945
+        },
+        {
+          "vm": "gaia-t23-win",
+          "status": "OK",
+          "since": "2026-11-18T23:32:14.633277942Z",
+          "reason": "point 116 is proven by test 64: proven RPO 25m23s \u003c= 2h0m0s, proven RTO 4m51s \u003c= 15m0s, proof age 5m1s \u003c= 1h30m0s",
+          "theoretical_rpo_s": 1523.236476799,
+          "proven_rpo_s": 1523.236476799,
+          "proven_rto_s": 290.631797332,
+          "proof_age_s": 300.652588631
+        }
+      ],
+      "ledger_check": {
+        "id": 3,
+        "checked_at": "2026-11-19T15:36:50.160514352Z",
+        "reason": "daily report",
+        "verdict": "OK",
+        "entries": 60,
+        "head_seq": 60,
+        "head_sha256": "f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69",
+        "problems": []
+      },
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+        "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+      },
+      "recovery_kit": {
+        "state": "confirmed",
+        "generation": 3,
+        "text": "recovery kit 3 was saved off the server on 2026-11-19T14:18:27.37723354Z by admin",
+        "confirmed_at": "2026-11-19T14:18:27.37723354Z",
+        "confirmed_by": "admin"
+      },
+      "last_rebuild": {
+        "at": "2026-11-19T14:05:30.498230547Z",
+        "state_backup": "1d20c28cef4fc31c05fe379efadfbb7e",
+        "state_backup_created": "2026-11-19T13:41:16Z",
+        "kit_generation": 2
+      },
+      "notifications": {
+        "state": "OK",
+        "channels": 4,
+        "enabled": 2,
+        "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+        "failing": []
+      },
+      "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+      "problems": []
+    }
+  },
+  {
     "id": 2,
     "generated_at": "2026-11-19T07:00:04.510086461Z",
     "reason": "schedule: daily at 07:00",

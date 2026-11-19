@@ -1384,3 +1384,463 @@
 {"seq":1384,"at":"2026-11-19T14:41:28.090663379Z","entity":"job","entity_id":173,"from":"running","to":"ok","reason":"incremental from point 110 (checkpoint gaia-3-167-121a6c)","actor":"system"}
 {"seq":1385,"at":"2026-11-19T14:44:23.126690456Z","entity":"state_backup","entity_id":136,"from":"","to":"running","reason":"after jobs","actor":"system"}
 {"seq":1386,"at":"2026-11-19T14:44:23.453745208Z","entity":"state_backup","entity_id":136,"from":"running","to":"ok","reason":"stored as snapshot 3614ce29ce0a4f96321b7491d5a255d1","actor":"system"}
+{"seq":1387,"at":"2026-11-19T15:07:11.086664573Z","entity":"job","entity_id":174,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1388,"at":"2026-11-19T15:07:11.091418183Z","entity":"job","entity_id":175,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1389,"at":"2026-11-19T15:07:11.097901035Z","entity":"job","entity_id":174,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1390,"at":"2026-11-19T15:07:11.10131938Z","entity":"job","entity_id":175,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1391,"at":"2026-11-19T15:07:11.895777166Z","entity":"job","entity_id":175,"from":"running","to":"running","reason":"checkpoint gaia-2-175-121a6c created on the host","actor":"system"}
+{"seq":1392,"at":"2026-11-19T15:07:12.298674654Z","entity":"point","entity_id":114,"from":"","to":"unchecked","reason":"incremental point of job 175: incremental from point 111 (checkpoint gaia-2-172-121a6c)","actor":"system"}
+{"seq":1393,"at":"2026-11-19T15:07:12.342920804Z","entity":"point_check","entity_id":114,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1394,"at":"2026-11-19T15:07:12.446734884Z","entity":"point","entity_id":42,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1395,"at":"2026-11-19T15:07:12.466744846Z","entity":"job","entity_id":175,"from":"running","to":"ok","reason":"incremental from point 111 (checkpoint gaia-2-172-121a6c)","actor":"system"}
+{"seq":1396,"at":"2026-11-19T15:07:12.473651963Z","entity":"state_backup","entity_id":137,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1397,"at":"2026-11-19T15:07:12.752920731Z","entity":"state_backup","entity_id":137,"from":"running","to":"ok","reason":"stored as snapshot 6247aac962eb39969da6b4c899d02ccc","actor":"system"}
+{"seq":1398,"at":"2026-11-19T15:07:13.177067484Z","entity":"job","entity_id":174,"from":"running","to":"running","reason":"checkpoint gaia-1-174-121a6c created on the host","actor":"system"}
+{"seq":1399,"at":"2026-11-19T15:07:13.629588973Z","entity":"point","entity_id":115,"from":"","to":"unchecked","reason":"incremental point of job 174: incremental from point 112 (checkpoint gaia-1-171-121a6c)","actor":"system"}
+{"seq":1400,"at":"2026-11-19T15:07:13.675295818Z","entity":"point_check","entity_id":115,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1401,"at":"2026-11-19T15:07:14.076799158Z","entity":"point","entity_id":43,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1402,"at":"2026-11-19T15:07:14.097804759Z","entity":"job","entity_id":174,"from":"running","to":"ok","reason":"incremental from point 112 (checkpoint gaia-1-171-121a6c)","actor":"system"}
+{"seq":1403,"at":"2026-11-19T15:11:26.08718839Z","entity":"job","entity_id":176,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1404,"at":"2026-11-19T15:11:26.094559656Z","entity":"job","entity_id":176,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1405,"at":"2026-11-19T15:11:26.940736998Z","entity":"job","entity_id":176,"from":"running","to":"running","reason":"checkpoint gaia-3-176-121a6c created on the host","actor":"system"}
+{"seq":1406,"at":"2026-11-19T15:11:28.360721139Z","entity":"point","entity_id":116,"from":"","to":"unchecked","reason":"incremental point of job 176: incremental from point 113 (checkpoint gaia-3-173-121a6c)","actor":"system"}
+{"seq":1407,"at":"2026-11-19T15:11:28.616118569Z","entity":"point_check","entity_id":116,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1408,"at":"2026-11-19T15:11:28.660905388Z","entity":"point","entity_id":44,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1409,"at":"2026-11-19T15:11:28.696891262Z","entity":"job","entity_id":176,"from":"running","to":"ok","reason":"incremental from point 113 (checkpoint gaia-3-173-121a6c)","actor":"system"}
+{"seq":1410,"at":"2026-11-19T15:12:12.475025871Z","entity":"state_backup","entity_id":138,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1411,"at":"2026-11-19T15:12:12.812282378Z","entity":"state_backup","entity_id":138,"from":"running","to":"ok","reason":"stored as snapshot de358c33028a2d0f2c48c50db962e423","actor":"system"}
+{"seq":1412,"at":"2026-11-19T15:19:42.328965108Z","entity":"job","entity_id":177,"from":"","to":"queued","reason":"requested by admin","actor":"admin"}
+{"seq":1413,"at":"2026-11-19T15:19:44.293371147Z","entity":"job","entity_id":177,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1414,"at":"2026-11-19T15:19:45.334874841Z","entity":"job","entity_id":177,"from":"running","to":"running","reason":"checkpoint gaia-1-177-121a6c created on the host","actor":"system"}
+{"seq":1415,"at":"2026-11-19T15:19:50.150497443Z","entity":"point","entity_id":117,"from":"","to":"unchecked","reason":"full point of job 177: full: checkpoint gaia-1-174-121a6c of point 115 is not on the host","actor":"system"}
+{"seq":1416,"at":"2026-11-19T15:19:50.198521748Z","entity":"point_check","entity_id":117,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1417,"at":"2026-11-19T15:19:50.544800206Z","entity":"point","entity_id":46,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1418,"at":"2026-11-19T15:19:50.596343565Z","entity":"job","entity_id":177,"from":"running","to":"ok","reason":"full: checkpoint gaia-1-174-121a6c of point 115 is not on the host","actor":"system"}
+{"seq":1419,"at":"2026-11-19T15:19:50.609965118Z","entity":"state_backup","entity_id":139,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1420,"at":"2026-11-19T15:19:50.965367509Z","entity":"state_backup","entity_id":139,"from":"running","to":"ok","reason":"stored as snapshot 40c2eac2aad73c7af2f96f9a81f49136","actor":"system"}
+{"seq":1421,"at":"2026-11-19T15:21:27.986525139Z","entity":"job","entity_id":178,"from":"","to":"queued","reason":"requested by admin","actor":"admin"}
+{"seq":1422,"at":"2026-11-19T15:21:29.287477839Z","entity":"job","entity_id":178,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1423,"at":"2026-11-19T15:21:29.291040294Z","entity":"restore_test","entity_id":61,"from":"","to":"UNKNOWN","reason":"test of point 117 started","actor":"system"}
+{"seq":1424,"at":"2026-11-19T15:21:41.006882647Z","entity":"restore_test","entity_id":61,"from":"UNKNOWN","to":"UNKNOWN","reason":"not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory","actor":"system"}
+{"seq":1425,"at":"2026-11-19T15:21:41.025588286Z","entity":"job","entity_id":178,"from":"running","to":"failed","reason":"restore test 61: UNKNOWN","actor":"system"}
+{"seq":1426,"at":"2026-11-19T15:22:14.544932002Z","entity":"job","entity_id":179,"from":"","to":"queued","reason":"requested by admin","actor":"admin"}
+{"seq":1427,"at":"2026-11-19T15:22:29.281305248Z","entity":"job","entity_id":179,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1428,"at":"2026-11-19T15:22:29.28542759Z","entity":"restore_test","entity_id":62,"from":"","to":"UNKNOWN","reason":"test of point 117 started","actor":"system"}
+{"seq":1429,"at":"2026-11-19T15:23:05.163970319Z","entity":"restore_test","entity_id":62,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 10.0 s); proven RTO 12.4 s = restore 2.3 s + ready 10.0 s","actor":"system"}
+{"seq":1430,"at":"2026-11-19T15:23:05.195606541Z","entity":"job","entity_id":179,"from":"running","to":"ok","reason":"restore test 62: OK","actor":"system"}
+{"seq":1431,"at":"2026-11-19T15:23:44.280131422Z","entity":"job","entity_id":180,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1432,"at":"2026-11-19T15:23:44.290908008Z","entity":"job","entity_id":181,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1433,"at":"2026-11-19T15:23:44.296605789Z","entity":"job","entity_id":180,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1434,"at":"2026-11-19T15:23:44.300217915Z","entity":"restore_test","entity_id":63,"from":"","to":"UNKNOWN","reason":"test of point 114 started","actor":"system"}
+{"seq":1435,"at":"2026-11-19T15:24:29.9371473Z","entity":"restore_test","entity_id":63,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 23.1 s); proven RTO 29.4 s = restore 6.3 s + ready 23.1 s","actor":"system"}
+{"seq":1436,"at":"2026-11-19T15:24:29.949402807Z","entity":"job","entity_id":180,"from":"running","to":"ok","reason":"restore test 63: OK","actor":"system"}
+{"seq":1437,"at":"2026-11-19T15:24:44.282341503Z","entity":"job","entity_id":181,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1438,"at":"2026-11-19T15:24:44.28733781Z","entity":"restore_test","entity_id":64,"from":"","to":"UNKNOWN","reason":"test of point 116 started","actor":"system"}
+{"seq":1439,"at":"2026-11-19T15:24:50.612020156Z","entity":"state_backup","entity_id":140,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1440,"at":"2026-11-19T15:24:51.320681336Z","entity":"state_backup","entity_id":140,"from":"running","to":"ok","reason":"stored as snapshot da3441f21c0acbe7915b6c190095ce1c","actor":"system"}
+{"seq":1441,"at":"2026-11-19T15:31:49.524542546Z","entity":"restore_test","entity_id":64,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 60.2 s, stable 123.4 s); proven RTO 290.6 s = restore 230.4 s + ready 60.2 s","actor":"system"}
+{"seq":1442,"at":"2026-11-19T15:31:49.543417945Z","entity":"job","entity_id":181,"from":"running","to":"ok","reason":"restore test 64: OK","actor":"system"}
+{"seq":1443,"at":"2026-11-19T15:31:49.65106678Z","entity":"state_backup","entity_id":141,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1444,"at":"2026-11-19T15:31:51.341080289Z","entity":"state_backup","entity_id":141,"from":"running","to":"ok","reason":"stored as snapshot 36c364ae0ce48afc88a6e550a40d5b11","actor":"system"}
+{"seq":1445,"at":"2026-11-19T15:35:49.88219078Z","entity":"notification_channel","entity_id":1,"from":"enabled","to":"disabled","reason":"changed by admin","actor":"admin"}
+{"seq":1446,"at":"2026-11-19T15:35:53.391488462Z","entity":"notification_channel","entity_id":2,"from":"enabled","to":"disabled","reason":"changed by admin","actor":"admin"}
+{"seq":1447,"at":"2026-11-19T15:36:28.452394787Z","entity":"notification_channel","entity_id":3,"from":"","to":"enabled","reason":"smtp channel mail2 added, events [daily_report full_backup integrity job_failed ledger quarantine status]","actor":"admin"}
+{"seq":1448,"at":"2026-11-19T15:36:39.505520193Z","entity":"notification_channel","entity_id":4,"from":"","to":"enabled","reason":"webhook channel hook2 added, events [daily_report full_backup integrity job_failed ledger quarantine status]","actor":"admin"}
+{"seq":1449,"at":"2026-11-19T15:36:54.302332202Z","entity":"notification","entity_id":57,"from":"queued","to":"sent","reason":"attempt 1","actor":"system"}
+{"seq":1450,"at":"2026-11-19T15:36:54.320451542Z","entity":"notification","entity_id":58,"from":"queued","to":"sent","reason":"attempt 1","actor":"system"}
+{"seq":1451,"at":"2026-11-19T15:36:59.289441483Z","entity":"notification","entity_id":55,"from":"queued","to":"failed","reason":"gave up after 5 attempts: the channel is disabled","actor":"system"}
+{"seq":1452,"at":"2026-11-19T15:36:59.293356421Z","entity":"notification","entity_id":56,"from":"queued","to":"failed","reason":"gave up after 5 attempts: the channel is disabled","actor":"system"}
+{"seq":1453,"at":"2026-11-19T15:37:14.28307218Z","entity":"job","entity_id":182,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1454,"at":"2026-11-19T15:37:14.297022572Z","entity":"job","entity_id":182,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1455,"at":"2026-11-19T15:37:15.137830881Z","entity":"job","entity_id":182,"from":"running","to":"running","reason":"checkpoint gaia-2-182-121a6c created on the host","actor":"system"}
+{"seq":1456,"at":"2026-11-19T15:37:15.540548799Z","entity":"point","entity_id":118,"from":"","to":"unchecked","reason":"incremental point of job 182: incremental from point 114 (checkpoint gaia-2-175-121a6c)","actor":"system"}
+{"seq":1457,"at":"2026-11-19T15:37:15.584043066Z","entity":"point_check","entity_id":118,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1458,"at":"2026-11-19T15:37:15.714090523Z","entity":"point","entity_id":45,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1459,"at":"2026-11-19T15:37:15.736312309Z","entity":"job","entity_id":182,"from":"running","to":"ok","reason":"incremental from point 114 (checkpoint gaia-2-175-121a6c)","actor":"system"}
+{"seq":1460,"at":"2026-11-19T15:37:15.743919397Z","entity":"state_backup","entity_id":142,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1461,"at":"2026-11-19T15:37:16.034538739Z","entity":"state_backup","entity_id":142,"from":"running","to":"ok","reason":"stored as snapshot 60fc5579653b3cca74216fc6b1fcc5d8","actor":"system"}
+{"seq":1462,"at":"2026-11-19T15:41:29.280125866Z","entity":"job","entity_id":183,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1463,"at":"2026-11-19T15:41:29.28656564Z","entity":"job","entity_id":183,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1464,"at":"2026-11-19T15:41:30.199668913Z","entity":"job","entity_id":183,"from":"running","to":"running","reason":"checkpoint gaia-3-183-121a6c created on the host","actor":"system"}
+{"seq":1465,"at":"2026-11-19T15:41:31.06560154Z","entity":"point","entity_id":119,"from":"","to":"unchecked","reason":"incremental point of job 183: incremental from point 116 (checkpoint gaia-3-176-121a6c)","actor":"system"}
+{"seq":1466,"at":"2026-11-19T15:41:31.280117721Z","entity":"point_check","entity_id":119,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1467,"at":"2026-11-19T15:41:31.323263161Z","entity":"point","entity_id":47,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1468,"at":"2026-11-19T15:41:31.345455603Z","entity":"job","entity_id":183,"from":"running","to":"ok","reason":"incremental from point 116 (checkpoint gaia-3-176-121a6c)","actor":"system"}
+{"seq":1469,"at":"2026-11-19T15:42:15.74423818Z","entity":"state_backup","entity_id":143,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1470,"at":"2026-11-19T15:42:16.03760703Z","entity":"state_backup","entity_id":143,"from":"running","to":"ok","reason":"stored as snapshot 8328a033ab33961277819b288efff0aa","actor":"system"}
+{"seq":1471,"at":"2026-11-19T15:49:44.278632531Z","entity":"job","entity_id":184,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1472,"at":"2026-11-19T15:49:44.287617558Z","entity":"job","entity_id":184,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1473,"at":"2026-11-19T15:49:45.358976989Z","entity":"job","entity_id":184,"from":"running","to":"running","reason":"checkpoint gaia-1-184-121a6c created on the host","actor":"system"}
+{"seq":1474,"at":"2026-11-19T15:49:45.914429759Z","entity":"point","entity_id":120,"from":"","to":"unchecked","reason":"incremental point of job 184: incremental from point 117 (checkpoint gaia-1-177-121a6c)","actor":"system"}
+{"seq":1475,"at":"2026-11-19T15:49:45.958518074Z","entity":"point_check","entity_id":120,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1476,"at":"2026-11-19T15:49:46.141940164Z","entity":"point","entity_id":49,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1477,"at":"2026-11-19T15:49:46.164786356Z","entity":"job","entity_id":184,"from":"running","to":"ok","reason":"incremental from point 117 (checkpoint gaia-1-177-121a6c)","actor":"system"}
+{"seq":1478,"at":"2026-11-19T15:49:46.171644235Z","entity":"state_backup","entity_id":144,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1479,"at":"2026-11-19T15:49:46.484842946Z","entity":"state_backup","entity_id":144,"from":"running","to":"ok","reason":"stored as snapshot 9b3ef112720f6e23d873e37ebda986d9","actor":"system"}
+{"seq":1480,"at":"2026-11-19T15:51:19.277911598Z","entity":"notification","entity_id":53,"from":"queued","to":"failed","reason":"gave up after 6 attempts: the channel is disabled","actor":"system"}
+{"seq":1481,"at":"2026-11-19T15:51:19.281806094Z","entity":"notification","entity_id":54,"from":"queued","to":"failed","reason":"gave up after 6 attempts: the channel is disabled","actor":"system"}
+{"seq":1482,"at":"2026-11-19T16:07:14.278927786Z","entity":"job","entity_id":185,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1483,"at":"2026-11-19T16:07:14.287111956Z","entity":"job","entity_id":185,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1484,"at":"2026-11-19T16:07:15.115697729Z","entity":"job","entity_id":185,"from":"running","to":"running","reason":"checkpoint gaia-2-185-121a6c created on the host","actor":"system"}
+{"seq":1485,"at":"2026-11-19T16:07:15.486418045Z","entity":"point","entity_id":121,"from":"","to":"unchecked","reason":"incremental point of job 185: incremental from point 118 (checkpoint gaia-2-182-121a6c)","actor":"system"}
+{"seq":1486,"at":"2026-11-19T16:07:15.5296719Z","entity":"point_check","entity_id":121,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1487,"at":"2026-11-19T16:07:15.637128514Z","entity":"point","entity_id":48,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1488,"at":"2026-11-19T16:07:15.658723281Z","entity":"job","entity_id":185,"from":"running","to":"ok","reason":"incremental from point 118 (checkpoint gaia-2-182-121a6c)","actor":"system"}
+{"seq":1489,"at":"2026-11-19T16:07:15.666821782Z","entity":"state_backup","entity_id":145,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1490,"at":"2026-11-19T16:07:15.94697398Z","entity":"state_backup","entity_id":145,"from":"running","to":"ok","reason":"stored as snapshot 1554a1d1a513657afb686e1336766378","actor":"system"}
+{"seq":1491,"at":"2026-11-19T16:11:29.283261273Z","entity":"job","entity_id":186,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1492,"at":"2026-11-19T16:11:29.289960533Z","entity":"job","entity_id":186,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1493,"at":"2026-11-19T16:11:30.161904661Z","entity":"job","entity_id":186,"from":"running","to":"running","reason":"checkpoint gaia-3-186-121a6c created on the host","actor":"system"}
+{"seq":1494,"at":"2026-11-19T16:11:31.335942124Z","entity":"point","entity_id":122,"from":"","to":"unchecked","reason":"incremental point of job 186: incremental from point 119 (checkpoint gaia-3-183-121a6c)","actor":"system"}
+{"seq":1495,"at":"2026-11-19T16:11:31.552418471Z","entity":"point_check","entity_id":122,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1496,"at":"2026-11-19T16:11:31.589442324Z","entity":"point","entity_id":50,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1497,"at":"2026-11-19T16:11:31.633451884Z","entity":"job","entity_id":186,"from":"running","to":"ok","reason":"incremental from point 119 (checkpoint gaia-3-183-121a6c)","actor":"system"}
+{"seq":1498,"at":"2026-11-19T16:12:15.667842282Z","entity":"state_backup","entity_id":146,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1499,"at":"2026-11-19T16:12:16.018307172Z","entity":"state_backup","entity_id":146,"from":"running","to":"ok","reason":"stored as snapshot 4356ee3354b010605ff7301dbfdb4d06","actor":"system"}
+{"seq":1500,"at":"2026-11-19T16:19:44.28238299Z","entity":"job","entity_id":187,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1501,"at":"2026-11-19T16:19:44.297522347Z","entity":"job","entity_id":187,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1502,"at":"2026-11-19T16:19:45.374495437Z","entity":"job","entity_id":187,"from":"running","to":"running","reason":"checkpoint gaia-1-187-121a6c created on the host","actor":"system"}
+{"seq":1503,"at":"2026-11-19T16:19:45.927455667Z","entity":"point","entity_id":123,"from":"","to":"unchecked","reason":"incremental point of job 187: incremental from point 120 (checkpoint gaia-1-184-121a6c)","actor":"system"}
+{"seq":1504,"at":"2026-11-19T16:19:45.970344806Z","entity":"point_check","entity_id":123,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1505,"at":"2026-11-19T16:19:46.3542569Z","entity":"point","entity_id":52,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1506,"at":"2026-11-19T16:19:46.37651667Z","entity":"job","entity_id":187,"from":"running","to":"ok","reason":"incremental from point 120 (checkpoint gaia-1-184-121a6c)","actor":"system"}
+{"seq":1507,"at":"2026-11-19T16:19:46.384091618Z","entity":"state_backup","entity_id":147,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1508,"at":"2026-11-19T16:19:46.705438596Z","entity":"state_backup","entity_id":147,"from":"running","to":"ok","reason":"stored as snapshot 5dc5a047cf35929fad08a48b37831774","actor":"system"}
+{"seq":1509,"at":"2026-11-19T16:22:14.280625118Z","entity":"job","entity_id":188,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1510,"at":"2026-11-19T16:22:14.292056892Z","entity":"job","entity_id":188,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1511,"at":"2026-11-19T16:22:14.295732619Z","entity":"restore_test","entity_id":65,"from":"","to":"UNKNOWN","reason":"test of point 123 started","actor":"system"}
+{"seq":1512,"at":"2026-11-19T16:22:58.305586267Z","entity":"restore_test","entity_id":65,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 10.0 s); proven RTO 21.2 s = restore 11.1 s + ready 10.0 s","actor":"system"}
+{"seq":1513,"at":"2026-11-19T16:22:58.320315039Z","entity":"job","entity_id":188,"from":"running","to":"ok","reason":"restore test 65: OK","actor":"system"}
+{"seq":1514,"at":"2026-11-19T16:23:44.284609292Z","entity":"job","entity_id":189,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1515,"at":"2026-11-19T16:23:44.288756445Z","entity":"job","entity_id":190,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1516,"at":"2026-11-19T16:23:44.292385481Z","entity":"job","entity_id":189,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1517,"at":"2026-11-19T16:23:44.296446944Z","entity":"restore_test","entity_id":66,"from":"","to":"UNKNOWN","reason":"test of point 121 started","actor":"system"}
+{"seq":1518,"at":"2026-11-19T16:24:31.635516392Z","entity":"restore_test","entity_id":66,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 24.1 s); proven RTO 30.8 s = restore 6.8 s + ready 24.1 s","actor":"system"}
+{"seq":1519,"at":"2026-11-19T16:24:31.650805501Z","entity":"job","entity_id":189,"from":"running","to":"ok","reason":"restore test 66: OK","actor":"system"}
+{"seq":1520,"at":"2026-11-19T16:24:44.285992306Z","entity":"job","entity_id":190,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1521,"at":"2026-11-19T16:24:44.291202652Z","entity":"restore_test","entity_id":67,"from":"","to":"UNKNOWN","reason":"test of point 122 started","actor":"system"}
+{"seq":1522,"at":"2026-11-19T16:24:46.389470654Z","entity":"state_backup","entity_id":148,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1523,"at":"2026-11-19T16:24:47.083857318Z","entity":"state_backup","entity_id":148,"from":"running","to":"ok","reason":"stored as snapshot 1890018228104c9ee45f858cb968a888","actor":"system"}
+{"seq":1524,"at":"2026-11-19T16:31:53.016573963Z","entity":"restore_test","entity_id":67,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 64.3 s, stable 127.3 s); proven RTO 291.1 s = restore 226.8 s + ready 64.3 s","actor":"system"}
+{"seq":1525,"at":"2026-11-19T16:31:53.058853772Z","entity":"job","entity_id":190,"from":"running","to":"ok","reason":"restore test 67: OK","actor":"system"}
+{"seq":1526,"at":"2026-11-19T16:31:53.179188069Z","entity":"state_backup","entity_id":149,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1527,"at":"2026-11-19T16:31:55.460982449Z","entity":"state_backup","entity_id":149,"from":"running","to":"ok","reason":"stored as snapshot 8fbda99a695d6c12a0887cf2c6b74a55","actor":"system"}
+{"seq":1528,"at":"2026-11-19T16:37:14.278815231Z","entity":"job","entity_id":191,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1529,"at":"2026-11-19T16:37:14.286739661Z","entity":"job","entity_id":191,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1530,"at":"2026-11-19T16:37:15.177268954Z","entity":"job","entity_id":191,"from":"running","to":"running","reason":"checkpoint gaia-2-191-121a6c created on the host","actor":"system"}
+{"seq":1531,"at":"2026-11-19T16:37:15.57964349Z","entity":"point","entity_id":124,"from":"","to":"unchecked","reason":"incremental point of job 191: incremental from point 121 (checkpoint gaia-2-185-121a6c)","actor":"system"}
+{"seq":1532,"at":"2026-11-19T16:37:15.628555328Z","entity":"point_check","entity_id":124,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1533,"at":"2026-11-19T16:37:15.752577897Z","entity":"point","entity_id":51,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1534,"at":"2026-11-19T16:37:15.774875135Z","entity":"job","entity_id":191,"from":"running","to":"ok","reason":"incremental from point 121 (checkpoint gaia-2-185-121a6c)","actor":"system"}
+{"seq":1535,"at":"2026-11-19T16:37:15.781521483Z","entity":"state_backup","entity_id":150,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1536,"at":"2026-11-19T16:37:16.055153638Z","entity":"state_backup","entity_id":150,"from":"running","to":"ok","reason":"stored as snapshot 1cf65bafcb83fc977bc767a8e78a58bc","actor":"system"}
+{"seq":1537,"at":"2026-11-19T16:41:29.282924692Z","entity":"job","entity_id":192,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1538,"at":"2026-11-19T16:41:29.288931243Z","entity":"job","entity_id":192,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1539,"at":"2026-11-19T16:41:30.290522104Z","entity":"job","entity_id":192,"from":"running","to":"running","reason":"checkpoint gaia-3-192-121a6c created on the host","actor":"system"}
+{"seq":1540,"at":"2026-11-19T16:41:31.112787755Z","entity":"point","entity_id":125,"from":"","to":"unchecked","reason":"incremental point of job 192: incremental from point 122 (checkpoint gaia-3-186-121a6c)","actor":"system"}
+{"seq":1541,"at":"2026-11-19T16:41:31.351758468Z","entity":"point_check","entity_id":125,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1542,"at":"2026-11-19T16:41:31.392007763Z","entity":"point","entity_id":53,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1543,"at":"2026-11-19T16:41:31.409122014Z","entity":"job","entity_id":192,"from":"running","to":"ok","reason":"incremental from point 122 (checkpoint gaia-3-186-121a6c)","actor":"system"}
+{"seq":1544,"at":"2026-11-19T16:42:15.781844466Z","entity":"state_backup","entity_id":151,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1545,"at":"2026-11-19T16:42:16.135252543Z","entity":"state_backup","entity_id":151,"from":"running","to":"ok","reason":"stored as snapshot fa26d1c9cc343e93f84067f496b34d38","actor":"system"}
+{"seq":1546,"at":"2026-11-19T16:49:44.278108747Z","entity":"job","entity_id":193,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1547,"at":"2026-11-19T16:49:44.29163834Z","entity":"job","entity_id":193,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1548,"at":"2026-11-19T16:49:45.439022927Z","entity":"job","entity_id":193,"from":"running","to":"running","reason":"checkpoint gaia-1-193-121a6c created on the host","actor":"system"}
+{"seq":1549,"at":"2026-11-19T16:49:45.969450871Z","entity":"point","entity_id":126,"from":"","to":"unchecked","reason":"incremental point of job 193: incremental from point 123 (checkpoint gaia-1-187-121a6c)","actor":"system"}
+{"seq":1550,"at":"2026-11-19T16:49:46.032208461Z","entity":"point_check","entity_id":126,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1551,"at":"2026-11-19T16:49:46.365129891Z","entity":"point","entity_id":55,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1552,"at":"2026-11-19T16:49:46.390262876Z","entity":"job","entity_id":193,"from":"running","to":"ok","reason":"incremental from point 123 (checkpoint gaia-1-187-121a6c)","actor":"system"}
+{"seq":1553,"at":"2026-11-19T16:49:46.395134778Z","entity":"state_backup","entity_id":152,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1554,"at":"2026-11-19T16:49:46.706415281Z","entity":"state_backup","entity_id":152,"from":"running","to":"ok","reason":"stored as snapshot 5021bec5e3b23519a299b6ab49936ff4","actor":"system"}
+{"seq":1555,"at":"2026-11-19T17:07:14.282894672Z","entity":"job","entity_id":194,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1556,"at":"2026-11-19T17:07:14.297087535Z","entity":"job","entity_id":194,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1557,"at":"2026-11-19T17:07:15.183971583Z","entity":"job","entity_id":194,"from":"running","to":"running","reason":"checkpoint gaia-2-194-121a6c created on the host","actor":"system"}
+{"seq":1558,"at":"2026-11-19T17:07:15.611010863Z","entity":"point","entity_id":127,"from":"","to":"unchecked","reason":"incremental point of job 194: incremental from point 124 (checkpoint gaia-2-191-121a6c)","actor":"system"}
+{"seq":1559,"at":"2026-11-19T17:07:15.655777889Z","entity":"point_check","entity_id":127,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1560,"at":"2026-11-19T17:07:15.787311632Z","entity":"point","entity_id":54,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1561,"at":"2026-11-19T17:07:15.847311423Z","entity":"job","entity_id":194,"from":"running","to":"ok","reason":"incremental from point 124 (checkpoint gaia-2-191-121a6c)","actor":"system"}
+{"seq":1562,"at":"2026-11-19T17:07:15.85434322Z","entity":"state_backup","entity_id":153,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1563,"at":"2026-11-19T17:07:16.151867345Z","entity":"state_backup","entity_id":153,"from":"running","to":"ok","reason":"stored as snapshot fd4a635bf126bdb6984db656f75e0198","actor":"system"}
+{"seq":1564,"at":"2026-11-19T17:11:29.280296818Z","entity":"job","entity_id":195,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1565,"at":"2026-11-19T17:11:29.288448149Z","entity":"job","entity_id":195,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1566,"at":"2026-11-19T17:11:30.151353144Z","entity":"job","entity_id":195,"from":"running","to":"running","reason":"checkpoint gaia-3-195-121a6c created on the host","actor":"system"}
+{"seq":1567,"at":"2026-11-19T17:11:32.215819962Z","entity":"point","entity_id":128,"from":"","to":"unchecked","reason":"incremental point of job 195: incremental from point 125 (checkpoint gaia-3-192-121a6c)","actor":"system"}
+{"seq":1568,"at":"2026-11-19T17:11:32.433273073Z","entity":"point_check","entity_id":128,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1569,"at":"2026-11-19T17:11:32.473274456Z","entity":"point","entity_id":56,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1570,"at":"2026-11-19T17:11:32.515292507Z","entity":"job","entity_id":195,"from":"running","to":"ok","reason":"incremental from point 125 (checkpoint gaia-3-192-121a6c)","actor":"system"}
+{"seq":1571,"at":"2026-11-19T17:12:15.85470657Z","entity":"state_backup","entity_id":154,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1572,"at":"2026-11-19T17:12:16.226597432Z","entity":"state_backup","entity_id":154,"from":"running","to":"ok","reason":"stored as snapshot 8b1d26e0b06ff57abcc370818032345e","actor":"system"}
+{"seq":1573,"at":"2026-11-19T17:19:44.282362348Z","entity":"job","entity_id":196,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1574,"at":"2026-11-19T17:19:44.296047307Z","entity":"job","entity_id":196,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1575,"at":"2026-11-19T17:19:45.315374782Z","entity":"job","entity_id":196,"from":"running","to":"running","reason":"checkpoint gaia-1-196-121a6c created on the host","actor":"system"}
+{"seq":1576,"at":"2026-11-19T17:19:45.803145255Z","entity":"point","entity_id":129,"from":"","to":"unchecked","reason":"incremental point of job 196: incremental from point 126 (checkpoint gaia-1-193-121a6c)","actor":"system"}
+{"seq":1577,"at":"2026-11-19T17:19:45.845733385Z","entity":"point_check","entity_id":129,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1578,"at":"2026-11-19T17:19:46.159150867Z","entity":"point","entity_id":58,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1579,"at":"2026-11-19T17:19:46.177899009Z","entity":"job","entity_id":196,"from":"running","to":"ok","reason":"incremental from point 126 (checkpoint gaia-1-193-121a6c)","actor":"system"}
+{"seq":1580,"at":"2026-11-19T17:19:46.184087638Z","entity":"state_backup","entity_id":155,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1581,"at":"2026-11-19T17:19:46.503855675Z","entity":"state_backup","entity_id":155,"from":"running","to":"ok","reason":"stored as snapshot a08949b7db6090fc1e29629e519c3741","actor":"system"}
+{"seq":1582,"at":"2026-11-19T17:22:14.283909511Z","entity":"job","entity_id":197,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1583,"at":"2026-11-19T17:22:14.288757525Z","entity":"job","entity_id":197,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1584,"at":"2026-11-19T17:22:14.292745964Z","entity":"restore_test","entity_id":68,"from":"","to":"UNKNOWN","reason":"test of point 129 started","actor":"system"}
+{"seq":1585,"at":"2026-11-19T17:23:00.292894762Z","entity":"restore_test","entity_id":68,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 11.1 s); proven RTO 22.3 s = restore 11.2 s + ready 11.1 s","actor":"system"}
+{"seq":1586,"at":"2026-11-19T17:23:00.301373845Z","entity":"job","entity_id":197,"from":"running","to":"ok","reason":"restore test 68: OK","actor":"system"}
+{"seq":1587,"at":"2026-11-19T17:23:44.285181991Z","entity":"job","entity_id":198,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1588,"at":"2026-11-19T17:23:44.29635684Z","entity":"job","entity_id":199,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1589,"at":"2026-11-19T17:23:44.299597853Z","entity":"job","entity_id":198,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1590,"at":"2026-11-19T17:23:44.303904119Z","entity":"restore_test","entity_id":69,"from":"","to":"UNKNOWN","reason":"test of point 127 started","actor":"system"}
+{"seq":1591,"at":"2026-11-19T17:24:28.485928421Z","entity":"restore_test","entity_id":69,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 21.1 s); proven RTO 27.7 s = restore 6.6 s + ready 21.1 s","actor":"system"}
+{"seq":1592,"at":"2026-11-19T17:24:28.499108128Z","entity":"job","entity_id":198,"from":"running","to":"ok","reason":"restore test 69: OK","actor":"system"}
+{"seq":1593,"at":"2026-11-19T17:24:29.289486676Z","entity":"job","entity_id":199,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1594,"at":"2026-11-19T17:24:29.292958017Z","entity":"restore_test","entity_id":70,"from":"","to":"UNKNOWN","reason":"test of point 128 started","actor":"system"}
+{"seq":1595,"at":"2026-11-19T17:24:46.194583185Z","entity":"state_backup","entity_id":156,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1596,"at":"2026-11-19T17:24:47.543992205Z","entity":"state_backup","entity_id":156,"from":"running","to":"ok","reason":"stored as snapshot 9c8552712d2edf83fded9b8a44f38015","actor":"system"}
+{"seq":1597,"at":"2026-11-19T17:31:34.430701099Z","entity":"restore_test","entity_id":70,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 59.3 s, stable 122.5 s); proven RTO 290.2 s = restore 230.9 s + ready 59.3 s","actor":"system"}
+{"seq":1598,"at":"2026-11-19T17:31:34.4853998Z","entity":"job","entity_id":199,"from":"running","to":"ok","reason":"restore test 70: OK","actor":"system"}
+{"seq":1599,"at":"2026-11-19T17:31:34.545967479Z","entity":"state_backup","entity_id":157,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1600,"at":"2026-11-19T17:31:37.522040656Z","entity":"state_backup","entity_id":157,"from":"running","to":"ok","reason":"stored as snapshot cf23cc3965449bf4a290dbd3b4639e23","actor":"system"}
+{"seq":1601,"at":"2026-11-19T17:37:14.27835574Z","entity":"job","entity_id":200,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1602,"at":"2026-11-19T17:37:14.283670728Z","entity":"job","entity_id":200,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1603,"at":"2026-11-19T17:37:15.140668001Z","entity":"job","entity_id":200,"from":"running","to":"running","reason":"checkpoint gaia-2-200-121a6c created on the host","actor":"system"}
+{"seq":1604,"at":"2026-11-19T17:37:15.601618813Z","entity":"point","entity_id":130,"from":"","to":"unchecked","reason":"incremental point of job 200: incremental from point 127 (checkpoint gaia-2-194-121a6c)","actor":"system"}
+{"seq":1605,"at":"2026-11-19T17:37:15.655754213Z","entity":"point_check","entity_id":130,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1606,"at":"2026-11-19T17:37:15.750405155Z","entity":"point","entity_id":57,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1607,"at":"2026-11-19T17:37:15.773733378Z","entity":"job","entity_id":200,"from":"running","to":"ok","reason":"incremental from point 127 (checkpoint gaia-2-194-121a6c)","actor":"system"}
+{"seq":1608,"at":"2026-11-19T17:37:15.780457767Z","entity":"state_backup","entity_id":158,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1609,"at":"2026-11-19T17:37:16.087158308Z","entity":"state_backup","entity_id":158,"from":"running","to":"ok","reason":"stored as snapshot ad46b72654ff0548c17169e54ca03cda","actor":"system"}
+{"seq":1610,"at":"2026-11-19T17:41:29.280090814Z","entity":"job","entity_id":201,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1611,"at":"2026-11-19T17:41:29.293139947Z","entity":"job","entity_id":201,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1612,"at":"2026-11-19T17:41:30.36054319Z","entity":"job","entity_id":201,"from":"running","to":"running","reason":"checkpoint gaia-3-201-121a6c created on the host","actor":"system"}
+{"seq":1613,"at":"2026-11-19T17:41:31.254352445Z","entity":"point","entity_id":131,"from":"","to":"unchecked","reason":"incremental point of job 201: incremental from point 128 (checkpoint gaia-3-195-121a6c)","actor":"system"}
+{"seq":1614,"at":"2026-11-19T17:41:31.528525794Z","entity":"point_check","entity_id":131,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1615,"at":"2026-11-19T17:41:31.579678041Z","entity":"point","entity_id":59,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1616,"at":"2026-11-19T17:41:31.598528949Z","entity":"job","entity_id":201,"from":"running","to":"ok","reason":"incremental from point 128 (checkpoint gaia-3-195-121a6c)","actor":"system"}
+{"seq":1617,"at":"2026-11-19T17:42:15.781843057Z","entity":"state_backup","entity_id":159,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1618,"at":"2026-11-19T17:42:16.125059466Z","entity":"state_backup","entity_id":159,"from":"running","to":"ok","reason":"stored as snapshot f3209b9b9ac75d8eb86aa55390b9ee43","actor":"system"}
+{"seq":1619,"at":"2026-11-19T17:49:44.283155058Z","entity":"job","entity_id":202,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1620,"at":"2026-11-19T17:49:44.296714817Z","entity":"job","entity_id":202,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1621,"at":"2026-11-19T17:49:45.420842248Z","entity":"job","entity_id":202,"from":"running","to":"running","reason":"checkpoint gaia-1-202-121a6c created on the host","actor":"system"}
+{"seq":1622,"at":"2026-11-19T17:49:45.964400794Z","entity":"point","entity_id":132,"from":"","to":"unchecked","reason":"incremental point of job 202: incremental from point 129 (checkpoint gaia-1-196-121a6c)","actor":"system"}
+{"seq":1623,"at":"2026-11-19T17:49:46.008372621Z","entity":"point_check","entity_id":132,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1624,"at":"2026-11-19T17:49:46.332463143Z","entity":"point","entity_id":61,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1625,"at":"2026-11-19T17:49:46.352783011Z","entity":"job","entity_id":202,"from":"running","to":"ok","reason":"incremental from point 129 (checkpoint gaia-1-196-121a6c)","actor":"system"}
+{"seq":1626,"at":"2026-11-19T17:49:46.360517024Z","entity":"state_backup","entity_id":160,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1627,"at":"2026-11-19T17:49:46.66658225Z","entity":"state_backup","entity_id":160,"from":"running","to":"ok","reason":"stored as snapshot e35809d1dbdea0d1deb2f8171c744e51","actor":"system"}
+{"seq":1628,"at":"2026-11-19T18:07:14.283516927Z","entity":"job","entity_id":203,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1629,"at":"2026-11-19T18:07:14.291907236Z","entity":"job","entity_id":203,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1630,"at":"2026-11-19T18:07:15.159030383Z","entity":"job","entity_id":203,"from":"running","to":"running","reason":"checkpoint gaia-2-203-121a6c created on the host","actor":"system"}
+{"seq":1631,"at":"2026-11-19T18:07:15.593057628Z","entity":"point","entity_id":133,"from":"","to":"unchecked","reason":"incremental point of job 203: incremental from point 130 (checkpoint gaia-2-200-121a6c)","actor":"system"}
+{"seq":1632,"at":"2026-11-19T18:07:15.642083676Z","entity":"point_check","entity_id":133,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1633,"at":"2026-11-19T18:07:15.768844045Z","entity":"point","entity_id":60,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1634,"at":"2026-11-19T18:07:15.790377292Z","entity":"job","entity_id":203,"from":"running","to":"ok","reason":"incremental from point 130 (checkpoint gaia-2-200-121a6c)","actor":"system"}
+{"seq":1635,"at":"2026-11-19T18:07:15.7974003Z","entity":"state_backup","entity_id":161,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1636,"at":"2026-11-19T18:07:16.116204441Z","entity":"state_backup","entity_id":161,"from":"running","to":"ok","reason":"stored as snapshot bbfbf2ea9bc172523edbf56d79d22ba8","actor":"system"}
+{"seq":1637,"at":"2026-11-19T18:11:29.279484258Z","entity":"job","entity_id":204,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1638,"at":"2026-11-19T18:11:29.292778776Z","entity":"job","entity_id":204,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1639,"at":"2026-11-19T18:11:30.159926957Z","entity":"job","entity_id":204,"from":"running","to":"running","reason":"checkpoint gaia-3-204-121a6c created on the host","actor":"system"}
+{"seq":1640,"at":"2026-11-19T18:11:31.440874602Z","entity":"point","entity_id":134,"from":"","to":"unchecked","reason":"incremental point of job 204: incremental from point 131 (checkpoint gaia-3-201-121a6c)","actor":"system"}
+{"seq":1641,"at":"2026-11-19T18:11:31.667717545Z","entity":"point_check","entity_id":134,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1642,"at":"2026-11-19T18:11:31.705024166Z","entity":"point","entity_id":62,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1643,"at":"2026-11-19T18:11:31.753341981Z","entity":"job","entity_id":204,"from":"running","to":"ok","reason":"incremental from point 131 (checkpoint gaia-3-201-121a6c)","actor":"system"}
+{"seq":1644,"at":"2026-11-19T18:12:15.798714456Z","entity":"state_backup","entity_id":162,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1645,"at":"2026-11-19T18:12:16.174913366Z","entity":"state_backup","entity_id":162,"from":"running","to":"ok","reason":"stored as snapshot d3db244ed952dd57b27a7b90515609a8","actor":"system"}
+{"seq":1646,"at":"2026-11-19T18:19:44.282981091Z","entity":"job","entity_id":205,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1647,"at":"2026-11-19T18:19:44.291002881Z","entity":"job","entity_id":205,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1648,"at":"2026-11-19T18:19:45.404158747Z","entity":"job","entity_id":205,"from":"running","to":"running","reason":"checkpoint gaia-1-205-121a6c created on the host","actor":"system"}
+{"seq":1649,"at":"2026-11-19T18:19:45.978169202Z","entity":"point","entity_id":135,"from":"","to":"unchecked","reason":"incremental point of job 205: incremental from point 132 (checkpoint gaia-1-202-121a6c)","actor":"system"}
+{"seq":1650,"at":"2026-11-19T18:19:46.039832637Z","entity":"point_check","entity_id":135,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1651,"at":"2026-11-19T18:19:46.380596722Z","entity":"point","entity_id":64,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1652,"at":"2026-11-19T18:19:46.42718115Z","entity":"job","entity_id":205,"from":"running","to":"ok","reason":"incremental from point 132 (checkpoint gaia-1-202-121a6c)","actor":"system"}
+{"seq":1653,"at":"2026-11-19T18:19:46.435036702Z","entity":"state_backup","entity_id":163,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1654,"at":"2026-11-19T18:19:46.723626425Z","entity":"state_backup","entity_id":163,"from":"running","to":"ok","reason":"stored as snapshot b083719ebf3a30022902e15b9205ba21","actor":"system"}
+{"seq":1655,"at":"2026-11-19T18:22:14.280716086Z","entity":"job","entity_id":206,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1656,"at":"2026-11-19T18:22:14.295990102Z","entity":"job","entity_id":206,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1657,"at":"2026-11-19T18:22:14.30291602Z","entity":"restore_test","entity_id":71,"from":"","to":"UNKNOWN","reason":"test of point 135 started","actor":"system"}
+{"seq":1658,"at":"2026-11-19T18:23:00.473704613Z","entity":"restore_test","entity_id":71,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 11.1 s); proven RTO 22.2 s = restore 11.1 s + ready 11.1 s","actor":"system"}
+{"seq":1659,"at":"2026-11-19T18:23:00.495522481Z","entity":"job","entity_id":206,"from":"running","to":"ok","reason":"restore test 71: OK","actor":"system"}
+{"seq":1660,"at":"2026-11-19T18:23:44.280104164Z","entity":"job","entity_id":207,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1661,"at":"2026-11-19T18:23:44.290568072Z","entity":"job","entity_id":208,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1662,"at":"2026-11-19T18:23:44.293196756Z","entity":"job","entity_id":207,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1663,"at":"2026-11-19T18:23:44.2958922Z","entity":"restore_test","entity_id":72,"from":"","to":"UNKNOWN","reason":"test of point 133 started","actor":"system"}
+{"seq":1664,"at":"2026-11-19T18:24:30.811961655Z","entity":"restore_test","entity_id":72,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 22.1 s); proven RTO 29.1 s = restore 7.0 s + ready 22.1 s","actor":"system"}
+{"seq":1665,"at":"2026-11-19T18:24:30.83252321Z","entity":"job","entity_id":207,"from":"running","to":"ok","reason":"restore test 72: OK","actor":"system"}
+{"seq":1666,"at":"2026-11-19T18:24:44.28491358Z","entity":"job","entity_id":208,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1667,"at":"2026-11-19T18:24:44.290314546Z","entity":"restore_test","entity_id":73,"from":"","to":"UNKNOWN","reason":"test of point 134 started","actor":"system"}
+{"seq":1668,"at":"2026-11-19T18:24:46.438331239Z","entity":"state_backup","entity_id":164,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1669,"at":"2026-11-19T18:24:47.088251909Z","entity":"state_backup","entity_id":164,"from":"running","to":"ok","reason":"stored as snapshot b1549dad55638d68103deac598d30ab7","actor":"system"}
+{"seq":1670,"at":"2026-11-19T18:31:46.452436057Z","entity":"restore_test","entity_id":73,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 60.3 s, stable 123.4 s); proven RTO 286.8 s = restore 226.5 s + ready 60.3 s","actor":"system"}
+{"seq":1671,"at":"2026-11-19T18:31:46.539883328Z","entity":"job","entity_id":208,"from":"running","to":"ok","reason":"restore test 73: OK","actor":"system"}
+{"seq":1672,"at":"2026-11-19T18:31:46.650131935Z","entity":"state_backup","entity_id":165,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1673,"at":"2026-11-19T18:31:49.829223387Z","entity":"state_backup","entity_id":165,"from":"running","to":"ok","reason":"stored as snapshot fa6d19ee08d75177dd45b24a32bd6a03","actor":"system"}
+{"seq":1674,"at":"2026-11-19T18:37:14.283009273Z","entity":"job","entity_id":209,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1675,"at":"2026-11-19T18:37:14.291800158Z","entity":"job","entity_id":209,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1676,"at":"2026-11-19T18:37:15.198920918Z","entity":"job","entity_id":209,"from":"running","to":"running","reason":"checkpoint gaia-2-209-121a6c created on the host","actor":"system"}
+{"seq":1677,"at":"2026-11-19T18:37:15.602052755Z","entity":"point","entity_id":136,"from":"","to":"unchecked","reason":"incremental point of job 209: incremental from point 133 (checkpoint gaia-2-203-121a6c)","actor":"system"}
+{"seq":1678,"at":"2026-11-19T18:37:15.646687695Z","entity":"point_check","entity_id":136,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1679,"at":"2026-11-19T18:37:15.765255827Z","entity":"point","entity_id":63,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1680,"at":"2026-11-19T18:37:15.790313904Z","entity":"job","entity_id":209,"from":"running","to":"ok","reason":"incremental from point 133 (checkpoint gaia-2-203-121a6c)","actor":"system"}
+{"seq":1681,"at":"2026-11-19T18:37:15.79718003Z","entity":"state_backup","entity_id":166,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1682,"at":"2026-11-19T18:37:16.088227373Z","entity":"state_backup","entity_id":166,"from":"running","to":"ok","reason":"stored as snapshot dc864fbb3aeb5a03b238144b24a07b00","actor":"system"}
+{"seq":1683,"at":"2026-11-19T18:41:29.285730491Z","entity":"job","entity_id":210,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1684,"at":"2026-11-19T18:41:29.298226792Z","entity":"job","entity_id":210,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1685,"at":"2026-11-19T18:41:30.361967352Z","entity":"job","entity_id":210,"from":"running","to":"running","reason":"checkpoint gaia-3-210-121a6c created on the host","actor":"system"}
+{"seq":1686,"at":"2026-11-19T18:41:31.50449673Z","entity":"point","entity_id":137,"from":"","to":"unchecked","reason":"incremental point of job 210: incremental from point 134 (checkpoint gaia-3-204-121a6c)","actor":"system"}
+{"seq":1687,"at":"2026-11-19T18:41:31.847983932Z","entity":"point_check","entity_id":137,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1688,"at":"2026-11-19T18:41:31.900975594Z","entity":"point","entity_id":65,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1689,"at":"2026-11-19T18:41:31.936241099Z","entity":"job","entity_id":210,"from":"running","to":"ok","reason":"incremental from point 134 (checkpoint gaia-3-204-121a6c)","actor":"system"}
+{"seq":1690,"at":"2026-11-19T18:42:15.798395058Z","entity":"state_backup","entity_id":167,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1691,"at":"2026-11-19T18:42:16.106002846Z","entity":"state_backup","entity_id":167,"from":"running","to":"ok","reason":"stored as snapshot 42572cb4dd7f04ff73afd12a29934a3e","actor":"system"}
+{"seq":1692,"at":"2026-11-19T18:49:44.282049917Z","entity":"job","entity_id":211,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1693,"at":"2026-11-19T18:49:44.288332068Z","entity":"job","entity_id":211,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1694,"at":"2026-11-19T18:49:45.450769736Z","entity":"job","entity_id":211,"from":"running","to":"running","reason":"checkpoint gaia-1-211-121a6c created on the host","actor":"system"}
+{"seq":1695,"at":"2026-11-19T18:49:46.022384379Z","entity":"point","entity_id":138,"from":"","to":"unchecked","reason":"incremental point of job 211: incremental from point 135 (checkpoint gaia-1-205-121a6c)","actor":"system"}
+{"seq":1696,"at":"2026-11-19T18:49:46.068603689Z","entity":"point_check","entity_id":138,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1697,"at":"2026-11-19T18:49:46.398907897Z","entity":"point","entity_id":67,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1698,"at":"2026-11-19T18:49:46.421759883Z","entity":"job","entity_id":211,"from":"running","to":"ok","reason":"incremental from point 135 (checkpoint gaia-1-205-121a6c)","actor":"system"}
+{"seq":1699,"at":"2026-11-19T18:49:46.431833541Z","entity":"state_backup","entity_id":168,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1700,"at":"2026-11-19T18:49:46.731547445Z","entity":"state_backup","entity_id":168,"from":"running","to":"ok","reason":"stored as snapshot 49fe58f4d6733c1c550c76270a0951d0","actor":"system"}
+{"seq":1701,"at":"2026-11-19T19:07:14.283201602Z","entity":"job","entity_id":212,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1702,"at":"2026-11-19T19:07:14.291421849Z","entity":"job","entity_id":212,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1703,"at":"2026-11-19T19:07:15.194545965Z","entity":"job","entity_id":212,"from":"running","to":"running","reason":"checkpoint gaia-2-212-121a6c created on the host","actor":"system"}
+{"seq":1704,"at":"2026-11-19T19:07:15.627065506Z","entity":"point","entity_id":139,"from":"","to":"unchecked","reason":"incremental point of job 212: incremental from point 136 (checkpoint gaia-2-209-121a6c)","actor":"system"}
+{"seq":1705,"at":"2026-11-19T19:07:15.663694699Z","entity":"point_check","entity_id":139,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1706,"at":"2026-11-19T19:07:15.788542178Z","entity":"point","entity_id":66,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1707,"at":"2026-11-19T19:07:15.807923512Z","entity":"job","entity_id":212,"from":"running","to":"ok","reason":"incremental from point 136 (checkpoint gaia-2-209-121a6c)","actor":"system"}
+{"seq":1708,"at":"2026-11-19T19:07:15.814984356Z","entity":"state_backup","entity_id":169,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1709,"at":"2026-11-19T19:07:16.086328394Z","entity":"state_backup","entity_id":169,"from":"running","to":"ok","reason":"stored as snapshot 98577b17965e0eaadf72bbdefff054aa","actor":"system"}
+{"seq":1710,"at":"2026-11-19T19:11:29.281762477Z","entity":"job","entity_id":213,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1711,"at":"2026-11-19T19:11:29.288038906Z","entity":"job","entity_id":213,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1712,"at":"2026-11-19T19:11:30.128715358Z","entity":"job","entity_id":213,"from":"running","to":"running","reason":"checkpoint gaia-3-213-121a6c created on the host","actor":"system"}
+{"seq":1713,"at":"2026-11-19T19:11:31.418593918Z","entity":"point","entity_id":140,"from":"","to":"unchecked","reason":"incremental point of job 213: incremental from point 137 (checkpoint gaia-3-210-121a6c)","actor":"system"}
+{"seq":1714,"at":"2026-11-19T19:11:31.686341652Z","entity":"point_check","entity_id":140,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1715,"at":"2026-11-19T19:11:31.741491428Z","entity":"point","entity_id":68,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1716,"at":"2026-11-19T19:11:31.76607314Z","entity":"job","entity_id":213,"from":"running","to":"ok","reason":"incremental from point 137 (checkpoint gaia-3-210-121a6c)","actor":"system"}
+{"seq":1717,"at":"2026-11-19T19:12:15.816475904Z","entity":"state_backup","entity_id":170,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1718,"at":"2026-11-19T19:12:16.16872731Z","entity":"state_backup","entity_id":170,"from":"running","to":"ok","reason":"stored as snapshot 291046269310187f955f216fc0b8bb7c","actor":"system"}
+{"seq":1719,"at":"2026-11-19T19:19:44.278324309Z","entity":"job","entity_id":214,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1720,"at":"2026-11-19T19:19:44.29255639Z","entity":"job","entity_id":214,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1721,"at":"2026-11-19T19:19:45.330923377Z","entity":"job","entity_id":214,"from":"running","to":"running","reason":"checkpoint gaia-1-214-121a6c created on the host","actor":"system"}
+{"seq":1722,"at":"2026-11-19T19:19:45.888097566Z","entity":"point","entity_id":141,"from":"","to":"unchecked","reason":"incremental point of job 214: incremental from point 138 (checkpoint gaia-1-211-121a6c)","actor":"system"}
+{"seq":1723,"at":"2026-11-19T19:19:45.954915303Z","entity":"point_check","entity_id":141,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1724,"at":"2026-11-19T19:19:46.190812782Z","entity":"point","entity_id":70,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1725,"at":"2026-11-19T19:19:46.229406708Z","entity":"job","entity_id":214,"from":"running","to":"ok","reason":"incremental from point 138 (checkpoint gaia-1-211-121a6c)","actor":"system"}
+{"seq":1726,"at":"2026-11-19T19:19:46.238364451Z","entity":"state_backup","entity_id":171,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1727,"at":"2026-11-19T19:19:46.538725633Z","entity":"state_backup","entity_id":171,"from":"running","to":"ok","reason":"stored as snapshot 0158076f1355d666697a80d998ad8386","actor":"system"}
+{"seq":1728,"at":"2026-11-19T19:22:14.284641057Z","entity":"job","entity_id":215,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1729,"at":"2026-11-19T19:22:14.290977347Z","entity":"job","entity_id":215,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1730,"at":"2026-11-19T19:22:14.295416309Z","entity":"restore_test","entity_id":74,"from":"","to":"UNKNOWN","reason":"test of point 141 started","actor":"system"}
+{"seq":1731,"at":"2026-11-19T19:23:00.391616716Z","entity":"restore_test","entity_id":74,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 11.1 s); proven RTO 22.4 s = restore 11.3 s + ready 11.1 s","actor":"system"}
+{"seq":1732,"at":"2026-11-19T19:23:00.405206731Z","entity":"job","entity_id":215,"from":"running","to":"ok","reason":"restore test 74: OK","actor":"system"}
+{"seq":1733,"at":"2026-11-19T19:23:44.284708262Z","entity":"job","entity_id":216,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1734,"at":"2026-11-19T19:23:44.29613861Z","entity":"job","entity_id":217,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1735,"at":"2026-11-19T19:23:44.300964771Z","entity":"job","entity_id":216,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1736,"at":"2026-11-19T19:23:44.305067995Z","entity":"restore_test","entity_id":75,"from":"","to":"UNKNOWN","reason":"test of point 139 started","actor":"system"}
+{"seq":1737,"at":"2026-11-19T19:24:32.303887606Z","entity":"restore_test","entity_id":75,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 24.1 s); proven RTO 31.6 s = restore 7.5 s + ready 24.1 s","actor":"system"}
+{"seq":1738,"at":"2026-11-19T19:24:32.317855569Z","entity":"job","entity_id":216,"from":"running","to":"ok","reason":"restore test 75: OK","actor":"system"}
+{"seq":1739,"at":"2026-11-19T19:24:44.287271088Z","entity":"job","entity_id":217,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1740,"at":"2026-11-19T19:24:44.291416681Z","entity":"restore_test","entity_id":76,"from":"","to":"UNKNOWN","reason":"test of point 140 started","actor":"system"}
+{"seq":1741,"at":"2026-11-19T19:24:46.239175719Z","entity":"state_backup","entity_id":172,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1742,"at":"2026-11-19T19:24:46.880134685Z","entity":"state_backup","entity_id":172,"from":"running","to":"ok","reason":"stored as snapshot cf51a344c9d902b070ca406e9175d4bc","actor":"system"}
+{"seq":1743,"at":"2026-11-19T19:31:50.73200381Z","entity":"restore_test","entity_id":76,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 63.3 s, stable 126.6 s); proven RTO 289.4 s = restore 226.1 s + ready 63.3 s","actor":"system"}
+{"seq":1744,"at":"2026-11-19T19:31:50.751753326Z","entity":"job","entity_id":217,"from":"running","to":"ok","reason":"restore test 76: OK","actor":"system"}
+{"seq":1745,"at":"2026-11-19T19:31:50.838198603Z","entity":"state_backup","entity_id":173,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1746,"at":"2026-11-19T19:31:54.103940639Z","entity":"state_backup","entity_id":173,"from":"running","to":"ok","reason":"stored as snapshot 91b49193552a725e3751a66225b7f268","actor":"system"}
+{"seq":1747,"at":"2026-11-19T19:37:14.283055113Z","entity":"job","entity_id":218,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1748,"at":"2026-11-19T19:37:14.291244967Z","entity":"job","entity_id":218,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1749,"at":"2026-11-19T19:37:15.193674718Z","entity":"job","entity_id":218,"from":"running","to":"running","reason":"checkpoint gaia-2-218-121a6c created on the host","actor":"system"}
+{"seq":1750,"at":"2026-11-19T19:37:15.593481813Z","entity":"point","entity_id":142,"from":"","to":"unchecked","reason":"incremental point of job 218: incremental from point 139 (checkpoint gaia-2-212-121a6c)","actor":"system"}
+{"seq":1751,"at":"2026-11-19T19:37:15.643524166Z","entity":"point_check","entity_id":142,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1752,"at":"2026-11-19T19:37:15.765718198Z","entity":"point","entity_id":69,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1753,"at":"2026-11-19T19:37:15.809429163Z","entity":"job","entity_id":218,"from":"running","to":"ok","reason":"incremental from point 139 (checkpoint gaia-2-212-121a6c)","actor":"system"}
+{"seq":1754,"at":"2026-11-19T19:37:15.816811465Z","entity":"state_backup","entity_id":174,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1755,"at":"2026-11-19T19:37:16.145605616Z","entity":"state_backup","entity_id":174,"from":"running","to":"ok","reason":"stored as snapshot 5a88d8993f56d0e43a1a7d6d11513538","actor":"system"}
+{"seq":1756,"at":"2026-11-19T19:41:29.279516608Z","entity":"job","entity_id":219,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1757,"at":"2026-11-19T19:41:29.292485713Z","entity":"job","entity_id":219,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1758,"at":"2026-11-19T19:41:30.265932664Z","entity":"job","entity_id":219,"from":"running","to":"running","reason":"checkpoint gaia-3-219-121a6c created on the host","actor":"system"}
+{"seq":1759,"at":"2026-11-19T19:41:31.271763821Z","entity":"point","entity_id":143,"from":"","to":"unchecked","reason":"incremental point of job 219: incremental from point 140 (checkpoint gaia-3-213-121a6c)","actor":"system"}
+{"seq":1760,"at":"2026-11-19T19:41:31.540288356Z","entity":"point_check","entity_id":143,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1761,"at":"2026-11-19T19:41:31.583960089Z","entity":"point","entity_id":71,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1762,"at":"2026-11-19T19:41:31.605249279Z","entity":"job","entity_id":219,"from":"running","to":"ok","reason":"incremental from point 140 (checkpoint gaia-3-213-121a6c)","actor":"system"}
+{"seq":1763,"at":"2026-11-19T19:42:15.81784523Z","entity":"state_backup","entity_id":175,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1764,"at":"2026-11-19T19:42:16.130259975Z","entity":"state_backup","entity_id":175,"from":"running","to":"ok","reason":"stored as snapshot d367ebfb65fc4b146fc6ae9690cd84b2","actor":"system"}
+{"seq":1765,"at":"2026-11-19T19:49:44.282293525Z","entity":"job","entity_id":220,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1766,"at":"2026-11-19T19:49:44.289892776Z","entity":"job","entity_id":220,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1767,"at":"2026-11-19T19:49:45.381495006Z","entity":"job","entity_id":220,"from":"running","to":"running","reason":"checkpoint gaia-1-220-121a6c created on the host","actor":"system"}
+{"seq":1768,"at":"2026-11-19T19:49:46.029564553Z","entity":"point","entity_id":144,"from":"","to":"unchecked","reason":"incremental point of job 220: incremental from point 141 (checkpoint gaia-1-214-121a6c)","actor":"system"}
+{"seq":1769,"at":"2026-11-19T19:49:46.070678498Z","entity":"point_check","entity_id":144,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1770,"at":"2026-11-19T19:49:46.372429565Z","entity":"point","entity_id":73,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1771,"at":"2026-11-19T19:49:46.398220479Z","entity":"job","entity_id":220,"from":"running","to":"ok","reason":"incremental from point 141 (checkpoint gaia-1-214-121a6c)","actor":"system"}
+{"seq":1772,"at":"2026-11-19T19:49:46.406585346Z","entity":"state_backup","entity_id":176,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1773,"at":"2026-11-19T19:49:46.725506212Z","entity":"state_backup","entity_id":176,"from":"running","to":"ok","reason":"stored as snapshot ef970c95176ffa489f51d0d8fea44fd7","actor":"system"}
+{"seq":1774,"at":"2026-11-19T20:07:14.283431234Z","entity":"job","entity_id":221,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1775,"at":"2026-11-19T20:07:14.291353984Z","entity":"job","entity_id":221,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1776,"at":"2026-11-19T20:07:15.162222323Z","entity":"job","entity_id":221,"from":"running","to":"running","reason":"checkpoint gaia-2-221-121a6c created on the host","actor":"system"}
+{"seq":1777,"at":"2026-11-19T20:07:19.770038351Z","entity":"point","entity_id":145,"from":"","to":"unchecked","reason":"incremental point of job 221: incremental from point 142 (checkpoint gaia-2-218-121a6c)","actor":"system"}
+{"seq":1778,"at":"2026-11-19T20:07:19.822710375Z","entity":"point_check","entity_id":145,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1779,"at":"2026-11-19T20:07:19.975261864Z","entity":"point","entity_id":72,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1780,"at":"2026-11-19T20:07:20.000330005Z","entity":"job","entity_id":221,"from":"running","to":"ok","reason":"incremental from point 142 (checkpoint gaia-2-218-121a6c)","actor":"system"}
+{"seq":1781,"at":"2026-11-19T20:07:20.00728551Z","entity":"state_backup","entity_id":177,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1782,"at":"2026-11-19T20:07:20.366764361Z","entity":"state_backup","entity_id":177,"from":"running","to":"ok","reason":"stored as snapshot 10c6d56977f9be3888c8c363a9bab717","actor":"system"}
+{"seq":1783,"at":"2026-11-19T20:11:29.27999609Z","entity":"job","entity_id":222,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1784,"at":"2026-11-19T20:11:29.293997943Z","entity":"job","entity_id":222,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1785,"at":"2026-11-19T20:11:30.108469201Z","entity":"job","entity_id":222,"from":"running","to":"running","reason":"checkpoint gaia-3-222-121a6c created on the host","actor":"system"}
+{"seq":1786,"at":"2026-11-19T20:11:31.517636004Z","entity":"point","entity_id":146,"from":"","to":"unchecked","reason":"incremental point of job 222: incremental from point 143 (checkpoint gaia-3-219-121a6c)","actor":"system"}
+{"seq":1787,"at":"2026-11-19T20:11:31.801040346Z","entity":"point_check","entity_id":146,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1788,"at":"2026-11-19T20:11:31.840832425Z","entity":"point","entity_id":74,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1789,"at":"2026-11-19T20:11:31.858667056Z","entity":"job","entity_id":222,"from":"running","to":"ok","reason":"incremental from point 143 (checkpoint gaia-3-219-121a6c)","actor":"system"}
+{"seq":1790,"at":"2026-11-19T20:12:20.008054087Z","entity":"state_backup","entity_id":178,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1791,"at":"2026-11-19T20:12:20.385388737Z","entity":"state_backup","entity_id":178,"from":"running","to":"ok","reason":"stored as snapshot 6298cfd910c5b95c800708c76f5f6846","actor":"system"}
+{"seq":1792,"at":"2026-11-19T20:19:44.282809611Z","entity":"job","entity_id":223,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1793,"at":"2026-11-19T20:19:44.296886256Z","entity":"job","entity_id":223,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1794,"at":"2026-11-19T20:19:45.369941881Z","entity":"job","entity_id":223,"from":"running","to":"running","reason":"checkpoint gaia-1-223-121a6c created on the host","actor":"system"}
+{"seq":1795,"at":"2026-11-19T20:19:45.865627668Z","entity":"point","entity_id":147,"from":"","to":"unchecked","reason":"incremental point of job 223: incremental from point 144 (checkpoint gaia-1-220-121a6c)","actor":"system"}
+{"seq":1796,"at":"2026-11-19T20:19:45.922593466Z","entity":"point_check","entity_id":147,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1797,"at":"2026-11-19T20:19:46.260045567Z","entity":"point","entity_id":76,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1798,"at":"2026-11-19T20:19:46.277254354Z","entity":"job","entity_id":223,"from":"running","to":"ok","reason":"incremental from point 144 (checkpoint gaia-1-220-121a6c)","actor":"system"}
+{"seq":1799,"at":"2026-11-19T20:19:46.283812265Z","entity":"state_backup","entity_id":179,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1800,"at":"2026-11-19T20:19:46.64064308Z","entity":"state_backup","entity_id":179,"from":"running","to":"ok","reason":"stored as snapshot 6a17096c9a1075e26e5dbe047bb4a512","actor":"system"}
+{"seq":1801,"at":"2026-11-19T20:22:14.285486364Z","entity":"job","entity_id":224,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1802,"at":"2026-11-19T20:22:14.297584321Z","entity":"job","entity_id":224,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1803,"at":"2026-11-19T20:22:14.302247703Z","entity":"restore_test","entity_id":77,"from":"","to":"UNKNOWN","reason":"test of point 147 started","actor":"system"}
+{"seq":1804,"at":"2026-11-19T20:22:59.932707479Z","entity":"restore_test","entity_id":77,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 11.0 s); proven RTO 22.2 s = restore 11.1 s + ready 11.0 s","actor":"system"}
+{"seq":1805,"at":"2026-11-19T20:22:59.954310358Z","entity":"job","entity_id":224,"from":"running","to":"ok","reason":"restore test 77: OK","actor":"system"}
+{"seq":1806,"at":"2026-11-19T20:23:44.284454416Z","entity":"job","entity_id":225,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 3600 s","actor":"system"}
+{"seq":1807,"at":"2026-11-19T20:23:44.289435706Z","entity":"job","entity_id":226,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 3600 s","actor":"system"}
+{"seq":1808,"at":"2026-11-19T20:23:44.293091744Z","entity":"job","entity_id":225,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1809,"at":"2026-11-19T20:23:44.297387128Z","entity":"restore_test","entity_id":78,"from":"","to":"UNKNOWN","reason":"test of point 145 started","actor":"system"}
+{"seq":1810,"at":"2026-11-19T20:24:28.525192461Z","entity":"restore_test","entity_id":78,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 24.1 s); proven RTO 28.2 s = restore 4.2 s + ready 24.1 s","actor":"system"}
+{"seq":1811,"at":"2026-11-19T20:24:28.545706266Z","entity":"job","entity_id":225,"from":"running","to":"ok","reason":"restore test 78: OK","actor":"system"}
+{"seq":1812,"at":"2026-11-19T20:24:29.291874552Z","entity":"job","entity_id":226,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1813,"at":"2026-11-19T20:24:29.296318174Z","entity":"restore_test","entity_id":79,"from":"","to":"UNKNOWN","reason":"test of point 146 started","actor":"system"}
+{"seq":1814,"at":"2026-11-19T20:24:46.287083715Z","entity":"state_backup","entity_id":180,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1815,"at":"2026-11-19T20:24:47.526920074Z","entity":"state_backup","entity_id":180,"from":"running","to":"ok","reason":"stored as snapshot e51bd52a246f6b6cc81863dd027e9ae5","actor":"system"}
+{"seq":1816,"at":"2026-11-19T20:31:32.385503916Z","entity":"restore_test","entity_id":79,"from":"UNKNOWN","to":"OK","reason":"every check passed (boot 59.3 s, stable 122.5 s); proven RTO 288.4 s = restore 229.1 s + ready 59.3 s","actor":"system"}
+{"seq":1817,"at":"2026-11-19T20:31:32.417154381Z","entity":"job","entity_id":226,"from":"running","to":"ok","reason":"restore test 79: OK","actor":"system"}
+{"seq":1818,"at":"2026-11-19T20:31:32.512231814Z","entity":"state_backup","entity_id":181,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1819,"at":"2026-11-19T20:31:33.518081732Z","entity":"state_backup","entity_id":181,"from":"running","to":"ok","reason":"stored as snapshot 0835a5406be216836b256ccdb61497a9","actor":"system"}
+{"seq":1820,"at":"2026-11-19T20:37:14.282840296Z","entity":"job","entity_id":227,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1821,"at":"2026-11-19T20:37:14.291841551Z","entity":"job","entity_id":227,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1822,"at":"2026-11-19T20:37:15.136514894Z","entity":"job","entity_id":227,"from":"running","to":"running","reason":"checkpoint gaia-2-227-121a6c created on the host","actor":"system"}
+{"seq":1823,"at":"2026-11-19T20:37:15.563116996Z","entity":"point","entity_id":148,"from":"","to":"unchecked","reason":"incremental point of job 227: incremental from point 145 (checkpoint gaia-2-221-121a6c)","actor":"system"}
+{"seq":1824,"at":"2026-11-19T20:37:15.598495057Z","entity":"point_check","entity_id":148,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1825,"at":"2026-11-19T20:37:15.756162189Z","entity":"point","entity_id":75,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1826,"at":"2026-11-19T20:37:17.062998287Z","entity":"job","entity_id":227,"from":"running","to":"ok","reason":"incremental from point 145 (checkpoint gaia-2-221-121a6c)","actor":"system"}
+{"seq":1827,"at":"2026-11-19T20:37:17.073496801Z","entity":"state_backup","entity_id":182,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1828,"at":"2026-11-19T20:37:17.390188186Z","entity":"state_backup","entity_id":182,"from":"running","to":"ok","reason":"stored as snapshot a4b4dcea0b19dce0854faf4862b34d8a","actor":"system"}
+{"seq":1829,"at":"2026-11-19T20:41:29.280478119Z","entity":"job","entity_id":228,"from":"","to":"queued","reason":"schedule: policy t23-windows, every 1800 s","actor":"system"}
+{"seq":1830,"at":"2026-11-19T20:41:29.287861463Z","entity":"job","entity_id":228,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1831,"at":"2026-11-19T20:41:30.231273028Z","entity":"job","entity_id":228,"from":"running","to":"running","reason":"checkpoint gaia-3-228-121a6c created on the host","actor":"system"}
+{"seq":1832,"at":"2026-11-19T20:41:31.298044343Z","entity":"point","entity_id":149,"from":"","to":"unchecked","reason":"incremental point of job 228: incremental from point 146 (checkpoint gaia-3-222-121a6c)","actor":"system"}
+{"seq":1833,"at":"2026-11-19T20:41:31.564589545Z","entity":"point_check","entity_id":149,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1834,"at":"2026-11-19T20:41:31.608440142Z","entity":"point","entity_id":77,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1835,"at":"2026-11-19T20:41:31.632053984Z","entity":"job","entity_id":228,"from":"running","to":"ok","reason":"incremental from point 146 (checkpoint gaia-3-222-121a6c)","actor":"system"}
+{"seq":1836,"at":"2026-11-19T20:42:17.074169596Z","entity":"state_backup","entity_id":183,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1837,"at":"2026-11-19T20:42:17.39484123Z","entity":"state_backup","entity_id":183,"from":"running","to":"ok","reason":"stored as snapshot be358e206203abb2706902318d2a20e8","actor":"system"}
+{"seq":1838,"at":"2026-11-19T20:49:44.282859253Z","entity":"job","entity_id":229,"from":"","to":"queued","reason":"schedule: policy t23-linux, every 1800 s","actor":"system"}
+{"seq":1839,"at":"2026-11-19T20:49:44.297728454Z","entity":"job","entity_id":229,"from":"queued","to":"running","reason":"worker started","actor":"system"}
+{"seq":1840,"at":"2026-11-19T20:49:45.465503949Z","entity":"job","entity_id":229,"from":"running","to":"running","reason":"checkpoint gaia-1-229-121a6c created on the host","actor":"system"}
+{"seq":1841,"at":"2026-11-19T20:49:45.982069966Z","entity":"point","entity_id":150,"from":"","to":"unchecked","reason":"incremental point of job 229: incremental from point 147 (checkpoint gaia-1-223-121a6c)","actor":"system"}
+{"seq":1842,"at":"2026-11-19T20:49:46.041864619Z","entity":"point_check","entity_id":150,"from":"unchecked","to":"ok","reason":"post-backup check: manifest and block index read back, every block present, sizes match","actor":"system"}
+{"seq":1843,"at":"2026-11-19T20:49:46.369445639Z","entity":"point","entity_id":79,"from":"present","to":"pruned","reason":"retention: keep_last 24, keep_daily 7, keep_weekly 0","actor":"system"}
+{"seq":1844,"at":"2026-11-19T20:49:46.443131121Z","entity":"job","entity_id":229,"from":"running","to":"ok","reason":"incremental from point 147 (checkpoint gaia-1-223-121a6c)","actor":"system"}
+{"seq":1845,"at":"2026-11-19T20:49:46.450314068Z","entity":"state_backup","entity_id":184,"from":"","to":"running","reason":"after jobs","actor":"system"}
+{"seq":1846,"at":"2026-11-19T20:49:46.794107512Z","entity":"state_backup","entity_id":184,"from":"running","to":"ok","reason":"stored as snapshot 8bdbf1b3621fcea1a74f6597fef301ec","actor":"system"}

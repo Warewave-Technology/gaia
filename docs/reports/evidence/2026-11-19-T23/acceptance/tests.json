@@ -1,5 +1,1341 @@
 [
   {
+    "id": 79,
+    "vm_id": 3,
+    "point_id": 146,
+    "job_id": 226,
+    "verdict": "OK",
+    "proven_rto_s": 288.41852521,
+    "started_at": "2026-11-19T20:24:29.296201055Z",
+    "finished_at": "2026-11-19T20:31:32.385407007Z",
+    "reason": "every check passed (boot 59.3 s, stable 122.5 s); proven RTO 288.4 s = restore 229.1 s + ready 59.3 s",
+    "bundle_id": "gaia-t23-win-20261119T202818Z-151aa9",
+    "detail": {
+      "point": 146,
+      "test": 79,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 229.070537336
+        }
+      ],
+      "restore_s": 229.074277453,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 59.344247757,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 c9 5c 47 70 82 33 82 04 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 6d 71 25 ba 64 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 122.456174645,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 59.344247757,
+        "image_hash": 31.123523314,
+        "proven_rto": 288.41852521,
+        "ready": 59.344247757,
+        "restore": 229.074277453,
+        "sandbox_setup": 1.7845304610000001,
+        "shutdown": 4.213475851,
+        "total": 192.779319622
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T202818Z-151aa9",
+      "ledger_seq": 75
+    }
+  },
+  {
+    "id": 78,
+    "vm_id": 2,
+    "point_id": 145,
+    "job_id": 225,
+    "verdict": "OK",
+    "proven_rto_s": 28.219404656000002,
+    "started_at": "2026-11-19T20:23:44.297295188Z",
+    "finished_at": "2026-11-19T20:24:28.525113311Z",
+    "reason": "every check passed (boot 24.1 s); proven RTO 28.2 s = restore 4.2 s + ready 24.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T202348Z-f10bc1",
+    "detail": {
+      "point": 145,
+      "test": 78,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 4.152666331
+        }
+      ],
+      "restore_s": 4.160050065,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 24.059354591,
+          "attempts": 25,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 24.059354591,
+        "image_hash": 6.209203205,
+        "proven_rto": 28.219404656000002,
+        "ready": 24.059354591,
+        "restore": 4.160050065,
+        "sandbox_setup": 1.508507515,
+        "shutdown": 2.002226911,
+        "total": 39.28060613
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T202348Z-f10bc1",
+      "ledger_seq": 74
+    }
+  },
+  {
+    "id": 77,
+    "vm_id": 1,
+    "point_id": 147,
+    "job_id": 224,
+    "verdict": "OK",
+    "proven_rto_s": 22.17141681,
+    "started_at": "2026-11-19T20:22:14.302128054Z",
+    "finished_at": "2026-11-19T20:22:59.93262458Z",
+    "reason": "every check passed (boot 11.0 s); proven RTO 22.2 s = restore 11.1 s + ready 11.0 s",
+    "bundle_id": "gaia-t23-linux2-20261119T202225Z-e39cff",
+    "detail": {
+      "point": 147,
+      "test": 77,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.420673942
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.694428808
+        }
+      ],
+      "restore_s": 11.12207329,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.04934352,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.04934352,
+        "image_hash": 9.627409197,
+        "proven_rto": 22.17141681,
+        "ready": 11.04934352,
+        "restore": 11.12207329,
+        "sandbox_setup": 1.7460412459999999,
+        "shutdown": 3.124993515,
+        "total": 33.733325708
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T202225Z-e39cff",
+      "ledger_seq": 73
+    }
+  },
+  {
+    "id": 76,
+    "vm_id": 3,
+    "point_id": 140,
+    "job_id": 217,
+    "verdict": "OK",
+    "proven_rto_s": 289.388171526,
+    "started_at": "2026-11-19T19:24:44.291321322Z",
+    "finished_at": "2026-11-19T19:31:50.731920241Z",
+    "reason": "every check passed (boot 63.3 s, stable 126.6 s); proven RTO 289.4 s = restore 226.1 s + ready 63.3 s",
+    "bundle_id": "gaia-t23-win-20261119T192830Z-851658",
+    "detail": {
+      "point": 140,
+      "test": 76,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 226.049685622
+        }
+      ],
+      "restore_s": 226.056070473,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 63.332101053,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 da c0 22 ad bd 50 85 3e 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 88 50 c9 61 5c 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 126.614491298,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 63.332101053,
+        "image_hash": 31.199027614,
+        "proven_rto": 289.388171526,
+        "ready": 63.332101053,
+        "restore": 226.056070473,
+        "sandbox_setup": 1.759227286,
+        "shutdown": 4.376977282,
+        "total": 199.078602379
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T192830Z-851658",
+      "ledger_seq": 72
+    }
+  },
+  {
+    "id": 75,
+    "vm_id": 2,
+    "point_id": 139,
+    "job_id": 216,
+    "verdict": "OK",
+    "proven_rto_s": 31.593525067999998,
+    "started_at": "2026-11-19T19:23:44.304978495Z",
+    "finished_at": "2026-11-19T19:24:32.303795647Z",
+    "reason": "every check passed (boot 24.1 s); proven RTO 31.6 s = restore 7.5 s + ready 24.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T192352Z-4d5445",
+    "detail": {
+      "point": 139,
+      "test": 75,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.531224123
+        }
+      ],
+      "restore_s": 7.534832011,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 24.058693057,
+          "attempts": 25,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 24.058693057,
+        "image_hash": 6.234711195,
+        "proven_rto": 31.593525067999998,
+        "ready": 24.058693057,
+        "restore": 7.534832011,
+        "sandbox_setup": 1.559424586,
+        "shutdown": 2.00198509,
+        "total": 39.701093076
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T192352Z-4d5445",
+      "ledger_seq": 71
+    }
+  },
+  {
+    "id": 74,
+    "vm_id": 1,
+    "point_id": 141,
+    "job_id": 215,
+    "verdict": "OK",
+    "proven_rto_s": 22.397451021000002,
+    "started_at": "2026-11-19T19:22:14.29530262Z",
+    "finished_at": "2026-11-19T19:23:00.391543857Z",
+    "reason": "every check passed (boot 11.1 s); proven RTO 22.4 s = restore 11.3 s + ready 11.1 s",
+    "bundle_id": "gaia-t23-linux2-20261119T192225Z-7306aa",
+    "detail": {
+      "point": 141,
+      "test": 74,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.56831332
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.769934717
+        }
+      ],
+      "restore_s": 11.344199029,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.053251992,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.053251992,
+        "image_hash": 9.754022055,
+        "proven_rto": 22.397451021000002,
+        "ready": 11.053251992,
+        "restore": 11.344199029,
+        "sandbox_setup": 1.884926075,
+        "shutdown": 3.003555508,
+        "total": 34.046439306
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T192225Z-7306aa",
+      "ledger_seq": 70
+    }
+  },
+  {
+    "id": 73,
+    "vm_id": 3,
+    "point_id": 134,
+    "job_id": 208,
+    "verdict": "OK",
+    "proven_rto_s": 286.814585036,
+    "started_at": "2026-11-19T18:24:44.290213037Z",
+    "finished_at": "2026-11-19T18:31:46.452360247Z",
+    "reason": "every check passed (boot 60.3 s, stable 123.4 s); proven RTO 286.8 s = restore 226.5 s + ready 60.3 s",
+    "bundle_id": "gaia-t23-win-20261119T182831Z-165edc",
+    "detail": {
+      "point": 134,
+      "test": 73,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 226.480721832
+        }
+      ],
+      "restore_s": 226.48749112,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 60.327093916,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 7c d6 01 22 25 da 0f 89 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 69 f2 4e fe 53 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 123.428239981,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 60.327093916,
+        "image_hash": 31.040813171,
+        "proven_rto": 286.814585036,
+        "ready": 60.327093916,
+        "restore": 226.48749112,
+        "sandbox_setup": 1.7829549519999999,
+        "shutdown": 4.225005839,
+        "total": 194.296233369
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T182831Z-165edc",
+      "ledger_seq": 69
+    }
+  },
+  {
+    "id": 72,
+    "vm_id": 2,
+    "point_id": 133,
+    "job_id": 207,
+    "verdict": "OK",
+    "proven_rto_s": 29.065413964,
+    "started_at": "2026-11-19T18:23:44.295808979Z",
+    "finished_at": "2026-11-19T18:24:30.811883796Z",
+    "reason": "every check passed (boot 22.1 s); proven RTO 29.1 s = restore 7.0 s + ready 22.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T182351Z-647ff6",
+    "detail": {
+      "point": 133,
+      "test": 72,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.006909261
+        }
+      ],
+      "restore_s": 7.01362826,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 22.051785704,
+          "attempts": 23,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 22.051785704,
+        "image_hash": 6.271902709,
+        "proven_rto": 29.065413964,
+        "ready": 22.051785704,
+        "restore": 7.01362826,
+        "sandbox_setup": 1.529149533,
+        "shutdown": 3.002944097,
+        "total": 38.747786104
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T182351Z-647ff6",
+      "ledger_seq": 68
+    }
+  },
+  {
+    "id": 71,
+    "vm_id": 1,
+    "point_id": 135,
+    "job_id": 206,
+    "verdict": "OK",
+    "proven_rto_s": 22.156270145,
+    "started_at": "2026-11-19T18:22:14.302813521Z",
+    "finished_at": "2026-11-19T18:23:00.473627864Z",
+    "reason": "every check passed (boot 11.1 s); proven RTO 22.2 s = restore 11.1 s + ready 11.1 s",
+    "bundle_id": "gaia-t23-linux2-20261119T182225Z-076ad6",
+    "detail": {
+      "point": 135,
+      "test": 71,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.333653418
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.763005134
+        }
+      ],
+      "restore_s": 11.102965073,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.053305072,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.053305072,
+        "image_hash": 9.996045799000001,
+        "proven_rto": 22.156270145,
+        "ready": 11.053305072,
+        "restore": 11.102965073,
+        "sandbox_setup": 1.801314276,
+        "shutdown": 3.002462861,
+        "total": 34.316581713
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T182225Z-076ad6",
+      "ledger_seq": 67
+    }
+  },
+  {
+    "id": 70,
+    "vm_id": 3,
+    "point_id": 128,
+    "job_id": 199,
+    "verdict": "OK",
+    "proven_rto_s": 290.190118022,
+    "started_at": "2026-11-19T17:24:29.292903837Z",
+    "finished_at": "2026-11-19T17:31:34.430614928Z",
+    "reason": "every check passed (boot 59.3 s, stable 122.5 s); proven RTO 290.2 s = restore 230.9 s + ready 59.3 s",
+    "bundle_id": "gaia-t23-win-20261119T172820Z-5af965",
+    "detail": {
+      "point": 128,
+      "test": 70,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 230.883114477
+        }
+      ],
+      "restore_s": 230.888869925,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 59.301248097,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 a9 77 3d c0 f6 79 93 40 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 6c 67 2e 96 4b 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 122.489297019,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 59.301248097,
+        "image_hash": 31.436823899,
+        "proven_rto": 290.190118022,
+        "ready": 59.301248097,
+        "restore": 230.888869925,
+        "sandbox_setup": 1.729907716,
+        "shutdown": 4.078423059,
+        "total": 192.953967791
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T172820Z-5af965",
+      "ledger_seq": 66
+    }
+  },
+  {
+    "id": 69,
+    "vm_id": 2,
+    "point_id": 127,
+    "job_id": 198,
+    "verdict": "OK",
+    "proven_rto_s": 27.673176062000003,
+    "started_at": "2026-11-19T17:23:44.30379103Z",
+    "finished_at": "2026-11-19T17:24:28.485841922Z",
+    "reason": "every check passed (boot 21.1 s); proven RTO 27.7 s = restore 6.6 s + ready 21.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T172351Z-867e3c",
+    "detail": {
+      "point": 127,
+      "test": 69,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 6.605129513
+        }
+      ],
+      "restore_s": 6.610005525,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 21.063170537,
+          "attempts": 22,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 21.063170537,
+        "image_hash": 6.349014991,
+        "proven_rto": 27.673176062000003,
+        "ready": 21.063170537,
+        "restore": 6.610005525,
+        "sandbox_setup": 1.53809453,
+        "shutdown": 2.002164875,
+        "total": 36.765609999
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T172351Z-867e3c",
+      "ledger_seq": 65
+    }
+  },
+  {
+    "id": 68,
+    "vm_id": 1,
+    "point_id": 129,
+    "job_id": 197,
+    "verdict": "OK",
+    "proven_rto_s": 22.284445668,
+    "started_at": "2026-11-19T17:22:14.292657224Z",
+    "finished_at": "2026-11-19T17:23:00.292799093Z",
+    "reason": "every check passed (boot 11.1 s); proven RTO 22.3 s = restore 11.2 s + ready 11.1 s",
+    "bundle_id": "gaia-t23-linux2-20261119T172225Z-0e6cad",
+    "detail": {
+      "point": 129,
+      "test": 68,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.465465661
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.753443444
+        }
+      ],
+      "restore_s": 11.225561128,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 11.05888454,
+          "attempts": 12,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 11.05888454,
+        "image_hash": 9.929479948000001,
+        "proven_rto": 22.284445668,
+        "ready": 11.05888454,
+        "restore": 11.225561128,
+        "sandbox_setup": 1.720562103,
+        "shutdown": 3.177072543,
+        "total": 34.052309779
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T172225Z-0e6cad",
+      "ledger_seq": 64
+    }
+  },
+  {
+    "id": 67,
+    "vm_id": 3,
+    "point_id": 122,
+    "job_id": 190,
+    "verdict": "OK",
+    "proven_rto_s": 291.09205779,
+    "started_at": "2026-11-19T16:24:44.291097243Z",
+    "finished_at": "2026-11-19T16:31:53.016490894Z",
+    "reason": "every check passed (boot 64.3 s, stable 127.3 s); proven RTO 291.1 s = restore 226.8 s + ready 64.3 s",
+    "bundle_id": "gaia-t23-win-20261119T162831Z-a8dbcf",
+    "detail": {
+      "point": 122,
+      "test": 67,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 226.798084281
+        }
+      ],
+      "restore_s": 226.80430298,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 64.28775481,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 8a a0 c8 6f f7 35 ee 12 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 c8 53 40 3d 43 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 127.343607805,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 64.28775481,
+        "image_hash": 30.813558992,
+        "proven_rto": 291.09205779,
+        "ready": 64.28775481,
+        "restore": 226.80430298,
+        "sandbox_setup": 1.680962435,
+        "shutdown": 4.148988622,
+        "total": 200.46354121
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T162831Z-a8dbcf",
+      "ledger_seq": 63
+    }
+  },
+  {
+    "id": 66,
+    "vm_id": 2,
+    "point_id": 121,
+    "job_id": 189,
+    "verdict": "OK",
+    "proven_rto_s": 30.849062081,
+    "started_at": "2026-11-19T16:23:44.296349004Z",
+    "finished_at": "2026-11-19T16:24:31.635434293Z",
+    "reason": "every check passed (boot 24.1 s); proven RTO 30.8 s = restore 6.8 s + ready 24.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T162351Z-ba24ad",
+    "detail": {
+      "point": 121,
+      "test": 66,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 6.784316908
+        }
+      ],
+      "restore_s": 6.78994721,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 24.059114871,
+          "attempts": 25,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 24.059114871,
+        "image_hash": 6.480189116,
+        "proven_rto": 30.849062081,
+        "ready": 24.059114871,
+        "restore": 6.78994721,
+        "sandbox_setup": 1.410207102,
+        "shutdown": 2.00220563,
+        "total": 39.808983111
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T162351Z-ba24ad",
+      "ledger_seq": 62
+    }
+  },
+  {
+    "id": 65,
+    "vm_id": 1,
+    "point_id": 123,
+    "job_id": 188,
+    "verdict": "OK",
+    "proven_rto_s": 21.150788604,
+    "started_at": "2026-11-19T16:22:14.295638559Z",
+    "finished_at": "2026-11-19T16:22:58.305482357Z",
+    "reason": "every check passed (boot 10.0 s); proven RTO 21.2 s = restore 11.1 s + ready 10.0 s",
+    "bundle_id": "gaia-t23-linux2-20261119T162225Z-3e58f0",
+    "detail": {
+      "point": 123,
+      "test": 65,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.373710338
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.728507626
+        }
+      ],
+      "restore_s": 11.107643206,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 10.043145398,
+          "attempts": 11,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 10.043145398,
+        "image_hash": 9.652022813,
+        "proven_rto": 21.150788604,
+        "ready": 10.043145398,
+        "restore": 11.107643206,
+        "sandbox_setup": 1.706875666,
+        "shutdown": 2.204116091,
+        "total": 32.16102169
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T162225Z-3e58f0",
+      "ledger_seq": 61
+    }
+  },
+  {
+    "id": 64,
+    "vm_id": 3,
+    "point_id": 116,
+    "job_id": 181,
+    "verdict": "OK",
+    "proven_rto_s": 290.631797332,
+    "started_at": "2026-11-19T15:24:44.28724835Z",
+    "finished_at": "2026-11-19T15:31:49.524461497Z",
+    "reason": "every check passed (boot 60.2 s, stable 123.4 s); proven RTO 290.6 s = restore 230.4 s + ready 60.2 s",
+    "bundle_id": "gaia-t23-win-20261119T152834Z-6762ce",
+    "detail": {
+      "point": 116,
+      "test": 64,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 2048,
+        "vcpus": 2,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:13"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 34359738368,
+          "sha256": "",
+          "seconds": 230.385637253
+        }
+      ],
+      "restore_s": 230.391781031,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 60.240016301,
+          "attempts": 1,
+          "detail": "POST http://10.254.0.28:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 4f cb 12 ea ce ea 6d 9f 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 60 05 3e db 3a 78 dd 01 00 00 00 00) (DHCP lease 10.254.0.28, then the probe)"
+        },
+        {
+          "name": "stable",
+          "type": "winrm",
+          "verdict": "OK",
+          "seconds": 123.413660944,
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s)"
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 60.240016301,
+        "image_hash": 30.752455308000002,
+        "proven_rto": 290.631797332,
+        "ready": 60.240016301,
+        "restore": 230.391781031,
+        "sandbox_setup": 1.621525938,
+        "shutdown": 4.096641504,
+        "total": 193.507969261
+      },
+      "errors": [],
+      "bundle": "gaia-t23-win-20261119T152834Z-6762ce",
+      "ledger_seq": 60
+    }
+  },
+  {
+    "id": 63,
+    "vm_id": 2,
+    "point_id": 114,
+    "job_id": 180,
+    "verdict": "OK",
+    "proven_rto_s": 29.367504107,
+    "started_at": "2026-11-19T15:23:44.300130865Z",
+    "finished_at": "2026-11-19T15:24:29.937074041Z",
+    "reason": "every check passed (boot 23.1 s); proven RTO 29.4 s = restore 6.3 s + ready 23.1 s",
+    "bundle_id": "gaia-t23-uefi-20261119T152350Z-905483",
+    "detail": {
+      "point": 114,
+      "test": 63,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "efi",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:12"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 6.308616866
+        }
+      ],
+      "restore_s": 6.315569768,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 23.051934339,
+          "attempts": 24,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-uefi login:\""
+        },
+        {
+          "name": "image_unchanged",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 23.051934339,
+        "image_hash": 6.270243375,
+        "proven_rto": 29.367504107,
+        "ready": 23.051934339,
+        "restore": 6.315569768,
+        "sandbox_setup": 1.533614113,
+        "shutdown": 2.001965947,
+        "total": 38.557619357
+      },
+      "errors": [],
+      "bundle": "gaia-t23-uefi-20261119T152350Z-905483",
+      "ledger_seq": 59
+    }
+  },
+  {
+    "id": 62,
+    "vm_id": 1,
+    "point_id": 117,
+    "job_id": 179,
+    "verdict": "OK",
+    "proven_rto_s": 12.355625802,
+    "started_at": "2026-11-19T15:22:29.285332071Z",
+    "finished_at": "2026-11-19T15:23:05.1638799Z",
+    "reason": "every check passed (boot 10.0 s); proven RTO 12.4 s = restore 2.3 s + ready 10.0 s",
+    "bundle_id": "gaia-t23-linux2-20261119T152231Z-098bb5",
+    "detail": {
+      "point": 117,
+      "test": 62,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 1.545729352
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 0.760324553
+        }
+      ],
+      "restore_s": 2.311909965,
+      "verdict": "OK",
+      "checks": [
+        {
+          "name": "boot",
+          "type": "boot_serial",
+          "verdict": "OK",
+          "seconds": 10.043715837,
+          "attempts": 11,
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t23-linux2 login:\""
+        },
+        {
+          "name": "image_unchanged_vda",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "image_unchanged_vdb",
+          "type": "image_hash",
+          "verdict": "OK",
+          "seconds": 0,
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "timings_s": {
+        "boot": 10.043715837,
+        "image_hash": 9.485483912,
+        "proven_rto": 12.355625802,
+        "ready": 10.043715837,
+        "restore": 2.311909965,
+        "sandbox_setup": 1.593994293,
+        "shutdown": 3.021637595,
+        "total": 32.721985888
+      },
+      "errors": [],
+      "bundle": "gaia-t23-linux2-20261119T152231Z-098bb5",
+      "ledger_seq": 58
+    }
+  },
+  {
+    "id": 61,
+    "vm_id": 1,
+    "point_id": 117,
+    "job_id": 178,
+    "verdict": "UNKNOWN",
+    "proven_rto_s": null,
+    "started_at": "2026-11-19T15:21:29.290953205Z",
+    "finished_at": "2026-11-19T15:21:41.006810367Z",
+    "reason": "not tested: sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory",
+    "bundle_id": "",
+    "detail": {
+      "point": 117,
+      "test": 61,
+      "machine": {
+        "arch": "x86_64",
+        "firmware": "bios",
+        "memory_mib": 768,
+        "vcpus": 1,
+        "disk_bus": "virtio",
+        "nic_model": "virtio",
+        "mac": "52:54:00:23:00:11"
+      },
+      "disks": [
+        {
+          "target": "vda",
+          "bytes": 6442450944,
+          "sha256": "",
+          "seconds": 7.490593956
+        },
+        {
+          "target": "vdb",
+          "bytes": 2147483648,
+          "sha256": "",
+          "seconds": 3.755392175
+        }
+      ],
+      "restore_s": 11.251605652,
+      "verdict": "UNKNOWN",
+      "checks": [],
+      "timings_s": {},
+      "errors": [],
+      "bundle": "",
+      "ledger_seq": 0
+    }
+  },
+  {
     "id": 60,
     "vm_id": 3,
     "point_id": 110,

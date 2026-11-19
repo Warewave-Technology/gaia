@@ -1,0 +1,258 @@
+{
+  "version": "0.1.2 (b9101efd5db2)",
+  "first_job": "2026-11-18T20:23:14.366244314Z",
+  "newest_job": "2026-11-19T20:49:44.282757684Z",
+  "schedule_hours": 24.44,
+  "schedule_gaps_over_35m": [
+    {
+      "vm": "gaia-t23-linux2",
+      "from": "2026-11-19T13:26:29",
+      "to": "2026-11-19T14:07:11",
+      "min": 40
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "from": "2026-11-19T13:23:29",
+      "to": "2026-11-19T14:07:11",
+      "min": 43
+    }
+  ],
+  "status_changes": [
+    {
+      "at": "2026-11-18T20:23:14",
+      "vm": "gaia-t23-linux2",
+      "from": "",
+      "to": "UNKNOWN",
+      "reason": "there is no backup point that passed its post-backup check"
+    },
+    {
+      "at": "2026-11-18T20:23:29",
+      "vm": "gaia-t23-uefi",
+      "from": "",
+      "to": "UNKNOWN",
+      "reason": "there is no backup point that passed its post-backup check"
+    },
+    {
+      "at": "2026-11-18T20:23:44",
+      "vm": "gaia-t23-win",
+      "from": "",
+      "to": "UNKNOWN",
+      "reason": "there is no backup point that passed its post-backup check"
+    },
+    {
+      "at": "2026-11-18T20:24:14",
+      "vm": "gaia-t23-linux2",
+      "from": "UNKNOWN",
+      "to": "OK",
+      "reason": "point 1 is proven by test 1: proven RPO 59s <= 2h0m0s, proven RTO 19s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T20:25:38",
+      "vm": "gaia-t23-uefi",
+      "from": "UNKNOWN",
+      "to": "OK",
+      "reason": "point 2 is proven by test 2: proven RPO 2m2s <= 2h0m0s, proven RTO 43s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T20:32:58",
+      "vm": "gaia-t23-win",
+      "from": "UNKNOWN",
+      "to": "OK",
+      "reason": "point 3 is proven by test 3: proven RPO 9m14s <= 2h0m0s, proven RTO 4m59s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T21:27:38",
+      "vm": "gaia-t23-linux2",
+      "from": "OK",
+      "to": "CRITICAL",
+      "reason": "the latest restore test (4, point 7) is CRITICAL: boot CRITICAL: no match for \"(?m)login: *$\" on the serial console within 300 s"
+    },
+    {
+      "at": "2026-11-18T21:36:56",
+      "vm": "gaia-t23-linux2",
+      "from": "CRITICAL",
+      "to": "OK",
+      "reason": "point 10 is proven by test 7: proven RPO 4m10s <= 2h0m0s, proven RTO 22s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T21:39:35",
+      "vm": "gaia-t23-win",
+      "from": "OK",
+      "to": "CRITICAL",
+      "reason": "integrity check failed for point(s) [3 6 9]"
+    },
+    {
+      "at": "2026-11-18T21:50:14",
+      "vm": "gaia-t23-win",
+      "from": "CRITICAL",
+      "to": "OK",
+      "reason": "point 11 is proven by test 8: proven RPO 8m59s <= 2h0m0s, proven RTO 4m36s <= 15m0s, proof age 54s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T22:58:44",
+      "vm": "gaia-t23-uefi",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the proof (test 5) is 1h30m14s old, over the maximum 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T23:06:59",
+      "vm": "gaia-t23-linux2",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the proof (test 7) is 1h30m3s old, over the maximum 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T23:19:29",
+      "vm": "gaia-t23-win",
+      "from": "OK",
+      "to": "WARNING",
+      "reason": "the proof (test 8) is 1h30m9s old, over the maximum 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T23:24:09",
+      "vm": "gaia-t23-linux2",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 19 is proven by test 13: proven RPO 25m24s <= 2h0m0s, proven RTO 19s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T23:25:01",
+      "vm": "gaia-t23-uefi",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 21 is proven by test 14: proven RPO 1m23s <= 2h0m0s, proven RTO 32s <= 15m0s, proof age 0s <= 1h30m0s"
+    },
+    {
+      "at": "2026-11-18T23:32:14",
+      "vm": "gaia-t23-win",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 20 is proven by test 15: proven RPO 20m59s <= 2h0m0s, proven RTO 4m44s <= 15m0s, proof age 0s <= 1h30m0s"
+    }
+  ],
+  "failed_jobs": [
+    {
+      "id": 178,
+      "kind": "restore_test",
+      "vm": "gaia-t23-linux2",
+      "created_at": "2026-11-19T15:21:27",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory"
+    },
+    {
+      "id": 29,
+      "kind": "restore_test",
+      "vm": "gaia-t23-linux2",
+      "created_at": "2026-11-18T22:52:14",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory"
+    },
+    {
+      "id": 28,
+      "kind": "restore_test",
+      "vm": "gaia-t23-win",
+      "created_at": "2026-11-18T22:42:29",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory"
+    },
+    {
+      "id": 25,
+      "kind": "restore_test",
+      "vm": "gaia-t23-uefi",
+      "created_at": "2026-11-18T22:23:44",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory"
+    },
+    {
+      "id": 20,
+      "kind": "restore_test",
+      "vm": "gaia-t23-linux2",
+      "created_at": "2026-11-18T21:52:15",
+      "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory"
+    }
+  ],
+  "tests": [
+    {
+      "vm": "gaia-t23-linux2",
+      "count": 28,
+      "verdicts": {
+        "CRITICAL": 1,
+        "OK": 24,
+        "UNKNOWN": 3
+      },
+      "mean_passing_s": 44
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "count": 25,
+      "verdicts": {
+        "OK": 24,
+        "UNKNOWN": 1
+      },
+      "mean_passing_s": 48
+    },
+    {
+      "vm": "gaia-t23-win",
+      "count": 26,
+      "verdicts": {
+        "OK": 25,
+        "UNKNOWN": 1
+      },
+      "mean_passing_s": 425
+    }
+  ],
+  "notifications": {
+    "daily_report": {
+      "sent": 4
+    },
+    "full_backup": {
+      "failed": 2,
+      "sent": 4
+    },
+    "integrity": {
+      "sent": 2
+    },
+    "job_failed": {
+      "failed": 2,
+      "sent": 8
+    },
+    "quarantine": {
+      "sent": 2
+    },
+    "status": {
+      "sent": 32
+    },
+    "test": {
+      "sent": 2
+    }
+  },
+  "newest_daily_report": {
+    "id": 3,
+    "generated_at": "2026-11-19T15:36:50.163124107Z",
+    "reason": "requested by admin",
+    "head_seq": 60,
+    "last_rebuild": {
+      "at": "2026-11-19T14:05:30.498230547Z",
+      "state_backup": "1d20c28cef4fc31c05fe379efadfbb7e",
+      "state_backup_created": "2026-11-19T13:41:16Z",
+      "kit_generation": 2
+    }
+  },
+  "vms_now": [
+    {
+      "vm": "gaia-t23-linux2",
+      "status": "OK",
+      "reason": "point 147 is proven by test 77: proven RPO 37m48s <= 2h0m0s, proven RTO 22s <= 15m0s, proof age 34m33s <= 1h30m0s",
+      "notes": []
+    },
+    {
+      "vm": "gaia-t23-uefi",
+      "status": "OK",
+      "reason": "point 145 is proven by test 78: proven RPO 50m19s <= 2h0m0s, proven RTO 28s <= 15m0s, proof age 33m5s <= 1h30m0s",
+      "notes": []
+    },
+    {
+      "vm": "gaia-t23-win",
+      "status": "OK",
+      "reason": "point 146 is proven by test 79: proven RPO 46m5s <= 2h0m0s, proven RTO 4m48s <= 15m0s, proof age 26m2s <= 1h30m0s",
+      "notes": []
+    }
+  ]
+}

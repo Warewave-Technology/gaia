@@ -4,15 +4,15 @@
     "vm": "gaia-t23-linux2",
     "changed_at": "2026-11-18T23:24:09.417312089Z",
     "status": "OK",
-    "theoretical_rpo_s": 512.095188788,
-    "proven_rpo_s": 2311.720123923,
-    "proven_rto_s": 19.070096462000002,
-    "proof_age_s": 1282.32076688,
+    "theoretical_rpo_s": 467.515013219,
+    "proven_rpo_s": 2267.610640216,
+    "proven_rto_s": 22.17141681,
+    "proof_age_s": 2073.047739709,
     "reasons": [
       {
         "status": "OK",
         "rule": "proven",
-        "text": "point 109 is proven by test 58: proven RPO 38m32s <= 2h0m0s, proven RTO 19s <= 15m0s, proof age 21m22s <= 1h30m0s"
+        "text": "point 147 is proven by test 77: proven RPO 37m48s <= 2h0m0s, proven RTO 22s <= 15m0s, proof age 34m33s <= 1h30m0s"
       }
     ],
     "notes": []
@@ -22,15 +22,15 @@
     "vm": "gaia-t23-uefi",
     "changed_at": "2026-11-18T23:25:01.78773766Z",
     "status": "OK",
-    "theoretical_rpo_s": 513.711438339,
-    "proven_rpo_s": 2313.726273835,
-    "proven_rto_s": 26.569001218,
-    "proof_age_s": 1237.685097872,
+    "theoretical_rpo_s": 1218.651520803,
+    "proven_rpo_s": 3018.625798985,
+    "proven_rto_s": 28.219404656000002,
+    "proof_age_s": 1985.262708798,
     "reasons": [
       {
         "status": "OK",
         "rule": "proven",
-        "text": "point 108 is proven by test 59: proven RPO 38m34s <= 2h0m0s, proven RTO 27s <= 15m0s, proof age 20m38s <= 1h30m0s"
+        "text": "point 145 is proven by test 78: proven RPO 50m19s <= 2h0m0s, proven RTO 28s <= 15m0s, proof age 33m5s <= 1h30m0s"
       }
     ],
     "notes": []
@@ -40,15 +40,15 @@
     "vm": "gaia-t23-win",
     "changed_at": "2026-11-18T23:32:14.633277942Z",
     "status": "OK",
-    "theoretical_rpo_s": 258.925522287,
-    "proven_rpo_s": 2058.918847066,
-    "proven_rto_s": 289.532251637,
-    "proof_age_s": 809.297700735,
+    "theoretical_rpo_s": 964.487623014,
+    "proven_rpo_s": 2764.610449511,
+    "proven_rto_s": 288.41852521,
+    "proof_age_s": 1562.333313916,
     "reasons": [
       {
         "status": "OK",
         "rule": "proven",
-        "text": "point 110 is proven by test 60: proven RPO 34m19s <= 2h0m0s, proven RTO 4m50s <= 15m0s, proof age 13m29s <= 1h30m0s"
+        "text": "point 146 is proven by test 79: proven RPO 46m5s <= 2h0m0s, proven RTO 4m48s <= 15m0s, proof age 26m2s <= 1h30m0s"
       }
     ],
     "notes": []

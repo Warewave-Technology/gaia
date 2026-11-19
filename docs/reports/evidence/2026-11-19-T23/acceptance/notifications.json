@@ -1,5 +1,367 @@
 [
   {
+    "id": 58,
+    "channel_id": 4,
+    "event": "daily_report",
+    "ref": 3,
+    "subject": "Gaia gaia-t23-b: daily report 2026-11-19: 3 OK",
+    "body": {
+      "event": "daily_report",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:36:50.163124107Z",
+      "subject": "Gaia gaia-t23-b: daily report 2026-11-19: 3 OK",
+      "text": "Daily report 3 of Gaia gaia-t23-b (0.1.2 (b9101efd5db2)), 2026-11-19T15:36:50.163124107Z\n\nOK        gaia-t23-linux2  since 2026-11-18T23:24:09.417312089Z\n          proven RPO 17m5s, proven RTO 12s, proof age 13m45s, theoretical RPO 17m5s\n          point 117 is proven by test 62: proven RPO 17m5s \u003c= 2h0m0s, proven RTO 12s \u003c= 15m0s, proof age 13m45s \u003c= 1h30m0s\nOK        gaia-t23-uefi  since 2026-11-18T23:25:01.78773766Z\n          proven RPO 29m38s, proven RTO 29s, proof age 12m20s, theoretical RPO 29m38s\n          point 114 is proven by test 63: proven RPO 29m38s \u003c= 2h0m0s, proven RTO 29s \u003c= 15m0s, proof age 12m20s \u003c= 1h30m0s\nOK        gaia-t23-win  since 2026-11-18T23:32:14.633277942Z\n          proven RPO 25m23s, proven RTO 4m51s, proof age 5m1s, theoretical RPO 25m23s\n          point 116 is proven by test 64: proven RPO 25m23s \u003c= 2h0m0s, proven RTO 4m51s \u003c= 15m0s, proof age 5m1s \u003c= 1h30m0s\n\nEvidence ledger: OK, 60 entries.\nLedger head (signed, evidence key a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff):\n{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}\nREBUILT: this server was rebuilt from its recovery kit (generation 2) at 2026-11-19T14:05:30.498230547Z, from the state backup 1d20c28cef4fc31c05fe379efadfbb7e of 2026-11-19T13:41:16Z. What the lost server did after that backup was not restored.\nRecovery kit: recovery kit 3 was saved off the server on 2026-11-19T14:18:27.37723354Z by admin\n\nThe attached JSON is this report with the signed ledger head. Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).\n",
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+        "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+      },
+      "report": {
+        "format": "gaia-daily-report",
+        "format_version": 1,
+        "id": 3,
+        "installation": "gaia-t23-b",
+        "version": "0.1.2 (b9101efd5db2)",
+        "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+        "generated_at": "2026-11-19T15:36:50.163124107Z",
+        "reason": "requested by admin",
+        "summary": {
+          "OK": 3
+        },
+        "vms": [
+          {
+            "vm": "gaia-t23-linux2",
+            "status": "OK",
+            "since": "2026-11-18T23:24:09.417312089Z",
+            "reason": "point 117 is proven by test 62: proven RPO 17m5s \u003c= 2h0m0s, proven RTO 12s \u003c= 15m0s, proof age 13m45s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1024.836298061,
+            "proven_rpo_s": 1024.836298061,
+            "proven_rto_s": 12.355625802,
+            "proof_age_s": 825.007148882
+          },
+          {
+            "vm": "gaia-t23-uefi",
+            "status": "OK",
+            "since": "2026-11-18T23:25:01.78773766Z",
+            "reason": "point 114 is proven by test 63: proven RPO 29m38s \u003c= 2h0m0s, proven RTO 29s \u003c= 15m0s, proof age 12m20s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1778.278391469,
+            "proven_rpo_s": 1778.278391469,
+            "proven_rto_s": 29.367504107,
+            "proof_age_s": 740.236951945
+          },
+          {
+            "vm": "gaia-t23-win",
+            "status": "OK",
+            "since": "2026-11-18T23:32:14.633277942Z",
+            "reason": "point 116 is proven by test 64: proven RPO 25m23s \u003c= 2h0m0s, proven RTO 4m51s \u003c= 15m0s, proof age 5m1s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1523.236476799,
+            "proven_rpo_s": 1523.236476799,
+            "proven_rto_s": 290.631797332,
+            "proof_age_s": 300.652588631
+          }
+        ],
+        "ledger_check": {
+          "id": 3,
+          "checked_at": "2026-11-19T15:36:50.160514352Z",
+          "reason": "daily report",
+          "verdict": "OK",
+          "entries": 60,
+          "head_seq": 60,
+          "head_sha256": "f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69",
+          "problems": []
+        },
+        "ledger_head": {
+          "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+          "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+        },
+        "recovery_kit": {
+          "state": "confirmed",
+          "generation": 3,
+          "text": "recovery kit 3 was saved off the server on 2026-11-19T14:18:27.37723354Z by admin",
+          "confirmed_at": "2026-11-19T14:18:27.37723354Z",
+          "confirmed_by": "admin"
+        },
+        "last_rebuild": {
+          "at": "2026-11-19T14:05:30.498230547Z",
+          "state_backup": "1d20c28cef4fc31c05fe379efadfbb7e",
+          "state_backup_created": "2026-11-19T13:41:16Z",
+          "kit_generation": 2
+        },
+        "notifications": {
+          "state": "OK",
+          "channels": 4,
+          "enabled": 2,
+          "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+          "failing": []
+        },
+        "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+        "problems": []
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-19T15:36:50.182998065Z",
+    "last_error": "",
+    "created_at": "2026-11-19T15:36:50.182998065Z",
+    "finished_at": "2026-11-19T15:36:54.320312273Z"
+  },
+  {
+    "id": 57,
+    "channel_id": 3,
+    "event": "daily_report",
+    "ref": 3,
+    "subject": "Gaia gaia-t23-b: daily report 2026-11-19: 3 OK",
+    "body": {
+      "event": "daily_report",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:36:50.163124107Z",
+      "subject": "Gaia gaia-t23-b: daily report 2026-11-19: 3 OK",
+      "text": "Daily report 3 of Gaia gaia-t23-b (0.1.2 (b9101efd5db2)), 2026-11-19T15:36:50.163124107Z\n\nOK        gaia-t23-linux2  since 2026-11-18T23:24:09.417312089Z\n          proven RPO 17m5s, proven RTO 12s, proof age 13m45s, theoretical RPO 17m5s\n          point 117 is proven by test 62: proven RPO 17m5s \u003c= 2h0m0s, proven RTO 12s \u003c= 15m0s, proof age 13m45s \u003c= 1h30m0s\nOK        gaia-t23-uefi  since 2026-11-18T23:25:01.78773766Z\n          proven RPO 29m38s, proven RTO 29s, proof age 12m20s, theoretical RPO 29m38s\n          point 114 is proven by test 63: proven RPO 29m38s \u003c= 2h0m0s, proven RTO 29s \u003c= 15m0s, proof age 12m20s \u003c= 1h30m0s\nOK        gaia-t23-win  since 2026-11-18T23:32:14.633277942Z\n          proven RPO 25m23s, proven RTO 4m51s, proof age 5m1s, theoretical RPO 25m23s\n          point 116 is proven by test 64: proven RPO 25m23s \u003c= 2h0m0s, proven RTO 4m51s \u003c= 15m0s, proof age 5m1s \u003c= 1h30m0s\n\nEvidence ledger: OK, 60 entries.\nLedger head (signed, evidence key a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff):\n{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}\nREBUILT: this server was rebuilt from its recovery kit (generation 2) at 2026-11-19T14:05:30.498230547Z, from the state backup 1d20c28cef4fc31c05fe379efadfbb7e of 2026-11-19T13:41:16Z. What the lost server did after that backup was not restored.\nRecovery kit: recovery kit 3 was saved off the server on 2026-11-19T14:18:27.37723354Z by admin\n\nThe attached JSON is this report with the signed ledger head. Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).\n",
+      "ledger_head": {
+        "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+        "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+      },
+      "report": {
+        "format": "gaia-daily-report",
+        "format_version": 1,
+        "id": 3,
+        "installation": "gaia-t23-b",
+        "version": "0.1.2 (b9101efd5db2)",
+        "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+        "generated_at": "2026-11-19T15:36:50.163124107Z",
+        "reason": "requested by admin",
+        "summary": {
+          "OK": 3
+        },
+        "vms": [
+          {
+            "vm": "gaia-t23-linux2",
+            "status": "OK",
+            "since": "2026-11-18T23:24:09.417312089Z",
+            "reason": "point 117 is proven by test 62: proven RPO 17m5s \u003c= 2h0m0s, proven RTO 12s \u003c= 15m0s, proof age 13m45s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1024.836298061,
+            "proven_rpo_s": 1024.836298061,
+            "proven_rto_s": 12.355625802,
+            "proof_age_s": 825.007148882
+          },
+          {
+            "vm": "gaia-t23-uefi",
+            "status": "OK",
+            "since": "2026-11-18T23:25:01.78773766Z",
+            "reason": "point 114 is proven by test 63: proven RPO 29m38s \u003c= 2h0m0s, proven RTO 29s \u003c= 15m0s, proof age 12m20s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1778.278391469,
+            "proven_rpo_s": 1778.278391469,
+            "proven_rto_s": 29.367504107,
+            "proof_age_s": 740.236951945
+          },
+          {
+            "vm": "gaia-t23-win",
+            "status": "OK",
+            "since": "2026-11-18T23:32:14.633277942Z",
+            "reason": "point 116 is proven by test 64: proven RPO 25m23s \u003c= 2h0m0s, proven RTO 4m51s \u003c= 15m0s, proof age 5m1s \u003c= 1h30m0s",
+            "theoretical_rpo_s": 1523.236476799,
+            "proven_rpo_s": 1523.236476799,
+            "proven_rto_s": 290.631797332,
+            "proof_age_s": 300.652588631
+          }
+        ],
+        "ledger_check": {
+          "id": 3,
+          "checked_at": "2026-11-19T15:36:50.160514352Z",
+          "reason": "daily report",
+          "verdict": "OK",
+          "entries": 60,
+          "head_seq": 60,
+          "head_sha256": "f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69",
+          "problems": []
+        },
+        "ledger_head": {
+          "payload": "{\"format\":\"restore-evidence-head\",\"format_version\":1,\"time\":\"2026-11-19T15:36:50.163124107Z\",\"key_id\":\"a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff\",\"seq\":60,\"entry_sha256\":\"f4e23c097a09e9011bcfc430080dda87a4c470f1c5c3542ecd441f3aad5a5e69\"}",
+          "sig": "tPeM5Mzi1/gnNPJAq7MGVjYkYXHM9fURjQNd1n6CnZLOJAMc0zCXC6fIc0uBF8NCx7KK1lf9Hh4hr7QX+8I1DA=="
+        },
+        "recovery_kit": {
+          "state": "confirmed",
+          "generation": 3,
+          "text": "recovery kit 3 was saved off the server on 2026-11-19T14:18:27.37723354Z by admin",
+          "confirmed_at": "2026-11-19T14:18:27.37723354Z",
+          "confirmed_by": "admin"
+        },
+        "last_rebuild": {
+          "at": "2026-11-19T14:05:30.498230547Z",
+          "state_backup": "1d20c28cef4fc31c05fe379efadfbb7e",
+          "state_backup_created": "2026-11-19T13:41:16Z",
+          "kit_generation": 2
+        },
+        "notifications": {
+          "state": "OK",
+          "channels": 4,
+          "enabled": 2,
+          "text": "2 channel(s) enabled, the last message of each was sent or is waiting",
+          "failing": []
+        },
+        "how_to_verify": "Keep this report. To check the evidence ledger later against the head recorded here, with the installation's evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL (ledger_truncated, head_mismatch).",
+        "problems": []
+      }
+    },
+    "state": "sent",
+    "attempts": 1,
+    "next_attempt_at": "2026-11-19T15:36:50.182951875Z",
+    "last_error": "",
+    "created_at": "2026-11-19T15:36:50.182951875Z",
+    "finished_at": "2026-11-19T15:36:54.302213493Z"
+  },
+  {
+    "id": 56,
+    "channel_id": 2,
+    "event": "job_failed",
+    "ref": 1425,
+    "subject": "Gaia gaia-t23-b: restore_test job 178 of gaia-t23-linux2 failed",
+    "body": {
+      "event": "job_failed",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:21:41.025588286Z",
+      "subject": "Gaia gaia-t23-b: restore_test job 178 of gaia-t23-linux2 failed",
+      "text": "The restore_test job 178 of gaia-t23-linux2 failed at 2026-11-19T15:21:41.025588286Z.\nError: restore test 61: UNKNOWN\nIt was started for: requested by admin",
+      "state_change": {
+        "seq": 1425,
+        "at": "2026-11-19T15:21:41.025588286Z",
+        "entity": "job",
+        "entity_id": 178,
+        "from": "running",
+        "to": "failed",
+        "reason": "restore test 61: UNKNOWN",
+        "actor": "system"
+      },
+      "vm": "gaia-t23-linux2",
+      "job": {
+        "id": 178,
+        "kind": "restore_test",
+        "vm_id": 1,
+        "state": "failed",
+        "reason": "requested by admin",
+        "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory",
+        "created_at": "2026-11-19T15:21:27.98636635Z",
+        "started_at": "2026-11-19T15:21:29.287403099Z",
+        "finished_at": "2026-11-19T15:21:41.025464777Z"
+      }
+    },
+    "state": "failed",
+    "attempts": 5,
+    "next_attempt_at": "2026-11-19T15:36:54.296067869Z",
+    "last_error": "the channel is disabled",
+    "created_at": "2026-11-19T15:21:44.289834738Z",
+    "finished_at": "2026-11-19T15:36:59.293278273Z"
+  },
+  {
+    "id": 55,
+    "channel_id": 1,
+    "event": "job_failed",
+    "ref": 1425,
+    "subject": "Gaia gaia-t23-b: restore_test job 178 of gaia-t23-linux2 failed",
+    "body": {
+      "event": "job_failed",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:21:41.025588286Z",
+      "subject": "Gaia gaia-t23-b: restore_test job 178 of gaia-t23-linux2 failed",
+      "text": "The restore_test job 178 of gaia-t23-linux2 failed at 2026-11-19T15:21:41.025588286Z.\nError: restore test 61: UNKNOWN\nIt was started for: requested by admin",
+      "state_change": {
+        "seq": 1425,
+        "at": "2026-11-19T15:21:41.025588286Z",
+        "entity": "job",
+        "entity_id": 178,
+        "from": "running",
+        "to": "failed",
+        "reason": "restore test 61: UNKNOWN",
+        "actor": "system"
+      },
+      "vm": "gaia-t23-linux2",
+      "job": {
+        "id": 178,
+        "kind": "restore_test",
+        "vm_id": 1,
+        "state": "failed",
+        "reason": "requested by admin",
+        "error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Post \"http://sandbox/v1/verify\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory",
+        "created_at": "2026-11-19T15:21:27.98636635Z",
+        "started_at": "2026-11-19T15:21:29.287403099Z",
+        "finished_at": "2026-11-19T15:21:41.025464777Z"
+      }
+    },
+    "state": "failed",
+    "attempts": 5,
+    "next_attempt_at": "2026-11-19T15:36:54.281758793Z",
+    "last_error": "the channel is disabled",
+    "created_at": "2026-11-19T15:21:44.279708538Z",
+    "finished_at": "2026-11-19T15:36:59.289354824Z"
+  },
+  {
+    "id": 54,
+    "channel_id": 2,
+    "event": "full_backup",
+    "ref": 1415,
+    "subject": "Gaia gaia-t23-b: gaia-t23-linux2: the backup was full (checkpoint gaia-1-174-121a6c of point 115 is not on the host)",
+    "body": {
+      "event": "full_backup",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:19:50.150497443Z",
+      "subject": "Gaia gaia-t23-b: gaia-t23-linux2: the backup was full (checkpoint gaia-1-174-121a6c of point 115 is not on the host)",
+      "text": "Point 117 of VM gaia-t23-linux2 (job 177, 2026-11-19T15:19:50.150497443Z) is a full backup, not an incremental, because checkpoint gaia-1-174-121a6c of point 115 is not on the host.\nIts data is protected; the full backup only takes longer and more space. If nobody changed the VM or its host, find out who did.",
+      "state_change": {
+        "seq": 1415,
+        "at": "2026-11-19T15:19:50.150497443Z",
+        "entity": "point",
+        "entity_id": 117,
+        "from": "",
+        "to": "unchecked",
+        "reason": "full point of job 177: full: checkpoint gaia-1-174-121a6c of point 115 is not on the host",
+        "actor": "system"
+      },
+      "vm": "gaia-t23-linux2"
+    },
+    "state": "failed",
+    "attempts": 6,
+    "next_attempt_at": "2026-11-19T15:51:14.292487486Z",
+    "last_error": "the channel is disabled",
+    "created_at": "2026-11-19T15:19:54.282130628Z",
+    "finished_at": "2026-11-19T15:51:19.281715505Z"
+  },
+  {
+    "id": 53,
+    "channel_id": 1,
+    "event": "full_backup",
+    "ref": 1415,
+    "subject": "Gaia gaia-t23-b: gaia-t23-linux2: the backup was full (checkpoint gaia-1-174-121a6c of point 115 is not on the host)",
+    "body": {
+      "event": "full_backup",
+      "installation": "gaia-t23-b",
+      "evidence_key_id": "a7c478cb929586b511aacbb187e1240dd082db2231d72da45fb10bea369d55ff",
+      "at": "2026-11-19T15:19:50.150497443Z",
+      "subject": "Gaia gaia-t23-b: gaia-t23-linux2: the backup was full (checkpoint gaia-1-174-121a6c of point 115 is not on the host)",
+      "text": "Point 117 of VM gaia-t23-linux2 (job 177, 2026-11-19T15:19:50.150497443Z) is a full backup, not an incremental, because checkpoint gaia-1-174-121a6c of point 115 is not on the host.\nIts data is protected; the full backup only takes longer and more space. If nobody changed the VM or its host, find out who did.",
+      "state_change": {
+        "seq": 1415,
+        "at": "2026-11-19T15:19:50.150497443Z",
+        "entity": "point",
+        "entity_id": 117,
+        "from": "",
+        "to": "unchecked",
+        "reason": "full point of job 177: full: checkpoint gaia-1-174-121a6c of point 115 is not on the host",
+        "actor": "system"
+      },
+      "vm": "gaia-t23-linux2"
+    },
+    "state": "failed",
+    "attempts": 6,
+    "next_attempt_at": "2026-11-19T15:51:14.283109026Z",
+    "last_error": "the channel is disabled",
+    "created_at": "2026-11-19T15:19:54.278239646Z",
+    "finished_at": "2026-11-19T15:51:19.277787979Z"
+  },
+  {
     "id": 52,
     "channel_id": 2,
     "event": "daily_report",
