@@ -317,9 +317,7 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 		return res, err
 	}
 	for _, ch := range chans {
-		var smtpCfg SMTPConfig
-		needs := ch.Kind == "webhook" || (json.Unmarshal(ch.Config, &smtpCfg) == nil && smtpCfg.Username != "")
-		if _, err := os.Stat(cfg.notifySecretFile(ch.Name)); ch.Enabled && needs && err != nil {
+		if ch.Enabled && cfg.secretMissing(ch) {
 			res.Problems = append(res.Problems, fmt.Sprintf("notification channel %s: its secret (SMTP password or webhook secret) is not on this server: "+
 				"disable it (gaia channels set %d enabled=false) and add it again under a new name", ch.Name, ch.ID))
 		}

@@ -329,6 +329,15 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 	if sum, err := f.s.notifySummary(ctx); err != nil || sum.State != "OK" || sum.Enabled != 2 {
 		t.Fatalf("summary: %+v %v", sum, err)
 	}
+	// T23: after a rebuild from the kit a channel has no secret and cannot send; the summary says so before any
+	// message fails (it said "OK, waiting" for an hour on the acceptance server).
+	if err := os.Remove(f.s.cfg.notifySecretFile("hook")); err != nil {
+		t.Fatal(err)
+	}
+	if sum, err := f.s.notifySummary(ctx); err != nil || sum.State != "WARNING" || len(sum.Failing) != 1 ||
+		!strings.Contains(sum.Failing[0], "hook: its secret") || !strings.Contains(sum.Failing[0], "enabled=false") {
+		t.Fatalf("summary without the webhook's secret: %+v %v", sum, err)
+	}
 }
 
 // A webhook that answers 503 keeps the message queued with a growing pause, shows up as failing, and gives up in the

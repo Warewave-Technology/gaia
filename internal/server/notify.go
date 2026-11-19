@@ -122,6 +122,15 @@ func (c Config) notifySecretFile(name string) string {
 	return filepath.Join(c.secretsDir(), "notify-"+name+".secret")
 }
 
+// secretMissing says that a channel needs a secret (a webhook's, or the SMTP password when it logs in) that is not on
+// this server: after a rebuild from the recovery kit, which does not carry them, until the channel is added again.
+func (c Config) secretMissing(ch store.Channel) bool {
+	var smtpCfg SMTPConfig
+	needs := ch.Kind == "webhook" || (json.Unmarshal(ch.Config, &smtpCfg) == nil && smtpCfg.Username != "")
+	_, err := os.Stat(c.notifySecretFile(ch.Name))
+	return needs && err != nil
+}
+
 // createChannel checks a channel, stores its secret and records it.
 func (s *Server) createChannel(c *call) (int, any, error) {
 	var in ChannelCreate

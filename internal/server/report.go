@@ -336,6 +336,11 @@ func (s *Server) notifySummary(ctx context.Context) (NotifySummary, error) {
 			continue
 		}
 		out.Enabled++
+		if s.cfg.secretMissing(ch) { // it cannot send: say so now, not after its first message fails
+			out.Failing = append(out.Failing, fmt.Sprintf("%s: its secret (SMTP password or webhook secret) is not on this server, so it cannot send "+
+				"(a server rebuilt from the recovery kit): turn it off (gaia channels set %d enabled=false) and add it again under a new name (install.md step 13)", ch.Name, ch.ID))
+			continue
+		}
 		ns, err := s.db.Notifications(ctx, ch.ID, 1)
 		if err != nil {
 			return out, err
