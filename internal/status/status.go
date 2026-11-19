@@ -4,7 +4,6 @@ package status
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
 	"time"
 )
@@ -44,6 +43,16 @@ type Test struct {
 	FinishedAt   time.Time `json:"finished_at"`
 	ProvenRTOS   *float64  `json:"proven_rto_s"` // restore + ready (ADR-004 A4); set when the test passed
 	Detail       string    `json:"detail"`       // what failed, for a test that did not pass
+	FailedCheck  string    `json:"failed_check"` // the first CRITICAL check (boot, stable, ssh, ...), for a CRITICAL test
+	SandboxDown  bool      `json:"sandbox_down"` // a test that could not run because the sandbox helper did not answer
+}
+
+// Backup is the newest finished backup job, when it failed after the newest checked point.
+type Backup struct {
+	JobID       int64     `json:"job_id"`
+	FinishedAt  time.Time `json:"finished_at"`
+	Error       string    `json:"error"`
+	Unreachable bool      `json:"unreachable"` // the host did not answer over SSH
 }
 
 // Input is everything the status depends on. A nil field is a missing input.
@@ -55,12 +64,19 @@ type Input struct {
 	LatestAttempt     *Test    // the newest finished restore test, UNKNOWN included (a test that could not run)
 	LatestPassingTest *Test    // the newest restore test with verdict OK
 	DamagedPoints     []int64  // present points whose check failed (post-backup check or repository verification)
+	// What the reasons name as their shared cause (ADR-007 C3); nil when not known.
+	Host         *Scope
+	Repository   *Scope
+	FailedBackup *Backup // the newest backup job failed after the newest checked point
 }
 
-// Reason is one row of the truth table that applied, with the status that row gives.
+// Reason is one row of the truth table that applied, with the status that row gives, or a note (Status empty).
 type Reason struct {
 	Status string `json:"status"`
-	Rule   string `json:"rule"` // stable name of the condition, e.g. theoretical_rpo_over_target
+	Rule   string `json:"rule"` // the truth-table row, e.g. theoretical_rpo_over_target
+	Code   Code   `json:"code"` // why, from the closed list (codes.go), e.g. host_unreachable
+	Scope  *Scope `json:"scope"`
+	Params Params `json:"params"`
 	Text   string `json:"text"`
 }
 
@@ -72,7 +88,8 @@ type Result struct {
 	ProvenRTO      *float64 `json:"proven_rto_s"`      // from that test
 	ProofAge       *float64 `json:"proof_age_s"`       // now - that test
 	Reasons        []Reason `json:"reasons"`           // worst first; the first one says why the status is what it is
-	Notes          []string `json:"notes"`             // facts that do not change the status
+	Notes          []string `json:"notes"`             // facts that do not change the status (the text of NoteReasons)
+	NoteReasons    []Reason `json:"note_reasons"`      // the same notes with their codes
 }
 
 // Compute applies ADR-007's truth table:
@@ -88,11 +105,21 @@ type Result struct {
 // was down, the restore failed) proves nothing either way, so it neither clears a CRITICAL nor replaces a pass. It
 // is listed in Notes.
 func Compute(in Input) Result {
-	r := Result{Reasons: []Reason{}, Notes: []string{}}
-	add := func(st, rule, f string, a ...any) {
-		r.Reasons = append(r.Reasons, Reason{Status: st, Rule: rule, Text: fmt.Sprintf(f, a...)})
+	r := Result{Reasons: []Reason{}, Notes: []string{}, NoteReasons: []Reason{}}
+	mk := func(c Code, sc *Scope, p Params) Reason {
+		d, ok := byCode[c]
+		if !ok {
+			panic("status: no code " + string(c)) // a typo in this file; TestReasonCodes covers every code
+		}
+		return Reason{Status: d.Status, Rule: d.Rule, Code: c, Scope: sc, Params: p, Text: d.text(p, sc, in.Now)}
+	}
+	add := func(c Code, sc *Scope, p Params) { r.Reasons = append(r.Reasons, mk(c, sc, p)) }
+	note := func(c Code, sc *Scope, p Params) {
+		x := mk(c, sc, p)
+		r.NoteReasons, r.Notes = append(r.NoteReasons, x), append(r.Notes, x.Text)
 	}
 	secs := func(t time.Time) *float64 { s := in.Now.Sub(t).Seconds(); return &s }
+	at := func(t time.Time) *time.Time { return &t }
 	t := in.Targets
 
 	if in.NewestChecked != nil {
@@ -104,27 +131,43 @@ func Compute(in Input) Result {
 
 	// CRITICAL rows.
 	if t != nil && r.TheoreticalRPO != nil && *r.TheoreticalRPO > float64(t.RPOS) {
-		add(Critical, "theoretical_rpo_over_target", "the newest checked backup (point %d) is %s old, over the RPO target %s",
-			in.NewestChecked.ID, dur(*r.TheoreticalRPO), dur(float64(t.RPOS)))
+		p := Params{Point: in.NewestChecked.ID, PointAt: at(in.NewestChecked.TakenAt), TargetS: t.RPOS}
+		switch b := in.FailedBackup; {
+		case b != nil && b.Unreachable && in.Host != nil:
+			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			add(HostUnreachable, in.Host, p)
+		case b != nil:
+			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			add(BackupFailing, nil, p)
+		default:
+			add(NoBackupInRPO, nil, p)
+		}
 	}
 	if lt := in.LatestTest; lt != nil && lt.Verdict == Critical {
-		add(Critical, "latest_test_critical", "the latest restore test (%d, point %d) is CRITICAL: %s", lt.ID, lt.PointID, lt.Detail)
+		code := TestFailedCheck
+		switch lt.FailedCheck {
+		case "boot":
+			code = TestFailedBoot
+		case "stable":
+			code = GuestRebooted
+		}
+		add(code, nil, Params{Test: lt.ID, Point: lt.PointID, TestAt: at(lt.FinishedAt), Check: lt.FailedCheck, Detail: lt.Detail})
 	}
 	if len(in.DamagedPoints) > 0 {
-		add(Critical, "integrity_failed", "integrity check failed for point(s) %v", in.DamagedPoints)
+		add(RepoContentDamaged, in.Repository, Params{Points: in.DamagedPoints})
 	}
 
 	// UNKNOWN rows: a missing input.
 	if t == nil {
-		add(Unknown, "no_policy", "the VM has no policy, so it has no targets")
+		add(NoPolicy, nil, Params{})
 	}
 	if in.NewestChecked == nil {
-		add(Unknown, "no_checked_point", "there is no backup point that passed its post-backup check")
+		add(NeverBackedUp, nil, Params{})
 	}
 	if in.LatestPassingTest == nil {
-		add(Unknown, "no_passing_test", "no restore test of this VM has ever passed")
+		add(NeverProven, nil, Params{})
 	} else if r.ProvenRTO == nil {
-		add(Unknown, "no_proven_rto", "restore test %d passed but has no proven RTO", in.LatestPassingTest.ID)
+		add(NoProvenRTO, nil, Params{Test: in.LatestPassingTest.ID})
 	}
 
 	// WARNING and OK rows need the targets, a theoretical RPO within target, and a complete proof.
@@ -133,41 +176,80 @@ func Compute(in Input) Result {
 		missed := false
 		if *r.ProvenRPO > float64(t.RPOS) {
 			missed = true
-			add(Warning, "proven_rpo_over_target", "the newest proven point (%d, test %d) is %s old, over the RPO target %s",
-				p.PointID, p.ID, dur(*r.ProvenRPO), dur(float64(t.RPOS)))
+			add(ProvenRPOOverTarget, nil, Params{Test: p.ID, Point: p.PointID, PointAt: at(p.PointTakenAt), TargetS: t.RPOS})
 		}
 		if *r.ProvenRTO > float64(t.RTOS) {
 			missed = true
-			add(Warning, "proven_rto_over_target", "the proven RTO %s (test %d) is over the RTO target %s",
-				dur(*r.ProvenRTO), p.ID, dur(float64(t.RTOS)))
+			add(RTOOverTarget, nil, Params{Test: p.ID, RTOS: p.ProvenRTOS, TargetS: t.RTOS})
 		}
 		if *r.ProofAge > float64(t.MaxProofAgeS) {
 			missed = true
-			add(Warning, "proof_too_old", "the proof (test %d) is %s old, over the maximum %s",
-				p.ID, dur(*r.ProofAge), dur(float64(t.MaxProofAgeS)))
+			add(ProofTooOld, nil, Params{Test: p.ID, TestAt: at(p.FinishedAt), TargetS: t.MaxProofAgeS})
 		}
 		if !missed {
-			add(OK, "proven", "point %d is proven by test %d: proven RPO %s <= %s, proven RTO %s <= %s, proof age %s <= %s",
-				p.PointID, p.ID, dur(*r.ProvenRPO), dur(float64(t.RPOS)), dur(*r.ProvenRTO), dur(float64(t.RTOS)),
-				dur(*r.ProofAge), dur(float64(t.MaxProofAgeS)))
+			add(Proven, nil, Params{Test: p.ID, Point: p.PointID, PointAt: at(p.PointTakenAt), TestAt: at(p.FinishedAt), RTOS: p.ProvenRTOS,
+				RPOTargetS: t.RPOS, RTOTargetS: t.RTOS, MaxProofAgeS: t.MaxProofAgeS})
 		}
 	}
 
 	if lt := in.LatestTest; lt != nil && lt.Verdict == Warning {
-		r.Notes = append(r.Notes, fmt.Sprintf("the latest restore test (%d, point %d) is WARNING: %s", lt.ID, lt.PointID, lt.Detail))
+		note(TestWarning, nil, Params{Test: lt.ID, Point: lt.PointID, Detail: lt.Detail})
 	}
 	if p := in.NewestChecked; p != nil && p.FullReason != "" {
-		r.Notes = append(r.Notes, fmt.Sprintf("the newest backup (point %d) is a full backup: %s", p.ID, p.FullReason))
+		note(FullBackup, nil, Params{Point: p.ID, Detail: p.FullReason})
 	}
 	if a := in.LatestAttempt; a != nil && a.Verdict == Unknown && (in.LatestTest == nil || a.ID > in.LatestTest.ID) {
-		r.Notes = append(r.Notes, fmt.Sprintf("restore test %d (point %d) could not run: %s", a.ID, a.PointID, a.Detail))
+		var sc *Scope
+		if a.SandboxDown {
+			sc = &Scope{Kind: ScopeSandbox, Name: "local"} // the Gaia server's own sandbox (ADR-007 C1)
+		}
+		note(TestNotRun, sc, Params{Test: a.ID, Point: a.PointID, Detail: a.Detail})
 	}
 	if len(r.Reasons) == 0 { // cannot happen with the rows above; never default to healthy
-		add(Unknown, "no_rule", "no row of the status table applied")
+		add(NoRule, nil, Params{})
 	}
 	slices.SortStableFunc(r.Reasons, func(a, b Reason) int { return cmp.Compare(rank[b.Status], rank[a.Status]) })
 	r.Status = r.Reasons[0].Status
 	return r
+}
+
+// NextChange is when time alone next changes the status or its reasons, after in.Now: a checked backup, a proven point
+// or a proof crossing its target. Nil when no clock-driven change is ahead. The candidates are tried with Compute
+// itself, so a crossing that changes nothing (the VM is UNKNOWN for another reason) is not one.
+func NextChange(in Input) *time.Time {
+	t := in.Targets
+	if t == nil {
+		return nil
+	}
+	var cand []time.Time
+	if p := in.NewestChecked; p != nil {
+		cand = append(cand, p.TakenAt.Add(time.Duration(t.RPOS)*time.Second))
+	}
+	if p := in.LatestPassingTest; p != nil {
+		cand = append(cand, p.PointTakenAt.Add(time.Duration(t.RPOS)*time.Second), p.FinishedAt.Add(time.Duration(t.MaxProofAgeS)*time.Second))
+	}
+	slices.SortFunc(cand, func(a, b time.Time) int { return a.Compare(b) })
+	base := signature(Compute(in))
+	for _, x := range cand {
+		if !x.After(in.Now) {
+			continue
+		}
+		after := in
+		after.Now = x.Add(time.Nanosecond) // a target is crossed when the age is over it, not at it
+		if signature(Compute(after)) != base {
+			return &x
+		}
+	}
+	return nil
+}
+
+// signature is what a clock-driven change changes: the status and the codes of its reasons.
+func signature(r Result) string {
+	s := r.Status
+	for _, x := range r.Reasons {
+		s += " " + string(x.Code)
+	}
+	return s
 }
 
 // dur renders seconds for a reason: 90 -> "1m30s".
