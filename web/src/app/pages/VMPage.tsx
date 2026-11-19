@@ -261,15 +261,17 @@ type PointRow = VMView['points'][number]
 
 function PointsTable({ v, fmt }: { v: VMView; fmt: Fmt }) {
   const t = useT().vm
+  const tt = useT()
   const tested = new Map(v.tests.filter((x) => x.verdict === 'OK').map((x) => [x.point_id, x.id]))
   const ret = v.status.proven?.point_id
   const check = (p: PointRow) => (p.check_state === 'ok' ? 'OK' : p.check_state === 'failed' ? 'CRITICAL' : 'UNKNOWN')
   const cols: Column<PointRow>[] = [
-    { key: 'id', header: t.col.point, numeric: true, compare: by((p) => p.id), cell: (p) => p.id },
+    { key: 'id', header: t.col.point, numeric: true, compare: by((p) => p.id), cell: (p, ctx) => <><RowToggle ctx={ctx} label={tt.table.details} />{p.id}</> },
     { key: 'taken', header: t.col.taken, numeric: true, compare: by((p) => p.taken_at), cell: (p) => `${fmt.date(p.taken_at)} ${fmt.clock(p.taken_at)}` },
     { key: 'kind', header: t.col.kind, compare: by((p) => p.kind), cell: (p) => p.kind },
     { key: 'size', header: t.col.size, numeric: true, compare: by((p) => p.bytes), cell: (p) => `${Math.round(p.bytes / 1048576)} MiB` },
-    { key: 'why', header: t.col.why, clip: true, cell: (p) => <span title={p.reason}>{p.reason}</span> },
+    // a full backup's reason is the news (a checkpoint gone, a quarantine); an incremental's is its parent
+    { key: 'why', header: t.col.why, clip: true, cell: (p) => <span title={p.reason}>{p.reason.replace(/^full: /, '')}</span> },
     { key: 'check', header: t.col.check, compare: by(check), cell: (p) => <StatusChip status={check(p)} size="xs" /> },
     {
       key: 'test', header: t.col.test, cell: (p) => (
@@ -281,6 +283,7 @@ function PointsTable({ v, fmt }: { v: VMView; fmt: Fmt }) {
     },
   ]
   return <DataTable caption={t.pointsCaption} columns={cols} rows={v.points} rowKey={(p) => String(p.id)}
+    detail={(p) => <p className={s.reasonFull}>{p.reason}</p>}
     rowState={(p) => (p.id === ret ? 'mark' : check(p) === 'CRITICAL' ? 'critical' : undefined)} />
 }
 
