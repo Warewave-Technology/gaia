@@ -3186,6 +3186,9 @@
           "equal": {
             "type": "integer"
           },
+          "moved": {
+            "type": "integer"
+          },
           "seconds": {
             "type": "number"
           },
@@ -3201,6 +3204,7 @@
           "differ",
           "due",
           "equal",
+          "moved",
           "seconds",
           "verdict",
           "vms"

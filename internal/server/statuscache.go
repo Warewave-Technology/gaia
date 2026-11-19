@@ -169,12 +169,13 @@ func (s *Server) refreshStatuses(ctx context.Context, now time.Time) error {
 	return err
 }
 
-// StatusCheck compares the status table with the status model for every VM, at one moment.
+// StatusCheck compares the status table with the status model for every VM.
 type StatusCheck struct {
 	At      string         `json:"at"`
 	VMs     int            `json:"vms"`
 	Equal   int            `json:"equal"`
-	Due     int            `json:"due"` // the clock passed their next change since the last tick: recomputed at the next one
+	Due     int            `json:"due"`   // the clock passed their next change since the last tick: recomputed at the next one
+	Moved   int            `json:"moved"` // changed by an event while the check ran, equal when looked at again
 	Differ  []StatusDiffer `json:"differ"`
 	Seconds float64        `json:"seconds"`
 	Verdict string         `json:"verdict"` // OK when nothing differs
@@ -188,19 +189,12 @@ type StatusDiffer struct {
 }
 
 // checkStatuses computes every VM's status without storing it and compares it with the table: the status and the
-// code, scope and parameters of every reason and note.
+// code, scope and parameters of every reason and note. Each VM is read and computed together; one that differs is
+// read and computed once more, so an event that lands while the check runs (a test finishing) is not a difference.
 func (s *Server) checkStatuses(ctx context.Context) (StatusCheck, error) {
 	t0 := time.Now()
 	now := s.now().UTC()
 	out := StatusCheck{At: now.Format(time.RFC3339Nano), Differ: []StatusDiffer{}}
-	rows, err := s.db.VMStatuses(ctx, 0)
-	if err != nil {
-		return out, err
-	}
-	stored := map[int64]store.VMStatus{}
-	for _, r := range rows {
-		stored[r.VMID] = r
-	}
 	vms, err := s.db.VMs(ctx, 0)
 	if err != nil {
 		return out, err
@@ -213,32 +207,55 @@ func (s *Server) checkStatuses(ctx context.Context) (StatusCheck, error) {
 		}{r.Status, stripText(r.Reasons), stripText(r.NoteReasons)})
 		return string(b)
 	}
-	for _, vm := range vms {
-		out.VMs++
-		in, err := s.statusInput(ctx, vm.ID)
+	// compare reads the VM's row and computes the model: "equal", "due", or the two signatures.
+	compare := func(vmID int64) (string, string, string, error) {
+		rows, err := s.db.VMStatuses(ctx, vmID)
 		if err != nil {
-			return out, fmt.Errorf("VM %s: %w", vm.Name, err)
+			return "", "", "", err
+		}
+		in, err := s.statusInput(ctx, vmID)
+		if err != nil {
+			return "", "", "", err
 		}
 		in.Now = now
 		model := status.Compute(in)
-		row, ok := stored[vm.ID]
-		if !ok {
-			out.Differ = append(out.Differ, StatusDiffer{VMID: vm.ID, Stored: "(none)", Model: sig(model)})
-			continue
+		if len(rows) == 0 {
+			return "differ", "(none)", sig(model), nil
 		}
+		row := rows[0]
 		if row.NextChangeAt != nil && *row.NextChangeAt <= *unixOf(now) {
-			out.Due++
-			continue
+			return "due", "", "", nil
 		}
 		var got status.Result
 		if err := json.Unmarshal(row.Result, &got); err != nil {
-			return out, fmt.Errorf("VM %s: stored status: %w", vm.Name, err)
+			return "", "", "", fmt.Errorf("stored status: %w", err)
 		}
 		if a, b := sig(got), sig(model); a != b || row.Status != model.Status {
-			out.Differ = append(out.Differ, StatusDiffer{VMID: vm.ID, Stored: a, Model: b})
-			continue
+			return "differ", a, b, nil
 		}
-		out.Equal++
+		return "equal", "", "", nil
+	}
+	for _, vm := range vms {
+		out.VMs++
+		verdict, a, b, err := compare(vm.ID)
+		if err == nil && verdict == "differ" {
+			if verdict, a, b, err = compare(vm.ID); err == nil && verdict == "equal" {
+				verdict = "moved"
+			}
+		}
+		if err != nil {
+			return out, fmt.Errorf("VM %s: %w", vm.Name, err)
+		}
+		switch verdict {
+		case "equal":
+			out.Equal++
+		case "due":
+			out.Due++
+		case "moved":
+			out.Moved++
+		default:
+			out.Differ = append(out.Differ, StatusDiffer{VMID: vm.ID, Stored: a, Model: b})
+		}
 	}
 	out.Seconds = time.Since(t0).Seconds()
 	out.Verdict = status.OK
