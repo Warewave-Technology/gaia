@@ -283,6 +283,7 @@ Mac'te yeni `gaia`'yı aç (`gaia-0.1.2-darwin-arm64.tar.gz`), `gaia system` `0.
 - [ ] Yükseltme sonunda `gaia: restarted; check with: gaia system`; Overview'da üç VM aynı durumda.
 
 **4.4 tekrar:** gaia-lab'de `/root/gaia/lab/lab-vm/t23-guests.sh delete-checkpoint gaia-t23-linux2`, sonra **Back up now**.
+Not, bu full nokta en yeni nokta olduğu sürece görünür: bir sonraki yedekte (en geç 30 dakika) kalkar, o yüzden hemen bak.
 
 | Beklenen | Gördüğün |
 |---|---|
