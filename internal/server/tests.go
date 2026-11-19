@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -80,6 +81,7 @@ type TestDetail struct {
 	Errors       []string             `json:"errors"`
 	Bundle       string               `json:"bundle"`
 	LedgerSeq    int                  `json:"ledger_seq"`
+	SandboxDown  bool                 `json:"sandbox_down,omitempty"` // not tested: the sandbox helper did not answer
 }
 
 // runTest runs one queued restore-test job. The job is ok when the test ran to a verdict, whatever the verdict;
@@ -135,6 +137,7 @@ func (s *Server) restoreTest(ctx context.Context, j store.Job, d *TestDetail) er
 	verdict, reason, bundle, rto, terr := s.testPoint(ctx, vm, pol, p, t, d)
 	if terr != nil {
 		verdict, reason = verify.Unknown, "not tested: "+terr.Error()
+		d.SandboxDown = errors.Is(terr, sandbox.ErrUnavailable)
 	}
 	d.Verdict, d.Bundle = verdict, bundle
 	if _, err := s.db.FinishRestoreTest(context.WithoutCancel(ctx), "system", t.ID, verdict, rto, reason, bundle, d); err != nil {
@@ -287,9 +290,11 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	if err != nil {
 		return status.Input{}, err
 	}
-	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged}
+	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged,
+		Host: &status.Scope{Kind: status.ScopeHost, ID: f.VM.HostID, Name: f.HostName}}
 	if f.Policy != nil {
 		in.Targets = &status.Targets{RPOS: f.Policy.RPOTargetS, RTOS: f.Policy.RTOTargetS, MaxProofAgeS: f.Policy.MaxProofAgeS}
+		in.Repository = &status.Scope{Kind: status.ScopeRepository, ID: f.RepositoryID, Name: f.RepositoryName}
 	}
 	if f.NewestChecked != nil {
 		tk, err := time.Parse(time.RFC3339Nano, f.NewestChecked.TakenAt)
@@ -297,6 +302,9 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 			return in, fmt.Errorf("point %d: taken_at: %w", f.NewestChecked.ID, err)
 		}
 		in.NewestChecked = &status.Point{ID: f.NewestChecked.ID, TakenAt: tk, FullReason: unplannedFull(*f.NewestChecked)}
+	}
+	if in.FailedBackup, err = failedBackup(f.LastBackup, f.LastBackupInfo, in.NewestChecked); err != nil {
+		return in, err
 	}
 	test := func(t *store.RestoreTest, p *store.Point) (*status.Test, error) {
 		if t == nil {
@@ -310,7 +318,16 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 		if err != nil {
 			return nil, fmt.Errorf("restore test %d: finished_at: %w", t.ID, err)
 		}
-		return &status.Test{ID: t.ID, PointID: p.ID, PointTakenAt: tk, Verdict: t.Verdict, FinishedAt: fin, ProvenRTOS: t.ProvenRTOS, Detail: t.Reason}, nil
+		var d TestDetail
+		if err := json.Unmarshal(t.Detail, &d); err != nil {
+			return nil, fmt.Errorf("restore test %d: detail: %w", t.ID, err)
+		}
+		st := &status.Test{ID: t.ID, PointID: p.ID, PointTakenAt: tk, Verdict: t.Verdict, FinishedAt: fin, ProvenRTOS: t.ProvenRTOS, Detail: t.Reason,
+			SandboxDown: d.SandboxDown}
+		if i := slices.IndexFunc(d.Checks, func(c verify.CheckResult) bool { return c.Verdict == verify.Critical }); i >= 0 {
+			st.FailedCheck = d.Checks[i].Name
+		}
+		return st, nil
 	}
 	if in.LatestTest, err = test(f.LatestTest, f.LatestPoint); err != nil {
 		return in, err
@@ -322,6 +339,26 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 		return in, err
 	}
 	return in, nil
+}
+
+// failedBackup is the newest backup job when it failed after the newest checked point: why backups stopped, if they
+// did (ADR-007 C3). Nil when it succeeded or failed before that point.
+func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*status.Backup, error) {
+	if j == nil || j.State != "failed" {
+		return nil, nil
+	}
+	fin, err := time.Parse(time.RFC3339Nano, j.FinishedAt)
+	if err != nil {
+		return nil, fmt.Errorf("backup job %d: finished_at: %w", j.ID, err)
+	}
+	if newest != nil && !fin.After(newest.TakenAt) {
+		return nil, nil
+	}
+	var d BackupDetail
+	if err := json.Unmarshal(detail, &d); err != nil {
+		return nil, fmt.Errorf("backup job %d: detail: %w", j.ID, err)
+	}
+	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable}, nil
 }
 
 // refreshStatus computes a VM's status now and stores it; a change is recorded with its reason.

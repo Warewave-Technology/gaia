@@ -48,6 +48,12 @@ type StatusFacts struct {
 	Passing       *RestoreTest // the newest finished OK test of a point that is still present and not damaged
 	PassingPoint  *Point       // its point
 	Damaged       []int64      // present points whose check failed
+	// What reasons name as their cause (ADR-007 C3).
+	HostName       string
+	RepositoryID   int64 // the policy's repository; 0 without a policy
+	RepositoryName string
+	LastBackup     *Job            // the newest finished backup job (ok or failed)
+	LastBackupInfo json.RawMessage // its detail
 }
 
 // StatusFacts reads the facts for one VM. A passing test only counts while its point can still be restored: a
@@ -59,12 +65,35 @@ func (d *DB) StatusFacts(ctx context.Context, vmID int64) (StatusFacts, error) {
 		return f, err
 	}
 	f.VM = vm
+	if err := d.db.QueryRowContext(ctx, `SELECT name FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName); err != nil {
+		return f, fmt.Errorf("the VM's host %d: %w", vm.HostID, err)
+	}
 	if vm.PolicyID != nil {
 		p, err := d.Policy(ctx, *vm.PolicyID)
 		if err != nil {
 			return f, err
 		}
 		f.Policy = &p
+		f.RepositoryID = p.RepositoryID
+		if err := d.db.QueryRowContext(ctx, `SELECT name FROM repositories WHERE id = ?`, p.RepositoryID).Scan(&f.RepositoryName); err != nil {
+			return f, fmt.Errorf("the policy's repository %d: %w", p.RepositoryID, err)
+		}
+	}
+	var id int64
+	err = d.db.QueryRowContext(ctx, `SELECT id FROM jobs WHERE vm_id = ? AND kind = 'backup' AND state IN ('ok', 'failed') ORDER BY id DESC LIMIT 1`, vmID).Scan(&id)
+	switch {
+	case err == nil:
+		j, err := d.Job(ctx, id)
+		if err != nil {
+			return f, err
+		}
+		ji, err := d.JobInfo(ctx, id)
+		if err != nil {
+			return f, err
+		}
+		f.LastBackup, f.LastBackupInfo = &j, ji.Detail
+	case !errors.Is(err, sql.ErrNoRows):
+		return f, err
 	}
 	if p, err := d.LatestPoint(ctx, vmID); err == nil {
 		f.NewestChecked = &p

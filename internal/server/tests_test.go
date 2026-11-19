@@ -11,15 +11,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/diskstore"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/hostconn"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/verify"
+	"golang.org/x/crypto/ssh"
 )
 
 // fakeSandbox stands in for `gaia sandbox serve`: it checks that the disks it is given are the restored data, and
@@ -178,7 +182,7 @@ func TestRestoreTestAndStatus(t *testing.T) {
 	if rt := run(); rt.Verdict != "CRITICAL" || rt.ProvenRTOS != nil || !strings.Contains(rt.Reason, "no login prompt") {
 		t.Fatalf("failing test %+v", rt)
 	}
-	if v := statusOf(); v.Status != "CRITICAL" || !strings.Contains(v.Reasons[0].Text, "no login prompt") {
+	if v := statusOf(); v.Status != "CRITICAL" || !strings.Contains(v.Reasons[0].Text, "no login prompt") || v.Reasons[0].Code != status.TestFailedBoot {
 		t.Fatalf("after a failing test: %+v", v)
 	}
 
@@ -189,7 +193,8 @@ func TestRestoreTestAndStatus(t *testing.T) {
 		t.Fatalf("unreachable helper %+v", rt)
 	}
 	v := statusOf()
-	if v.Status != "CRITICAL" || len(v.Notes) != 1 || !strings.Contains(v.Notes[0], "could not run") {
+	if v.Status != "CRITICAL" || len(v.Notes) != 1 || !strings.Contains(v.Notes[0], "could not run") ||
+		v.NoteReasons[0].Code != status.TestNotRun || v.NoteReasons[0].Scope == nil || v.NoteReasons[0].Scope.Kind != status.ScopeSandbox {
 		t.Fatalf("after a test that could not run: %+v", v)
 	}
 	jobs, _ := s.db.Jobs(ctx, vm.ID, 1)
@@ -209,4 +214,58 @@ func TestRestoreTestAndStatus(t *testing.T) {
 		t.Fatalf("GET /status %+v", all)
 	}
 	io.Discard.Write(nil)
+}
+
+// A host that does not answer (ADR-007 C3): the backup job fails with the cause recorded, and once the RPO target is
+// missed the VM is CRITICAL with host_unreachable, scoped to the host, so its VMs are one cause.
+func TestHostUnreachableCode(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	f.seed() // seed-host is 127.0.0.1:1: nothing listens
+	s := f.s
+	vmID := f.ids["vms"]
+	clock := time.Date(2026, 11, 16, 12, 30, 0, 0, time.UTC) // the seed point is from 12:00; the RPO target is 1 h
+	s.now = func() time.Time { return clock }
+	pts, err := s.db.Points(ctx, vmID, 10)
+	if err != nil || len(pts) == 0 {
+		t.Fatalf("seed points: %v %v", pts, err)
+	}
+	if _, err := s.db.SetPointCheck(ctx, "system", pts[0].ID, true, "seed"); err != nil {
+		t.Fatal(err)
+	}
+	hk, err := hostconn.LoadOrCreateKey(filepath.Join(t.TempDir(), "host-key"), "host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(hk.Signer.PublicKey())))
+	if _, err := s.db.PinHostKey(ctx, "admin", f.ids["hosts"], line, hostconn.Fingerprint(hk.Signer.PublicKey())); err != nil {
+		t.Fatal(err)
+	}
+	j, err := s.db.CreateJob(ctx, "system", "backup", &vmID, "schedule")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.runBackup(ctx, j)
+	got, _ := s.db.Job(ctx, j.ID)
+	ji, _ := s.db.JobInfo(ctx, j.ID)
+	var d BackupDetail
+	if err := json.Unmarshal(ji.Detail, &d); err != nil || got.State != "failed" || !d.Unreachable {
+		t.Fatalf("backup of an unreachable host: %+v %s %v", got, ji.Detail, err)
+	}
+	r, err := s.refreshStatus(ctx, vmID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.ContainsFunc(r.Reasons, func(x status.Reason) bool { return x.Code == status.HostUnreachable }) {
+		t.Fatalf("host_unreachable while the RPO target still holds: %+v", r.Reasons)
+	}
+	clock = clock.Add(time.Hour)
+	if r, err = s.refreshStatus(ctx, vmID); err != nil {
+		t.Fatal(err)
+	}
+	x := r.Reasons[0]
+	if r.Status != status.Critical || x.Code != status.HostUnreachable || x.Scope == nil || x.Scope.Name != "seed-host" ||
+		x.Params.Job != j.ID || !strings.Contains(x.Text, "host seed-host does not answer") {
+		t.Fatalf("after the RPO target: %s %+v", r.Status, r.Reasons)
+	}
 }

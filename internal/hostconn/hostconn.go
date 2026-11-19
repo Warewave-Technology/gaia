@@ -112,6 +112,16 @@ type Target struct {
 	HostKey string // authorized_keys form; empty means not trusted yet, and Dial refuses
 }
 
+// ErrUnreachable marks a host that did not answer at all: the TCP connection to its SSH port failed (refused, timed
+// out, no route). A host that answers but refuses Gaia is not unreachable.
+var ErrUnreachable = errors.New("the host does not answer")
+
+// unreachable is an error that is ErrUnreachable and keeps its own message.
+type unreachable struct{ error }
+
+func (u unreachable) Is(target error) bool { return target == ErrUnreachable }
+func (u unreachable) Unwrap() error        { return u.error }
+
 // ErrUntrusted means the host's key was never pinned.
 var ErrUntrusted = errors.New("the host's SSH key is not trusted yet (scan it and trust its fingerprint first)")
 
@@ -140,7 +150,7 @@ func Dial(ctx context.Context, t Target, key Key) (*Conn, error) {
 		}}
 	conn, err := dialTCP(ctx, t.Address, t.Port)
 	if err != nil {
-		return nil, err
+		return nil, unreachable{err}
 	}
 	c, chans, reqs, err := ssh.NewClientConn(conn, net.JoinHostPort(t.Address, strconv.Itoa(t.Port)), cfg)
 	if err != nil {

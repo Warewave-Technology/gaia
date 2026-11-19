@@ -1498,6 +1498,72 @@
         ],
         "type": "object"
       },
+      "Params": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "job": {
+            "type": "integer"
+          },
+          "job_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_proof_age_s": {
+            "type": "integer"
+          },
+          "point": {
+            "type": "integer"
+          },
+          "point_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "points": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "rpo_target_s": {
+            "type": "integer"
+          },
+          "rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "rto_target_s": {
+            "type": "integer"
+          },
+          "target_s": {
+            "type": "integer"
+          },
+          "test": {
+            "type": "integer"
+          },
+          "test_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "PasswordChange": {
         "additionalProperties": false,
         "properties": {
@@ -1903,8 +1969,24 @@
       "Reason": {
         "additionalProperties": false,
         "properties": {
+          "code": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          },
           "rule": {
             "type": "string"
+          },
+          "scope": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "type": "string"
@@ -1914,7 +1996,10 @@
           }
         },
         "required": [
+          "code",
+          "params",
           "rule",
+          "scope",
           "status",
           "text"
         ],
@@ -2249,6 +2334,26 @@
           "fingerprint",
           "key",
           "type"
+        ],
+        "type": "object"
+      },
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name"
         ],
         "type": "object"
       },
@@ -2927,6 +3032,12 @@
           "host": {
             "type": "string"
           },
+          "note_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "type": "array"
+          },
           "notes": {
             "items": {
               "type": "string"
@@ -3001,6 +3112,7 @@
           "changed_at",
           "events",
           "host",
+          "note_reasons",
           "notes",
           "policy",
           "proof_age_s",
@@ -3039,6 +3151,12 @@
         "properties": {
           "changed_at": {
             "type": "string"
+          },
+          "note_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "type": "array"
           },
           "notes": {
             "items": {
@@ -3088,6 +3206,7 @@
         },
         "required": [
           "changed_at",
+          "note_reasons",
           "notes",
           "proof_age_s",
           "proven_rpo_s",

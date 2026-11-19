@@ -236,6 +236,15 @@ type Client struct {
 	http   *http.Client
 }
 
+// ErrUnavailable marks a request the sandbox helper never received: its socket did not answer (the helper is stopped).
+var ErrUnavailable = errors.New("the sandbox helper does not answer")
+
+// unavailable is an error that is ErrUnavailable and keeps its own message.
+type unavailable struct{ error }
+
+func (u unavailable) Is(target error) bool { return target == ErrUnavailable }
+func (u unavailable) Unwrap() error        { return u.error }
+
 // NewClient returns a client for the helper at socket.
 func NewClient(socket string) *Client {
 	return &Client{Socket: socket, http: &http.Client{Transport: &http.Transport{
@@ -258,7 +267,11 @@ func (c *Client) Verify(ctx context.Context, req Request, dest string) (string, 
 	}
 	resp, err := c.http.Do(hr)
 	if err != nil {
-		return "", nil, fmt.Errorf("sandbox helper at %s: %w", c.Socket, err)
+		err = fmt.Errorf("sandbox helper at %s: %w", c.Socket, err)
+		if op := (*net.OpError)(nil); errors.As(err, &op) && op.Op == "dial" {
+			err = unavailable{err}
+		}
+		return "", nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

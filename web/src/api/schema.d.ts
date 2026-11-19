@@ -1611,6 +1611,25 @@ export interface components {
             vms: components["schemas"]["VMOverview"][];
             window_s: number;
         };
+        Params: {
+            check?: string;
+            detail?: string;
+            job?: number;
+            /** Format: date-time */
+            job_at?: string | null;
+            max_proof_age_s?: number;
+            point?: number;
+            /** Format: date-time */
+            point_at?: string | null;
+            points?: number[];
+            rpo_target_s?: number;
+            rto_s?: number | null;
+            rto_target_s?: number;
+            target_s?: number;
+            test?: number;
+            /** Format: date-time */
+            test_at?: string | null;
+        };
         PasswordChange: {
             current_password: string;
             new_password: string;
@@ -1711,7 +1730,10 @@ export interface components {
             verification_id: number;
         };
         Reason: {
+            code: string;
+            params: components["schemas"]["Params"];
             rule: string;
+            scope: components["schemas"]["Scope"] | null;
             status: string;
             text: string;
         };
@@ -1794,6 +1816,11 @@ export interface components {
             fingerprint: string;
             key: string;
             type: string;
+        };
+        Scope: {
+            id: number;
+            kind: string;
+            name: string;
         };
         ServerClock: {
             now: string;
@@ -1956,6 +1983,7 @@ export interface components {
             changed_at: string;
             events: components["schemas"]["TimelineEvent"][];
             host: string;
+            note_reasons: components["schemas"]["Reason"][];
             notes: string[];
             policy: string;
             proof_age_s: number | null;
@@ -1975,6 +2003,7 @@ export interface components {
         };
         VMStatus: {
             changed_at: string;
+            note_reasons: components["schemas"]["Reason"][];
             notes: string[];
             proof_age_s: number | null;
             proven_rpo_s: number | null;

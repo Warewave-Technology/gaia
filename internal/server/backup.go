@@ -45,6 +45,7 @@ type BackupDetail struct {
 	Point             int64                        `json:"point,omitempty"`
 	Disks             []DiskDetail                 `json:"disks"`
 	StaleJobEnded     bool                         `json:"stale_job_ended,omitempty"`
+	Unreachable       bool                         `json:"host_unreachable,omitempty"` // failed: the host did not answer over SSH
 	Check             []string                     `json:"check_problems"`
 	CheckpointsKept   []string                     `json:"checkpoints_kept"`
 	CheckpointsPruned []string                     `json:"checkpoints_deleted"`
@@ -131,6 +132,7 @@ func (s *Server) runBackup(ctx context.Context, j store.Job) {
 		CheckpointsPruned: []string{}, PointsPruned: []int64{}}
 	start := time.Now()
 	err := s.backup(ctx, j, d)
+	d.Unreachable = errors.Is(err, hostconn.ErrUnreachable)
 	d.Timings["total"] = time.Since(start).Seconds()
 	if derr := s.db.SetJobDetail(context.WithoutCancel(ctx), j.ID, d); derr != nil {
 		s.log.Error("job detail", "job", j.ID, "error", derr)
