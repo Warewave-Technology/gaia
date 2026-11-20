@@ -5,8 +5,8 @@
 #   create     the network gaia-t25 (NAT, 192.168.225.0/24) and the VMs that do not exist yet:
 #                gaia-t25-iso-1..4   Debian 12, 384 MiB: they carry the isolation probe (below)
 #                gaia-t25-lin-1..6   Debian 12, 384 MiB: the set whose tests are timed with 1, 2 and 4 slots
-#                gaia-t25-win        a copy of T23's converted Windows Server 2022 (virt-v2v output in
-#                                    /var/lib/gaia-convert/t23-win, smbus removed as in t23-guests.sh), 2 GiB
+#                gaia-t25-win        T11's Windows Server 2022 converted for KVM as in t23-guests.sh (virt-v2v in
+#                                    the pinned converter image, smbus removed), 2 GiB
 #   status     each VM's state and address
 #   destroy    the VMs, their disks and the network
 #
@@ -26,7 +26,11 @@ D=/root/t25-guests
 NET=gaia-t25
 LV=/var/lib/libvirt/images
 CLOUD_IMG=/var/lib/gaia/images/debian-12-genericcloud-amd64.qcow2
-WIN_SRC_DIR=/var/lib/gaia-convert/t23-win
+WIN_SRC=/var/lib/gaia/images/gaia-t11-win.qcow2
+VIRTIO_ISO=/var/lib/gaia/images/virtio-win-0.1.302.iso
+VIRTIO_SHA256=303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d
+CONV_USER=gaia-convert
+CONV_HOME=/var/lib/gaia-convert
 set -E
 trap 'echo "UNKNOWN: fixture failed at line $LINENO: $BASH_COMMAND"; exit 3' ERR
 ((EUID == 0)) || { echo "run as root (sudo)"; exit 3; }
@@ -132,25 +136,39 @@ EOF
 	virsh -q autostart "$n" && virsh -q start "$n"
 }
 
+# windows_guest: T11's Windows Server 2022 converted for KVM by virt-v2v in the pinned converter image, as
+# t23-guests.sh does it (with virtio-win 0.1.302, then the smbus driver removed); a copy of T23's running VM would not
+# be consistent.
 windows_guest() {
-	local n=gaia-t25-win src
-	src=$(find "$WIN_SRC_DIR" -maxdepth 2 -type f -name '*-sda' 2>/dev/null | head -1)
-	[[ -n "$src" ]] || { echo "UNKNOWN: no converted Windows disk in $WIN_SRC_DIR (t23-guests.sh create made it)"; exit 3; }
-	qemu-img convert -q -O qcow2 "$src" "$LV/$n-vda.qcow2"
-	# as t23-guests.sh no_smbus: virtio-win 0.1.302's smbus driver restarts Server 2022 for ever
-	local root
+	local n=gaia-t25-win w=$CONV_HOME/t25-win image root
+	echo "$VIRTIO_SHA256  $VIRTIO_ISO" | sha256sum -c --quiet
+	image=$(jq -r .image /etc/gaia/convert.json)
+	rm -rf "$w" && install -d -o "$CONV_USER" -g "$CONV_USER" "$w" "$w/out"
+	cp --reflink=auto "$WIN_SRC" "$w/in.qcow2"
+	cp "$VIRTIO_ISO" "$w/virtio-win.iso" && chown "$CONV_USER:" "$w/in.qcow2" "$w/virtio-win.iso"
+	log "converting $WIN_SRC with virt-v2v in $image"
+	systemd-run --wait --quiet --collect --uid="$CONV_USER" --gid="$CONV_USER" -p SupplementaryGroups=kvm -p RuntimeDirectory=gaia-convert \
+		-E HOME="$CONV_HOME" -E XDG_RUNTIME_DIR=/run/gaia-convert -E TMPDIR="$CONV_HOME/tmp" \
+		bash -c "podman --cgroup-manager=cgroupfs run --rm --init --network=none --cgroups=disabled --cap-drop=all \
+			--security-opt=no-new-privileges --userns=keep-id --group-add=keep-groups --device=/dev/kvm \
+			--volume=$w/in.qcow2:/in/disk.qcow2:ro --volume=$w/out:/out --volume=$w/virtio-win.iso:/virtio-win.iso:ro \
+			--env=VIRTIO_WIN=/virtio-win.iso $image virt-v2v -i disk /in/disk.qcow2 -o local -os /out -of qcow2 -on $n \
+			>$w/virt-v2v.log 2>&1"
+	tail -3 "$w/virt-v2v.log"
+	mv "$w/out/$n-sda" "$LV/$n-vda.qcow2"
+	rm -f "$w/in.qcow2" "$w/virtio-win.iso"
 	root=$(LIBGUESTFS_BACKEND=direct guestfish --ro -a "$LV/$n-vda.qcow2" -i inspect-get-roots | head -1)
 	printf '%s\n' run "ntfsfix $root" "mount $root /" 'glob rm-f /Windows/Drivers/VirtIO/smbus*' >"$D/no-smbus.gf"
 	LIBGUESTFS_BACKEND=direct guestfish --rw -a "$LV/$n-vda.qcow2" -f "$D/no-smbus.gf"
 	chown libvirt-qemu:libvirt-qemu "$LV/$n-vda.qcow2"
 	virsh -q define /dev/stdin <<EOF
 <domain type='kvm'><name>$n</name><memory unit='MiB'>2048</memory><vcpu>2</vcpu>
-  <os><type arch='x86_64' machine='q35'>hvm</type><boot dev='hd'/></os><features><acpi/><apic/><hyperv><relaxed state='on'/></hyperv></features>
-  <cpu mode='host-passthrough'/><clock offset='localtime'/><on_poweroff>destroy</on_poweroff>
+  <os><type arch='x86_64' machine='q35'>hvm</type><boot dev='hd'/></os><features><acpi/><apic/><hyperv><relaxed state='on'/><vapic state='on'/><spinlocks state='on' retries='8191'/></hyperv></features>
+  <cpu mode='host-passthrough'/><clock offset='localtime'/>
   <devices>
     <disk type='file' device='disk'><driver name='qemu' type='qcow2' discard='unmap'/><source file='$LV/$n-vda.qcow2'/><target dev='vda' bus='virtio'/></disk>
     <interface type='network'><source network='$NET'/><model type='virtio'/></interface>
-    <graphics type='vnc' listen='127.0.0.1'/><video><model type='vga'/></video>
+    <serial type='pty'/><console type='pty'/><input type='tablet' bus='usb'/><graphics type='vnc' listen='127.0.0.1'/><video><model type='vga'/></video>
   </devices></domain>
 EOF
 	virsh -q autostart "$n" && virsh -q start "$n"
