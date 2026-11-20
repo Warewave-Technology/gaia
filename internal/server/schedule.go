@@ -86,9 +86,12 @@ func (s *Server) queueDueBackups(ctx context.Context, now time.Time) error {
 	return nil
 }
 
-// dispatch starts queued jobs: backups, at most max_parallel_backups at once and one per VM; restore tests one at a
-// time (the sandbox boots one guest at a time); migration checks one at a time.
+// dispatch starts queued jobs: backups, at most max_parallel_backups at once and one per VM; restore tests as many at
+// once as the sandbox has slots (ADR-007 C4), one per VM, in C4's order; migration checks one at a time.
 func (s *Server) dispatch(ctx context.Context) error {
+	if err := s.dispatchTests(ctx); err != nil {
+		return err
+	}
 	qs, err := s.db.QueuedJobs(ctx)
 	if err != nil {
 		return err
@@ -110,21 +113,7 @@ func (s *Server) dispatch(ctx context.Context) error {
 			}(j)
 			continue
 		}
-		if j.Kind == "restore_test" && j.VMID != nil {
-			n := 0
-			s.testing.Range(func(_, _ any) bool { n++; return true })
-			if n > 0 {
-				continue
-			}
-			s.testing.Store(*j.VMID, j.ID)
-			s.jobsWG.Add(1)
-			go func(j store.Job) {
-				defer s.jobsWG.Done()
-				defer s.stateChanged()
-				defer s.testing.Delete(*j.VMID)
-				defer s.retryIfStopped(j)
-				s.runTest(s.jobs, j)
-			}(j)
+		if j.Kind == "restore_test" { // dispatchTests
 			continue
 		}
 		if j.Kind != "backup" || j.VMID == nil {

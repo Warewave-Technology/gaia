@@ -35,12 +35,15 @@ type route struct {
 	status                int // success status; 0 = 200
 	query                 []param
 	auditRead             bool // a read worth auditing (an export)
+	computeOnly           bool // a POST that changes nothing (a what-if): not a change, not audited
 	example               string
 	h                     func(c *call) (int, any, error)
 }
 
 // audited: every change, every login and logout, and audited reads.
-func (rt *route) audited() bool { return rt.method != http.MethodGet || rt.auditRead }
+func (rt *route) audited() bool {
+	return (rt.method != http.MethodGet && !rt.computeOnly) || rt.auditRead
+}
 
 // LoginRequest, LoginResponse etc. are the API's own request and response types (the store's types are used directly
 // for resources).
@@ -861,6 +864,13 @@ func (s *Server) table() []route {
 			roles: anyRole, out: OverviewView{}, h: s.overviewView},
 		{method: "GET", path: "/api/v1/views/vms/{id}", summary: "One VM's page: status, history, tests, points and evidence",
 			roles: anyRole, out: VMView{}, h: s.vmView},
+		{method: "GET", path: "/api/v1/views/capacity", summary: "Proof capacity: demand, slots, coverage, the proofs that will expire (T25, ADR-007 C4)",
+			roles: anyRole, out: CapacityView{}, query: []param{{"limit", "integer", "at most this many of each list (default 50)"}}, h: s.capacityView},
+		{method: "POST", path: "/api/v1/capacity/what-if", summary: "The proof capacity with other slots or policy intervals; nothing is saved", roles: anyRole,
+			in: WhatIf{}, out: CapacityView{}, computeOnly: true, example: `{"slots":4}`, h: s.whatIfView},
+		{method: "GET", path: "/api/v1/views/test-queue", summary: "Queued restore tests in the order they start, with estimated starts (T25)",
+			roles: anyRole, out: TestQueueView{}, query: []param{{"after", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many (default 50, at most 200)"}},
+			h: s.testQueueView},
 		{method: "GET", path: "/api/v1/views/fleet", summary: "The overview's headline: VMs that can return, by status, the worst proven RPO (T24)",
 			roles: anyRole, out: FleetView{}, h: s.fleetView},
 		{method: "GET", path: "/api/v1/views/attention", summary: "Needs attention: the VMs that are not OK, grouped by reason code and scope (T24)",

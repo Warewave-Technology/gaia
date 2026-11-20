@@ -215,7 +215,11 @@ type Server struct {
 	db         *store.DB
 	log        *slog.Logger
 	routes     []route
-	recomputed recomputeState // the status table's newest full recompute (statuscache.go)
+	sandboxCap sandboxState                     // the sandbox helper's slots (testqueue.go)
+	images     imagesReservation                // the running tests' restored disks (testqueue.go)
+	capCache   capacityCache                    // the proof capacity's inputs (capacityview.go)
+	testRun    func(context.Context, store.Job) // runs a restore test job; nil: runTest (tests set it)
+	recomputed recomputeState                   // the status table's newest full recompute (statuscache.go)
 	handler    http.Handler
 	started    time.Time
 	backupMu   sync.Mutex

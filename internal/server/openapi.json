@@ -250,6 +250,158 @@
         ],
         "type": "object"
       },
+      "Capacity": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "type": "string"
+          },
+          "memory_limit_mib": {
+            "type": "integer"
+          },
+          "overhead_mib": {
+            "type": "integer"
+          },
+          "running": {
+            "items": {
+              "$ref": "#/components/schemas/Running"
+            },
+            "type": "array"
+          },
+          "slots": {
+            "type": "integer"
+          },
+          "used_mib": {
+            "type": "integer"
+          },
+          "waiting": {
+            "items": {
+              "$ref": "#/components/schemas/Waiting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "basis",
+          "memory_limit_mib",
+          "overhead_mib",
+          "running",
+          "slots",
+          "used_mib",
+          "waiting"
+        ],
+        "type": "object"
+      },
+      "CapacityView": {
+        "additionalProperties": false,
+        "properties": {
+          "by_os_class": {
+            "items": {
+              "$ref": "#/components/schemas/Group"
+            },
+            "type": "array"
+          },
+          "by_policy": {
+            "items": {
+              "$ref": "#/components/schemas/Group"
+            },
+            "type": "array"
+          },
+          "capacity_slot_s_per_day": {
+            "type": "number"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "coverage": {
+            "type": "number"
+          },
+          "demand_slot_s_per_day": {
+            "type": "number"
+          },
+          "expiring": {
+            "items": {
+              "$ref": "#/components/schemas/Expiring"
+            },
+            "type": "array"
+          },
+          "expiring_total": {
+            "type": "integer"
+          },
+          "horizon_s": {
+            "type": "number"
+          },
+          "now": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "queue": {
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "type": "array"
+          },
+          "queue_total": {
+            "type": "integer"
+          },
+          "sandbox": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Capacity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sandbox_error": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "integer"
+          },
+          "slots_needed": {
+            "type": "integer"
+          },
+          "tests_in_horizon": {
+            "type": "integer"
+          },
+          "vms": {
+            "type": "integer"
+          },
+          "what_if": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WhatIf"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "by_os_class",
+          "by_policy",
+          "capacity_slot_s_per_day",
+          "clock",
+          "coverage",
+          "demand_slot_s_per_day",
+          "expiring",
+          "expiring_total",
+          "horizon_s",
+          "now",
+          "queue",
+          "queue_total",
+          "sandbox",
+          "sandbox_error",
+          "slots",
+          "slots_needed",
+          "tests_in_horizon",
+          "vms"
+        ],
+        "type": "object"
+      },
       "Channel": {
         "additionalProperties": false,
         "properties": {
@@ -727,6 +879,47 @@
         ],
         "type": "object"
       },
+      "Expiring": {
+        "additionalProperties": false,
+        "properties": {
+          "next_test_finish": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_test_start": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "policy": {
+            "type": "string"
+          },
+          "proof_expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "next_test_finish",
+          "next_test_start",
+          "policy",
+          "proof_expires_at",
+          "vm",
+          "vm_id"
+        ],
+        "type": "object"
+      },
       "FleetView": {
         "additionalProperties": false,
         "properties": {
@@ -835,6 +1028,34 @@
           "rpo_target_s",
           "vm",
           "vm_id"
+        ],
+        "type": "object"
+      },
+      "Group": {
+        "additionalProperties": false,
+        "properties": {
+          "demand_slot_s_per_day": {
+            "type": "number"
+          },
+          "median_test_s": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tests_per_day": {
+            "type": "number"
+          },
+          "vms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "demand_slot_s_per_day",
+          "median_test_s",
+          "name",
+          "tests_per_day",
+          "vms"
         ],
         "type": "object"
       },
@@ -2149,6 +2370,30 @@
         ],
         "type": "object"
       },
+      "PolicyChange": {
+        "additionalProperties": false,
+        "properties": {
+          "max_proof_age_s": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "policy_id": {
+            "type": "integer"
+          },
+          "test_interval_s": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "policy_id"
+        ],
+        "type": "object"
+      },
       "PolicyInput": {
         "additionalProperties": false,
         "properties": {
@@ -2345,6 +2590,52 @@
           "reason",
           "repository_id",
           "verification_id"
+        ],
+        "type": "object"
+      },
+      "QueueItem": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_basis": {
+            "type": "string"
+          },
+          "estimated_finish": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estimated_start": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expected_s": {
+            "type": "number"
+          },
+          "job_id": {
+            "type": "integer"
+          },
+          "order_reason": {
+            "type": "string"
+          },
+          "queue_position": {
+            "type": "integer"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "duration_basis",
+          "estimated_finish",
+          "estimated_start",
+          "expected_s",
+          "job_id",
+          "order_reason",
+          "queue_position",
+          "vm",
+          "vm_id"
         ],
         "type": "object"
       },
@@ -2749,6 +3040,31 @@
           "seconds",
           "state",
           "versions"
+        ],
+        "type": "object"
+      },
+      "Running": {
+        "additionalProperties": false,
+        "properties": {
+          "memory_mib": {
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "slot": {
+            "type": "integer"
+          },
+          "vm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "memory_mib",
+          "since",
+          "slot",
+          "vm"
         ],
         "type": "object"
       },
@@ -3334,6 +3650,51 @@
           "max_proof_age_s",
           "rpo_target_s",
           "rto_target_s"
+        ],
+        "type": "object"
+      },
+      "TestQueueView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          },
+          "running": {
+            "items": {
+              "$ref": "#/components/schemas/Running"
+            },
+            "type": "array"
+          },
+          "slots": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "waiting_for_admission": {
+            "items": {
+              "$ref": "#/components/schemas/Waiting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "clock",
+          "items",
+          "next",
+          "running",
+          "slots",
+          "total",
+          "waiting_for_admission"
         ],
         "type": "object"
       },
@@ -4185,6 +4546,31 @@
         ],
         "type": "object"
       },
+      "Waiting": {
+        "additionalProperties": false,
+        "properties": {
+          "memory_mib": {
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "memory_mib",
+          "since",
+          "vm",
+          "why"
+        ],
+        "type": "object"
+      },
       "WebhookConfig": {
         "additionalProperties": false,
         "properties": {
@@ -4198,6 +4584,24 @@
         "required": [
           "url"
         ],
+        "type": "object"
+      },
+      "WhatIf": {
+        "additionalProperties": false,
+        "properties": {
+          "policies": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyChange"
+            },
+            "type": "array"
+          },
+          "slots": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "apiError": {
@@ -4384,6 +4788,92 @@
         ],
         "x-gaia-roles": [
           "admin",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/capacity/what-if": {
+      "post": {
+        "operationId": "post_capacity_what_if",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIf"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The proof capacity with other slots or policy intervals; nothing is saved",
+        "tags": [
+          "capacity"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
           "auditor"
         ]
       }
@@ -11556,6 +12046,83 @@
         ]
       }
     },
+    "/api/v1/views/capacity": {
+      "get": {
+        "operationId": "get_views_capacity",
+        "parameters": [
+          {
+            "description": "at most this many of each list (default 50)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Proof capacity: demand, slots, coverage, the proofs that will expire (T25, ADR-007 C4)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/views/coverage": {
       "get": {
         "operationId": "get_views_coverage",
@@ -11848,6 +12415,92 @@
           }
         },
         "summary": "The overview screen: every VM's status, proven point, targets and recent history, worst first",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/test-queue": {
+      "get": {
+        "operationId": "get_views_test_queue",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 50, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestQueueView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Queued restore tests in the order they start, with estimated starts (T25)",
         "tags": [
           "views"
         ],

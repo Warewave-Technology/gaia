@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/capacity/what-if": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The proof capacity with other slots or policy intervals; nothing is saved */
+        post: operations["post_capacity_what_if"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/converter": {
         parameters: {
             query?: never;
@@ -1176,6 +1193,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/views/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Proof capacity: demand, slots, coverage, the proofs that will expire (T25, ADR-007 C4) */
+        get: operations["get_views_capacity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/views/coverage": {
         parameters: {
             query?: never;
@@ -1236,6 +1270,23 @@ export interface paths {
         };
         /** The overview screen: every VM's status, proven point, targets and recent history, worst first */
         get: operations["get_views_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/views/test-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Queued restore tests in the order they start, with estimated starts (T25) */
+        get: operations["get_views_test_queue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1462,6 +1513,37 @@ export interface components {
             problems: string[];
             verdict: string;
         };
+        Capacity: {
+            basis: string;
+            memory_limit_mib: number;
+            overhead_mib: number;
+            running: components["schemas"]["Running"][];
+            slots: number;
+            used_mib: number;
+            waiting: components["schemas"]["Waiting"][];
+        };
+        CapacityView: {
+            by_os_class: components["schemas"]["Group"][];
+            by_policy: components["schemas"]["Group"][];
+            capacity_slot_s_per_day: number;
+            clock: components["schemas"]["ServerClock"];
+            coverage: number;
+            demand_slot_s_per_day: number;
+            expiring: components["schemas"]["Expiring"][];
+            expiring_total: number;
+            horizon_s: number;
+            /** Format: date-time */
+            now: string;
+            queue: components["schemas"]["QueueItem"][];
+            queue_total: number;
+            sandbox: components["schemas"]["Capacity"] | null;
+            sandbox_error: string;
+            slots: number;
+            slots_needed: number;
+            tests_in_horizon: number;
+            vms: number;
+            what_if?: components["schemas"]["WhatIf"] | null;
+        };
         Channel: {
             /** @description any JSON value */
             config: unknown;
@@ -1576,6 +1658,17 @@ export interface components {
             verdict: string;
             vm_id: number | null;
         };
+        Expiring: {
+            /** Format: date-time */
+            next_test_finish: string | null;
+            /** Format: date-time */
+            next_test_start: string | null;
+            policy: string;
+            /** Format: date-time */
+            proof_expires_at: string;
+            vm: string;
+            vm_id: number;
+        };
         FleetView: {
             by_status: {
                 [key: string]: number;
@@ -1599,6 +1692,13 @@ export interface components {
             rpo_target_s: number | null;
             vm: string;
             vm_id: number;
+        };
+        Group: {
+            demand_slot_s_per_day: number;
+            median_test_s: number;
+            name: string;
+            tests_per_day: number;
+            vms: number;
         };
         Health: {
             status: string;
@@ -1922,6 +2022,11 @@ export interface components {
             test_interval_s: number;
             updated_at: string;
         };
+        PolicyChange: {
+            max_proof_age_s?: number | null;
+            policy_id: number;
+            test_interval_s?: number | null;
+        };
         PolicyInput: {
             backup_interval_s: number;
             check_template: string;
@@ -1968,6 +2073,19 @@ export interface components {
             reason: string;
             repository_id: number;
             verification_id: number;
+        };
+        QueueItem: {
+            duration_basis: string;
+            /** Format: date-time */
+            estimated_finish: string;
+            /** Format: date-time */
+            estimated_start: string;
+            expected_s: number;
+            job_id: number;
+            order_reason: string;
+            queue_position: number;
+            vm: string;
+            vm_id: number;
         };
         Reason: {
             code: string;
@@ -2063,6 +2181,13 @@ export interface components {
             state: string;
             versions: string;
             virtio_win?: components["schemas"]["VirtioWin"] | null;
+        };
+        Running: {
+            memory_mib: number;
+            /** Format: date-time */
+            since: string;
+            slot: number;
+            vm: string;
         };
         SMTPConfig: {
             ca_pem?: string;
@@ -2166,6 +2291,7 @@ export interface components {
             differ: components["schemas"]["StatusDiffer"][];
             due: number;
             equal: number;
+            moved: number;
             seconds: number;
             verdict: string;
             vms: number;
@@ -2199,6 +2325,15 @@ export interface components {
             max_proof_age_s: number;
             rpo_target_s: number;
             rto_target_s: number;
+        };
+        TestQueueView: {
+            clock: components["schemas"]["ServerClock"];
+            items: components["schemas"]["QueueItem"][];
+            next: string;
+            running: components["schemas"]["Running"][];
+            slots: number;
+            total: number;
+            waiting_for_admission: components["schemas"]["Waiting"][];
         };
         TestView: {
             bundle_id: string;
@@ -2373,9 +2508,20 @@ export interface components {
             version: string;
             want_sha256: string;
         };
+        Waiting: {
+            memory_mib: number;
+            /** Format: date-time */
+            since: string;
+            vm: string;
+            why: string;
+        };
         WebhookConfig: {
             ca_pem?: string;
             url: string;
+        };
+        WhatIf: {
+            policies?: components["schemas"]["PolicyChange"][];
+            slots?: number | null;
         };
         apiError: {
             code: string;
@@ -2489,6 +2635,75 @@ export interface operations {
             };
             /** @description The user's role may not do this */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_capacity_what_if: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatIf"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapacityView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8189,6 +8404,65 @@ export interface operations {
             };
         };
     };
+    get_views_capacity: {
+        parameters: {
+            query?: {
+                /** @description at most this many of each list (default 50) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapacityView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_views_coverage: {
         parameters: {
             query?: {
@@ -8382,6 +8656,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_test_queue: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                after?: number;
+                /** @description at most this many (default 50, at most 200) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestQueueView"];
                 };
             };
             /** @description Invalid request */

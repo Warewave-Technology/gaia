@@ -156,6 +156,15 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 	if err != nil {
 		return "", "", "", nil, err
 	}
+	var need int64
+	for _, k := range disks {
+		need += k.SizeBytes
+	}
+	release, err := s.reserveImages(need)
+	if err != nil {
+		return "", "", "", nil, err
+	}
+	defer release()
 	var images []verify.DiskImage
 	defer func() {
 		for _, im := range images {
