@@ -44,11 +44,10 @@ type Check struct {
 	Boot bool `json:"boot,omitempty"`
 }
 
-// IsBoot reports whether k is the check that decides that the guest booted.
-
 // DefaultMemoryMiB is a guest's memory when its machine does not say.
 const DefaultMemoryMiB = 1024
 
+// IsBoot reports whether k is the check that decides that the guest booted.
 func (k Check) IsBoot() bool { return k.Type == CheckBootSerial || k.Boot }
 
 // Machine is the virtual hardware of the sandbox guest. It should match the source VM,
