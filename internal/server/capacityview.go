@@ -200,3 +200,51 @@ func (s *Server) testQueueView(c *call) (int, any, error) {
 	}
 	return http.StatusOK, out, nil
 }
+
+// CapacityInput is one VM's line of the capacity's inputs, for checking the numbers by hand.
+type CapacityInput struct {
+	VMID          int64     `json:"vm_id"`
+	VM            string    `json:"vm"`
+	Policy        string    `json:"policy"`
+	OSClass       string    `json:"os_class"`
+	TestIntervalS int64     `json:"test_interval_s"`
+	MaxProofAgeS  int64     `json:"max_proof_age_s"`
+	Durations     []float64 `json:"durations_s"` // its last tests that ran, newest first (at most 10)
+	ExpectedS     float64   `json:"expected_s"`
+	Basis         string    `json:"basis"`
+}
+
+// CapacityInputs is a page of the inputs.
+type CapacityInputs struct {
+	Total        int                `json:"total"`
+	ClassMedians map[string]float64 `json:"class_medians_s"`
+	Items        []CapacityInput    `json:"items"`
+	Next         string             `json:"next"`
+}
+
+func (s *Server) capacityInputs(c *call) (int, any, error) {
+	off, n, err := offsetPage(c, 200)
+	if err != nil {
+		return 0, nil, err
+	}
+	in, err := s.capacityInput(c.r.Context(), WhatIf{})
+	if err != nil {
+		return 0, nil, err
+	}
+	cm := capacity.ClassMedians(in.VMs)
+	out := CapacityInputs{Total: len(in.VMs), ClassMedians: cm, Items: []CapacityInput{}}
+	for i := off; i < len(in.VMs) && i < off+n; i++ {
+		v := in.VMs[i]
+		e, b := capacity.Expected(v, cm)
+		d := v.Durations[:min(10, len(v.Durations))]
+		if d == nil {
+			d = []float64{}
+		}
+		out.Items = append(out.Items, CapacityInput{VMID: v.ID, VM: v.Name, Policy: v.Policy, OSClass: v.Class, TestIntervalS: v.TestIntervalS,
+			MaxProofAgeS: v.MaxProofAgeS, Durations: d, ExpectedS: e, Basis: b})
+	}
+	if off+n < len(in.VMs) {
+		out.Next = fmt.Sprint(off + n)
+	}
+	return http.StatusOK, out, nil
+}

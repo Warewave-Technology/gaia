@@ -292,6 +292,83 @@
         ],
         "type": "object"
       },
+      "CapacityInput": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "type": "string"
+          },
+          "durations_s": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "expected_s": {
+            "type": "number"
+          },
+          "max_proof_age_s": {
+            "type": "integer"
+          },
+          "os_class": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "test_interval_s": {
+            "type": "integer"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "basis",
+          "durations_s",
+          "expected_s",
+          "max_proof_age_s",
+          "os_class",
+          "policy",
+          "test_interval_s",
+          "vm",
+          "vm_id"
+        ],
+        "type": "object"
+      },
+      "CapacityInputs": {
+        "additionalProperties": false,
+        "properties": {
+          "class_medians_s": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityInput"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "class_medians_s",
+          "items",
+          "next",
+          "total"
+        ],
+        "type": "object"
+      },
       "CapacityView": {
         "additionalProperties": false,
         "properties": {
@@ -4788,6 +4865,92 @@
         ],
         "x-gaia-roles": [
           "admin",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/capacity/inputs": {
+      "get": {
+        "operationId": "get_capacity_inputs",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default and most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityInputs"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The proof capacity's inputs per VM (expected test durations and their basis), in pages",
+        "tags": [
+          "capacity"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
           "auditor"
         ]
       }

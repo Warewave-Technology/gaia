@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/capacity/inputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The proof capacity's inputs per VM (expected test durations and their basis), in pages */
+        get: operations["get_capacity_inputs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capacity/what-if": {
         parameters: {
             query?: never;
@@ -1522,6 +1539,25 @@ export interface components {
             used_mib: number;
             waiting: components["schemas"]["Waiting"][];
         };
+        CapacityInput: {
+            basis: string;
+            durations_s: number[];
+            expected_s: number;
+            max_proof_age_s: number;
+            os_class: string;
+            policy: string;
+            test_interval_s: number;
+            vm: string;
+            vm_id: number;
+        };
+        CapacityInputs: {
+            class_medians_s: {
+                [key: string]: number;
+            };
+            items: components["schemas"]["CapacityInput"][];
+            next: string;
+            total: number;
+        };
         CapacityView: {
             by_os_class: components["schemas"]["Group"][];
             by_policy: components["schemas"]["Group"][];
@@ -2613,6 +2649,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditCheck"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_capacity_inputs: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                after?: number;
+                /** @description at most this many (default and most 200) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapacityInputs"];
                 };
             };
             /** @description Invalid request */
