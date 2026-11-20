@@ -11,7 +11,8 @@
 #      serial run's.
 #   c  a Windows guest among them: 4 slots and a memory limit that holds Windows (2048 MiB + overhead) and two Linux
 #      guests, not three: Windows's proven RTO is reported, and a Linux test only waits while no slot or memory is
-#      free (each admission after a wait comes when another test has just ended).
+#      free (each admission after a wait comes when another test has just ended), and from its start to its admission
+#      it spends no more than 10 s on anything but its own restore and that wait.
 #
 # Usage (on gaia-lab, as root): systemd-run --unit=gaia-t25 --collect -E HOME=/root lab/lab-vm/t25-gate.sh [OUT_DIR]
 #                               lab/lab-vm/t25-gate.sh recompute OUT_DIR   a, c and gate.json again from a run's files and
@@ -138,9 +139,27 @@ for e in events:
     waits.append({"vm": e["vm"], "slot": int(e["slot"]), "memory_mib": int(e["memory_mib"]), "waited_s": w, "admitted_when_freed": freed})
 lin = [x for x in waits if not x["vm"].endswith("-win")]
 logged = len(lin) == len([x for x in tests if not x["vm"].endswith("-win")]) and any(x["vm"].endswith("-win") for x in waits)
-linux_ok = logged and all(x["admitted_when_freed"] for x in lin)
+# From the test's start to the sandbox's admission a Linux test restores its disks and waits for a slot or memory;
+# anything else (another test's restore holding it up) is a delay beyond admission. MAX_OTHER_S allows for opening
+# the repository and the sandbox request.
+MAX_OTHER_S = 10
+admitted = {}
+for e in events:
+    if e.get("msg") == "admitted":
+        admitted.setdefault(e["vm"], t(e["time"]))
+waits_by_vm = {x["vm"]: x["waited_s"] for x in waits}
+delays = []
+for x in tests:
+    if x["vm"].endswith("-win") or x["vm"] not in admitted or x.get("restore_s") is None:
+        continue
+    span = (admitted[x["vm"]] - t(x["test"]["started_at"])).total_seconds()
+    other = span - x["restore_s"] - waits_by_vm[x["vm"]]
+    delays.append({"vm": x["vm"], "start_to_admission_s": span, "restore_s": x["restore_s"], "waited_s": waits_by_vm[x["vm"]],
+                   "other_s": other, "ok": other <= MAX_OTHER_S})
+timed = len(delays) == len(lin)
+linux_ok = logged and timed and all(x["admitted_when_freed"] for x in lin) and all(d["ok"] for d in delays)
 print(json.dumps({"memory_limit_mib": limit, "admission_log_complete": logged, "windows": {"verdict": win["test"]["verdict"], "proven_rto_s": win["test"]["proven_rto_s"],
-                  "reason": win["test"]["reason"]}, "admissions": waits,
+                  "reason": win["test"]["reason"]}, "admissions": waits, "linux_delays": delays, "max_other_s": MAX_OTHER_S, "linux_timed": timed,
                   "verdicts": {x["vm"]: x["test"]["verdict"] for x in tests},
                   "pass": win["test"]["proven_rto_s"] is not None and linux_ok and all(x["test"]["verdict"] == "OK" for x in tests)}, indent=2))
 EOF
@@ -212,7 +231,8 @@ test_all() {
 	local i=0
 	for vm in "$@"; do
 		jq -n --arg vm "$vm" --argjson job "${ids[$i]}" --argjson t "$(api tests list vm_id="${VM_ID[$vm]}" limit=1 | jq '.[0]')" \
-			'{vm: $vm, job: $job, test: ($t | {id, verdict, started_at, finished_at, proven_rto_s, reason, bundle_id})}'
+			--argjson r "$(api jobs get "${ids[$i]}" | jq '.detail.restore_s // null')" \
+			'{vm: $vm, job: $job, restore_s: $r, test: ($t | {id, verdict, started_at, finished_at, proven_rto_s, reason, bundle_id})}'
 		i=$((i + 1))
 	done | jq -s .
 }
