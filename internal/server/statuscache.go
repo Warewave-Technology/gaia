@@ -21,6 +21,9 @@ import (
 // fullRecomputeEvery is how often every VM is recomputed, whatever is due: a safety net, never the mechanism.
 const fullRecomputeEvery = time.Hour
 
+// recomputeBatch is how many VMs a recompute writes in one transaction.
+const recomputeBatch = 250
+
 func unixOf(t time.Time) *float64 {
 	u := float64(t.UnixNano()) / 1e9
 	return &u
@@ -126,18 +129,36 @@ func (s *Server) recompute(ctx context.Context, ids []int64, reason string) (Rec
 			ids = append(ids, vm.ID)
 		}
 	}
+	// In batches: each batch is computed, then written in one transaction (one commit, not one per VM).
 	var errs []error
-	for _, id := range ids {
-		changed, err := s.refreshStatusChanged(ctx, id)
-		if err != nil {
-			st.Errors++
-			if len(errs) < 10 {
-				errs = append(errs, fmt.Errorf("VM %d: %w", id, err))
+	note := func(err error) {
+		st.Errors++
+		if len(errs) < 10 {
+			errs = append(errs, err)
+		}
+	}
+	for start := 0; start < len(ids); start += recomputeBatch {
+		batch := ids[start:min(start+recomputeBatch, len(ids))]
+		ws := make([]store.StatusWrite, 0, len(batch))
+		for _, id := range batch {
+			in, err := s.statusInput(ctx, id)
+			if err != nil {
+				note(fmt.Errorf("VM %d: %w", id, err))
+				continue
 			}
+			r := status.Compute(in)
+			ws = append(ws, store.StatusWrite{VMID: id, Status: r.Status, Reason: r.Reasons[0].Text, Result: r, Row: statusRow(in, r)})
+		}
+		changed, err := s.db.SetVMStatuses(ctx, ws)
+		if err != nil {
+			note(err)
 			continue
 		}
-		if changed {
-			st.Changed++
+		for i, c := range changed {
+			if c {
+				st.Changed++
+				s.log.Info("VM status changed", "vm", ws[i].VMID, "status", ws[i].Status, "code", ws[i].Row.Code, "reason", ws[i].Reason)
+			}
 		}
 	}
 	st.VMs, st.Seconds = len(ids), time.Since(t0).Seconds()

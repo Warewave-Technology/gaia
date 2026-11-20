@@ -61,39 +61,25 @@ func (s *Server) tick(ctx context.Context, now time.Time) error {
 
 // queueDueBackups queues a backup for every VM with a policy whose last backup job is at least its interval old.
 func (s *Server) queueDueBackups(ctx context.Context, now time.Time) error {
-	vms, err := s.db.VMs(ctx, 0)
+	due, err := s.db.ScheduleFacts(ctx, "backup")
 	if err != nil {
 		return err
 	}
-	for _, vm := range vms {
-		if vm.PolicyID == nil {
+	for _, f := range due {
+		if f.Open {
 			continue
 		}
-		if _, open, err := s.db.OpenJob(ctx, vm.ID, "backup"); err != nil || open {
+		if f.LastCreatedAt != "" {
+			t, err := time.Parse(time.RFC3339Nano, f.LastCreatedAt)
 			if err != nil {
 				return err
 			}
-			continue
-		}
-		pol, err := s.db.Policy(ctx, *vm.PolicyID)
-		if err != nil {
-			return err
-		}
-		last, ok, err := s.db.LastJob(ctx, vm.ID, "backup")
-		if err != nil {
-			return err
-		}
-		if ok {
-			t, err := time.Parse(time.RFC3339Nano, last.CreatedAt)
-			if err != nil {
-				return err
-			}
-			if now.Sub(t) < time.Duration(pol.BackupIntervalS)*time.Second-tickSlack {
+			if now.Sub(t) < time.Duration(f.BackupIntervalS)*time.Second-tickSlack {
 				continue
 			}
 		}
-		id := vm.ID
-		if _, err := s.db.CreateJob(ctx, "system", "backup", &id, fmt.Sprintf("schedule: policy %s, every %d s", pol.Name, pol.BackupIntervalS)); err != nil {
+		id := f.VMID
+		if _, err := s.db.CreateJob(ctx, "system", "backup", &id, fmt.Sprintf("schedule: policy %s, every %d s", f.Policy, f.BackupIntervalS)); err != nil {
 			return err
 		}
 	}

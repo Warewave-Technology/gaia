@@ -23,44 +23,25 @@ import (
 // queueDueTests queues a restore test for every VM with a policy whose last restore-test job is at least the
 // policy's test interval old and that has a checked point to test.
 func (s *Server) queueDueTests(ctx context.Context, now time.Time) error {
-	vms, err := s.db.VMs(ctx, 0)
+	due, err := s.db.ScheduleFacts(ctx, "restore_test")
 	if err != nil {
 		return err
 	}
-	for _, vm := range vms {
-		if vm.PolicyID == nil {
+	for _, f := range due {
+		if f.Open || !f.HasPoint { // one at a time per VM; nothing to test yet
 			continue
 		}
-		if _, open, err := s.db.OpenJob(ctx, vm.ID, "restore_test"); err != nil || open {
+		if f.LastCreatedAt != "" {
+			t, err := time.Parse(time.RFC3339Nano, f.LastCreatedAt)
 			if err != nil {
 				return err
 			}
-			continue
-		}
-		if _, err := s.db.LatestPoint(ctx, vm.ID); errors.Is(err, store.ErrNotFound) {
-			continue // nothing to test yet
-		} else if err != nil {
-			return err
-		}
-		pol, err := s.db.Policy(ctx, *vm.PolicyID)
-		if err != nil {
-			return err
-		}
-		last, ok, err := s.db.LastJob(ctx, vm.ID, "restore_test")
-		if err != nil {
-			return err
-		}
-		if ok {
-			t, err := time.Parse(time.RFC3339Nano, last.CreatedAt)
-			if err != nil {
-				return err
-			}
-			if now.Sub(t) < time.Duration(pol.TestIntervalS)*time.Second-tickSlack {
+			if now.Sub(t) < time.Duration(f.TestIntervalS)*time.Second-tickSlack {
 				continue
 			}
 		}
-		id := vm.ID
-		if _, err := s.db.CreateJob(ctx, "system", "restore_test", &id, fmt.Sprintf("schedule: policy %s, every %d s", pol.Name, pol.TestIntervalS)); err != nil {
+		id := f.VMID
+		if _, err := s.db.CreateJob(ctx, "system", "restore_test", &id, fmt.Sprintf("schedule: policy %s, every %d s", f.Policy, f.TestIntervalS)); err != nil {
 			return err
 		}
 	}
@@ -365,12 +346,6 @@ func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*
 func (s *Server) refreshStatus(ctx context.Context, vmID int64) (status.Result, error) {
 	r, _, err := s.refreshStatusOf(ctx, vmID)
 	return r, err
-}
-
-// refreshStatusChanged is refreshStatus that says whether the status changed.
-func (s *Server) refreshStatusChanged(ctx context.Context, vmID int64) (bool, error) {
-	_, changed, err := s.refreshStatusOf(ctx, vmID)
-	return changed, err
 }
 
 func (s *Server) refreshStatusOf(ctx context.Context, vmID int64) (status.Result, bool, error) {

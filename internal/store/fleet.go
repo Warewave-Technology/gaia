@@ -593,3 +593,30 @@ func (d *DB) MarkStatusesDue(ctx context.Context, hostID, policyID int64) error 
 	_, err := d.db.ExecContext(ctx, `UPDATE vm_status SET next_change_at = 0 WHERE vm_id IN (SELECT id FROM vms WHERE `+col+` = ?)`, id)
 	return err
 }
+
+// ScheduleFact is what the scheduler needs to know of a VM with a policy for one kind of job.
+type ScheduleFact struct {
+	VMID            int64
+	Policy          string
+	BackupIntervalS int64
+	TestIntervalS   int64
+	LastCreatedAt   string // the newest job of the kind; "" when there is none
+	Open            bool   // a job of the kind is queued or running
+	HasPoint        bool   // a present point passed its check
+}
+
+// ScheduleFacts reads, in one query, every VM with a policy and what queueing a job of kind depends on (T24: it was
+// three to four queries per VM at every tick).
+func (d *DB) ScheduleFacts(ctx context.Context, kind string) ([]ScheduleFact, error) {
+	return rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (ScheduleFact, error) {
+		var f ScheduleFact
+		var last sql.NullString
+		err := s.Scan(&f.VMID, &f.Policy, &f.BackupIntervalS, &f.TestIntervalS, &last, &f.Open, &f.HasPoint)
+		f.LastCreatedAt = last.String
+		return f, err
+	}, `SELECT v.id, p.name, p.backup_interval_s, p.test_interval_s,
+		(SELECT j.created_at FROM jobs j WHERE j.vm_id = v.id AND j.kind = ?1 ORDER BY j.id DESC LIMIT 1),
+		EXISTS (SELECT 1 FROM jobs j WHERE j.vm_id = v.id AND j.kind = ?1 AND j.state IN ('queued', 'running')),
+		EXISTS (SELECT 1 FROM points pt WHERE pt.vm_id = v.id AND pt.state = 'present' AND pt.check_state = 'ok')
+		FROM vms v JOIN policies p ON p.id = v.policy_id ORDER BY v.id`, kind)
+}

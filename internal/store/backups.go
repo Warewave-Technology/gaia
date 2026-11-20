@@ -195,12 +195,13 @@ func (d *DB) LastJob(ctx context.Context, vmID int64, kind string) (Job, bool, e
 
 // QueuedJobs lists queued jobs, oldest first.
 func (d *DB) QueuedJobs(ctx context.Context) ([]Job, error) {
-	return rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state = 'queued' ORDER BY id`)
+	// (state IN (...) lets SQLite use the partial index jobs_open.)
+	return rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state IN ('queued', 'running') AND state = 'queued' ORDER BY id`)
 }
 
 // FailInterruptedJobs ends the jobs a stopped server left running and returns them as they were.
 func (d *DB) FailInterruptedJobs(ctx context.Context, reason string) ([]Job, error) {
-	js, err := rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state = 'running'`)
+	js, err := rowsOf(ctx, d.db, scanJob, `SELECT `+jobCols+` FROM jobs WHERE state IN ('queued', 'running') AND state = 'running'`)
 	if err != nil {
 		return nil, err
 	}
