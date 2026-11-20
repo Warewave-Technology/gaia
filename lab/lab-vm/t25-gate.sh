@@ -151,14 +151,18 @@ gate_json() {
 	  tests_per_hour: ($b[0].by_slots | map_values(.median_tests_per_hour)), windows_rto_s: $c[0].windows.proven_rto_s}
 	 | . + {verdict: (if .a and .b and .c then "OK" else "CRITICAL" end)}' | tee "$OUT_DIR/gate.json"
 }
-# helper_log SINCE: the sandbox helper's admissions and ends since SINCE (UTC, "YYYY-MM-DD HH:MM:SS")
-helper_log() { journalctl -u "$SB_UNIT" --since "$1 UTC" --no-pager -o cat | grep -E 'msg=(admitted|verified)' >"$OUT_DIR/c-helper.log" || true; }
+# helper_log LIMIT: the sandbox helper's admissions and ends since it last started with that memory limit (phase c's
+# start), whatever came before
+helper_log() {
+	journalctl -u "$SB_UNIT" --no-pager -o cat | awk -v m="memory_limit_mib=$1 " '/sandbox helper listening/ && index($0, m) {buf = ""; next} {buf = buf $0 "\n"} END {printf "%s", buf}' |
+		grep -E 'msg=(admitted|verified)' >"$OUT_DIR/c-helper.log" || true
+}
 if [[ "${1:-}" == recompute ]]; then
 	OUT_DIR=${2:?OUT_DIR}
-	since=$(jq -r '[.[].test.started_at] | min | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 - 120 | strftime("%Y-%m-%d %H:%M:%S")' "$OUT_DIR/c-tests.json")
-	helper_log "$since"
+	limit=$(jq -r .memory_limit_mib "$OUT_DIR/c.json")
+	helper_log "$limit"
 	analyze_a
-	analyze_c "$(jq -r .memory_limit_mib "$OUT_DIR/c.json")"
+	analyze_c "$limit"
 	gate_json
 	exit 0
 fi
@@ -319,9 +323,8 @@ win_mem=$(( 2048 + 256 ))
 lin_mem=$(( 384 + 256 ))
 limit=$(( win_mem + 2 * lin_mem + lin_mem / 2 )) # Windows and two Linux fit, Windows and three do not
 sandbox 4 "$limit"
-since=$(date -u '+%Y-%m-%d %H:%M:%S')
 test_all "$WIN" "${LIN[@]}" >"$OUT_DIR/c-tests.json"
-helper_log "$since"
+helper_log "$limit"
 analyze_c "$limit"
 jq -c '{pass, windows, linux_waits: [.admissions[] | select(.vm | endswith("-win") | not) | {vm, waited_s, admitted_when_freed}]}' "$OUT_DIR/c.json" >&2
 
