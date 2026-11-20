@@ -282,6 +282,19 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	}
 	t = time.Now()
 	job, err := lv.BeginMulti(req)
+	if errors.Is(err, libvirtbackup.ErrCheckpointInconsistent) {
+		// The parent checkpoint's bitmap was lost (QEMU stopped without saving it): it can never give an
+		// incremental. Drop it and take the full backup now, with the reason, instead of failing every cycle.
+		if derr := lv.DropCheckpoint(vm.Name, parent.Checkpoint); derr != nil {
+			return errors.Join(err, fmt.Errorf("dropping the inconsistent checkpoint %s: %w", parent.Checkpoint, derr))
+		}
+		d.CheckpointsPruned = append(d.CheckpointsPruned, parent.Checkpoint)
+		d.Kind, d.Parent, req.Incremental = "full", nil, ""
+		d.Reason = fmt.Sprintf("full: checkpoint %s of point %d is inconsistent on the host (its bitmap was lost: QEMU stopped without saving it)",
+			parent.Checkpoint, parent.ID)
+		s.log.Warn("inconsistent checkpoint dropped; the backup is full", "vm", vm.Name, "checkpoint", parent.Checkpoint, "job", j.ID)
+		job, err = lv.BeginMulti(req)
+	}
 	if err != nil {
 		return err
 	}

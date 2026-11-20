@@ -208,6 +208,34 @@ func (c *Conn) HasCheckpoint(domain, name string) (bool, error) {
 	return slices.Contains(cps, name), nil
 }
 
+// ErrCheckpointInconsistent marks an incremental backup that libvirt refused because the parent checkpoint's bitmap is
+// missing or broken: QEMU stopped without saving it (the host lost power, the QEMU process was killed). Only a full
+// backup can follow; the checkpoint is useless and DropCheckpoint removes it.
+var ErrCheckpointInconsistent = errors.New("the parent checkpoint is inconsistent (its bitmap is missing or broken)")
+
+type inconsistent struct{ error }
+
+func (e inconsistent) Is(target error) bool { return target == ErrCheckpointInconsistent }
+func (e inconsistent) Unwrap() error        { return e.error }
+
+func isInconsistent(err error) bool {
+	var le libvirt.Error
+	return errors.As(err, &le) && le.Code == uint32(libvirt.ErrCheckpointInconsistent)
+}
+
+// DropCheckpoint removes a checkpoint whose bitmap is gone: its metadata only, since there is no bitmap left to merge.
+func (c *Conn) DropCheckpoint(domain, name string) error {
+	dom, err := c.l.DomainLookupByName(domain)
+	if err != nil {
+		return fmt.Errorf("domain %q: %w", domain, err)
+	}
+	cp, err := c.l.DomainCheckpointLookupByName(dom, name, 0)
+	if err != nil {
+		return fmt.Errorf("checkpoint %s: %w", name, err)
+	}
+	return c.l.DomainCheckpointDelete(cp, libvirt.DomainCheckpointDeleteMetadataOnly)
+}
+
 // DeleteCheckpoint removes a checkpoint; libvirt merges its bitmap into its parent's, so later incrementals
 // from older checkpoints stay correct.
 func (c *Conn) DeleteCheckpoint(domain, name string) error {
@@ -343,6 +371,9 @@ func (c *Conn) BeginMulti(r MultiRequest) (*MultiJob, error) {
 	backupXML := fmt.Sprintf(`<domainbackup mode='pull'>%s%s<disks>%s</disks></domainbackup>`, incr, server, bdisks.String())
 	checkpointXML := fmt.Sprintf(`<domaincheckpoint><name>%s</name><disks>%s</disks></domaincheckpoint>`, xmlEscape(r.Checkpoint), cdisks.String())
 	if err := c.l.DomainBackupBegin(dom, backupXML, libvirt.OptString{checkpointXML}, 0); err != nil {
+		if r.Incremental != "" && isInconsistent(err) {
+			return nil, inconsistent{fmt.Errorf("backup begin: %w", err)}
+		}
 		return nil, fmt.Errorf("backup begin: %w", err)
 	}
 	j := &MultiJob{c: c, dom: dom, Server: r.Server}
