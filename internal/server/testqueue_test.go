@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"os"
@@ -13,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/diskstore"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
 	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
@@ -164,4 +167,67 @@ func TestParallelTestDispatch(t *testing.T) {
 	done()
 	s.jobsWG.Wait()
 	_ = status.OK
+}
+
+// Restores of one repository run beside each other (each opens the repository on its own), not beside a writer: a
+// backup, retention, maintenance or verification waits for the restores, and restores that come after a waiting
+// writer wait for it.
+func TestRestoresShareTheRepository(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	var repo store.Repository
+	if st := f.do(f.tokens[store.RoleAdmin], "POST", "/api/v1/repositories", fmt.Sprintf(`{"name":"main","kind":"filesystem","location":%q,"kit_passphrase":%q}`,
+		filepath.Join(f.dir, "repo"), kitPassphrase), &repo); st != 201 {
+		t.Fatalf("repository: %d", st)
+	}
+	h, _ := f.s.db.CreateHost(ctx, store.HostInput{Name: "kvm", Address: "kvm", SSHUser: "gaia-backup"})
+	vm, err := f.s.db.CreateVM(ctx, "admin", store.VMInput{HostID: h.ID, Name: "web1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := make([]byte, 3*diskstore.BlockSize)
+	r := rand.New(rand.NewPCG(7, 8))
+	for i := range data {
+		data[i] = byte(r.Uint32())
+	}
+	p := addPoint(t, f.s, repo, vm, data)
+	want := fmt.Sprintf("%x", sha256.Sum256(data))
+
+	lock := f.s.repoLocks.get(repo.ID)
+	lock.RLock() // a restore that is running
+	type result struct {
+		disks []RestoredDisk
+		err   error
+	}
+	res := make(chan result, 3)
+	for range 3 {
+		go func() { d, err := f.s.restoreCheck(ctx, p); res <- result{d, err} }()
+	}
+	for range 3 {
+		select {
+		case x := <-res:
+			if x.err != nil || len(x.disks) != 1 || x.disks[0].SHA256 != want {
+				t.Fatalf("a restore beside other restores: %+v %v", x.disks, x.err)
+			}
+		case <-time.After(60 * time.Second):
+			t.Fatal("a restore waited for another restore")
+		}
+	}
+	wrote := make(chan struct{})
+	go func() { lock.Lock(); close(wrote); lock.Unlock() }() // a backup
+	time.Sleep(50 * time.Millisecond)
+	late := make(chan error, 1)
+	go func() { _, err := f.s.restoreCheck(ctx, p); late <- err }()
+	select {
+	case <-wrote:
+		t.Fatal("a writer ran beside a restore")
+	case <-late:
+		t.Fatal("a restore went before a waiting writer")
+	case <-time.After(100 * time.Millisecond):
+	}
+	lock.RUnlock()
+	<-wrote
+	if err := <-late; err != nil {
+		t.Fatal(err)
+	}
 }

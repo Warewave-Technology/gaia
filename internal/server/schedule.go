@@ -442,8 +442,8 @@ func (s *Server) restoreCheck(ctx context.Context, p store.Point) ([]RestoredDis
 		return nil, err
 	}
 	lock := s.repoLocks.get(r.ID)
-	lock.Lock()
-	defer lock.Unlock()
+	lock.RLock()
+	defer lock.RUnlock()
 	st, err := s.OpenRepository(ctx, r)
 	if err != nil {
 		return nil, err

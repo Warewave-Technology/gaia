@@ -224,8 +224,8 @@ func (s *Server) restoreDisks(ctx context.Context, p store.Point, disks []store.
 		return 0, err
 	}
 	lock := s.repoLocks.get(r.ID)
-	lock.Lock()
-	defer lock.Unlock()
+	lock.RLock()
+	defer lock.RUnlock()
 	st, err := s.OpenRepository(ctx, r)
 	if err != nil {
 		return 0, err

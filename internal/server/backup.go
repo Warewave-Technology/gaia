@@ -18,20 +18,22 @@ import (
 )
 
 // repoLocks serialise everything that writes a repository or must see it still (backup, retention, maintenance,
-// verification) per repository.
+// verification, forgetting a point: Lock) per repository. Restores only read it (restore tests, restore checks: RLock),
+// so they run beside each other, never beside a writer; a waiting writer goes before restores that come after it
+// (T25: a Windows restore held the lock for 185 s and Linux tests behind it waited that long).
 type repoLocks struct {
 	mu sync.Mutex
-	m  map[int64]*sync.Mutex
+	m  map[int64]*sync.RWMutex
 }
 
-func (l *repoLocks) get(id int64) *sync.Mutex {
+func (l *repoLocks) get(id int64) *sync.RWMutex {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.m == nil {
-		l.m = map[int64]*sync.Mutex{}
+		l.m = map[int64]*sync.RWMutex{}
 	}
 	if l.m[id] == nil {
-		l.m[id] = &sync.Mutex{}
+		l.m[id] = &sync.RWMutex{}
 	}
 	return l.m[id]
 }
