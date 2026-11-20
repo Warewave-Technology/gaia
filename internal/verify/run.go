@@ -83,6 +83,9 @@ type Options struct {
 	Socket      string             // libvirtd socket
 	Self        string             // this binary, run as `Self probe ...` inside the sandbox's network namespace
 	Log         io.Writer          // progress lines
+	// Slot is the sandbox slot the guest runs in (ADR-007 C4): its own network namespace, bridge, dnsmasq, overlay
+	// and address range, 10.254.<slot>.0/24, so guests of parallel tests never share an address or a link.
+	Slot int
 	// For callers that do more than verify (the migration check): steps that ran before,
 	// recorded as checks ahead of the VM's own; files to add to the bundle (bundle path ->
 	// local file); and, when there is no image (Image == ""), why the guest was not started.
@@ -125,6 +128,7 @@ type Sandbox struct {
 	Network      string   `json:"network"`
 	Bridge       string   `json:"bridge"`
 	Netns        string   `json:"netns"`
+	Slot         int      `json:"slot"`
 	ProbeAddress string   `json:"probe_address"`
 	GuestIP      string   `json:"guest_ip"`
 	Virt         string   `json:"virt"` // kvm, or qemu (emulated, no /dev/kvm)
@@ -132,6 +136,7 @@ type Sandbox struct {
 	QEMU         string   `json:"qemu"`
 	HostAddrs    []string `json:"host_addresses_on_bridge"` // must be empty: the guest cannot reach the host
 	NetnsRoutes  []string `json:"netns_routes"`             // must have no default route: no uplink
+	Forwarding   string   `json:"netns_ip_forward"`         // must be 0: the namespace forwards nothing (not to another slot)
 	Isolated     bool     `json:"isolated"`
 }
 
@@ -157,11 +162,13 @@ type Result struct {
 	LedgerSeq    int    `json:"ledger_seq,omitempty"`
 }
 
-const (
-	probeIP  = "10.254.0.1"
-	dhcpFrom = "10.254.0.10"
-	dhcpTo   = "10.254.0.99"
-)
+// MaxSlots is the most sandbox slots there are (ADR-007 C4: at most 8).
+const MaxSlots = 8
+
+// slotNet is a slot's addresses: the probe's (the namespace's), and the guests' DHCP range.
+func slotNet(slot int) (probe, from, to string) {
+	return fmt.Sprintf("10.254.%d.1", slot), fmt.Sprintf("10.254.%d.10", slot), fmt.Sprintf("10.254.%d.99", slot)
+}
 
 type run struct {
 	o        Options
@@ -219,7 +226,11 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 	x.serial = filepath.Join(o.SerialDir, "gaia-verify-"+short+"-serial.log")
 	sb := &r.Sandbox
 	sb.Domain, sb.Network, sb.Bridge, sb.Netns = "gaia-verify-"+short, "gaia-verify-"+short, "gvb-"+short, "gaia-verify-"+short
-	sb.ProbeAddress, sb.HostAddrs, sb.NetnsRoutes = probeIP, []string{}, []string{}
+	if o.Slot < 0 || o.Slot >= MaxSlots {
+		return nil, fmt.Errorf("slot %d: 0-%d", o.Slot, MaxSlots-1)
+	}
+	probe, _, _ := slotNet(o.Slot)
+	sb.Slot, sb.ProbeAddress, sb.HostAddrs, sb.NetnsRoutes = o.Slot, probe, []string{}, []string{}
 
 	if err := x.verify(ctx); err != nil {
 		r.Errors = append(r.Errors, err.Error())
@@ -429,7 +440,7 @@ func (x *run) setupNetwork() error {
 		{"sysctl", "-q", "-w", "net.ipv6.conf." + host + ".disable_ipv6=1"},
 		{"ip", "link", "set", host, "master", sb.Bridge, "up"},
 		{"ip", "link", "set", ns, "netns", sb.Netns},
-		{"ip", "-n", sb.Netns, "addr", "add", probeIP + "/24", "dev", ns},
+		{"ip", "-n", sb.Netns, "addr", "add", sb.ProbeAddress + "/24", "dev", ns},
 		{"ip", "-n", sb.Netns, "link", "set", ns, "up"},
 		{"ip", "-n", sb.Netns, "link", "set", "lo", "up"},
 	}
@@ -444,6 +455,7 @@ func (x *run) setupNetwork() error {
 	if err := os.MkdirAll(x.work, 0o755); err != nil {
 		return err
 	}
+	_, dhcpFrom, dhcpTo := slotNet(sb.Slot)
 	x.dnsmasq = exec.Command("ip", "netns", "exec", sb.Netns, "dnsmasq", "--keep-in-foreground", "--conf-file=/dev/null",
 		"--no-resolv", "--no-hosts", "--port=0", "--bind-interfaces", "--interface="+ns, "--except-interface=lo",
 		"--dhcp-range="+dhcpFrom+","+dhcpTo+",255.255.255.0,1h", "--dhcp-leasefile="+x.leases,
@@ -478,9 +490,14 @@ func (x *run) checkIsolation() error {
 			defaultRoute = defaultRoute || strings.HasPrefix(ln, "default")
 		}
 	}
-	sb.Isolated = len(sb.HostAddrs) == 0 && !defaultRoute
+	if out, err = x.cmd("ip", "netns", "exec", sb.Netns, "cat", "/proc/sys/net/ipv4/ip_forward"); err != nil {
+		return err
+	}
+	sb.Forwarding = strings.TrimSpace(out)
+	sb.Isolated = len(sb.HostAddrs) == 0 && !defaultRoute && sb.Forwarding == "0"
 	if !sb.Isolated {
-		return fmt.Errorf("sandbox is not isolated (host addresses %v, netns routes %v): not booting the guest", sb.HostAddrs, sb.NetnsRoutes)
+		return fmt.Errorf("sandbox is not isolated (host addresses %v, netns routes %v, ip_forward %q): not booting the guest",
+			sb.HostAddrs, sb.NetnsRoutes, sb.Forwarding)
 	}
 	return nil
 }

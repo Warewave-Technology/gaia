@@ -529,6 +529,8 @@ func cmdSandboxServe(ctx context.Context, args []string) int {
 	fs.StringVar(&c.SerialDir, "serial-dir", "/var/log/libvirt/qemu", "serial logs")
 	fs.StringVar(&c.BundleDir, "bundle-dir", "/var/lib/gaia-sandbox/bundles", "unsigned bundles while they are sent")
 	fs.StringVar(&c.LibvirtSocket, "libvirt-socket", "/run/libvirt/libvirt-sock", "libvirtd socket")
+	fs.IntVar(&c.Slots, "slots", 0, "restore tests at once, at most 8 (0: from the host's memory and CPUs)")
+	fs.IntVar(&c.MemoryMiB, "memory-mib", 0, "memory the guests of running tests may use, overhead included (0: 3/4 of the host's)")
 	fs.Parse(args)
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	if os.Geteuid() != 0 {

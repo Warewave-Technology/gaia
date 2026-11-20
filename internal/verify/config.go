@@ -45,6 +45,10 @@ type Check struct {
 }
 
 // IsBoot reports whether k is the check that decides that the guest booted.
+
+// DefaultMemoryMiB is a guest's memory when its machine does not say.
+const DefaultMemoryMiB = 1024
+
 func (k Check) IsBoot() bool { return k.Type == CheckBootSerial || k.Boot }
 
 // Machine is the virtual hardware of the sandbox guest. It should match the source VM,
@@ -135,7 +139,7 @@ func (c *Config) resolve() error {
 	def(&m.Firmware, "bios")
 	def(&m.DiskBus, "virtio")
 	def(&m.NICModel, "virtio")
-	defInt(&m.MemoryMiB, 1024)
+	defInt(&m.MemoryMiB, DefaultMemoryMiB)
 	defInt(&m.VCPUs, 2)
 	defInt(&c.BootTimeoutS, 300)
 	defInt(&c.ProbeTimeoutS, 120)

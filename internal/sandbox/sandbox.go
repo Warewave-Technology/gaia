@@ -7,7 +7,8 @@
 // it with its own key, so the helper never holds a key and the server never holds root.
 //
 // The helper listens on a unix socket that only root and the gaia group can open (0660 in a 0750 directory). It
-// serves one request at a time over HTTP: POST /v1/verify with a Request; the answer is a tar of the bundle.
+// serves over HTTP: POST /v1/verify with a Request, answered with a tar of the bundle once the test ran in a slot
+// (slots.go: up to Slots at once, admitted by memory); GET /v1/capacity says what it can run and runs now.
 package sandbox
 
 import (
@@ -27,7 +28,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/dirtar"
@@ -55,6 +55,9 @@ type Config struct {
 	BundleDir     string // unsigned bundles while they are sent, e.g. /var/lib/gaia-sandbox/bundles
 	LibvirtSocket string // /run/libvirt/libvirt-sock
 	Self          string // this binary, for `gaia probe` inside the sandbox network
+	// Parallel tests (ADR-007 C4, slots.go): 0 takes the default from the host's memory and CPUs.
+	Slots     int // at most verify.MaxSlots
+	MemoryMiB int // the guests' memory limit, overhead included
 }
 
 var targetRE = regexp.MustCompile(`^(vd|sd|hd)[a-z]$`)
@@ -164,10 +167,19 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 		ln.Close()
 		return err
 	}
-	h := &handler{c: c, log: log}
+	n, limit, basis, err := defaultSlots(c.Slots, c.MemoryMiB)
+	if err != nil {
+		ln.Close()
+		return err
+	}
+	h := &handler{c: c, log: log, slots: newSlots(n, limit, basis)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/verify", h.verify)
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
+	mux.HandleFunc("GET /v1/capacity", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(h.slots.capacity())
+	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
@@ -175,7 +187,7 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 		defer cancel()
 		srv.Shutdown(sctx)
 	}()
-	log.Info("sandbox helper listening", "socket", c.Socket, "group", c.Group, "images", c.ImagesDir)
+	log.Info("sandbox helper listening", "socket", c.Socket, "group", c.Group, "images", c.ImagesDir, "slots", n, "memory_limit_mib", limit, "basis", basis)
 	// Only now does systemd start gaia.service (After=, Type=notify): its ReadWritePaths needs the images directory
 	// to exist when its namespace is made, or the directory stays read-only for the server.
 	if err := notifyReady(); err != nil {
@@ -188,9 +200,9 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 }
 
 type handler struct {
-	c   Config
-	log *slog.Logger
-	mu  sync.Mutex // one sandbox at a time
+	c     Config
+	log   *slog.Logger
+	slots *slots
 }
 
 func (h *handler) verify(w http.ResponseWriter, r *http.Request) {
@@ -206,14 +218,29 @@ func (h *handler) verify(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	slot := 0
+	if len(req.Disks) > 0 { // a request without disks boots no guest and needs no slot
+		mem := req.Config.Machine.MemoryMiB
+		if mem <= 0 {
+			mem = verify.DefaultMemoryMiB
+		}
+		t0 := time.Now()
+		var err error
+		if slot, err = h.slots.acquire(r.Context(), req.Config.VM, mem); err != nil {
+			h.log.Warn("not admitted", "vm", req.Config.VM, "memory_mib", mem, "error", err)
+			http.Error(w, "admission: "+err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		defer h.slots.release(slot)
+		h.log.Info("admitted", "vm", req.Config.VM, "slot", slot, "memory_mib", mem, "waited_s", time.Since(t0).Seconds())
+		w.Header().Set("X-Gaia-Slot", strconv.Itoa(slot))
+	}
 	var progress bytes.Buffer
-	h.log.Info("verifying", "vm", req.Config.VM, "disks", len(req.Disks))
+	h.log.Info("verifying", "vm", req.Config.VM, "disks", len(req.Disks), "slot", slot)
 	res, err := verify.Run(r.Context(), verify.Options{Config: &req.Config, Disks: req.Disks, RestoreS: req.RestoreS,
 		PreChecks: req.PreChecks, SkipReason: req.SkipReason,
 		WorkDir: h.c.WorkDir, SerialDir: h.c.SerialDir, EvidenceDir: h.c.BundleDir, Socket: h.c.LibvirtSocket,
-		Self: h.c.Self, Log: &progress})
+		Self: h.c.Self, Log: &progress, Slot: slot})
 	if res != nil && res.BundleDir != "" {
 		defer os.RemoveAll(res.BundleDir)
 	}
@@ -252,6 +279,29 @@ func NewClient(socket string) *Client {
 			var d net.Dialer
 			return d.DialContext(ctx, "unix", socket)
 		}}}}
+}
+
+// Capacity asks the helper what it can run and runs now.
+func (c *Client) Capacity(ctx context.Context) (Capacity, error) {
+	var out Capacity
+	hr, err := http.NewRequestWithContext(ctx, "GET", "http://sandbox/v1/capacity", nil)
+	if err != nil {
+		return out, err
+	}
+	resp, err := c.http.Do(hr)
+	if err != nil {
+		err = fmt.Errorf("sandbox helper at %s: %w", c.Socket, err)
+		if op := (*net.OpError)(nil); errors.As(err, &op) && op.Op == "dial" {
+			err = unavailable{err}
+		}
+		return out, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return out, fmt.Errorf("sandbox helper: %s: %s", resp.Status, strings.TrimSpace(string(msg)))
+	}
+	return out, json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&out)
 }
 
 // Verify sends a request and unpacks the returned bundle into dest/<bundle id>. It returns that directory and the
