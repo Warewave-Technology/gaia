@@ -14,6 +14,8 @@
 #      free (each admission after a wait comes when another test has just ended).
 #
 # Usage (on gaia-lab, as root): systemd-run --unit=gaia-t25 --collect -E HOME=/root lab/lab-vm/t25-gate.sh [OUT_DIR]
+#                               lab/lab-vm/t25-gate.sh recompute OUT_DIR   a, c and gate.json again from a run's files and
+#                                                                         the helper's journal
 #                               lab/lab-vm/t25-gate.sh cleanup
 # Exit 0 OK, 2 CRITICAL, 3 UNKNOWN.
 # shellcheck disable=SC2016 # jq programs in single quotes
@@ -63,6 +65,103 @@ if [[ "${1:-}" == cleanup ]]; then
 	exit 0
 fi
 
+
+# --- analyses (also: t25-gate.sh recompute OUT_DIR) ---------------------------------------------------------------
+analyze_a() {
+python3 - "$OUT_DIR" <<'EOF' >"$OUT_DIR/a.json"
+import json, re, sys
+out = sys.argv[1]
+bundles = json.load(open(f"{out}/a-bundles.json"))
+tests = json.load(open(f"{out}/a-tests.json"))
+probes = {}
+for line in open(f"{out}/a-probes.txt"):
+    b, rest = line.split(" ", 1)
+    m = re.search(r"slot=(\d+) own=(\S+) target=(\S+) reached=(\w+) via=(\S+)", rest)
+    if m:
+        probes.setdefault(b, []).append({"target": m[3], "reached": m[4] == "yes", "via": m[5]})
+own_ip = {}
+for line in open(f"{out}/a-probes.txt"):
+    b, rest = line.split(" ", 1)
+    m = re.search(r"own=(\S+)", rest)
+    if m:
+        own_ip[b] = m[1]
+for x in bundles:  # a guest booted by its serial console leases an address verify does not record: its probe says it
+    x["guest_ip"] = x["guest_ip"] or own_ip.get(x["bundle"], "")
+slots = {x["bundle"]: x for x in bundles}
+rows, ok = [], True
+for a in bundles:
+    pa = {p["target"]: p for p in probes.get(a["bundle"], [])}
+    own = f"10.254.{a['slot']}.1"
+    row = {"slot": a["slot"], "guest_ip": a["guest_ip"], "isolated": a["isolated"], "netns_ip_forward": a["forwarding"],
+           "own_probe_reached": pa.get(own, {}).get("reached", False), "pairs": [], "others_reached": []}
+    for b in bundles:
+        if b is a:
+            continue
+        for t in (f"10.254.{b['slot']}.1", b["guest_ip"]):
+            p = pa.get(t)
+            row["pairs"].append({"to_slot": b["slot"], "target": t, "probed": p is not None, "reached": bool(p and p["reached"])})
+    for t, p in pa.items():
+        if t != own and p["reached"]:
+            row["others_reached"].append(t)
+    row["pass"] = (row["isolated"] and row["netns_ip_forward"] == "0" and row["own_probe_reached"] and not row["others_reached"]
+                   and all(x["probed"] and not x["reached"] for x in row["pairs"]))
+    ok = ok and row["pass"]
+    rows.append(row)
+starts = sorted(t["test"]["started_at"] for t in tests)
+print(json.dumps({"slots": sorted(r["slot"] for r in rows), "rows": rows, "test_starts": starts,
+                  "pass": ok and len(rows) == 4 and len({r["slot"] for r in rows}) == 4}, indent=2))
+EOF
+}
+analyze_c() { # LIMIT
+	local limit=$1
+python3 - "$OUT_DIR" "$limit" <<'EOF' >"$OUT_DIR/c.json"
+import json, re, sys
+from datetime import datetime
+out, limit = sys.argv[1], int(sys.argv[2])
+t = lambda s: datetime.fromisoformat(s.replace("Z", "+00:00"))
+events = []
+for line in open(f"{out}/c-helper.log"):
+    kv = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+    kv = {k: v.strip('"') for k, v in kv.items()}
+    events.append(kv)
+tests = json.load(open(f"{out}/c-tests.json"))
+win = next(x for x in tests if x["vm"].endswith("-win"))
+ends = [t(e["time"]) for e in events if e.get("msg") == "verified"]
+waits = []
+for e in events:
+    if e.get("msg") != "admitted":
+        continue
+    w = float(e.get("waited_s", 0))
+    at = t(e["time"])
+    # A wait is for admission only if a test ended just before this one was admitted.
+    freed = w < 1 or any(0 <= (at - x).total_seconds() <= 3 for x in ends)
+    waits.append({"vm": e["vm"], "slot": int(e["slot"]), "memory_mib": int(e["memory_mib"]), "waited_s": w, "admitted_when_freed": freed})
+lin = [x for x in waits if not x["vm"].endswith("-win")]
+logged = len(lin) == len([x for x in tests if not x["vm"].endswith("-win")]) and any(x["vm"].endswith("-win") for x in waits)
+linux_ok = logged and all(x["admitted_when_freed"] for x in lin)
+print(json.dumps({"memory_limit_mib": limit, "admission_log_complete": logged, "windows": {"verdict": win["test"]["verdict"], "proven_rto_s": win["test"]["proven_rto_s"],
+                  "reason": win["test"]["reason"]}, "admissions": waits,
+                  "verdicts": {x["vm"]: x["test"]["verdict"] for x in tests},
+                  "pass": win["test"]["proven_rto_s"] is not None and linux_ok and all(x["test"]["verdict"] == "OK" for x in tests)}, indent=2))
+EOF
+}
+gate_json() {
+	jq -n --slurpfile a "$OUT_DIR/a.json" --slurpfile b "$OUT_DIR/b.json" --slurpfile c "$OUT_DIR/c.json" --arg commit "$(cat "$OUT_DIR/commit.txt")" \
+	'{commit: $commit, a: $a[0].pass, b: $b[0].pass, c: $c[0].pass,
+	  tests_per_hour: ($b[0].by_slots | map_values(.median_tests_per_hour)), windows_rto_s: $c[0].windows.proven_rto_s}
+	 | . + {verdict: (if .a and .b and .c then "OK" else "CRITICAL" end)}' | tee "$OUT_DIR/gate.json"
+}
+# helper_log SINCE: the sandbox helper's admissions and ends since SINCE (UTC, "YYYY-MM-DD HH:MM:SS")
+helper_log() { journalctl -u "$SB_UNIT" --since "$1 UTC" --no-pager -o cat | grep -E 'msg=(admitted|verified)' >"$OUT_DIR/c-helper.log" || true; }
+if [[ "${1:-}" == recompute ]]; then
+	OUT_DIR=${2:?OUT_DIR}
+	since=$(jq -r '[.[].test.started_at] | min | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 - 120 | strftime("%Y-%m-%d %H:%M:%S")' "$OUT_DIR/c-tests.json")
+	helper_log "$since"
+	analyze_a
+	analyze_c "$(jq -r .memory_limit_mib "$OUT_DIR/c.json")"
+	gate_json
+	exit 0
+fi
 mkdir -p "$OUT_DIR"
 exec > >(tee -a "$OUT_DIR/t25.log") 2>&1
 for vm in "${ISO[@]}" "${LIN[@]}" "$WIN"; do
@@ -179,42 +278,7 @@ for b in $(jq -r '.[].test.bundle_id' "$OUT_DIR/a-tests.json"); do
 	jq -c '{bundle: .bundle_id, slot: .sandbox.slot, guest_ip: .sandbox.guest_ip, isolated: .sandbox.isolated, forwarding: .sandbox.netns_ip_forward, verdict}' "$d/result.json"
 	grep -a 'GAIA-ISOLATION' "$d/serial.log" | tr -d '\r' | sed "s/^/$b /" >>"$OUT_DIR/a-probes.txt" || true
 done | jq -s . >"$OUT_DIR/a-bundles.json"
-python3 - "$OUT_DIR" <<'EOF' >"$OUT_DIR/a.json"
-import json, re, sys
-out = sys.argv[1]
-bundles = json.load(open(f"{out}/a-bundles.json"))
-tests = json.load(open(f"{out}/a-tests.json"))
-probes = {}
-for line in open(f"{out}/a-probes.txt"):
-    b, rest = line.split(" ", 1)
-    m = re.search(r"slot=(\d+) own=(\S+) target=(\S+) reached=(\w+) via=(\S+)", rest)
-    if m:
-        probes.setdefault(b, []).append({"target": m[3], "reached": m[4] == "yes", "via": m[5]})
-ended = {b: "GAIA-ISOLATION-END" in open(f"{out}/a-probes.txt").read() for b in probes}
-slots = {x["bundle"]: x for x in bundles}
-rows, ok = [], True
-for a in bundles:
-    pa = {p["target"]: p for p in probes.get(a["bundle"], [])}
-    own = f"10.254.{a['slot']}.1"
-    row = {"slot": a["slot"], "guest_ip": a["guest_ip"], "isolated": a["isolated"], "netns_ip_forward": a["forwarding"],
-           "own_probe_reached": pa.get(own, {}).get("reached", False), "pairs": [], "others_reached": []}
-    for b in bundles:
-        if b is a:
-            continue
-        for t in (f"10.254.{b['slot']}.1", b["guest_ip"]):
-            p = pa.get(t)
-            row["pairs"].append({"to_slot": b["slot"], "target": t, "probed": p is not None, "reached": bool(p and p["reached"])})
-    for t, p in pa.items():
-        if t != own and p["reached"]:
-            row["others_reached"].append(t)
-    row["pass"] = (row["isolated"] and row["netns_ip_forward"] == "0" and row["own_probe_reached"] and not row["others_reached"]
-                   and all(x["probed"] and not x["reached"] for x in row["pairs"]))
-    ok = ok and row["pass"]
-    rows.append(row)
-starts = sorted(t["test"]["started_at"] for t in tests)
-print(json.dumps({"slots": sorted(r["slot"] for r in rows), "rows": rows, "test_starts": starts,
-                  "pass": ok and len(rows) == 4 and len({r["slot"] for r in rows}) == 4}, indent=2))
-EOF
+analyze_a
 jq -c '{pass, slots, rows: [.rows[] | {slot, own_probe_reached, others_reached, pass}]}' "$OUT_DIR/a.json" >&2
 
 section "b: throughput with 1, 2 and 4 slots, $RUNS runs each"
@@ -255,42 +319,12 @@ win_mem=$(( 2048 + 256 ))
 lin_mem=$(( 384 + 256 ))
 limit=$(( win_mem + 2 * lin_mem + lin_mem / 2 )) # Windows and two Linux fit, Windows and three do not
 sandbox 4 "$limit"
-since=$(date -u +%Y-%m-%dT%H:%M:%S)
+since=$(date -u '+%Y-%m-%d %H:%M:%S')
 test_all "$WIN" "${LIN[@]}" >"$OUT_DIR/c-tests.json"
-journalctl -u "$SB_UNIT" --since "$since" --no-pager -o cat | grep -E 'msg=(admitted|verified)' >"$OUT_DIR/c-helper.log" || true
-python3 - "$OUT_DIR" "$limit" <<'EOF' >"$OUT_DIR/c.json"
-import json, re, sys
-from datetime import datetime
-out, limit = sys.argv[1], int(sys.argv[2])
-t = lambda s: datetime.fromisoformat(s.replace("Z", "+00:00"))
-events = []
-for line in open(f"{out}/c-helper.log"):
-    kv = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
-    kv = {k: v.strip('"') for k, v in kv.items()}
-    events.append(kv)
-tests = json.load(open(f"{out}/c-tests.json"))
-win = next(x for x in tests if x["vm"].endswith("-win"))
-ends = [t(e["time"]) for e in events if e.get("msg") == "verified"]
-waits = []
-for e in events:
-    if e.get("msg") != "admitted":
-        continue
-    w = float(e.get("waited_s", 0))
-    at = t(e["time"])
-    # A wait is for admission only if a test ended just before this one was admitted.
-    freed = w < 1 or any(0 <= (at - x).total_seconds() <= 3 for x in ends)
-    waits.append({"vm": e["vm"], "slot": int(e["slot"]), "memory_mib": int(e["memory_mib"]), "waited_s": w, "admitted_when_freed": freed})
-linux_ok = all(x["admitted_when_freed"] for x in waits if not x["vm"].endswith("-win"))
-print(json.dumps({"memory_limit_mib": limit, "windows": {"verdict": win["test"]["verdict"], "proven_rto_s": win["test"]["proven_rto_s"],
-                  "reason": win["test"]["reason"]}, "admissions": waits,
-                  "verdicts": {x["vm"]: x["test"]["verdict"] for x in tests},
-                  "pass": win["test"]["proven_rto_s"] is not None and linux_ok and all(x["test"]["verdict"] == "OK" for x in tests)}, indent=2))
-EOF
+helper_log "$since"
+analyze_c "$limit"
 jq -c '{pass, windows, linux_waits: [.admissions[] | select(.vm | endswith("-win") | not) | {vm, waited_s, admitted_when_freed}]}' "$OUT_DIR/c.json" >&2
 
-jq -n --slurpfile a "$OUT_DIR/a.json" --slurpfile b "$OUT_DIR/b.json" --slurpfile c "$OUT_DIR/c.json" --arg commit "$(cat "$OUT_DIR/commit.txt")" \
-	'{commit: $commit, a: $a[0].pass, b: $b[0].pass, c: $c[0].pass,
-	  tests_per_hour: ($b[0].by_slots | map_values(.median_tests_per_hour)), windows_rto_s: $c[0].windows.proven_rto_s}
-	 | . + {verdict: (if .a and .b and .c then "OK" else "CRITICAL" end)}' | tee "$OUT_DIR/gate.json"
+gate_json
 log "out: $OUT_DIR (the server stays until: lab/lab-vm/t25-gate.sh cleanup)"
 [[ $(jq -r .verdict "$OUT_DIR/gate.json") == OK ]] || exit 2
