@@ -437,6 +437,9 @@ func (x *run) setupNetwork() error {
 	steps := [][]string{
 		{"sysctl", "-q", "-w", "net.ipv6.conf." + sb.Bridge + ".disable_ipv6=1"},
 		{"ip", "netns", "add", sb.Netns},
+		// A new namespace inherits IPv4 forwarding from the host (libvirt's NAT networks turn it on): off, so the
+		// namespace forwards nothing (T25: the isolation check found it on in every slot).
+		{"ip", "netns", "exec", sb.Netns, "sysctl", "-q", "-w", "net.ipv4.ip_forward=0", "net.ipv6.conf.all.forwarding=0"},
 		{"ip", "link", "add", host, "type", "veth", "peer", "name", ns},
 		{"sysctl", "-q", "-w", "net.ipv6.conf." + host + ".disable_ipv6=1"},
 		{"ip", "link", "set", host, "master", sb.Bridge, "up"},
