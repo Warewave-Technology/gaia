@@ -165,7 +165,8 @@ type Result struct {
 // MaxSlots is the most sandbox slots there are (ADR-007 C4: at most 8).
 const MaxSlots = 8
 
-// slotNet is a slot's addresses: the probe's (the namespace's), and the guests' DHCP range.
+// slotNet is a slot's addresses: the probe's (the namespace's), and the guests' DHCP range. dnsmasq hands the range
+// out in order (--dhcp-sequential-ip), so a slot's guest is .10.
 func slotNet(slot int) (probe, from, to string) {
 	return fmt.Sprintf("10.254.%d.1", slot), fmt.Sprintf("10.254.%d.10", slot), fmt.Sprintf("10.254.%d.99", slot)
 }
@@ -458,7 +459,7 @@ func (x *run) setupNetwork() error {
 	_, dhcpFrom, dhcpTo := slotNet(sb.Slot)
 	x.dnsmasq = exec.Command("ip", "netns", "exec", sb.Netns, "dnsmasq", "--keep-in-foreground", "--conf-file=/dev/null",
 		"--no-resolv", "--no-hosts", "--port=0", "--bind-interfaces", "--interface="+ns, "--except-interface=lo",
-		"--dhcp-range="+dhcpFrom+","+dhcpTo+",255.255.255.0,1h", "--dhcp-leasefile="+x.leases,
+		"--dhcp-range="+dhcpFrom+","+dhcpTo+",255.255.255.0,1h", "--dhcp-sequential-ip", "--dhcp-leasefile="+x.leases,
 		"--pid-file="+filepath.Join(x.work, "dnsmasq.pid"), "--log-dhcp", "--log-facility="+filepath.Join(x.work, "dnsmasq.log"),
 		"--user=root", "--group=root")
 	x.logf("$ %s", strings.Join(x.dnsmasq.Args, " "))
