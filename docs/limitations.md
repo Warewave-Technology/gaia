@@ -69,11 +69,12 @@ fixtures) are in the reports, not here.
 
 ## Restore tests and the sandbox
 
-- **The sandbox helper boots one guest at a time**, and the server runs one restore test and one migration check at a
-  time. [T16, T21]
-  *Why it waits:* parallel sandboxes need memory accounting on the server; the MVP's scale does not need them. In
-  T23 one test took 44–49 s (Linux) and 425 s (Windows): one sandbox keeps up with about 80 Linux or 8 Windows VMs
-  tested every hour. The PO wants this solved before real fleets (T23, raised for approval).
+- **Migration checks run one at a time** in the server (restore tests run in parallel slots since T25). [T21, T25]
+  *Why it waits:* a check runs for many minutes in the converter and is started by an operator, not a schedule; no
+  fleet size in M3 needs two at once.
+- **The sandbox runs on the Gaia server itself**; one server's sandbox tests at most 8 VMs at once. [T25]
+  *Why it waits:* a remote sandbox host is the step after M3 (ADR-007 C4). `GET /api/v1/views/capacity` says how
+  many slots a fleet needs; the T24 catalog (5,000 VMs) needs 17.
 - **The boot timeout is 300 s and the same for every VM** (a broken VM holds the sandbox that long). [T16]
   *Why it waits:* a per-policy `boot_timeout_s` needs a schema change and a UI field; nothing in the MVP needs it.
 - **The sandbox's network card may sit at another PCI address than on the source host**, so a guest that names its

@@ -16,7 +16,7 @@ Gaia's own state, and a recovery kit to rebuild a lost Gaia server (step 13). Kn
   under `/srv/gaia`). It must be reachable on TCP port 8443 from wherever you will run the `gaia` command.
 - **For restore tests** (step 10): the server boots restored VMs itself, so it needs KVM (`ls /dev/kvm` shows the
   device; in a VM, nested virtualisation must be on), 1–2 GiB RAM more per test VM, and free disk under
-  `/var/lib/gaia-sandbox` for the largest VM's disks.
+  `/var/lib/gaia-sandbox` for the largest VM's disks (times the number of tests that run at once, step 10b).
 - **Workstation:** the machine you run the `gaia` command on and keep the recovery kit on (Linux or macOS), with
   OpenSSH (it checks the release's signature). Your Mac is fine.
 
@@ -479,6 +479,28 @@ Every test is sealed as signed evidence. To run one now and see the result:
 gaia vms test <vm id>
 gaia tests list vm_id=<vm id>
 ```
+
+**Several tests at once.** The sandbox runs up to 8 tests at once, each in a network of its own that cannot reach
+the others. By default it takes 3/4 of the server's memory for test VMs and runs as many tests as fit: at most one per
+two CPUs, and one per 1,280 MiB of that memory. A test starts only when its VM's memory plus 256 MiB fits beside the
+running ones; otherwise it waits for one to end. Waiting tests start in this order: VMs that are `CRITICAL`, then
+VMs never proven, then the proofs that expire first. Each restore also needs room for the VM's full disks under
+`/var/lib/gaia-sandbox/images`. To set the numbers yourself (here 4 tests and 12 GiB):
+
+```bash
+mkdir -p /etc/systemd/system/gaia-sandbox.service.d && printf '[Service]\nExecStart=\nExecStart=/usr/bin/gaia sandbox serve -slots 4 -memory-mib 12288\n' >/etc/systemd/system/gaia-sandbox.service.d/slots.conf && systemctl daemon-reload && systemctl restart gaia-sandbox && journalctl -u gaia-sandbox -n 5 --no-pager | grep listening
+```
+
+Whether the sandbox keeps up with your policies (tests needed a day against what it can run, the VMs whose proof
+will expire before their next test, and the slots it would take), and the queue with each test's estimated start:
+
+```bash
+gaia api GET /api/v1/views/capacity
+gaia api GET /api/v1/views/test-queue
+gaia api POST /api/v1/capacity/what-if '{"slots": 6}'
+```
+
+The last one answers "what if" (other slots, or other test intervals for a policy) and changes nothing.
 
 The VM's **status** answers "which point can I go back to right now, and is that proven?":
 
