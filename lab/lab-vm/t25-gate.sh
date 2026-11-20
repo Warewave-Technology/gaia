@@ -72,7 +72,10 @@ avail=$(df --output=avail -B1G /var/lib/libvirt/images | tail -1 | tr -d ' ')
 ((avail >= 60)) || { echo "UNKNOWN: $avail GiB free, the gate needs 60"; exit 3; }
 mem=$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)
 log "gaia-lab: $(nproc) CPUs, $(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo) MiB, $mem MiB available"
-((mem >= 6000)) || { echo "UNKNOWN: $mem MiB available, the gate needs 6000 (four sandbox guests and Windows)"; exit 3; }
+# The sandbox's guests at most: four Linux guests (4 x (384 + 256)) or phase c's limit (Windows and two Linux and a
+# half: 3904), and 512 MiB to spare.
+need=$(( (3904 > 4 * 640 ? 3904 : 4 * 640) + 512 ))
+((mem >= need)) || { echo "UNKNOWN: $mem MiB available, the gate needs $need (the sandbox's guests)"; exit 3; }
 
 declare -A VM_ID
 # sandbox SLOTS MEMORY_MIB: (re)start the sandbox unit with that many slots and that memory limit
