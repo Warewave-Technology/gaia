@@ -1,0 +1,1030 @@
+{
+  "clock": {
+    "now": "2026-11-20T14:41:50.966391Z",
+    "zone": "Europe/Istanbul",
+    "offset_s": 10800
+  },
+  "now": "2026-11-20T14:41:50.962008Z",
+  "slots": 4,
+  "vms": 4995,
+  "demand_slot_s_per_day": 1448244.6428571434,
+  "capacity_slot_s_per_day": 345600,
+  "coverage": 0.23863371544616194,
+  "slots_needed": 17,
+  "by_os_class": [
+    {
+      "name": "windows",
+      "vms": 794,
+      "tests_per_day": 2002,
+      "demand_slot_s_per_day": 839335,
+      "median_test_s": 420.5
+    },
+    {
+      "name": "linux",
+      "vms": 4201,
+      "tests_per_day": 8790.57142857138,
+      "demand_slot_s_per_day": 608909.6428571433,
+      "median_test_s": 69.5
+    }
+  ],
+  "by_policy": [
+    {
+      "name": "std-windows",
+      "vms": 587,
+      "tests_per_day": 1174,
+      "demand_slot_s_per_day": 493435,
+      "median_test_s": 420.5
+    },
+    {
+      "name": "std-linux",
+      "vms": 3135,
+      "tests_per_day": 6270,
+      "demand_slot_s_per_day": 434473,
+      "median_test_s": 69.5
+    },
+    {
+      "name": "crit-windows",
+      "vms": 207,
+      "tests_per_day": 828,
+      "demand_slot_s_per_day": 345900,
+      "median_test_s": 420.5
+    },
+    {
+      "name": "gold-db",
+      "vms": 614,
+      "tests_per_day": 2456,
+      "demand_slot_s_per_day": 169982,
+      "median_test_s": 69.5
+    },
+    {
+      "name": "dev",
+      "vms": 452,
+      "tests_per_day": 64.57142857142915,
+      "demand_slot_s_per_day": 4454.642857142853,
+      "median_test_s": 69.5
+    }
+  ],
+  "expiring": [
+    {
+      "vm_id": 1542,
+      "vm": "app-linux-1542",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:40Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 3335,
+      "vm": "mail-linux-3335",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:40Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 2954,
+      "vm": "erp-linux-2954",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:42Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 1855,
+      "vm": "mail-linux-1855",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:45Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 2255,
+      "vm": "mail-gold-db-2255",
+      "policy": "gold-db",
+      "proof_expires_at": "2026-11-20T06:00:45Z",
+      "next_test_start": "2026-11-20T15:10:55.462008Z",
+      "next_test_finish": "2026-11-20T15:12:09.962008Z"
+    },
+    {
+      "vm_id": 2446,
+      "vm": "file-linux-2446",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:45Z",
+      "next_test_start": "2026-11-20T15:10:55.462008Z",
+      "next_test_finish": "2026-11-20T15:12:09.462008Z"
+    },
+    {
+      "vm_id": 4796,
+      "vm": "file-linux-4796",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:46Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 3611,
+      "vm": "db-linux-3611",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:50Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 20,
+      "vm": "auth-linux-0020",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:53Z",
+      "next_test_start": "2026-11-20T15:12:09.462008Z",
+      "next_test_finish": "2026-11-20T15:13:26.462008Z"
+    },
+    {
+      "vm_id": 440,
+      "vm": "auth-linux-0440",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:00:54Z",
+      "next_test_start": "2026-11-20T15:12:09.962008Z",
+      "next_test_finish": "2026-11-20T15:13:18.962008Z"
+    },
+    {
+      "vm_id": 1917,
+      "vm": "ci-linux-1917",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:04Z",
+      "next_test_start": "2026-11-20T15:13:18.962008Z",
+      "next_test_finish": "2026-11-20T15:14:20.962008Z"
+    },
+    {
+      "vm_id": 4023,
+      "vm": "web-linux-4023",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:04Z",
+      "next_test_start": "2026-11-20T15:13:26.462008Z",
+      "next_test_finish": "2026-11-20T15:14:40.462008Z"
+    },
+    {
+      "vm_id": 3217,
+      "vm": "ci-linux-3217",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:06Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 4880,
+      "vm": "auth-linux-4880",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:06Z",
+      "next_test_start": "2026-11-20T15:14:20.962008Z",
+      "next_test_finish": "2026-11-20T15:15:30.462008Z"
+    },
+    {
+      "vm_id": 822,
+      "vm": "app-gold-db-0822",
+      "policy": "gold-db",
+      "proof_expires_at": "2026-11-20T06:01:08Z",
+      "next_test_start": "2026-11-20T15:14:40.462008Z",
+      "next_test_finish": "2026-11-20T15:15:55.962008Z"
+    },
+    {
+      "vm_id": 2205,
+      "vm": "mail-linux-2205",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:10Z",
+      "next_test_start": "2026-11-20T15:15:55.962008Z",
+      "next_test_finish": "2026-11-20T15:16:56.462008Z"
+    },
+    {
+      "vm_id": 3466,
+      "vm": "file-gold-db-3466",
+      "policy": "gold-db",
+      "proof_expires_at": "2026-11-20T06:01:10Z",
+      "next_test_start": "2026-11-20T15:15:30.462008Z",
+      "next_test_finish": "2026-11-20T15:16:42.962008Z"
+    },
+    {
+      "vm_id": 3650,
+      "vm": "auth-linux-3650",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:10Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 2903,
+      "vm": "web-linux-2903",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:15Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 1406,
+      "vm": "file-linux-1406",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:18Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 734,
+      "vm": "erp-linux-0734",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:21Z",
+      "next_test_start": "2026-11-20T15:16:42.962008Z",
+      "next_test_finish": "2026-11-20T15:17:53.962008Z"
+    },
+    {
+      "vm_id": 3700,
+      "vm": "auth-linux-3700",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:23Z",
+      "next_test_start": "2026-11-20T15:16:56.462008Z",
+      "next_test_finish": "2026-11-20T15:18:08.962008Z"
+    },
+    {
+      "vm_id": 4545,
+      "vm": "mail-linux-4545",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:23Z",
+      "next_test_start": "2026-11-20T15:16:56.962008Z",
+      "next_test_finish": "2026-11-20T15:18:10.462008Z"
+    },
+    {
+      "vm_id": 1785,
+      "vm": "mail-linux-1785",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:32Z",
+      "next_test_start": "2026-11-20T15:17:52.462008Z",
+      "next_test_finish": "2026-11-20T15:19:23.462008Z"
+    },
+    {
+      "vm_id": 4345,
+      "vm": "mail-linux-4345",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:35Z",
+      "next_test_start": "2026-11-20T15:17:53.962008Z",
+      "next_test_finish": "2026-11-20T15:19:25.462008Z"
+    },
+    {
+      "vm_id": 1696,
+      "vm": "file-linux-1696",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T06:01:37Z",
+      "next_test_start": "2026-11-20T15:18:08.962008Z",
+      "next_test_finish": "2026-11-20T15:19:15.462008Z"
+    },
+    {
+      "vm_id": 800,
+      "vm": "auth-windows-0800",
+      "policy": "std-windows",
+      "proof_expires_at": "2026-11-20T06:06:27Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 4580,
+      "vm": "auth-windows-4580",
+      "policy": "std-windows",
+      "proof_expires_at": "2026-11-20T06:06:28Z",
+      "next_test_start": "2026-11-20T15:18:10.462008Z",
+      "next_test_finish": "2026-11-20T15:25:18.462008Z"
+    },
+    {
+      "vm_id": 2046,
+      "vm": "file-crit-windows-2046",
+      "policy": "crit-windows",
+      "proof_expires_at": "2026-11-20T06:07:31Z",
+      "next_test_start": "2026-11-20T15:19:15.462008Z",
+      "next_test_finish": "2026-11-20T15:26:21.462008Z"
+    },
+    {
+      "vm_id": 4169,
+      "vm": "cache-windows-4169",
+      "policy": "std-windows",
+      "proof_expires_at": "2026-11-20T06:07:32Z",
+      "next_test_start": "2026-11-20T15:19:23.462008Z",
+      "next_test_finish": "2026-11-20T15:26:25.962008Z"
+    },
+    {
+      "vm_id": 1869,
+      "vm": "cache-windows-1869",
+      "policy": "std-windows",
+      "proof_expires_at": "2026-11-20T06:07:34Z",
+      "next_test_start": "2026-11-20T15:19:25.462008Z",
+      "next_test_finish": "2026-11-20T15:26:36.962008Z"
+    },
+    {
+      "vm_id": 2003,
+      "vm": "web-windows-2003",
+      "policy": "std-windows",
+      "proof_expires_at": "2026-11-20T06:07:51Z",
+      "next_test_start": "2026-11-20T15:25:18.462008Z",
+      "next_test_finish": "2026-11-20T15:32:18.962008Z"
+    },
+    {
+      "vm_id": 4726,
+      "vm": "file-linux-4726",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:00:46Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 959,
+      "vm": "cache-linux-0959",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:00:50Z",
+      "next_test_start": "2026-11-20T15:26:21.462008Z",
+      "next_test_finish": "2026-11-20T15:27:14.962008Z"
+    },
+    {
+      "vm_id": 811,
+      "vm": "db-linux-0811",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:00:52Z",
+      "next_test_start": "2026-11-20T15:26:25.962008Z",
+      "next_test_finish": "2026-11-20T15:27:21.962008Z"
+    },
+    {
+      "vm_id": 362,
+      "vm": "app-gold-db-0362",
+      "policy": "gold-db",
+      "proof_expires_at": "2026-11-20T07:00:54Z",
+      "next_test_start": "2026-11-20T15:26:36.962008Z",
+      "next_test_finish": "2026-11-20T15:27:58.962008Z"
+    },
+    {
+      "vm_id": 1511,
+      "vm": "db-linux-1511",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:00:55Z",
+      "next_test_start": "2026-11-20T15:27:14.962008Z",
+      "next_test_finish": "2026-11-20T15:28:21.462008Z"
+    },
+    {
+      "vm_id": 3283,
+      "vm": "web-linux-3283",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:00:55Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 3502,
+      "vm": "app-linux-3502",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:00Z",
+      "next_test_start": "2026-11-20T15:27:21.962008Z",
+      "next_test_finish": "2026-11-20T15:28:28.962008Z"
+    },
+    {
+      "vm_id": 3264,
+      "vm": "erp-linux-3264",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:01Z",
+      "next_test_start": "2026-11-20T15:27:58.962008Z",
+      "next_test_finish": "2026-11-20T15:28:59.962008Z"
+    },
+    {
+      "vm_id": 3291,
+      "vm": "db-linux-3291",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:01Z",
+      "next_test_start": "2026-11-20T15:28:21.462008Z",
+      "next_test_finish": "2026-11-20T15:29:24.962008Z"
+    },
+    {
+      "vm_id": 4538,
+      "vm": "mq-linux-4538",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:01Z",
+      "next_test_start": "2026-11-20T15:28:28.962008Z",
+      "next_test_finish": "2026-11-20T15:29:32.962008Z"
+    },
+    {
+      "vm_id": 2678,
+      "vm": "mq-linux-2678",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:02Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 2061,
+      "vm": "db-linux-2061",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:03Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 4936,
+      "vm": "file-linux-4936",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:05Z",
+      "next_test_start": null,
+      "next_test_finish": null
+    },
+    {
+      "vm_id": 359,
+      "vm": "cache-linux-0359",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:10Z",
+      "next_test_start": "2026-11-20T15:28:59.962008Z",
+      "next_test_finish": "2026-11-20T15:30:15.462008Z"
+    },
+    {
+      "vm_id": 90,
+      "vm": "auth-linux-0090",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:11Z",
+      "next_test_start": "2026-11-20T15:29:24.962008Z",
+      "next_test_finish": "2026-11-20T15:30:37.962008Z"
+    },
+    {
+      "vm_id": 1689,
+      "vm": "cache-linux-1689",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:14Z",
+      "next_test_start": "2026-11-20T15:29:32.962008Z",
+      "next_test_finish": "2026-11-20T15:30:48.962008Z"
+    },
+    {
+      "vm_id": 3166,
+      "vm": "file-linux-3166",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:14Z",
+      "next_test_start": "2026-11-20T15:30:15.462008Z",
+      "next_test_finish": "2026-11-20T15:31:34.962008Z"
+    },
+    {
+      "vm_id": 3255,
+      "vm": "mail-linux-3255",
+      "policy": "std-linux",
+      "proof_expires_at": "2026-11-20T07:01:14Z",
+      "next_test_start": "2026-11-20T15:30:37.962008Z",
+      "next_test_finish": "2026-11-20T15:31:44.962008Z"
+    }
+  ],
+  "queue": [
+    {
+      "job_id": 3782108,
+      "vm_id": 2789,
+      "vm": "cache-crit-windows-2789",
+      "queue_position": 1,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 420.5,
+      "duration_basis": "median of the windows class",
+      "estimated_start": "2026-11-20T14:41:50.962008Z",
+      "estimated_finish": "2026-11-20T14:48:51.462008Z"
+    },
+    {
+      "job_id": 3782220,
+      "vm_id": 4318,
+      "vm": "mq-crit-windows-4318",
+      "queue_position": 2,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 420.5,
+      "duration_basis": "median of the windows class",
+      "estimated_start": "2026-11-20T14:41:50.962008Z",
+      "estimated_finish": "2026-11-20T14:48:51.462008Z"
+    },
+    {
+      "job_id": 3782019,
+      "vm_id": 1470,
+      "vm": "auth-dev-1470",
+      "queue_position": 3,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:41:50.962008Z",
+      "estimated_finish": "2026-11-20T14:43:00.462008Z"
+    },
+    {
+      "job_id": 3782121,
+      "vm_id": 2912,
+      "vm": "app-dev-2912",
+      "queue_position": 4,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:41:50.962008Z",
+      "estimated_finish": "2026-11-20T14:43:00.462008Z"
+    },
+    {
+      "job_id": 3782275,
+      "vm_id": 4958,
+      "vm": "mq-dev-4958",
+      "queue_position": 5,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 83.5,
+      "duration_basis": "median of its last 10 tests",
+      "estimated_start": "2026-11-20T14:43:00.462008Z",
+      "estimated_finish": "2026-11-20T14:44:23.962008Z"
+    },
+    {
+      "job_id": 3781973,
+      "vm_id": 659,
+      "vm": "cache-gold-db-0659",
+      "queue_position": 6,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:43:00.462008Z",
+      "estimated_finish": "2026-11-20T14:44:09.962008Z"
+    },
+    {
+      "job_id": 3781974,
+      "vm_id": 671,
+      "vm": "db-gold-db-0671",
+      "queue_position": 7,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:44:09.962008Z",
+      "estimated_finish": "2026-11-20T14:45:19.462008Z"
+    },
+    {
+      "job_id": 3782033,
+      "vm_id": 1690,
+      "vm": "auth-gold-db-1690",
+      "queue_position": 8,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:44:23.962008Z",
+      "estimated_finish": "2026-11-20T14:45:33.462008Z"
+    },
+    {
+      "job_id": 3782073,
+      "vm_id": 2195,
+      "vm": "mail-gold-db-2195",
+      "queue_position": 9,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:45:19.462008Z",
+      "estimated_finish": "2026-11-20T14:46:28.962008Z"
+    },
+    {
+      "job_id": 3782078,
+      "vm_id": 2264,
+      "vm": "erp-gold-db-2264",
+      "queue_position": 10,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:45:33.462008Z",
+      "estimated_finish": "2026-11-20T14:46:42.962008Z"
+    },
+    {
+      "job_id": 3782081,
+      "vm_id": 2351,
+      "vm": "db-gold-db-2351",
+      "queue_position": 11,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:46:28.962008Z",
+      "estimated_finish": "2026-11-20T14:47:38.462008Z"
+    },
+    {
+      "job_id": 3782111,
+      "vm_id": 2843,
+      "vm": "web-gold-db-2843",
+      "queue_position": 12,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:46:42.962008Z",
+      "estimated_finish": "2026-11-20T14:47:52.462008Z"
+    },
+    {
+      "job_id": 3782112,
+      "vm_id": 2844,
+      "vm": "erp-gold-db-2844",
+      "queue_position": 13,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:47:38.462008Z",
+      "estimated_finish": "2026-11-20T14:48:47.962008Z"
+    },
+    {
+      "job_id": 3782144,
+      "vm_id": 3269,
+      "vm": "cache-gold-db-3269",
+      "queue_position": 14,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:47:52.462008Z",
+      "estimated_finish": "2026-11-20T14:49:01.962008Z"
+    },
+    {
+      "job_id": 3782163,
+      "vm_id": 3530,
+      "vm": "auth-gold-db-3530",
+      "queue_position": 15,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:48:47.962008Z",
+      "estimated_finish": "2026-11-20T14:49:57.462008Z"
+    },
+    {
+      "job_id": 3782218,
+      "vm_id": 4299,
+      "vm": "cache-gold-db-4299",
+      "queue_position": 16,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:48:51.462008Z",
+      "estimated_finish": "2026-11-20T14:50:00.962008Z"
+    },
+    {
+      "job_id": 3782230,
+      "vm_id": 4458,
+      "vm": "mq-gold-db-4458",
+      "queue_position": 17,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:48:51.462008Z",
+      "estimated_finish": "2026-11-20T14:50:00.962008Z"
+    },
+    {
+      "job_id": 3782231,
+      "vm_id": 4460,
+      "vm": "auth-gold-db-4460",
+      "queue_position": 18,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:49:01.962008Z",
+      "estimated_finish": "2026-11-20T14:50:11.462008Z"
+    },
+    {
+      "job_id": 3782233,
+      "vm_id": 4478,
+      "vm": "mq-gold-db-4478",
+      "queue_position": 19,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:49:57.462008Z",
+      "estimated_finish": "2026-11-20T14:51:06.962008Z"
+    },
+    {
+      "job_id": 3782264,
+      "vm_id": 4759,
+      "vm": "cache-gold-db-4759",
+      "queue_position": 20,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:50:00.962008Z",
+      "estimated_finish": "2026-11-20T14:51:10.462008Z"
+    },
+    {
+      "job_id": 3781934,
+      "vm_id": 71,
+      "vm": "db-linux-0071",
+      "queue_position": 21,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:50:00.962008Z",
+      "estimated_finish": "2026-11-20T14:51:10.462008Z"
+    },
+    {
+      "job_id": 3781950,
+      "vm_id": 309,
+      "vm": "cache-linux-0309",
+      "queue_position": 22,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:50:11.462008Z",
+      "estimated_finish": "2026-11-20T14:51:20.962008Z"
+    },
+    {
+      "job_id": 3781960,
+      "vm_id": 425,
+      "vm": "mail-linux-0425",
+      "queue_position": 23,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:51:06.962008Z",
+      "estimated_finish": "2026-11-20T14:52:16.462008Z"
+    },
+    {
+      "job_id": 3781965,
+      "vm_id": 545,
+      "vm": "mail-linux-0545",
+      "queue_position": 24,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:51:10.462008Z",
+      "estimated_finish": "2026-11-20T14:52:19.962008Z"
+    },
+    {
+      "job_id": 3781988,
+      "vm_id": 847,
+      "vm": "ci-linux-0847",
+      "queue_position": 25,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:51:10.462008Z",
+      "estimated_finish": "2026-11-20T14:52:19.962008Z"
+    },
+    {
+      "job_id": 3781996,
+      "vm_id": 925,
+      "vm": "mail-linux-0925",
+      "queue_position": 26,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:51:20.962008Z",
+      "estimated_finish": "2026-11-20T14:52:30.462008Z"
+    },
+    {
+      "job_id": 3782001,
+      "vm_id": 1084,
+      "vm": "erp-linux-1084",
+      "queue_position": 27,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:52:16.462008Z",
+      "estimated_finish": "2026-11-20T14:53:25.962008Z"
+    },
+    {
+      "job_id": 3782002,
+      "vm_id": 1100,
+      "vm": "auth-linux-1100",
+      "queue_position": 28,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:52:19.962008Z",
+      "estimated_finish": "2026-11-20T14:53:29.462008Z"
+    },
+    {
+      "job_id": 3782003,
+      "vm_id": 1129,
+      "vm": "cache-linux-1129",
+      "queue_position": 29,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:52:19.962008Z",
+      "estimated_finish": "2026-11-20T14:53:29.462008Z"
+    },
+    {
+      "job_id": 3782008,
+      "vm_id": 1229,
+      "vm": "cache-linux-1229",
+      "queue_position": 30,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:52:30.462008Z",
+      "estimated_finish": "2026-11-20T14:53:39.962008Z"
+    },
+    {
+      "job_id": 3782012,
+      "vm_id": 1295,
+      "vm": "mail-linux-1295",
+      "queue_position": 31,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:53:25.962008Z",
+      "estimated_finish": "2026-11-20T14:54:35.462008Z"
+    },
+    {
+      "job_id": 3782017,
+      "vm_id": 1444,
+      "vm": "erp-linux-1444",
+      "queue_position": 32,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:53:29.462008Z",
+      "estimated_finish": "2026-11-20T14:54:38.962008Z"
+    },
+    {
+      "job_id": 3782023,
+      "vm_id": 1514,
+      "vm": "erp-linux-1514",
+      "queue_position": 33,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:53:29.462008Z",
+      "estimated_finish": "2026-11-20T14:54:38.962008Z"
+    },
+    {
+      "job_id": 3782027,
+      "vm_id": 1582,
+      "vm": "app-linux-1582",
+      "queue_position": 34,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:53:39.962008Z",
+      "estimated_finish": "2026-11-20T14:54:49.462008Z"
+    },
+    {
+      "job_id": 3782030,
+      "vm_id": 1646,
+      "vm": "file-linux-1646",
+      "queue_position": 35,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:54:35.462008Z",
+      "estimated_finish": "2026-11-20T14:55:44.962008Z"
+    },
+    {
+      "job_id": 3782048,
+      "vm_id": 1920,
+      "vm": "auth-linux-1920",
+      "queue_position": 36,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:54:38.962008Z",
+      "estimated_finish": "2026-11-20T14:55:48.462008Z"
+    },
+    {
+      "job_id": 3782063,
+      "vm_id": 2081,
+      "vm": "db-linux-2081",
+      "queue_position": 37,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:54:38.962008Z",
+      "estimated_finish": "2026-11-20T14:55:48.462008Z"
+    },
+    {
+      "job_id": 3782068,
+      "vm_id": 2112,
+      "vm": "app-linux-2112",
+      "queue_position": 38,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:54:49.462008Z",
+      "estimated_finish": "2026-11-20T14:55:58.962008Z"
+    },
+    {
+      "job_id": 3782075,
+      "vm_id": 2245,
+      "vm": "mail-linux-2245",
+      "queue_position": 39,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:55:44.962008Z",
+      "estimated_finish": "2026-11-20T14:56:54.462008Z"
+    },
+    {
+      "job_id": 3782090,
+      "vm_id": 2518,
+      "vm": "mq-linux-2518",
+      "queue_position": 40,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:55:48.462008Z",
+      "estimated_finish": "2026-11-20T14:56:57.962008Z"
+    },
+    {
+      "job_id": 3782100,
+      "vm_id": 2674,
+      "vm": "erp-linux-2674",
+      "queue_position": 41,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:55:48.462008Z",
+      "estimated_finish": "2026-11-20T14:56:57.962008Z"
+    },
+    {
+      "job_id": 3782102,
+      "vm_id": 2705,
+      "vm": "mail-linux-2705",
+      "queue_position": 42,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:55:58.962008Z",
+      "estimated_finish": "2026-11-20T14:57:08.462008Z"
+    },
+    {
+      "job_id": 3782113,
+      "vm_id": 2867,
+      "vm": "ci-linux-2867",
+      "queue_position": 43,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:56:54.462008Z",
+      "estimated_finish": "2026-11-20T14:58:03.962008Z"
+    },
+    {
+      "job_id": 3782120,
+      "vm_id": 2906,
+      "vm": "file-linux-2906",
+      "queue_position": 44,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:56:57.962008Z",
+      "estimated_finish": "2026-11-20T14:58:07.462008Z"
+    },
+    {
+      "job_id": 3782122,
+      "vm_id": 2933,
+      "vm": "web-linux-2933",
+      "queue_position": 45,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:56:57.962008Z",
+      "estimated_finish": "2026-11-20T14:58:07.462008Z"
+    },
+    {
+      "job_id": 3782129,
+      "vm_id": 3122,
+      "vm": "app-linux-3122",
+      "queue_position": 46,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:57:08.462008Z",
+      "estimated_finish": "2026-11-20T14:58:17.962008Z"
+    },
+    {
+      "job_id": 3782130,
+      "vm_id": 3130,
+      "vm": "auth-linux-3130",
+      "queue_position": 47,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:58:03.962008Z",
+      "estimated_finish": "2026-11-20T14:59:13.462008Z"
+    },
+    {
+      "job_id": 3782133,
+      "vm_id": 3157,
+      "vm": "ci-linux-3157",
+      "queue_position": 48,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:58:07.462008Z",
+      "estimated_finish": "2026-11-20T14:59:16.962008Z"
+    },
+    {
+      "job_id": 3782139,
+      "vm_id": 3200,
+      "vm": "auth-linux-3200",
+      "queue_position": 49,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:58:07.462008Z",
+      "estimated_finish": "2026-11-20T14:59:16.962008Z"
+    },
+    {
+      "job_id": 3782165,
+      "vm_id": 3588,
+      "vm": "mq-linux-3588",
+      "queue_position": 50,
+      "order_reason": "retest of a CRITICAL VM",
+      "expected_s": 69.5,
+      "duration_basis": "median of the linux class",
+      "estimated_start": "2026-11-20T14:58:17.962008Z",
+      "estimated_finish": "2026-11-20T14:59:27.462008Z"
+    }
+  ],
+  "horizon_s": 86400,
+  "tests_in_horizon": 2566,
+  "expiring_total": 3237,
+  "queue_total": 355,
+  "sandbox": null,
+  "sandbox_error": "sandbox helper at /run/gaia-sandbox/sandbox.sock: Get \"http://sandbox/v1/capacity\": dial unix /run/gaia-sandbox/sandbox.sock: connect: no such file or directory",
+  "what_if": {
+    "slots": 4
+  }
+}
