@@ -20,4 +20,9 @@ func TestInconsistentCheckpoint(t *testing.T) {
 	if isInconsistent(other) || isInconsistent(errors.New("checkpoint inconsistent")) {
 		t.Fatal("another error taken for an inconsistent checkpoint")
 	}
+	// Deleting an older checkpoint whose bitmap went with the rest (server B, job 1562).
+	gone := libvirt.Error{Code: uint32(libvirt.ErrInternalError), Message: "internal error: bitmap 'gaia-1-1298-9c43dc' not found in backing chain of 'vda'"}
+	if !isBitmapMissing(fmt.Errorf("x: %w", gone)) || !errors.Is(bitmapMissing{gone}, ErrBitmapMissing) || isBitmapMissing(other) {
+		t.Fatal("a missing bitmap is not told apart")
+	}
 }

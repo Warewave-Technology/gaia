@@ -285,10 +285,20 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	if errors.Is(err, libvirtbackup.ErrCheckpointInconsistent) {
 		// The parent checkpoint's bitmap was lost (QEMU stopped without saving it): it can never give an
 		// incremental. Drop it and take the full backup now, with the reason, instead of failing every cycle.
-		if derr := lv.DropCheckpoint(vm.Name, parent.Checkpoint); derr != nil {
-			return errors.Join(err, fmt.Errorf("dropping the inconsistent checkpoint %s: %w", parent.Checkpoint, derr))
+		// QEMU loses every persistent bitmap of a disk at once: drop all of this server's checkpoints of the VM.
+		all, cerr := lv.Checkpoints(vm.Name)
+		if cerr != nil {
+			return errors.Join(err, cerr)
 		}
-		d.CheckpointsPruned = append(d.CheckpointsPruned, parent.Checkpoint)
+		for _, cp := range all {
+			if !strings.HasPrefix(cp, fmt.Sprintf("gaia-%d-", vm.ID)) {
+				continue
+			}
+			if derr := lv.DropCheckpoint(vm.Name, cp); derr != nil {
+				return errors.Join(err, fmt.Errorf("dropping the inconsistent checkpoint %s: %w", cp, derr))
+			}
+			d.CheckpointsPruned = append(d.CheckpointsPruned, cp)
+		}
 		d.Kind, d.Parent, req.Incremental = "full", nil, ""
 		d.Reason = fmt.Sprintf("full: checkpoint %s of point %d is inconsistent on the host (its bitmap was lost: QEMU stopped without saving it)",
 			parent.Checkpoint, parent.ID)
@@ -401,7 +411,12 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 			d.CheckpointsKept = append(d.CheckpointsKept, cp)
 			continue
 		}
-		if err := lv.DeleteCheckpoint(vm.Name, cp); err != nil {
+		err := lv.DeleteCheckpoint(vm.Name, cp)
+		if errors.Is(err, libvirtbackup.ErrBitmapMissing) { // its bitmap was lost: nothing to merge, the metadata goes
+			s.log.Warn("checkpoint without its bitmap dropped", "vm", vm.Name, "checkpoint", cp, "error", err)
+			err = lv.DropCheckpoint(vm.Name, cp)
+		}
+		if err != nil {
 			return fmt.Errorf("checkpoint retention: %w", err)
 		}
 		d.CheckpointsPruned = append(d.CheckpointsPruned, cp)

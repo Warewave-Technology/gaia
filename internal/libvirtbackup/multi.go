@@ -236,6 +236,16 @@ func (c *Conn) DropCheckpoint(domain, name string) error {
 	return c.l.DomainCheckpointDelete(cp, libvirt.DomainCheckpointDeleteMetadataOnly)
 }
 
+// ErrBitmapMissing marks a checkpoint that could not be deleted because its bitmap is not in the disk any more (lost
+// with the others when QEMU stopped without saving them). libvirt reports it as an internal error, so it is told by
+// its message, "bitmap '...' not found in backing chain"; DropCheckpoint removes such a checkpoint.
+var ErrBitmapMissing = errors.New("the checkpoint's bitmap is not in the disk")
+
+type bitmapMissing struct{ error }
+
+func (e bitmapMissing) Is(target error) bool { return target == ErrBitmapMissing }
+func (e bitmapMissing) Unwrap() error        { return e.error }
+
 // DeleteCheckpoint removes a checkpoint; libvirt merges its bitmap into its parent's, so later incrementals
 // from older checkpoints stay correct.
 func (c *Conn) DeleteCheckpoint(domain, name string) error {
@@ -247,7 +257,18 @@ func (c *Conn) DeleteCheckpoint(domain, name string) error {
 	if err != nil {
 		return fmt.Errorf("checkpoint %s: %w", name, err)
 	}
-	return c.l.DomainCheckpointDelete(cp, 0)
+	if err := c.l.DomainCheckpointDelete(cp, 0); err != nil {
+		if isBitmapMissing(err) {
+			return bitmapMissing{err}
+		}
+		return err
+	}
+	return nil
+}
+
+func isBitmapMissing(err error) bool {
+	var le libvirt.Error
+	return isInconsistent(err) || errors.As(err, &le) && strings.Contains(le.Message, "not found in backing chain")
 }
 
 // DomainDir is a running domain's private directory under libvirt's QEMU state directory (base, normally
