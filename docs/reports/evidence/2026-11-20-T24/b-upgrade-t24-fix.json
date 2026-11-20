@@ -1,0 +1,77 @@
+{
+  "schema": {
+    "before": 10,
+    "after": 10
+  },
+  "version": {
+    "before": "0.2.0~dev.20261120090433.gf2095b8fe06a (f2095b8fe06a)",
+    "after": "0.2.0~dev.20261120130707.gf261b9daf9a4 (f261b9daf9a4)"
+  },
+  "points": {
+    "before": 866,
+    "after": 868,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "CRITICAL",
+      "changed_at": "2026-11-19T22:56:38.101868276Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-20T13:20:37.0794767Z"
+    }
+  ],
+  "status_changes_during_upgrade": [
+    {
+      "at": "2026-11-20T13:12:05.788536329Z",
+      "from": "CRITICAL",
+      "to": "WARNING",
+      "reason": "the newest proven point (866, test 521) is 14h35m29s old, over the RPO target 20m0s"
+    },
+    {
+      "at": "2026-11-20T13:20:37.079567099Z",
+      "from": "WARNING",
+      "to": "OK",
+      "reason": "point 868 is proven by test 522: proven RPO 3m37s <= 20m0s, proven RTO 22s <= 10m0s, proof age 0s <= 30m0s"
+    }
+  ],
+  "jobs_failed_during_upgrade": [
+    {
+      "id": 1563,
+      "kind": "backup",
+      "error": "checkpoint retention: internal error: bitmap 'gaia-1-1298-9c43dc' not found in backing chain of 'vda'"
+    },
+    {
+      "id": 1562,
+      "kind": "backup",
+      "error": "checkpoint retention: internal error: bitmap 'gaia-1-1298-9c43dc' not found in backing chain of 'vda'"
+    }
+  ],
+  "next_backup": {
+    "id": 1562,
+    "state": "failed",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 1564,
+    "state": "ok"
+  },
+  "during": {
+    "id": 1561,
+    "kind": "restore_test",
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 130,
+    "intact": true,
+    "head_sha256": "84bdded9d5ea9a59382177a6d802be8bcbc1b9db597e74b0cbe985005b7269f7",
+    "first_broken_seq": 0
+  },
+  "pass": false,
+  "verdict": "CRITICAL"
+}

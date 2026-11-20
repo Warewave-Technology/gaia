@@ -1,0 +1,312 @@
+{
+  "at": "2026-11-20T08:46:18Z",
+  "server_version": "t24-f2532922535c (f2532922535c+modified)",
+  "machine": {
+    "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+    "cpus": 4,
+    "goarch": "amd64",
+    "goos": "linux",
+    "mem_total_mib": 7953
+  },
+  "fleet": {
+    "by_status": {
+      "CRITICAL": 317,
+      "OK": 1193,
+      "UNKNOWN": 144,
+      "WARNING": 3346
+    },
+    "can_return": 1193,
+    "causes": 13,
+    "vms": 5000
+  },
+  "endpoints": [
+    {
+      "name": "fleet",
+      "example": "/api/v1/views/fleet",
+      "n": 200,
+      "p50_ms": 65.073,
+      "p95_ms": 91.097,
+      "p99_ms": 158.619,
+      "max_ms": 166.387,
+      "mean_bytes": 1508,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "attention",
+      "example": "/api/v1/views/attention",
+      "n": 200,
+      "p50_ms": 54.472,
+      "p95_ms": 81.979,
+      "p99_ms": 87.647,
+      "max_ms": 246.741,
+      "mean_bytes": 13001,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_host",
+      "example": "/api/v1/views/coverage?by=host",
+      "n": 200,
+      "p50_ms": 40.67,
+      "p95_ms": 60.923,
+      "p99_ms": 64.546,
+      "max_ms": 206.706,
+      "mean_bytes": 19634,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_policy",
+      "example": "/api/v1/views/coverage?by=policy",
+      "n": 200,
+      "p50_ms": 48.113,
+      "p95_ms": 69.24,
+      "p99_ms": 72.108,
+      "max_ms": 80.076,
+      "mean_bytes": 2183,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_tag",
+      "example": "/api/v1/views/coverage?by=tag",
+      "n": 200,
+      "p50_ms": 82.799,
+      "p95_ms": 107.954,
+      "p99_ms": 145.08,
+      "max_ms": 201.293,
+      "mean_bytes": 4141,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list",
+      "example": "/api/v1/views/vm-list",
+      "n": 200,
+      "p50_ms": 49.121,
+      "p95_ms": 63.646,
+      "p99_ms": 76.763,
+      "max_ms": 246.655,
+      "mean_bytes": 91085,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_attention",
+      "example": "/api/v1/views/vm-list?attention=true",
+      "n": 200,
+      "p50_ms": 49.195,
+      "p95_ms": 68.255,
+      "p99_ms": 89.828,
+      "max_ms": 291.026,
+      "mean_bytes": 91084,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_status",
+      "example": "/api/v1/views/vm-list?status=UNKNOWN",
+      "n": 200,
+      "p50_ms": 45.789,
+      "p95_ms": 59.645,
+      "p99_ms": 70.037,
+      "max_ms": 73.874,
+      "mean_bytes": 74595,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_host",
+      "example": "/api/v1/views/vm-list?host_id=59",
+      "n": 200,
+      "p50_ms": 28.053,
+      "p95_ms": 36.107,
+      "p99_ms": 57.642,
+      "max_ms": 250.097,
+      "mean_bytes": 116784,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_tag",
+      "example": "/api/v1/views/vm-list?tag=team%3Apayments",
+      "n": 200,
+      "p50_ms": 46.917,
+      "p95_ms": 64.129,
+      "p99_ms": 76.763,
+      "max_ms": 77.278,
+      "mean_bytes": 112958,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_code",
+      "example": "/api/v1/views/vm-list?code=test_failed_boot",
+      "n": 200,
+      "p50_ms": 21.806,
+      "p95_ms": 33.572,
+      "p99_ms": 96.595,
+      "max_ms": 159.355,
+      "mean_bytes": 64218,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_deep_page",
+      "example": "/api/v1/views/vm-list?after=2~1.7951619154966917e%2B09~2712",
+      "n": 200,
+      "p50_ms": 49.601,
+      "p95_ms": 65.799,
+      "p99_ms": 79.99,
+      "max_ms": 82.533,
+      "mean_bytes": 120089,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_by_name",
+      "example": "/api/v1/views/vm-list?sort=name",
+      "n": 200,
+      "p50_ms": 47.753,
+      "p95_ms": 66.383,
+      "p99_ms": 78.989,
+      "max_ms": 221.416,
+      "mean_bytes": 121414,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_text",
+      "example": "/api/v1/views/vm-list?q=auth",
+      "n": 200,
+      "p50_ms": 47.989,
+      "p95_ms": 71.617,
+      "p99_ms": 87.144,
+      "max_ms": 277.057,
+      "mean_bytes": 89851,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_page",
+      "example": "/api/v1/views/vms/345",
+      "n": 200,
+      "p50_ms": 17.116,
+      "p95_ms": 25.685,
+      "p99_ms": 34.088,
+      "max_ms": 37.888,
+      "mean_bytes": 18522,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "overview_t20",
+      "example": "/api/v1/views/overview?limit=100",
+      "n": 200,
+      "p50_ms": 129.568,
+      "p95_ms": 147.023,
+      "p99_ms": 356.671,
+      "max_ms": 398.568,
+      "mean_bytes": 215084,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "status_page",
+      "example": "/api/v1/status?after=4335\u0026limit=100",
+      "n": 200,
+      "p50_ms": 10.014,
+      "p95_ms": 12.32,
+      "p99_ms": 20.309,
+      "max_ms": 22.788,
+      "mean_bytes": 84167,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "search_name",
+      "example": "/api/v1/search?q=file",
+      "n": 200,
+      "p50_ms": 7.016,
+      "p95_ms": 10.7,
+      "p99_ms": 13.438,
+      "max_ms": 18.097,
+      "mean_bytes": 615,
+      "limit_p95_ms": 150,
+      "pass": true
+    },
+    {
+      "name": "search_point",
+      "example": "/api/v1/search?q=2264875",
+      "n": 200,
+      "p50_ms": 6.677,
+      "p95_ms": 7.22,
+      "p99_ms": 7.85,
+      "max_ms": 10.142,
+      "mean_bytes": 219,
+      "limit_p95_ms": 150,
+      "pass": true
+    }
+  ],
+  "recompute": [
+    {
+      "at": "2026-11-20T08:49:21.180393418Z",
+      "changed": 7,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 5.712749813,
+      "vms": 5000
+    },
+    {
+      "at": "2026-11-20T08:49:26.898948674Z",
+      "changed": 1,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 5.861760191,
+      "vms": 5000
+    },
+    {
+      "at": "2026-11-20T08:49:32.766726135Z",
+      "changed": 5,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 6.40118407,
+      "vms": 5000
+    }
+  ],
+  "check": {
+    "at": "2026-11-20T08:49:39.18757608Z",
+    "differ": [
+      {
+        "model": "{\"S\":\"OK\",\"R\":[{\"status\":\"OK\",\"rule\":\"proven\",\"code\":\"proven\",\"scope\":null,\"params\":{\"point\":2796015,\"point_at\":\"2026-11-20T07:49:41.512734256Z\",\"test\":806280,\"test_at\":\"2026-11-20T08:15:32.242702539Z\",\"rto_s\":51.1858098880664,\"rpo_target_s\":3600,\"rto_target_s\":900,\"max_proof_age_s\":43200},\"text\":\"\"}],\"N\":[]}",
+        "stored": "{\"S\":\"CRITICAL\",\"R\":[{\"status\":\"CRITICAL\",\"rule\":\"theoretical_rpo_over_target\",\"code\":\"no_backup_in_rpo\",\"scope\":null,\"params\":{\"point\":2796015,\"point_at\":\"2026-11-20T07:49:41.512734256Z\",\"target_s\":3600},\"text\":\"\"}],\"N\":[]}",
+        "vm_id": 4769
+      }
+    ],
+    "due": 1,
+    "equal": 4998,
+    "moved": 0,
+    "seconds": 7.10210677,
+    "verdict": "CRITICAL",
+    "vms": 5000
+  },
+  "server_rss": {
+    "after_recompute": {
+      "VmHWM_mib": 182.87109375,
+      "VmRSS_mib": 112.3515625
+    },
+    "after_views": {
+      "VmHWM_mib": 182.87109375,
+      "VmRSS_mib": 105.9609375
+    },
+    "before": {
+      "VmHWM_mib": 165.5078125,
+      "VmRSS_mib": 146.1640625
+    }
+  },
+  "verdict": "CRITICAL",
+  "failures": [
+    "the status table differs from the status model"
+  ]
+}

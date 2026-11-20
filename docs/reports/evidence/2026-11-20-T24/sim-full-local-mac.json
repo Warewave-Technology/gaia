@@ -1,0 +1,301 @@
+{
+  "VMs": 5000,
+  "Hosts": 100,
+  "Points": 2931617,
+  "Hours": 24,
+  "Catalog": {
+    "now": "2026-11-19T22:08:00Z",
+    "vms": 5000,
+    "hosts": 100,
+    "policies": 5,
+    "repositories": 2,
+    "points": 2931617,
+    "present_points": 87508,
+    "jobs": 3778509,
+    "tests": 845967,
+    "state_changes": 3778509,
+    "tags": 11170,
+    "seeded": {
+      "backup_failing": 10,
+      "full_backup": 18,
+      "guest_rebooted": 8,
+      "host_unreachable": 100,
+      "never_proven": 114,
+      "no_policy": 5,
+      "proof_too_old": 242,
+      "repo_content_damaged": 25,
+      "rto_over_target": 40,
+      "test_failed_boot": 40,
+      "test_failed_check": 6,
+      "test_not_run": 30,
+      "test_warning": 14
+    },
+    "seconds": 57.896084625
+  },
+  "Events": {
+    "backup": 42441,
+    "backup_unreachable": 47,
+    "damaged": 5,
+    "policy_change": 1,
+    "test_critical": 212,
+    "test_not_run": 456,
+    "test_ok": 10126
+  },
+  "StatusChanges": 53751,
+  "FullRecomputes": [
+    {
+      "at": "2026-11-19T22:08:00Z",
+      "reason": "start",
+      "vms": 5000,
+      "changed": 5000,
+      "seconds": 2.38349875,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-19T23:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 17,
+      "seconds": 2.33143275,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T00:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 73,
+      "seconds": 4.247399917,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T01:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 78,
+      "seconds": 3.920918375,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T02:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 1626,
+      "seconds": 2.369758209,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T03:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 893,
+      "seconds": 2.314644833,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T04:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 941,
+      "seconds": 2.4237272499999998,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T05:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 897,
+      "seconds": 2.328310333,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T06:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 907,
+      "seconds": 2.280487208,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T07:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 921,
+      "seconds": 2.363055458,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T08:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 969,
+      "seconds": 2.288026833,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T09:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 883,
+      "seconds": 2.414706833,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T10:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 893,
+      "seconds": 6.923170667,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T11:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 907,
+      "seconds": 2.833117084,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T12:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 936,
+      "seconds": 2.256518041,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T13:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 888,
+      "seconds": 3.180060792,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T14:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 875,
+      "seconds": 2.300932834,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T15:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 916,
+      "seconds": 2.469260583,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T16:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 953,
+      "seconds": 2.303853708,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T17:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 895,
+      "seconds": 2.380597875,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T18:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 907,
+      "seconds": 2.320092125,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T19:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 931,
+      "seconds": 2.267736458,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T20:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 961,
+      "seconds": 5.353940916,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T21:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 883,
+      "seconds": 9.8962805,
+      "errors": 0
+    },
+    {
+      "at": "2026-11-20T22:08:00Z",
+      "reason": "hourly",
+      "vms": 5000,
+      "changed": 898,
+      "seconds": 2.385867792,
+      "errors": 0
+    }
+  ],
+  "Checks": [
+    {
+      "at": "2026-11-19T22:08:00Z",
+      "vms": 5000,
+      "equal": 5000,
+      "due": 0,
+      "moved": 0,
+      "differ": [],
+      "seconds": 1.815220958,
+      "verdict": "OK"
+    },
+    {
+      "at": "2026-11-20T04:08:00Z",
+      "vms": 5000,
+      "equal": 5000,
+      "due": 0,
+      "moved": 0,
+      "differ": [],
+      "seconds": 1.866212209,
+      "verdict": "OK"
+    },
+    {
+      "at": "2026-11-20T10:08:00Z",
+      "vms": 5000,
+      "equal": 5000,
+      "due": 0,
+      "moved": 0,
+      "differ": [],
+      "seconds": 2.164175792,
+      "verdict": "OK"
+    },
+    {
+      "at": "2026-11-20T16:08:00Z",
+      "vms": 5000,
+      "equal": 5000,
+      "due": 0,
+      "moved": 0,
+      "differ": [],
+      "seconds": 1.909281209,
+      "verdict": "OK"
+    },
+    {
+      "at": "2026-11-20T22:08:00Z",
+      "vms": 5000,
+      "equal": 5000,
+      "due": 0,
+      "moved": 0,
+      "differ": [],
+      "seconds": 1.8856034579999998,
+      "verdict": "OK"
+    }
+  ],
+  "WallSeconds": 240.144335917,
+  "Verdict": "OK"
+}

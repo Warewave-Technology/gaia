@@ -1,0 +1,104 @@
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7, <> line 3.)
+debconf: falling back to frontend: Teletype
+dpkg-preconfigure: unable to re-open stdin: 
+[22:18:11] machine: {  "cpus": 4,  "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",  "mem_total_mib": 7953,  "kernel": "6.1.0-54-cloud-amd64",  "os": "Debian GNU/Linux 12 (bookworm)",  "root_fs": "/dev/sda1 40G 37G"}
+[22:18:11] == server init and the synthetic catalog (5000 VMs, 100 hosts, 3000000 points)
+[22:21:51] catalog: {"vms":5000,"hosts":100,"points":2931617,"present_points":87652,"jobs":3778509,"tests":845967,"state_changes":3778509,"seconds":217.845508421}, database 2.1G
+[22:21:51] == the server on the catalog: its start is a full recompute
+time=2026-11-19T22:23:43.963Z level=INFO msg="status table recomputed" reason=start vms=5000 changed=10 seconds=76.984155326 errors=0
+[22:23:44] == bench: 200 requests per view endpoint
+fleet p50 839.222 p95 909.497 max 933.794 limit 300 false
+attention p50 86.942 p95 122.025 max 194.461 limit 300 true
+coverage_host p50 92.026 p95 194.641 max 856.941 limit 300 true
+coverage_policy p50 79.305 p95 130.462 max 169.145 limit 300 true
+coverage_tag p50 124.126 p95 173.763 max 288.838 limit 300 true
+vm_list p50 115.61 p95 232.361 max 1222.33 limit 300 true
+vm_list_attention p50 93.583 p95 160.184 max 888.185 limit 300 true
+vm_list_status p50 80.623 p95 101.128 max 738.543 limit 300 true
+vm_list_host p50 63.125 p95 78.537 max 809.972 limit 300 true
+vm_list_tag p50 96.012 p95 146.453 max 1198.301 limit 300 true
+vm_list_code p50 75.832 p95 123.911 max 199.354 limit 300 true
+vm_list_deep_page p50 97.762 p95 133.509 max 1266.022 limit 300 true
+vm_list_by_name p50 87.78 p95 103.801 max 854.783 limit 300 true
+vm_list_text p50 91.042 p95 117.143 max 883.265 limit 300 true
+vm_page p50 21.392 p95 30.051 max 31.691 limit 300 true
+overview_t20 p50 306.359 p95 377.276 max 1154.63 limit 300 false
+status_page p50 30.085 p95 40.115 max 48.491 limit 300 true
+search_name p50 28.606 p95 59.459 max 91.699 limit 150 true
+search_point p50 12.077 p95 44.529 max 74.782 limit 150 true
+[22:34:23] == TestScaleSimulation: 24 simulated hours
+=== RUN   TestScaleSimulation
+    scale_test.go:260: 5000 VMs, 24 h: events map[backup:42441 backup_unreachable:47 damaged:5 policy_change:1 test_critical:212 test_not_run:456 test_ok:10126], 53751 VM status changes, 25 full recomputes, checks 5, 3540.7 s
+--- PASS: TestScaleSimulation (3541.23s)
+PASS
+{
+  "commit": "4c3b92d5c327",
+  "machine": {
+    "cpus": 4,
+    "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+    "mem_total_mib": 7953,
+    "kernel": "6.1.0-54-cloud-amd64",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "root_fs": "/dev/sda1 40G 37G"
+  },
+  "catalog": {
+    "vms": 5000,
+    "hosts": 100,
+    "points": 2931617,
+    "present_points": 87652,
+    "jobs": 3778509,
+    "tests": 845967,
+    "state_changes": 3778509
+  },
+  "a": {
+    "pass": false,
+    "worst_view_p95_ms": 909.497,
+    "worst_search_p95_ms": 59.459,
+    "server_rss": {
+      "after_recompute": {
+        "VmHWM_mib": 223.03125,
+        "VmRSS_mib": 117.8515625
+      },
+      "after_views": {
+        "VmHWM_mib": 223.03125,
+        "VmRSS_mib": 117.27734375
+      },
+      "before": {
+        "VmHWM_mib": 165.8515625,
+        "VmRSS_mib": 161.984375
+      }
+    }
+  },
+  "b": {
+    "pass": true,
+    "checks": 5,
+    "vms": 5000,
+    "hours": 24,
+    "events": {
+      "backup": 42441,
+      "backup_unreachable": 47,
+      "damaged": 5,
+      "policy_change": 1,
+      "test_critical": 212,
+      "test_not_run": 456,
+      "test_ok": 10126
+    },
+    "status_changes": 53751
+  },
+  "c": {
+    "pass": false,
+    "start_s": 76.984155326,
+    "bench_s": [
+      40.196211024,
+      33.235251532,
+      32.991199544
+    ],
+    "simulation_max_s": 67.810801897
+  },
+  "verdict": "CRITICAL"
+}
+[23:33:25] out: /root/t24-run1

@@ -1,0 +1,8 @@
+{
+  "cpus": 4,
+  "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+  "mem_total_mib": 7953,
+  "kernel": "6.1.0-54-cloud-amd64",
+  "os": "Debian GNU/Linux 12 (bookworm)",
+  "root_fs": "/dev/sda1 40G 37G"
+}

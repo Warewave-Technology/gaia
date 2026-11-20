@@ -1,0 +1,59 @@
+{
+  "schema": {
+    "before": 10,
+    "after": 10
+  },
+  "version": {
+    "before": "0.2.0~dev.20261120130707.gf261b9daf9a4 (f261b9daf9a4)",
+    "after": "0.2.0~dev.20261120132307.g6c756b8ab2b8 (6c756b8ab2b8)"
+  },
+  "points": {
+    "before": 869,
+    "after": 872,
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-20T13:20:37.0794767Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-20T13:20:37.0794767Z"
+    }
+  ],
+  "status_changes_during_upgrade": [],
+  "jobs_failed_during_upgrade": [
+    {
+      "id": 1566,
+      "kind": "backup",
+      "error": "checkpoint retention: internal error: bitmap 'gaia-1-1298-9c43dc' not found in backing chain of 'vda'"
+    }
+  ],
+  "next_backup": {
+    "id": 1568,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 1570,
+    "state": "ok"
+  },
+  "during": {
+    "id": 1567,
+    "kind": "restore_test",
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 134,
+    "intact": true,
+    "head_sha256": "6dc3b7c9a1dd7683e56b31217ee64967dbacc202848e0685d839e7203f652ab5",
+    "first_broken_seq": 0
+  },
+  "pass": false,
+  "verdict": "CRITICAL"
+}

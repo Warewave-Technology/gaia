@@ -1,0 +1,66 @@
+{
+  "commit": "f2532922535c",
+  "machine": {
+    "cpus": 4,
+    "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+    "mem_total_mib": 7953,
+    "kernel": "6.1.0-54-cloud-amd64",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "root_fs": "/dev/sda1 40G 37G"
+  },
+  "catalog": {
+    "vms": 5000,
+    "hosts": 100,
+    "points": 2931617,
+    "present_points": 85641,
+    "jobs": 3778509,
+    "tests": 845967,
+    "state_changes": 3778509
+  },
+  "a": {
+    "pass": true,
+    "worst_view_p95_ms": 147.023,
+    "worst_search_p95_ms": 10.7,
+    "server_rss": {
+      "after_recompute": {
+        "VmHWM_mib": 182.87109375,
+        "VmRSS_mib": 112.3515625
+      },
+      "after_views": {
+        "VmHWM_mib": 182.87109375,
+        "VmRSS_mib": 105.9609375
+      },
+      "before": {
+        "VmHWM_mib": 165.5078125,
+        "VmRSS_mib": 146.1640625
+      }
+    }
+  },
+  "b": {
+    "pass": true,
+    "checks": 5,
+    "vms": 5000,
+    "hours": 24,
+    "events": {
+      "backup": 42441,
+      "backup_unreachable": 47,
+      "damaged": 5,
+      "policy_change": 1,
+      "test_critical": 212,
+      "test_not_run": 456,
+      "test_ok": 10126
+    },
+    "status_changes": 53751
+  },
+  "c": {
+    "pass": true,
+    "start_s": 29.361077456,
+    "bench_s": [
+      5.712749813,
+      5.861760191,
+      6.40118407
+    ],
+    "simulation_max_s": 6.75333521
+  },
+  "verdict": "OK"
+}

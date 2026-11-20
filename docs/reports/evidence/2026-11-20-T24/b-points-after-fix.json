@@ -1,0 +1,62 @@
+[
+  {
+    "id": 872,
+    "kind": "incremental",
+    "taken_at": "2026-11-20T13:37:13.498342268Z",
+    "reason": "incremental from point 871 (checkpoint gaia-1-1568-9c43dc)"
+  },
+  {
+    "id": 871,
+    "kind": "incremental",
+    "taken_at": "2026-11-20T13:32:13.706550604Z",
+    "reason": "incremental from point 870 (checkpoint gaia-1-1566-9c43dc)"
+  },
+  {
+    "id": 870,
+    "kind": "incremental",
+    "taken_at": "2026-11-20T13:27:00.678125233Z",
+    "reason": "incremental from point 869 (checkpoint gaia-1-1565-9c43dc)"
+  },
+  {
+    "id": 869,
+    "kind": "incremental",
+    "taken_at": "2026-11-20T13:22:00.43341005Z",
+    "reason": "incremental from point 868 (checkpoint gaia-1-1563-9c43dc)"
+  },
+  {
+    "id": 868,
+    "kind": "incremental",
+    "taken_at": "2026-11-20T13:17:00.228472163Z",
+    "reason": "incremental from point 867 (checkpoint gaia-1-1562-9c43dc)"
+  },
+  {
+    "id": 867,
+    "kind": "full",
+    "taken_at": "2026-11-20T13:12:00.327042917Z",
+    "reason": "full: checkpoint gaia-1-1299-9c43dc of point 866 is inconsistent on the host (its bitmap was lost: QEMU stopped without saving it)"
+  },
+  {
+    "id": 866,
+    "kind": "incremental",
+    "taken_at": "2026-11-19T22:36:36.296604301Z",
+    "reason": "incremental from point 865 (checkpoint gaia-1-1298-9c43dc)"
+  },
+  {
+    "id": 865,
+    "kind": "incremental",
+    "taken_at": "2026-11-19T22:31:37.193933449Z",
+    "reason": "incremental from point 864 (checkpoint gaia-1-1296-9c43dc)"
+  },
+  {
+    "id": 864,
+    "kind": "incremental",
+    "taken_at": "2026-11-19T22:26:36.743157917Z",
+    "reason": "incremental from point 863 (checkpoint gaia-1-1295-9c43dc)"
+  },
+  {
+    "id": 863,
+    "kind": "incremental",
+    "taken_at": "2026-11-19T22:21:36.257364121Z",
+    "reason": "incremental from point 862 (checkpoint gaia-1-1293-9c43dc)"
+  }
+]

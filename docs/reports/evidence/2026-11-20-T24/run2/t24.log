@@ -1,0 +1,97 @@
+[08:41:35] machine: {  "cpus": 4,  "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",  "mem_total_mib": 7953,  "kernel": "6.1.0-54-cloud-amd64",  "os": "Debian GNU/Linux 12 (bookworm)",  "root_fs": "/dev/sda1 40G 37G"}
+[08:41:35] == server init and the synthetic catalog (5000 VMs, 100 hosts, 3000000 points)
+[08:45:41] catalog: {"vms":5000,"hosts":100,"points":2931617,"present_points":85641,"jobs":3778509,"tests":845967,"state_changes":3778509,"seconds":243.635781434}, database 2.3G
+[08:45:41] == the server on the catalog: its start is a full recompute
+time=2026-11-20T08:46:18.481Z level=INFO msg="status table recomputed" reason=start vms=5000 changed=787 seconds=29.361077456 errors=0
+[08:46:18] == bench: 200 requests per view endpoint
+fleet p50 65.073 p95 91.097 max 166.387 limit 300 true
+attention p50 54.472 p95 81.979 max 246.741 limit 300 true
+coverage_host p50 40.67 p95 60.923 max 206.706 limit 300 true
+coverage_policy p50 48.113 p95 69.24 max 80.076 limit 300 true
+coverage_tag p50 82.799 p95 107.954 max 201.293 limit 300 true
+vm_list p50 49.121 p95 63.646 max 246.655 limit 300 true
+vm_list_attention p50 49.195 p95 68.255 max 291.026 limit 300 true
+vm_list_status p50 45.789 p95 59.645 max 73.874 limit 300 true
+vm_list_host p50 28.053 p95 36.107 max 250.097 limit 300 true
+vm_list_tag p50 46.917 p95 64.129 max 77.278 limit 300 true
+vm_list_code p50 21.806 p95 33.572 max 159.355 limit 300 true
+vm_list_deep_page p50 49.601 p95 65.799 max 82.533 limit 300 true
+vm_list_by_name p50 47.753 p95 66.383 max 221.416 limit 300 true
+vm_list_text p50 47.989 p95 71.617 max 277.057 limit 300 true
+vm_page p50 17.116 p95 25.685 max 37.888 limit 300 true
+overview_t20 p50 129.568 p95 147.023 max 398.568 limit 300 true
+status_page p50 10.014 p95 12.32 max 22.788 limit 300 true
+search_name p50 7.016 p95 10.7 max 18.097 limit 150 true
+search_point p50 6.677 p95 7.22 max 10.142 limit 150 true
+[08:49:46] == TestScaleSimulation: 24 simulated hours
+=== RUN   TestScaleSimulation
+    scale_test.go:260: 5000 VMs, 24 h: events map[backup:42441 backup_unreachable:47 damaged:5 policy_change:1 test_critical:212 test_not_run:456 test_ok:10126], 53751 VM status changes, 25 full recomputes, checks 5, 2615.8 s
+--- PASS: TestScaleSimulation (2616.34s)
+PASS
+{
+  "commit": "f2532922535c",
+  "machine": {
+    "cpus": 4,
+    "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+    "mem_total_mib": 7953,
+    "kernel": "6.1.0-54-cloud-amd64",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "root_fs": "/dev/sda1 40G 37G"
+  },
+  "catalog": {
+    "vms": 5000,
+    "hosts": 100,
+    "points": 2931617,
+    "present_points": 85641,
+    "jobs": 3778509,
+    "tests": 845967,
+    "state_changes": 3778509
+  },
+  "a": {
+    "pass": true,
+    "worst_view_p95_ms": 147.023,
+    "worst_search_p95_ms": 10.7,
+    "server_rss": {
+      "after_recompute": {
+        "VmHWM_mib": 182.87109375,
+        "VmRSS_mib": 112.3515625
+      },
+      "after_views": {
+        "VmHWM_mib": 182.87109375,
+        "VmRSS_mib": 105.9609375
+      },
+      "before": {
+        "VmHWM_mib": 165.5078125,
+        "VmRSS_mib": 146.1640625
+      }
+    }
+  },
+  "b": {
+    "pass": true,
+    "checks": 5,
+    "vms": 5000,
+    "hours": 24,
+    "events": {
+      "backup": 42441,
+      "backup_unreachable": 47,
+      "damaged": 5,
+      "policy_change": 1,
+      "test_critical": 212,
+      "test_not_run": 456,
+      "test_ok": 10126
+    },
+    "status_changes": 53751
+  },
+  "c": {
+    "pass": true,
+    "start_s": 29.361077456,
+    "bench_s": [
+      5.712749813,
+      5.861760191,
+      6.40118407
+    ],
+    "simulation_max_s": 6.75333521
+  },
+  "verdict": "OK"
+}
+[09:33:24] out: /root/t24-run2

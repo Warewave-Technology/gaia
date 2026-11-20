@@ -1,0 +1,322 @@
+{
+  "at": "2026-11-19T22:23:44Z",
+  "server_version": "t24-4c3b92d5c327 (4c3b92d5c327+modified)",
+  "machine": {
+    "cpu_model": "AMD Ryzen 7 2700X Eight-Core Processor",
+    "cpus": 4,
+    "goarch": "amd64",
+    "goos": "linux",
+    "mem_total_mib": 7953
+  },
+  "fleet": {
+    "by_status": {
+      "CRITICAL": 321,
+      "OK": 1191,
+      "UNKNOWN": 144,
+      "WARNING": 3344
+    },
+    "can_return": 1191,
+    "causes": 13,
+    "vms": 5000
+  },
+  "endpoints": [
+    {
+      "name": "fleet",
+      "example": "/api/v1/views/fleet",
+      "n": 200,
+      "p50_ms": 839.222,
+      "p95_ms": 909.497,
+      "p99_ms": 931.775,
+      "max_ms": 933.794,
+      "mean_bytes": 1508,
+      "limit_p95_ms": 300,
+      "pass": false
+    },
+    {
+      "name": "attention",
+      "example": "/api/v1/views/attention",
+      "n": 200,
+      "p50_ms": 86.942,
+      "p95_ms": 122.025,
+      "p99_ms": 189.11,
+      "max_ms": 194.461,
+      "mean_bytes": 12997,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_host",
+      "example": "/api/v1/views/coverage?by=host",
+      "n": 200,
+      "p50_ms": 92.026,
+      "p95_ms": 194.641,
+      "p99_ms": 287.744,
+      "max_ms": 856.941,
+      "mean_bytes": 19636,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_policy",
+      "example": "/api/v1/views/coverage?by=policy",
+      "n": 200,
+      "p50_ms": 79.305,
+      "p95_ms": 130.462,
+      "p99_ms": 155.081,
+      "max_ms": 169.145,
+      "mean_bytes": 2184,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "coverage_tag",
+      "example": "/api/v1/views/coverage?by=tag",
+      "n": 200,
+      "p50_ms": 124.126,
+      "p95_ms": 173.763,
+      "p99_ms": 232.698,
+      "max_ms": 288.838,
+      "mean_bytes": 4143,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list",
+      "example": "/api/v1/views/vm-list",
+      "n": 200,
+      "p50_ms": 115.61,
+      "p95_ms": 232.361,
+      "p99_ms": 506.533,
+      "max_ms": 1222.33,
+      "mean_bytes": 89692,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_attention",
+      "example": "/api/v1/views/vm-list?attention=true",
+      "n": 200,
+      "p50_ms": 93.583,
+      "p95_ms": 160.184,
+      "p99_ms": 229.102,
+      "max_ms": 888.185,
+      "mean_bytes": 90325,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_status",
+      "example": "/api/v1/views/vm-list?status=UNKNOWN",
+      "n": 200,
+      "p50_ms": 80.623,
+      "p95_ms": 101.128,
+      "p99_ms": 148.108,
+      "max_ms": 738.543,
+      "mean_bytes": 74387,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_host",
+      "example": "/api/v1/views/vm-list?host_id=59",
+      "n": 200,
+      "p50_ms": 63.125,
+      "p95_ms": 78.537,
+      "p99_ms": 111.945,
+      "max_ms": 809.972,
+      "mean_bytes": 115782,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_tag",
+      "example": "/api/v1/views/vm-list?tag=team%3Apayments",
+      "n": 200,
+      "p50_ms": 96.012,
+      "p95_ms": 146.453,
+      "p99_ms": 444.824,
+      "max_ms": 1198.301,
+      "mean_bytes": 109578,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_code",
+      "example": "/api/v1/views/vm-list?code=test_failed_boot",
+      "n": 200,
+      "p50_ms": 75.832,
+      "p95_ms": 123.911,
+      "p99_ms": 173.828,
+      "max_ms": 199.354,
+      "mean_bytes": 64300,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_deep_page",
+      "example": "/api/v1/views/vm-list?after=2~1.795124503711022e%2B09~3420",
+      "n": 200,
+      "p50_ms": 97.762,
+      "p95_ms": 133.509,
+      "p99_ms": 185.557,
+      "max_ms": 1266.022,
+      "mean_bytes": 119255,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_by_name",
+      "example": "/api/v1/views/vm-list?sort=name",
+      "n": 200,
+      "p50_ms": 87.78,
+      "p95_ms": 103.801,
+      "p99_ms": 147.107,
+      "max_ms": 854.783,
+      "mean_bytes": 121406,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_list_text",
+      "example": "/api/v1/views/vm-list?q=ci",
+      "n": 200,
+      "p50_ms": 91.042,
+      "p95_ms": 117.143,
+      "p99_ms": 213.087,
+      "max_ms": 883.265,
+      "mean_bytes": 94856,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "vm_page",
+      "example": "/api/v1/views/vms/1065",
+      "n": 200,
+      "p50_ms": 21.392,
+      "p95_ms": 30.051,
+      "p99_ms": 31.451,
+      "max_ms": 31.691,
+      "mean_bytes": 18536,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "overview_t20",
+      "example": "/api/v1/views/overview?limit=100",
+      "n": 200,
+      "p50_ms": 306.359,
+      "p95_ms": 377.276,
+      "p99_ms": 1125.256,
+      "max_ms": 1154.63,
+      "mean_bytes": 212639,
+      "limit_p95_ms": 300,
+      "pass": false
+    },
+    {
+      "name": "status_page",
+      "example": "/api/v1/status?after=4077\u0026limit=100",
+      "n": 200,
+      "p50_ms": 30.085,
+      "p95_ms": 40.115,
+      "p99_ms": 47.212,
+      "max_ms": 48.491,
+      "mean_bytes": 84023,
+      "limit_p95_ms": 300,
+      "pass": true
+    },
+    {
+      "name": "search_name",
+      "example": "/api/v1/search?q=app",
+      "n": 200,
+      "p50_ms": 28.606,
+      "p95_ms": 59.459,
+      "p99_ms": 82.416,
+      "max_ms": 91.699,
+      "mean_bytes": 601,
+      "limit_p95_ms": 150,
+      "pass": true
+    },
+    {
+      "name": "search_point",
+      "example": "/api/v1/search?q=425953",
+      "n": 200,
+      "p50_ms": 12.077,
+      "p95_ms": 44.529,
+      "p99_ms": 68.074,
+      "max_ms": 74.782,
+      "mean_bytes": 219,
+      "limit_p95_ms": 150,
+      "pass": true
+    }
+  ],
+  "recompute": [
+    {
+      "at": "2026-11-19T22:32:22.62985223Z",
+      "changed": 2,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 40.196211024,
+      "vms": 5000
+    },
+    {
+      "at": "2026-11-19T22:33:02.83150775Z",
+      "changed": 1,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 33.235251532,
+      "vms": 5000
+    },
+    {
+      "at": "2026-11-19T22:33:36.072360463Z",
+      "changed": 2,
+      "errors": 0,
+      "reason": "requested by admin",
+      "seconds": 32.991199544,
+      "vms": 5000
+    }
+  ],
+  "check": {
+    "at": "2026-11-19T22:34:09.067744196Z",
+    "differ": [
+      {
+        "model": "{\"S\":\"WARNING\",\"R\":[{\"status\":\"WARNING\",\"rule\":\"proven_rpo_over_target\",\"code\":\"proven_rpo_over_target\",\"scope\":null,\"params\":{\"point\":1378702,\"point_at\":\"2026-11-19T14:34:10.814926331Z\",\"test\":398901,\"target_s\":14400},\"text\":\"\"}],\"N\":[]}",
+        "stored": "{\"S\":\"CRITICAL\",\"R\":[{\"status\":\"CRITICAL\",\"rule\":\"theoretical_rpo_over_target\",\"code\":\"no_backup_in_rpo\",\"scope\":null,\"params\":{\"point\":1378703,\"point_at\":\"2026-11-19T18:34:10.715128159Z\",\"target_s\":14400},\"text\":\"\"}],\"N\":[]}",
+        "vm_id": 2348
+      },
+      {
+        "model": "{\"S\":\"OK\",\"R\":[{\"status\":\"OK\",\"rule\":\"proven\",\"code\":\"proven\",\"scope\":null,\"params\":{\"point\":2910605,\"point_at\":\"2026-11-19T21:34:12.693876165Z\",\"test\":839841,\"test_at\":\"2026-11-19T21:46:54.702881149Z\",\"rto_s\":285.0234550093638,\"rpo_target_s\":3600,\"rto_target_s\":1200,\"max_proof_age_s\":43200},\"text\":\"\"}],\"N\":[]}",
+        "stored": "{\"S\":\"CRITICAL\",\"R\":[{\"status\":\"CRITICAL\",\"rule\":\"theoretical_rpo_over_target\",\"code\":\"no_backup_in_rpo\",\"scope\":null,\"params\":{\"point\":2910605,\"point_at\":\"2026-11-19T21:34:12.693876165Z\",\"target_s\":3600},\"text\":\"\"}],\"N\":[]}",
+        "vm_id": 4963
+      }
+    ],
+    "due": 0,
+    "equal": 4998,
+    "moved": 0,
+    "seconds": 14.5892546,
+    "verdict": "CRITICAL",
+    "vms": 5000
+  },
+  "server_rss": {
+    "after_recompute": {
+      "VmHWM_mib": 223.03125,
+      "VmRSS_mib": 117.8515625
+    },
+    "after_views": {
+      "VmHWM_mib": 223.03125,
+      "VmRSS_mib": 117.27734375
+    },
+    "before": {
+      "VmHWM_mib": 165.8515625,
+      "VmRSS_mib": 161.984375
+    }
+  },
+  "verdict": "CRITICAL",
+  "failures": [
+    "fleet: p95 909.5 ms \u003e 300 ms",
+    "overview_t20: p95 377.3 ms \u003e 300 ms",
+    "full recompute 40.2 s \u003e 30 s",
+    "full recompute 33.2 s \u003e 30 s",
+    "full recompute 33.0 s \u003e 30 s",
+    "the status table differs from the status model"
+  ]
+}

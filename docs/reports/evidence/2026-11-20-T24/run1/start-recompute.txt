@@ -1,0 +1,1 @@
+time=2026-11-19T22:23:43.963Z level=INFO msg="status table recomputed" reason=start vms=5000 changed=10 seconds=76.984155326 errors=0

@@ -1,0 +1,29 @@
+{
+  "now": "2026-11-20T08:41:37.193847786Z",
+  "vms": 5000,
+  "hosts": 100,
+  "policies": 5,
+  "repositories": 2,
+  "points": 2931617,
+  "present_points": 85641,
+  "jobs": 3778509,
+  "tests": 845967,
+  "state_changes": 3778509,
+  "tags": 11170,
+  "seeded": {
+    "backup_failing": 10,
+    "full_backup": 18,
+    "guest_rebooted": 8,
+    "host_unreachable": 100,
+    "never_proven": 114,
+    "no_policy": 5,
+    "proof_too_old": 242,
+    "repo_content_damaged": 25,
+    "rto_over_target": 40,
+    "test_failed_boot": 40,
+    "test_failed_check": 6,
+    "test_not_run": 30,
+    "test_warning": 14
+  },
+  "seconds": 243.635781434
+}
