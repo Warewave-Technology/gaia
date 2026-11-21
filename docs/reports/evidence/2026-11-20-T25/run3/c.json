@@ -1,0 +1,122 @@
+{
+  "memory_limit_mib": 3904,
+  "admission_log_complete": true,
+  "windows": {
+    "verdict": "OK",
+    "proven_rto_s": 269.924302241,
+    "reason": "every check passed (boot 33.4 s, stable 97.0 s); proven RTO 269.9 s = restore 236.5 s + ready 33.4 s"
+  },
+  "admissions": [
+    {
+      "vm": "gaia-t25-lin-3",
+      "slot": 1,
+      "memory_mib": 384,
+      "waited_s": 1.52e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-4",
+      "slot": 0,
+      "memory_mib": 384,
+      "waited_s": 4.75e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-2",
+      "slot": 2,
+      "memory_mib": 384,
+      "waited_s": 6.271e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-5",
+      "slot": 0,
+      "memory_mib": 384,
+      "waited_s": 2.135e-05,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-1",
+      "slot": 1,
+      "memory_mib": 384,
+      "waited_s": 2.233e-05,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-6",
+      "slot": 2,
+      "memory_mib": 384,
+      "waited_s": 8.63e-05,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-win",
+      "slot": 0,
+      "memory_mib": 2048,
+      "waited_s": 4.274704588,
+      "admitted_when_freed": true
+    }
+  ],
+  "linux_delays": [
+    {
+      "vm": "gaia-t25-lin-1",
+      "start_to_admission_s": 31.740005,
+      "restore_s": 30.180493786,
+      "waited_s": 2.233e-05,
+      "other_s": 1.5594888840000005,
+      "ok": true
+    },
+    {
+      "vm": "gaia-t25-lin-2",
+      "start_to_admission_s": 5.83582,
+      "restore_s": 5.478454295,
+      "waited_s": 6.271e-06,
+      "other_s": 0.3573594340000003,
+      "ok": true
+    },
+    {
+      "vm": "gaia-t25-lin-3",
+      "start_to_admission_s": 5.835345,
+      "restore_s": 5.526076728,
+      "waited_s": 1.52e-06,
+      "other_s": 0.30926675200000064,
+      "ok": true
+    },
+    {
+      "vm": "gaia-t25-lin-4",
+      "start_to_admission_s": 5.841554,
+      "restore_s": 5.538983206,
+      "waited_s": 4.75e-06,
+      "other_s": 0.3025660440000002,
+      "ok": true
+    },
+    {
+      "vm": "gaia-t25-lin-5",
+      "start_to_admission_s": 31.837667,
+      "restore_s": 30.179911828,
+      "waited_s": 2.135e-05,
+      "other_s": 1.6577338219999982,
+      "ok": true
+    },
+    {
+      "vm": "gaia-t25-lin-6",
+      "start_to_admission_s": 31.680948,
+      "restore_s": 30.184516085,
+      "waited_s": 8.63e-05,
+      "other_s": 1.4963456150000023,
+      "ok": true
+    }
+  ],
+  "max_other_s": 10,
+  "linux_timed": true,
+  "verdicts": {
+    "gaia-t25-win": "OK",
+    "gaia-t25-lin-1": "OK",
+    "gaia-t25-lin-2": "OK",
+    "gaia-t25-lin-3": "OK",
+    "gaia-t25-lin-4": "OK",
+    "gaia-t25-lin-5": "OK",
+    "gaia-t25-lin-6": "OK"
+  },
+  "pass": true
+}

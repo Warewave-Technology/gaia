@@ -1,0 +1,47 @@
+[18:14:55.603] image /var/lib/gaia-t25-sandbox/images/vm7-test18-vda.raw (vda): sha256 905aae9ce7adecb7d622aac3b7040dbb4cef60ed5e68109a25e136398efd573d (4294967296 bytes)
+[18:14:55.711] $ sysctl -q -w net.ipv6.conf.gvb-8051b3.disable_ipv6=1
+
+[18:14:55.717] $ ip netns add gaia-verify-8051b3
+
+[18:14:55.720] $ ip netns exec gaia-verify-8051b3 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[18:14:55.725] $ ip link add gvh-8051b3 type veth peer name gvn-8051b3
+
+[18:14:55.726] $ sysctl -q -w net.ipv6.conf.gvh-8051b3.disable_ipv6=1
+
+[18:14:55.746] $ ip link set gvh-8051b3 master gvb-8051b3 up
+
+[18:14:55.773] $ ip link set gvn-8051b3 netns gaia-verify-8051b3
+
+[18:14:55.777] $ ip -n gaia-verify-8051b3 addr add 10.254.0.1/24 dev gvn-8051b3
+
+[18:14:55.780] $ ip -n gaia-verify-8051b3 link set gvn-8051b3 up
+
+[18:14:55.782] $ ip -n gaia-verify-8051b3 link set lo up
+
+[18:14:55.783] $ ip netns exec gaia-verify-8051b3 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-8051b3 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/dnsmasq.log --user=root --group=root
+[18:14:55.819] $ qemu-img create -q -f qcow2 -F raw -b /var/lib/gaia-t25-sandbox/images/vm7-test18-vda.raw /var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/overlay.qcow2
+
+[18:14:57.250] $ ip -o addr show dev gvb-8051b3
+
+[18:14:57.253] $ ip -n gaia-verify-8051b3 route show table all
+10.254.0.0/24 dev gvn-8051b3 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-8051b3 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-8051b3 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-8051b3 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::f4fc:d5ff:fee7:1087 dev gvn-8051b3 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-8051b3 table local proto kernel metric 256 pref medium
+[18:14:57.257] $ ip netns exec gaia-verify-8051b3 cat /proc/sys/net/ipv4/ip_forward
+0
+[18:14:57.259] guest started (kvm)
+[18:15:06.291] boot reached after 9.032 s
+[18:15:06.706] $ virsh screenshot gaia-verify-8051b3 --file /var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/screenshot-boot.ppm, with type of image/png
+[18:15:07.080] $ virsh screenshot gaia-verify-8051b3 --file /var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t25-sandbox/gaia-verify-8051b3/screenshot-end.ppm, with type of image/png
+[18:15:09.189] $ ip netns del gaia-verify-8051b3
+

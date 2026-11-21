@@ -1,0 +1,75 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t25-lin-3-20261120T182436Z-d015d1",
+  "vm": "gaia-t25-lin-3",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 12.041091851,
+      "attempts": 13,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t25-lin-3 login:\""
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia-t25-sandbox/images/vm7-test36-vda.raw",
+    "format": "raw",
+    "bytes": 4294967296,
+    "sha256_before": "905aae9ce7adecb7d622aac3b7040dbb4cef60ed5e68109a25e136398efd573d",
+    "sha256_after": "905aae9ce7adecb7d622aac3b7040dbb4cef60ed5e68109a25e136398efd573d",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-d015d1",
+    "network": "gaia-verify-d015d1",
+    "bridge": "gvb-d015d1",
+    "netns": "gaia-verify-d015d1",
+    "slot": 0,
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-d015d1 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-d015d1 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-d015d1 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-d015d1 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-d015d1 table local proto kernel metric 256 pref medium"
+    ],
+    "netns_ip_forward": "0",
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 12.041091851,
+    "image_hash": 3.465230855,
+    "proven_rto": 13.636578677,
+    "ready": 12.041091851,
+    "restore": 1.5954868260000001,
+    "sandbox_setup": 1.6014202530000001,
+    "shutdown": 2.003179941,
+    "total": 56.514866009
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-20T18:24:36.327859728Z",
+  "finished": "2026-11-20T18:25:32.842725737Z"
+}

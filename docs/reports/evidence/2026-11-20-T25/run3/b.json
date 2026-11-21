@@ -1,0 +1,157 @@
+{
+  "by_slots": {
+    "1": {
+      "runs": [
+        {
+          "run": 1,
+          "tests": 6,
+          "span_s": 176.244657,
+          "tests_per_hour": 122.55690678895306,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 2,
+          "tests": 6,
+          "span_s": 175.233474,
+          "tests_per_hour": 123.26412018744774,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 3,
+          "tests": 6,
+          "span_s": 207.24477,
+          "tests_per_hour": 104.22458429228396,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        }
+      ],
+      "median_tests_per_hour": 122.55690678895306
+    },
+    "2": {
+      "runs": [
+        {
+          "run": 1,
+          "tests": 6,
+          "span_s": 185.695129,
+          "tests_per_hour": 116.31969086275816,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 2,
+          "tests": 6,
+          "span_s": 166.643033,
+          "tests_per_hour": 129.6183801455414,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 3,
+          "tests": 6,
+          "span_s": 122.808401,
+          "tests_per_hour": 175.88373290521062,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        }
+      ],
+      "median_tests_per_hour": 129.6183801455414
+    },
+    "4": {
+      "runs": [
+        {
+          "run": 1,
+          "tests": 6,
+          "span_s": 85.518605,
+          "tests_per_hour": 252.57661768453778,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 2,
+          "tests": 6,
+          "span_s": 85.177926,
+          "tests_per_hour": 253.58682717867538,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        },
+        {
+          "run": 3,
+          "tests": 6,
+          "span_s": 81.568656,
+          "tests_per_hour": 264.8075996250324,
+          "verdicts": {
+            "gaia-t25-lin-1": "OK",
+            "gaia-t25-lin-2": "OK",
+            "gaia-t25-lin-3": "OK",
+            "gaia-t25-lin-4": "OK",
+            "gaia-t25-lin-5": "OK",
+            "gaia-t25-lin-6": "OK"
+          }
+        }
+      ],
+      "median_tests_per_hour": 253.58682717867538
+    }
+  },
+  "serial_verdicts": {
+    "gaia-t25-lin-1": "OK",
+    "gaia-t25-lin-2": "OK",
+    "gaia-t25-lin-3": "OK",
+    "gaia-t25-lin-4": "OK",
+    "gaia-t25-lin-5": "OK",
+    "gaia-t25-lin-6": "OK"
+  },
+  "verdicts_identical_to_serial": true,
+  "speedup_2": 1.0576179143354885,
+  "speedup_4": 2.0691353414733293,
+  "pass": true
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "vm": "gaia-t25-lin-1",
+    "job": 39,
+    "test": {
+      "id": 28,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:16:13.470836148Z",
+      "finished_at": "2026-11-20T17:16:44.086055768Z",
+      "proven_rto_s": 17.928989965,
+      "reason": "every check passed (boot 11.0 s); proven RTO 17.9 s = restore 6.9 s + ready 11.0 s",
+      "bundle_id": "gaia-t25-lin-1-20261120T171620Z-5312c5"
+    }
+  },
+  {
+    "vm": "gaia-t25-lin-2",
+    "job": 40,
+    "test": {
+      "id": 29,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:16:58.475989263Z",
+      "finished_at": "2026-11-20T17:17:22.334490073Z",
+      "proven_rto_s": 11.776145288999999,
+      "reason": "every check passed (boot 10.0 s); proven RTO 11.8 s = restore 1.7 s + ready 10.0 s",
+      "bundle_id": "gaia-t25-lin-2-20261120T171700Z-6ca822"
+    }
+  },
+  {
+    "vm": "gaia-t25-lin-3",
+    "job": 41,
+    "test": {
+      "id": 31,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:17:58.478692807Z",
+      "finished_at": "2026-11-20T17:18:23.37294825Z",
+      "proven_rto_s": 12.681099416999999,
+      "reason": "every check passed (boot 11.0 s); proven RTO 12.7 s = restore 1.6 s + ready 11.0 s",
+      "bundle_id": "gaia-t25-lin-3-20261120T171800Z-05a193"
+    }
+  },
+  {
+    "vm": "gaia-t25-lin-4",
+    "job": 42,
+    "test": {
+      "id": 32,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:18:28.469308516Z",
+      "finished_at": "2026-11-20T17:18:54.033646154Z",
+      "proven_rto_s": 12.103704731,
+      "reason": "every check passed (boot 10.1 s); proven RTO 12.1 s = restore 2.1 s + ready 10.1 s",
+      "bundle_id": "gaia-t25-lin-4-20261120T171830Z-0a7d98"
+    }
+  },
+  {
+    "vm": "gaia-t25-lin-5",
+    "job": 43,
+    "test": {
+      "id": 30,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:17:28.47121764Z",
+      "finished_at": "2026-11-20T17:17:54.323373262Z",
+      "proven_rto_s": 13.306529208999999,
+      "reason": "every check passed (boot 11.1 s); proven RTO 13.3 s = restore 2.2 s + ready 11.1 s",
+      "bundle_id": "gaia-t25-lin-5-20261120T171730Z-99a0ba"
+    }
+  },
+  {
+    "vm": "gaia-t25-lin-6",
+    "job": 44,
+    "test": {
+      "id": 33,
+      "verdict": "OK",
+      "started_at": "2026-11-20T17:18:58.467453385Z",
+      "finished_at": "2026-11-20T17:19:23.893362571Z",
+      "proven_rto_s": 11.999637131,
+      "reason": "every check passed (boot 10.0 s); proven RTO 12.0 s = restore 2.0 s + ready 10.0 s",
+      "bundle_id": "gaia-t25-lin-6-20261120T171900Z-118355"
+    }
+  }
+]

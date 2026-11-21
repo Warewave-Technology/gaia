@@ -1,0 +1,205 @@
+{
+  "slots": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "rows": [
+    {
+      "slot": 0,
+      "guest_ip": "10.254.0.10",
+      "isolated": true,
+      "netns_ip_forward": "0",
+      "own_probe_reached": true,
+      "pairs": [
+        {
+          "to_slot": 2,
+          "target": "10.254.2.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 2,
+          "target": "10.254.2.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.10",
+          "probed": true,
+          "reached": false
+        }
+      ],
+      "others_reached": [],
+      "pass": true
+    },
+    {
+      "slot": 2,
+      "guest_ip": "10.254.2.10",
+      "isolated": true,
+      "netns_ip_forward": "0",
+      "own_probe_reached": true,
+      "pairs": [
+        {
+          "to_slot": 0,
+          "target": "10.254.0.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 0,
+          "target": "10.254.0.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.10",
+          "probed": true,
+          "reached": false
+        }
+      ],
+      "others_reached": [],
+      "pass": true
+    },
+    {
+      "slot": 3,
+      "guest_ip": "10.254.3.10",
+      "isolated": true,
+      "netns_ip_forward": "0",
+      "own_probe_reached": true,
+      "pairs": [
+        {
+          "to_slot": 0,
+          "target": "10.254.0.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 0,
+          "target": "10.254.0.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 2,
+          "target": "10.254.2.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 2,
+          "target": "10.254.2.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 1,
+          "target": "10.254.1.10",
+          "probed": true,
+          "reached": false
+        }
+      ],
+      "others_reached": [],
+      "pass": true
+    },
+    {
+      "slot": 1,
+      "guest_ip": "10.254.1.10",
+      "isolated": true,
+      "netns_ip_forward": "0",
+      "own_probe_reached": true,
+      "pairs": [
+        {
+          "to_slot": 0,
+          "target": "10.254.0.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 0,
+          "target": "10.254.0.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 2,
+          "target": "10.254.2.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 2,
+          "target": "10.254.2.10",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.1",
+          "probed": true,
+          "reached": false
+        },
+        {
+          "to_slot": 3,
+          "target": "10.254.3.10",
+          "probed": true,
+          "reached": false
+        }
+      ],
+      "others_reached": [],
+      "pass": true
+    }
+  ],
+  "test_starts": [
+    "2026-11-20T18:09:33.95542624Z",
+    "2026-11-20T18:09:33.959903775Z",
+    "2026-11-20T18:09:33.963807564Z",
+    "2026-11-20T18:09:33.967629383Z"
+  ],
+  "pass": true
+}

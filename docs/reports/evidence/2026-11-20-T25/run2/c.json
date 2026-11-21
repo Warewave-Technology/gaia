@@ -1,0 +1,70 @@
+{
+  "memory_limit_mib": 3904,
+  "admission_log_complete": true,
+  "windows": {
+    "verdict": "OK",
+    "proven_rto_s": 241.878831852,
+    "reason": "every check passed (boot 57.3 s, stable 120.6 s); proven RTO 241.9 s = restore 184.6 s + ready 57.3 s"
+  },
+  "admissions": [
+    {
+      "vm": "gaia-t25-lin-3",
+      "slot": 0,
+      "memory_mib": 384,
+      "waited_s": 2.62e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-5",
+      "slot": 1,
+      "memory_mib": 384,
+      "waited_s": 3.08e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-win",
+      "slot": 0,
+      "memory_mib": 2048,
+      "waited_s": 0.000237309,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-2",
+      "slot": 1,
+      "memory_mib": 384,
+      "waited_s": 8.54e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-4",
+      "slot": 2,
+      "memory_mib": 384,
+      "waited_s": 4.73e-06,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-1",
+      "slot": 1,
+      "memory_mib": 384,
+      "waited_s": 15.682870449,
+      "admitted_when_freed": true
+    },
+    {
+      "vm": "gaia-t25-lin-6",
+      "slot": 2,
+      "memory_mib": 384,
+      "waited_s": 4.08e-06,
+      "admitted_when_freed": true
+    }
+  ],
+  "verdicts": {
+    "gaia-t25-win": "OK",
+    "gaia-t25-lin-1": "OK",
+    "gaia-t25-lin-2": "OK",
+    "gaia-t25-lin-3": "OK",
+    "gaia-t25-lin-4": "OK",
+    "gaia-t25-lin-5": "OK",
+    "gaia-t25-lin-6": "OK"
+  },
+  "pass": true
+}

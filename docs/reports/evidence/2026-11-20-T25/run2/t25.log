@@ -1,0 +1,46 @@
+[16:52:42] gaia-lab: 4 CPUs, 16005 MiB, 4842 MiB available
+
+== server (packaged units), host, policies, VMs
+{"slots":4,"memory_limit_mib":6144,"basis":"configured"}
+{"version":"5e9dc61ba493","schema_version":10}
+{"id":1,"name":"main"}
+[16:53:20] waiting for every VM's first backup and test
+[]
+
+== a: isolation, four tests at once in four slots
+{"slots":4,"memory_limit_mib":6144,"basis":"configured"}
+{"pass":false,"slots":[0,1,2,3],"rows":[{"slot":1,"own_probe_reached":true,"others_reached":[],"pass":false},{"slot":2,"own_probe_reached":true,"others_reached":[],"pass":false},{"slot":3,"own_probe_reached":true,"others_reached":[],"pass":false},{"slot":0,"own_probe_reached":true,"others_reached":[],"pass":false}]}
+
+== b: throughput with 1, 2 and 4 slots, 3 runs each
+{"slots":1,"memory_limit_mib":6144,"basis":"configured"}
+{"slots":1,"run":1,"first_start":"2026-11-20T17:09:43.472790293Z","last_finish":"2026-11-20T17:12:38.117292687Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":1,"run":2,"first_start":"2026-11-20T17:12:58.469658612Z","last_finish":"2026-11-20T17:15:52.590012447Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":1,"run":3,"first_start":"2026-11-20T17:16:13.470836148Z","last_finish":"2026-11-20T17:19:23.893362571Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":2,"memory_limit_mib":6144,"basis":"configured"}
+{"slots":2,"run":1,"first_start":"2026-11-20T17:19:58.485186732Z","last_finish":"2026-11-20T17:21:53.641371483Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":2,"run":2,"first_start":"2026-11-20T17:22:13.483876472Z","last_finish":"2026-11-20T17:23:59.552632627Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":2,"run":3,"first_start":"2026-11-20T17:24:13.475509579Z","last_finish":"2026-11-20T17:27:22.09275262Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":4,"memory_limit_mib":6144,"basis":"configured"}
+{"slots":4,"run":1,"first_start":"2026-11-20T17:27:58.742078764Z","last_finish":"2026-11-20T17:30:02.864091205Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":4,"run":2,"first_start":"2026-11-20T17:30:13.490082457Z","last_finish":"2026-11-20T17:31:47.24729255Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"slots":4,"run":3,"first_start":"2026-11-20T17:32:13.489568171Z","last_finish":"2026-11-20T17:33:35.733706797Z","verdicts":{"gaia-t25-lin-1":"OK","gaia-t25-lin-2":"OK","gaia-t25-lin-3":"OK","gaia-t25-lin-4":"OK","gaia-t25-lin-5":"OK","gaia-t25-lin-6":"OK"}}
+{"pass":true,"speedup_2":1.5165881189968216,"speedup_4":1.8627314315347052,"median":{"1":123.67981672849915,"2":187.57134061014614,"4":230.3822820666272}}
+
+== c: Windows among them, 4 slots, memory for Windows and two Linux guests
+{"slots":4,"memory_limit_mib":3904,"basis":"configured"}
+Failed to parse timestamp: 2026-11-20T17:33:50
+{"pass":true,"windows":{"verdict":"OK","proven_rto_s":241.878831852,"reason":"every check passed (boot 57.3 s, stable 120.6 s); proven RTO 241.9 s = restore 184.6 s + ready 57.3 s"},"linux_waits":[]}
+{
+  "commit": "5e9dc61ba493",
+  "a": false,
+  "b": true,
+  "c": true,
+  "tests_per_hour": {
+    "1": 123.67981672849915,
+    "2": 187.57134061014614,
+    "4": 230.3822820666272
+  },
+  "windows_rto_s": 241.878831852,
+  "verdict": "CRITICAL"
+}
+[17:41:11] out: /root/t25-run2 (the server stays until: lab/lab-vm/t25-gate.sh cleanup)

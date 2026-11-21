@@ -1,0 +1,14 @@
+time=2026-11-20T17:34:00.443Z level=INFO msg=admitted vm=gaia-t25-lin-3 slot=0 memory_mib=384 waited_s=2.62e-06
+time=2026-11-20T17:34:02.528Z level=INFO msg=admitted vm=gaia-t25-lin-5 slot=1 memory_mib=384 waited_s=3.08e-06
+time=2026-11-20T17:35:02.768Z level=INFO msg=verified vm=gaia-t25-lin-3 bundle=gaia-t25-lin-3-20261120T173400Z-f37379 verdict=OK
+time=2026-11-20T17:35:06.282Z level=INFO msg=verified vm=gaia-t25-lin-5 bundle=gaia-t25-lin-5-20261120T173402Z-8095a2 verdict=OK
+time=2026-11-20T17:37:07.336Z level=INFO msg=admitted vm=gaia-t25-win slot=0 memory_mib=2048 waited_s=0.000237309
+time=2026-11-20T17:37:25.230Z level=INFO msg=admitted vm=gaia-t25-lin-2 slot=1 memory_mib=384 waited_s=8.54e-06
+time=2026-11-20T17:37:28.921Z level=INFO msg=admitted vm=gaia-t25-lin-4 slot=2 memory_mib=384 waited_s=4.73e-06
+time=2026-11-20T17:37:50.546Z level=INFO msg=verified vm=gaia-t25-lin-2 bundle=gaia-t25-lin-2-20261120T173725Z-6066e8 verdict=OK
+time=2026-11-20T17:37:50.550Z level=INFO msg=admitted vm=gaia-t25-lin-1 slot=1 memory_mib=384 waited_s=15.682870449
+time=2026-11-20T17:37:58.181Z level=INFO msg=verified vm=gaia-t25-lin-4 bundle=gaia-t25-lin-4-20261120T173728Z-8ea52e verdict=OK
+time=2026-11-20T17:38:04.154Z level=INFO msg=admitted vm=gaia-t25-lin-6 slot=2 memory_mib=384 waited_s=4.08e-06
+time=2026-11-20T17:38:21.757Z level=INFO msg=verified vm=gaia-t25-lin-1 bundle=gaia-t25-lin-1-20261120T173750Z-3f2356 verdict=OK
+time=2026-11-20T17:38:34.765Z level=INFO msg=verified vm=gaia-t25-lin-6 bundle=gaia-t25-lin-6-20261120T173804Z-fe72c7 verdict=OK
+time=2026-11-20T17:41:00.368Z level=INFO msg=verified vm=gaia-t25-win bundle=gaia-t25-win-20261120T173707Z-38c27f verdict=OK
