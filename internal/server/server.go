@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/kopia/kopia/repo/maintenance"
 
 	"github.com/Warewave-Technology/gaia/internal/buildinfo"
@@ -33,11 +34,13 @@ import (
 
 // Config is /etc/gaia/server.json.
 type Config struct {
-	Listen                string `json:"listen"`                  // e.g. ":8443"
-	DataDir               string `json:"data_dir"`                // e.g. /var/lib/gaia
-	TLSCert               string `json:"tls_cert"`                // PEM; default <data_dir>/tls/cert.pem
-	TLSKey                string `json:"tls_key"`                 // PEM; default <data_dir>/tls/key.pem
-	SessionTTL            string `json:"session_ttl"`             // Go duration, default 12h
+	Listen  string `json:"listen"`   // e.g. ":8443"
+	DataDir string `json:"data_dir"` // e.g. /var/lib/gaia
+	TLSCert string `json:"tls_cert"` // PEM; default <data_dir>/tls/cert.pem
+	TLSKey  string `json:"tls_key"`  // PEM; default <data_dir>/tls/key.pem
+	// PublicURL is how browsers and the CLI reach this server, https://NAME[:PORT]: the WebAuthn relying party (its host
+	// name; WebAuthn refuses IP addresses) and the OIDC redirect. Default https://<host name>:<listen port>.
+	PublicURL             string `json:"public_url"`
 	StateBackupAt         string `json:"state_backup_at"`         // HH:MM local time, default 02:30
 	StateBackupRepository string `json:"state_backup_repository"` // repository name; "" = the first repository
 	// Backups (T15).
@@ -51,11 +54,13 @@ type Config struct {
 	// Restore tests (T16).
 	SandboxSocket    string `json:"sandbox_socket"`     // the sandbox helper (gaia sandbox serve); default /run/gaia-sandbox/sandbox.sock
 	SandboxImagesDir string `json:"sandbox_images_dir"` // where restore tests restore disks for the helper; default /var/lib/gaia-sandbox/images
-	// Login protection (T18, login.go).
-	LoginMaxFailures     int    `json:"login_max_failures"`     // wrong passwords in a row that lock a username out; default 5
-	LoginLockout         string `json:"login_lockout"`          // Go duration of a lockout; default 15m
-	LoginAddressFailures int    `json:"login_address_failures"` // wrong passwords from one client address within the window that block it; default 20
-	LoginAddressWindow   string `json:"login_address_window"`   // Go duration; default 10m
+	// Replaced by ADR-008 (0.2.0): sessions and failed sign-ins have fixed limits and settings (signin.go). A config
+	// written by an earlier release still has them; they are read and ignored, with a warning at start.
+	SessionTTL           string `json:"session_ttl,omitempty"`
+	LoginMaxFailures     int    `json:"login_max_failures,omitempty"`
+	LoginLockout         string `json:"login_lockout,omitempty"`
+	LoginAddressFailures int    `json:"login_address_failures,omitempty"`
+	LoginAddressWindow   string `json:"login_address_window,omitempty"`
 	// Notifications (T19, notify.go, report.go).
 	DailyReportAt string `json:"daily_report_at"` // HH:MM local time of the daily report; default 07:00
 	// Migration checks (T21, migration.go): the converter service (gaia convert serve) and its job directories.
@@ -87,9 +92,6 @@ func (c *Config) resolve() error {
 	if c.Listen == "" {
 		c.Listen = ":8443"
 	}
-	if c.SessionTTL == "" {
-		c.SessionTTL = "12h"
-	}
 	if c.StateBackupAt == "" {
 		c.StateBackupAt = "02:30"
 	}
@@ -105,8 +107,8 @@ func (c *Config) resolve() error {
 	if !hhmm.MatchString(c.DailyReportAt) {
 		return fmt.Errorf("daily_report_at %q: want HH:MM", c.DailyReportAt)
 	}
-	if ttl, err := time.ParseDuration(c.SessionTTL); err != nil || ttl < time.Minute {
-		return fmt.Errorf("session_ttl %q: want a duration of at least 1m", c.SessionTTL)
+	if err := c.resolvePublicURL(); err != nil {
+		return err
 	}
 	if c.HostSocketDir == "" {
 		c.HostSocketDir = "/var/lib/libvirt/qemu"
@@ -141,31 +143,11 @@ func (c *Config) resolve() error {
 	if c.ConvertJobsDir == "" {
 		c.ConvertJobsDir = "/var/lib/gaia-convert/jobs"
 	}
-	if c.LoginMaxFailures == 0 {
-		c.LoginMaxFailures = 5
-	}
-	if c.LoginLockout == "" {
-		c.LoginLockout = "15m"
-	}
-	if c.LoginAddressFailures == 0 {
-		c.LoginAddressFailures = 20
-	}
-	if c.LoginAddressWindow == "" {
-		c.LoginAddressWindow = "10m"
-	}
 	if c.StopDrain == "" {
 		c.StopDrain = "10m"
 	}
 	if d, err := time.ParseDuration(c.StopDrain); err != nil || d < 0 || d > time.Hour {
 		return fmt.Errorf("stop_drain %q: want a duration from 0s to 1h", c.StopDrain)
-	}
-	for name, v := range map[string]string{"login_lockout": c.LoginLockout, "login_address_window": c.LoginAddressWindow} {
-		if d, err := time.ParseDuration(v); err != nil || d < time.Second || d > 24*time.Hour {
-			return fmt.Errorf("%s %q: want a duration from 1s to 24h", name, v)
-		}
-	}
-	if c.LoginMaxFailures < 1 || c.LoginMaxFailures > 100 || c.LoginAddressFailures < 1 || c.LoginAddressFailures > 10000 {
-		return fmt.Errorf("login_max_failures: 1-100, login_address_failures: 1-10000")
 	}
 	switch {
 	case !filepath.IsAbs(c.HostSocketDir) || !filepath.IsAbs(c.HostScratchDir):
@@ -201,7 +183,6 @@ func (c Config) kopiaDir() string         { return filepath.Join(c.DataDir, "kop
 func (c Config) cacheDir() string         { return filepath.Join(c.DataDir, "cache") }
 func (c Config) tmpDir() string           { return filepath.Join(c.DataDir, "tmp") }
 func (c Config) sshKeyPath() string       { return filepath.Join(c.DataDir, "keys", "ssh-key") }
-func (c Config) ttl() time.Duration       { d, _ := time.ParseDuration(c.SessionTTL); return d }
 func (c Config) stopDrain() time.Duration { d, _ := time.ParseDuration(c.StopDrain); return d }
 func (c Config) DBPath() string           { return c.dbPath() }
 func (c Config) EvidenceKey() string      { return c.keyPath() }
@@ -229,8 +210,16 @@ type Server struct {
 	repoLocks  repoLocks
 	// Kopia's full safety (24 h before an unreferenced content may go); tests use none.
 	maintenanceSafety maintenance.SafetyParameters
-	logins            *loginGuard
-	jobsWG            sync.WaitGroup
+	// Sign-in (ADR-008): the steps of sign-ins under way, step-ups, enrolments on one's own account, CLI sign-ins
+	// through a browser, the OIDC client and the WebAuthn relying party.
+	signins   signins
+	stepups   stepUps
+	enrolling ownEnrolments
+	approvals cliApprovals
+	oidc      *oidcClient
+	webauthn  *webauthn.WebAuthn
+	instance  string
+	jobsWG    sync.WaitGroup
 	// The context of jobs (backups, restore tests, verifications, migration checks). It is not the server's: when the
 	// server stops, running jobs may end first (stop_drain); stopJobs ends them when the drain is over.
 	jobs       context.Context
@@ -283,9 +272,20 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 		log.Info("migrated the state database", "versions", done, "schema", store.Latest())
 	}
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
-		maintenanceSafety: maintenance.SafetyFull, logins: newLoginGuard(), sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
+		maintenanceSafety: maintenance.SafetyFull, sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
 		stateDirty: make(chan struct{}, 1), testFreed: make(chan struct{}, 1)}
 	s.jobs, s.stopJobs = context.WithCancel(context.WithoutCancel(ctx))
+	s.instance = instanceName()
+	db.SetInstance(s.instance)
+	s.signins.m, s.stepups.m, s.enrolling.m, s.approvals.m = map[string]*pendingSignin{}, map[string]*stepUp{}, map[int64]*pendingSignin{}, map[string]*cliApproval{}
+	s.oidc = newOIDCClient(s)
+	if s.webauthn, err = newWebAuthn(cfg, s.instance); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("WebAuthn (public_url %s): %w", cfg.PublicURL, err)
+	}
+	if cfg.SessionTTL != "" || cfg.LoginMaxFailures != 0 || cfg.LoginLockout != "" || cfg.LoginAddressFailures != 0 || cfg.LoginAddressWindow != "" {
+		log.Warn("server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)", "config", cfgPath)
+	}
 	if s.sshKey, err = loadSSHKey(cfg); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("SSH key: %w", err)
@@ -372,6 +372,7 @@ func (s *Server) Run(ctx context.Context) error {
 	}()
 	go s.schedule(ctx)
 	go s.notifyLoop(ctx)
+	go s.sessionSweep(ctx)
 	s.log.Info("gaia server is listening", "address", ln.Addr().String(), "version", s.version, "schema", store.Latest())
 	select {
 	case err := <-errc:
@@ -496,30 +497,25 @@ func (s *Server) finishInterrupted(ctx context.Context) error {
 // apiError is the body of every error response.
 type apiError struct {
 	Error string `json:"error"`
-	Code  string `json:"code"` // unauthorized, forbidden, not_found, conflict, invalid, not_implemented, internal, unavailable, too_many_requests
+	// unauthorized, session_ended, forbidden, step_up_required, step_up_failed, idp_unreachable, signin_refused,
+	// password_change_required, not_found, conflict, invalid, not_implemented, internal, unavailable, too_many_requests
+	Code   string `json:"code"`
+	Reason string `json:"reason,omitempty"` // session_ended: why (idle, absolute, ...); password_change_required: why
 }
 
 var errNotImplemented = errors.New("not implemented in this version")
 
-func (c Config) loginLockout() time.Duration {
-	d, _ := time.ParseDuration(c.LoginLockout) // checked by resolve
-	return d
-}
-
-func (c Config) loginAddressWindow() time.Duration {
-	d, _ := time.ParseDuration(c.LoginAddressWindow)
-	return d
-}
-
 // call is one request being served.
 type call struct {
-	w       http.ResponseWriter
-	r       *http.Request
-	user    store.User
-	session store.Session
-	target  string // for the audit log: what the action was about
-	detail  string // for the audit log: what happened (never a secret)
-	raw     bool   // the handler wrote the response itself
+	w         http.ResponseWriter
+	r         *http.Request
+	user      store.User
+	session   store.Session
+	token     *store.APIToken // the request came with an API token, not a session
+	steppedUp bool            // a step-up passed for this request (stepup.go)
+	target    string          // for the audit log: what the action was about
+	detail    string          // for the audit log: what happened (never a secret)
+	raw       bool            // the handler wrote the response itself
 }
 
 func (c *call) id(name string) (int64, error) {
@@ -581,6 +577,16 @@ func statusOf(err error) (int, string) {
 		return http.StatusBadGateway, "host"
 	case errors.Is(err, errTooManyLogins):
 		return http.StatusTooManyRequests, "too_many_requests"
+	case errors.Is(err, errStepUpRequired):
+		return http.StatusForbidden, "step_up_required"
+	case errors.Is(err, errStepUpFailed):
+		return http.StatusForbidden, "step_up_failed"
+	case errors.Is(err, errIdPUnreachable):
+		return http.StatusForbidden, "idp_unreachable"
+	case errors.Is(err, errSignin):
+		return http.StatusForbidden, "signin_refused"
+	case errors.Is(err, errForbidden):
+		return http.StatusForbidden, "forbidden"
 	}
 	return http.StatusInternalServerError, "internal"
 }
@@ -611,37 +617,24 @@ func remote(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// serve wraps a route: authentication, the role check, the audit log, and the response.
+// serve wraps a route: authentication (a session or an API token, ADR-008 §5, §9), the session's refresh at the IdP,
+// the password that must change first, the role check, the step-up (§4), the audit log, and the response.
 func (s *Server) serve(rt *route) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		c := &call{w: w, r: r, target: r.URL.Path}
 		if rt.roles != nil {
-			token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-			if !ok || token == "" {
-				// The web UI's session cookie (T20); cross-origin requests never reach here (CrossOriginProtection).
-				if ck, err := r.Cookie(sessionCookie); err == nil && ck.Value != "" {
-					token, ok = ck.Value, true
-				}
-			}
-			if !ok || token == "" {
-				writeJSON(w, http.StatusUnauthorized, apiError{Error: "log in first (Authorization: Bearer <token>)", Code: "unauthorized"})
+			if code, e := s.authenticate(c); code != 0 {
+				writeJSON(w, code, e)
 				return
 			}
-			u, sess, err := s.db.SessionUser(ctx, token)
-			if errors.Is(err, store.ErrNoSession) {
-				writeJSON(w, http.StatusUnauthorized, apiError{Error: "the session is not valid (expired, logged out, or the user is disabled)", Code: "unauthorized"})
+			if !allowed(rt.roles, c.user.Role) {
+				s.audit(ctx, c, rt, http.StatusForbidden, "role "+c.user.Role+" is not allowed")
+				writeJSON(w, http.StatusForbidden, apiError{Error: fmt.Sprintf("role %s may not %s %s", c.user.Role, rt.method, rt.path), Code: "forbidden"})
 				return
 			}
-			if err != nil {
-				s.log.Error("session lookup", "error", err)
-				writeJSON(w, http.StatusInternalServerError, apiError{Error: "session lookup failed", Code: "internal"})
-				return
-			}
-			c.user, c.session = u, sess
-			if !allowed(rt.roles, u.Role) {
-				s.audit(ctx, c, rt, http.StatusForbidden, "role "+u.Role+" is not allowed")
-				writeJSON(w, http.StatusForbidden, apiError{Error: fmt.Sprintf("role %s may not %s %s", u.Role, rt.method, rt.path), Code: "forbidden"})
+			if e := s.passwordGate(c, rt); e != nil {
+				writeJSON(w, http.StatusForbidden, e)
 				return
 			}
 		}
@@ -655,7 +648,15 @@ func (s *Server) serve(rt *route) http.Handler {
 		}
 		rec := &recorder{ResponseWriter: w}
 		c.w = rec
-		status, body, err := rt.h(c)
+		var status int
+		var body any
+		err := s.passStepUp(c, rt)
+		if err == nil && rt.stepUp == stepAlways && !c.steppedUp {
+			err = c.requireStepUp("a destructive or security action (ADR-008 §4)")
+		}
+		if err == nil {
+			status, body, err = rt.h(c)
+		}
 		switch {
 		case err != nil:
 			code, name := statusOf(err)
@@ -663,7 +664,8 @@ func (s *Server) serve(rt *route) http.Handler {
 				s.log.Error("request failed", "route", rt.method+" "+rt.path, "user", c.user.Username, "error", err)
 			}
 			msg := err.Error()
-			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins} {
+			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins,
+				errStepUpRequired, errStepUpFailed, errIdPUnreachable, errSignin, errForbidden} {
 				msg = strings.TrimPrefix(msg, e.Error()+": ") // the code says it already
 			}
 			if code == http.StatusInternalServerError {
@@ -683,6 +685,130 @@ func (s *Server) serve(rt *route) http.Handler {
 			}
 		}
 	})
+}
+
+// authenticate finds the request's user: an API token (Authorization: Bearer gaiat_...) or a session (the browser's
+// cookie, or Authorization: Bearer gaia_... for the CLI). A non-zero status refuses the request.
+func (s *Server) authenticate(c *call) (int, apiError) {
+	ctx := c.r.Context()
+	token, ok := strings.CutPrefix(c.r.Header.Get("Authorization"), "Bearer ")
+	if !ok || token == "" {
+		// The web UI's session cookie (T20); cross-origin requests never reach here (CrossOriginProtection).
+		if ck, err := c.r.Cookie(sessionCookie); err == nil && ck.Value != "" {
+			token, ok = ck.Value, true
+		}
+	}
+	if !ok || token == "" {
+		return http.StatusUnauthorized, apiError{Error: "sign in first (Authorization: Bearer <token>)", Code: "unauthorized"}
+	}
+	if strings.HasPrefix(token, "gaiat_") {
+		t, use, err := s.db.UseAPIToken(ctx, token, remote(c.r))
+		if errors.Is(err, store.ErrNoSession) || errors.Is(err, store.ErrTokenRefused) {
+			msg := "the API token is not valid"
+			if errors.Is(err, store.ErrTokenRefused) {
+				msg = strings.TrimPrefix(err.Error(), store.ErrTokenRefused.Error()+": ")
+			}
+			return http.StatusUnauthorized, apiError{Error: msg, Code: "unauthorized"}
+		}
+		if err != nil {
+			s.log.Error("API token lookup", "error", err)
+			return http.StatusInternalServerError, apiError{Error: "API token lookup failed", Code: "internal"}
+		}
+		c.token, c.user = &t, store.User{Username: "token:" + t.Name, Role: t.Role, Source: "api_token", Factors: []string{}}
+		if use.First || use.ClosedDay != "" {
+			e := store.AuditEntry{Username: c.user.Username, Role: t.Role, Action: "api_token_use", Target: fmt.Sprintf("api_token:%d", t.ID),
+				Outcome: 200, RemoteAddr: remote(c.r)}
+			if use.First {
+				e.Detail = "first use"
+			} else {
+				e.Detail = fmt.Sprintf("used %d times on %s", use.ClosedCount, use.ClosedDay)
+			}
+			if _, err := s.db.AppendAudit(ctx, e); err != nil {
+				return http.StatusServiceUnavailable, apiError{Error: "the audit log cannot be written", Code: "unavailable"}
+			}
+		}
+		return 0, apiError{}
+	}
+	st, err := s.settings(ctx)
+	if err != nil {
+		s.log.Error("settings", "error", err)
+		return http.StatusInternalServerError, apiError{Error: "settings could not be read", Code: "internal"}
+	}
+	background := c.r.Header.Get("X-Gaia-Background") == "1"
+	u, sess, err := s.db.UseSession(ctx, token, store.SessionLimits{Idle: st.idle()}, background)
+	var ended *store.SessionEnded
+	if errors.As(err, &ended) {
+		return http.StatusUnauthorized, apiError{Error: "the session ended: " + endText(ended.Reason, st), Code: "session_ended", Reason: ended.Reason}
+	}
+	if errors.Is(err, store.ErrNoSession) {
+		return http.StatusUnauthorized, apiError{Error: "the session is not valid", Code: "unauthorized"}
+	}
+	if err != nil {
+		s.log.Error("session lookup", "error", err)
+		return http.StatusInternalServerError, apiError{Error: "session lookup failed", Code: "internal"}
+	}
+	// An OIDC session's user is read again at the IdP every 10 minutes (§2); the sweep does it too, this is for a
+	// request that comes first.
+	if sess.Method == "oidc" && s.now().Sub(tsTime(sess.IdPRefreshed)) >= oidcRefreshEvery {
+		rctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err := s.refreshOIDC(rctx, sess)
+		cancel()
+		if err != nil {
+			s.log.Error("OIDC session refresh", "session", sess.ID, "error", err)
+			return http.StatusInternalServerError, apiError{Error: "session refresh failed", Code: "internal"}
+		}
+		if u, sess, err = s.db.UseSession(ctx, token, store.SessionLimits{Idle: st.idle()}, true); err != nil {
+			if errors.As(err, &ended) {
+				return http.StatusUnauthorized, apiError{Error: "the session ended: " + endText(ended.Reason, st), Code: "session_ended", Reason: ended.Reason}
+			}
+			return http.StatusUnauthorized, apiError{Error: "the session is not valid", Code: "unauthorized"}
+		}
+	}
+	c.user, c.session = u, sess
+	return 0, apiError{}
+}
+
+// endText says why a session ended, for the screen that says so.
+func endText(reason string, st SigninSettings) string {
+	switch reason {
+	case store.EndIdle:
+		return fmt.Sprintf("no activity for %d minutes", st.IdleTimeoutMin)
+	case store.EndAbsolute:
+		return fmt.Sprintf("sessions last at most %d hours", st.AbsoluteTimeoutH)
+	case store.EndReplaced:
+		return fmt.Sprintf("a newer sign-in replaced it (at most %d sessions per user)", store.MaxSessionsPerUser)
+	case store.EndRevoked:
+		return "it was signed out"
+	case store.EndIdPRemoved:
+		return "the identity provider no longer gives access"
+	}
+	return strings.ReplaceAll(reason, "_", " ")
+}
+
+// passwordGate: a user whose password must change first (expired, reset by an admin, on the blocklist) may only
+// see itself, sign out, and change it (§6).
+func (s *Server) passwordGate(c *call, rt *route) *apiError {
+	if c.token != nil || c.user.Source != store.SourceLocal {
+		return nil
+	}
+	why := c.user.PasswordChange
+	if why == "" {
+		st, err := s.settings(c.r.Context())
+		if err != nil {
+			return &apiError{Error: "settings could not be read", Code: "internal"}
+		}
+		if exp := st.passwordExpiresAt(c.user); !exp.IsZero() && !s.now().Before(exp) {
+			why = "expired"
+		}
+	}
+	if why == "" {
+		return nil
+	}
+	switch rt.method + " " + rt.path {
+	case "GET /api/v1/me", "POST /api/v1/logout", "PUT /api/v1/me/password", "POST /api/v1/step-up":
+		return nil
+	}
+	return &apiError{Error: "set a new password first (" + why + ")", Code: "password_change_required", Reason: why}
 }
 
 func allowed(roles []string, role string) bool {

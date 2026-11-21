@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -60,14 +61,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}) || Latest() != 10 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) || Latest() != 11 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 10 || applied[9].Name != "0010_scale_indexes.sql" {
+	if err != nil || len(applied) != 11 || applied[10].Name != "0011_signin.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -89,12 +90,31 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO hosts (name, address, ssh_user, created_at, updated_at) VALUES ('kvm1', '10.0.0.1', 'root', ?, ?)`, now, now); err != nil {
 		t.Fatal(err)
 	}
+	// Schema 11 (ADR-008): the earlier sessions end, admins become break-glass, auditors get an expiry.
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO users (username, role, password_hash, created_at, updated_at, password_changed_at)
+		VALUES ('oldaudit', 'auditor', ?, ?, ?, ?)`, h, now, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO sessions (token_sha256, user_id, created_at, expires_at, last_used_at, remote_addr)
+		VALUES ('abc', 1, ?, ?, ?, '10.0.0.9')`, now, now, now); err != nil {
+		t.Fatal(err)
+	}
 	done, err := old.Migrate(ctx, 0)
 	if err != nil || !slices.Equal(done, []int{Latest()}) {
 		t.Fatalf("previous -> latest: %v %v", done, err)
 	}
 	if _, err := old.Authenticate(ctx, "olduser", "previous-schema-password"); err != nil {
 		t.Fatalf("a user from the previous schema: %v", err)
+	}
+	if u, _ := old.UserByName(ctx, "olduser"); !u.BreakGlass || u.Source != SourceLocal || len(u.Factors) != 0 {
+		t.Fatalf("admin after the upgrade %+v", u)
+	}
+	if u, _ := old.UserByName(ctx, "oldaudit"); u.ExpiresAt == "" || u.Expired(time.Now().Add(29*24*time.Hour)) || !u.Expired(time.Now().Add(31*24*time.Hour)) {
+		t.Fatalf("auditor after the upgrade %+v", u)
+	}
+	var n int
+	if err := old.SQL().QueryRowContext(ctx, `SELECT count(*) FROM sessions`).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("%d sessions from the previous schema survived (%v)", n, err)
 	}
 	if hs, err := old.Hosts(ctx); err != nil || len(hs) != 1 || hs[0].Name != "kvm1" {
 		t.Fatalf("hosts %+v %v", hs, err)
@@ -212,62 +232,256 @@ func TestUsersAndSessions(t *testing.T) {
 	d := migrated(t)
 	now := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
 	d.SetClock(func() time.Time { return now })
-	admin, err := d.CreateUser(ctx, "setup", "admin", RoleAdmin, "a long admin password")
+	const pw = "correct horse battery staple"
+	admin, err := d.CreateUser(ctx, "setup", NewUser{Username: "root1", Role: RoleAdmin, Password: pw, BreakGlass: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.CreateUser(ctx, "admin", "short", RoleOperator, "short"); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("a short password: %v", err)
+	for _, c := range []struct {
+		in   NewUser
+		want error
+	}{
+		{NewUser{Username: "short", Role: RoleOperator, Password: "fourteen chars"}, ErrInvalid},
+		{NewUser{Username: "listed", Role: RoleOperator, Password: "1qaz2wsx3edc4rfv"}, ErrInvalid},
+		{NewUser{Username: "carol", Role: RoleOperator, Password: "carol's own long password"}, ErrInvalid},
+		{NewUser{Username: "root1", Role: RoleOperator, Password: "another long password"}, ErrConflict},
+		{NewUser{Username: "op", Role: RoleOperator, Password: "another long password", BreakGlass: true}, ErrInvalid},
+		{NewUser{Username: "aud", Role: RoleAuditor, Password: "another long password", ExpiresAt: now.Add(31 * 24 * time.Hour).Format(time.RFC3339)}, ErrInvalid},
+	} {
+		if _, err := d.CreateUser(ctx, "root1", c.in); !errors.Is(err, c.want) {
+			t.Errorf("%+v: %v, want %v", c.in, err, c.want)
+		}
 	}
-	if _, err := d.CreateUser(ctx, "admin", "admin", RoleOperator, "another long password"); !errors.Is(err, ErrConflict) {
-		t.Fatalf("a duplicate user: %v", err)
+	aud, err := d.CreateUser(ctx, "root1", NewUser{Username: "aud", Role: RoleAuditor, Password: "another long password"})
+	if err != nil || aud.ExpiresAt != now.Add(AuditorMaxAge).Format(time.RFC3339Nano) {
+		t.Fatalf("auditor %+v %v", aud, err)
 	}
-	if _, err := d.Authenticate(ctx, "admin", "wrong password!!"); !errors.Is(err, ErrBadLogin) {
+	if _, err := d.Authenticate(ctx, "root1", "wrong password!!"); !errors.Is(err, ErrBadLogin) {
 		t.Fatalf("wrong password: %v", err)
 	}
 	if _, err := d.Authenticate(ctx, "nobody", "whatever password"); !errors.Is(err, ErrBadLogin) {
 		t.Fatalf("missing user: %v", err)
 	}
-	u, err := d.Authenticate(ctx, "admin", "a long admin password")
+	u, err := d.Authenticate(ctx, "root1", pw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, _, err := d.CreateSession(ctx, u, "127.0.0.1", time.Hour)
-	if err != nil {
-		t.Fatal(err)
+	lim := SessionLimits{Idle: 15 * time.Minute}
+	sess := func(id int64, addr, dev string) (string, Session) {
+		t.Helper()
+		tok, s, err := d.CreateSession(ctx, NewSession{UserID: id, Kind: "browser", Method: "webauthn", RemoteAddr: addr, DeviceID: dev, Absolute: 8 * time.Hour})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tok, s
 	}
-	if got, _, err := d.SessionUser(ctx, token); err != nil || got.ID != admin.ID {
+	token, s1 := sess(u.ID, "10.0.0.1", "dev-a")
+	if s1.NewDevice {
+		t.Fatal("a first sign-in is new_device")
+	}
+	if got, _, err := d.UseSession(ctx, token, lim, false); err != nil || got.ID != admin.ID {
 		t.Fatalf("session: %+v %v", got, err)
 	}
-	disabled := true
-	if _, err := d.UpdateUser(ctx, "admin", admin.ID, UserPatch{Disabled: &disabled}); !errors.Is(err, ErrConflict) {
-		t.Fatalf("disabling the last admin: %v", err)
+	// Idle: background requests do not count as activity.
+	now = now.Add(10 * time.Minute)
+	if _, _, err := d.UseSession(ctx, token, lim, true); err != nil {
+		t.Fatal(err)
 	}
-	op := RoleOperator
-	if _, err := d.UpdateUser(ctx, "admin", admin.ID, UserPatch{Role: &op}); !errors.Is(err, ErrConflict) {
-		t.Fatalf("demoting the last admin: %v", err)
+	now = now.Add(6 * time.Minute)
+	var ended *SessionEnded
+	if _, _, err := d.UseSession(ctx, token, lim, true); !errors.As(err, &ended) || ended.Reason != EndIdle {
+		t.Fatalf("16 minutes with only background requests: %v", err)
 	}
-	second, err := d.CreateUser(ctx, "admin", "second", RoleAdmin, "second admin password")
+	// User activity keeps it; the absolute limit ends it anyway.
+	token, _ = sess(u.ID, "10.0.0.1", "dev-a")
+	for i := 0; i < 40; i++ {
+		now = now.Add(12 * time.Minute)
+		if _, _, err := d.UseSession(ctx, token, lim, false); err != nil {
+			if !errors.As(err, &ended) || ended.Reason != EndAbsolute || i != 39 {
+				t.Fatalf("after %d active requests: %v", i, err)
+			}
+		}
+	}
+	// A fourth session ends the oldest; a new address is new_device.
+	var toks []string
+	for i := 0; i < 4; i++ {
+		tk, s := sess(u.ID, "10.0.0.1", "dev-a")
+		if s.NewDevice {
+			t.Fatal("a known device and address is new_device")
+		}
+		toks = append(toks, tk)
+	}
+	if _, _, err := d.UseSession(ctx, toks[0], lim, false); !errors.As(err, &ended) || ended.Reason != EndReplaced {
+		t.Fatalf("the oldest of four: %v", err)
+	}
+	if live, _ := d.Sessions(ctx, u.ID); len(live) != MaxSessionsPerUser {
+		t.Fatalf("%d live sessions", len(live))
+	}
+	if _, s := sess(u.ID, "10.9.9.9", "dev-a"); !s.NewDevice {
+		t.Fatal("a new address is not new_device")
+	}
+	now = now.Add(31 * 24 * time.Hour)
+	if _, s := sess(u.ID, "10.0.0.1", "dev-a"); !s.NewDevice {
+		t.Fatal("a device not seen for 31 days is not new_device")
+	}
+
+	// The last admin, and the last break-glass admin, stay.
+	disabled, op, no := true, RoleOperator, false
+	for _, p := range []UserPatch{{Disabled: &disabled}, {Role: &op}, {BreakGlass: &no}} {
+		if _, err := d.UpdateUser(ctx, "root1", admin.ID, p); !errors.Is(err, ErrConflict) {
+			t.Fatalf("%+v of the last admin: %v", p, err)
+		}
+	}
+	second, err := d.CreateUser(ctx, "root1", NewUser{Username: "second", Role: RoleAdmin, Password: pw})
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := d.UpdateUser(ctx, "second", admin.ID, UserPatch{Disabled: &disabled}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("disabling the last break-glass admin while another admin exists: %v", err)
+	}
+	yes := true
+	if _, err := d.UpdateUser(ctx, "root1", second.ID, UserPatch{BreakGlass: &yes}); err != nil {
+		t.Fatal(err)
+	}
+	tk, _ := sess(admin.ID, "10.0.0.1", "dev-a")
 	if _, err := d.UpdateUser(ctx, "second", admin.ID, UserPatch{Disabled: &disabled}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := d.SessionUser(ctx, token); !errors.Is(err, ErrNoSession) {
+	if _, _, err := d.UseSession(ctx, tk, lim, false); !errors.As(err, &ended) || ended.Reason != EndDisabled {
 		t.Fatalf("a disabled user's session: %v", err)
 	}
-	if _, err := d.Authenticate(ctx, "admin", "a long admin password"); !errors.Is(err, ErrBadLogin) {
+	if _, err := d.Authenticate(ctx, "root1", pw); !errors.Is(err, ErrBadLogin) {
 		t.Fatalf("a disabled user logs in: %v", err)
-	}
-	t2, _, _ := d.CreateSession(ctx, second, "127.0.0.1", time.Hour)
-	now = now.Add(2 * time.Hour)
-	if _, _, err := d.SessionUser(ctx, t2); !errors.Is(err, ErrNoSession) {
-		t.Fatalf("an expired session: %v", err)
 	}
 	changes, err := d.StateChanges(ctx, "user", admin.ID, 0, 100)
 	if err != nil || len(changes) != 2 || changes[1].To != "disabled" || changes[1].Actor != "second" {
 		t.Fatalf("state changes %+v %v", changes, err)
+	}
+
+	// Password history: not one of the last 5; an admin's reset makes the user change it.
+	if _, err := d.ChangeOwnPassword(ctx, second.ID, pw, 0); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("the current password again: %v", err)
+	}
+	for i := 1; i <= 5; i++ {
+		if _, err := d.ChangeOwnPassword(ctx, second.ID, fmt.Sprintf("the %dth long password here", i), 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := d.ChangeOwnPassword(ctx, second.ID, pw, 0); err != nil {
+		t.Fatalf("a password 6 changes ago: %v", err)
+	}
+	tr, _ := sess(aud.ID, "10.0.0.2", "dev-b")
+	reset := "an admin chose this one"
+	if got, err := d.UpdateUser(ctx, "root1", aud.ID, UserPatch{Password: &reset}); err != nil || got.PasswordChange != PasswordChangeAdminReset {
+		t.Fatalf("reset %+v %v", got, err)
+	}
+	if _, _, err := d.UseSession(ctx, tr, lim, false); !errors.As(err, &ended) || ended.Reason != EndPasswordChange {
+		t.Fatalf("after an admin's reset: %v", err)
+	}
+
+	// The auditor's account expires; its session ends.
+	ta, _ := sess(aud.ID, "10.0.0.2", "dev-b")
+	now = now.Add(AuditorMaxAge)
+	if _, _, err := d.UseSession(ctx, ta, lim, false); !errors.As(err, &ended) || ended.Reason != EndExpired {
+		t.Fatalf("an expired auditor: %v", err)
+	}
+	// Every session end is in the audit log, with its reason.
+	es, _ := d.Audit(ctx, 0, 1000)
+	reasons := map[string]bool{}
+	for _, e := range es {
+		if e.Action == "session_end" {
+			reasons[strings.TrimPrefix(strings.SplitN(e.Detail, " (", 2)[0], "ended: ")] = true
+		}
+	}
+	for _, r := range []string{EndIdle, EndAbsolute, EndReplaced, EndDisabled, EndExpired, EndPasswordChange} {
+		if !reasons[r] {
+			t.Errorf("no session_end %s in the audit log: %v", r, reasons)
+		}
+	}
+	if c, err := d.VerifyAudit(ctx); err != nil || !c.Intact {
+		t.Fatalf("audit chain: %+v %v", c, err)
+	}
+}
+
+// ADR-008 §7: failures are counted per username and per address within 15 minutes; the 10th pauses the account.
+func TestSigninFailures(t *testing.T) {
+	ctx := context.Background()
+	d := migrated(t)
+	now := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+	d.SetClock(func() time.Time { return now })
+	u, err := d.CreateUser(ctx, "setup", NewUser{Username: "op", Role: RoleOperator, Password: "correct horse battery staple"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 10; i++ {
+		paused, until, err := d.SigninFailed(ctx, "op", fmt.Sprintf("10.0.0.%d", i%2))
+		if err != nil || paused != (i == 10) || (paused && !until.Equal(now.Add(PauseFor))) {
+			t.Fatalf("failure %d: %v %v %v", i, paused, until, err)
+		}
+		now = now.Add(time.Minute)
+	}
+	f, _ := d.SigninFailures(ctx, "op", "10.0.0.1")
+	if f.ByUser != 10 || f.ByAddr != 5 {
+		t.Fatalf("%+v", f)
+	}
+	got, _ := d.User(ctx, u.ID)
+	if locked, _ := got.Locked(now); !locked {
+		t.Fatal("not paused")
+	}
+	if paused, _, _ := d.SigninFailed(ctx, "nobody", "10.0.0.3"); paused {
+		t.Fatal("one failure paused")
+	}
+	if _, err := d.UnlockUser(ctx, "admin", u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if f, _ := d.SigninFailures(ctx, "op", "10.0.0.1"); f.ByUser != 0 {
+		t.Fatalf("after unlock %+v", f)
+	}
+	now = now.Add(FailureWindow)
+	if f, _ := d.SigninFailures(ctx, "nobody", "10.0.0.3"); f.ByUser != 0 || f.ByAddr != 0 {
+		t.Fatalf("outside the window %+v", f)
+	}
+}
+
+func TestAPITokens(t *testing.T) {
+	ctx := context.Background()
+	d := migrated(t)
+	now := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+	d.SetClock(func() time.Time { return now })
+	if _, _, err := d.CreateAPIToken(ctx, "root1", NewAPIToken{Name: "ci", Role: RoleAdmin}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("an admin token: %v", err)
+	}
+	if _, _, err := d.CreateAPIToken(ctx, "root1", NewAPIToken{Name: "ci", Role: RoleOperator, ExpiresAt: now.Add(91 * 24 * time.Hour).Format(time.RFC3339)}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("91 days: %v", err)
+	}
+	tok, at, err := d.CreateAPIToken(ctx, "root1", NewAPIToken{Name: "ci", Role: RoleOperator, AllowedAddrs: []string{"10.1.0.0/16", "192.0.2.7"}})
+	if err != nil || at.ExpiresAt != now.Add(TokenMaxAge).Format(time.RFC3339Nano) {
+		t.Fatalf("%+v %v", at, err)
+	}
+	if _, _, err := d.UseAPIToken(ctx, tok, "10.2.0.1"); !errors.Is(err, ErrTokenRefused) {
+		t.Fatalf("from another address: %v", err)
+	}
+	if _, use, err := d.UseAPIToken(ctx, tok, "10.1.3.4"); err != nil || !use.First {
+		t.Fatalf("first use %+v %v", use, err)
+	}
+	d.UseAPIToken(ctx, tok, "192.0.2.7")
+	now = now.Add(24 * time.Hour)
+	if _, use, err := d.UseAPIToken(ctx, tok, "192.0.2.7"); err != nil || use.First || use.ClosedDay != "2026-11-16" || use.ClosedCount != 2 {
+		t.Fatalf("next day %+v %v", use, err)
+	}
+	if _, _, err := d.UseAPIToken(ctx, "gaiat_nothing", "192.0.2.7"); !errors.Is(err, ErrNoSession) {
+		t.Fatalf("unknown token: %v", err)
+	}
+	if _, err := d.RevokeAPIToken(ctx, "root1", at.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := d.UseAPIToken(ctx, tok, "192.0.2.7"); !errors.Is(err, ErrTokenRefused) {
+		t.Fatalf("revoked: %v", err)
+	}
+	tok2, _, _ := d.CreateAPIToken(ctx, "root1", NewAPIToken{Name: "ci2", Role: RoleAuditor})
+	now = now.Add(TokenMaxAge)
+	if _, _, err := d.UseAPIToken(ctx, tok2, "192.0.2.7"); !errors.Is(err, ErrTokenRefused) {
+		t.Fatalf("expired: %v", err)
 	}
 }
 

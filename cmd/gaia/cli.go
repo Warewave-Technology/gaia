@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -19,7 +18,10 @@ import (
 
 // The CLI side of gaia server: every command is an API call (ADR-007 §6).
 //
-//	gaia login -server https://HOST:8443 -user NAME      gaia logout | whoami | system | password
+//	gaia login -server https://HOST:8443 -user NAME      password and a TOTP or recovery code (signin.go)
+//	gaia login -server https://HOST:8443 -browser        approved in a signed-in browser (a security key)
+//	gaia login -server https://HOST:8443 -sso            at the identity provider (device grant)
+//	gaia logout | whoami | system | password
 //	gaia RESOURCE list [key=value ...]                   query filters, e.g. vm_id=3 limit=20
 //	gaia RESOURCE get ID
 //	gaia RESOURCE add key=value ...                      a JSON body; values that parse as JSON are typed
@@ -102,7 +104,7 @@ func runCLI(ctx context.Context, args []string) int {
 	if err != nil {
 		return fail(asJSON, cmd, err)
 	}
-	c := client.New(cfg)
+	c := newClient(cfg)
 	call := func(method, path string, body any) int {
 		b, _, err := c.Do(ctx, method, path, body)
 		if err != nil {
@@ -139,7 +141,7 @@ func runCLI(ctx context.Context, args []string) int {
 		if _, _, err := c.Do(ctx, "PUT", "/api/v1/me/password", map[string]string{"current_password": cur, "new_password": next}); err != nil {
 			return fail(asJSON, cmd, err)
 		}
-		fmt.Println("password changed; log in again")
+		fmt.Println("password changed; your other sessions ended")
 		return 0
 	case "api":
 		if len(args) < 3 {
@@ -411,67 +413,6 @@ func keyValues(args []string) (map[string]any, error) {
 		}
 	}
 	return body, nil
-}
-
-func cliLogin(ctx context.Context, args []string, asJSON bool) int {
-	fs := flag.NewFlagSet("login", flag.ExitOnError)
-	srv := fs.String("server", "", "https://HOST:PORT of gaia server")
-	user := fs.String("user", "", "username")
-	fp := fs.String("fingerprint", "", "the server certificate's sha256 (from gaia server init); asked for when not given")
-	pwFile := fs.String("password-file", "", "file holding the password (default: ask)")
-	fs.Parse(args)
-	if *srv == "" || *user == "" {
-		return fail(asJSON, "login", errors.New("-server and -user are required"))
-	}
-	*srv = strings.TrimSuffix(*srv, "/")
-	got, err := client.ServerFingerprint(ctx, *srv)
-	if err != nil {
-		return fail(asJSON, "login", err)
-	}
-	norm := func(s string) string { return strings.ToUpper(strings.NewReplacer(":", "", " ", "").Replace(s)) }
-	if *fp != "" {
-		if norm(*fp) != norm(got) {
-			return fail(asJSON, "login", fmt.Errorf("the server's certificate is %s, not %s: not logging in", got, *fp))
-		}
-	} else if old, err := client.Load(); err == nil && old.Server == *srv && norm(old.CertSHA256) == norm(got) {
-		// the same server as before
-	} else {
-		fmt.Fprintf(os.Stderr, "The server's TLS certificate has sha256\n  %s\nIs this the one gaia server init printed? [y/N] ", got)
-		line, _ := readLine()
-		if strings.ToLower(strings.TrimSpace(line)) != "y" {
-			return fail(asJSON, "login", errors.New("certificate not confirmed: not logging in"))
-		}
-	}
-	pw, err := readPassword(*pwFile, "Password: ", false)
-	if err != nil {
-		return fail(asJSON, "login", err)
-	}
-	cfg := client.Config{Server: *srv, CertSHA256: got, Username: *user}
-	b, _, err := client.New(cfg).Do(ctx, "POST", "/api/v1/login", map[string]string{"username": *user, "password": pw})
-	if err != nil {
-		return fail(asJSON, "login", err)
-	}
-	var lr struct {
-		Token     string `json:"token"`
-		ExpiresAt string `json:"expires_at"`
-		User      struct {
-			Role string `json:"role"`
-		} `json:"user"`
-	}
-	if err := json.Unmarshal(b, &lr); err != nil {
-		return fail(asJSON, "login", err)
-	}
-	cfg.Token, cfg.ExpiresAt = lr.Token, lr.ExpiresAt
-	if err := cfg.Save(); err != nil {
-		return fail(asJSON, "login", err)
-	}
-	p, _ := client.ConfigPath()
-	if asJSON {
-		emit(map[string]any{"command": "login", "verdict": "OK", "user": *user, "role": lr.User.Role, "expires_at": lr.ExpiresAt, "config": p})
-	} else {
-		fmt.Printf("logged in to %s as %s (%s) until %s; saved in %s\n", *srv, *user, lr.User.Role, lr.ExpiresAt, p)
-	}
-	return 0
 }
 
 func readLine() (string, error) {

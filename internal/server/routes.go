@@ -36,6 +36,7 @@ type route struct {
 	query                 []param
 	auditRead             bool // a read worth auditing (an export)
 	computeOnly           bool // a POST that changes nothing (a what-if): not a change, not audited
+	stepUp                int  // stepAlways, stepIfLoose: a fresh second factor in the request (ADR-008 §4, stepup.go)
 	example               string
 	h                     func(c *call) (int, any, error)
 }
@@ -43,36 +44,6 @@ type route struct {
 // audited: every change, every login and logout, and audited reads.
 func (rt *route) audited() bool {
 	return (rt.method != http.MethodGet && !rt.computeOnly) || rt.auditRead
-}
-
-// LoginRequest, LoginResponse etc. are the API's own request and response types (the store's types are used directly
-// for resources).
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	// Browser: the session goes into an HttpOnly cookie (__Host-gaia_session) and not into the answer, so the web
-	// UI's scripts never hold it (T20).
-	Browser bool `json:"browser,omitempty"`
-}
-
-// LoginResponse carries the bearer token.
-type LoginResponse struct {
-	Token     string     `json:"token,omitempty"` // empty for a browser login (the cookie carries it)
-	ExpiresAt string     `json:"expires_at"`
-	User      store.User `json:"user"`
-}
-
-// PasswordChange changes one's own password.
-type PasswordChange struct {
-	CurrentPassword string `json:"current_password"`
-	NewPassword     string `json:"new_password"`
-}
-
-// UserCreate creates a user.
-type UserCreate struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	Password string `json:"password"`
 }
 
 // RepositoryCreate creates a Kopia repository.
@@ -187,19 +158,89 @@ func (s *Server) table() []route {
 	limit := []param{{"limit", "integer", "at most this many (default 100, at most 1000)"}}
 	vmFilter := append([]param{{"vm_id", "integer", "only this VM's"}}, limit...)
 	return []route{
-		// --- session ---
-		{method: "POST", path: "/api/v1/login", summary: "Log in; returns a bearer token, or sets the session cookie for a browser", roles: public, in: LoginRequest{}, out: LoginResponse{},
-			example: `{"username":"nobody","password":"not a valid password"}`, h: s.login},
+		// --- sign-in (ADR-008; signin.go, oidc.go, accounts.go) ---
+		{method: "POST", path: "/api/v1/login", summary: "Sign in with a local account: the password; the answer says the next step", roles: public,
+			in: LoginRequest{}, out: SigninStep{}, example: `{"username":"nobody","password":"not a valid password"}`, h: s.login},
+		{method: "POST", path: "/api/v1/login/factor", summary: "Sign-in step: the second factor (WebAuthn, TOTP or a recovery code)", roles: public,
+			in: FactorAnswer{}, out: SigninStep{}, example: `{"signin_token":"none","method":"totp","code":"000000"}`, h: s.loginFactor},
+		{method: "POST", path: "/api/v1/login/enrol", summary: "Sign-in step: start enrolling the first second factor", roles: public,
+			in: EnrolBegin{}, out: EnrolChallenge{}, example: `{"signin_token":"none","kind":"totp"}`, h: s.loginEnrol},
+		{method: "POST", path: "/api/v1/login/enrol/finish", summary: "Sign-in step: the authenticator's answer; the answer carries the recovery codes once",
+			roles: public, in: EnrolFinish{}, out: SigninStep{}, example: `{"signin_token":"none","kind":"totp","code":"000000"}`, h: s.loginEnrolFinish},
+		{method: "POST", path: "/api/v1/login/password", summary: "Sign-in step: a new password (expired, reset by an admin, or on the blocklist)",
+			roles: public, in: NewPassword{}, out: SigninStep{}, example: `{"signin_token":"none","new_password":"x"}`, h: s.loginPassword},
+		{method: "POST", path: "/api/v1/login/cli", summary: "Start a CLI sign-in that a signed-in browser approves (gaia login -browser)", roles: public,
+			in: CLIApprovalStart{}, out: DeviceChallenge{}, example: `{}`, h: s.cliApprovalStart},
+		{method: "POST", path: "/api/v1/login/cli/token", summary: "The CLI asks whether its sign-in was approved; then the session", roles: public,
+			in: DevicePoll{}, out: SigninStep{}, example: `{"handle":"none"}`, h: s.cliApprovalToken},
+		{method: "POST", path: "/api/v1/login/cli/approve", summary: "Approve a CLI sign-in for oneself (with a step-up)", roles: anyRole, stepUp: stepAlways,
+			in: CLIApprove{}, status: http.StatusNoContent, example: `{"user_code":"BCDF-GHJK"}`, h: s.cliApprove},
+		{method: "GET", path: "/api/v1/oidc/start", summary: "Single sign-on: go to the identity provider", roles: public, auditRead: true,
+			query: []param{{"next", "string", "the page to go to after signing in"}}, h: s.oidcStart},
+		{method: "GET", path: "/api/v1/oidc/callback", summary: "Single sign-on: the identity provider's answer (a sign-in, or a step-up)", roles: public, auditRead: true,
+			query: []param{{"code", "string", "the authorization code"}, {"state", "string", "the flow"}}, h: s.oidcCallback},
+		{method: "POST", path: "/api/v1/oidc/device", summary: "CLI sign-in at the identity provider: the device authorization grant (RFC 8628)", roles: public,
+			in: DeviceStart{}, out: DeviceChallenge{}, example: `{}`, h: s.oidcDeviceStart},
+		{method: "POST", path: "/api/v1/oidc/device/token", summary: "The CLI asks whether the user signed in at the identity provider; then the session",
+			roles: public, in: DevicePoll{}, out: SigninStep{}, example: `{"handle":"none"}`, h: s.oidcDevicePoll},
+		{method: "GET", path: "/api/v1/signin-options", summary: "How one may sign in here (single sign-on on, its name), for the sign-in page", roles: public,
+			out: SigninOptions{}, h: s.signinOptions},
+		{method: "POST", path: "/api/v1/step-up", summary: "Ask for a step-up for one destructive or security action (ADR-008 §4)", roles: anyRole,
+			in: StepUpRequest{}, out: StepUpChallenge{}, example: `{"method":"GET","path":"/api/v1/health"}`, h: s.beginStepUp},
+		{method: "POST", path: "/api/v1/step-up/approve", summary: "Pass a step-up of one's other session (the CLI) with a factor answered here",
+			roles: anyRole, in: StepUpApprove{}, status: http.StatusNoContent, example: `{"id":"none","method":"webauthn"}`, h: s.approveStepUp},
 		{method: "POST", path: "/api/v1/logout", summary: "End this session", roles: anyRole, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) {
-				c.detail = "logged out"
+				if c.token != nil {
+					return 0, nil, fmt.Errorf("%w: an API token is not a session: an admin revokes it", store.ErrInvalid)
+				}
+				c.detail = "signed out"
 				http.SetCookie(c.w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
-				return http.StatusNoContent, nil, s.db.DeleteSession(c.r.Context(), c.session.ID)
+				return http.StatusNoContent, nil, s.db.EndSession(c.r.Context(), c.session.ID, store.EndSignedOut, c.user.Username)
 			}},
-		{method: "GET", path: "/api/v1/me", summary: "The logged-in user", roles: anyRole, out: store.User{},
-			h: func(c *call) (int, any, error) { return http.StatusOK, c.user, nil }},
-		{method: "PUT", path: "/api/v1/me/password", summary: "Change one's own password (ends one's sessions)", roles: anyRole,
+		{method: "GET", path: "/api/v1/me", summary: "The signed-in user and this session", roles: anyRole, out: Me{}, h: s.me},
+		{method: "PUT", path: "/api/v1/me/password", summary: "Change one's own password (ends one's other sessions)", roles: anyRole, stepUp: stepAlways,
 			in: PasswordChange{}, status: http.StatusNoContent, example: `{"current_password":"wrong","new_password":"short"}`, h: s.changePassword},
+		{method: "GET", path: "/api/v1/me/factors", summary: "One's second factors", roles: anyRole, out: []store.Factor{},
+			h: func(c *call) (int, any, error) { return list(s.db.Factors(c.r.Context(), c.user.ID)) }},
+		{method: "POST", path: "/api/v1/me/factors", summary: "Start enrolling another second factor (ends one's other sessions when it is done)", roles: anyRole,
+			stepUp: stepAlways, in: EnrolBegin{}, out: EnrolChallenge{}, example: `{"kind":"webauthn"}`, h: s.myFactorBegin},
+		{method: "POST", path: "/api/v1/me/factors/finish", summary: "The authenticator's answer: the factor is enrolled", roles: anyRole,
+			in: EnrolFinish{}, out: store.Factor{}, status: http.StatusCreated, example: `{"kind":"webauthn"}`, h: s.myFactorFinish},
+		{method: "DELETE", path: "/api/v1/me/factors/{id}", summary: "Remove one of one's factors (not the last; an admin keeps a security key)", roles: anyRole,
+			stepUp: stepAlways, status: http.StatusNoContent, h: s.myFactorRemove},
+		{method: "POST", path: "/api/v1/me/recovery-codes", summary: "New recovery codes, shown once (the old ones stop working)", roles: anyRole,
+			stepUp: stepAlways, out: RecoveryCodes{}, h: s.myRecoveryCodes},
+		{method: "GET", path: "/api/v1/me/sessions", summary: "One's live sessions", roles: anyRole, out: []store.Session{},
+			h: func(c *call) (int, any, error) { return list(s.db.Sessions(c.r.Context(), c.user.ID)) }},
+		{method: "DELETE", path: "/api/v1/me/sessions/{id}", summary: "Sign out one of one's sessions", roles: anyRole, status: http.StatusNoContent,
+			h: func(c *call) (int, any, error) { return s.endSession(c, true) }},
+		{method: "GET", path: "/api/v1/sessions", summary: "Everyone's live sessions", roles: adminOnly, out: []store.Session{},
+			h: func(c *call) (int, any, error) { return list(s.db.Sessions(c.r.Context(), 0)) }},
+		{method: "DELETE", path: "/api/v1/sessions/{id}", summary: "Sign out a session", roles: adminOnly, status: http.StatusNoContent,
+			h: func(c *call) (int, any, error) { return s.endSession(c, false) }},
+		{method: "POST", path: "/api/v1/sessions/end-others", summary: "Sign out everyone but this session", roles: adminOnly, out: SessionsEnded{},
+			h: s.endAllButMine},
+		{method: "GET", path: "/api/v1/settings/signin", summary: "Sign-in and security settings, with the rules that are fixed and the IdP's state",
+			roles: adminAudit, out: SettingsView{}, h: s.settingsView},
+		{method: "PUT", path: "/api/v1/settings/signin", summary: "Change the sign-in and security settings (listed in the next daily report)",
+			roles: adminOnly, stepUp: stepAlways, in: SettingsUpdate{}, out: SigninSettings{},
+			example: `{"oidc":{"enabled":false},"idle_timeout_min":15,"absolute_timeout_h":8,"password_max_age":"none"}`, h: s.putSettings},
+		{method: "GET", path: "/api/v1/api-tokens", summary: "API tokens for automation", roles: adminOnly, out: []store.APIToken{},
+			h: func(c *call) (int, any, error) { return list(s.db.APITokens(c.r.Context())) }},
+		{method: "POST", path: "/api/v1/api-tokens", summary: "Make an API token (operator or auditor, at most 90 days; shown once)", roles: adminOnly,
+			stepUp: stepAlways, in: store.NewAPIToken{}, out: NewToken{}, status: http.StatusCreated, example: `{"name":"matrix-token","role":"auditor"}`,
+			h: s.createToken},
+		{method: "DELETE", path: "/api/v1/api-tokens/{id}", summary: "Revoke an API token", roles: adminOnly, stepUp: stepAlways, out: store.APIToken{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				t, err := s.db.RevokeAPIToken(c.r.Context(), c.user.Username, id)
+				c.target, c.detail = "api_token:"+t.Name, "revoked"
+				return one(t, err)
+			}},
 		{method: "GET", path: "/api/v1/health", summary: "Liveness: the server answers and its database is readable", roles: public, out: Health{},
 			h: func(c *call) (int, any, error) {
 				if err := s.db.SQL().PingContext(c.r.Context()); err != nil {
@@ -245,14 +286,18 @@ func (s *Server) table() []route {
 		// --- users ---
 		{method: "GET", path: "/api/v1/users", summary: "List users", roles: adminAudit, out: []store.User{},
 			h: func(c *call) (int, any, error) { return list(s.db.Users(c.r.Context())) }},
-		{method: "POST", path: "/api/v1/users", summary: "Create a user", roles: adminOnly, in: UserCreate{}, out: store.User{}, status: http.StatusCreated,
-			example: `{"username":"matrix-user","role":"auditor","password":"a long enough password"}`,
+		{method: "POST", path: "/api/v1/users", summary: "Create a local user (it enrols a second factor at its first sign-in)", roles: adminOnly,
+			stepUp: stepAlways, in: store.NewUser{}, out: store.User{}, status: http.StatusCreated,
+			example: `{"username":"matrix-user","role":"auditor","password":"correct horse battery staple"}`,
 			h: func(c *call) (int, any, error) {
-				var in UserCreate
+				var in store.NewUser
 				if err := c.decode(&in); err != nil {
 					return 0, nil, err
 				}
-				u, err := s.db.CreateUser(c.r.Context(), c.user.Username, in.Username, in.Role, in.Password)
+				if err := s.checkBreach(c.r.Context(), in.Password); err != nil {
+					return 0, nil, err
+				}
+				u, err := s.db.CreateUser(c.r.Context(), c.user.Username, in)
 				return created(c, "user "+in.Username+" ("+in.Role+")", u, u.ID, err)
 			}},
 		{method: "GET", path: "/api/v1/users/{id}", summary: "One user", roles: adminAudit, out: store.User{},
@@ -263,10 +308,33 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.User(c.r.Context(), id))
 			}},
-		{method: "POST", path: "/api/v1/users/{id}/unlock", summary: "End a user's lockout after wrong passwords and reset the count (T18)",
-			roles: adminOnly, out: store.User{}, h: s.unlockUser},
-		{method: "PATCH", path: "/api/v1/users/{id}", summary: "Change a user's role, password or disabled flag", roles: adminOnly,
-			in: store.UserPatch{}, out: store.User{}, example: `{}`,
+		{method: "POST", path: "/api/v1/users/{id}/unlock", summary: "End a user's pause after failed sign-ins and forget them (ADR-008 §7)",
+			roles: adminOnly, stepUp: stepAlways, out: store.User{},
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				u, err := s.db.UnlockUser(c.r.Context(), c.user.Username, id)
+				c.target, c.detail = "user:"+u.Username, "unlocked"
+				return one(u, err)
+			}},
+		{method: "POST", path: "/api/v1/users/{id}/factors/reset", summary: "Reset a user's second factors: it enrols again at the next sign-in",
+			roles: adminOnly, stepUp: stepAlways, status: http.StatusNoContent,
+			h: func(c *call) (int, any, error) {
+				id, err := c.id("id")
+				if err != nil {
+					return 0, nil, err
+				}
+				u, err := s.db.User(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				c.target, c.detail = "user:"+u.Username, "second factors reset; sessions ended"
+				return http.StatusNoContent, nil, s.db.ResetFactors(c.r.Context(), c.user.Username, id)
+			}},
+		{method: "PATCH", path: "/api/v1/users/{id}", summary: "Change a user's role, password (a reset), break-glass, expiry or disabled flag", roles: adminOnly,
+			stepUp: stepAlways, in: store.UserPatch{}, out: store.User{}, example: `{}`,
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
@@ -276,6 +344,11 @@ func (s *Server) table() []route {
 				if err := c.decode(&p); err != nil {
 					return 0, nil, err
 				}
+				if p.Password != nil {
+					if err := s.checkBreach(c.r.Context(), *p.Password); err != nil {
+						return 0, nil, err
+					}
+				}
 				c.detail = describeUserPatch(p)
 				return one(s.db.UpdateUser(c.r.Context(), c.user.Username, id, p))
 			}},
@@ -283,7 +356,7 @@ func (s *Server) table() []route {
 		// --- hosts ---
 		{method: "GET", path: "/api/v1/hosts", summary: "List hosts", roles: anyRole, out: []store.Host{},
 			h: func(c *call) (int, any, error) { return list(s.db.Hosts(c.r.Context())) }},
-		{method: "POST", path: "/api/v1/hosts", summary: "Add a host", roles: writers, in: store.HostInput{}, out: store.Host{}, status: http.StatusCreated, example: host,
+		{method: "POST", path: "/api/v1/hosts", summary: "Add a host", roles: writers, stepUp: stepAlways, in: store.HostInput{}, out: store.Host{}, status: http.StatusCreated, example: host,
 			h: func(c *call) (int, any, error) {
 				var in store.HostInput
 				if err := c.decode(&in); err != nil {
@@ -317,7 +390,7 @@ func (s *Server) table() []route {
 				}
 				return one(h, err)
 			}},
-		{method: "DELETE", path: "/api/v1/hosts/{id}", summary: "Remove a host without VMs", roles: writers, status: http.StatusNoContent,
+		{method: "DELETE", path: "/api/v1/hosts/{id}", summary: "Remove a host without VMs", roles: writers, stepUp: stepAlways, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "host", s.db.DeleteHost) }},
 		{method: "POST", path: "/api/v1/hosts/{id}/scan", summary: "Read the host's SSH key without trusting it", roles: writers, out: hostconn.Scanned{},
 			h: func(c *call) (int, any, error) {
@@ -412,8 +485,8 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.VM(c.r.Context(), id))
 			}},
-		{method: "PATCH", path: "/api/v1/vms/{id}", summary: "Assign a policy (policy_id 0 removes it) or set the UUID", roles: writers,
-			in: store.VMPatch{}, out: store.VM{}, example: `{}`,
+		{method: "PATCH", path: "/api/v1/vms/{id}", summary: "Assign a policy (policy_id 0 removes it) or set the UUID (a step-up when it weakens protection)",
+			roles: writers, stepUp: stepIfLoose, in: store.VMPatch{}, out: store.VM{}, example: `{}`,
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
@@ -425,6 +498,13 @@ func (s *Server) table() []route {
 				}
 				if p.PolicyID != nil {
 					c.detail = fmt.Sprintf("policy_id %d", *p.PolicyID)
+					if w, err := s.looserAssignment(c.r.Context(), id, *p.PolicyID); err != nil {
+						return 0, nil, err
+					} else if len(w) > 0 {
+						if err := c.requireStepUp("it weakens the VM's protection: " + strings.Join(w, ", ")); err != nil {
+							return 0, nil, err
+						}
+					}
 				}
 				vm, err := s.db.UpdateVM(c.r.Context(), id, p)
 				if err == nil && p.PolicyID != nil {
@@ -534,7 +614,7 @@ func (s *Server) table() []route {
 		// --- repositories and policies ---
 		{method: "GET", path: "/api/v1/repositories", summary: "List repositories", roles: anyRole, out: []store.Repository{},
 			h: func(c *call) (int, any, error) { return list(s.db.Repositories(c.r.Context())) }},
-		{method: "POST", path: "/api/v1/repositories", summary: "Create a Kopia repository (ADR-004 defaults)", roles: adminOnly,
+		{method: "POST", path: "/api/v1/repositories", summary: "Create a Kopia repository (ADR-004 defaults)", roles: adminOnly, stepUp: stepAlways,
 			in: RepositoryCreate{}, out: store.Repository{}, status: http.StatusCreated, example: `{"name":"matrix","kind":"s3","location":"s3://x"}`,
 			h: s.createRepository},
 		{method: "GET", path: "/api/v1/repositories/{id}", summary: "One repository", roles: anyRole, out: store.Repository{},
@@ -718,7 +798,8 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.Policy(c.r.Context(), id))
 			}},
-		{method: "PATCH", path: "/api/v1/policies/{id}", summary: "Change a policy", roles: writers, in: store.PolicyPatch{}, out: store.Policy{}, example: `{}`,
+		{method: "PATCH", path: "/api/v1/policies/{id}", summary: "Change a policy (a step-up when it makes a target looser)", roles: writers,
+			stepUp: stepIfLoose, in: store.PolicyPatch{}, out: store.Policy{}, example: `{}`,
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
@@ -727,6 +808,15 @@ func (s *Server) table() []route {
 				var p store.PolicyPatch
 				if err := c.decode(&p); err != nil {
 					return 0, nil, err
+				}
+				cur, err := s.db.Policy(c.r.Context(), id)
+				if err != nil {
+					return 0, nil, err
+				}
+				if w := looserPatch(cur, p); len(w) > 0 {
+					if err := c.requireStepUp("it weakens the policy: " + strings.Join(w, ", ")); err != nil {
+						return 0, nil, err
+					}
 				}
 				c.detail = "changed"
 				pol, err := s.db.UpdatePolicy(c.r.Context(), id, p)
@@ -804,7 +894,7 @@ func (s *Server) table() []route {
 				return http.StatusOK, out, nil
 			}},
 		{method: "POST", path: "/api/v1/points/{id}/forget", summary: "Delete a failed point (one a verification found damaged) from its repository and mark it pruned, as retention would",
-			roles: adminOnly, in: PointForget{}, out: store.Point{}, example: `{"reason":""}`,
+			roles: adminOnly, stepUp: stepAlways, in: PointForget{}, out: store.Point{}, example: `{"reason":""}`,
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
@@ -858,7 +948,7 @@ func (s *Server) table() []route {
 		{method: "GET", path: "/api/v1/evidence/{id}/verify", summary: "Verify one bundle now against the installation's key (evidence spec §8.4)",
 			roles: anyRole, out: BundleCheck{}, h: s.verifyBundle},
 		{method: "GET", path: "/api/v1/evidence-export", summary: "The auditor's export: every bundle, the ledger, the keys, the newest daily report, the specification (tar.gz)",
-			roles: adminAudit, auditRead: true, h: s.auditExport},
+			roles: adminAudit, stepUp: stepAlways, auditRead: true, h: s.auditExport},
 		// --- views for the web UI (T20): one request per screen ---
 		{method: "GET", path: "/api/v1/views/overview", summary: "The overview screen: every VM's status, proven point, targets and recent history, worst first",
 			roles: anyRole, out: OverviewView{}, h: s.overviewView},
@@ -893,7 +983,7 @@ func (s *Server) table() []route {
 		{method: "GET", path: "/api/v1/views/migration", summary: "The migration screen: the converter, the sources and the checks (T21)",
 			roles: anyRole, out: MigrationView{}, h: s.migrationView},
 		{method: "GET", path: "/api/v1/evidence/{id}/export", summary: "Export a bundle with the ledger and the trust anchor (tar.gz, ADR-006)",
-			roles: adminAudit, auditRead: true, h: s.exportEvidence},
+			roles: adminAudit, stepUp: stepAlways, auditRead: true, h: s.exportEvidence},
 		{method: "GET", path: "/api/v1/state-changes", summary: "Recorded state changes, oldest first", roles: anyRole, out: []store.StateChange{},
 			query: append([]param{{"entity", "string", "e.g. job, point, restore_test, vm, user"}, {"entity_id", "integer", "only this record of the entity"},
 				{"after", "integer", "after this seq"}}, limit...),
@@ -956,7 +1046,7 @@ func (s *Server) table() []route {
 				return one(s.db.MigrationCheck(c.r.Context(), id))
 			}},
 		{method: "GET", path: "/api/v1/migration-checks/{id}/report", summary: "A check's readiness report: its signed bundle, the ledger, the keys, how to verify (tar.gz)",
-			roles: anyRole, auditRead: true, h: s.readinessReport},
+			roles: anyRole, stepUp: stepAlways, auditRead: true, h: s.readinessReport},
 		{method: "GET", path: "/api/v1/converter", summary: "The converter service: its pinned image, the image's versions, virtio-win",
 			roles: anyRole, out: ConverterState{}, h: s.converterInfo},
 
@@ -1052,7 +1142,13 @@ func describeUserPatch(p store.UserPatch) string {
 		d += fmt.Sprintf(" disabled=%v", *p.Disabled)
 	}
 	if p.Password != nil {
-		d += " password changed"
+		d += " password reset (must change at the next sign-in)"
+	}
+	if p.BreakGlass != nil {
+		d += fmt.Sprintf(" break_glass=%v", *p.BreakGlass)
+	}
+	if p.ExpiresAt != nil {
+		d += " expires_at=" + *p.ExpiresAt
 	}
 	if d == "" {
 		return "no change"

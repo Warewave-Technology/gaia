@@ -42,8 +42,24 @@ type DailyReportDoc struct {
 	RecoveryKit   KitSummary        `json:"recovery_kit"`
 	LastRebuild   *ReportRebuild    `json:"last_rebuild"` // the newest rebuild from a recovery kit (restore-state); null: never
 	Notifications NotifySummary     `json:"notifications"`
+	Security      ReportSecurity    `json:"security"` // sign-in and security since the previous report (ADR-008 §1, §10)
 	HowToVerify   string            `json:"how_to_verify"`
 	Problems      []string          `json:"problems"` // what the report could not say
+}
+
+// ReportSecurity is what changed in sign-in and security since the previous report: settings, break-glass and
+// new-device sign-ins, paused accounts, factor resets, role and token changes; and each API token's use.
+type ReportSecurity struct {
+	Since     string              `json:"since"` // the previous report ("" = the first report)
+	Changes   []store.StateChange `json:"changes"`
+	TokenUses []ReportTokenUse    `json:"api_token_uses"`
+}
+
+// ReportTokenUse is an API token's use on its last day of use.
+type ReportTokenUse struct {
+	Name  string `json:"name"`
+	Day   string `json:"day"`
+	Count int    `json:"count"`
 }
 
 // ReportRebuild is a rebuild of the server from its recovery kit and a state backup (install.md step 13).
@@ -249,6 +265,22 @@ func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (sto
 	if doc.Notifications, err = s.notifySummary(ctx); err != nil {
 		return store.DailyReport{}, err
 	}
+	if doc.Security.Since, err = s.db.LastDailyReportAt(ctx); err != nil {
+		return store.DailyReport{}, err
+	}
+	if doc.Security.Changes, err = s.db.SecurityChanges(ctx, doc.Security.Since); err != nil {
+		return store.DailyReport{}, err
+	}
+	toks, err := s.db.APITokens(ctx)
+	if err != nil {
+		return store.DailyReport{}, err
+	}
+	doc.Security.TokenUses = []ReportTokenUse{}
+	for _, t := range toks {
+		if t.UseDay != "" && t.RevokedAt == "" {
+			doc.Security.TokenUses = append(doc.Security.TokenUses, ReportTokenUse{Name: t.Name, Day: t.UseDay, Count: t.UseCount})
+		}
+	}
 	rs, err := s.db.StateRestores(ctx)
 	if err != nil {
 		return store.DailyReport{}, err
@@ -321,6 +353,15 @@ func reportText(d DailyReportDoc) string {
 		}
 	}
 	fmt.Fprintf(&b, "Recovery kit: %s\n", d.RecoveryKit.Text)
+	if len(d.Security.Changes) > 0 {
+		fmt.Fprintf(&b, "\nSign-in and security since the previous report:\n")
+		for _, c := range d.Security.Changes {
+			fmt.Fprintf(&b, "  %s  %s: %s (by %s)\n", c.At, c.Entity, c.Reason, c.Actor)
+		}
+	}
+	for _, u := range d.Security.TokenUses {
+		fmt.Fprintf(&b, "API token %s: used %d times on %s\n", u.Name, u.Count, u.Day)
+	}
 	if d.Notifications.State != status.OK {
 		fmt.Fprintf(&b, "Notifications: %s\n", d.Notifications.Text)
 	}

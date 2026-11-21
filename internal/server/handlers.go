@@ -22,62 +22,11 @@ import (
 )
 
 var (
-	errUnauthorized = errors.New("unauthorized")
-	errHost         = errors.New("host")
+	errUnauthorized  = errors.New("unauthorized")
+	errForbidden     = errors.New("forbidden")
+	errHost          = errors.New("host")
+	errTooManyLogins = errors.New("too many failed sign-ins")
 )
-
-func (s *Server) login(c *call) (int, any, error) {
-	var in LoginRequest
-	if err := c.decode(&in); err != nil {
-		return 0, nil, err
-	}
-	ctx := c.r.Context()
-	c.target = "user:" + in.Username
-	u, err := s.checkPassword(ctx, c, in.Username, in.Password)
-	if errors.Is(err, store.ErrBadLogin) {
-		c.detail = "login failed: " + c.detail
-		return 0, nil, fmt.Errorf("%w: %v", errUnauthorized, err)
-	}
-	if err != nil {
-		return 0, nil, err
-	}
-	c.user = u
-	token, sess, err := s.db.CreateSession(ctx, u, remote(c.r), s.cfg.ttl())
-	if err != nil {
-		return 0, nil, err
-	}
-	c.detail = fmt.Sprintf("logged in (session %d)", sess.ID)
-	if in.Browser {
-		exp, err := time.Parse(time.RFC3339Nano, sess.ExpiresAt)
-		if err != nil {
-			return 0, nil, err
-		}
-		http.SetCookie(c.w, &http.Cookie{Name: sessionCookie, Value: token, Path: "/", Expires: exp, HttpOnly: true, Secure: true,
-			SameSite: http.SameSiteStrictMode})
-		c.detail += " in a browser"
-		return http.StatusOK, LoginResponse{ExpiresAt: sess.ExpiresAt, User: u}, nil
-	}
-	return http.StatusOK, LoginResponse{Token: token, ExpiresAt: sess.ExpiresAt, User: u}, nil
-}
-
-func (s *Server) changePassword(c *call) (int, any, error) {
-	var in PasswordChange
-	if err := c.decode(&in); err != nil {
-		return 0, nil, err
-	}
-	ctx := c.r.Context()
-	if _, err := s.checkPassword(ctx, c, c.user.Username, in.CurrentPassword); errors.Is(err, store.ErrBadLogin) {
-		c.detail = "wrong current password: " + c.detail
-		return 0, nil, fmt.Errorf("%w: the current password is wrong", store.ErrInvalid)
-	} else if err != nil {
-		return 0, nil, err
-	}
-	if _, err := s.db.UpdateUser(ctx, c.user.Username, c.user.ID, store.UserPatch{Password: &in.NewPassword}); err != nil {
-		return 0, nil, err
-	}
-	c.detail = "password changed; sessions ended"
-	return http.StatusNoContent, nil, nil
-}
 
 func (s *Server) systemInfo(c *call) (int, any, error) {
 	ctx := c.r.Context()

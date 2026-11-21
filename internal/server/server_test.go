@@ -30,9 +30,18 @@ var (
 )
 
 const (
-	adminPassword = "the admin password for tests"
+	adminPassword = "the first password for tests"
 	kitPassphrase = "the recovery kit passphrase for tests"
+	testPublicURL = "https://gaia.test:8443"
 )
+
+// userPassword is a fixture user's password (ADR-008 §6: 15 characters, not the user name).
+func userPassword(username string) string {
+	if username == "admin" {
+		return adminPassword
+	}
+	return "long test password, number " + fmt.Sprint(len(username))
+}
 
 func TestMain(m *testing.M) {
 	recoverykit.SetWorkFactor(10) // age's default costs 256 MiB and a second per kit
@@ -47,7 +56,9 @@ type fixture struct {
 	tokens  map[string]string // role -> token ("" = anonymous)
 	ids     map[string]int64  // path segment -> an existing ID
 	userIDs map[string]int64
-	s3      string // testedVM's repository is S3 at this location (s3Location) instead of a directory
+	s3      string              // testedVM's repository is S3 at this location (s3Location) instead of a directory
+	keys    map[string]*softKey // username -> its security key (every fixture user has one)
+	owners  map[string]string   // token -> username, for the step-ups f.do makes
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -55,7 +66,8 @@ func newFixture(t *testing.T) *fixture {
 	ctx := context.Background()
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "etc", "server.json")
-	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword, KitPassphrase: kitPassphrase}); err != nil {
+	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword,
+		KitPassphrase: kitPassphrase, PublicURL: testPublicURL}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Init(ctx, InitOptions{ConfigPath: cfgPath, DataDir: filepath.Join(dir, "data"), AdminUser: "admin", AdminPassword: adminPassword, KitPassphrase: kitPassphrase}); err == nil {
@@ -70,36 +82,104 @@ func newFixture(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	f := &fixture{t: t, s: s, ts: httptest.NewServer(s.Handler()), dir: dir, tokens: map[string]string{"": ""}, ids: map[string]int64{},
-		userIDs: map[string]int64{}}
+		userIDs: map[string]int64{}, keys: map[string]*softKey{}, owners: map[string]string{}}
 	t.Cleanup(func() { f.ts.Close(); s.Close() })
 	for _, r := range []string{store.RoleOperator, store.RoleAuditor} {
-		u, err := s.db.CreateUser(ctx, "admin", r+"1", r, "password of "+r+"1")
+		u, err := s.db.CreateUser(ctx, "admin", store.NewUser{Username: r + "1", Role: r, Password: userPassword(r + "1")})
 		if err != nil {
 			t.Fatal(err)
 		}
 		f.userIDs[r] = u.ID
 	}
+	// The target of the user routes in the role matrix (a reset ends its sessions; the fixture's users keep theirs).
+	tu, err := s.db.CreateUser(ctx, "admin", store.NewUser{Username: "target1", Role: store.RoleOperator, Password: userPassword("target1")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.userIDs["target"] = tu.ID
 	for _, r := range []string{store.RoleAdmin, store.RoleOperator, store.RoleAuditor} {
 		f.tokens[r] = f.login(r)
 	}
 	return f
 }
 
+// login signs a role's fixture user in (a CLI session) and returns the token.
 func (f *fixture) login(role string) string {
 	f.t.Helper()
-	user, pw := role+"1", "password of "+role+"1"
+	user := role + "1"
 	if role == store.RoleAdmin {
-		user, pw = "admin", adminPassword
+		user = "admin"
 	}
-	var lr LoginResponse
-	if st := f.do("", "POST", "/api/v1/login", fmt.Sprintf(`{"username":%q,"password":%q}`, user, pw), &lr); st != http.StatusOK {
-		f.t.Fatalf("login %s: %d", user, st)
-	}
-	return lr.Token
+	return f.signIn(user)
 }
 
-// do sends a request with a role's token; out (if set) receives the JSON body.
+// signIn signs a user in through every step, as the CLI does: the password, then its security key, or at the first
+// sign-in the enrolment of one (a softKey).
+func (f *fixture) signIn(user string) string {
+	f.t.Helper()
+	var st SigninStep
+	if code := f.do("", "POST", "/api/v1/login", fmt.Sprintf(`{"username":%q,"password":%q}`, user, userPassword(user)), &st); code != http.StatusOK {
+		f.t.Fatalf("sign-in of %s: %d", user, code)
+	}
+	switch st.Stage {
+	case stageEnrol:
+		var ch EnrolChallenge
+		if code := f.do("", "POST", "/api/v1/login/enrol", fmt.Sprintf(`{"signin_token":%q,"kind":"webauthn"}`, st.SigninToken), &ch); code != http.StatusOK {
+			f.t.Fatalf("enrol %s: %d", user, code)
+		}
+		k := newSoftKey(f.t, testPublicURL)
+		body, _ := json.Marshal(EnrolFinish{SigninToken: st.SigninToken, Kind: "webauthn", Name: "test key", WebAuthn: k.create(f.t, ch.WebAuthn)})
+		if code := f.do("", "POST", "/api/v1/login/enrol/finish", string(body), &st); code != http.StatusOK {
+			f.t.Fatalf("enrol finish %s: %d", user, code)
+		}
+		f.keys[user] = k
+	case stageFactor:
+		k := f.keys[user]
+		if k == nil {
+			f.t.Fatalf("%s has a factor the fixture does not hold", user)
+		}
+		body, _ := json.Marshal(FactorAnswer{SigninToken: st.SigninToken, Method: "webauthn", WebAuthn: k.get(f.t, st.WebAuthn)})
+		if code := f.do("", "POST", "/api/v1/login/factor", string(body), &st); code != http.StatusOK {
+			f.t.Fatalf("second factor of %s: %d", user, code)
+		}
+	}
+	if st.Stage != stageDone || st.Token == "" {
+		f.t.Fatalf("sign-in of %s ended at %+v", user, st)
+	}
+	f.owners[st.Token] = user
+	return st.Token
+}
+
+// stepUp makes a step-up for one action and returns its headers.
+func (f *fixture) stepUp(token, method, path string) map[string]string {
+	f.t.Helper()
+	var ch StepUpChallenge
+	if code := f.doH(token, "POST", "/api/v1/step-up", fmt.Sprintf(`{"method":%q,"path":%q}`, method, path), nil, &ch); code != http.StatusOK {
+		return nil // a role not allowed: the request itself says so
+	}
+	k := f.keys[f.owners[token]]
+	if k == nil {
+		f.t.Fatalf("step-up for %s %s: no key for the token's user %q", method, path, f.owners[token])
+	}
+	proof, _ := json.Marshal(StepUpProof{Method: "webauthn", WebAuthn: k.get(f.t, ch.WebAuthn)})
+	return map[string]string{"X-Gaia-Step-Up": ch.ID, "X-Gaia-Step-Up-Proof": b64.EncodeToString(proof)}
+}
+
+// do sends a request with a role's token; out (if set) receives the JSON body. An action that always needs a step-up
+// (or may: a policy made looser) gets one first, made with the token's user's key.
 func (f *fixture) do(token, method, path, body string, out any) int {
+	f.t.Helper()
+	var h map[string]string
+	if p, _, _ := strings.Cut(path, "?"); token != "" && f.owners[token] != "" {
+		if rt := f.s.stepUpRoute(method, p); rt != nil {
+			h = f.stepUp(token, method, p)
+		}
+	}
+	return f.doH(token, method, path, body, h, out)
+}
+
+// doH sends a request with extra headers.
+func (f *fixture) doH(token, method, path, body string, headers map[string]string, out any) int {
 	f.t.Helper()
 	var rd io.Reader
 	if body != "" {
@@ -108,6 +188,9 @@ func (f *fixture) do(token, method, path, body string, out any) int {
 	req, _ := http.NewRequest(method, f.ts.URL+path, rd)
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -216,7 +299,7 @@ func (f *fixture) seed() {
 	if _, err := f.s.db.FinishMigrationCheck(ctx, "system", mc.ID, "OK", "seed", ev.BundleID, MigrationDetail{}); err != nil {
 		t.Fatal(err)
 	}
-	f.ids = map[string]int64{"users": f.userIDs[store.RoleAuditor], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
+	f.ids = map[string]int64{"users": f.userIDs["target"], "hosts": h.ID, "vms": v.ID, "repositories": repo.ID, "policies": p.ID,
 		"jobs": j.ID, "points": pt.ID, "restore-tests": rt.ID, "evidence": ev.ID, "verifications": ver.ID, "notification-channels": ch.ID,
 		"daily-reports": dr.ID, "views": v.ID, "migration-sources": src.ID, "migration-checks": mc.ID}
 }
@@ -244,7 +327,19 @@ func TestRoleMatrix(t *testing.T) {
 			if rt.path == "/api/v1/logout" && role != "" {
 				token = f.login(role) // a session of its own, so the others stay valid
 			}
+			if rt.path == "/api/v1/sessions/end-others" && role != "" {
+				token = f.login(role) // it signs everyone else out: the fixture signs in again after it
+			}
 			st := f.do(token, rt.method, f.path(rt), rt.example, nil)
+			if rt.path == "/api/v1/sessions/end-others" && st == http.StatusOK {
+				for _, r := range []string{store.RoleAdmin, store.RoleOperator, store.RoleAuditor} {
+					f.tokens[r] = f.login(r)
+				}
+			}
+			// Every role is signed in from 127.0.0.1: the matrix's wrong examples would slow its own sign-ins (§7).
+			if _, err := f.s.db.SQL().Exec(`DELETE FROM signin_failures`); err != nil {
+				t.Fatal(err)
+			}
 			row += fmt.Sprintf(" %d |", st)
 			switch {
 			case rt.roles == nil:
@@ -393,7 +488,7 @@ func TestStateBackupAndExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if us, err := db.Users(ctx); err != nil || len(us) != 3 {
+	if us, err := db.Users(ctx); err != nil || len(us) != 4 {
 		t.Fatalf("users in the backed-up database: %d %v", len(us), err)
 	}
 	if as, _ := st.Archives(ctx, StateArchiveKind); len(as) != 1 {

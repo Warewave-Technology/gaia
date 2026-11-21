@@ -95,6 +95,7 @@ func cmdServerInit(ctx context.Context, args []string) int {
 	dataDir := fs.String("data-dir", "/var/lib/gaia", "data directory (database, keys, evidence)")
 	listen := fs.String("listen", ":8443", "address the API listens on (HTTPS)")
 	names := fs.String("hostname", "", "comma-separated names or addresses clients use to reach this server (for the TLS certificate)")
+	publicURL := fs.String("public-url", "", "https://NAME:PORT browsers use (WebAuthn needs a name, not an address); default https://<host name>:<port>")
 	admin := fs.String("admin", "admin", "the first admin's username")
 	pwFile := fs.String("password-file", "", "file holding the first admin's password (default: ask)")
 	kitFile := fs.String("kit-passphrase-file", "", "file holding the recovery kit's passphrase (default: $GAIA_KIT_PASSPHRASE, or ask)")
@@ -109,7 +110,7 @@ func cmdServerInit(ctx context.Context, args []string) int {
 		return fail(*asJSON, "server init", err)
 	}
 	r, err := server.Init(ctx, server.InitOptions{ConfigPath: *config, DataDir: *dataDir, Listen: *listen, Hostnames: strings.Split(*names, ","),
-		AdminUser: *admin, AdminPassword: pw, KitPassphrase: pass})
+		AdminUser: *admin, AdminPassword: pw, KitPassphrase: pass, PublicURL: *publicURL})
 	if err != nil {
 		return fail(*asJSON, "server init", err)
 	}
@@ -122,7 +123,8 @@ func cmdServerInit(ctx context.Context, args []string) int {
   config                 %s
   data directory         %s
   listens on             %s (HTTPS)
-  admin user             %s
+  public URL             %s
+  admin user             %s (break-glass)
 
 Write these two down; you will need them:
 
@@ -137,8 +139,10 @@ The recovery kit (generation %d) is %s.
 It is encrypted with the passphrase you chose; keep that passphrase in your password manager. Every new
 repository writes a new kit: save it off this server after creating the repository (gaia kit save).
 
-Next: start the service (systemctl enable --now gaia), then gaia login -server https://<host>:<port> -user %s
-`, *config, r.Config.DataDir, r.Config.Listen, r.Admin, r.CertSHA256, r.EvidenceKeyID, strings.Join(r.CertNames, ", "), r.KitGeneration, r.Kit, r.Admin)
+Next: start the service (systemctl enable --now gaia), open %s in a browser and sign in as %s: the
+first sign-in enrols the admin's security key (WebAuthn; the browser must trust this server's certificate and reach
+it by the public URL's name). Then, in a terminal: gaia login -server %s -browser
+`, *config, r.Config.DataDir, r.Config.Listen, r.Config.PublicURL, r.Admin, r.CertSHA256, r.EvidenceKeyID, strings.Join(r.CertNames, ", "), r.KitGeneration, r.Kit, r.Config.PublicURL, r.Admin, r.Config.PublicURL)
 	return 0
 }
 

@@ -305,7 +305,7 @@ func testRestoreState(t *testing.T, s3 string) {
 	}
 	ts := httptest.NewServer(s2.Handler())
 	defer ts.Close()
-	f2 := &fixture{t: t, s: s2, ts: ts, dir: nd, tokens: map[string]string{}}
+	f2 := &fixture{t: t, s: s2, ts: ts, dir: nd, tokens: map[string]string{}, keys: f.keys, owners: map[string]string{}}
 	f2.tokens[store.RoleAdmin] = f2.login(store.RoleAdmin) // the lost server's users came back
 	admin := f2.tokens[store.RoleAdmin]
 	var after VMStatus

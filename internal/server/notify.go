@@ -47,10 +47,14 @@ const (
 	evLedger     = "ledger"       // the evidence ledger does not verify, or verifies again
 	evFullBackup = "full_backup"  // a backup was full although the VM had an earlier one (a checkpoint gone from the host, a disk resized, a quarantine)
 	evDaily      = "daily_report" // the daily report (report.go)
-	evTest       = "test"         // a test message sent on request
+	// Sign-in events that notify admins (ADR-008 §1, §5, §7).
+	evBreakglass = "breakglass_signin" // a break-glass admin signed in locally while single sign-on is on
+	evNewDevice  = "new_device_signin" // a sign-in from a device or address not seen for the user in 30 days
+	evLocked     = "account_locked"    // an account paused after 10 failed sign-ins in 15 minutes
+	evTest       = "test"              // a test message sent on request
 )
 
-var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily}
+var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily, evBreakglass, evNewDevice, evLocked}
 
 const (
 	notifyTick  = 5 * time.Second
@@ -83,7 +87,7 @@ type WebhookConfig struct {
 type ChannelCreate struct {
 	Name          string         `json:"name"`
 	Kind          string         `json:"kind"`   // smtp or webhook
-	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report)
+	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report, breakglass_signin, new_device_signin, account_locked)
 	SMTP          *SMTPConfig    `json:"smtp,omitempty"`
 	SMTPPassword  string         `json:"smtp_password,omitempty"`
 	Webhook       *WebhookConfig `json:"webhook,omitempty"`
@@ -444,6 +448,19 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		ev.Subject = fmt.Sprintf("repository %s: verification %d found damage in %d point disk(s)", r.Name, v.ID, len(aff))
 		ev.Text = fmt.Sprintf("The %s verification %d of repository %s found damage at %s. These points are marked failed and prove nothing any more:\n%s",
 			v.Mode, v.ID, r.Name, sc.At, strings.Join(lines, "\n"))
+	case sc.Entity == "signin" && (sc.To == evBreakglass || sc.To == evNewDevice):
+		ev.Event = sc.To
+		if sc.To == evBreakglass {
+			ev.Subject = "break-glass sign-in while single sign-on is on"
+			ev.Text = fmt.Sprintf("At %s: %s.\nIf this was not an emergency, find out who it was: the audit log has the sign-in (session %d).", sc.At, sc.Reason, sc.EntityID)
+		} else {
+			ev.Subject = "sign-in from a new device"
+			ev.Text = fmt.Sprintf("At %s: %s.\nIf this was not the user, sign the session out (session %d) and reset the user's factors.", sc.At, sc.Reason, sc.EntityID)
+		}
+	case sc.Entity == "user_lockout" && strings.HasPrefix(sc.To, "locked until "):
+		ev.Event = evLocked
+		ev.Subject = "an account is paused after failed sign-ins"
+		ev.Text = fmt.Sprintf("At %s: %s.\nSign-in for it is %s, from every address. Each attempt is in the audit log with its address.", sc.At, sc.Reason, sc.To)
 	case sc.Entity == "quarantine":
 		ev.Event = evQuarantine
 		ev.Subject = fmt.Sprintf("damaged repository contents quarantined (verification %d)", sc.EntityID)

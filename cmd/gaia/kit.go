@@ -46,7 +46,7 @@ func cliKit(ctx context.Context, args []string, asJSON bool) int {
 	if err != nil {
 		return fail(asJSON, "kit", err)
 	}
-	c := client.New(cfg)
+	c := newClient(cfg)
 	switch verb {
 	case "status":
 		b, _, err := c.Do(ctx, "GET", "/api/v1/recovery-kit", nil)

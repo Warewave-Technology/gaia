@@ -1,6 +1,69 @@
 {
   "components": {
     "schemas": {
+      "APIToken": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_addrs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "first_used_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_used_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revoked_at": {
+            "type": "string"
+          },
+          "revoked_by": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "use_count": {
+            "type": "integer"
+          },
+          "use_day": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allowed_addrs",
+          "created_at",
+          "created_by",
+          "expires_at",
+          "first_used_at",
+          "id",
+          "last_used_at",
+          "name",
+          "revoked_at",
+          "revoked_by",
+          "role",
+          "use_count",
+          "use_day"
+        ],
+        "type": "object"
+      },
       "AppliedMigration": {
         "additionalProperties": false,
         "properties": {
@@ -219,6 +282,22 @@
         ],
         "type": "object"
       },
+      "BlocklistID": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entries",
+          "version"
+        ],
+        "type": "object"
+      },
       "BundleCheck": {
         "additionalProperties": false,
         "properties": {
@@ -247,6 +326,27 @@
           "key_id",
           "problems",
           "verdict"
+        ],
+        "type": "object"
+      },
+      "CLIApprovalStart": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CLIApprove": {
+        "additionalProperties": false,
+        "properties": {
+          "user_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_code"
         ],
         "type": "object"
       },
@@ -855,6 +955,58 @@
         ],
         "type": "object"
       },
+      "DeviceChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "interval_s": {
+            "type": "integer"
+          },
+          "user_code": {
+            "type": "string"
+          },
+          "verification_uri": {
+            "type": "string"
+          },
+          "verification_uri_complete": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expires_at",
+          "handle",
+          "interval_s",
+          "user_code",
+          "verification_uri"
+        ],
+        "type": "object"
+      },
+      "DevicePoll": {
+        "additionalProperties": false,
+        "properties": {
+          "handle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle"
+        ],
+        "type": "object"
+      },
+      "DeviceStart": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Disk": {
         "additionalProperties": false,
         "properties": {
@@ -900,6 +1052,67 @@
         "required": [
           "size_bytes",
           "target"
+        ],
+        "type": "object"
+      },
+      "EnrolBegin": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "signin_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "EnrolChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "totp_secret": {
+            "type": "string"
+          },
+          "totp_uri": {
+            "type": "string"
+          },
+          "webauthn": {}
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "EnrolFinish": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "signin_token": {
+            "type": "string"
+          },
+          "webauthn": {
+            "description": "any JSON value"
+          }
+        },
+        "required": [
+          "kind"
         ],
         "type": "object"
       },
@@ -994,6 +1207,135 @@
           "proof_expires_at",
           "vm",
           "vm_id"
+        ],
+        "type": "object"
+      },
+      "Factor": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "kind",
+          "last_used_at",
+          "name",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "FactorAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "signin_token": {
+            "type": "string"
+          },
+          "webauthn": {
+            "description": "any JSON value"
+          }
+        },
+        "required": [
+          "method",
+          "signin_token"
+        ],
+        "type": "object"
+      },
+      "FixedRules": {
+        "additionalProperties": false,
+        "properties": {
+          "admin_factor": {
+            "type": "string"
+          },
+          "api_token_max_days": {
+            "type": "integer"
+          },
+          "auditor_max_days": {
+            "type": "integer"
+          },
+          "cookie": {
+            "type": "string"
+          },
+          "new_device_days": {
+            "type": "integer"
+          },
+          "oidc_refresh_min": {
+            "type": "integer"
+          },
+          "password_history": {
+            "type": "integer"
+          },
+          "password_max_length": {
+            "type": "integer"
+          },
+          "password_min_length": {
+            "type": "integer"
+          },
+          "pause_after_failures": {
+            "type": "integer"
+          },
+          "pause_min": {
+            "type": "integer"
+          },
+          "pause_window_min": {
+            "type": "integer"
+          },
+          "second_factor_required": {
+            "type": "boolean"
+          },
+          "sessions_per_user": {
+            "type": "integer"
+          },
+          "slow_down_from_failure": {
+            "type": "integer"
+          },
+          "step_up_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "admin_factor",
+          "api_token_max_days",
+          "auditor_max_days",
+          "cookie",
+          "new_device_days",
+          "oidc_refresh_min",
+          "password_history",
+          "password_max_length",
+          "password_min_length",
+          "pause_after_failures",
+          "pause_min",
+          "pause_window_min",
+          "second_factor_required",
+          "sessions_per_user",
+          "slow_down_from_failure",
+          "step_up_s"
         ],
         "type": "object"
       },
@@ -1604,6 +1946,9 @@
           "browser": {
             "type": "boolean"
           },
+          "device_id": {
+            "type": "string"
+          },
           "password": {
             "type": "string"
           },
@@ -1614,25 +1959,6 @@
         "required": [
           "password",
           "username"
-        ],
-        "type": "object"
-      },
-      "LoginResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "expires_at": {
-            "type": "string"
-          },
-          "token": {
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        },
-        "required": [
-          "expires_at",
-          "user"
         ],
         "type": "object"
       },
@@ -1687,6 +2013,91 @@
           "referenced_contents",
           "seconds",
           "unresolved_points"
+        ],
+        "type": "object"
+      },
+      "Me": {
+        "additionalProperties": false,
+        "properties": {
+          "api_token": {
+            "type": "string"
+          },
+          "break_glass": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "idle_timeout_s": {
+            "type": "integer"
+          },
+          "last_login_at": {
+            "type": "string"
+          },
+          "locked_until": {
+            "type": "string"
+          },
+          "password_change": {
+            "type": "string"
+          },
+          "password_changed_at": {
+            "type": "string"
+          },
+          "password_expires_at": {
+            "type": "string"
+          },
+          "password_expires_soon": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "source": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "break_glass",
+          "created_at",
+          "disabled",
+          "expires_at",
+          "factors",
+          "id",
+          "idle_timeout_s",
+          "last_login_at",
+          "locked_until",
+          "password_change",
+          "password_changed_at",
+          "password_expires_soon",
+          "role",
+          "session",
+          "source",
+          "updated_at",
+          "username"
         ],
         "type": "object"
       },
@@ -2017,6 +2428,90 @@
         ],
         "type": "object"
       },
+      "NewAPIToken": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_addrs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expires_at",
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
+      "NewPassword": {
+        "additionalProperties": false,
+        "properties": {
+          "new_password": {
+            "type": "string"
+          },
+          "signin_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password",
+          "signin_token"
+        ],
+        "type": "object"
+      },
+      "NewToken": {
+        "additionalProperties": false,
+        "properties": {
+          "info": {
+            "$ref": "#/components/schemas/APIToken"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "info",
+          "token"
+        ],
+        "type": "object"
+      },
+      "NewUser": {
+        "additionalProperties": false,
+        "properties": {
+          "break_glass": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "role",
+          "username"
+        ],
+        "type": "object"
+      },
       "Notification": {
         "additionalProperties": false,
         "properties": {
@@ -2101,6 +2596,75 @@
           "failing",
           "state",
           "text"
+        ],
+        "type": "object"
+      },
+      "OIDCSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "ca_pem": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "groups_claim": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "second_factor": {
+            "$ref": "#/components/schemas/SecondFactorRule"
+          }
+        },
+        "required": [
+          "client_id",
+          "enabled",
+          "groups_claim",
+          "issuer",
+          "name",
+          "roles",
+          "second_factor"
+        ],
+        "type": "object"
+      },
+      "OIDCStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "type": "string"
+          },
+          "device_grant": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "checked_at",
+          "device_grant",
+          "enabled",
+          "ok"
         ],
         "type": "object"
       },
@@ -2845,6 +3409,21 @@
         ],
         "type": "object"
       },
+      "RecoveryCodes": {
+        "additionalProperties": false,
+        "properties": {
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "codes"
+        ],
+        "type": "object"
+      },
       "RecoveryKit": {
         "additionalProperties": false,
         "properties": {
@@ -3262,6 +3841,29 @@
         ],
         "type": "object"
       },
+      "SecondFactorRule": {
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim",
+          "required",
+          "values"
+        ],
+        "type": "object"
+      },
       "ServerClock": {
         "additionalProperties": false,
         "properties": {
@@ -3279,6 +3881,316 @@
           "now",
           "offset_s",
           "zone"
+        ],
+        "type": "object"
+      },
+      "Session": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_at": {
+            "type": "string"
+          },
+          "break_glass": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "end_reason": {
+            "type": "string"
+          },
+          "ended_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "idp_refreshed_at": {
+            "type": "string"
+          },
+          "idp_state": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "last_active_at": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "new_device": {
+            "type": "boolean"
+          },
+          "remote_addr": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "user_agent": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "absolute_at",
+          "break_glass",
+          "created_at",
+          "end_reason",
+          "ended_at",
+          "id",
+          "idp_refreshed_at",
+          "idp_state",
+          "kind",
+          "last_active_at",
+          "last_seen_at",
+          "method",
+          "new_device",
+          "remote_addr",
+          "role",
+          "user_agent",
+          "user_id",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SessionsEnded": {
+        "additionalProperties": false,
+        "properties": {
+          "ended": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ended"
+        ],
+        "type": "object"
+      },
+      "SettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_timeout_h": {
+            "type": "integer"
+          },
+          "breach_check_url": {
+            "type": "string"
+          },
+          "idle_timeout_min": {
+            "type": "integer"
+          },
+          "oidc": {
+            "$ref": "#/components/schemas/OIDCSettings"
+          },
+          "oidc_client_secret": {
+            "type": "string"
+          },
+          "online_breach_check": {
+            "type": "boolean"
+          },
+          "password_max_age": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "absolute_timeout_h",
+          "breach_check_url",
+          "idle_timeout_min",
+          "oidc",
+          "online_breach_check",
+          "password_max_age"
+        ],
+        "type": "object"
+      },
+      "SettingsView": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_timeout_h": {
+            "type": "integer"
+          },
+          "breach_check_url": {
+            "type": "string"
+          },
+          "break_glass_admins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fixed": {
+            "$ref": "#/components/schemas/FixedRules"
+          },
+          "idle_timeout_min": {
+            "type": "integer"
+          },
+          "oidc": {
+            "$ref": "#/components/schemas/OIDCSettings"
+          },
+          "oidc_client_secret_set": {
+            "type": "boolean"
+          },
+          "oidc_status": {
+            "$ref": "#/components/schemas/OIDCStatus"
+          },
+          "online_breach_check": {
+            "type": "boolean"
+          },
+          "password_blocklist": {
+            "$ref": "#/components/schemas/BlocklistID"
+          },
+          "password_max_age": {
+            "type": "string"
+          },
+          "public_url": {
+            "type": "string"
+          },
+          "step_up_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "absolute_timeout_h",
+          "breach_check_url",
+          "break_glass_admins",
+          "fixed",
+          "idle_timeout_min",
+          "oidc",
+          "oidc_client_secret_set",
+          "oidc_status",
+          "online_breach_check",
+          "password_blocklist",
+          "password_max_age",
+          "public_url",
+          "step_up_actions"
+        ],
+        "type": "object"
+      },
+      "SigninOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "instance": {
+            "type": "string"
+          },
+          "sso": {
+            "type": "boolean"
+          },
+          "sso_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance",
+          "sso"
+        ],
+        "type": "object"
+      },
+      "SigninSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_timeout_h": {
+            "type": "integer"
+          },
+          "breach_check_url": {
+            "type": "string"
+          },
+          "idle_timeout_min": {
+            "type": "integer"
+          },
+          "oidc": {
+            "$ref": "#/components/schemas/OIDCSettings"
+          },
+          "online_breach_check": {
+            "type": "boolean"
+          },
+          "password_max_age": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "absolute_timeout_h",
+          "breach_check_url",
+          "idle_timeout_min",
+          "oidc",
+          "online_breach_check",
+          "password_max_age"
+        ],
+        "type": "object"
+      },
+      "SigninStep": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_at": {
+            "type": "string"
+          },
+          "enrol": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "idle_timeout_s": {
+            "type": "integer"
+          },
+          "new_device": {
+            "type": "boolean"
+          },
+          "password_change": {
+            "type": "string"
+          },
+          "password_expires_at": {
+            "type": "string"
+          },
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signin_token": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "webauthn": {}
+        },
+        "required": [
+          "stage",
+          "username"
         ],
         "type": "object"
       },
@@ -3624,6 +4536,81 @@
         ],
         "type": "object"
       },
+      "StepUpApprove": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "webauthn": {
+            "description": "any JSON value"
+          }
+        },
+        "required": [
+          "id",
+          "method"
+        ],
+        "type": "object"
+      },
+      "StepUpChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "approve_url": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "redirect_url": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "webauthn": {}
+        },
+        "required": [
+          "action",
+          "expires_at",
+          "id",
+          "target"
+        ],
+        "type": "object"
+      },
+      "StepUpRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "path"
+        ],
+        "type": "object"
+      },
       "SystemInfo": {
         "additionalProperties": false,
         "properties": {
@@ -3884,14 +4871,23 @@
       "User": {
         "additionalProperties": false,
         "properties": {
+          "break_glass": {
+            "type": "boolean"
+          },
           "created_at": {
             "type": "string"
           },
           "disabled": {
             "type": "boolean"
           },
-          "failed_logins": {
-            "type": "integer"
+          "expires_at": {
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "id": {
             "type": "integer"
@@ -3902,10 +4898,16 @@
           "locked_until": {
             "type": "string"
           },
+          "password_change": {
+            "type": "string"
+          },
           "password_changed_at": {
             "type": "string"
           },
           "role": {
+            "type": "string"
+          },
+          "source": {
             "type": "string"
           },
           "updated_at": {
@@ -3916,35 +4918,19 @@
           }
         },
         "required": [
+          "break_glass",
           "created_at",
           "disabled",
-          "failed_logins",
+          "expires_at",
+          "factors",
           "id",
           "last_login_at",
           "locked_until",
+          "password_change",
           "password_changed_at",
           "role",
+          "source",
           "updated_at",
-          "username"
-        ],
-        "type": "object"
-      },
-      "UserCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "password": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "password",
-          "role",
           "username"
         ],
         "type": "object"
@@ -3952,9 +4938,21 @@
       "UserPatch": {
         "additionalProperties": false,
         "properties": {
+          "break_glass": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "disabled": {
             "type": [
               "boolean",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": [
+              "string",
               "null"
             ]
           },
@@ -4689,6 +5687,9 @@
           },
           "error": {
             "type": "string"
+          },
+          "reason": {
+            "type": "string"
           }
         },
         "required": [
@@ -4716,6 +5717,270 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/api-tokens": {
+      "get": {
+        "operationId": "get_api_tokens",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIToken"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "API tokens for automation",
+        "tags": [
+          "api-tokens"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "post_api_tokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAPIToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewToken"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Make an API token (operator or auditor, at most 90 days; shown once)",
+        "tags": [
+          "api-tokens"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/api-tokens/{id}": {
+      "delete": {
+        "operationId": "delete_api_tokens_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIToken"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Revoke an API token",
+        "tags": [
+          "api-tokens"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/audit": {
       "get": {
         "operationId": "get_audit",
@@ -7048,7 +8313,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/SigninStep"
                 }
               }
             },
@@ -7096,7 +8361,474 @@
           }
         },
         "security": [],
-        "summary": "Log in; returns a bearer token, or sets the session cookie for a browser",
+        "summary": "Sign in with a local account: the password; the answer says the next step",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/cli": {
+      "post": {
+        "operationId": "post_login_cli",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CLIApprovalStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Start a CLI sign-in that a signed-in browser approves (gaia login -browser)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/cli/approve": {
+      "post": {
+        "operationId": "post_login_cli_approve",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CLIApprove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Approve a CLI sign-in for oneself (with a step-up)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/login/cli/token": {
+      "post": {
+        "operationId": "post_login_cli_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePoll"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninStep"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "The CLI asks whether its sign-in was approved; then the session",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/enrol": {
+      "post": {
+        "operationId": "post_login_enrol",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolBegin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Sign-in step: start enrolling the first second factor",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/enrol/finish": {
+      "post": {
+        "operationId": "post_login_enrol_finish",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolFinish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninStep"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Sign-in step: the authenticator's answer; the answer carries the recovery codes once",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/factor": {
+      "post": {
+        "operationId": "post_login_factor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FactorAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninStep"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Sign-in step: the second factor (WebAuthn, TOTP or a recovery code)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/login/password": {
+      "post": {
+        "operationId": "post_login_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninStep"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Sign-in step: a new password (expired, reset by an admin, or on the blocklist)",
         "tags": [
           "session"
         ],
@@ -7190,7 +8922,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/Me"
                 }
               }
             },
@@ -7237,7 +8969,366 @@
             "description": "Internal error"
           }
         },
-        "summary": "The logged-in user",
+        "summary": "The signed-in user and this session",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/factors": {
+      "get": {
+        "operationId": "get_me_factors",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Factor"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One's second factors",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      },
+      "post": {
+        "operationId": "post_me_factors",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolBegin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Start enrolling another second factor (ends one's other sessions when it is done)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/factors/finish": {
+      "post": {
+        "operationId": "post_me_factors_finish",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolFinish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Factor"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "The authenticator's answer: the factor is enrolled",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/factors/{id}": {
+      "delete": {
+        "operationId": "delete_me_factors_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Remove one of one's factors (not the last; an admin keeps a security key)",
         "tags": [
           "session"
         ],
@@ -7326,7 +9417,262 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Change one's own password (ends one's sessions)",
+        "summary": "Change one's own password (ends one's other sessions)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/recovery-codes": {
+      "post": {
+        "operationId": "post_me_recovery_codes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodes"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "New recovery codes, shown once (the old ones stop working)",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "operationId": "get_me_sessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "One's live sessions",
+        "tags": [
+          "session"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "delete_me_sessions_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Sign out one of one's sessions",
         "tags": [
           "session"
         ],
@@ -8701,6 +11047,235 @@
         ]
       }
     },
+    "/api/v1/oidc/callback": {
+      "get": {
+        "operationId": "get_oidc_callback",
+        "parameters": [
+          {
+            "description": "the authorization code",
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "the flow",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Single sign-on: the identity provider's answer (a sign-in, or a step-up)",
+        "tags": [
+          "oidc"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/oidc/device": {
+      "post": {
+        "operationId": "post_oidc_device",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "CLI sign-in at the identity provider: the device authorization grant (RFC 8628)",
+        "tags": [
+          "oidc"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/oidc/device/token": {
+      "post": {
+        "operationId": "post_oidc_device_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePoll"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninStep"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "The CLI asks whether the user signed in at the identity provider; then the session",
+        "tags": [
+          "oidc"
+        ],
+        "x-gaia-roles": []
+      }
+    },
+    "/api/v1/oidc/start": {
+      "get": {
+        "operationId": "get_oidc_start",
+        "parameters": [
+          {
+            "description": "the page to go to after signing in",
+            "in": "query",
+            "name": "next",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "Single sign-on: go to the identity provider",
+        "tags": [
+          "oidc"
+        ],
+        "x-gaia-roles": []
+      }
+    },
     "/api/v1/openapi.json": {
       "get": {
         "operationId": "get_openapi_json",
@@ -9684,7 +12259,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Change a policy",
+        "summary": "Change a policy (a step-up when it makes a target looser)",
         "tags": [
           "policies"
         ],
@@ -10910,6 +13485,455 @@
         ]
       }
     },
+    "/api/v1/sessions": {
+      "get": {
+        "operationId": "get_sessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Everyone's live sessions",
+        "tags": [
+          "sessions"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/sessions/end-others": {
+      "post": {
+        "operationId": "post_sessions_end_others",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionsEnded"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Sign out everyone but this session",
+        "tags": [
+          "sessions"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/sessions/{id}": {
+      "delete": {
+        "operationId": "delete_sessions_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Sign out a session",
+        "tags": [
+          "sessions"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/settings/signin": {
+      "get": {
+        "operationId": "get_settings_signin",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "Sign-in and security settings, with the rules that are fixed and the IdP's state",
+        "tags": [
+          "settings"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "auditor"
+        ]
+      },
+      "put": {
+        "operationId": "put_settings_signin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Change the sign-in and security settings (listed in the next daily report)",
+        "tags": [
+          "settings"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/signin-options": {
+      "get": {
+        "operationId": "get_signin_options",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigninOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [],
+        "summary": "How one may sign in here (single sign-on on, its name), for the sign-in page",
+        "tags": [
+          "signin-options"
+        ],
+        "x-gaia-roles": []
+      }
+    },
     "/api/v1/state-backups": {
       "get": {
         "operationId": "get_state_backups",
@@ -11417,6 +14441,191 @@
         ]
       }
     },
+    "/api/v1/step-up": {
+      "post": {
+        "operationId": "post_step_up",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepUpChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Ask for a step-up for one destructive or security action (ADR-008 §4)",
+        "tags": [
+          "step-up"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/step-up/approve": {
+      "post": {
+        "operationId": "post_step_up_approve",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpApprove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Pass a step-up of one's other session (the CLI) with a factor answered here",
+        "tags": [
+          "step-up"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/system": {
       "get": {
         "operationId": "get_system",
@@ -11556,7 +14765,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserCreate"
+                "$ref": "#/components/schemas/NewUser"
               }
             }
           },
@@ -11634,7 +14843,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Create a user",
+        "summary": "Create a local user (it enrols a second factor at its first sign-in)",
         "tags": [
           "users"
         ],
@@ -11833,7 +15042,105 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Change a user's role, password or disabled flag",
+        "summary": "Change a user's role, password (a reset), break-glass, expiry or disabled flag",
+        "tags": [
+          "users"
+        ],
+        "x-gaia-roles": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/users/{id}/factors/reset": {
+      "post": {
+        "operationId": "post_users_by_id_factors_reset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Reset a user's second factors: it enrols again at the next sign-in",
         "tags": [
           "users"
         ],
@@ -11938,7 +15245,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "End a user's lockout after wrong passwords and reset the count (T18)",
+        "summary": "End a user's pause after failed sign-ins and forget them (ADR-008 §7)",
         "tags": [
           "users"
         ],
@@ -13398,7 +16705,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Assign a policy (policy_id 0 removes it) or set the UUID",
+        "summary": "Assign a policy (policy_id 0 removes it) or set the UUID (a step-up when it weakens protection)",
         "tags": [
           "vms"
         ],

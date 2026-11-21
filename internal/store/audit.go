@@ -39,23 +39,31 @@ func chainHash(e AuditEntry, prev string) string {
 // AppendAudit records a user action at the end of the chain.
 func (d *DB) AppendAudit(ctx context.Context, e AuditEntry) (AuditEntry, error) {
 	err := d.tx(ctx, func(tx *sql.Tx) error {
-		var prev string
-		err := tx.QueryRowContext(ctx, `SELECT sha256 FROM audit_log ORDER BY seq DESC LIMIT 1`).Scan(&prev)
-		if errors.Is(err, sql.ErrNoRows) {
-			prev = zeroHash
-		} else if err != nil {
-			return err
-		}
-		if err := tx.QueryRowContext(ctx, `SELECT coalesce(max(seq), 0) + 1 FROM audit_log`).Scan(&e.Seq); err != nil {
-			return err
-		}
-		e.At, e.PrevSHA256 = d.ts(), prev
-		e.SHA256 = chainHash(e, prev)
-		_, err = tx.ExecContext(ctx, `INSERT INTO audit_log (seq, at, user_id, username, role, action, target, outcome, remote_addr, detail, prev_sha256, sha256)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, e.Seq, e.At, e.UserID, e.Username, e.Role, e.Action, e.Target, e.Outcome,
-			e.RemoteAddr, e.Detail, e.PrevSHA256, e.SHA256)
+		var err error
+		e, err = d.appendAudit(ctx, tx, e)
 		return err
 	})
+	return e, err
+}
+
+// appendAudit records an action inside a transaction that does it, so the action and its entry commit together (a
+// session that ends, ADR-008 §10).
+func (d *DB) appendAudit(ctx context.Context, tx *sql.Tx, e AuditEntry) (AuditEntry, error) {
+	var prev string
+	err := tx.QueryRowContext(ctx, `SELECT sha256 FROM audit_log ORDER BY seq DESC LIMIT 1`).Scan(&prev)
+	if errors.Is(err, sql.ErrNoRows) {
+		prev = zeroHash
+	} else if err != nil {
+		return e, err
+	}
+	if err := tx.QueryRowContext(ctx, `SELECT coalesce(max(seq), 0) + 1 FROM audit_log`).Scan(&e.Seq); err != nil {
+		return e, err
+	}
+	e.At, e.PrevSHA256 = d.ts(), prev
+	e.SHA256 = chainHash(e, prev)
+	_, err = tx.ExecContext(ctx, `INSERT INTO audit_log (seq, at, user_id, username, role, action, target, outcome, remote_addr, detail, prev_sha256, sha256)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, e.Seq, e.At, e.UserID, e.Username, e.Role, e.Action, e.Target, e.Outcome,
+		e.RemoteAddr, e.Detail, e.PrevSHA256, e.SHA256)
 	return e, err
 }
 

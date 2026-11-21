@@ -34,15 +34,25 @@ func TestBrowserSession(t *testing.T) {
 	jar, _ := cookiejar.New(nil)
 	cl := ts.Client()
 	cl.Jar = jar
-	resp, err := cl.Post(ts.URL+"/api/v1/login", "application/json", strings.NewReader(`{"username":"auditor1","password":"password of auditor1","browser":true}`))
-	if err != nil {
-		t.Fatal(err)
+	post := func(path string, body any, out any) *http.Response {
+		t.Helper()
+		b, _ := json.Marshal(body)
+		resp, err := cl.Post(ts.URL+path, "application/json", bytes.NewReader(b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		json.NewDecoder(resp.Body).Decode(out)
+		return resp
 	}
-	var lr LoginResponse
-	json.NewDecoder(resp.Body).Decode(&lr)
-	resp.Body.Close()
-	if resp.StatusCode != 200 || lr.Token != "" || lr.User.Username != "auditor1" {
-		t.Fatalf("browser login: %d %+v", resp.StatusCode, lr)
+	var st SigninStep
+	post("/api/v1/login", LoginRequest{Username: "auditor1", Password: userPassword("auditor1"), Browser: true}, &st)
+	if st.Stage != stageFactor || st.Token != "" {
+		t.Fatalf("browser sign-in, password: %+v", st)
+	}
+	resp := post("/api/v1/login/factor", FactorAnswer{SigninToken: st.SigninToken, Method: "webauthn", WebAuthn: f.keys["auditor1"].get(t, st.WebAuthn)}, &st)
+	if resp.StatusCode != 200 || st.Stage != stageDone || st.Token != "" || st.User.Username != "auditor1" {
+		t.Fatalf("browser sign-in: %d %+v", resp.StatusCode, st)
 	}
 	var ck *http.Cookie
 	for _, c := range resp.Cookies() {
@@ -65,14 +75,14 @@ func TestBrowserSession(t *testing.T) {
 	if st := get("/api/v1/views/overview"); st != 200 {
 		t.Fatalf("overview with the cookie: %d", st)
 	}
-	if st := get("/api/v1/evidence-export"); st != 200 {
-		t.Fatalf("an auditor's export: %d", st)
+	if st := get("/api/v1/evidence-export"); st != http.StatusForbidden {
+		t.Fatalf("an auditor's export without a step-up: %d", st)
 	}
 	// Another site's page making the browser post: refused before the route.
 	req, _ := http.NewRequest("POST", ts.URL+"/api/v1/logout", nil)
 	req.Header.Set("Origin", "https://evil.example")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
-	resp, err = cl.Do(req)
+	resp, err := cl.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,8 +100,8 @@ func TestBrowserSession(t *testing.T) {
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout: %d", resp.StatusCode)
 	}
-	if u, _ := url.Parse(ts.URL); len(jar.Cookies(u)) != 0 {
-		t.Fatalf("cookie after logout: %v", jar.Cookies(u))
+	if u, _ := url.Parse(ts.URL); len(jar.Cookies(u)) != 1 || jar.Cookies(u)[0].Name != deviceCookieName {
+		t.Fatalf("cookies after logout: %v (only the device id stays)", jar.Cookies(u))
 	}
 	if st := get("/api/v1/views/overview"); st != http.StatusUnauthorized {
 		t.Fatalf("overview after logout: %d", st)

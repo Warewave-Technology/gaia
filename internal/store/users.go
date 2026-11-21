@@ -3,19 +3,18 @@ package store
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
+
+	"github.com/Warewave-Technology/gaia/internal/auth"
 )
 
 // Roles (ADR-007 §8).
@@ -28,6 +27,34 @@ const (
 // ValidRole reports whether r is one of the three roles.
 func ValidRole(r string) bool { return r == RoleAdmin || r == RoleOperator || r == RoleAuditor }
 
+// RoleRank orders the roles (ADR-008 §2: a user with groups for several roles gets the highest).
+func RoleRank(r string) int {
+	switch r {
+	case RoleAdmin:
+		return 3
+	case RoleOperator:
+		return 2
+	case RoleAuditor:
+		return 1
+	}
+	return 0
+}
+
+// User sources (ADR-008 §1).
+const (
+	SourceLocal = "local"
+	SourceOIDC  = "oidc"
+)
+
+// AuditorMaxAge is the longest an auditor's account may run before an admin renews it (ADR-008 §8). Fixed.
+const AuditorMaxAge = 30 * 24 * time.Hour
+
+// Why a user must set a new password (User.PasswordChange).
+const (
+	PasswordChangeAdminReset = "admin_reset" // an admin set the password
+	PasswordChangeBlocklist  = "blocklist"   // the password is on a newer blocklist
+)
+
 // argon2id parameters (RFC 9106 §4, the second recommended option, with 64 MiB of memory).
 const (
 	argonTime    = 3
@@ -37,8 +64,8 @@ const (
 	argonSaltLen = 16
 )
 
-// MinPasswordLength is the shortest password accepted.
-const MinPasswordLength = 12
+// MinPasswordLength is the shortest password accepted (ADR-008 §6).
+const MinPasswordLength = auth.MinPasswordLength
 
 // HashPassword returns the argon2id PHC string of password.
 func HashPassword(password string) (string, error) {
@@ -85,68 +112,183 @@ var dummyHash, _ = HashPassword("gaia: not a password of anyone")
 
 var usernameRe = regexp.MustCompile(`^[a-z][a-z0-9._-]{1,63}$`)
 
-func checkPasswordPolicy(p string) error {
-	if utf8.RuneCountInString(p) < MinPasswordLength {
-		return fmt.Errorf("%w: a password has at least %d characters", ErrInvalid, MinPasswordLength)
+// SetInstance names the installation for the password rules (a password may not contain it, ADR-008 §6).
+func (d *DB) SetInstance(name string) { d.instance = name }
+
+// User is a user: a local account, or one that signs in at the IdP (source oidc).
+type User struct {
+	ID                int64    `json:"id"`
+	Username          string   `json:"username"`
+	Role              string   `json:"role"`
+	Source            string   `json:"source"` // local or oidc
+	Disabled          bool     `json:"disabled"`
+	BreakGlass        bool     `json:"break_glass"` // may sign in locally while OIDC is on (ADR-008 §1)
+	ExpiresAt         string   `json:"expires_at"`  // an auditor's account ends then ("" for the other roles)
+	CreatedAt         string   `json:"created_at"`
+	UpdatedAt         string   `json:"updated_at"`
+	PasswordChangedAt string   `json:"password_changed_at"`
+	PasswordChange    string   `json:"password_change"` // why a new password is needed first ("" = it is not)
+	LastLoginAt       string   `json:"last_login_at"`
+	LockedUntil       string   `json:"locked_until"` // the end of the current or last pause after failed sign-ins ("" = none)
+	Factors           []string `json:"factors"`      // the kinds of second factor enrolled: webauthn, totp
+	OIDCSubject       string   `json:"-"`
+	blocklistVersion  string
+	hash              string
+}
+
+const userCols = `id, username, role, source, password_hash, disabled, break_glass, expires_at, created_at, updated_at,
+	password_changed_at, password_change, last_login_at, locked_until, oidc_subject, blocklist_version,
+	coalesce((SELECT group_concat(kind) FROM (SELECT DISTINCT kind FROM user_factors f WHERE f.user_id = users.id ORDER BY kind)), '')`
+
+func scanUser(s interface{ Scan(...any) error }) (User, error) {
+	var u User
+	var dis, bg int
+	var factors string
+	err := s.Scan(&u.ID, &u.Username, &u.Role, &u.Source, &u.hash, &dis, &bg, &u.ExpiresAt, &u.CreatedAt, &u.UpdatedAt,
+		&u.PasswordChangedAt, &u.PasswordChange, &u.LastLoginAt, &u.LockedUntil, &u.OIDCSubject, &u.blocklistVersion, &factors)
+	if errors.Is(err, sql.ErrNoRows) {
+		return u, ErrNotFound
+	}
+	u.Disabled, u.BreakGlass = dis == 1, bg == 1
+	u.Factors = []string{}
+	if factors != "" {
+		u.Factors = strings.Split(factors, ",")
+	}
+	return u, err
+}
+
+func (d *DB) userTx(ctx context.Context, tx *sql.Tx, id int64) (User, error) {
+	u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+	if errors.Is(err, ErrNotFound) {
+		return u, fmt.Errorf("%w: user %d", ErrNotFound, id)
+	}
+	return u, err
+}
+
+// Expired reports whether the user's account has run out at now (an auditor's, ADR-008 §8).
+func (u User) Expired(now time.Time) bool {
+	if u.ExpiresAt == "" {
+		return false
+	}
+	t, err := time.Parse(time.RFC3339Nano, u.ExpiresAt)
+	return err != nil || !now.Before(t) // unreadable: expired; an admin renews
+}
+
+// NewUser creates a local user.
+type NewUser struct {
+	Username   string `json:"username"`
+	Role       string `json:"role"`
+	Password   string `json:"password"`
+	BreakGlass bool   `json:"break_glass,omitempty"`
+	ExpiresAt  string `json:"expires_at,omitempty"` // auditors: default and at most 30 days from now
+}
+
+// checkExpiry checks an auditor's expiry: in the future, at most AuditorMaxAge ahead. "" is the longest allowed.
+func (d *DB) checkExpiry(role, at string) (string, error) {
+	if role != RoleAuditor {
+		if at != "" {
+			return "", fmt.Errorf("%w: only an auditor's account has an expiry", ErrInvalid)
+		}
+		return "", nil
+	}
+	now := d.now().UTC()
+	if at == "" {
+		return now.Add(AuditorMaxAge).Format(time.RFC3339Nano), nil
+	}
+	t, err := time.Parse(time.RFC3339, at)
+	if err != nil {
+		return "", fmt.Errorf("%w: expires_at %q: want RFC 3339", ErrInvalid, at)
+	}
+	if !t.After(now) || t.Sub(now) > AuditorMaxAge+time.Minute {
+		return "", fmt.Errorf("%w: an auditor's account expires within 30 days from now (expires_at %s)", ErrInvalid, at)
+	}
+	return t.UTC().Format(time.RFC3339Nano), nil
+}
+
+// passwordRules checks a new password against ADR-008 §6, its history included when the user exists.
+func (d *DB) passwordRules(ctx context.Context, q querier, userID int64, username, password string) error {
+	rules, err := auth.CheckPassword(password, username, d.instance)
+	if err != nil {
+		return err
+	}
+	if err := auth.Broken(rules); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalid, err)
+	}
+	if userID == 0 {
+		return nil
+	}
+	rows, err := q.QueryContext(ctx, `SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY id DESC LIMIT ?`, userID, auth.PasswordHistory)
+	if err != nil {
+		return err
+	}
+	var hashes []string
+	for rows.Next() {
+		var h string
+		if err := rows.Scan(&h); err != nil {
+			rows.Close()
+			return err
+		}
+		hashes = append(hashes, h)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, h := range hashes {
+		if ok, err := CheckPassword(h, password); err != nil {
+			return err
+		} else if ok {
+			return fmt.Errorf("%w: %v: not one of your last %d passwords", ErrInvalid, auth.ErrWeakPassword, auth.PasswordHistory)
+		}
 	}
 	return nil
 }
 
-// User is a local user.
-type User struct {
-	ID                int64  `json:"id"`
-	Username          string `json:"username"`
-	Role              string `json:"role"`
-	Disabled          bool   `json:"disabled"`
-	CreatedAt         string `json:"created_at"`
-	UpdatedAt         string `json:"updated_at"`
-	PasswordChangedAt string `json:"password_changed_at"`
-	LastLoginAt       string `json:"last_login_at"`
-	FailedLogins      int    `json:"failed_logins"` // wrong passwords in a row since the last good one
-	LockedUntil       string `json:"locked_until"`  // the end of the current or last lockout ("" = never locked, or unlocked)
-	hash              string
-}
-
-const userCols = `id, username, role, password_hash, disabled, created_at, updated_at, password_changed_at, last_login_at, failed_logins, locked_until`
-
-func scanUser(s interface{ Scan(...any) error }) (User, error) {
-	var u User
-	var dis int
-	err := s.Scan(&u.ID, &u.Username, &u.Role, &u.hash, &dis, &u.CreatedAt, &u.UpdatedAt, &u.PasswordChangedAt, &u.LastLoginAt, &u.FailedLogins, &u.LockedUntil)
-	if errors.Is(err, sql.ErrNoRows) {
-		return u, ErrNotFound
-	}
-	u.Disabled = dis == 1
-	return u, err
-}
-
-// CreateUser adds an enabled user.
-func (d *DB) CreateUser(ctx context.Context, actor, username, role, password string) (User, error) {
-	if !usernameRe.MatchString(username) {
+// CreateUser adds an enabled local user, with no second factor yet: it enrols one at its first sign-in (ADR-008 §3).
+func (d *DB) CreateUser(ctx context.Context, actor string, in NewUser) (User, error) {
+	if !usernameRe.MatchString(in.Username) {
 		return User{}, fmt.Errorf("%w: a username is 2-64 of a-z 0-9 . _ - and starts with a letter", ErrInvalid)
 	}
-	if !ValidRole(role) {
-		return User{}, fmt.Errorf("%w: role %q (admin, operator or auditor)", ErrInvalid, role)
+	if !ValidRole(in.Role) {
+		return User{}, fmt.Errorf("%w: role %q (admin, operator or auditor)", ErrInvalid, in.Role)
 	}
-	if err := checkPasswordPolicy(password); err != nil {
+	if in.BreakGlass && in.Role != RoleAdmin {
+		return User{}, fmt.Errorf("%w: only an admin can be break-glass", ErrInvalid)
+	}
+	exp, err := d.checkExpiry(in.Role, in.ExpiresAt)
+	if err != nil {
 		return User{}, err
 	}
-	h, err := HashPassword(password)
+	if err := d.passwordRules(ctx, d.db, 0, in.Username, in.Password); err != nil {
+		return User{}, err
+	}
+	h, err := HashPassword(in.Password)
 	if err != nil {
 		return User{}, err
 	}
 	var id int64
 	err = d.tx(ctx, func(tx *sql.Tx) error {
 		now := d.ts()
-		r, err := tx.ExecContext(ctx, `INSERT INTO users (username, role, password_hash, created_at, updated_at, password_changed_at)
-			VALUES (?, ?, ?, ?, ?, ?)`, username, role, h, now, now, now)
+		r, err := tx.ExecContext(ctx, `INSERT INTO users (username, role, password_hash, created_at, updated_at, password_changed_at,
+			break_glass, expires_at, blocklist_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			in.Username, in.Role, h, now, now, now, boolInt(in.BreakGlass), exp, auth.BlocklistVersion)
 		if err != nil {
 			return err
 		}
 		if id, err = r.LastInsertId(); err != nil {
 			return err
 		}
-		return d.recordState(ctx, tx, "user", id, "", "enabled", "created with role "+role, actor)
+		if _, err := tx.ExecContext(ctx, `INSERT INTO password_history (user_id, password_hash, set_at) VALUES (?, ?, ?)`, id, h, now); err != nil {
+			return err
+		}
+		what := "created with role " + in.Role
+		if in.BreakGlass {
+			what += ", break-glass"
+		}
+		if exp != "" {
+			what += ", expires " + exp
+		}
+		return d.recordState(ctx, tx, "user", id, "", "enabled", what, actor)
 	})
 	if err != nil {
 		return User{}, err
@@ -156,59 +298,89 @@ func (d *DB) CreateUser(ctx context.Context, actor, username, role, password str
 
 // User returns a user by ID.
 func (d *DB) User(ctx context.Context, id int64) (User, error) {
-	return scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+	u, err := scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+	if errors.Is(err, ErrNotFound) {
+		return u, fmt.Errorf("%w: user %d", ErrNotFound, id)
+	}
+	return u, err
 }
 
 // Users lists all users.
 func (d *DB) Users(ctx context.Context) ([]User, error) {
-	rows, err := d.db.QueryContext(ctx, `SELECT `+userCols+` FROM users ORDER BY id`)
-	if err != nil {
-		return nil, err
+	return rowsOf(ctx, d.db, scanUser, `SELECT `+userCols+` FROM users ORDER BY id`)
+}
+
+// UserByName returns a user by username.
+func (d *DB) UserByName(ctx context.Context, username string) (User, error) {
+	u, err := scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE username = ?`, username))
+	if errors.Is(err, ErrNotFound) {
+		return u, fmt.Errorf("%w: user %s", ErrNotFound, username)
 	}
-	defer rows.Close()
-	out := []User{}
-	for rows.Next() {
-		u, err := scanUser(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, u)
-	}
-	return out, rows.Err()
+	return u, err
 }
 
 // UserPatch changes a user; nil fields stay as they are.
 type UserPatch struct {
-	Role     *string `json:"role,omitempty"`
-	Disabled *bool   `json:"disabled,omitempty"`
-	Password *string `json:"password,omitempty"`
+	Role       *string `json:"role,omitempty"`
+	Disabled   *bool   `json:"disabled,omitempty"`
+	Password   *string `json:"password,omitempty"` // an admin's reset: the user must choose a new one at the next sign-in
+	BreakGlass *bool   `json:"break_glass,omitempty"`
+	ExpiresAt  *string `json:"expires_at,omitempty"` // renews an auditor ("" = 30 days from now)
 }
 
-// UpdateUser applies p. The last enabled admin cannot be disabled or demoted. Disabling a user or changing their
-// password ends their sessions.
+// enabledBreakGlassAdmins counts the enabled admins who may sign in locally while OIDC is on.
+func enabledBreakGlassAdmins(ctx context.Context, tx *sql.Tx) (int, error) {
+	var n int
+	err := tx.QueryRowContext(ctx, `SELECT count(*) FROM users WHERE role = 'admin' AND disabled = 0 AND break_glass = 1 AND source = 'local'`).Scan(&n)
+	return n, err
+}
+
+// UpdateUser applies an admin's change p. The last enabled admin, and the last enabled break-glass admin, cannot be
+// disabled, demoted or (break-glass) unmarked (ADR-008 §1). A role change, disabling and a password reset end every
+// session of the user (§5); a password reset also makes the user choose a new password at the next sign-in (§6).
 func (d *DB) UpdateUser(ctx context.Context, actor string, id int64, p UserPatch) (User, error) {
 	var hash string
 	if p.Role != nil && !ValidRole(*p.Role) {
 		return User{}, fmt.Errorf("%w: role %q (admin, operator or auditor)", ErrInvalid, *p.Role)
 	}
+	cur, err := d.User(ctx, id)
+	if err != nil {
+		return User{}, err
+	}
 	if p.Password != nil {
-		if err := checkPasswordPolicy(*p.Password); err != nil {
+		if cur.Source != SourceLocal {
+			return User{}, fmt.Errorf("%w: %s signs in at the identity provider and has no password here", ErrInvalid, cur.Username)
+		}
+		if err := d.passwordRules(ctx, d.db, id, cur.Username, *p.Password); err != nil {
 			return User{}, err
 		}
-		var err error
 		if hash, err = HashPassword(*p.Password); err != nil {
 			return User{}, err
 		}
 	}
-	err := d.tx(ctx, func(tx *sql.Tx) error {
-		u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+	err = d.tx(ctx, func(tx *sql.Tx) error {
+		u, err := d.userTx(ctx, tx, id)
 		if err != nil {
 			return err
 		}
 		now := d.ts()
-		demote := p.Role != nil && *p.Role != RoleAdmin && u.Role == RoleAdmin
-		disable := p.Disabled != nil && *p.Disabled && !u.Disabled
-		if (demote || disable) && u.Role == RoleAdmin && !u.Disabled {
+		role := u.Role
+		if p.Role != nil {
+			role = *p.Role
+		}
+		bg := u.BreakGlass && role == RoleAdmin // a demoted admin is no longer break-glass
+		if p.BreakGlass != nil {
+			bg = *p.BreakGlass
+		}
+		if bg && (role != RoleAdmin || u.Source != SourceLocal) {
+			return fmt.Errorf("%w: only a local admin can be break-glass", ErrInvalid)
+		}
+		disabled := u.Disabled || (p.Disabled != nil && *p.Disabled)
+		if p.Disabled != nil && !*p.Disabled {
+			disabled = false
+		}
+		wasAdmin := u.Role == RoleAdmin && !u.Disabled
+		if wasAdmin && (role != RoleAdmin || disabled) {
 			var admins int
 			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM users WHERE role = 'admin' AND disabled = 0`).Scan(&admins); err != nil {
 				return err
@@ -217,36 +389,77 @@ func (d *DB) UpdateUser(ctx context.Context, actor string, id int64, p UserPatch
 				return fmt.Errorf("%w: %s is the last enabled admin", ErrConflict, u.Username)
 			}
 		}
-		if p.Role != nil && *p.Role != u.Role {
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET role = ?, updated_at = ? WHERE id = ?`, *p.Role, now, id); err != nil {
+		if wasAdmin && u.BreakGlass && u.Source == SourceLocal && (role != RoleAdmin || disabled || !bg) {
+			n, err := enabledBreakGlassAdmins(ctx, tx)
+			if err != nil {
 				return err
 			}
-			if err := d.recordState(ctx, tx, "user_role", id, u.Role, *p.Role, "role changed", actor); err != nil {
+			if n <= 1 {
+				return fmt.Errorf("%w: %s is the last break-glass admin: Gaia must stay reachable when the identity provider is down", ErrConflict, u.Username)
+			}
+		}
+		ends := ""
+		if role != u.Role {
+			exp, err := d.checkExpiry(role, "")
+			if err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET role = ?, expires_at = ?, updated_at = ? WHERE id = ?`, role, exp, now, id); err != nil {
+				return err
+			}
+			if err := d.recordState(ctx, tx, "user_role", id, u.Role, role, "role changed", actor); err != nil {
+				return err
+			}
+			ends = EndRoleChange
+		}
+		if p.ExpiresAt != nil {
+			if role != RoleAuditor {
+				return fmt.Errorf("%w: only an auditor's account has an expiry", ErrInvalid)
+			}
+			exp, err := d.checkExpiry(role, *p.ExpiresAt)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET expires_at = ?, updated_at = ? WHERE id = ?`, exp, now, id); err != nil {
+				return err
+			}
+			if err := d.recordState(ctx, tx, "user_expiry", id, u.ExpiresAt, exp, "renewed by "+actor, actor); err != nil {
 				return err
 			}
 		}
-		if p.Disabled != nil && *p.Disabled != u.Disabled {
+		if bg != u.BreakGlass {
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET break_glass = ?, updated_at = ? WHERE id = ?`, boolInt(bg), now, id); err != nil {
+				return err
+			}
+			if err := d.recordState(ctx, tx, "user_break_glass", id, fmt.Sprint(u.BreakGlass), fmt.Sprint(bg), "changed by "+actor, actor); err != nil {
+				return err
+			}
+		}
+		if disabled != u.Disabled {
 			from, to := "enabled", "disabled"
-			if !*p.Disabled {
+			if !disabled {
 				from, to = to, from
 			}
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET disabled = ?, updated_at = ? WHERE id = ?`, boolInt(*p.Disabled), now, id); err != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET disabled = ?, updated_at = ? WHERE id = ?`, boolInt(disabled), now, id); err != nil {
 				return err
 			}
 			if err := d.recordState(ctx, tx, "user", id, from, to, "changed by "+actor, actor); err != nil {
 				return err
 			}
+			if disabled {
+				ends = EndDisabled
+			}
 		}
 		if p.Password != nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET password_hash = ?, password_changed_at = ?, updated_at = ? WHERE id = ?`,
-				hash, now, now, id); err != nil {
+			if err := d.setPasswordTx(ctx, tx, id, hash, PasswordChangeAdminReset, actor); err != nil {
 				return err
+			}
+			if ends == "" {
+				ends = EndPasswordChange
 			}
 		}
-		if disable || p.Password != nil {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, id); err != nil {
-				return err
-			}
+		if ends != "" {
+			return d.endSessionsTx(ctx, tx, `user_id = ?`, []any{id}, ends, actor)
 		}
 		return nil
 	})
@@ -255,6 +468,78 @@ func (d *DB) UpdateUser(ctx context.Context, actor string, id int64, p UserPatch
 	}
 	return d.User(ctx, id)
 }
+
+// setPasswordTx stores a new password hash and keeps it in the history (a state change "user_password"). change is
+// why the user must set another one before anything else ("" = it need not).
+func (d *DB) setPasswordTx(ctx context.Context, tx *sql.Tx, id int64, hash, change, actor string) error {
+	now := d.ts()
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET password_hash = ?, password_changed_at = ?, password_change = ?, blocklist_version = ?,
+		updated_at = ? WHERE id = ?`, hash, now, change, auth.BlocklistVersion, now, id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO password_history (user_id, password_hash, set_at) VALUES (?, ?, ?)`, id, hash, now); err != nil {
+		return err
+	}
+	// Only the last PasswordHistory are compared; older hashes are not kept.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM password_history WHERE user_id = ? AND id NOT IN
+		(SELECT id FROM password_history WHERE user_id = ? ORDER BY id DESC LIMIT ?)`, id, id, auth.PasswordHistory); err != nil {
+		return err
+	}
+	to := "set"
+	if change != "" {
+		to = "set, must change: " + change
+	}
+	return d.recordState(ctx, tx, "user_password", id, "", to, "password set by "+actor, actor)
+}
+
+// ChangeOwnPassword sets a user's new password, chosen by the user (after checking the current one, or at sign-in
+// when the password expired or must change). It ends the user's other sessions (keep is the one to keep, 0 = none).
+func (d *DB) ChangeOwnPassword(ctx context.Context, id int64, password string, keep int64) (User, error) {
+	u, err := d.User(ctx, id)
+	if err != nil {
+		return User{}, err
+	}
+	if u.Source != SourceLocal {
+		return User{}, fmt.Errorf("%w: %s signs in at the identity provider and has no password here", ErrInvalid, u.Username)
+	}
+	if err := d.passwordRules(ctx, d.db, id, u.Username, password); err != nil {
+		return User{}, err
+	}
+	h, err := HashPassword(password)
+	if err != nil {
+		return User{}, err
+	}
+	err = d.tx(ctx, func(tx *sql.Tx) error {
+		if err := d.setPasswordTx(ctx, tx, id, h, "", u.Username); err != nil {
+			return err
+		}
+		return d.endSessionsTx(ctx, tx, `user_id = ? AND id != ?`, []any{id, keep}, EndPasswordChange, u.Username)
+	})
+	if err != nil {
+		return User{}, err
+	}
+	return d.User(ctx, id)
+}
+
+// MustChangePassword marks that a user must set a new password before anything else (the password was found on a
+// newer blocklist at sign-in).
+func (d *DB) MustChangePassword(ctx context.Context, id int64, why string) error {
+	return d.tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET password_change = ?, updated_at = ? WHERE id = ?`, why, d.ts(), id); err != nil {
+			return err
+		}
+		return d.recordState(ctx, tx, "user_password", id, "set", "must change: "+why, "the password is on the blocklist "+auth.BlocklistVersion, "system")
+	})
+}
+
+// NoteBlocklistChecked records that a user's password was checked against the current blocklist and is not on it.
+func (d *DB) NoteBlocklistChecked(ctx context.Context, id int64) error {
+	_, err := d.db.ExecContext(ctx, `UPDATE users SET blocklist_version = ? WHERE id = ?`, auth.BlocklistVersion, id)
+	return err
+}
+
+// BlocklistChecked reports whether the user's password was checked against the embedded blocklist.
+func (u User) BlocklistChecked() bool { return u.blocklistVersion == auth.BlocklistVersion }
 
 func boolInt(b bool) int {
 	if b {
@@ -266,10 +551,11 @@ func boolInt(b bool) int {
 // ErrBadLogin is the only error a failed login reveals.
 var ErrBadLogin = errors.New("wrong username or password, or the user is disabled")
 
-// Authenticate checks a username and password. A missing user costs the same time as a wrong password.
+// Authenticate checks a username and password. A missing user, or one that signs in at the IdP, costs the same time
+// as a wrong password and gives the same answer.
 func (d *DB) Authenticate(ctx context.Context, username, password string) (User, error) {
 	u, err := scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE username = ?`, username))
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, ErrNotFound) || (err == nil && u.Source != SourceLocal) {
 		if _, err := CheckPassword(dummyHash, password); err != nil {
 			return User{}, err
 		}
@@ -288,97 +574,7 @@ func (d *DB) Authenticate(ctx context.Context, username, password string) (User,
 	return u, nil
 }
 
-// Session is a login.
-type Session struct {
-	ID         int64  `json:"id"`
-	UserID     int64  `json:"user_id"`
-	CreatedAt  string `json:"created_at"`
-	ExpiresAt  string `json:"expires_at"`
-	LastUsedAt string `json:"last_used_at"`
-}
-
-func tokenHash(token string) string {
-	h := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(h[:])
-}
-
-// CreateSession starts a session for u and returns its bearer token (shown once, stored only as a hash).
-func (d *DB) CreateSession(ctx context.Context, u User, remote string, ttl time.Duration) (string, Session, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", Session{}, err
-	}
-	token := "gaia_" + base64.RawURLEncoding.EncodeToString(b)
-	now := d.now().UTC()
-	s := Session{UserID: u.ID, CreatedAt: now.Format(time.RFC3339Nano), ExpiresAt: now.Add(ttl).Format(time.RFC3339Nano),
-		LastUsedAt: now.Format(time.RFC3339Nano)}
-	err := d.tx(ctx, func(tx *sql.Tx) error {
-		r, err := tx.ExecContext(ctx, `INSERT INTO sessions (token_sha256, user_id, created_at, expires_at, last_used_at, remote_addr)
-			VALUES (?, ?, ?, ?, ?, ?)`, tokenHash(token), u.ID, s.CreatedAt, s.ExpiresAt, s.LastUsedAt, remote)
-		if err != nil {
-			return err
-		}
-		if s.ID, err = r.LastInsertId(); err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, `UPDATE users SET last_login_at = ? WHERE id = ?`, s.CreatedAt, u.ID)
-		return err
-	})
-	return token, s, err
-}
-
-// ErrNoSession means the token is unknown, expired, or its user is disabled.
-var ErrNoSession = errors.New("no valid session")
-
-// SessionUser returns the user of a live session and records its use.
-func (d *DB) SessionUser(ctx context.Context, token string) (User, Session, error) {
-	var s Session
-	row := d.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, expires_at, last_used_at FROM sessions WHERE token_sha256 = ?`, tokenHash(token))
-	if err := row.Scan(&s.ID, &s.UserID, &s.CreatedAt, &s.ExpiresAt, &s.LastUsedAt); errors.Is(err, sql.ErrNoRows) {
-		return User{}, s, ErrNoSession
-	} else if err != nil {
-		return User{}, s, err
-	}
-	exp, err := time.Parse(time.RFC3339Nano, s.ExpiresAt)
-	if err != nil {
-		return User{}, s, err
-	}
-	if !d.now().Before(exp) {
-		if _, err := d.db.ExecContext(ctx, `DELETE FROM sessions WHERE id = ?`, s.ID); err != nil {
-			return User{}, s, err
-		}
-		return User{}, s, ErrNoSession
-	}
-	u, err := d.User(ctx, s.UserID)
-	if err != nil {
-		return User{}, s, err
-	}
-	if u.Disabled {
-		return User{}, s, ErrNoSession
-	}
-	s.LastUsedAt = d.ts()
-	if _, err := d.db.ExecContext(ctx, `UPDATE sessions SET last_used_at = ? WHERE id = ?`, s.LastUsedAt, s.ID); err != nil {
-		return User{}, s, err
-	}
-	return u, s, nil
-}
-
-// DeleteSession ends a session (logout).
-func (d *DB) DeleteSession(ctx context.Context, id int64) error {
-	_, err := d.db.ExecContext(ctx, `DELETE FROM sessions WHERE id = ?`, id)
-	return err
-}
-
-// UserByName returns a user by username.
-func (d *DB) UserByName(ctx context.Context, username string) (User, error) {
-	u, err := scanUser(d.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE username = ?`, username))
-	if errors.Is(err, ErrNotFound) {
-		return u, fmt.Errorf("%w: user %s", ErrNotFound, username)
-	}
-	return u, err
-}
-
-// Locked reports whether a user is locked out at now, and until when.
+// Locked reports whether a user is paused after failed sign-ins at now, and until when.
 func (u User) Locked(now time.Time) (bool, time.Time) {
 	if u.LockedUntil == "" {
 		return false, time.Time{}
@@ -390,56 +586,65 @@ func (u User) Locked(now time.Time) (bool, time.Time) {
 	return now.Before(t), t
 }
 
-// LoginFailed counts a wrong password for a user. Every maxFailures-th failure in a row locks the user out for lockout
-// (a state change "user_lockout"); the user and whether this failure locked it are returned.
-func (d *DB) LoginFailed(ctx context.Context, id int64, maxFailures int, lockout time.Duration) (User, bool, error) {
-	locked := false
+// UpsertOIDCUser finds or creates the user of an IdP subject (issuer + " " + sub) and gives it role, the one its groups
+// map to (ADR-008 §2). A new user is named after the IdP's preferred_username when that name is free and valid. A role
+// change ends the user's sessions (§2, §5). An auditor gets an expiry when it becomes one (§8).
+func (d *DB) UpsertOIDCUser(ctx context.Context, subject, name, role string) (User, error) {
+	if !ValidRole(role) {
+		return User{}, fmt.Errorf("%w: role %q", ErrInvalid, role)
+	}
+	var id int64
 	err := d.tx(ctx, func(tx *sql.Tx) error {
-		u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
+		err := tx.QueryRowContext(ctx, `SELECT id FROM users WHERE oidc_subject = ?`, subject).Scan(&id)
+		now := d.ts()
+		if errors.Is(err, sql.ErrNoRows) {
+			uname := strings.ToLower(name)
+			var taken int
+			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM users WHERE username = ?`, uname).Scan(&taken); err != nil {
+				return err
+			}
+			if !usernameRe.MatchString(uname) || taken > 0 {
+				uname = "sso-" + auth.SHA256Hex(subject)[:12]
+			}
+			exp, err := d.checkExpiry(role, "")
+			if err != nil {
+				return err
+			}
+			r, err := tx.ExecContext(ctx, `INSERT INTO users (username, role, source, oidc_subject, password_hash, created_at, updated_at,
+				password_changed_at, expires_at) VALUES (?, ?, 'oidc', ?, '', ?, ?, '', ?)`, uname, role, subject, now, now, exp)
+			if err != nil {
+				return err
+			}
+			if id, err = r.LastInsertId(); err != nil {
+				return err
+			}
+			return d.recordState(ctx, tx, "user", id, "", "enabled", "first sign-in at the identity provider, role "+role, "oidc")
+		}
 		if err != nil {
 			return err
 		}
-		n := u.FailedLogins + 1
-		until := u.LockedUntil
-		if maxFailures > 0 && n%maxFailures == 0 {
-			locked, until = true, d.now().UTC().Add(lockout).Format(time.RFC3339Nano)
-		}
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET failed_logins = ?, locked_until = ? WHERE id = ?`, n, until, id); err != nil {
+		u, err := d.userTx(ctx, tx, id)
+		if err != nil {
 			return err
 		}
-		if !locked {
+		if u.Role == role {
 			return nil
 		}
-		return d.recordState(ctx, tx, "user_lockout", id, "unlocked", "locked until "+until, fmt.Sprintf("%d wrong passwords in a row", n), "system")
-	})
-	if err != nil {
-		return User{}, false, err
-	}
-	u, err := d.User(ctx, id)
-	return u, locked, err
-}
-
-// LoginSucceeded resets a user's count of wrong passwords after a good one.
-func (d *DB) LoginSucceeded(ctx context.Context, id int64) error {
-	_, err := d.db.ExecContext(ctx, `UPDATE users SET failed_logins = 0, locked_until = '' WHERE id = ?`, id)
-	return err
-}
-
-// UnlockUser ends a user's lockout and resets the count of wrong passwords.
-func (d *DB) UnlockUser(ctx context.Context, actor string, id int64) (User, error) {
-	err := d.tx(ctx, func(tx *sql.Tx) error {
-		u, err := scanUser(tx.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
-		if err != nil {
-			return notFound("user", id, err)
+		exp := u.ExpiresAt
+		if role != RoleAuditor {
+			exp = ""
+		} else if u.Role != RoleAuditor {
+			if exp, err = d.checkExpiry(role, ""); err != nil {
+				return err
+			}
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET failed_logins = 0, locked_until = '' WHERE id = ?`, id); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET role = ?, expires_at = ?, updated_at = ? WHERE id = ?`, role, exp, now, id); err != nil {
 			return err
 		}
-		from := "unlocked"
-		if locked, until := u.Locked(d.now()); locked {
-			from = "locked until " + until.UTC().Format(time.RFC3339Nano)
+		if err := d.recordState(ctx, tx, "user_role", id, u.Role, role, "the identity provider's groups map to another role", "oidc"); err != nil {
+			return err
 		}
-		return d.recordState(ctx, tx, "user_lockout", id, from, "unlocked", fmt.Sprintf("unlocked by %s after %d wrong passwords in a row", actor, u.FailedLogins), actor)
+		return d.endSessionsTx(ctx, tx, `user_id = ?`, []any{id}, EndRoleChange, "oidc")
 	})
 	if err != nil {
 		return User{}, err

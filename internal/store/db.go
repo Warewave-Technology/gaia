@@ -37,8 +37,9 @@ var (
 
 // DB is Gaia's state database.
 type DB struct {
-	db  *sql.DB
-	now func() time.Time
+	db       *sql.DB
+	now      func() time.Time
+	instance string // the installation's name, which a password may not contain (SetInstance)
 }
 
 // Open opens (creating) the database at path. It does not migrate: call Migrate.

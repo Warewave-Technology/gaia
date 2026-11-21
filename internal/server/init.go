@@ -30,6 +30,7 @@ type InitOptions struct {
 	ConfigPath    string   // e.g. /etc/gaia/server.json; must not exist
 	DataDir       string   // e.g. /var/lib/gaia; must not hold a database
 	Listen        string   // default :8443
+	PublicURL     string   // https://NAME[:PORT] browsers use (WebAuthn needs a name, not an address); default from the host name
 	Hostnames     []string // names and addresses clients use; the host name, localhost and loopback are added
 	AdminUser     string
 	AdminPassword string
@@ -50,7 +51,7 @@ type InitResult struct {
 // Init creates the data directory, the TLS certificate, the evidence signing key, the database and the first
 // admin, then writes the config. It refuses to touch an existing installation.
 func Init(ctx context.Context, o InitOptions) (InitResult, error) {
-	cfg := Config{Listen: o.Listen, DataDir: filepath.Clean(o.DataDir)}
+	cfg := Config{Listen: o.Listen, DataDir: filepath.Clean(o.DataDir), PublicURL: o.PublicURL}
 	if err := cfg.resolve(); err != nil {
 		return InitResult{}, err
 	}
@@ -72,7 +73,7 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 			return InitResult{}, err
 		}
 	}
-	names := certNames(o.Hostnames)
+	names := certNames(append(o.Hostnames, cfg.rpID())) // the public URL's name is in the certificate
 	fp, err := generateCert(cfg.TLSCert, cfg.TLSKey, names)
 	if err != nil {
 		return InitResult{}, fmt.Errorf("TLS certificate: %w", err)
@@ -92,7 +93,11 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 	if _, err := db.Migrate(ctx, 0); err != nil {
 		return InitResult{}, err
 	}
-	if _, err := db.CreateUser(ctx, "gaia server init", o.AdminUser, store.RoleAdmin, o.AdminPassword); err != nil {
+	db.SetInstance(instanceName())
+	// The first admin is break-glass: the way in when single sign-on is on and the IdP is down (ADR-008 §1). It enrols
+	// its security key at the first sign-in.
+	if _, err := db.CreateUser(ctx, "gaia server init", store.NewUser{Username: o.AdminUser, Role: store.RoleAdmin, Password: o.AdminPassword,
+		BreakGlass: true}); err != nil {
 		return InitResult{}, fmt.Errorf("admin user: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Dir(o.ConfigPath), 0o750); err != nil {

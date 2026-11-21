@@ -27,7 +27,8 @@ type Config struct {
 	CertSHA256 string `json:"cert_sha256"` // the pinned server certificate
 	Username   string `json:"username"`
 	Token      string `json:"token"`
-	ExpiresAt  string `json:"expires_at"`
+	ExpiresAt  string `json:"expires_at"` // the session's absolute limit (it also ends after the idle timeout)
+	DeviceID   string `json:"device_id"`  // this CLI's id, so a sign-in from it is not "a new device" every time (ADR-008 §5)
 }
 
 // ConfigPath is $GAIA_CLI_CONFIG, or gaia/cli.json in the user's config directory.
@@ -125,6 +126,9 @@ type Client struct {
 	base  string
 	token string
 	http  *http.Client
+	// StepUp makes a step-up for an action the server refused with step_up_required (ADR-008 §4) and returns the
+	// headers to send it again with; nil: such an action fails.
+	StepUp func(ctx context.Context, method, path string) (map[string]string, error)
 }
 
 // New returns a client that only talks to the server whose certificate has the pinned fingerprint.
@@ -151,19 +155,38 @@ type APIError struct {
 
 func (e *APIError) Error() string { return fmt.Sprintf("%d %s: %s", e.Status, e.Code, e.Message) }
 
-// Do sends a request (in: nil, raw JSON bytes, or a value to encode) and returns the response body.
+// Do sends a request (in: nil, raw JSON bytes, or a value to encode) and returns the response body. An action that
+// needs a step-up is sent again once with the headers StepUp makes.
 func (c *Client) Do(ctx context.Context, method, path string, in any) ([]byte, http.Header, error) {
-	var body io.Reader
+	var raw []byte
 	switch v := in.(type) {
 	case nil:
 	case []byte:
-		body = bytes.NewReader(v)
+		raw = v
 	default:
 		b, err := json.Marshal(v)
 		if err != nil {
 			return nil, nil, err
 		}
-		body = bytes.NewReader(b)
+		raw = b
+	}
+	b, h, err := c.do(ctx, method, path, raw, in != nil, nil)
+	var e *APIError
+	if c.StepUp != nil && errors.As(err, &e) && e.Code == "step_up_required" {
+		p, _, _ := strings.Cut(path, "?")
+		hs, serr := c.StepUp(ctx, method, p)
+		if serr != nil {
+			return b, h, serr
+		}
+		return c.do(ctx, method, path, raw, in != nil, hs)
+	}
+	return b, h, err
+}
+
+func (c *Client) do(ctx context.Context, method, path string, raw []byte, hasBody bool, headers map[string]string) ([]byte, http.Header, error) {
+	var body io.Reader
+	if hasBody {
+		body = bytes.NewReader(raw)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, body)
 	if err != nil {
@@ -174,6 +197,9 @@ func (c *Client) Do(ctx context.Context, method, path string, in any) ([]byte, h
 	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
