@@ -505,6 +505,16 @@ func matrix(name string, actors map[string]*actor, targetID int64) bool {
 				a = actors[role]
 			}
 			body := o.example
+			// Sign-in steps with wrong answers count as failed sign-ins from this address (ADR-008 §7): the matrix sends
+			// the wrong password once, anonymously, and a role's own current password where one is asked for.
+			if o.path == "/api/v1/login" && role != "" {
+				row += " · |"
+				continue
+			}
+			if o.path == "/api/v1/me/password" && role != "" {
+				b, _ := json.Marshal(map[string]string{"current_password": a.pw, "new_password": "short"})
+				body = string(b)
+			}
 			if o.method == "PUT" && o.path == "/api/v1/settings/signin" && role != "" {
 				body = currentSettings(actors["admin"]) // the settings in force: the matrix must not change them
 			}

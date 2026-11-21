@@ -37,6 +37,14 @@ wait_ready() {
 	exit 3
 }
 
+# The container runs under a unit of its own (podman start -a), so it outlives the command that made it (a gate's unit
+# ends with its processes).
+run_unit() {
+	systemctl stop "$NAME" 2>/dev/null || true
+	systemctl reset-failed "$NAME" 2>/dev/null || true
+	systemd-run --unit="$NAME" --collect -p KillMode=mixed podman start -a "$NAME" >/dev/null
+}
+
 status() {
 	local st digest
 	st=$(podman inspect -f '{{.State.Status}}' "$NAME" 2>/dev/null || echo absent)
@@ -48,17 +56,19 @@ status() {
 case "${1:-}" in
 stop)
 	podman stop -t 10 "$NAME" >/dev/null
+	systemctl stop "$NAME" 2>/dev/null || true
 	status
 	exit 0
 	;;
 start)
-	podman start "$NAME" >/dev/null
+	run_unit
 	wait_ready
 	status
 	exit 0
 	;;
 down)
 	podman rm -f "$NAME" >/dev/null 2>&1 || true
+	systemctl stop "$NAME" 2>/dev/null || true
 	rm -rf "$DIR"
 	sed -i "/ $HOSTNAME_\$/d" /etc/hosts
 	exit 0
@@ -146,13 +156,15 @@ chmod 0644 "$DIR/import/gaia-realm.json" # holds the lab users' secrets: the dir
 
 log "image $IMAGE"
 podman image exists "$IMAGE" || podman pull -q "$IMAGE" >/dev/null
+systemctl stop "$NAME" 2>/dev/null || true
 podman rm -f "$NAME" >/dev/null 2>&1 || true
 # The admin password goes in an env file (0600), not on a command line that ps shows.
 (umask 077 && jq -r '"KC_BOOTSTRAP_ADMIN_USERNAME=admin\nKC_BOOTSTRAP_ADMIN_PASSWORD=" + .admin_password' "$DIR/secrets.json" >"$DIR/kc.env")
-podman run -d --name "$NAME" --network host --memory 1200m --env-file "$DIR/kc.env" \
+podman create --name "$NAME" --network host --memory 1200m --env-file "$DIR/kc.env" \
 	-v "$DIR/certs:/opt/keycloak/conf/certs:ro,Z" -v "$DIR/import:/opt/keycloak/data/import:ro,Z" -e JAVA_OPTS_KC_HEAP="-Xms256m -Xmx768m" \
 	"$IMAGE" start-dev --import-realm --http-enabled=false --https-port="$PORT" --hostname="https://$HOSTNAME_:$PORT" \
 	--https-certificate-file=/opt/keycloak/conf/certs/kc.crt --https-certificate-key-file=/opt/keycloak/conf/certs/kc.key >/dev/null
+run_unit
 log "waiting for Keycloak"
 wait_ready
 status

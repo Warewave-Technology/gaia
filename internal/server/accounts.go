@@ -54,6 +54,9 @@ func (s *Server) changePassword(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	ctx := c.r.Context()
+	if c.user.Source != store.SourceLocal {
+		return 0, nil, fmt.Errorf("%w: you sign in at the identity provider: change the password there", store.ErrInvalid)
+	}
 	if _, err := s.db.Authenticate(ctx, c.user.Username, in.CurrentPassword); errors.Is(err, store.ErrBadLogin) {
 		if err := s.signinFailed(c, c.user.Username, "wrong current password"); err != nil {
 			return 0, nil, err
