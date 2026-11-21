@@ -14,14 +14,9 @@ package main
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -42,6 +37,7 @@ import (
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/auth"
+	"github.com/Warewave-Technology/gaia/lab/tools/webauthnsoft"
 )
 
 var (
@@ -151,110 +147,16 @@ func code(data []byte) string {
 	return e.Code
 }
 
-// --- a WebAuthn security key in software (as internal/server/softkey_test.go) ---
-
-type softKey struct {
-	key   *ecdsa.PrivateKey
-	id    []byte
-	count uint32
-}
-
-func newSoftKey() *softKey {
-	k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	id := make([]byte, 32)
-	rand.Read(id)
-	return &softKey{key: k, id: id}
-}
-
 var b64 = base64.RawURLEncoding
 
-func cborHead(major byte, n uint64) []byte {
-	switch {
-	case n < 24:
-		return []byte{major<<5 | byte(n)}
-	case n < 256:
-		return []byte{major<<5 | 24, byte(n)}
-	}
-	b := []byte{major<<5 | 25, 0, 0}
-	binary.BigEndian.PutUint16(b[1:], uint16(n))
-	return b
-}
-func cborInt(v int) []byte {
-	if v >= 0 {
-		return cborHead(0, uint64(v))
-	}
-	return cborHead(1, uint64(-1-v))
-}
-func cborBytes(b []byte) []byte { return append(cborHead(2, uint64(len(b))), b...) }
-func cborText(s string) []byte  { return append(cborHead(3, uint64(len(s))), s...) }
-
-func (k *softKey) authData(attested bool) []byte {
-	u, _ := url.Parse(*api)
-	h := sha256.Sum256([]byte(u.Hostname()))
-	flags := byte(0x05)
-	if attested {
-		flags |= 0x40
-	}
-	k.count++
-	out := append(h[:], flags, 0, 0, 0, 0)
-	binary.BigEndian.PutUint32(out[33:], k.count)
-	if attested {
-		x, y := make([]byte, 32), make([]byte, 32)
-		k.key.PublicKey.X.FillBytes(x)
-		k.key.PublicKey.Y.FillBytes(y)
-		cose := cborHead(5, 5)
-		for _, kv := range [][2][]byte{{cborInt(1), cborInt(2)}, {cborInt(3), cborInt(-7)}, {cborInt(-1), cborInt(1)}, {cborInt(-2), cborBytes(x)}, {cborInt(-3), cborBytes(y)}} {
-			cose = append(append(cose, kv[0]...), kv[1]...)
-		}
-		out = append(out, make([]byte, 16)...)
-		out = binary.BigEndian.AppendUint16(out, uint16(len(k.id)))
-		out = append(append(out, k.id...), cose...)
-	}
-	return out
-}
-
-func challengeOf(opts json.RawMessage) string {
-	var o struct {
-		PublicKey struct{ Challenge string } `json:"publicKey"`
-	}
-	json.Unmarshal(opts, &o)
-	return o.PublicKey.Challenge
-}
-
-func (k *softKey) clientData(typ string, opts json.RawMessage) []byte {
-	return []byte(fmt.Sprintf(`{"type":%q,"challenge":%q,"origin":%q,"crossOrigin":false}`, typ, challengeOf(opts), *api))
-}
-
-func (k *softKey) create(opts json.RawMessage) json.RawMessage {
-	cd := k.clientData("webauthn.create", opts)
-	att := cborHead(5, 3)
-	att = append(append(att, cborText("fmt")...), cborText("none")...)
-	att = append(append(att, cborText("attStmt")...), cborHead(5, 0)...)
-	att = append(append(att, cborText("authData")...), cborBytes(k.authData(true))...)
-	b, _ := json.Marshal(map[string]any{"id": b64.EncodeToString(k.id), "rawId": b64.EncodeToString(k.id), "type": "public-key",
-		"response":               map[string]any{"clientDataJSON": b64.EncodeToString(cd), "attestationObject": b64.EncodeToString(att), "transports": []string{"usb"}},
-		"clientExtensionResults": map[string]any{}})
-	return b
-}
-
-func (k *softKey) get(opts json.RawMessage) json.RawMessage {
-	cd := k.clientData("webauthn.get", opts)
-	ad := k.authData(false)
-	h := sha256.Sum256(cd)
-	d := sha256.Sum256(append(append([]byte{}, ad...), h[:]...))
-	sig, _ := ecdsa.SignASN1(rand.Reader, k.key, d[:])
-	b, _ := json.Marshal(map[string]any{"id": b64.EncodeToString(k.id), "rawId": b64.EncodeToString(k.id), "type": "public-key",
-		"response":               map[string]any{"clientDataJSON": b64.EncodeToString(cd), "authenticatorData": b64.EncodeToString(ad), "signature": b64.EncodeToString(sig)},
-		"clientExtensionResults": map[string]any{}})
-	return b
-}
+func newSoftKey() *webauthnsoft.Key { return webauthnsoft.New(*api) }
 
 // --- actors: the users of the gate ---
 
 type actor struct {
 	name, role, kind string // kind: local or oidc
 	pw               string
-	key              *softKey
+	key              *webauthnsoft.Key
 	totp             []byte
 	b                *browser
 }
@@ -296,7 +198,7 @@ func (a *actor) signIn() error {
 			}
 			fin := map[string]any{"signin_token": st.SigninToken, "kind": kind, "name": "t26gate"}
 			if kind == "webauthn" {
-				fin["webauthn"] = a.key.create(ch.WebAuthn)
+				fin["webauthn"] = a.key.Create(ch.WebAuthn)
 			} else {
 				a.totp, _ = auth.ParseTOTPSecret(ch.TOTPSecret)
 				fin["code"] = auth.TOTPCode(a.totp, auth.TOTPStepAt(time.Now()))
@@ -307,7 +209,7 @@ func (a *actor) signIn() error {
 		case "second_factor":
 			ans := map[string]any{"signin_token": st.SigninToken}
 			if a.key != nil {
-				ans["method"], ans["webauthn"] = "webauthn", a.key.get(st.WebAuthn)
+				ans["method"], ans["webauthn"] = "webauthn", a.key.Get(st.WebAuthn)
 			} else {
 				ans["method"], ans["code"] = "totp", auth.TOTPCode(a.totp, auth.TOTPStepAt(time.Now()))
 			}
@@ -439,7 +341,7 @@ func (a *actor) stepUp(method, path string) (map[string]string, error) {
 		return nil, fmt.Errorf("step-up: %d %s", c, data)
 	}
 	if a.kind == "local" {
-		proof, _ := json.Marshal(map[string]any{"method": "webauthn", "webauthn": a.key.get(ch.WebAuthn)})
+		proof, _ := json.Marshal(map[string]any{"method": "webauthn", "webauthn": a.key.Get(ch.WebAuthn)})
 		return map[string]string{"X-Gaia-Step-Up": ch.ID, "X-Gaia-Step-Up-Proof": b64.EncodeToString(proof)}, nil
 	}
 	cb, err := a.kcLogin(ch.Redirect)

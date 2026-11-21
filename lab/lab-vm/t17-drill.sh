@@ -266,12 +266,24 @@ all_state_changes() {
 	jq -s . "$dir/all.jsonl"
 	rm -rf "$dir"
 }
-# relogin IP: a CLI session lasts 12 hours; the M2 upgrades come days apart. Logs the workstation in again (the
-# password file goes to the CLI) against the certificate fingerprint B was restored with.
+# relogin IP: a CLI session ends (12 hours before 0.2.0; 15 minutes idle or 8 hours since, ADR-008); the upgrades
+# come days apart. Logs the workstation in again against the certificate fingerprint B was restored with. From schema
+# 11 the admin's second factor is a security key, which a terminal cannot use: lab/tools/softkey signs in with a key
+# in software (enrolled at the first sign-in after the upgrade, kept in $D/secrets/admin-key.json) and makes the
+# step-ups of the drill's own calls (the evidence export).
+SOFTKEY_KEY=$D/secrets/admin-key.json
+CLI_CONFIG=$WS/.config/gaia/cli.json
+signin_steps() { curl -fsk -o /dev/null "https://$1:8443/api/v1/signin-options"; } # answers from schema 11
 relogin() {
 	ws whoami >/dev/null 2>&1 && return
-	ws login -server "https://$1:8443" -user admin -fingerprint "$(jq -r '.result.tls_certificate_sha256' "$D/out/b-restore-state.json")" \
-		-password-file "$D/secrets/admin.pw"
+	local fp
+	fp=$(jq -r '.result.tls_certificate_sha256' "$D/out/b-restore-state.json")
+	if signin_steps "$1"; then
+		"$repo_root/bin/softkey" login -cli-config "$CLI_CONFIG" -server "https://$1:8443" -fingerprint "$fp" -user admin \
+			-password-file "$D/secrets/admin.pw" -key "$SOFTKEY_KEY"
+		return
+	fi
+	ws login -server "https://$1:8443" -user admin -fingerprint "$fp" -password-file "$D/secrets/admin.pw"
 }
 
 snapshot() { # NAME: what the server knows now, through the API
@@ -288,7 +300,11 @@ snapshot() { # NAME: what the server knows now, through the API
 	ev=$(jq '.[0].id // empty' "$OUT/$n-evidence.json")
 	if [[ -n "$ev" ]]; then
 		rm -rf "$OUT/$n-export" && mkdir -p "$OUT/$n-export"
-		HOME=$WS "$WS/bin/gaia" evidence export "$ev" -o "$OUT/$n-export.tar.gz" >/dev/null
+		if [[ -s "$SOFTKEY_KEY" ]]; then # an export needs a step-up (ADR-008 §4)
+			"$repo_root/bin/softkey" call -cli-config "$CLI_CONFIG" -key "$SOFTKEY_KEY" -o "$OUT/$n-export.tar.gz" GET "/api/v1/evidence/$ev/export"
+		else
+			HOME=$WS "$WS/bin/gaia" evidence export "$ev" -o "$OUT/$n-export.tar.gz" >/dev/null
+		fi
 		tar -C "$OUT/$n-export" -xzf "$OUT/$n-export.tar.gz" && rm "$OUT/$n-export.tar.gz"
 	fi
 }
@@ -508,7 +524,9 @@ upgrade)
 	OUT=$D/out/upgrade-$rev${RUN:+-$RUN}
 	mkdir -p "$OUT"
 	exec > >(tee -a "$OUT/upgrade.log") 2>&1
+	go build -C "$repo_root" -o "$repo_root/bin/softkey" ./lab/tools/softkey
 	relogin "$B"
+	old_token=$(jq -r .token "$CLI_CONFIG") # ADR-008 §9: a session of the old schema stops working at the upgrade
 	started=$(stamp upgrade-start | jq -r .at)
 	api system >"$OUT/before-system.json"
 	section "server B ($B) before: $(jq -r '"\(.version), schema \(.schema_version)"' "$OUT/before-system.json")"
@@ -566,6 +584,17 @@ sleep 3 && systemctl is-active gaia-sandbox gaia
 EOF
 	fi
 	workstation_cli "$NEW"
+	for ((i = 0; i < 30; i++)); do curl -fsk -o /dev/null "https://$B:8443/api/v1/health" && break; sleep 2; done
+	code=$(curl -sk -o "$OUT/old-session.json" -w '%{http_code}' -H "Authorization: Bearer $old_token" "https://$B:8443/api/v1/me")
+	jq -nc --arg c "$code" --slurpfile b "$OUT/old-session.json" '{old_session_status: ($c | tonumber), answer: $b[0]}' | tee "$OUT/old-session-check.json"
+	unset old_token
+	if signin_steps "$B"; then
+		curl -sk -o "$OUT/first-signin.json" -X POST -H 'Content-Type: application/json' \
+			--data "$(jq -nc --rawfile p "$D/secrets/admin.pw" '{username: "admin", password: ($p | rtrimstr("\n"))}')" "https://$B:8443/api/v1/login"
+		jq -c '{stage, enrol, token: (.token // "" | length > 0)}' "$OUT/first-signin.json" | tee "$OUT/first-signin-check.json"
+		rm -f "$OUT/first-signin.json" # it holds a sign-in token
+		relogin "$B" # the old session is gone: the drill's key is enrolled now
+	fi
 	for ((i = 0; i < 30; i++)); do api system >"$OUT/after-system.json" 2>/dev/null && break; sleep 2; done
 	jq -c '{version, schema_version, migrations: [.migrations[] | {version, name, applied_at}]}' "$OUT/after-system.json"
 	stamp upgraded
@@ -579,6 +608,7 @@ EOF
 		--slurpfile s0 "$OUT/before-status.json" --slurpfile s1 "$OUT/after-status.json" \
 		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" \
 		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --slurpfile c1 "$OUT/after-state-changes.json" \
+		--slurpfile os "$OUT/old-session-check.json" \
 		--argjson since "$since" --arg started "$started" --argjson during "$during" '
 		($j1[0] | map(select(.id > $since))) as $new
 		| ($p1[0] | map(.id)) as $after_ids
@@ -590,10 +620,11 @@ EOF
 		   next_backup: ($new | map(select(.kind == "backup")) | last | {id, state, reason}),
 		   next_test: ($new | map(select(.kind == "restore_test")) | last | {id, state}),
 		   during: (if $during.id then {id: $during.id, kind: $during.kind, state: ($j1[0][] | select(.id == $during.id) | .state)} else null end),
-		   audit: $a1[0]}
+		   audit: $a1[0], old_session: $os[0]}
 		| . + {pass: (.schema.after >= .schema.before and .points.missing_after == [] and .next_backup.state == "ok" and .next_test.state == "ok"
 		              and .audit.intact and (.status_after | length > 0 and all(.status == "OK"))
-		              and .status_changes_during_upgrade == [] and .jobs_failed_during_upgrade == [] and (.during == null or .during.state == "ok"))}
+		              and .status_changes_during_upgrade == [] and .jobs_failed_during_upgrade == [] and (.during == null or .during.state == "ok")
+		              and (.schema.before >= 11 or .old_session.old_session_status == 401))}
 		| . + {verdict: (if .pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json"
 	stamp upgrade-end
 	[[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2
