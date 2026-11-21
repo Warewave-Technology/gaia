@@ -212,14 +212,15 @@ type Server struct {
 	maintenanceSafety maintenance.SafetyParameters
 	// Sign-in (ADR-008): the steps of sign-ins under way, step-ups, enrolments on one's own account, CLI sign-ins
 	// through a browser, the OIDC client and the WebAuthn relying party.
-	signins   signins
-	stepups   stepUps
-	enrolling ownEnrolments
-	approvals cliApprovals
-	oidc      *oidcClient
-	webauthn  *webauthn.WebAuthn
-	instance  string
-	jobsWG    sync.WaitGroup
+	signins     signins
+	stepups     stepUps
+	enrolling   ownEnrolments
+	approvals   cliApprovals
+	oidc        *oidcClient
+	webauthn    *webauthn.WebAuthn
+	webauthnErr error // why webauthn is nil
+	instance    string
+	jobsWG      sync.WaitGroup
 	// The context of jobs (backups, restore tests, verifications, migration checks). It is not the server's: when the
 	// server stops, running jobs may end first (stop_drain); stopJobs ends them when the drain is over.
 	jobs       context.Context
@@ -279,9 +280,13 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 	db.SetInstance(s.instance)
 	s.signins.m, s.stepups.m, s.enrolling.m, s.approvals.m = map[string]*pendingSignin{}, map[string]*stepUp{}, map[int64]*pendingSignin{}, map[string]*cliApproval{}
 	s.oidc = newOIDCClient(s)
+	// A public_url WebAuthn cannot use (an upgraded server whose host name has no domain) must not stop backups and
+	// restore tests: the server starts, security keys are refused with the reason, and gaia system shows it.
 	if s.webauthn, err = newWebAuthn(cfg, s.instance); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("WebAuthn (public_url %s): %w", cfg.PublicURL, err)
+		s.webauthnErr = fmt.Errorf("%w: public_url %s cannot be WebAuthn's relying party (%v): set public_url in %s to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)",
+			errWebAuthnOff, cfg.PublicURL, err, cfgPath)
+		s.webauthn = nil
+		log.Error("security keys are not available", "error", s.webauthnErr)
 	}
 	if cfg.SessionTTL != "" || cfg.LoginMaxFailures != 0 || cfg.LoginLockout != "" || cfg.LoginAddressFailures != 0 || cfg.LoginAddressWindow != "" {
 		log.Warn("server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)", "config", cfgPath)
@@ -587,6 +592,8 @@ func statusOf(err error) (int, string) {
 		return http.StatusForbidden, "signin_refused"
 	case errors.Is(err, errForbidden):
 		return http.StatusForbidden, "forbidden"
+	case errors.Is(err, errWebAuthnOff):
+		return http.StatusServiceUnavailable, "webauthn_unavailable"
 	}
 	return http.StatusInternalServerError, "internal"
 }
@@ -665,7 +672,7 @@ func (s *Server) serve(rt *route) http.Handler {
 			}
 			msg := err.Error()
 			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins,
-				errStepUpRequired, errStepUpFailed, errIdPUnreachable, errSignin, errForbidden} {
+				errStepUpRequired, errStepUpFailed, errIdPUnreachable, errSignin, errForbidden, errWebAuthnOff} {
 				msg = strings.TrimPrefix(msg, e.Error()+": ") // the code says it already
 			}
 			if code == http.StatusInternalServerError {

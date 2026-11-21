@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -311,7 +312,14 @@ func (s *Server) factorStep(ctx context.Context, c *call, ps *pendingSignin, u s
 	} else if left > 0 {
 		out.Factors = append(out.Factors, "recovery_code")
 	}
-	if contains(u.Factors, store.FactorWebAuthn) {
+	if contains(u.Factors, store.FactorWebAuthn) && s.webauthnReady() != nil {
+		// The key cannot be asked for: another factor, or a recovery code, signs the user in.
+		out.Factors = slices.DeleteFunc(out.Factors, func(k string) bool { return k == store.FactorWebAuthn })
+		if len(out.Factors) == 0 {
+			return 0, nil, s.webauthnReady()
+		}
+		c.detail += "; security keys unavailable: " + s.webauthnReady().Error()
+	} else if contains(u.Factors, store.FactorWebAuthn) {
 		w, err := s.webauthnUser(ctx, u)
 		if err != nil {
 			return 0, nil, err

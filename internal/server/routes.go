@@ -123,6 +123,8 @@ type SystemInfo struct {
 	Notifications    NotifySummary            `json:"notifications"`
 	DailyReportAt    string                   `json:"daily_report_at"`
 	Hostname         string                   `json:"hostname"` // the installation's name in the UI
+	PublicURL        string                   `json:"public_url"`
+	SigninProblem    string                   `json:"signin_problem,omitempty"` // e.g. security keys unavailable (public_url)
 	Clock            ServerClock              `json:"clock"`
 }
 

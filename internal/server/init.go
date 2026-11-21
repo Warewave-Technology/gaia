@@ -58,6 +58,9 @@ func Init(ctx context.Context, o InitOptions) (InitResult, error) {
 	if _, err := os.Stat(o.ConfigPath); err == nil {
 		return InitResult{}, fmt.Errorf("%s exists: this host is already set up", o.ConfigPath)
 	}
+	if _, err := newWebAuthn(cfg, "init"); err != nil {
+		return InitResult{}, fmt.Errorf("public_url %s cannot be WebAuthn's relying party (%v): give -public-url https://NAME:PORT with a DNS name browsers use", cfg.PublicURL, err)
+	}
 	if err := recoverykit.CheckPassphrase(o.KitPassphrase); err != nil {
 		return InitResult{}, err
 	}

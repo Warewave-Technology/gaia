@@ -99,12 +99,26 @@ func (s *Server) webauthnUser(ctx context.Context, u store.User) (*waUser, error
 	return w, nil
 }
 
+// errWebAuthnOff: the server's public_url cannot be a relying party; security keys are refused until it is set.
+var errWebAuthnOff = errors.New("security keys are not available")
+
+// webauthnReady is nil when security keys can be used.
+func (s *Server) webauthnReady() error {
+	if s.webauthn == nil {
+		return s.webauthnErr
+	}
+	return nil
+}
+
 // errFactor is a second factor that did not pass: a failed sign-in step (ADR-008 §7).
 var errFactor = errors.New("the second factor did not pass")
 
 // beginAssertion starts a WebAuthn assertion for a user's keys; challenge nil makes a random one (a sign-in), a step-up
 // passes one bound to its action.
 func (s *Server) beginAssertion(w *waUser, challenge []byte) (*protocol.CredentialAssertion, *webauthn.SessionData, error) {
+	if err := s.webauthnReady(); err != nil {
+		return nil, nil, err
+	}
 	if len(w.creds) == 0 {
 		return nil, nil, fmt.Errorf("%w: %s has no security key", store.ErrInvalid, w.u.Username)
 	}
@@ -117,6 +131,9 @@ func (s *Server) beginAssertion(w *waUser, challenge []byte) (*protocol.Credenti
 
 // finishAssertion checks a browser's answer to an assertion and records the key's use. It returns the key's factor.
 func (s *Server) finishAssertion(ctx context.Context, w *waUser, sd webauthn.SessionData, raw json.RawMessage) (store.Factor, error) {
+	if err := s.webauthnReady(); err != nil {
+		return store.Factor{}, err
+	}
 	if len(raw) == 0 {
 		return store.Factor{}, fmt.Errorf("%w: no WebAuthn answer", errFactor)
 	}
@@ -149,6 +166,9 @@ func (s *Server) finishAssertion(ctx context.Context, w *waUser, sd webauthn.Ses
 
 // beginRegistration starts enrolling a new key; the user's other keys are excluded (one registration per key).
 func (s *Server) beginRegistration(w *waUser) (*protocol.CredentialCreation, *webauthn.SessionData, error) {
+	if err := s.webauthnReady(); err != nil {
+		return nil, nil, err
+	}
 	var excl []protocol.CredentialDescriptor
 	for _, c := range w.creds {
 		excl = append(excl, c.Descriptor())
@@ -158,6 +178,9 @@ func (s *Server) beginRegistration(w *waUser) (*protocol.CredentialCreation, *we
 
 // finishRegistration checks a browser's answer to a registration and returns the new credential as stored.
 func (s *Server) finishRegistration(w *waUser, sd webauthn.SessionData, raw json.RawMessage) (credID, data string, err error) {
+	if err := s.webauthnReady(); err != nil {
+		return "", "", err
+	}
 	if len(raw) == 0 {
 		return "", "", fmt.Errorf("%w: no WebAuthn answer", store.ErrInvalid)
 	}

@@ -559,6 +559,11 @@ upgrade)
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 cd /tmp && sha256sum -c --ignore-missing SHA256SUMS
+cfg=/etc/gaia/server.json # step 12, to 0.2.0: public_url with a DNS name (WebAuthn)
+if ! jq -e '.public_url | select(. != null and test("^https://[^/:]+\\\\.[^/:]+"))' "\$cfg" >/dev/null; then
+	jq --arg u "https://\$(hostname -s).lab.test:8443" '. + {public_url: \$u}' "\$cfg" >"\$cfg.new"
+	chmod --reference="\$cfg" "\$cfg.new" && chown --reference="\$cfg" "\$cfg.new" && mv "\$cfg.new" "\$cfg"
+fi
 if [[ -e /usr/local/bin/gaia ]]; then # step 12, "From an install without the package"
 	units=(gaia gaia-sandbox)
 	if [[ -e /etc/systemd/system/gaia-convert.service ]]; then units+=(gaia-convert); fi

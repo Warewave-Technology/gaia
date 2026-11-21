@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"sync"
@@ -740,4 +741,51 @@ func lastAudit(t *testing.T, f *fixture) store.AuditEntry {
 		t.Fatal("no audit entries")
 	}
 	return a[len(a)-1]
+}
+
+// An upgraded server whose host name has no domain (the default public_url) cannot be WebAuthn's relying party. It
+// starts anyway (backups go on), says why in gaia system, refuses security keys with the reason, and lets a user in
+// with another factor or a recovery code. A new installation refuses such a public_url at init (T26 upgrade drill).
+func TestWebAuthnUnavailable(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	cfg := f.s.cfg
+	cfg.PublicURL = "https://gaia-t17-b:8443"
+	f.ts.Close()
+	f.s.Close()
+	s, err := New(ctx, cfg, f.s.cfgPath, f.s.log)
+	if err != nil {
+		t.Fatalf("the server did not start: %v", err)
+	}
+	t.Cleanup(func() { s.Close() })
+	f.s = s
+	f.ts = httptest.NewServer(s.Handler())
+	t.Cleanup(f.ts.Close)
+	// The admin has a key and recovery codes (newFixture enrolled them): only the codes are offered.
+	c, _, st := f.password("admin", adminPassword, "")
+	if c != 200 || st.Stage != stageFactor || slices.Contains(st.Factors, "webauthn") || !slices.Contains(st.Factors, "recovery_code") {
+		t.Fatalf("admin with keys unavailable: %d %+v", c, st)
+	}
+	// A new admin cannot enrol a key: 503 with the reason.
+	if _, err := s.db.CreateUser(ctx, "test", store.NewUser{Username: "admin3", Role: store.RoleAdmin, Password: userPassword("admin3")}); err != nil {
+		t.Fatal(err)
+	}
+	_, _, st = f.password("admin3", userPassword("admin3"), "")
+	if c, e := f.call("", "POST", "/api/v1/login/enrol", fmt.Sprintf(`{"signin_token":%q,"kind":"webauthn"}`, st.SigninToken), nil, nil); c != 503 ||
+		e.Code != "webauthn_unavailable" || !strings.Contains(e.Error, "public_url") {
+		t.Fatalf("enrolment with keys unavailable: %d %+v", c, e)
+	}
+	var sys SystemInfo
+	if _, err := s.db.CreateUser(ctx, "test", store.NewUser{Username: "appop", Role: store.RoleOperator, Password: userPassword("appop")}); err != nil {
+		t.Fatal(err)
+	}
+	tok, _, _ := f.enrolTOTP("appop") // an authenticator app still works
+	if f.call(tok, "GET", "/api/v1/system", "", nil, &sys); !strings.Contains(sys.SigninProblem, "public_url https://gaia-t17-b:8443") {
+		t.Fatalf("gaia system does not say why: %q", sys.SigninProblem)
+	}
+	dir := t.TempDir()
+	if _, err := Init(ctx, InitOptions{ConfigPath: dir + "/server.json", DataDir: dir + "/data", AdminUser: "admin", AdminPassword: adminPassword,
+		KitPassphrase: kitPassphrase, PublicURL: "https://gaia-t17-b:8443"}); err == nil || !strings.Contains(err.Error(), "DNS name") {
+		t.Fatalf("init with a public_url without a domain: %v", err)
+	}
 }

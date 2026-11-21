@@ -216,6 +216,12 @@ func (s *Server) beginStepUp(c *call) (int, any, error) {
 		if len(out.Factors) == 0 {
 			return 0, nil, fmt.Errorf("%w: no second factor that can pass a step-up is enrolled", errStepUpFailed)
 		}
+		if slices.Contains(out.Factors, store.FactorWebAuthn) && s.webauthnReady() != nil {
+			out.Factors = slices.DeleteFunc(out.Factors, func(k string) bool { return k == store.FactorWebAuthn })
+			if len(out.Factors) == 0 {
+				return 0, nil, s.webauthnReady()
+			}
+		}
 		if slices.Contains(out.Factors, store.FactorWebAuthn) {
 			w, err := s.webauthnUser(ctx, c.user)
 			if err != nil {

@@ -53,7 +53,8 @@ func (s *Server) systemInfo(c *call) (int, any, error) {
 	return http.StatusOK, SystemInfo{Version: s.version, SchemaVersion: len(applied), Migrations: applied, EvidenceKeyID: evidence.KeyID(pub),
 		SSHPublicKey: s.sshKey.AuthorizedKey, SSHAuthorizedKey: `restrict,port-forwarding,command="/usr/bin/false" ` + s.sshKey.AuthorizedKey,
 		StartedAt: s.started.Format(time.RFC3339), StateBackupAt: s.cfg.StateBackupAt, StateBackupRepo: s.cfg.StateBackupRepository, RecoveryKit: kit,
-		Ledger: ledger, Notifications: notify, DailyReportAt: s.cfg.DailyReportAt, Hostname: hostname(), Clock: serverClock(s.now())}, nil
+		Ledger: ledger, Notifications: notify, DailyReportAt: s.cfg.DailyReportAt, Hostname: hostname(), Clock: serverClock(s.now()),
+		PublicURL: s.cfg.PublicURL, SigninProblem: errText(s.webauthnReady())}, nil
 }
 
 // repoOptions are where Gaia keeps a repository's client config, password and cache (A2: 1 GiB hard limit).
@@ -283,4 +284,11 @@ The ledger lists every bundle; this export holds only %s, so the other bundles s
 		s.log.Error("sending an evidence export", "bundle", e.BundleID, "error", err)
 	}
 	return http.StatusOK, nil, nil
+}
+
+func errText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }
