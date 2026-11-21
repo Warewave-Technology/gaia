@@ -563,8 +563,11 @@ func (s *Server) oidcDeviceStart(c *call) (int, any, error) {
 	}
 	// PKCE for the device grant too (an IdP may require it of every grant of the client, as Keycloak does).
 	verifier := oauth2.GenerateVerifier()
-	if _, err := o.form(o.ctx(ctx), o.device, url.Values{"scope": {"openid profile email"}, "code_challenge": {oauth2.S256ChallengeFromVerifier(verifier)},
-		"code_challenge_method": {"S256"}}, &r); err != nil || r.DeviceCode == "" {
+	v := url.Values{"scope": {"openid profile email"}, "code_challenge": {oauth2.S256ChallengeFromVerifier(verifier)}, "code_challenge_method": {"S256"}}
+	if o.set.SecondFactor.Required && o.set.SecondFactor.Claim == "acr" {
+		v.Set("acr_values", strings.Join(o.set.SecondFactor.Values, " ")) // as the code flow asks for it
+	}
+	if _, err := o.form(o.ctx(ctx), o.device, v, &r); err != nil || r.DeviceCode == "" {
 		return 0, nil, fmt.Errorf("%w: device authorization: %v %s %s", errHost, err, r.Error, r.ErrorDesc)
 	}
 	now := s.now()
