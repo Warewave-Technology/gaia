@@ -208,3 +208,46 @@ func CertFileFingerprint(path string) (string, error) {
 	}
 	return CertFingerprint(blk.Bytes), nil
 }
+
+// TLSResult is a new server certificate.
+type TLSResult struct {
+	CertSHA256 string   `json:"tls_certificate_sha256"` // the CLI pins it again (gaia login asks)
+	CertNames  []string `json:"tls_certificate_names"`
+	OldCert    string   `json:"old_certificate"` // the replaced certificate and key, kept beside them
+}
+
+// NewTLSCertificate replaces the server's TLS certificate with one for names, the public URL's name and the host's
+// (an installation made before 0.2.0 may not name the public URL, which security keys need, ADR-008 §3). The old
+// certificate and key stay beside them with a suffix. The service must be restarted, and the recovery kit, which
+// holds the certificate, written again.
+func NewTLSCertificate(cfgPath string, hostnames []string, publicURL string) (TLSResult, error) {
+	cfg, err := LoadConfig(cfgPath)
+	if err != nil {
+		return TLSResult{}, err
+	}
+	if publicURL != "" {
+		cfg.PublicURL = publicURL
+		if err := cfg.resolvePublicURL(); err != nil {
+			return TLSResult{}, err
+		}
+	}
+	if _, err := newWebAuthn(cfg, "tls"); err != nil {
+		return TLSResult{}, fmt.Errorf("public_url %s cannot be WebAuthn's relying party (%v): give -public-url https://NAME:PORT with a DNS name", cfg.PublicURL, err)
+	}
+	suffix := ".replaced-" + time.Now().UTC().Format("20060102T150405Z")
+	for _, p := range []string{cfg.TLSCert, cfg.TLSKey} {
+		if err := os.Rename(p, p+suffix); err != nil {
+			return TLSResult{}, err
+		}
+	}
+	names := certNames(append(hostnames, cfg.rpID()))
+	fp, err := generateCert(cfg.TLSCert, cfg.TLSKey, names)
+	if err != nil {
+		for _, p := range []string{cfg.TLSCert, cfg.TLSKey} { // put the old pair back
+			os.Remove(p)
+			os.Rename(p+suffix, p)
+		}
+		return TLSResult{}, err
+	}
+	return TLSResult{CertSHA256: fp, CertNames: names, OldCert: cfg.TLSCert + suffix}, nil
+}

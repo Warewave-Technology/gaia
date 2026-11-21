@@ -798,8 +798,9 @@ From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): 
   be used for security keys: Gaia starts and keeps backing up, but `gaia system` shows `signin_problem` and admins
   cannot sign in (except with a recovery code) until it is set.
 - The name must be in the server's TLS certificate for browsers to trust it. A certificate made by `gaia server init`
-  before 0.2.0 has the names given then: if the public URL's name is not among them, replace the certificate (or use a
-  name that is).
+  before 0.2.0 has the names given then; if the public URL's name is not among them, make a new one (as root):
+  `runuser -u gaia -- gaia server tls -hostname <names>`, then `systemctl restart gaia`, sign in again (the command
+  line asks you to confirm the new sha256 it prints), and write a new recovery kit: `gaia kit regenerate && gaia kit save`.
 - `session_ttl` and the `login_*` limits in `server.json` are ignored (the server says so at start): the limits are
   ADR-008's (step 9).
 - Existing admins are break-glass; existing auditors expire 30 days after the upgrade unless renewed.

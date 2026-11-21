@@ -23,7 +23,7 @@ func cmdServer(ctx context.Context, args []string) int {
 	// The database holds password hashes: nothing Gaia writes is readable by others (the unit sets the same).
 	syscall.Umask(0o027)
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state [flags]  (-h for flags)")
+		fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state | tls [flags]  (-h for flags)")
 		return 3
 	}
 	switch args[0] {
@@ -35,8 +35,10 @@ func cmdServer(ctx context.Context, args []string) int {
 		return cmdServerRun(ctx, args[1:])
 	case "migrate":
 		return cmdServerMigrate(ctx, args[1:])
+	case "tls":
+		return cmdServerTLS(args[1:])
 	}
-	fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gaia server init | run | migrate | restore-state | tls [flags]")
 	return 3
 }
 
@@ -199,5 +201,32 @@ func cmdServerMigrate(ctx context.Context, args []string) int {
 	for _, a := range applied {
 		fmt.Printf("  %d %-28s %s\n", a.Version, a.Name, a.AppliedAt)
 	}
+	return 0
+}
+
+// cmdServerTLS: gaia server tls -hostname NAMES [-public-url URL]: a new TLS certificate (install.md step 12, to 0.2.0).
+func cmdServerTLS(args []string) int {
+	fs := flag.NewFlagSet("server tls", flag.ExitOnError)
+	config := fs.String("config", "/etc/gaia/server.json", "config file")
+	names := fs.String("hostname", "", "comma-separated names or addresses clients use (the public URL's name is added)")
+	publicURL := fs.String("public-url", "", "the public URL whose name the certificate must hold (default: public_url in the config)")
+	asJSON := fs.Bool("json", false, "print JSON")
+	fs.Parse(args)
+	r, err := server.NewTLSCertificate(*config, strings.Split(*names, ","), *publicURL)
+	if err != nil {
+		return fail(*asJSON, "server tls", err)
+	}
+	if *asJSON {
+		emit(map[string]any{"command": "server tls", "verdict": "OK", "result": r})
+		return 0
+	}
+	fmt.Printf(`A new TLS certificate is in place, for: %s
+
+  TLS certificate sha256 %s
+      (write it down: gaia login asks again whether it is the server's; trust it in the browsers anew)
+
+The old one is kept as %s. Now: systemctl restart gaia, then write a new recovery kit, which holds the certificate:
+gaia kit regenerate && gaia kit save
+`, strings.Join(r.CertNames, ", "), r.CertSHA256, r.OldCert)
 	return 0
 }

@@ -789,3 +789,24 @@ func TestWebAuthnUnavailable(t *testing.T) {
 		t.Fatalf("init with a public_url without a domain: %v", err)
 	}
 }
+
+// gaia server tls: an installation from before 0.2.0 gets a certificate that names its public URL (security keys need
+// the browser to trust the server by that name).
+func TestNewTLSCertificate(t *testing.T) {
+	f := newFixture(t)
+	old, _ := CertFileFingerprint(f.s.cfg.TLSCert)
+	r, err := NewTLSCertificate(f.s.cfgPath, []string{"extra.lab"}, "https://gaia-new.lab.test:8443")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now, _ := CertFileFingerprint(f.s.cfg.TLSCert)
+	if now != r.CertSHA256 || now == old || !slices.Contains(r.CertNames, "gaia-new.lab.test") || !slices.Contains(r.CertNames, "extra.lab") {
+		t.Fatalf("%+v (old %s, now %s)", r, old, now)
+	}
+	if fp, err := CertFileFingerprint(r.OldCert); err != nil || fp != old {
+		t.Fatalf("the old certificate: %s %v", fp, err)
+	}
+	if _, err := NewTLSCertificate(f.s.cfgPath, nil, "https://nodomain:8443"); err == nil {
+		t.Fatal("a public URL without a domain")
+	}
+}
