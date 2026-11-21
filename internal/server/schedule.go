@@ -35,10 +35,25 @@ func (s *Server) schedule(ctx context.Context) {
 		if err := s.tick(ctx, time.Now()); err != nil && ctx.Err() == nil {
 			s.log.Error("scheduler", "error", err)
 		}
+		if !s.waitTick(ctx, t.C) {
+			return
+		}
+	}
+}
+
+// waitTick waits for the next tick, starting queued restore tests whenever a running one ends meanwhile; false: ctx
+// ended.
+func (s *Server) waitTick(ctx context.Context, c <-chan time.Time) bool {
+	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-t.C:
+			return false
+		case <-c:
+			return true
+		case <-s.testFreed:
+			if err := s.dispatchTests(ctx); err != nil && ctx.Err() == nil {
+				s.log.Error("scheduler", "error", err)
+			}
 		}
 	}
 }

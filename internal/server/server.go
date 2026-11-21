@@ -242,6 +242,7 @@ type Server struct {
 	now        func() time.Time // the clock of the status model
 	kitMu      sync.Mutex       // one recovery kit write at a time
 	stateDirty chan struct{}    // a job ended: back Gaia's state up soon
+	testFreed  chan struct{}    // a restore test ended: its slot goes to the next queued test now (testqueue.go)
 	ledgerMu   sync.Mutex       // one ledger check at a time
 	reportMu   sync.Mutex       // one daily report at a time
 	// Set by gaia server restore-state: the lost server may have made checkpoints after its last state backup with
@@ -283,7 +284,7 @@ func New(ctx context.Context, cfg Config, cfgPath string, log *slog.Logger) (*Se
 	}
 	s := &Server{cfg: cfg, cfgPath: cfgPath, db: db, log: log, started: time.Now().UTC(), version: buildVersion(),
 		maintenanceSafety: maintenance.SafetyFull, logins: newLoginGuard(), sandbox: sandbox.NewClient(cfg.SandboxSocket), now: time.Now,
-		stateDirty: make(chan struct{}, 1)}
+		stateDirty: make(chan struct{}, 1), testFreed: make(chan struct{}, 1)}
 	s.jobs, s.stopJobs = context.WithCancel(context.WithoutCancel(ctx))
 	if s.sshKey, err = loadSSHKey(cfg); err != nil {
 		db.Close()

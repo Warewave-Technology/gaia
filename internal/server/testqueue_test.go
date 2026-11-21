@@ -146,18 +146,16 @@ func TestParallelTestDispatch(t *testing.T) {
 		t.Fatalf("a what-if with a 30 s interval: %d", st)
 	}
 
-	// One ends: the next in the order starts.
+	// One ends: the next in the order starts at once, not at the next tick (which never comes here).
+	wctx, stop := context.WithCancel(ctx)
+	waited := make(chan bool)
+	go func() { waited <- s.waitTick(wctx, nil) }()
 	release <- struct{}{}
-	for range 100 {
-		if n := func() int { k := 0; s.testing.Range(func(_, _ any) bool { k++; return true }); return k }(); n == 2 {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	if err := s.dispatch(ctx); err != nil {
-		t.Fatal(err)
-	}
 	wait(4)
+	stop()
+	if <-waited {
+		t.Fatal("waitTick saw a tick")
+	}
 	mu.Lock()
 	if started[3] != "web-1" && started[3] != "web-2" {
 		mu.Unlock()

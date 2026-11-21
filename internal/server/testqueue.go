@@ -58,6 +58,15 @@ func (s *Server) testSlots() int {
 	return c.Slots
 }
 
+// slotFreed tells the scheduler that a restore test ended, so the next queued test starts now rather than at the next
+// tick: with tests of a few tens of seconds, a slot that waits for the tick idles a large part of the time (T25).
+func (s *Server) slotFreed() {
+	select {
+	case s.testFreed <- struct{}{}:
+	default:
+	}
+}
+
 // dispatchTests starts queued restore tests in C4's order while slots are free, one per VM.
 func (s *Server) dispatchTests(ctx context.Context) error {
 	s.refreshSandbox(ctx)
@@ -86,6 +95,7 @@ func (s *Server) dispatchTests(ctx context.Context) error {
 		go func(j store.Job) {
 			defer s.jobsWG.Done()
 			defer s.stateChanged()
+			defer s.slotFreed()
 			defer s.testing.Delete(*j.VMID)
 			defer s.retryIfStopped(j)
 			run(s.jobs, j)
