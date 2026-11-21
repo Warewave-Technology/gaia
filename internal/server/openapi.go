@@ -28,6 +28,15 @@ func OpenAPI(routes []route, _ string) ([]byte, error) {
 			"tags":         []string{tag(rt.path)},
 			"x-gaia-roles": rolesOf(rt),
 		}
+		if rt.example != "" {
+			op["x-gaia-example"] = rt.example // a body the role × endpoint checks send
+		}
+		switch rt.stepUp { // ADR-008 §4: the request needs X-Gaia-Step-Up (stepup.go)
+		case stepAlways:
+			op["x-gaia-step-up"] = "always"
+		case stepIfLoose:
+			op["x-gaia-step-up"] = "when_it_weakens_protection"
+		}
 		if rt.roles == nil {
 			op["security"] = []any{}
 		}
@@ -90,7 +99,7 @@ func OpenAPI(routes []route, _ string) ([]byte, error) {
 		"info": map[string]any{
 			"title":       "Gaia API",
 			"version":     "1",
-			"description": "The REST/JSON API of gaia server (ADR-007 §6). Every operation lists the roles allowed on it in x-gaia-roles; an empty list means no login is needed. Generated from internal/server/routes.go.",
+			"description": "The REST/JSON API of gaia server (ADR-007 §6). Every operation lists the roles allowed on it in x-gaia-roles; an empty list means no login is needed. x-gaia-step-up marks the destructive and security actions that need a fresh second factor in the request (ADR-008 §4). Generated from internal/server/routes.go.",
 			"license":     map[string]any{"name": "AGPL-3.0-or-later", "identifier": "AGPL-3.0-or-later"},
 		},
 		"security":   []any{map[string]any{"bearer": []any{}}},

@@ -5707,7 +5707,7 @@
     }
   },
   "info": {
-    "description": "The REST/JSON API of gaia server (ADR-007 §6). Every operation lists the roles allowed on it in x-gaia-roles; an empty list means no login is needed. Generated from internal/server/routes.go.",
+    "description": "The REST/JSON API of gaia server (ADR-007 §6). Every operation lists the roles allowed on it in x-gaia-roles; an empty list means no login is needed. x-gaia-step-up marks the destructive and security actions that need a fresh second factor in the request (ADR-008 §4). Generated from internal/server/routes.go.",
     "license": {
       "identifier": "AGPL-3.0-or-later",
       "name": "AGPL-3.0-or-later"
@@ -5871,9 +5871,11 @@
         "tags": [
           "api-tokens"
         ],
+        "x-gaia-example": "{\"name\":\"matrix-token\",\"role\":\"auditor\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/api-tokens/{id}": {
@@ -5978,7 +5980,8 @@
         ],
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/audit": {
@@ -6299,6 +6302,7 @@
         "tags": [
           "capacity"
         ],
+        "x-gaia-example": "{\"slots\":4}",
         "x-gaia-roles": [
           "admin",
           "operator",
@@ -6775,7 +6779,8 @@
         "x-gaia-roles": [
           "admin",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/evidence/{id}": {
@@ -6959,7 +6964,8 @@
         "x-gaia-roles": [
           "admin",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/evidence/{id}/files/{name}": {
@@ -7336,10 +7342,12 @@
         "tags": [
           "hosts"
         ],
+        "x-gaia-example": "{\"name\":\"kvm1\",\"address\":\"kvm1.lab\",\"ssh_user\":\"gaia\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/hosts/{id}": {
@@ -7438,7 +7446,8 @@
         "x-gaia-roles": [
           "admin",
           "operator"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       },
       "get": {
         "operationId": "get_hosts_by_id",
@@ -7634,6 +7643,7 @@
         "tags": [
           "hosts"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -7962,6 +7972,7 @@
         "tags": [
           "hosts"
         ],
+        "x-gaia-example": "{\"fingerprint\":\"SHA256:none\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -8364,6 +8375,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"username\":\"nobody\",\"password\":\"not a valid password\"}",
         "x-gaia-roles": []
       }
     },
@@ -8427,6 +8439,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": []
       }
     },
@@ -8512,11 +8525,13 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"user_code\":\"BCDF-GHJK\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/login/cli/token": {
@@ -8579,6 +8594,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"handle\":\"none\"}",
         "x-gaia-roles": []
       }
     },
@@ -8642,6 +8658,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"signin_token\":\"none\",\"kind\":\"totp\"}",
         "x-gaia-roles": []
       }
     },
@@ -8705,6 +8722,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"signin_token\":\"none\",\"kind\":\"totp\",\"code\":\"000000\"}",
         "x-gaia-roles": []
       }
     },
@@ -8768,6 +8786,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"signin_token\":\"none\",\"method\":\"totp\",\"code\":\"000000\"}",
         "x-gaia-roles": []
       }
     },
@@ -8831,6 +8850,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"signin_token\":\"none\",\"new_password\":\"x\"}",
         "x-gaia-roles": []
       }
     },
@@ -9135,11 +9155,13 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"kind\":\"webauthn\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/me/factors/finish": {
@@ -9231,6 +9253,7 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"kind\":\"webauthn\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
@@ -9335,7 +9358,8 @@
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/me/password": {
@@ -9420,11 +9444,13 @@
         "tags": [
           "session"
         ],
+        "x-gaia-example": "{\"current_password\":\"wrong\",\"new_password\":\"short\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/me/recovery-codes": {
@@ -9510,7 +9536,8 @@
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/me/sessions": {
@@ -9945,7 +9972,8 @@
           "admin",
           "operator",
           "auditor"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/migration-sources": {
@@ -10104,6 +10132,7 @@
         "tags": [
           "migration-sources"
         ],
+        "x-gaia-example": "{\"name\":\"matrix-src\",\"url\":\"https://esxi.example/sdk\",\"username\":\"root\",\"password\":\"a password\",\"insecure\":true}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -10404,6 +10433,7 @@
         "tags": [
           "migration-sources"
         ],
+        "x-gaia-example": "{\"vm\":\"matrix-vm\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -10650,6 +10680,7 @@
         "tags": [
           "notification-channels"
         ],
+        "x-gaia-example": "{\"name\":\"ops-mail\",\"kind\":\"smtp\",\"smtp\":{\"host\":\"mail.example.org\",\"from\":\"gaia@example.org\",\"to\":[\"ops@example.org\"]}}",
         "x-gaia-roles": [
           "admin"
         ]
@@ -10848,6 +10879,7 @@
         "tags": [
           "notification-channels"
         ],
+        "x-gaia-example": "{\"enabled\":false,\"reason\":\"mail server replaced\"}",
         "x-gaia-roles": [
           "admin"
         ]
@@ -11162,6 +11194,7 @@
         "tags": [
           "oidc"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": []
       }
     },
@@ -11225,6 +11258,7 @@
         "tags": [
           "oidc"
         ],
+        "x-gaia-example": "{\"handle\":\"none\"}",
         "x-gaia-roles": []
       }
     },
@@ -11694,9 +11728,11 @@
         "tags": [
           "points"
         ],
+        "x-gaia-example": "{\"reason\":\"\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/points/{id}/restore-check": {
@@ -11964,6 +12000,7 @@
         "tags": [
           "policies"
         ],
+        "x-gaia-example": "{\"name\":\"gold\",\"repository_id\":1,\"backup_interval_s\":900,\"test_interval_s\":86400,\"keep_last\":8,\"keep_daily\":7,\"keep_weekly\":4,\"rpo_target_s\":3600,\"rto_target_s\":1800,\"max_proof_age_s\":172800,\"check_template\":\"linux-basic\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -12262,10 +12299,12 @@
         "tags": [
           "policies"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": [
           "admin",
           "operator"
-        ]
+        ],
+        "x-gaia-step-up": "when_it_weakens_protection"
       }
     },
     "/api/v1/quarantined-contents": {
@@ -12567,6 +12606,7 @@
         "tags": [
           "recovery-kit"
         ],
+        "x-gaia-example": "{\"passphrase\":\"not the passphrase\"}",
         "x-gaia-roles": [
           "admin"
         ]
@@ -12661,6 +12701,7 @@
         "tags": [
           "recovery-kit"
         ],
+        "x-gaia-example": "{\"generation\":99,\"sha256\":\"00\"}",
         "x-gaia-roles": [
           "admin"
         ]
@@ -12899,9 +12940,11 @@
         "tags": [
           "repositories"
         ],
+        "x-gaia-example": "{\"name\":\"matrix\",\"kind\":\"s3\",\"location\":\"s3://x\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/repositories/{id}": {
@@ -13101,6 +13144,7 @@
         "tags": [
           "repositories"
         ],
+        "x-gaia-example": "{\"force\":false}",
         "x-gaia-roles": [
           "admin"
         ]
@@ -13216,6 +13260,7 @@
         "tags": [
           "repositories"
         ],
+        "x-gaia-example": "{\"mode\":\"sampled\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -13885,9 +13930,11 @@
         "tags": [
           "settings"
         ],
+        "x-gaia-example": "{\"oidc\":{\"enabled\":false},\"idle_timeout_min\":15,\"absolute_timeout_h\":8,\"password_max_age\":\"none\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/signin-options": {
@@ -14529,6 +14576,7 @@
         "tags": [
           "step-up"
         ],
+        "x-gaia-example": "{\"method\":\"GET\",\"path\":\"/api/v1/health\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
@@ -14618,6 +14666,7 @@
         "tags": [
           "step-up"
         ],
+        "x-gaia-example": "{\"id\":\"none\",\"method\":\"webauthn\"}",
         "x-gaia-roles": [
           "admin",
           "operator",
@@ -14932,9 +14981,11 @@
         "tags": [
           "users"
         ],
+        "x-gaia-example": "{\"username\":\"matrix-user\",\"role\":\"auditor\",\"password\":\"correct horse battery staple\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/users/{id}": {
@@ -15131,9 +15182,11 @@
         "tags": [
           "users"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/users/{id}/factors/reset": {
@@ -15231,7 +15284,8 @@
         ],
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/users/{id}/unlock": {
@@ -15336,7 +15390,8 @@
         ],
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "always"
       }
     },
     "/api/v1/verifications": {
@@ -16496,6 +16551,7 @@
         "tags": [
           "vms"
         ],
+        "x-gaia-example": "{\"host_id\":1,\"name\":\"web1\",\"uuid\":\"\"}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -16794,10 +16850,12 @@
         "tags": [
           "vms"
         ],
+        "x-gaia-example": "{}",
         "x-gaia-roles": [
           "admin",
           "operator"
-        ]
+        ],
+        "x-gaia-step-up": "when_it_weakens_protection"
       }
     },
     "/api/v1/vms/{id}/backups": {
@@ -17104,6 +17162,7 @@
         "tags": [
           "vms"
         ],
+        "x-gaia-example": "{\"target\":\"vdz\",\"size_bytes\":1073741824}",
         "x-gaia-roles": [
           "admin",
           "operator"
@@ -17310,6 +17369,7 @@
         "tags": [
           "vms"
         ],
+        "x-gaia-example": "{\"tags\":[\"env:prod\"]}",
         "x-gaia-roles": [
           "admin",
           "operator"

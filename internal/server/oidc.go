@@ -454,8 +454,10 @@ func (s *Server) refreshOIDC(ctx context.Context, sess store.Session) error {
 
 // sessionSweep ends sessions past their limits and refreshes the OIDC sessions that are due, every 30 seconds, so a
 // session ends when it should even if no request comes.
+const sweepEvery = 30 * time.Second
+
 func (s *Server) sessionSweep(ctx context.Context) {
-	t := time.NewTicker(30 * time.Second)
+	t := time.NewTicker(sweepEvery)
 	defer t.Stop()
 	for {
 		if err := s.sweepSessions(ctx); err != nil && ctx.Err() == nil {
@@ -477,7 +479,8 @@ func (s *Server) sweepSessions(ctx context.Context) error {
 	if err := s.db.EndStaleSessions(ctx, store.SessionLimits{Idle: st.idle()}); err != nil {
 		return err
 	}
-	due, err := s.db.OIDCSessionsDue(ctx, oidcRefreshEvery)
+	// Due before the next sweep counts as due now: a refresh is never later than 10 minutes after the last one.
+	due, err := s.db.OIDCSessionsDue(ctx, oidcRefreshEvery-sweepEvery)
 	if err != nil {
 		return err
 	}
