@@ -65,10 +65,10 @@ type oidcFlow struct {
 }
 
 type deviceFlow struct {
-	deviceCode, deviceID, addr, userAgent string
-	created, expires                      time.Time
-	interval                              time.Duration
-	lastPoll                              time.Time
+	deviceCode, verifier, deviceID, addr, userAgent string
+	created, expires                                time.Time
+	interval                                        time.Duration
+	lastPoll                                        time.Time
 }
 
 func newOIDCClient(s *Server) *oidcClient {
@@ -559,12 +559,16 @@ func (s *Server) oidcDeviceStart(c *call) (int, any, error) {
 		ExpiresIn  int    `json:"expires_in"`
 		Interval   int    `json:"interval"`
 		Error      string `json:"error"`
+		ErrorDesc  string `json:"error_description"`
 	}
-	if _, err := o.form(o.ctx(ctx), o.device, url.Values{"scope": {"openid profile email"}}, &r); err != nil || r.DeviceCode == "" {
-		return 0, nil, fmt.Errorf("%w: device authorization: %v %s", errHost, err, r.Error)
+	// PKCE for the device grant too (an IdP may require it of every grant of the client, as Keycloak does).
+	verifier := oauth2.GenerateVerifier()
+	if _, err := o.form(o.ctx(ctx), o.device, url.Values{"scope": {"openid profile email"}, "code_challenge": {oauth2.S256ChallengeFromVerifier(verifier)},
+		"code_challenge_method": {"S256"}}, &r); err != nil || r.DeviceCode == "" {
+		return 0, nil, fmt.Errorf("%w: device authorization: %v %s %s", errHost, err, r.Error, r.ErrorDesc)
 	}
 	now := s.now()
-	d := &deviceFlow{deviceCode: r.DeviceCode, deviceID: in.DeviceID, addr: remote(c.r), userAgent: c.r.UserAgent(), created: now,
+	d := &deviceFlow{deviceCode: r.DeviceCode, verifier: verifier, deviceID: in.DeviceID, addr: remote(c.r), userAgent: c.r.UserAgent(), created: now,
 		expires: now.Add(time.Duration(max(r.ExpiresIn, 60)) * time.Second), interval: time.Duration(max(r.Interval, 5)) * time.Second}
 	h := auth.NewToken("dv_")
 	o.mu.Lock()
@@ -611,7 +615,7 @@ func (s *Server) oidcDevicePoll(c *call) (int, any, error) {
 		Error        string `json:"error"`
 	}
 	if _, err := o.form(o.ctx(ctx), o.oauth.Endpoint.TokenURL, url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:device_code"},
-		"device_code": {d.deviceCode}}, &r); err != nil {
+		"device_code": {d.deviceCode}, "code_verifier": {d.verifier}}, &r); err != nil {
 		return 0, nil, fmt.Errorf("%w: %v", errHost, err)
 	}
 	switch r.Error {

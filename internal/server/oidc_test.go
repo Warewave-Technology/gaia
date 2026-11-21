@@ -70,6 +70,10 @@ func newMockIdP(t *testing.T, now func() time.Time) *mockIdP {
 	mux.HandleFunc("/token", m.token)
 	mux.HandleFunc("/device", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
+		if r.Form.Get("code_challenge_method") != "S256" || r.Form.Get("code_challenge") == "" {
+			http.Error(w, `{"error":"invalid_request"}`, 400)
+			return
+		}
 		if r.Form.Get("client_secret") != "idp-client-secret" {
 			http.Error(w, `{"error":"invalid_client"}`, 401)
 			return
@@ -156,6 +160,10 @@ func (m *mockIdP) token(w http.ResponseWriter, r *http.Request) {
 		}
 		grant(name, "", m.now().Add(-time.Hour))
 	case "urn:ietf:params:oauth:grant-type:device_code":
+		if r.Form.Get("code_verifier") == "" {
+			bad("invalid_request") // the device request had a code_challenge
+			return
+		}
 		name, ok := m.devices[r.Form.Get("device_code")]
 		switch {
 		case !ok:

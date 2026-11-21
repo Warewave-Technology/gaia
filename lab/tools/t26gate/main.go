@@ -352,9 +352,11 @@ func (a *actor) kcLogin(start string) (string, error) {
 			for _, m := range formRe.FindAllSubmatch(data, -1) {
 				in := string(m[2])
 				switch {
-				case strings.Contains(in, `name="username"`):
+				case strings.Contains(in, `name="password"`): // a re-authentication shows no user name field
 					action = string(m[1])
-					form.Set("username", strings.TrimPrefix(a.name, "oidc:"))
+					if strings.Contains(in, `name="username"`) {
+						form.Set("username", a.name)
+					}
 					form.Set("password", a.pw)
 					form.Set("credentialId", "")
 				case strings.Contains(in, `name="otp"`):
@@ -375,7 +377,9 @@ func (a *actor) kcLogin(start string) (string, error) {
 					return "", nil // the device grant's last page
 				}
 				title := regexp.MustCompile(`(?s)<title>(.*?)</title>`).FindSubmatch(data)
-				return "", fmt.Errorf("no form at Keycloak's page %q (%s)", title, u)
+				f := filepath.Join(*out, fmt.Sprintf("kc-page-%d.html", time.Now().UnixNano()))
+				os.WriteFile(f, data, 0o600) // to see what the page asks (the lab users' names only; no secrets)
+				return "", fmt.Errorf("no form at Keycloak's page %q (%s), saved in %s", title, u, f)
 			}
 			action = html.UnescapeString(action)
 			resp, data, err = a.b.req("POST", action, strings.NewReader(form.Encode()), "application/x-www-form-urlencoded", nil)
