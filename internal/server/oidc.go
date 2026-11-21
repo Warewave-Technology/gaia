@@ -479,8 +479,9 @@ func (s *Server) sweepSessions(ctx context.Context) error {
 	if err := s.db.EndStaleSessions(ctx, store.SessionLimits{Idle: st.idle()}); err != nil {
 		return err
 	}
-	// Due before the next sweep counts as due now: a refresh is never later than 10 minutes after the last one.
-	due, err := s.db.OIDCSessionsDue(ctx, oidcRefreshEvery-sweepEvery)
+	// A session is due 9 minutes after its last refresh, so the sweep (every 30 s) refreshes it between 9 and 9.5
+	// minutes: never later than 10, with room for a slow IdP. A request that comes first refreshes at 10.
+	due, err := s.db.OIDCSessionsDue(ctx, oidcRefreshEvery-2*sweepEvery)
 	if err != nil {
 		return err
 	}

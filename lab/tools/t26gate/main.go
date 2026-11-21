@@ -707,6 +707,7 @@ func main() {
 		gone := oidcActor("kc-gone", "operator")
 		must(gone.ssoSignIn(), "SSO sign-in of kc-gone")
 		signedIn := time.Now()
+		_, gm := whoami(gone)
 		must(removeFromGroups("kc-gone"), "remove kc-gone from its groups at Keycloak")
 		removed := time.Now()
 		log.Printf("d: kc-gone removed from its groups at %s; waiting for its session to end", removed.Format(time.RFC3339))
@@ -724,17 +725,31 @@ func main() {
 				lost, lostBody = time.Now(), string(data)
 				break
 			}
-			time.Sleep(10 * time.Second)
+			time.Sleep(2 * time.Second)
 		}
-		d := lost.Sub(removed).Seconds()
-		check("d_removed_from_group_loses_access", !lost.IsZero() && d <= 600, map[string]any{"signed_in": signedIn.UTC().Format(time.RFC3339),
-			"removed": removed.UTC().Format(time.RFC3339), "lost": lost.UTC().Format(time.RFC3339), "seconds_after_removal": d, "answer": lostBody})
-
 		if keepAt.IsZero() {
 			must(keep.ssoSignIn(), "SSO sign-in of kc-keep")
 			keepAt = time.Now()
 		}
+		// When the server ended the session: its state change (the poll above sees it up to 2 s later).
+		var ended string
+		_, scs := keep.b.gaia("GET", fmt.Sprintf("/api/v1/state-changes?entity=session&entity_id=%d&limit=10", gm.Session.ID), "", nil)
+		var cs []struct{ At, To string }
+		json.Unmarshal(scs, &cs)
+		for _, c := range cs {
+			if c.To == "idp_no_access" {
+				ended = c.At
+			}
+		}
+		endedAt, _ := time.Parse(time.RFC3339Nano, ended)
+		d := endedAt.Sub(removed).Seconds()
+		check("d_removed_from_group_loses_access", !lost.IsZero() && ended != "" && d <= 600 && lost.Sub(removed) <= 602*time.Second,
+			map[string]any{"session": gm.Session.ID, "signed_in": signedIn.UTC().Format(time.RFC3339Nano), "removed": removed.UTC().Format(time.RFC3339Nano),
+				"session_ended": ended, "seconds_removed_to_ended": d, "request_refused": lost.UTC().Format(time.RFC3339Nano),
+				"seconds_removed_to_refused": lost.Sub(removed).Seconds(), "answer": lostBody})
+
 		log.Printf("e: Keycloak stopped")
+		before := hooks("breakglass_signin") // earlier break-glass sign-ins (OIDC on) were reported too
 		must(kc("stop"), "stop Keycloak")
 		stopped := time.Now()
 		bg := &actor{name: "admin", role: "admin", kind: "local", pw: admin.pw, key: admin.key}
@@ -742,9 +757,14 @@ func main() {
 		var hits []string
 		for i := 0; i < 12 && len(hits) == 0; i++ {
 			time.Sleep(5 * time.Second)
-			hits = hooks("breakglass_signin")
+			for _, h := range hooks("breakglass_signin") {
+				if !slices.Contains(before, h) {
+					hits = append(hits, h)
+				}
+			}
 		}
-		check("e_breakglass_signin_with_idp_down", bgErr == nil && len(hits) > 0, map[string]any{"error": fmt.Sprint(bgErr), "webhooks": hits})
+		check("e_breakglass_signin_with_idp_down", bgErr == nil && len(hits) > 0, map[string]any{"error": fmt.Sprint(bgErr), "new_webhooks": hits,
+			"earlier_webhooks": before})
 		// kc-keep's session refreshes at most 10 minutes after its sign-in: then the IdP does not answer.
 		var km me
 		for time.Since(keepAt) < 11*time.Minute {
