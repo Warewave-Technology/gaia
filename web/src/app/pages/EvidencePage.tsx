@@ -3,8 +3,10 @@ import { useT } from '../../i18n'
 import { serverTime } from '../../lib/time'
 import { can, useMe } from '../api/session'
 import { useDailyReports, useEvidence, useSystem, useVMs } from '../api/views'
+import { useState } from 'react'
 import { Failed, Loading } from '../layout/States'
-import { ButtonLink, DataTable, StatusChip, by, type Column } from '../ui'
+import { download, useStepUp } from '../layout/StepUp'
+import { Button, DataTable, Notice, StatusChip, by, type Column } from '../ui'
 import type { components } from '../../api/schema'
 
 type Bundle = components['schemas']['EvidenceBundle']
@@ -18,6 +20,8 @@ export function EvidencePage() {
   const ev = useEvidence()
   const vms = useVMs()
   const reps = useDailyReports()
+  const ask = useStepUp()
+  const [dlErr, setDlErr] = useState<string | null>(null)
   if (!can(me, 'export')) return <Navigate to="/" replace />
   if (sys.isPending || ev.isPending || vms.isPending || reps.isPending) return <Loading />
   const err = sys.error ?? ev.error ?? vms.error ?? reps.error
@@ -41,8 +45,9 @@ export function EvidencePage() {
           <h1>{t.title}</h1>
         </div>
         <div className={s.dl}>
-          <ButtonLink href="/api/v1/evidence-export" download>{t.export}</ButtonLink>
+          <Button onClick={() => { setDlErr(null); download(ask, '/api/v1/evidence-export', 'gaia-evidence-export.tar.gz').catch((e) => setDlErr(String(e.message ?? e))) }}>{t.export}</Button>
           <span>{t.exportHint}</span>
+          {dlErr && <Notice tone="critical">{dlErr}</Notice>}
         </div>
       </section>
       <dl className={s.facts}>

@@ -1,8 +1,19 @@
-.page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-.form { width: min(360px, 100%); display: grid; gap: 16px; }
-.form h1 { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; }
+.page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.form { width: min(380px, 100%); display: grid; gap: 14px; }
+.form h1 { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.inst { margin: -6px 0 0; font: 400 var(--text-sm) var(--mono); color: var(--fg3); }
+.fields { display: grid; gap: 14px; }
 .field { display: grid; gap: 6px; font-size: var(--text-sm); color: var(--fg3); }
 .field input { height: 38px; padding: 0 12px; border-radius: 4px; border: 1px solid var(--ctl); background: var(--surface); color: var(--fg0);
   font: 400 var(--text-lg) var(--font); }
 .field input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
-.form button { justify-content: center; height: 38px; }
+.form button, .form a { justify-content: center; height: 38px; }
+.or { margin: 0; text-align: center; font-size: var(--text-sm); color: var(--fg3); }
+.hint, .foot { margin: 0; font-size: var(--text-sm); color: var(--fg3); }
+.foot { margin-top: 10px; font-size: var(--text-xs, 12px); }
+.rule { margin: -6px 0 0; font-size: var(--text-sm); color: var(--fg2); }
+.codes { margin: 0; padding-left: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+.codes code, .secret, .uri { font: 400 var(--text-sm) var(--mono); color: var(--fg1); }
+.secret { font-size: var(--text-lg); letter-spacing: 0.08em; word-break: break-all; }
+.uri { word-break: break-all; color: var(--fg3); }
+.mark { margin-bottom: 2px; }

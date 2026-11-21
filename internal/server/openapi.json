@@ -6980,8 +6980,7 @@
             "name": "name",
             "required": true,
             "schema": {
-              "minimum": 1,
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14616,6 +14615,92 @@
           }
         },
         "summary": "Pass a step-up of one's other session (the CLI) with a factor answered here",
+        "tags": [
+          "step-up"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/step-up/{sid}": {
+      "get": {
+        "operationId": "get_step_up_by_sid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepUpChallenge"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "A step-up of one's other session, to approve here",
         "tags": [
           "step-up"
         ],

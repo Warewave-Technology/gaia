@@ -1,0 +1,12 @@
+.dialog { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--ctl); border-radius: 6px; background: var(--surface); color: var(--fg0);
+  padding: 20px; display: grid; gap: 14px; }
+.dialog[open] { display: grid; }
+.dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+.dialog h2 { font-size: var(--text-lg); font-weight: 600; margin: 0; }
+.action code { font: 400 var(--text-sm) var(--mono); color: var(--fg1); word-break: break-all; }
+.hint { margin: 0; font-size: var(--text-sm); color: var(--fg3); }
+.form { display: grid; gap: 10px; }
+.form label { display: grid; gap: 6px; font-size: var(--text-sm); color: var(--fg3); }
+.form input { height: 38px; padding: 0 12px; border-radius: 4px; border: 1px solid var(--ctl); background: var(--surface); color: var(--fg0);
+  font: 400 var(--text-lg) var(--mono); letter-spacing: 0.2em; }
+.dialog button { justify-content: center; height: 36px; }

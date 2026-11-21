@@ -8,13 +8,15 @@ export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly retryAfter: number | null
+  readonly reason: string | undefined
 
-  constructor(status: number, code: string, message: string, retryAfter: number | null = null) {
+  constructor(status: number, code: string, message: string, retryAfter: number | null = null, reason?: string) {
     super(message || `${status} ${code}`)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.retryAfter = retryAfter
+    this.reason = reason
   }
 }
 
@@ -29,5 +31,5 @@ export async function unwrap<T>(p: Promise<{ data?: T; error?: unknown; response
   if (r.response.ok) return r.data as T
   const body = (r.error ?? {}) as Partial<ErrorBody>
   const ra = r.response.headers.get('Retry-After')
-  throw new ApiError(r.response.status, body.code ?? 'internal', body.error ?? r.response.statusText, ra ? Number(ra) : null)
+  throw new ApiError(r.response.status, body.code ?? 'internal', body.error ?? r.response.statusText, ra ? Number(ra) : null, body.reason)
 }

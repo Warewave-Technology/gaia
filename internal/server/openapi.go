@@ -33,7 +33,11 @@ func OpenAPI(routes []route, _ string) ([]byte, error) {
 		}
 		var params []any
 		for _, m := range pathParam.FindAllStringSubmatch(rt.path, -1) {
-			params = append(params, map[string]any{"name": m[1], "in": "path", "required": true, "schema": map[string]any{"type": "integer", "minimum": 1}})
+			schema := map[string]any{"type": "integer", "minimum": 1} // {id}: a row's ID
+			if m[1] != "id" {
+				schema = map[string]any{"type": "string"} // {name} of a file, {sid} of a step-up
+			}
+			params = append(params, map[string]any{"name": m[1], "in": "path", "required": true, "schema": schema})
 		}
 		for _, q := range rt.query {
 			params = append(params, map[string]any{"name": q.name, "in": "query", "required": false, "description": q.doc,

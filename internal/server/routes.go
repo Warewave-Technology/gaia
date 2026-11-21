@@ -187,6 +187,8 @@ func (s *Server) table() []route {
 			out: SigninOptions{}, h: s.signinOptions},
 		{method: "POST", path: "/api/v1/step-up", summary: "Ask for a step-up for one destructive or security action (ADR-008 §4)", roles: anyRole,
 			in: StepUpRequest{}, out: StepUpChallenge{}, example: `{"method":"GET","path":"/api/v1/health"}`, h: s.beginStepUp},
+		{method: "GET", path: "/api/v1/step-up/{sid}", summary: "A step-up of one's other session, to approve here", roles: anyRole, out: StepUpChallenge{},
+			h: s.pendingStepUp},
 		{method: "POST", path: "/api/v1/step-up/approve", summary: "Pass a step-up of one's other session (the CLI) with a factor answered here",
 			roles: anyRole, in: StepUpApprove{}, status: http.StatusNoContent, example: `{"id":"none","method":"webauthn"}`, h: s.approveStepUp},
 		{method: "POST", path: "/api/v1/logout", summary: "End this session", roles: anyRole, status: http.StatusNoContent,

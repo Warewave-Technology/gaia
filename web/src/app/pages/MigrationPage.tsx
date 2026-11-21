@@ -13,6 +13,7 @@ import {
   type SourceVM,
 } from '../api/views'
 import { Failed, Loading } from '../layout/States'
+import { download, useStepUp } from '../layout/StepUp'
 import { Button, DataTable, Notice, RowToggle, StatusChip, by, type Column } from '../ui'
 import s from './MigrationPage.module.css'
 
@@ -93,7 +94,7 @@ function ChecksTable({ checks, fmt }: { checks: MigrationCheckView[]; fmt: Fmt }
     { key: 'why', header: t.col.why, clip: true, cell: (c) => <span title={c.reason}>{c.reason}</span> },
     {
       key: 'report', header: '', cell: (c) => (c.bundle_id
-        ? <a className={s.dl} href={`/api/v1/migration-checks/${c.id}/report`} download>{t.report}</a>
+        ? <ReportLink id={c.id} label={t.report} />
         : null),
     },
   ]
@@ -201,5 +202,18 @@ function Inventory({ src }: { src: MigrationSource }) {
       {queue.data && <p className={s.muted}>{t.queued(queue.data.vm, queue.data.id)}</p>}
       {queue.error && <Notice tone="critical">{queue.error.message}</Notice>}
     </div>
+  )
+}
+
+/** A readiness report is an evidence export: it asks for a step-up (ADR-008 §4). */
+function ReportLink({ id, label }: { id: number; label: string }) {
+  const ask = useStepUp()
+  const [err, setErr] = useState<string | null>(null)
+  const path = `/api/v1/migration-checks/${id}/report`
+  return (
+    <>
+      <button type="button" className={s.dl} onClick={() => download(ask, path, `gaia-readiness-${id}.tar.gz`).catch((e) => setErr(String(e.message ?? e)))}>{label}</button>
+      {err && <span role="alert">{err}</span>}
+    </>
   )
 }

@@ -50,6 +50,7 @@ type stepUp struct {
 	wa        *webauthn.SessionData
 	passedAt  time.Time // passed outside the action's request: at the IdP (oidc), or approved in a browser
 	passedBy  string    // how, for the audit log
+	asked     StepUpChallenge
 }
 
 type stepUps struct {
@@ -228,6 +229,7 @@ func (s *Server) beginStepUp(c *call) (int, any, error) {
 		}
 		out.ApproveURL = s.cfg.PublicURL + "/approve-step-up?id=" + su.id
 	}
+	su.asked = out
 	s.stepups.put(su)
 	c.detail = "step-up asked for " + in.Method + " " + in.Path
 	return http.StatusOK, out, nil
@@ -295,6 +297,17 @@ func (s *Server) passStepUp(c *call, rt *route) error {
 	c.steppedUp = true
 	s.auditStep(c, rt, http.StatusOK, "step-up passed: "+what)
 	return nil
+}
+
+// pendingStepUp shows a step-up of the user's other session to approve (the approval page asks for the same factor).
+func (s *Server) pendingStepUp(c *call) (int, any, error) {
+	su := s.stepups.get(c.r.PathValue("sid"))
+	if su == nil || su.userID != c.user.ID || su.kind == "oidc" || s.now().Sub(su.created) > stepUpWindow {
+		return 0, nil, fmt.Errorf("%w: no step-up of yours waits with this id (they last 120 seconds)", store.ErrNotFound)
+	}
+	out := su.asked
+	out.ApproveURL = ""
+	return http.StatusOK, out, nil
 }
 
 // approveStepUp passes another session's step-up of the same user: the factor is answered here (a browser) for a

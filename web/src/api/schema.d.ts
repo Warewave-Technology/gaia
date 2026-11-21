@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/v1/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API tokens for automation */
+        get: operations["get_api_tokens"];
+        put?: never;
+        /** Make an API token (operator or auditor, at most 90 days; shown once) */
+        post: operations["post_api_tokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API token */
+        delete: operations["delete_api_tokens_by_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -408,8 +443,127 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Log in; returns a bearer token, or sets the session cookie for a browser */
+        /** Sign in with a local account: the password; the answer says the next step */
         post: operations["post_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/cli": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a CLI sign-in that a signed-in browser approves (gaia login -browser) */
+        post: operations["post_login_cli"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/cli/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a CLI sign-in for oneself (with a step-up) */
+        post: operations["post_login_cli_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/cli/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The CLI asks whether its sign-in was approved; then the session */
+        post: operations["post_login_cli_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/enrol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign-in step: start enrolling the first second factor */
+        post: operations["post_login_enrol"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/enrol/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign-in step: the authenticator's answer; the answer carries the recovery codes once */
+        post: operations["post_login_enrol_finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign-in step: the second factor (WebAuthn, TOTP or a recovery code) */
+        post: operations["post_login_factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/login/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign-in step: a new password (expired, reset by an admin, or on the blocklist) */
+        post: operations["post_login_password"];
         delete?: never;
         options?: never;
         head?: never;
@@ -440,11 +594,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The logged-in user */
+        /** The signed-in user and this session */
         get: operations["get_me"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/factors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One's second factors */
+        get: operations["get_me_factors"];
+        put?: never;
+        /** Start enrolling another second factor (ends one's other sessions when it is done) */
+        post: operations["post_me_factors"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/factors/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The authenticator's answer: the factor is enrolled */
+        post: operations["post_me_factors_finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/factors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one of one's factors (not the last; an admin keeps a security key) */
+        delete: operations["delete_me_factors_by_id"];
         options?: never;
         head?: never;
         patch?: never;
@@ -458,10 +664,61 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Change one's own password (ends one's sessions) */
+        /** Change one's own password (ends one's other sessions) */
         put: operations["put_me_password"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New recovery codes, shown once (the old ones stop working) */
+        post: operations["post_me_recovery_codes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One's live sessions */
+        get: operations["get_me_sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Sign out one of one's sessions */
+        delete: operations["delete_me_sessions_by_id"];
         options?: never;
         head?: never;
         patch?: never;
@@ -658,6 +915,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Single sign-on: the identity provider's answer (a sign-in, or a step-up) */
+        get: operations["get_oidc_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oidc/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** CLI sign-in at the identity provider: the device authorization grant (RFC 8628) */
+        post: operations["post_oidc_device"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oidc/device/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The CLI asks whether the user signed in at the identity provider; then the session */
+        post: operations["post_oidc_device_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oidc/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Single sign-on: go to the identity provider */
+        get: operations["get_oidc_start"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/openapi.json": {
         parameters: {
             query?: never;
@@ -793,7 +1118,7 @@ export interface paths {
         delete: operations["delete_policies_by_id"];
         options?: never;
         head?: never;
-        /** Change a policy */
+        /** Change a policy (a step-up when it makes a target looser) */
         patch: operations["patch_policies_by_id"];
         trace?: never;
     };
@@ -1003,6 +1328,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone's live sessions */
+        get: operations["get_sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/end-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out everyone but this session */
+        post: operations["post_sessions_end_others"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Sign out a session */
+        delete: operations["delete_sessions_by_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/signin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sign-in and security settings, with the rules that are fixed and the IdP's state */
+        get: operations["get_settings_signin"];
+        /** Change the sign-in and security settings (listed in the next daily report) */
+        put: operations["put_settings_signin"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signin-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How one may sign in here (single sign-on on, its name), for the sign-in page */
+        get: operations["get_signin_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/state-backups": {
         parameters: {
             query?: never;
@@ -1089,6 +1500,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a step-up for one destructive or security action (ADR-008 §4) */
+        post: operations["post_step_up"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/step-up/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pass a step-up of one's other session (the CLI) with a factor answered here */
+        post: operations["post_step_up_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/step-up/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A step-up of one's other session, to approve here */
+        get: operations["get_step_up_by_sid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system": {
         parameters: {
             query?: never;
@@ -1116,7 +1578,7 @@ export interface paths {
         /** List users */
         get: operations["get_users"];
         put?: never;
-        /** Create a user */
+        /** Create a local user (it enrols a second factor at its first sign-in) */
         post: operations["post_users"];
         delete?: never;
         options?: never;
@@ -1138,8 +1600,25 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Change a user's role, password or disabled flag */
+        /** Change a user's role, password (a reset), break-glass, expiry or disabled flag */
         patch: operations["patch_users_by_id"];
+        trace?: never;
+    };
+    "/api/v1/users/{id}/factors/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset a user's second factors: it enrols again at the next sign-in */
+        post: operations["post_users_by_id_factors_reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/{id}/unlock": {
@@ -1151,7 +1630,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End a user's lockout after wrong passwords and reset the count (T18) */
+        /** End a user's pause after failed sign-ins and forget them (ADR-008 §7) */
         post: operations["post_users_by_id_unlock"];
         delete?: never;
         options?: never;
@@ -1379,7 +1858,7 @@ export interface paths {
         delete: operations["delete_vms_by_id"];
         options?: never;
         head?: never;
-        /** Assign a policy (policy_id 0 removes it) or set the UUID */
+        /** Assign a policy (policy_id 0 removes it) or set the UUID (a step-up when it weakens protection) */
         patch: operations["patch_vms_by_id"];
         trace?: never;
     };
@@ -1473,6 +1952,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APIToken: {
+            allowed_addrs: string[];
+            created_at: string;
+            created_by: string;
+            expires_at: string;
+            first_used_at: string;
+            id: number;
+            last_used_at: string;
+            name: string;
+            revoked_at: string;
+            revoked_by: string;
+            role: string;
+            use_count: number;
+            use_day: string;
+        };
         AppliedMigration: {
             applied_at: string;
             name: string;
@@ -1523,12 +2017,22 @@ export interface components {
             user_id: number | null;
             username: string;
         };
+        BlocklistID: {
+            entries: number;
+            version: string;
+        };
         BundleCheck: {
             bundle_id: string;
             files: number;
             key_id: string;
             problems: string[];
             verdict: string;
+        };
+        CLIApprovalStart: {
+            device_id?: string;
+        };
+        CLIApprove: {
+            user_code: string;
         };
         Capacity: {
             basis: string;
@@ -1671,6 +2175,20 @@ export interface components {
             /** @description any JSON value */
             report: unknown;
         };
+        DeviceChallenge: {
+            expires_at: string;
+            handle: string;
+            interval_s: number;
+            user_code: string;
+            verification_uri: string;
+            verification_uri_complete?: string;
+        };
+        DevicePoll: {
+            handle: string;
+        };
+        DeviceStart: {
+            device_id?: string;
+        };
         Disk: {
             created_at: string;
             id: number;
@@ -1682,6 +2200,25 @@ export interface components {
         DiskInput: {
             size_bytes: number;
             target: string;
+        };
+        EnrolBegin: {
+            kind: string;
+            name?: string;
+            signin_token?: string;
+        };
+        EnrolChallenge: {
+            kind: string;
+            totp_secret?: string;
+            totp_uri?: string;
+            webauthn?: unknown;
+        };
+        EnrolFinish: {
+            code?: string;
+            kind: string;
+            name?: string;
+            signin_token?: string;
+            /** @description any JSON value */
+            webauthn?: unknown;
         };
         EvidenceBundle: {
             bundle_id: string;
@@ -1704,6 +2241,40 @@ export interface components {
             proof_expires_at: string;
             vm: string;
             vm_id: number;
+        };
+        Factor: {
+            created_at: string;
+            credential_id?: string;
+            id: number;
+            kind: string;
+            last_used_at: string;
+            name: string;
+            user_id: number;
+        };
+        FactorAnswer: {
+            code?: string;
+            method: string;
+            signin_token: string;
+            /** @description any JSON value */
+            webauthn?: unknown;
+        };
+        FixedRules: {
+            admin_factor: string;
+            api_token_max_days: number;
+            auditor_max_days: number;
+            cookie: string;
+            new_device_days: number;
+            oidc_refresh_min: number;
+            password_history: number;
+            password_max_length: number;
+            password_min_length: number;
+            pause_after_failures: number;
+            pause_min: number;
+            pause_window_min: number;
+            second_factor_required: boolean;
+            sessions_per_user: number;
+            slow_down_from_failure: number;
+            step_up_s: number;
         };
         FleetView: {
             by_status: {
@@ -1849,13 +2420,9 @@ export interface components {
         };
         LoginRequest: {
             browser?: boolean;
+            device_id?: string;
             password: string;
             username: string;
-        };
-        LoginResponse: {
-            expires_at: string;
-            token?: string;
-            user: components["schemas"]["User"];
         };
         MaintenanceRequest: {
             force: boolean;
@@ -1867,6 +2434,27 @@ export interface components {
             referenced_contents: number;
             seconds: number;
             unresolved_points: string[];
+        };
+        Me: {
+            api_token?: string;
+            break_glass: boolean;
+            created_at: string;
+            disabled: boolean;
+            expires_at: string;
+            factors: string[];
+            id: number;
+            idle_timeout_s: number;
+            last_login_at: string;
+            locked_until: string;
+            password_change: string;
+            password_changed_at: string;
+            password_expires_at?: string;
+            password_expires_soon: boolean;
+            role: string;
+            session: components["schemas"]["Session"];
+            source: string;
+            updated_at: string;
+            username: string;
         };
         MigrationCheck: {
             bundle_id: string;
@@ -1946,6 +2534,27 @@ export interface components {
             id: number;
             name: string;
         };
+        NewAPIToken: {
+            allowed_addrs?: string[];
+            expires_at: string;
+            name: string;
+            role: string;
+        };
+        NewPassword: {
+            new_password: string;
+            signin_token: string;
+        };
+        NewToken: {
+            info: components["schemas"]["APIToken"];
+            token: string;
+        };
+        NewUser: {
+            break_glass?: boolean;
+            expires_at?: string;
+            password: string;
+            role: string;
+            username: string;
+        };
         Notification: {
             attempts: number;
             /** @description any JSON value */
@@ -1967,6 +2576,25 @@ export interface components {
             failing: string[];
             state: string;
             text: string;
+        };
+        OIDCSettings: {
+            ca_pem?: string;
+            client_id: string;
+            enabled: boolean;
+            groups_claim: string;
+            issuer: string;
+            name: string;
+            roles: {
+                [key: string]: string;
+            };
+            second_factor: components["schemas"]["SecondFactorRule"];
+        };
+        OIDCStatus: {
+            checked_at: string;
+            device_grant: boolean;
+            enabled: boolean;
+            error?: string;
+            ok: boolean;
         };
         OverviewView: {
             by_status: {
@@ -2152,6 +2780,9 @@ export interface components {
             seconds: number;
             vms: number;
         };
+        RecoveryCodes: {
+            codes: string[];
+        };
         RecoveryKit: {
             confirmed_at: string;
             confirmed_by: string;
@@ -2251,10 +2882,91 @@ export interface components {
             q: string;
             vms: components["schemas"]["NameCount"][];
         };
+        SecondFactorRule: {
+            claim: string;
+            required: boolean;
+            values: string[];
+        };
         ServerClock: {
             now: string;
             offset_s: number;
             zone: string;
+        };
+        Session: {
+            absolute_at: string;
+            break_glass: boolean;
+            created_at: string;
+            end_reason: string;
+            ended_at: string;
+            id: number;
+            idp_refreshed_at: string;
+            idp_state: string;
+            kind: string;
+            last_active_at: string;
+            last_seen_at: string;
+            method: string;
+            new_device: boolean;
+            remote_addr: string;
+            role: string;
+            user_agent: string;
+            user_id: number;
+            username: string;
+        };
+        SessionsEnded: {
+            ended: number;
+        };
+        SettingsUpdate: {
+            absolute_timeout_h: number;
+            breach_check_url: string;
+            idle_timeout_min: number;
+            oidc: components["schemas"]["OIDCSettings"];
+            oidc_client_secret?: string;
+            online_breach_check: boolean;
+            password_max_age: string;
+        };
+        SettingsView: {
+            absolute_timeout_h: number;
+            breach_check_url: string;
+            break_glass_admins: string[];
+            fixed: components["schemas"]["FixedRules"];
+            idle_timeout_min: number;
+            oidc: components["schemas"]["OIDCSettings"];
+            oidc_client_secret_set: boolean;
+            oidc_status: components["schemas"]["OIDCStatus"];
+            online_breach_check: boolean;
+            password_blocklist: components["schemas"]["BlocklistID"];
+            password_max_age: string;
+            public_url: string;
+            step_up_actions: string[];
+        };
+        SigninOptions: {
+            instance: string;
+            sso: boolean;
+            sso_name?: string;
+        };
+        SigninSettings: {
+            absolute_timeout_h: number;
+            breach_check_url: string;
+            idle_timeout_min: number;
+            oidc: components["schemas"]["OIDCSettings"];
+            online_breach_check: boolean;
+            password_max_age: string;
+        };
+        SigninStep: {
+            absolute_at?: string;
+            enrol?: string[];
+            factors?: string[];
+            idle_timeout_s?: number;
+            new_device?: boolean;
+            password_change?: string;
+            password_expires_at?: string;
+            recovery_codes?: string[];
+            signin_token?: string;
+            stage: string;
+            token?: string;
+            user?: components["schemas"]["User"] | null;
+            username: string;
+            webauthn?: unknown;
         };
         SnapshotGCStats: {
             deletedContentCount: number;
@@ -2337,6 +3049,27 @@ export interface components {
             stored: string;
             vm_id: number;
         };
+        StepUpApprove: {
+            code?: string;
+            id: string;
+            method: string;
+            /** @description any JSON value */
+            webauthn?: unknown;
+        };
+        StepUpChallenge: {
+            action: string;
+            approve_url?: string;
+            expires_at: string;
+            factors?: string[];
+            id: string;
+            redirect_url?: string;
+            target: string;
+            webauthn?: unknown;
+        };
+        StepUpRequest: {
+            method: string;
+            path: string;
+        };
         SystemInfo: {
             clock: components["schemas"]["ServerClock"];
             daily_report_at: string;
@@ -2398,24 +3131,25 @@ export interface components {
             fingerprint: string;
         };
         User: {
+            break_glass: boolean;
             created_at: string;
             disabled: boolean;
-            failed_logins: number;
+            expires_at: string;
+            factors: string[];
             id: number;
             last_login_at: string;
             locked_until: string;
+            password_change: string;
             password_changed_at: string;
             role: string;
+            source: string;
             updated_at: string;
             username: string;
         };
-        UserCreate: {
-            password: string;
-            role: string;
-            username: string;
-        };
         UserPatch: {
+            break_glass?: boolean | null;
             disabled?: boolean | null;
+            expires_at?: string | null;
             password?: string | null;
             role?: string | null;
         };
@@ -2562,6 +3296,7 @@ export interface components {
         apiError: {
             code: string;
             error: string;
+            reason?: string;
         };
     };
     responses: never;
@@ -2572,6 +3307,225 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_api_tokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIToken"][];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_api_tokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAPIToken"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewToken"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    delete_api_tokens_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIToken"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_audit: {
         parameters: {
             query?: {
@@ -3348,7 +4302,7 @@ export interface operations {
             header?: never;
             path: {
                 id: number;
-                name: number;
+                name: string;
             };
             cookie?: never;
         };
@@ -4422,7 +5376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["SigninStep"];
                 };
             };
             /** @description Invalid request */
@@ -4436,6 +5390,388 @@ export interface operations {
             };
             /** @description Wrong username or password, or the user is disabled */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_cli: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CLIApprovalStart"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_cli_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CLIApprove"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_cli_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevicePoll"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninStep"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_enrol: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolBegin"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_enrol_finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolFinish"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninStep"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_factor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FactorAnswer"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninStep"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_login_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPassword"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninStep"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4550,7 +5886,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["Me"];
                 };
             };
             /** @description Invalid request */
@@ -4582,6 +5918,301 @@ export interface operations {
             };
             /** @description Internal error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_me_factors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Factor"][];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_me_factors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolBegin"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_me_factors_finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolFinish"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Factor"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    delete_me_factors_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4631,6 +6262,219 @@ export interface operations {
             };
             /** @description The user's role may not do this */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_me_recovery_codes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_me_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"][];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    delete_me_sessions_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5727,6 +7571,188 @@ export interface operations {
             };
             /** @description The user's role may not do this */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_oidc_callback: {
+        parameters: {
+            query?: {
+                /** @description the authorization code */
+                code?: string;
+                /** @description the flow */
+                state?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_oidc_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceStart"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_oidc_device_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevicePoll"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninStep"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_oidc_start: {
+        parameters: {
+            query?: {
+                /** @description the page to go to after signing in */
+                next?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7492,6 +9518,391 @@ export interface operations {
             };
         };
     };
+    get_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"][];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_sessions_end_others: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionsEnded"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    delete_sessions_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_settings_signin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    put_settings_signin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninSettings"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_signin_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SigninOptions"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_state_backups: {
         parameters: {
             query?: {
@@ -7881,6 +10292,227 @@ export interface operations {
             };
         };
     };
+    post_step_up: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepUpChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_step_up_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpApprove"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_step_up_by_sid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepUpChallenge"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
     get_system: {
         parameters: {
             query?: never;
@@ -8002,7 +10634,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UserCreate"];
+                "application/json": components["schemas"]["NewUser"];
             };
         };
         responses: {
@@ -8161,6 +10793,89 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_users_by_id_factors_reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Invalid request */
             400: {

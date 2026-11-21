@@ -1,5 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import { RequireAuth } from './layout/RequireAuth'
+import { StepUpProvider } from './layout/StepUp'
+import { ApproveCLI, ApproveStepUp } from './pages/Approve'
 import { RouteError } from './layout/States'
 import { Shell } from './layout/Shell'
 import { EvidencePage } from './pages/EvidencePage'
@@ -12,9 +14,11 @@ import { VMPage } from './pages/VMPage'
 // The server sends index.html for every path without a file extension outside /api (internal/server/ui.go).
 export const router = createBrowserRouter([
   { path: '/login', element: <Login />, errorElement: <RouteError /> },
+  { path: '/approve-cli', element: <RequireAuth><StepUpProvider><ApproveCLI /></StepUpProvider></RequireAuth>, errorElement: <RouteError /> },
+  { path: '/approve-step-up', element: <RequireAuth><ApproveStepUp /></RequireAuth>, errorElement: <RouteError /> },
   {
     path: '/',
-    element: <RequireAuth><Shell /></RequireAuth>,
+    element: <RequireAuth><StepUpProvider><Shell /></StepUpProvider></RequireAuth>,
     errorElement: <RouteError />,
     children: [
       // each screen has its own: when one fails to draw, the bar stays

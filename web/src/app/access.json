@@ -8,10 +8,23 @@
     "export": [
       "auditor",
       "admin"
+    ],
+    "any": [
+      "auditor",
+      "operator",
+      "admin"
     ]
   },
   "session": [
     "POST /api/v1/login",
+    "POST /api/v1/login/factor",
+    "POST /api/v1/login/enrol",
+    "POST /api/v1/login/enrol/finish",
+    "POST /api/v1/login/password",
+    "GET /api/v1/signin-options",
+    "GET /api/v1/oidc/start",
+    "POST /api/v1/step-up",
+    "GET /api/v1/step-up/{sid}",
     "POST /api/v1/logout"
   ],
   "pages": [
@@ -74,6 +87,32 @@
         "GET /api/v1/evidence-export"
       ],
       "actions": {}
+    },
+    {
+      "path": "/approve-cli",
+      "name": "Approve a CLI sign-in",
+      "requires": null,
+      "reads": [
+        "GET /api/v1/me"
+      ],
+      "actions": {
+        "any": [
+          "POST /api/v1/login/cli/approve"
+        ]
+      }
+    },
+    {
+      "path": "/approve-step-up",
+      "name": "Approve a CLI step-up",
+      "requires": null,
+      "reads": [
+        "GET /api/v1/me"
+      ],
+      "actions": {
+        "any": [
+          "POST /api/v1/step-up/approve"
+        ]
+      }
     }
   ]
 }
