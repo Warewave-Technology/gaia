@@ -3,8 +3,9 @@
 # HTTPS on gaia-lab.test:8444 with a self-signed certificate, and a realm "gaia" made by import:
 #   - a confidential client "gaia": code flow with PKCE (S256), the device authorization grant, a groups claim (group
 #     names, not paths) in the ID token, and acr "mfa" for level of authentication 2 (default and requested);
-#   - a browser flow where level 1 is the password and level 2 an OTP code, asked again at every sign-in (max age 0),
-#     so a step-up (prompt=login, max_age=0) asks for the code again;
+#   - a browser flow with one level of authentication, the password and an OTP code, asked at every sign-in (max age 0)
+#     and mapped to acr "mfa": a code flow, a step-up (prompt=login, max_age=0) and the device grant (which takes no
+#     acr_values at Keycloak) all ask for the code;
 #   - groups gaia-admins, gaia-operators, internal-audit, staff; users with a password and a TOTP credential:
 #       kc-admin (gaia-admins), kc-op (gaia-operators), kc-aud (internal-audit), kc-gone (gaia-operators: the gate
 #       removes it from the group), kc-keep (gaia-admins: its session sees the IdP stopped), kc-staff (staff only).
@@ -136,18 +137,17 @@ realm = {
         "secret": sec["client_secret"], "standardFlowEnabled": True, "directAccessGrantsEnabled": False, "implicitFlowEnabled": False,
         "serviceAccountsEnabled": False, "consentRequired": False, "redirectUris": [u + "/api/v1/oidc/callback" for u in urls], "webOrigins": [],
         "attributes": {"pkce.code.challenge.method": "S256", "oauth2.device.authorization.grant.enabled": "true",
-                       "acr.loa.map": json.dumps({"mfa": 2}), "default.acr.values": "mfa", "use.refresh.tokens": "true"},
+                       "acr.loa.map": json.dumps({"mfa": 1}), "default.acr.values": "mfa", "use.refresh.tokens": "true"},
         "protocolMappers": [{"name": "groups", "protocol": "openid-connect", "protocolMapper": "oidc-group-membership-mapper",
                              "config": {"claim.name": "groups", "full.path": "false", "id.token.claim": "true", "access.token.claim": "true",
                                         "userinfo.token.claim": "true"}}]}],
     "authenticationFlows": [
         flow("gaia-browser", [ex("auth-cookie", 10, "ALTERNATIVE"), sub("gaia-forms", 20, "ALTERNATIVE")], top=True),
-        flow("gaia-forms", [sub("gaia-loa1", 10, "CONDITIONAL"), sub("gaia-loa2", 20, "CONDITIONAL")]),
-        flow("gaia-loa1", [ex("conditional-level-of-authentication", 10, authenticatorConfig="gaia-loa1"), ex("auth-username-password-form", 20)]),
-        flow("gaia-loa2", [ex("conditional-level-of-authentication", 10, authenticatorConfig="gaia-loa2"), ex("auth-otp-form", 20)]),
+        flow("gaia-forms", [sub("gaia-mfa", 10, "CONDITIONAL")]),
+        flow("gaia-mfa", [ex("conditional-level-of-authentication", 10, authenticatorConfig="gaia-mfa"), ex("auth-username-password-form", 20),
+                          ex("auth-otp-form", 30)]),
     ],
-    "authenticatorConfig": [{"alias": "gaia-loa1", "config": {"loa-condition-level": "1", "loa-max-age": "36000"}},
-                            {"alias": "gaia-loa2", "config": {"loa-condition-level": "2", "loa-max-age": "0"}}],
+    "authenticatorConfig": [{"alias": "gaia-mfa", "config": {"loa-condition-level": "1", "loa-max-age": "0"}}],
     "users": [user(n) for n in groups],
 }
 json.dump(realm, open(sys.argv[2], "w"), indent=2)
