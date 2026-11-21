@@ -1,0 +1,22 @@
+19:49:02.111903 local_totp_signin: PASS <nil>
+19:49:02.122500 f: role matrix, local users (OIDC off)
+19:49:07.663802 f_matrix_local: PASS map[problems:[] roles:4 routes:136]
+19:49:07.663826 OIDC on
+19:49:09.216041 oidc_no_group_no_access: PASS callback for kc-staff: 302 -> /login?sso_error=no_role
+19:49:09.305018 oidc_on_local_operator_refused: PASS 403 signin_refused
+19:49:09.415787 oidc_on_breakglass_admin_signs_in: PASS <nil>
+19:49:09.415797 f: role matrix, OIDC users
+19:49:17.673722 f_matrix_oidc: PASS map[problems:[] roles:4 routes:136]
+19:49:23.885340 cli_device_grant: PASS map[error:<nil> role:operator session_kind:cli stage:done user:kc-op]
+19:49:24.262365 d: kc-gone removed from its groups at 2026-11-21T19:49:24Z; waiting for its session to end
+19:59:25.168496 d_removed_from_group_loses_access: FAIL map[answer:{
+  "error": "the session ended: the identity provider no longer gives access",
+  "code": "session_ended",
+  "reason": "idp_no_access"
+}
+ lost:2026-11-21T19:59:25Z removed:2026-11-21T19:49:24Z seconds_after_removal:600.906121121 signed_in:2026-11-21T19:49:24Z]
+19:59:25.168545 e: Keycloak stopped
+19:59:30.933101 e_breakglass_signin_with_idp_down: PASS map[error:<nil> webhooks:[0004.json 0016.json]]
+20:04:31.305376 e_sso_session_continues_step_up_refused: PASS map[fleet:true idp_state:idp_unreachable keep_signed_in:2026-11-21T19:54:24Z request:200 step_up:403 step_up_code:idp_unreachable stopped:2026-11-21T19:59:25Z]
+Running as unit: gaia-t26-keycloak.service
+20:04:42.119668 CRITICAL: [d_removed_from_group_loses_access]

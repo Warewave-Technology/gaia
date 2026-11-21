@@ -1,0 +1,6 @@
+gaia before: activating
+public_url: https://gaia-t17-b.lab.test:8443
+gaia_0.2.0~dev.20261121201447.gc3c490d09ca5_amd64.deb: OK
+active
+active
+gaia 0.2.0~dev.20261121201447.gc3c490d09ca5 (c3c490d09ca5), go1.26.0, linux/amd64

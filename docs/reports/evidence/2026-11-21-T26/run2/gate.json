@@ -1,0 +1,83 @@
+{
+  "cli_device_grant": {
+    "detail": {
+      "error": "\u003cnil\u003e",
+      "role": "operator",
+      "session_kind": "cli",
+      "stage": "done",
+      "user": "kc-op"
+    },
+    "pass": true
+  },
+  "d_removed_from_group_loses_access": {
+    "detail": {
+      "answer": "{\n  \"error\": \"the session ended: the identity provider no longer gives access\",\n  \"code\": \"session_ended\",\n  \"reason\": \"idp_no_access\"\n}\n",
+      "removed": "2026-11-21T20:17:53.943940584Z",
+      "request_refused": "2026-11-21T20:27:01.623692858Z",
+      "seconds_removed_to_ended": 546.171355684,
+      "seconds_removed_to_refused": 547.679752304,
+      "session": 30,
+      "session_ended": "2026-11-21T20:27:00.115296268Z",
+      "signed_in": "2026-11-21T20:17:53.739589459Z"
+    },
+    "pass": true
+  },
+  "e_breakglass_signin_with_idp_down": {
+    "detail": {
+      "earlier_webhooks": [
+        "0005.json"
+      ],
+      "error": "\u003cnil\u003e",
+      "new_webhooks": [
+        "0016.json"
+      ]
+    },
+    "pass": true
+  },
+  "e_sso_session_continues_step_up_refused": {
+    "detail": {
+      "fleet": true,
+      "idp_state": "idp_unreachable",
+      "keep_signed_in": "2026-11-21T20:22:55Z",
+      "request": 200,
+      "step_up": 403,
+      "step_up_code": "idp_unreachable",
+      "stopped": "2026-11-21T20:27:02Z"
+    },
+    "pass": true
+  },
+  "f_matrix_local": {
+    "detail": {
+      "problems": [],
+      "roles": 4,
+      "routes": 136
+    },
+    "pass": true
+  },
+  "f_matrix_oidc": {
+    "detail": {
+      "problems": [],
+      "roles": 4,
+      "routes": 136
+    },
+    "pass": true
+  },
+  "failed": null,
+  "local_totp_signin": {
+    "detail": "\u003cnil\u003e",
+    "pass": true
+  },
+  "oidc_no_group_no_access": {
+    "detail": "callback for kc-staff: 302 -\u003e /login?sso_error=no_role",
+    "pass": true
+  },
+  "oidc_on_breakglass_admin_signs_in": {
+    "detail": "\u003cnil\u003e",
+    "pass": true
+  },
+  "oidc_on_local_operator_refused": {
+    "detail": "403 signin_refused",
+    "pass": true
+  },
+  "seconds": 918.658785286
+}

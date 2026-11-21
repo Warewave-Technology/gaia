@@ -1,0 +1,21 @@
+{
+  "verdict": "OK",
+  "rules": {
+    "pass": true,
+    "tests": 56,
+    "failed": 0
+  },
+  "lab": {
+    "cli_device_grant": true,
+    "d_removed_from_group_loses_access": true,
+    "e_breakglass_signin_with_idp_down": true,
+    "e_sso_session_continues_step_up_refused": true,
+    "f_matrix_local": true,
+    "f_matrix_oidc": true,
+    "local_totp_signin": true,
+    "oidc_no_group_no_access": true,
+    "oidc_on_breakglass_admin_signs_in": true,
+    "oidc_on_local_operator_refused": true
+  },
+  "t26gate_exit": 0
+}

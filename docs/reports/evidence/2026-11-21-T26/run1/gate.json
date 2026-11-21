@@ -1,0 +1,80 @@
+{
+  "cli_device_grant": {
+    "detail": {
+      "error": "\u003cnil\u003e",
+      "role": "operator",
+      "session_kind": "cli",
+      "stage": "done",
+      "user": "kc-op"
+    },
+    "pass": true
+  },
+  "d_removed_from_group_loses_access": {
+    "detail": {
+      "answer": "{\n  \"error\": \"the session ended: the identity provider no longer gives access\",\n  \"code\": \"session_ended\",\n  \"reason\": \"idp_no_access\"\n}\n",
+      "lost": "2026-11-21T19:59:25Z",
+      "removed": "2026-11-21T19:49:24Z",
+      "seconds_after_removal": 600.906121121,
+      "signed_in": "2026-11-21T19:49:24Z"
+    },
+    "pass": false
+  },
+  "e_breakglass_signin_with_idp_down": {
+    "detail": {
+      "error": "\u003cnil\u003e",
+      "webhooks": [
+        "0004.json",
+        "0016.json"
+      ]
+    },
+    "pass": true
+  },
+  "e_sso_session_continues_step_up_refused": {
+    "detail": {
+      "fleet": true,
+      "idp_state": "idp_unreachable",
+      "keep_signed_in": "2026-11-21T19:54:24Z",
+      "request": 200,
+      "step_up": 403,
+      "step_up_code": "idp_unreachable",
+      "stopped": "2026-11-21T19:59:25Z"
+    },
+    "pass": true
+  },
+  "f_matrix_local": {
+    "detail": {
+      "problems": [],
+      "roles": 4,
+      "routes": 136
+    },
+    "pass": true
+  },
+  "f_matrix_oidc": {
+    "detail": {
+      "problems": [],
+      "roles": 4,
+      "routes": 136
+    },
+    "pass": true
+  },
+  "failed": [
+    "d_removed_from_group_loses_access"
+  ],
+  "local_totp_signin": {
+    "detail": "\u003cnil\u003e",
+    "pass": true
+  },
+  "oidc_no_group_no_access": {
+    "detail": "callback for kc-staff: 302 -\u003e /login?sso_error=no_role",
+    "pass": true
+  },
+  "oidc_on_breakglass_admin_signs_in": {
+    "detail": "\u003cnil\u003e",
+    "pass": true
+  },
+  "oidc_on_local_operator_refused": {
+    "detail": "403 signin_refused",
+    "pass": true
+  },
+  "seconds": 951.337854183
+}

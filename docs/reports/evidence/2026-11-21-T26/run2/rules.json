@@ -1,0 +1,399 @@
+{
+  "pass": true,
+  "tests": 56,
+  "failed": [],
+  "rows": [
+    {
+      "rule": "",
+      "test": "auth.TestBlocklist",
+      "case": "",
+      "result": "PASS",
+      "s": 0.01
+    },
+    {
+      "rule": "",
+      "test": "auth.TestBreached",
+      "case": "",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "",
+      "test": "auth.TestCheckPassword",
+      "case": "",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "",
+      "test": "auth.TestRecoveryCodes",
+      "case": "",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "",
+      "test": "auth.TestTOTPVectors",
+      "case": "",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "",
+      "test": "auth.TestVerifyTOTP",
+      "case": "",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "",
+      "test": "server.TestADR008Local",
+      "case": "",
+      "result": "PASS",
+      "s": 14.95
+    },
+    {
+      "rule": "\u00a710",
+      "test": "server.TestADR008Local",
+      "case": "\u00a710 no API call that changes state succeeds without a session or token",
+      "result": "PASS",
+      "s": 0.03
+    },
+    {
+      "rule": "\u00a710",
+      "test": "server.TestADR008Local",
+      "case": "\u00a710 sign-in, sign-out, failure, step-up, session end, enrolment, reset, token and settings changes are audited",
+      "result": "PASS",
+      "s": 0.01
+    },
+    {
+      "rule": "\u00a71",
+      "test": "server.TestADR008Local",
+      "case": "\u00a71 the last break-glass admin cannot be removed, demoted or disabled",
+      "result": "PASS",
+      "s": 0.31
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008Local",
+      "case": "\u00a73 10 single-use recovery codes, stored hashed, each use audited",
+      "result": "PASS",
+      "s": 0.21
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008Local",
+      "case": "\u00a73 TOTP: 30 s, 6 digits, \u00b11 step, a used code is rejected",
+      "result": "PASS",
+      "s": 0.53
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008Local",
+      "case": "\u00a73 an admin's reset of a user's factors: the user enrols again",
+      "result": "PASS",
+      "s": 0.15
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008Local",
+      "case": "\u00a73 an admin's second factor is a security key only",
+      "result": "PASS",
+      "s": 0.21
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008Local",
+      "case": "\u00a73 enrolment happens at the first sign-in and cannot be skipped",
+      "result": "PASS",
+      "s": 0.22
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008Local",
+      "case": "\u00a74 a step-up approved in the user's browser passes the CLI's action, and only the same user's",
+      "result": "PASS",
+      "s": 0.37
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008Local",
+      "case": "\u00a74 a step-up older than 120 s, bound to another action, or used twice fails",
+      "result": "PASS",
+      "s": 0.08
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008Local",
+      "case": "\u00a74 every step-up action fails without a fresh factor",
+      "result": "PASS",
+      "s": 0.12
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008Local",
+      "case": "\u00a74 the step-up challenge holds the action and its target",
+      "result": "PASS",
+      "s": 0
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008Local",
+      "case": "\u00a74 weakening a policy needs a step-up, tightening does not",
+      "result": "PASS",
+      "s": 0.05
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 a password, factor or role change ends the user's other sessions",
+      "result": "PASS",
+      "s": 0.66
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 a sign-in from a new device or address is marked and notifies admins",
+      "result": "PASS",
+      "s": 0.34
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 absolute timeout: 8 h whatever the activity",
+      "result": "PASS",
+      "s": 0.86
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 at most 3 sessions per user; a fourth ends the oldest",
+      "result": "PASS",
+      "s": 0.3
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 idle timeout: background requests do not keep a session alive",
+      "result": "PASS",
+      "s": 0.61
+    },
+    {
+      "rule": "\u00a75",
+      "test": "server.TestADR008Local",
+      "case": "\u00a75 sign-out ends the session on the server",
+      "result": "PASS",
+      "s": 0.11
+    },
+    {
+      "rule": "\u00a76",
+      "test": "server.TestADR008Local",
+      "case": "\u00a76 forced change after an admin's reset and after a blocklist update",
+      "result": "PASS",
+      "s": 0.74
+    },
+    {
+      "rule": "\u00a76",
+      "test": "server.TestADR008Local",
+      "case": "\u00a76 not one of the last 5 passwords",
+      "result": "PASS",
+      "s": 3.53
+    },
+    {
+      "rule": "\u00a76",
+      "test": "server.TestADR008Local",
+      "case": "\u00a76 password rules: 15-128 characters, the blocklist, the user and instance names",
+      "result": "PASS",
+      "s": 0.09
+    },
+    {
+      "rule": "\u00a76",
+      "test": "server.TestADR008Local",
+      "case": "\u00a76 periodic change: with an expiry, a reminder 14 days before and a new password first at expiry",
+      "result": "PASS",
+      "s": 1.23
+    },
+    {
+      "rule": "\u00a77",
+      "test": "server.TestADR008Local",
+      "case": "\u00a77 10 failures in 15 min pause the account from every address and notify admins",
+      "result": "PASS",
+      "s": 0.21
+    },
+    {
+      "rule": "\u00a77",
+      "test": "server.TestADR008Local",
+      "case": "\u00a77 from the 3rd failure an increasing delay, per account and per address",
+      "result": "PASS",
+      "s": 0.59
+    },
+    {
+      "rule": "\u00a78",
+      "test": "server.TestADR008Local",
+      "case": "\u00a78 auditor accounts expire, at most 30 days ahead, renewable by an admin",
+      "result": "PASS",
+      "s": 0.86
+    },
+    {
+      "rule": "\u00a79",
+      "test": "server.TestADR008Local",
+      "case": "\u00a79 API tokens: admin-made, operator or auditor, at most 90 days, shown once, no step-up",
+      "result": "PASS",
+      "s": 0.39
+    },
+    {
+      "rule": "\u00a79",
+      "test": "server.TestADR008Local",
+      "case": "\u00a79 the CLI's sign-in through a browser gets a session with the same limits",
+      "result": "PASS",
+      "s": 0.33
+    },
+    {
+      "rule": "",
+      "test": "server.TestADR008OIDC",
+      "case": "",
+      "result": "PASS",
+      "s": 2.99
+    },
+    {
+      "rule": "\u00a71",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a71 OIDC needs a break-glass admin with a security key",
+      "result": "PASS",
+      "s": 0.3
+    },
+    {
+      "rule": "\u00a71",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a71 code flow with PKCE, state and nonce; a session for the mapped role",
+      "result": "PASS",
+      "s": 0.03
+    },
+    {
+      "rule": "\u00a71",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a71 turning OIDC off ends the OIDC sessions at their next refresh",
+      "result": "PASS",
+      "s": 0.16
+    },
+    {
+      "rule": "\u00a71",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a71 while OIDC is on only break-glass admins sign in locally; that notifies admins",
+      "result": "PASS",
+      "s": 0.26
+    },
+    {
+      "rule": "\u00a72",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a72 IdP unreachable: the session goes on, step-up is refused with idp unreachable",
+      "result": "PASS",
+      "s": 0.15
+    },
+    {
+      "rule": "\u00a72",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a72 a role change at the IdP ends the user's sessions",
+      "result": "PASS",
+      "s": 0.03
+    },
+    {
+      "rule": "\u00a72",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a72 disabled at the IdP: the session ends at the refresh",
+      "result": "PASS",
+      "s": 0.03
+    },
+    {
+      "rule": "\u00a72",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a72 removed from the group at the IdP: access ends within 10 minutes",
+      "result": "PASS",
+      "s": 0.04
+    },
+    {
+      "rule": "\u00a72",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a72 the highest role of the user's groups; no matching group, no access",
+      "result": "PASS",
+      "s": 0.02
+    },
+    {
+      "rule": "\u00a73",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a73 an ID token without a second factor is refused",
+      "result": "PASS",
+      "s": 0.01
+    },
+    {
+      "rule": "\u00a74",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a74 OIDC step-up: a new sign-in at the IdP with prompt=login, max age=0, auth time within 120 s",
+      "result": "PASS",
+      "s": 0.07
+    },
+    {
+      "rule": "\u00a78",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a78 an OIDC-mapped auditor gets an expiry",
+      "result": "PASS",
+      "s": 0.02
+    },
+    {
+      "rule": "\u00a79",
+      "test": "server.TestADR008OIDC",
+      "case": "\u00a79 the CLI signs in at the IdP with the device grant (RFC 8628)",
+      "result": "PASS",
+      "s": 0.02
+    },
+    {
+      "rule": "",
+      "test": "server.TestBrowserSession",
+      "case": "",
+      "result": "PASS",
+      "s": 1.57
+    },
+    {
+      "rule": "",
+      "test": "server.TestPageRoles",
+      "case": "",
+      "result": "PASS",
+      "s": 2.58
+    },
+    {
+      "rule": "",
+      "test": "server.TestRoleMatrix",
+      "case": "",
+      "result": "PASS",
+      "s": 9.03
+    },
+    {
+      "rule": "",
+      "test": "store.TestAPITokens",
+      "case": "",
+      "result": "PASS",
+      "s": 0.11
+    },
+    {
+      "rule": "",
+      "test": "store.TestMigrationFromPreviousSchema",
+      "case": "",
+      "result": "PASS",
+      "s": 0.53
+    },
+    {
+      "rule": "",
+      "test": "store.TestSigninFailures",
+      "case": "",
+      "result": "PASS",
+      "s": 0.25
+    },
+    {
+      "rule": "",
+      "test": "store.TestUsersAndSessions",
+      "case": "",
+      "result": "PASS",
+      "s": 3.91
+    }
+  ]
+}

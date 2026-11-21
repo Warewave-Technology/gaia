@@ -1,0 +1,6 @@
+{
+  "container": "running",
+  "image": "quay.io/keycloak/keycloak:26.4",
+  "digest": "sha256:9409c59bdfb65dbffa20b11e6f18b8abb9281d480c7ca402f51ed3d5977e6007",
+  "issuer": "https://gaia-lab.test:8444/realms/gaia"
+}

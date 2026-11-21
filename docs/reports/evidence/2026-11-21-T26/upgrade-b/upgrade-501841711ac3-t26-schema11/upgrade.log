@@ -1,0 +1,48 @@
+logged in to https://192.168.1.120:8443 as admin (admin) until 2026-11-22T08:05:38.604615339Z; saved in /root/t17/ws/.config/gaia/cli.json
+
+== server B (192.168.1.120) before: 0.2.0~dev.20261120132307.g6c756b8ab2b8 (6c756b8ab2b8), schema 10
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/README.txt: time stamp 2026-11-21 20:05:46 is 0.20847595 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/anchor.pub: time stamp 2026-11-21 20:05:46 is 0.20839833 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/ledger.jsonl: time stamp 2026-11-21 20:05:46 is 0.206733751 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/config.json: time stamp 2026-11-21 20:05:46 is 0.206632911 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/dnsmasq.leases: time stamp 2026-11-21 20:05:46 is 0.206595662 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/dnsmasq.log: time stamp 2026-11-21 20:05:46 is 0.206553362 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/domain.xml: time stamp 2026-11-21 20:05:46 is 0.206493922 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/manifest.json: time stamp 2026-11-21 20:05:46 is 0.206455193 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/manifest.sig: time stamp 2026-11-21 20:05:46 is 0.206412363 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/network.xml: time stamp 2026-11-21 20:05:46 is 0.206377873 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/result.json: time stamp 2026-11-21 20:05:46 is 0.206344023 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/sandbox.log: time stamp 2026-11-21 20:05:46 is 0.206304574 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/screenshot-boot.png: time stamp 2026-11-21 20:05:46 is 0.206251054 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/screenshot-end.png: time stamp 2026-11-21 20:05:46 is 0.206213214 s in the future
+tar: gaia-evidence-gaia-t17-web-20261121T200036Z-0735ee/bundles/gaia-t17-web-20261121T200036Z-0735ee/serial.log: time stamp 2026-11-21 20:05:46 is 0.206112515 s in the future
+
+== package (guide step 2) and upgrade (step 12, as root on B)
+make: Leaving directory '/root/gaia'
+gaia_0.2.0~dev.20261121195429.g501841711ac3_amd64.deb: OK
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Suggested packages:
+  podman uidmap crun catatonit fuse-overlayfs ovmf
+The following packages will be upgraded:
+  gaia
+1 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/15.8 MB of archives.
+After this operation, 3339 kB of additional disk space will be used.
+Get:1 /tmp/gaia_0.2.0~dev.20261121195429.g501841711ac3_amd64.deb gaia amd64 0.2.0~dev.20261121195429.g501841711ac3 [15.8 MB]
+apt-listchanges: Reading changelogs...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 24853 files and directories currently installed.)
+Preparing to unpack .../gaia_0.2.0~dev.20261121195429.g501841711ac3_amd64.deb ...
+gaia: stopping gaia; it waits for running jobs (up to stop_drain, 10 minutes by default)
+Unpacking gaia (0.2.0~dev.20261121195429.g501841711ac3) over (0.2.0~dev.20261120132307.g6c756b8ab2b8) ...
+Setting up gaia (0.2.0~dev.20261121195429.g501841711ac3) ...
+gaia: restarted; check with: gaia system
+
+real	0m2.390s
+user	0m1.130s
+sys	0m0.424s
+active
+activating
+gaia 0.2.0~dev.20261121195429.g501841711ac3 (501841711ac3), go1.26.0, linux/amd64
+UNKNOWN: harness failed at line 588: code=$(curl -sk -o "$OUT/old-session.json" -w '%{http_code}' -H "Authorization: Bearer $old_token" "https://$B:8443/api/v1/me")

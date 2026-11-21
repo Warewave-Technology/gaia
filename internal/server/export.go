@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/docs/spec"
 	"github.com/Warewave-Technology/gaia/internal/evidence"
+	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
 // The auditor's evidence export (T20, ADR-007 §7): everything needed to verify the installation's evidence offline,
@@ -43,6 +45,9 @@ func (s *Server) auditExport(c *call) (int, any, error) {
 	ctx := c.r.Context()
 	now := s.now().UTC()
 	c.target = "evidence:export"
+	if _, err := os.Stat(s.cfg.ledgerPath()); errors.Is(err, os.ErrNotExist) {
+		return 0, nil, fmt.Errorf("%w: no evidence was sealed yet (the first restore test seals the first bundle): nothing to export", store.ErrConflict)
+	}
 	anchor, err := evidence.GenesisKey(s.cfg.ledgerPath())
 	if err != nil {
 		return 0, nil, fmt.Errorf("the ledger's trust anchor: %w", err)

@@ -1,0 +1,35 @@
+JAVA_OPTS_KC_HEAP already set in environment; overriding default settings
+Updating the configuration and installing your custom providers, if any. Please wait.
+2026-11-21 20:16:42,594 INFO  [io.quarkus.deployment.QuarkusAugmentor] (main) Quarkus augmentation completed in 9405ms
+Running the server in development mode. DO NOT use this configuration in production.
+2026-11-21 20:16:44,786 INFO  [org.keycloak.url.HostnameV2ProviderFactory] (main) If hostname is specified, hostname-strict is effectively ignored
+2026-11-21 20:16:47,121 INFO  [org.hibernate.orm.jdbc.batch] (JPA Startup Thread) HHH100501: Automatic JDBC statement batching enabled (maximum batch size 32)
+2026-11-21 20:16:48,161 INFO  [org.keycloak.quarkus.runtime.storage.database.liquibase.QuarkusJpaUpdaterProvider] (main) Initializing database schema. Using changelog META-INF/jpa-changelog-master.xml
+2026-11-21 20:16:52,477 INFO  [org.infinispan.CONTAINER] (main) Virtual threads support enabled
+2026-11-21 20:16:52,622 INFO  [org.infinispan.CONTAINER] (main) ISPN000556: Starting user marshaller 'org.infinispan.commons.marshall.ImmutableProtoStreamMarshaller'
+2026-11-21 20:16:52,989 INFO  [org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory] (main) Node name: node_828234, Site name: null
+2026-11-21 20:16:53,258 INFO  [org.keycloak.exportimport.dir.DirImportProvider] (main) Importing from directory /opt/keycloak/bin/../data/import
+2026-11-21 20:16:53,264 INFO  [org.keycloak.services] (main) KC-SERVICES0050: Initializing master realm
+2026-11-21 20:16:54,923 INFO  [org.keycloak.services] (main) KC-SERVICES0030: Full model import requested. Strategy: IGNORE_EXISTING
+2026-11-21 20:16:56,922 INFO  [org.keycloak.exportimport.util.ImportUtils] (main) Realm 'gaia' imported
+2026-11-21 20:16:56,929 INFO  [org.keycloak.services] (main) KC-SERVICES0032: Import finished successfully
+2026-11-21 20:16:57,016 INFO  [org.keycloak.services] (main) KC-SERVICES0077: Created temporary admin user with username admin
+2026-11-21 20:16:57,274 INFO  [io.quarkus] (main) Keycloak 26.4.7 on JVM (powered by Quarkus 3.27.1) started in 14.537s. Listening on: http://0.0.0.0:8080 and https://0.0.0.0:8444
+2026-11-21 20:16:57,275 INFO  [io.quarkus] (main) Profile dev activated. 
+2026-11-21 20:16:57,275 INFO  [io.quarkus] (main) Installed features: [agroal, cdi, hibernate-orm, jdbc-h2, keycloak, narayana-jta, opentelemetry, reactive-routes, rest, rest-jackson, smallrye-context-propagation, vertx]
+2026-11-21 20:27:01,874 INFO  [com.arjuna.ats.jbossatx] (Shutdown thread) ARJUNA032014: Stopping transaction recovery manager
+2026-11-21 20:27:02,271 INFO  [io.quarkus] (Shutdown thread) Keycloak stopped in 0.445s
+JAVA_OPTS_KC_HEAP already set in environment; overriding default settings
+Running the server in development mode. DO NOT use this configuration in production.
+2026-11-21 20:32:12,089 INFO  [org.keycloak.url.HostnameV2ProviderFactory] (main) If hostname is specified, hostname-strict is effectively ignored
+2026-11-21 20:32:14,553 INFO  [org.hibernate.orm.jdbc.batch] (JPA Startup Thread) HHH100501: Automatic JDBC statement batching enabled (maximum batch size 32)
+2026-11-21 20:32:15,094 INFO  [org.infinispan.CONTAINER] (main) Virtual threads support enabled
+2026-11-21 20:32:15,242 INFO  [org.infinispan.CONTAINER] (main) ISPN000556: Starting user marshaller 'org.infinispan.commons.marshall.ImmutableProtoStreamMarshaller'
+2026-11-21 20:32:15,659 INFO  [org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory] (main) Node name: node_740725, Site name: null
+2026-11-21 20:32:16,002 INFO  [org.keycloak.exportimport.dir.DirImportProvider] (main) Importing from directory /opt/keycloak/bin/../data/import
+2026-11-21 20:32:16,647 INFO  [org.keycloak.services] (main) KC-SERVICES0030: Full model import requested. Strategy: IGNORE_EXISTING
+2026-11-21 20:32:16,849 INFO  [org.keycloak.exportimport.util.ImportUtils] (main) Realm 'gaia' already exists. Import skipped
+2026-11-21 20:32:16,859 INFO  [org.keycloak.services] (main) KC-SERVICES0032: Import finished successfully
+2026-11-21 20:32:17,102 INFO  [io.quarkus] (main) Keycloak 26.4.7 on JVM (powered by Quarkus 3.27.1) started in 7.230s. Listening on: http://0.0.0.0:8080 and https://0.0.0.0:8444
+2026-11-21 20:32:17,102 INFO  [io.quarkus] (main) Profile dev activated. 
+2026-11-21 20:32:17,102 INFO  [io.quarkus] (main) Installed features: [agroal, cdi, hibernate-orm, jdbc-h2, keycloak, narayana-jta, opentelemetry, reactive-routes, rest, rest-jackson, smallrye-context-propagation, vertx]

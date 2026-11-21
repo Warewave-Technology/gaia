@@ -1,0 +1,11 @@
+{
+  "old_session_status": 401,
+  "old_session_answer": {
+    "error": "the session is not valid",
+    "code": "unauthorized"
+  },
+  "health": {
+    "status": "OK"
+  },
+  "pass": true
+}

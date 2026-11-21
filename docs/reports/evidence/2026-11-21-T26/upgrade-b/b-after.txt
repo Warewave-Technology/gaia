@@ -1,0 +1,5 @@
+2026-11-21T20:16:04+0000 gaia-lab t26-upgrade-wait.sh[198279]: signed in as admin until 2026-11-22T04:16:04.111911419Z (2026-11-21T20:16:04Z)
+2026-11-21T20:16:04+0000 gaia-lab t26-upgrade-wait.sh[198226]: 20:16:04 B status: CRITICAL
+2026-11-21T20:16:34+0000 gaia-lab t26-upgrade-wait.sh[198226]: 20:16:34 B status: CRITICAL
+{"username":"admin","role":"admin","break_glass":true,"factors":["webauthn"],"session":{"kind":"cli","method":"webauthn"}}
+{"version":"0.2.0~dev.20261121201447.gc3c490d09ca5 (c3c490d09ca5)","schema_version":11,"public_url":"https://gaia-t17-b.lab.test:8443","signin_problem":null}
