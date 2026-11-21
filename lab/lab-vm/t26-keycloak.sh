@@ -79,7 +79,9 @@ lan=$(hostname -I | awk '{ print $1 }')
 sed -i "/ $HOSTNAME_\$/d" /etc/hosts
 echo "$lan $HOSTNAME_" >>/etc/hosts
 
-install -d -m 0700 "$DIR" "$DIR/certs" "$DIR/import"
+# The container's user reads the two mounted directories; $DIR itself (and /root) keep everyone else out.
+install -d -m 0700 "$DIR"
+install -d -m 0755 "$DIR/certs" "$DIR/import"
 if [[ ! -f "$DIR/certs/kc.crt" ]]; then
 	openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 30 -subj "/CN=$HOSTNAME_/O=Gaia lab IdP" \
 		-addext "subjectAltName=DNS:$HOSTNAME_" -keyout "$DIR/certs/kc.key" -out "$DIR/certs/kc.crt" 2>/dev/null
