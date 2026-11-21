@@ -120,12 +120,10 @@ curl -fs --cacert "$SRV_HOME/data/tls/cert.pem" "$PUBLIC/api/v1/signin-options" 
 section "lab checks (t26gate)"
 quick=()
 [[ "${QUICK:-}" == 1 ]] && quick=(-quick)
-set +e
+gate_rc=0
 "$BIN/t26gate" -api "$PUBLIC" -cert "$SRV_HOME/data/tls/cert.pem" -kc https://gaia-lab.test:8444 -kc-script "$repo_root/lab/lab-vm/t26-keycloak.sh" \
 	-admin-pw-file "$WORK/admin.pw" -out "$OUT_DIR" -sink-dir "$OUT_DIR/sink" -sink-url "https://$SINK_HTTPS/hook" -sink-ca "$ca/ca.crt" "${quick[@]}" \
-	2> >(tee "$OUT_DIR/t26gate.log" >&2)
-gate_rc=$?
-set -e
+	2> >(tee "$OUT_DIR/t26gate.log" >&2) || gate_rc=$?
 journalctl -u "$UNIT" --no-pager -o short-iso >"$OUT_DIR/server.log" 2>/dev/null || true
 podman logs gaia-t26-keycloak >"$OUT_DIR/keycloak.log" 2>&1 || true
 

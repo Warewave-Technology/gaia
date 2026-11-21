@@ -381,7 +381,12 @@ func (a *actor) kcLogin(start string) (string, error) {
 				os.WriteFile(f, data, 0o600) // to see what the page asks (the lab users' names only; no secrets)
 				return "", fmt.Errorf("no form at Keycloak's page %q (%s), saved in %s", title, u, f)
 			}
-			action = html.UnescapeString(action)
+			base, _ := url.Parse(u)
+			ref, err := url.Parse(html.UnescapeString(action))
+			if err != nil {
+				return "", err
+			}
+			action = base.ResolveReference(ref).String() // a consent page's action is a path
 			resp, data, err = a.b.req("POST", action, strings.NewReader(form.Encode()), "application/x-www-form-urlencoded", nil)
 			if err != nil {
 				return "", err
