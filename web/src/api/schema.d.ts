@@ -3078,8 +3078,10 @@ export interface components {
             ledger: components["schemas"]["LedgerSummary"];
             migrations: components["schemas"]["AppliedMigration"][];
             notifications: components["schemas"]["NotifySummary"];
+            public_url: string;
             recovery_kit: components["schemas"]["KitSummary"];
             schema_version: number;
+            signin_problem?: string;
             ssh_authorized_keys_line: string;
             ssh_public_key: string;
             started_at: string;

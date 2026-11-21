@@ -4638,11 +4638,17 @@
           "notifications": {
             "$ref": "#/components/schemas/NotifySummary"
           },
+          "public_url": {
+            "type": "string"
+          },
           "recovery_kit": {
             "$ref": "#/components/schemas/KitSummary"
           },
           "schema_version": {
             "type": "integer"
+          },
+          "signin_problem": {
+            "type": "string"
           },
           "ssh_authorized_keys_line": {
             "type": "string"
@@ -4671,6 +4677,7 @@
           "ledger",
           "migrations",
           "notifications",
+          "public_url",
           "recovery_kit",
           "schema_version",
           "ssh_authorized_keys_line",
