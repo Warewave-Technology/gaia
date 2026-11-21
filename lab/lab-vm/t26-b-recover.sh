@@ -6,11 +6,27 @@
 # (ADR-008 §9). Writes OUT/b-recover.json. Not part of the product.
 #
 # Usage (on gaia-lab, as root): lab/lab-vm/t26-b-recover.sh B_IP OUT_DIR
+#                               lab/lab-vm/t26-b-recover.sh B_IP drill   waits until B's VM is OK again after the
+#                                 downtime (the drill wants no status change during an upgrade), then runs
+#                                 t17-drill.sh upgrade (RUN=t26-schema11b)
 set -euo pipefail
 B=${1:?B_IP}
 OUT=${2:?OUT_DIR}
 D=/root/t17
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+if [[ "$OUT" == drill ]]; then
+	go build -C "$repo_root" -o "$repo_root/bin/softkey" ./lab/tools/softkey
+	"$repo_root/bin/softkey" login -cli-config "$D/ws/.config/gaia/cli.json" -server "https://$B:8443" \
+		-fingerprint "$(jq -r .result.tls_certificate_sha256 "$D/out/b-restore-state.json")" -user admin \
+		-password-file "$D/secrets/admin.pw" -key "$D/secrets/admin-key.json"
+	for ((i = 0; i < 120; i++)); do
+		s=$(HOME=$D/ws "$D/ws/bin/gaia" status -json | jq -r '.[0].status // .status // empty' 2>/dev/null || true)
+		echo "$(date -u +%T) B status: $s"
+		[[ "$s" == OK ]] && break
+		sleep 30
+	done
+	RUN=t26-schema11b exec "$repo_root/lab/lab-vm/t17-drill.sh" upgrade "$B"
+fi
 sshopts=(-i "$D/ssh/id_ed25519" -o UserKnownHostsFile="$D/ssh/known_hosts" -o BatchMode=yes -o ConnectTimeout=10)
 mkdir -p "$OUT"
 make -C "$repo_root" -s dist | tail -1

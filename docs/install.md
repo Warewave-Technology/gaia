@@ -794,7 +794,12 @@ From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): 
 - Every session ends at the upgrade, the 12-hour command-line logins of 0.1.x included: sign in again (step 6).
 - Everyone enrols a second factor at the next sign-in; admins a security key, in a browser opened by a name with the
   certificate trusted. Set `public_url` in `/etc/gaia/server.json` to `https://<name>:8443` first (the default is
-  the server's host name), and restart `gaia`.
+  the server's host name), and restart `gaia`. A `public_url` whose name has no domain (`https://gaia01:8443`) cannot
+  be used for security keys: Gaia starts and keeps backing up, but `gaia system` shows `signin_problem` and admins
+  cannot sign in (except with a recovery code) until it is set.
+- The name must be in the server's TLS certificate for browsers to trust it. A certificate made by `gaia server init`
+  before 0.2.0 has the names given then: if the public URL's name is not among them, replace the certificate (or use a
+  name that is).
 - `session_ttl` and the `login_*` limits in `server.json` are ignored (the server says so at start): the limits are
   ADR-008's (step 9).
 - Existing admins are break-glass; existing auditors expire 30 days after the upgrade unless renewed.
