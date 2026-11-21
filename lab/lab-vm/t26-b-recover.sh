@@ -20,11 +20,21 @@ ssh "${sshopts[@]}" "gaia@$B" sudo bash -s -- "$(basename "$deb")" <<'EOS' | tee
 set -euo pipefail
 echo "gaia before: $(systemctl is-active gaia || true)"
 cfg=/etc/gaia/server.json
-if ! jq -e '.public_url | select(. != null and test("^https://[^/:]+\\.[^/:]+"))' "$cfg" >/dev/null; then # install.md step 12
-	jq --arg u "https://$(hostname -s).lab.test:8443" '. + {public_url: $u}' "$cfg" >"$cfg.new"
-	chmod --reference="$cfg" "$cfg.new" && chown --reference="$cfg" "$cfg.new" && mv "$cfg.new" "$cfg"
-fi
-jq -r '"public_url: " + .public_url' "$cfg"
+# install.md step 12: public_url with a DNS name. A server has python3 (cloud-init), not always jq.
+python3 -I - "$cfg" "https://$(hostname -s).lab.test:8443" <<'PY'
+import json, os, re, shutil, sys
+cfg, url = sys.argv[1], sys.argv[2]
+c = json.load(open(cfg))
+if not re.match(r"^https://[^/:]+\.[^/:]+", c.get("public_url") or ""):
+    c["public_url"] = url
+    tmp = cfg + ".new"
+    json.dump(c, open(tmp, "w"), indent=2)
+    shutil.copymode(cfg, tmp)
+    st = os.stat(cfg)
+    os.chown(tmp, st.st_uid, st.st_gid)
+    os.replace(tmp, cfg)
+print("public_url:", c["public_url"])
+PY
 cd /tmp && sha256sum -c --ignore-missing SHA256SUMS
 DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y --reinstall "./$1" >/dev/null
 sleep 3 && systemctl is-active gaia gaia-sandbox && gaia version
