@@ -21,7 +21,10 @@ import (
 //	gaia login -server https://HOST:8443 -user NAME      password and a TOTP or recovery code (signin.go)
 //	gaia login -server https://HOST:8443 -browser        approved in a signed-in browser (a security key)
 //	gaia login -server https://HOST:8443 -sso            at the identity provider (device grant)
-//	gaia logout | whoami | system | password
+//	gaia logout | whoami | system | password | recovery-codes
+//	gaia sessions list | rm ID                           every live session (admins); gaia users reset-factors ID
+//	gaia tokens list | add name=N role=operator|auditor [expires_at=...] [allowed_addrs=[...]] | rm ID
+//	gaia factors list | rm ID                            one's own second factors (enrol more in the web UI)
 //	gaia RESOURCE list [key=value ...]                   query filters, e.g. vm_id=3 limit=20
 //	gaia RESOURCE get ID
 //	gaia RESOURCE add key=value ...                      a JSON body; values that parse as JSON are typed
@@ -49,7 +52,10 @@ type resource struct {
 }
 
 var resources = map[string]resource{
-	"users":            {"/api/v1/users", []string{"list", "get", "add", "set", "unlock"}},
+	"users":            {"/api/v1/users", []string{"list", "get", "add", "set", "unlock", "reset-factors"}},
+	"sessions":         {"/api/v1/sessions", []string{"list", "rm"}},
+	"tokens":           {"/api/v1/api-tokens", []string{"list", "add", "rm"}},
+	"factors":          {"/api/v1/me/factors", []string{"list", "rm"}},
 	"hosts":            {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
 	"vms":              {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status", "tags"}},
 	"repositories":     {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
@@ -74,7 +80,7 @@ var resources = map[string]resource{
 // isCLICommand reports whether args[0] is handled by runCLI.
 func isCLICommand(name string) bool {
 	_, ok := resources[name]
-	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "api", "status", "kit"}, name)
+	return ok || slices.Contains([]string{"login", "logout", "whoami", "system", "password", "recovery-codes", "api", "status", "kit"}, name)
 }
 
 // stripJSON removes -json / --json from args.
@@ -125,6 +131,8 @@ func runCLI(ctx context.Context, args []string) int {
 		return 0
 	case "whoami":
 		return call("GET", "/api/v1/me", nil)
+	case "recovery-codes": // new recovery codes, shown once; the old ones stop working
+		return call("POST", "/api/v1/me/recovery-codes", nil)
 	case "status":
 		return cliStatus(ctx, c, args[1:], asJSON)
 	case "system":
@@ -258,6 +266,8 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("GET", res.path+"/"+id, nil)
 	case "scan", "check", "restore-check", "unlock":
 		return call("POST", res.path+"/"+id+"/"+verb, nil)
+	case "reset-factors": // the user enrols again at the next sign-in (ADR-008 §3)
+		return call("POST", res.path+"/"+id+"/factors/reset", nil)
 	case "backup":
 		return call("POST", res.path+"/"+id+"/backups", nil)
 	case "test":

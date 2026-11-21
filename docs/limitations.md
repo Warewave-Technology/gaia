@@ -130,8 +130,34 @@ fixtures) are in the reports, not here.
   installation's own health is a design decision not taken yet.
 - **The API returns at most 1000 items per list**; longer lists are read page by page with `after=`. [T18]
   *Why it waits:* it is by design, to bound responses; the screens and the command line page.
-- **Failed logins of user names that do not exist are counted in memory**, so a restart forgets them. [T18]
-  *Why it waits:* storing them would let anyone fill the database with invented names.
+
+## Sign-in (ADR-008)
+
+- **No SAML, no SCIM provisioning, one identity provider only, no client certificates, no risk-based sign-in.** [T26]
+  *Why it waits:* ADR-008 leaves them out ("Not in this ADR"); OIDC covers the IdPs the lab and the PO use.
+- **A security key needs a DNS name and a trusted certificate**: opened by an IP address, or past a certificate
+  warning, browsers refuse WebAuthn, so an admin cannot sign in that way. [T26]
+  *Why it waits:* it is the browsers' rule; Gaia's certificate is its own (T22), and a certificate from a CA or ACME
+  is a deployment choice the PO has not made.
+- **A terminal cannot use a security key**: an admin signs the command line in, and approves its destructive
+  commands, in a browser. [T26]
+  *Why it waits:* talking to a key from Go needs a native HID library (cgo), which ADR-001 rules out.
+- **The authenticator app's key is shown as text and an `otpauth://` link, without a QR code.** [T26]
+  *Why it waits:* a QR encoder is a new dependency for the UI; the v2 screens (T27) decide.
+- **Sign-ins under way, step-ups and command-line approvals are kept in memory**: a restart in the middle of one
+  asks the user to start again. [T26]
+  *Why it waits:* they last 5 minutes at most; storing them would add short-lived secrets to the database.
+- **The step-up list has two actions without an API yet**: restore over a running VM and signing-key rotation. [T26]
+  *Why it waits:* neither exists in M3 (restore over a VM is not built; key rotation is a local tool, above); the rule
+  is declared per route and holds when they come.
+- **Delays after failed sign-ins count per address**, so people behind one NAT address slow each other down after
+  someone's failures. [T26]
+  *Why it waits:* ADR-008 §7 asks for per-address counting; an allow-list of trusted addresses is a decision of its own.
+- **Passwords set before 0.2.0 that are shorter than 15 characters keep working** until they are changed. [T26]
+  *Why it waits:* ADR-008 §6 checks a password when it is set; forcing a change at the upgrade needs the architect's
+  decision (raised in T26).
+- **TOTP seeds and the IdP's refresh tokens are in the database in clear** (mode 0600, like the password hashes). [T26]
+  *Why it waits:* both must be read to be used; a key to encrypt them would live on the same disk.
 
 ## Losing and rebuilding a server
 

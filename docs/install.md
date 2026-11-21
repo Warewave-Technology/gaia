@@ -88,15 +88,18 @@ server that will not run restore tests, add `--no-install-recommends` to `apt-ge
 ## 4. Set up Gaia (on the server, as root)
 
 Replace `<names>` with the DNS name and IP address you will use to reach the server, separated by commas (for
-example `gaia.lab,192.168.1.40`). They go into the server's TLS certificate.
+example `gaia.lab,192.168.1.40`). They go into the server's TLS certificate. Replace `<name>` with the DNS name
+browsers use: sign-in with a security key (WebAuthn) works only with a name, never an IP address.
 
 ```bash
-runuser -u gaia -- gaia server init -config /etc/gaia/server.json -data-dir /var/lib/gaia -hostname <names> -admin admin
+runuser -u gaia -- gaia server init -config /etc/gaia/server.json -data-dir /var/lib/gaia -hostname <names> -public-url https://<name>:8443 -admin admin
 ```
 
-It asks twice for the password of the first admin user (`admin`); it must have at least 12 characters.
+It asks twice for the password of the first admin user (`admin`): at least 15 characters, not a common or breached
+password, not containing the user name, `gaia` or the server's name. This admin is **break-glass**: it can always
+sign in with its local account, also when single sign-on (step 9b) is on and the identity provider is down.
 
-It then asks twice for the passphrase of the **recovery kit**, also at least 12 characters. The recovery kit is an
+It then asks twice for the passphrase of the **recovery kit**, at least 12 characters. The recovery kit is an
 encrypted file with everything secret that a new server needs to take over if this one is lost: repository
 passwords and the evidence signing key (step 8b). Gaia does not store the passphrase. **Put it in your password
 manager now**; without it the kit cannot be opened.
@@ -130,27 +133,50 @@ It should contain `gaia server is listening`, with `address=[::]:8443`.
 
 If the server has a firewall, open TCP 8443 for the machines that run the `gaia` command.
 
-## 6. Log in
+## 6. Sign in (ADR-008)
 
-On the workstation, unpack the `gaia` command for it from the release directory of step 2 and put it on your
-`PATH` (here for a Mac with Apple silicon; `linux-amd64` on a Linux PC):
+Every account has a **second factor**; it cannot be turned off. An admin's is a security key (WebAuthn): a USB or
+NFC key, or the computer's own (Touch ID, Windows Hello). Operators and auditors may use a key or an authenticator
+app (TOTP). The first sign-in enrols it.
+
+**First, the admin's key, in a browser.** A security key works only when the browser trusts the server: the page must
+be opened by the public URL's name (step 4) with no certificate warning.
+
+1. Make the name resolve to the server on your computer, if your DNS does not (on a Mac: a line
+   `<server address> <name>` in `/etc/hosts`).
+2. Trust the server's certificate. Copy `/var/lib/gaia/data/tls/cert.pem` from the server, check its sha256 against
+   step 4 (`openssl x509 -in cert.pem -noout -fingerprint -sha256`), and add it as trusted: on a Mac, open it in
+   Keychain Access, then *Trust → When using this certificate: Always Trust*.
+3. Open `https://<name>:8443`, sign in as `admin` with the password, and choose **Enrol a security key**. Touch the
+   key (or Touch ID).
+4. The page shows 10 **recovery codes**, once. Keep them in your password manager: each signs you in once if you lose
+   the key. An admin can also reset someone's factors (step 9).
+
+**Then the command line.** On the workstation, unpack the `gaia` command for it from the release directory of step 2
+and put it on your `PATH` (here for a Mac with Apple silicon; `linux-amd64` on a Linux PC):
 
 ```bash
 tar xzf gaia-<version>-darwin-arm64.tar.gz && sudo install -m 0755 gaia-<version>-darwin-arm64/gaia /usr/local/bin/gaia && gaia version
 ```
 
-(The `gaia` command on the server works too.)
+A terminal cannot use a security key, so an admin approves the command line's sign-in in the signed-in browser:
 
 ```bash
-gaia login -server https://<server>:8443 -user admin
+gaia login -server https://<name>:8443 -browser
 ```
 
 1. It shows the server certificate's sha256 and asks whether it is the one from step 4. Answer `y` only if it
    matches.
-2. It asks for the password.
-3. It prints `logged in to ... as admin (admin) until ...`.
+2. It prints a page and a code. Open the page in the browser, check the code, **Approve**, and touch the key.
+3. It prints `signed in to ... as admin (admin) until ...`.
 
-The login is saved in `~/.config/gaia/cli.json` and lasts 12 hours.
+A user with an authenticator app signs in in the terminal: `gaia login -server https://<name>:8443 -user <name>`
+asks for the password and a code from the app (or a recovery code); at its first sign-in it enrols the app (it shows
+the key to type into the app).
+
+The session is saved in `~/.config/gaia/cli.json`. It ends after 15 minutes without a command, and after 8 hours in
+any case (step 9). A destructive or security command (step 9) asks for the factor again: the app's code, or, for a
+security key, an approval in the browser.
 
 Check it:
 
@@ -158,7 +184,7 @@ Check it:
 gaia whoami && gaia system
 ```
 
-`gaia system` shows the version, the schema version (`8`), and the `evidence_key_id`. That key_id is the trust
+`gaia system` shows the version, the schema version (`11`), and the `evidence_key_id`. That key_id is the trust
 anchor from step 4.
 
 ## 7. Create the repository
@@ -320,38 +346,97 @@ There are three roles:
 | `operator` | Manage hosts, VMs, disks and policies, and read everything except users and the audit log. |
 | `auditor` | Read everything, the audit log included, and export evidence. Cannot change anything. |
 
-Add a user. The command asks for the password; never put a password on the command line:
+Add a user. The command asks for the password (step 4's rules); never put a password on the command line. The user
+enrols a second factor at the first sign-in:
 
 ```bash
 gaia users add username=<name> role=operator
+gaia users add username=<name> role=auditor expires_at=2026-12-20T00:00:00Z
 ```
+
+An auditor's account expires, at most 30 days ahead (30 days if not given); an admin renews it with
+`gaia users set <id> expires_at=<date>`.
 
 Other user commands:
 
 ```bash
 gaia users list
 gaia users set <id> disabled=true
+gaia users set <id> role=auditor
 gaia users set <id> password=-
+gaia users reset-factors <id>
 gaia password
+gaia factors list
+gaia recovery-codes
 ```
 
-- `disabled=true` disables a user and ends their sessions.
-- `password=-` sets someone else's password; the command asks for it.
-- `gaia password` changes your own password.
+- `disabled=true`, a role change and `password=-` end the user's sessions. `password=-` is a reset: the user must
+  choose a new password at the next sign-in.
+- `reset-factors` removes the user's second factors and recovery codes: the user enrols again at the next sign-in.
+- `gaia password` changes your own password and ends your other sessions; `gaia recovery-codes` makes new codes.
+- The last admin, and the last break-glass admin (`break_glass=true`), cannot be disabled or demoted.
 
-The last admin cannot be disabled or demoted.
+**Asked for again.** These actions need a fresh second factor in the request, every time (ADR-008 §4): forgetting or
+deleting points; user, role, factor and API-token changes; making a policy looser; sign-in and security settings;
+adding or removing a host or a repository; evidence exports. The web UI asks with a dialog, the command line with a
+prompt. `gaia api GET /api/v1/settings/signin` lists them (`step_up_actions`).
 
-**Wrong passwords.** After 5 wrong passwords in a row, a username is locked out for 15 minutes; `gaia login` then
-answers `429 too many wrong passwords for this username` even for the right password. After 20 wrong passwords from
-one address within 10 minutes, that address is refused the same way. Every attempt is in the audit log
-(`gaia audit list`). An admin can end a lockout at once:
+**Sessions.** A session ends after 15 minutes without the user doing anything (the screens refreshing themselves do
+not count) and after 8 hours in any case; each user has at most 3, a fourth ends the oldest. A sign-in from a device
+or address not seen for that user in 30 days is reported to the notification channels (`new_device_signin`).
+`gaia sessions list` shows everyone's; `gaia sessions rm <id>` signs one out.
+
+**Failed attempts.** From the 3rd failed sign-in of an account or from an address, each next attempt waits longer
+(1 s, 2 s, 4 s, ...); `gaia login` answers `429 ... try again after ...`. After 10 failures within 15 minutes the account
+is paused for 15 minutes from every address, and the notification channels hear of it (`account_locked`). Every
+attempt is in the audit log (`gaia audit list`). An admin can end a pause at once:
 
 ```bash
 gaia users unlock <id>
 ```
 
-The limits are `login_max_failures`, `login_lockout`, `login_address_failures` and `login_address_window` in
-`/etc/gaia/server.json`.
+**Passwords** may be set to expire (`password_max_age`: `none`, the default, `90d` or `180d`, step 9b); users are told
+14 days before. An optional check against an online list of breached passwords (`online_breach_check`) is off: Gaia
+works without the internet.
+
+**API tokens for automation.** An admin makes them: role `operator` or `auditor` (never admin), at most 90 days,
+optionally only from some addresses. The token is shown once; a token cannot do the actions above.
+
+```bash
+gaia tokens add name=monitoring role=auditor allowed_addrs='["10.0.0.0/24"]'
+gaia tokens list
+gaia tokens rm <id>
+```
+
+## 9b. Single sign-on (OIDC, optional)
+
+Gaia can let people sign in at your identity provider (one per installation): the authorization code flow with
+PKCE, as a confidential client. Roles come from a groups claim through a mapping you write; a user in no mapped group
+has no access. Groups are read again every 10 minutes, so removing someone at the IdP takes effect within 10 minutes.
+The ID token must show a second factor (`acr` or `amr`, as you configure). While single sign-on is on, only
+break-glass admins sign in with a local account.
+
+At the identity provider, make a confidential client with the redirect URI `https://<name>:8443/api/v1/oidc/callback`,
+the code flow, PKCE S256, a groups claim in the ID token, and (for `gaia login -sso`) the device authorization grant.
+Then, with a JSON file of the settings (the secret only once; it is never shown again):
+
+```json
+{"idle_timeout_min": 15, "absolute_timeout_h": 8, "password_max_age": "none", "online_breach_check": false,
+ "oidc_client_secret": "<the client secret>",
+ "oidc": {"enabled": true, "name": "Company SSO", "issuer": "https://sso.example/realms/ops", "client_id": "gaia",
+          "groups_claim": "groups", "roles": {"gaia-admins": "admin", "gaia-operators": "operator", "internal-audit": "auditor"},
+          "second_factor": {"required": true, "claim": "acr", "values": ["mfa"]}}}
+```
+
+```bash
+gaia api PUT /api/v1/settings/signin "$(cat signin.json)" && rm signin.json
+```
+
+It checks the IdP's discovery first and asks for your factor (a settings change). The sign-in page then offers
+**Continue with Company SSO**; `gaia login -server https://<name>:8443 -sso` signs in at the IdP from a terminal.
+If the IdP does not answer, sessions go on until their limit, but destructive actions are refused
+(`idp_unreachable`): sign in as a break-glass admin. Each break-glass sign-in while single sign-on is on is reported
+(`breakglass_signin`) and listed in the next daily report.
 
 ## 10. Back up VMs on a KVM host
 
@@ -528,12 +613,13 @@ gaia state-changes list entity=vm_status entity_id=<vm id>
 Gaia's screens are on the same address as the API. Open it in a browser:
 
 ```
-https://<server>:8443
+https://<name>:8443
 ```
 
-1. The browser warns that the certificate is not trusted: it is the server's own certificate from step 4. Check
-   its sha256 fingerprint in the browser's certificate view against the one from step 4, then continue.
-2. Log in with a user from step 9. Each person has their own user; the login lasts 12 hours.
+1. Use the public URL's name, with the server's certificate trusted (step 6): with a certificate warning the browser
+   refuses security keys.
+2. Sign in with a user from step 9 (or single sign-on, step 9b) and the second factor. Each person has their own
+   user; the session ends after 15 minutes without activity and after 8 hours.
 
 | Screen | Who sees it | What it shows |
 |---|---|---|
@@ -703,6 +789,17 @@ new schema version. Gaia refuses to start on a database written by a newer versi
 
 From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): add a notification channel (step 8c).
 
+**To 0.2.0 (schema 11, strict sign-in, ADR-008):**
+
+- Every session ends at the upgrade, the 12-hour command-line logins of 0.1.x included: sign in again (step 6).
+- Everyone enrols a second factor at the next sign-in; admins a security key, in a browser opened by a name with the
+  certificate trusted. Set `public_url` in `/etc/gaia/server.json` to `https://<name>:8443` first (the default is
+  the server's host name), and restart `gaia`.
+- `session_ttl` and the `login_*` limits in `server.json` are ignored (the server says so at start): the limits are
+  ADR-008's (step 9).
+- Existing admins are break-glass; existing auditors expire 30 days after the upgrade unless renewed.
+- Existing notification channels also get `breakglass_signin`, `new_device_signin` and `account_locked`.
+
 **From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
 
 ```bash
@@ -797,8 +894,12 @@ With migration checks (step 10d), also: `rm -rf /var/lib/gaia-convert && userdel
 | `gaia login` cannot connect | The service is not running (step 5), or a firewall blocks 8443. |
 | The certificate sha256 at login differs from step 4 | Do not log in. If the server was set up again, use the new value from that `init`. |
 | `the server's certificate is not the one pinned at login` | The server's certificate changed. Log in again only if that was on purpose. |
-| `401 unauthorized` | The login expired (12 hours) or the user was disabled: run `gaia login` again. |
-| `429 ... too many wrong passwords` | Wait until the time it names, or an admin runs `gaia users unlock <id>` (step 9). The audit log shows the attempts. |
+| `401 session_ended` | The session ended: 15 minutes without a command (`idle`), 8 hours (`absolute`), a fourth sign-in (`replaced`), or a password, factor or role change. Run `gaia login` again. |
+| `403 step_up_required` | A destructive or security action: the command line asks for your factor; answer it (or approve it in the browser). |
+| `403 signin_refused` with single sign-on on | Only break-glass admins use a local account then: sign in with `-sso` or in the browser. |
+| The browser does not offer the security key | The page is opened by an IP address, or the certificate is not trusted (step 6). |
+| `403 idp_unreachable` | The identity provider did not answer the last session refresh: destructive actions wait for it, or for a break-glass admin. |
+| `429 ... failed attempts` | Wait until the time it names (an account paused after 10 failures: 15 minutes), or an admin runs `gaia users unlock <id>` (step 9). The audit log shows the attempts. |
 | `403 forbidden` | Your role may not do that (step 9). |
 | `503 ... the audit log cannot be written` | The disk under `/var/lib/gaia` is full or read-only. Gaia does nothing it cannot record. |
 | `state-backups run` says `failed` | The message says why; the journal has details (`journalctl -u gaia`). |
