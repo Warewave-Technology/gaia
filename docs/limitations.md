@@ -75,6 +75,11 @@ fixtures) are in the reports, not here.
 - **The sandbox runs on the Gaia server itself**; one server's sandbox tests at most 8 VMs at once. [T25]
   *Why it waits:* a remote sandbox host is the step after M3 (ADR-007 C4). `GET /api/v1/views/capacity` says how
   many slots a fleet needs; the T24 catalog (5,000 VMs) needs 17.
+- **Parallel tests share one disk**: each test writes its restored image and reads it in full twice (its
+  sha256 before and after the boot), so tests in several slots slow each other down on one disk (T25 run 3: removing the
+  sandbox and hashing a 4 GiB image again took 36 s beside another slot's restore, 4 s alone). [T25]
+  *Why it waits:* the full-image hash is ADR-002's proof that a test did not change the point; the sandbox images
+  directory (`sandbox_images_dir`) can be put on a disk of its own.
 - **The boot timeout is 300 s and the same for every VM** (a broken VM holds the sandbox that long). [T16]
   *Why it waits:* a per-policy `boot_timeout_s` needs a schema change and a UI field; nothing in the MVP needs it.
 - **The sandbox's network card may sit at another PCI address than on the source host**, so a guest that names its
