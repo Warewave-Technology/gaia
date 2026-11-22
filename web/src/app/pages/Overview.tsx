@@ -117,6 +117,7 @@ function Headline({ v, setF }: { v: FleetView; setF: SetFilters }) {
             <Fact term={t.ledger}>
               <StatusChip status={v.ledger.checked_at ? v.ledger.verdict : 'UNKNOWN'} size="xs" />
               {v.ledger.checked_at ? t.ledgerText(v.ledger.entries, when(fmt, v.clock, v.ledger.checked_at, t)) : t.ledgerUnchecked}
+              {v.ledger.unchecked > 0 && <> {t.ledgerSince(v.ledger.unchecked)}</>}
             </Fact>
             <Fact term={t.kit}>
               <StatusChip status={v.recovery_kit.state === 'confirmed' ? 'OK' : 'WARNING'} size="xs" />

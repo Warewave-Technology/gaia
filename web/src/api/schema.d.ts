@@ -2544,6 +2544,7 @@ export interface components {
             problems: string[];
             reason: string;
             text: string;
+            unchecked: number;
             verdict: string;
         };
         LoginRequest: {

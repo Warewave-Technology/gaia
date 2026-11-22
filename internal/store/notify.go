@@ -333,6 +333,13 @@ func (d *DB) AddLedgerCheck(ctx context.Context, actor string, c LedgerCheck) (L
 }
 
 // LedgerChecks lists the newest ledger checks first.
+// LedgerHead is the newest ledger entry an evidence bundle recorded (0: none yet).
+func (d *DB) LedgerHead(ctx context.Context) (int, error) {
+	var n int
+	err := d.db.QueryRowContext(ctx, `SELECT COALESCE(MAX(ledger_seq), 0) FROM evidence_bundles`).Scan(&n)
+	return n, err
+}
+
 func (d *DB) LedgerChecks(ctx context.Context, limit int) ([]LedgerCheck, error) {
 	rows, err := d.db.QueryContext(ctx, `SELECT `+ledgerCheckCols+` FROM ledger_checks ORDER BY id DESC LIMIT ?`, limit)
 	if err != nil {

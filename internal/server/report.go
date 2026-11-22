@@ -100,7 +100,8 @@ type NotifySummary struct {
 // LedgerSummary is the latest ledger check.
 type LedgerSummary struct {
 	store.LedgerCheck
-	Text string `json:"text"`
+	Unchecked int    `json:"unchecked"` // entries sealed after this check: not vouched for until the next one
+	Text      string `json:"text"`
 }
 
 const howToVerify = `Keep this report. To check the evidence ledger later against the head recorded here, with the installation's ` +
@@ -419,9 +420,17 @@ func (s *Server) ledgerSummary(ctx context.Context) (LedgerSummary, error) {
 		return LedgerSummary{LedgerCheck: store.LedgerCheck{Verdict: evidence.Unknown, Problems: []string{}}, Text: "the evidence ledger was not checked yet"}, nil
 	}
 	l := LedgerSummary{LedgerCheck: cs[0]}
+	head, err := s.db.LedgerHead(ctx)
+	if err != nil {
+		return LedgerSummary{}, err
+	}
+	l.Unchecked = max(0, head-cs[0].HeadSeq)
 	l.Text = fmt.Sprintf("%s at %s: %d entries", cs[0].Verdict, cs[0].CheckedAt, cs[0].Entries)
 	if len(cs[0].Problems) > 0 {
 		l.Text += ": " + strings.Join(cs[0].Problems, "; ")
+	}
+	if l.Unchecked > 0 {
+		l.Text += fmt.Sprintf("; %d newer not checked yet", l.Unchecked)
 	}
 	return l, nil
 }

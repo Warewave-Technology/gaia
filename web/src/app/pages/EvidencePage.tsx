@@ -32,7 +32,6 @@ export function EvidencePage() {
   const sys = useSystem()
   const led = useLedger()
   const reps = useDailyReports()
-  const newest = useEvidence(1).data?.[0]
   if (!can(me, 'export')) return <Navigate to="/" replace />
   if (sys.isPending || led.isPending || reps.isPending) return <Loading />
   const err = sys.error ?? led.error ?? reps.error
@@ -40,17 +39,16 @@ export function EvidencePage() {
   const fmt = serverTime(sys.data.clock)
   return (
     <main className={s.page}>
-      <Headline l={led.data.latest} head={newest?.ledger_seq ?? 0} admin={can(me, 'admin')} rep={reps.data[0] ?? null} keyID={sys.data.evidence_key_id} fmt={fmt} clock={sys.data.clock} />
+      <Headline l={led.data.latest} admin={can(me, 'admin')} rep={reps.data[0] ?? null} keyID={sys.data.evidence_key_id} fmt={fmt} clock={sys.data.clock} />
       <Export rep={reps.data[0] ?? null} />
       <Entries fmt={fmt} clock={sys.data.clock} />
     </main>
   )
 }
 
-/** `head` is the newest bundle's ledger entry: entries sealed after the latest check are not vouched for yet. */
-function Headline({ l, head, admin, rep, keyID, fmt, clock }: {
+/** Entries sealed after the latest check (`unchecked`) are not vouched for yet. */
+function Headline({ l, admin, rep, keyID, fmt, clock }: {
   l: Ledger
-  head: number
   admin: boolean
   rep: Report | null
   keyID: string
@@ -60,7 +58,7 @@ function Headline({ l, head, admin, rep, keyID, fmt, clock }: {
   const t = useT().evidence
   const check = useCheckLedger()
   const checked = l.checked_at !== ''
-  const unchecked = checked ? Math.max(0, head - l.head_seq) : 0
+  const unchecked = checked ? l.unchecked : 0
   const v = checked && unchecked === 0 ? l.verdict : 'UNKNOWN'
   const empty = checked && v === 'OK' && l.entries === 0
   const answer = !checked ? t.answer.unchecked : unchecked > 0 && l.verdict === 'OK' ? t.answer.since(unchecked)

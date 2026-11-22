@@ -41,7 +41,7 @@ function TestBody({ test, v, fmt }: { test: TestView; v: VMView; fmt: Fmt }) {
         {checks.map((c) => (
           <li key={c.name}>
             <StatusChip status={c.verdict} size="xs" />
-            <span>{c.name.replace(/_/g, ' ')}{c.detail && <span className={s.of}>{c.detail}</span>}</span>
+            <span>{c.name.replace(/_/g, ' ')}{c.detail && <Detail text={c.detail} />}</span>
             <span className={s.secs}>{c.seconds ? dur(c.seconds, true) : '—'}</span>
           </li>
         ))}
@@ -96,5 +96,17 @@ function Shots({ test }: { test: TestView }) {
         </figure>
       ))}
     </div>
+  )
+}
+
+/** A check's detail; a long one (a WinRM answer with its NTLM challenge) shows its start, the rest on request. */
+function Detail({ text }: { text: string }) {
+  const t = useT().vm
+  if (text.length <= 240) return <span className={s.of}>{text}</span>
+  return (
+    <details className={s.long}>
+      <summary className={s.of}>{text.slice(0, 200)}… <span className={s.more}>{t.moreDetail}</span></summary>
+      <span className={s.of}>{text}</span>
+    </details>
   )
 }

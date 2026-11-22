@@ -2196,6 +2196,9 @@
           "text": {
             "type": "string"
           },
+          "unchecked": {
+            "type": "integer"
+          },
           "verdict": {
             "type": "string"
           }
@@ -2209,6 +2212,7 @@
           "problems",
           "reason",
           "text",
+          "unchecked",
           "verdict"
         ],
         "type": "object"

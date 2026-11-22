@@ -225,6 +225,7 @@ export const en = {
     ledger: 'Evidence ledger',
     ledgerText: (n: number, at: string) => `${n.toLocaleString('en-US')} entries, checked ${at}.`,
     ledgerUnchecked: 'Not checked yet.',
+    ledgerSince: (n: number) => `${n.toLocaleString('en-US')} newer ${n === 1 ? 'entry waits' : 'entries wait'} for the next check.`,
     kit: 'Recovery kit',
     kitSaved: (gen: number, at: string, by: string) => `Kit ${gen} stored off the server, confirmed ${at} by ${by}.`,
     running: 'Running now',
@@ -292,6 +293,7 @@ export const en = {
   },
   strip: { label: (h: number) => `Backups and restore tests, last ${h} hours`, empty: 'no backups yet' },
   vm: {
+    moreDetail: 'show all',
     notFound: 'There is no such VM.',
     crumbs: 'Breadcrumb',
     crumb: {

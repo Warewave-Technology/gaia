@@ -121,3 +121,7 @@
   .bullets, .shots { grid-template-columns: minmax(0, 1fr); }
   .tagform input, .forget input { min-width: 0; width: 100%; }
 }
+.long summary { cursor: pointer; list-style: none; }
+.long summary::-webkit-details-marker { display: none; }
+.long[open] summary { display: none; }
+.more { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
