@@ -1,24 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useT } from '../../i18n'
+import { reason, type CauseIn } from '../../i18n/en-reasons'
 import { dur } from '../../lib/duration'
-import { serverTime, type Fmt, type ServerClock } from '../../lib/time'
+import { serverTime, type Fmt } from '../../lib/time'
 import { useFilters } from '../../lib/url'
+import { useCapacitySummary, useFilterNames, useFleet, type FleetView } from '../api/fleet'
 import {
-  useAttention, useCapacitySummary, useCoverage, useFilterNames, useFleet, useVMList,
-  type AttentionGroup, type CoverageGroup, type FleetView, type VMFilter, type VMListRow,
-} from '../api/fleet'
+  useAttentionPages, useCoveragePages, useVMPages, type AttentionGroup, type CoverageCounts, type CoverageGroup, type LedgerSummary, type VMFilter,
+  type VMListRow,
+} from '../api/overview'
 import { Failed, Loading } from '../layout/States'
 import {
-  Button, Fact, Facts, HistoryStrip, Legend, MoreRows, Notice, PageHead, Pick, ProofBar, ProofScale, SectionHead, Seg, StatusBar,
-  StatusChip, StatusCounts, asStatus,
+  DataTable, FilterChip, Notice, RowToggle, StatusBar, StatusChip, StatusCounts, TabPanel, Tabs, TechDetails, Toolbar, asStatus, type Column,
 } from '../ui'
+import { ledgerState, where } from './overview/logic'
+import { PickChip } from './overview/PickChip'
 import s from './Overview.module.css'
 
 const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
-const KEYS = ['show', 'status', 'host', 'policy', 'tag', 'code', 'scope_kind', 'scope_id', 'q', 'by', 'all'] as const
+const KEYS = ['tab', 'show', 'status', 'host', 'policy', 'tag', 'code', 'scope_kind', 'scope_id', 'q', 'by', 'all'] as const
 type Filters = Record<(typeof KEYS)[number], string>
 type SetFilters = (patch: Partial<Filters>) => void
+type T = ReturnType<typeof useT>['v3']['overview']
+const TABS = ['attention', 'coverage', 'vms'] as const
+type TabKey = (typeof TABS)[number]
+/** The filters of the VM table; any of them in a link (the VM page's, the search's) opens the VMs tab. */
+const VM_FILTERS = ['show', 'status', 'host', 'policy', 'tag', 'code', 'q'] as const
+const CLEAR_VM: Partial<Filters> = { show: '', status: '', host: '', policy: '', tag: '', code: '', scope_kind: '', scope_id: '', q: '' }
+
+const n = (v: number) => v.toLocaleString('en-US')
 
 /** The overview as it is now, filters included: a VM page's breadcrumb leads back to it. */
 function useFrom() {
@@ -26,425 +37,365 @@ function useFrom() {
   return l.pathname + l.search
 }
 
-/** "Today 04:51" or "Nov 17 04:51" in the server's zone. */
-function when(fmt: Fmt, clock: ServerClock, iso: string, t: ReturnType<typeof useT>['home']) {
-  return fmt.date(iso) === fmt.date(clock.now) ? t.today(fmt.hhmm(iso)) : `${fmt.date(iso)} ${fmt.hhmm(iso)}`
-}
-
 /**
- * The overview (docs/design/v2/Main.dc.html): can every VM return right now; the causes of those that cannot, each
- * once; coverage by host, policy or tag; and the VM table, needs-attention first. Every region is its own request
- * and every list is paged, so a fleet of thousands draws as fast as a few (ADR-007 C1).
+ * The overview (docs/design/v3/Main3.dc.html): the answer — how many VMs can return to a proven point — with the
+ * installation's facts and the status tally above the fold, then three tabs: the causes of the VMs that cannot
+ * (one row per cause), coverage by host, policy or tag, and every VM, worst first. The tab and every filter are in
+ * the URL; every list is one server page at a time (ADR-007 C1, C15).
  */
 export function Overview() {
   const q = useFleet()
   const [f, setF] = useFilters(KEYS)
+  const t = useT().v3.overview
   if (q.isPending) return <Loading />
   if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
+  const v = q.data
+  const tab: TabKey = (TABS as readonly string[]).includes(f.tab) ? (f.tab as TabKey) : VM_FILTERS.some((k) => f[k]) ? 'vms' : 'attention'
+  const fmt = serverTime(v.clock)
+  // the sentences' "now" (an age in a reason): the server's, as the fleet view last said it
+  const now = Date.parse(v.clock.now)
   return (
     <main className={s.page}>
-      <Headline v={q.data} setF={setF} />
-      {q.data.vms > 0 && (
+      <Head v={v} f={f} tab={tab} setF={setF} fmt={fmt} />
+      <Notices v={v} />
+      {v.vms > 0 && (
         <>
-          {q.data.cannot > 0 && <Attention v={q.data} setF={setF} />}
-          <Coverage f={f} setF={setF} />
-          <VMTable v={q.data} f={f} setF={setF} />
+          <Tabs label={t.tabs} value={tab} onChange={(k) => setF({ tab: k })} hint={t.hint[tab]}
+            tabs={[
+              { key: 'attention', label: t.tab.attention, count: v.cannot > 0 ? t.tabCount.attention(v.causes, v.cannot) : '' },
+              { key: 'coverage', label: t.tab.coverage },
+              { key: 'vms', label: t.tab.vms, count: n(v.vms) },
+            ]} />
+          <TabPanel id={tab}>
+            {tab === 'attention' && <Attention fmt={fmt} now={now} setF={setF} />}
+            {tab === 'coverage' && <Coverage f={f} setF={setF} />}
+            {tab === 'vms' && <VMs f={f} setF={setF} fmt={fmt} now={now} />}
+          </TabPanel>
         </>
       )}
     </main>
   )
 }
 
-function Headline({ v, setF }: { v: FleetView; setF: SetFilters }) {
-  const t = useT().home
-  const fmt = serverTime(v.clock)
+/** The answer, the facts line, and the status tally as filters (rule 2: all of it above the fold at 1440 × 900). */
+function Head({ v, f, tab, setF, fmt }: { v: FleetView; f: Filters; tab: TabKey; setF: SetFilters; fmt: Fmt }) {
+  const t = useT().v3.overview
   const cap = useCapacitySummary().data
-  const worst = v.worst_proven_rpo
-  const running = (v.running ?? []).filter((c) => c.state === 'running')
-  const queued = (v.running ?? []).filter((c) => c.state === 'queued').reduce((n, c) => n + c.count, 0)
-  const lede = v.vms === 0 ? t.empty : (
-    <>
-      {t.canReturn}{' '}
-      {v.cannot > 0 && <><b>{t.cannot(v.cannot)}</b>{t.causes(v.causes)}{' '}</>}
-      {worst && (
-        <>
-          {t.worst}{' '}
-          <b className={worst.rpo_target_s !== null && worst.proven_rpo_s > worst.rpo_target_s ? s.bad : ''}>{dur(worst.proven_rpo_s)}</b>{' '}
-          {t.worstOf(worst.vm, worst.rpo_target_s !== null ? dur(worst.rpo_target_s) : null)}
-        </>
-      )}
-      {v.uncomputed > 0 && <> {t.uncomputed(v.uncomputed)}</>}
-    </>
-  )
-  const testsPerDay = cap ? cap.by_os_class.reduce((n, g) => n + g.tests_per_day, 0) : 0
+  const now = Date.parse(v.clock.now)
+  const ledger = v.ledger as LedgerSummary
+  const ls = ledgerState(ledger, v.can_return > 0, now)
+  const at = ledger.checked_at ? fmt.at(ledger.checked_at) : ''
+  const running = (v.running ?? []).filter((c) => c.state === 'running' && c.count > 0)
+  const queued = (v.running ?? []).filter((c) => c.state === 'queued').reduce((x, c) => x + c.count, 0)
+  const kit = v.recovery_kit
+  const capStatus = !cap ? null : cap.sandbox === null && cap.sandbox_error ? 'UNKNOWN' : cap.coverage >= 1 ? 'OK' : 'WARNING'
+  const pick = (st: string) => {
+    const on = tab === 'vms' && f.status === st
+    setF({ tab: 'vms', status: on ? '' : st, show: on ? '' : 'all' })
+  }
   return (
-    <>
-      <PageHead
-        size="hero"
-        question={t.question}
-        answer={<>{v.can_return.toLocaleString('en-US')} <small>{t.ofVMs(v.vms)}</small></>}
-        lede={
-          <>
-            <p>{lede}</p>
-            <ul className={s.tally} aria-label={t.byStatus}>
-              {ORDER.map((st) => (
-                <li key={st}>
-                  <a
-                    href="#vms"
-                    className={`${s.tile} ${s[`t${st}`]}`}
-                    onClick={() => setF({ status: st, show: st === 'OK' ? 'all' : '' })}
-                  >
-                    <span className={s.tn}>{(v.by_status[st] ?? 0).toLocaleString('en-US')}</span>
-                    <StatusChip status={st} size="sm" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </>
-        }
-        aside={
-          <Facts label={t.facts}>
-            <Fact term={t.capacity}>
-              {cap ? (
+    <section className={s.head}>
+      <div className={s.answer}>
+        <p className={s.q}>{t.question}</p>
+        <h1 className={s.h1}>
+          <span className={s.big}>{n(v.can_return)}</span> <span className={s.rest}>{v.vms === 0 ? t.empty : t.answer(v.vms)}</span>
+        </h1>
+        {v.uncomputed > 0 && <p className={s.uncomputed}>{t.uncomputed(v.uncomputed)}</p>}
+        <dl className={s.facts} aria-label={t.facts}>
+          <div>
+            <dt><Link to="/capacity">{t.capacity}</Link></dt>
+            <dd>
+              {cap && capStatus ? (
                 <>
-                  <StatusChip status={cap.coverage >= 1 ? 'OK' : 'WARNING'} size="xs" />
-                  {cap.coverage >= 1 ? t.capacityOk(Math.round(testsPerDay), cap.slots) : t.capacityBehind(Math.round(testsPerDay), cap.slots, Math.floor(cap.coverage * 100))}
-                  {cap.expiring_total > 0 && <> {t.expiring(cap.expiring_total)}</>}{' '}
-                  <Link to="/capacity">{t.planCapacity}</Link>
+                  <StatusChip status={capStatus} size="xs" word={capStatus === 'UNKNOWN' ? undefined : t.capacityPct(Math.floor(cap.coverage * 100))} />
+                  {capStatus === 'UNKNOWN' && <span className={s.fs}>{t.capacityNoSandbox}</span>}
                 </>
-              ) : t.loading}
-            </Fact>
-            <Fact term={t.ledger}>
-              <StatusChip status={v.ledger.checked_at ? v.ledger.verdict : 'UNKNOWN'} size="xs" />
-              {v.ledger.checked_at ? t.ledgerText(v.ledger.entries, when(fmt, v.clock, v.ledger.checked_at, t)) : t.ledgerUnchecked}
-              {v.ledger.unchecked > 0 && <> {t.ledgerSince(v.ledger.unchecked)}</>}
-            </Fact>
-            <Fact term={t.kit}>
-              <StatusChip status={v.recovery_kit.state === 'confirmed' ? 'OK' : 'WARNING'} size="xs" />
-              {v.recovery_kit.confirmed_at
-                ? t.kitSaved(v.recovery_kit.generation, `${fmt.date(v.recovery_kit.confirmed_at)}`, v.recovery_kit.confirmed_by ?? '')
-                : v.recovery_kit.text}
-            </Fact>
-            <Fact term={t.running}>
-              {running.length === 0 && queued === 0 ? t.idle : t.runningText(running.map((c) => t.kind(c.kind, c.count)).join(', '), queued)}{' '}
-              <Link to="/activity">{t.activity}</Link>
-            </Fact>
-          </Facts>
-        }
-      />
-      {v.notifications.state !== 'OK' && <Notice tone="warning">{v.notifications.text}</Notice>}
-      {v.ledger.verdict !== 'OK' && v.ledger.checked_at && <Notice tone="critical">{v.ledger.text}</Notice>}
-    </>
-  )
-}
-
-/** Where a group's VMs are: its scope, or its hosts with their counts. */
-function where(g: AttentionGroup, t: ReturnType<typeof useT>['home']) {
-  if (g.scope) return t.scope(g.scope.kind, g.scope.name)
-  const hosts = g.hosts.map((h) => (g.hosts.length > 1 || h.count !== g.count ? `${h.name} ×${h.count}` : h.name))
-  return hosts.slice(0, 3).join(' · ') + (hosts.length > 3 ? ` ${t.andMore(hosts.length - 3)}` : '')
-}
-
-function Attention({ v, setF }: { v: FleetView; setF: SetFilters }) {
-  const t = useT().home
-  const q = useAttention()
-  const [open, setOpen] = useState<string | null>(null)
-  const fmt = serverTime(v.clock)
-  return (
-    <section className={s.sec} aria-labelledby="attention">
-      <SectionHead id="attention" title={t.attention} hint={t.attentionHint(v.cannot)} />
-      {q.isPending ? <Loading /> : q.isError ? <Failed error={q.error} onRetry={() => q.refetch()} /> : (
-        <>
-          <table className={s.tbl}>
-            <thead>
-              <tr>
-                <th scope="col" className={s.w130}>{t.cols.status}</th>
-                <th scope="col">{t.cols.cause}</th>
-                <th scope="col" className={s.num}>{t.cols.vms}</th>
-                <th scope="col" className={s.w260}>{t.cols.where}</th>
-                <th scope="col" className={s.w90}>{t.cols.since}</th>
-                <th scope="col" className={s.w170}><span className={s.vh}>{t.cols.action}</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.rows.map((g) => {
-                const key = `${g.code}/${g.scope?.kind ?? ''}/${g.scope?.id ?? 0}`
-                const isOpen = open === key
-                const filter: VMFilter = { code: g.code, scope_kind: g.scope?.kind, scope_id: g.scope?.id }
-                return (
-                  <GroupRows key={key} g={g} isOpen={isOpen} filter={filter} fmt={fmt} clock={v.clock}
-                    where={where(g, t)} onToggle={() => setOpen(isOpen ? null : key)}
-                    onList={() => setF({ code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '', show: 'all', status: '' })} />
-                )
-              })}
-            </tbody>
-          </table>
-          {q.hasNextPage && <MoreRows auto={false} shown={q.rows.length} total={q.head?.total ?? 0} more loading={q.isFetchingNextPage} onMore={() => q.fetchNextPage()} />}
-        </>
+              ) : <span className={s.fs}>…</span>}
+            </dd>
+          </div>
+          <div>
+            <dt><Link to="/evidence">{t.ledger}</Link></dt>
+            <dd>
+              <StatusChip status={ls.status} size="xs" />
+              <span className={s.fs}>{(t.ledgerSays[ls.code] ?? t.ledgerSays.ok)(at, ledger.unchecked)}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>{t.kit}</dt>
+            <dd title={kit.text}>
+              <StatusChip status={kit.state === 'confirmed' ? 'OK' : 'WARNING'} size="xs" />
+              <span className={s.fs}>{(t.kitSays[kit.state] ?? t.kitSays.missing)(kit.generation, kit.confirmed_at ? fmt.at(kit.confirmed_at) : '')}</span>
+            </dd>
+          </div>
+          <div>
+            <dt><Link to="/activity">{t.running}</Link></dt>
+            <dd><b>{t.runningWhat(running.map((c) => t.kindCount(c.kind, c.count)).join(', '), queued)}</b></dd>
+          </div>
+        </dl>
+      </div>
+      {v.vms > 0 && (
+        <div className={s.tally} role="group" aria-label={t.tally}>
+          {ORDER.map((st) => (
+            <button key={st} type="button" className={`${s.tile} ${s[`t${st}`]}`} aria-pressed={tab === 'vms' && f.status === st} onClick={() => pick(st)}>
+              <b>{n(v.by_status[st] ?? 0)}</b>
+              <StatusChip status={st} size="sm" />
+            </button>
+          ))}
+        </div>
       )}
     </section>
   )
 }
 
-function GroupRows({ g, isOpen, filter, fmt, clock, where, onToggle, onList }: {
-  g: AttentionGroup
-  isOpen: boolean
-  filter: VMFilter
-  fmt: Fmt
-  clock: ServerClock
-  where: string
-  onToggle: () => void
-  onList: () => void
-}) {
-  const t = useT().home
+/** What is wrong with the installation rather than with a VM: proof capacity short (C13), the ledger (C14),
+ * notifications. Each sentence is built from fields, never the server's text. */
+function Notices({ v }: { v: FleetView }) {
+  const t = useT().v3.overview
+  const cap = useCapacitySummary().data
+  const ls = ledgerState(v.ledger as LedgerSummary, v.can_return > 0, Date.parse(v.clock.now))
+  const nt = v.notifications
   return (
     <>
-      <tr className={`${s[`g${asStatus(g.status)}`]} ${isOpen ? s.open : ''}`}>
-        <td><StatusChip status={g.status} size="sm" /></td>
-        <td>
-          <b className={s.cause}>{g.cause}</b>
-          <span className={`${s.detail} ${s.clamp}`} title={g.example.reason}>{t.example(g.example.vm, g.example.reason)}</span>
-        </td>
-        <td className={s.num}><b className={s.count}>{g.count.toLocaleString('en-US')}</b></td>
-        <td className={s.where}>{where}</td>
-        <td className={s.mono}>{g.since ? when(fmt, clock, g.since, t) : '—'}</td>
-        <td className={s.num}>
-          <Button variant="quiet" aria-expanded={isOpen} onClick={onToggle}>{isOpen ? t.hideVMs : t.showVMs(g.count)}</Button>
-        </td>
-      </tr>
-      {isOpen && (
-        <tr className={s.sub}>
-          <td />
-          <td colSpan={5}>
-            <GroupVMs filter={filter} fmt={fmt} clock={clock} />
-            <a href="#vms" className={s.asList} onClick={onList}>{t.asList}</a>
-          </td>
-        </tr>
+      {cap && cap.coverage < 1 && cap.demand_slot_s_per_day > 0 && (
+        <Notice tone="warning" action={<Link to="/capacity">{t.planCapacity}</Link>}>
+          {cap.sandbox === null && cap.sandbox_error ? `${t.capacityShortNoSandbox} ` : ''}
+          {t.capacityShort(Math.floor(cap.coverage * 100), cap.slots_needed, cap.slots)}
+          {cap.expiring_total > 0 && ` ${t.capacityExpiring(cap.expiring_total)}`}
+        </Notice>
+      )}
+      {ls.status === 'CRITICAL' && t.ledgerNotice[ls.code] && (
+        <Notice tone="critical" action={<Link to="/evidence">{t.openEvidence}</Link>}>{t.ledgerNotice[ls.code]}</Notice>
+      )}
+      {nt.state !== 'OK' && (
+        <Notice tone="warning">{nt.failing.length > 0 ? t.notifyFailing(nt.failing) : t.notifyOff}</Notice>
       )}
     </>
   )
 }
 
-function GroupVMs({ filter, fmt, clock }: { filter: VMFilter; fmt: Fmt; clock: ServerClock }) {
-  const t = useT().home
-  const from = useFrom()
-  const q = useVMList(filter, 25)
-  if (q.isPending) return <Loading />
-  if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
+function Attention({ fmt, now, setF }: { fmt: Fmt; now: number; setF: SetFilters }) {
+  const t = useT().v3.overview
+  const pages = useAttentionPages()
+  const cause = (g: AttentionGroup): CauseIn => ({ code: g.code, scope: g.scope, count: g.count, since: g.since ? fmt.at(g.since) : '—', hosts: g.hosts, policies: g.policies })
+  const cols: Column<AttentionGroup>[] = [
+    { key: 'status', header: t.cols.status, width: '128px', cell: (g) => <StatusChip status={g.status} size="sm" /> },
+    {
+      key: 'cause', header: t.cols.cause, title: (g) => `${reason(g.code).title}: ${reason(g.code).short(cause(g), now)}`,
+      cell: (g) => <><b className={s.title}>{reason(g.code).title}</b><span className={s.sub}>{reason(g.code).short(cause(g), now)}</span></>,
+    },
+    { key: 'vms', header: t.cols.vms, numeric: true, width: '80px', cell: (g) => <b className={s.fig}>{n(g.count)}</b> },
+    { key: 'where', header: t.cols.where, width: '260px', title: (g) => where(g, t), cell: (g) => <span className={s.fg2}>{where(g, t)}</span> },
+    { key: 'since', header: t.cols.since, width: '130px', cell: (g) => <span className={s.mono}>{g.since ? fmt.at(g.since) : '—'}</span> },
+    { key: 'open', header: '', width: '44px', cell: (_g, ctx) => <RowToggle ctx={ctx} label={t.open} /> },
+  ]
+  if (pages.isError) return <Failed error={pages.error} onRetry={() => pages.refetch()} />
   return (
-    <>
-      <table className={`${s.tbl} ${s.inner}`}>
-        <thead>
-          <tr>
-            <th scope="col">{t.cols.vm}</th>
-            <th scope="col">{t.cols.ret}</th>
-            <th scope="col">{t.cols.rpo}</th>
-            <th scope="col">{t.cols.why}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {q.rows.map((r) => (
-            <tr key={r.vm_id}>
-              <td><Link className={s.vm} to={`/vms/${r.vm_id}`} state={{ from }}>{r.vm}</Link><span className={s.of}>{r.host}</span></td>
-              <td className={s.fg2}>{r.proven ? t.pointAt(when(fmt, clock, r.proven.point_taken_at, t), r.proven.point_id) : t.nothingProven}</td>
-              <td>
-                <b className={r.targets && r.proven_rpo_s !== null && r.proven_rpo_s > r.targets.rpo_target_s ? s.bad : s.fig}>{dur(r.proven_rpo_s)}</b>
-                {r.targets && <span className={s.of}>{t.target(dur(r.targets.rpo_target_s))}</span>}
-              </td>
-              <td className={s.fg2}>{r.reason}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <MoreRows auto={false} shown={q.rows.length} total={q.head?.total ?? 0} more={!!q.hasNextPage} loading={q.isFetchingNextPage} onMore={() => q.fetchNextPage()} />
-    </>
+    <DataTable caption={t.causes} columns={cols} pages={pages} rowKey={(g) => `${g.code}/${g.scope?.kind ?? ''}/${g.scope?.id ?? 0}`}
+      rowState={(g) => (asStatus(g.status) === 'CRITICAL' ? 'critical' : asStatus(g.status) === 'UNKNOWN' ? 'bad' : undefined)}
+      empty={t.noneNeedAttention}
+      detail={(g) => {
+        const def = reason(g.code)
+        return (
+          <>
+            <span className={s.long}>{def.long(cause(g), now)}</span>
+            {def.todo && <span className={s.todo}><b>{t.whatToDo}</b> {def.todo}</span>}
+            <span>
+              <button type="button" className={s.link}
+                onClick={() => setF({ ...CLEAR_VM, tab: 'vms', show: 'all', code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '' })}>
+                {t.showVMs(g.count)}
+              </button>
+            </span>
+            <TechDetails summary={t.example(g.example.vm)}>{g.example.reason}</TechDetails>
+          </>
+        )
+      }} />
   )
 }
 
 function Coverage({ f, setF }: { f: Filters; setF: SetFilters }) {
-  const t = useT().home
+  const t = useT().v3.overview
   const by = f.by === 'policy' || f.by === 'tag' ? f.by : 'host'
   const all = f.all === 'true'
-  const q = useCoverage(by, all)
+  const pages = useCoveragePages(by, all)
+  const counts = pages.data as unknown as CoverageCounts | undefined
   const word = t.by[by]
-  const pick = (g: CoverageGroup) => setF({
-    host: by === 'host' ? String(g.id) : '', policy: by === 'policy' ? String(g.id) : '', tag: by === 'tag' ? g.name : '', show: 'all',
-    status: '', code: '', scope_kind: '', scope_id: '',
+  const open = (g: CoverageGroup) => setF({
+    ...CLEAR_VM, tab: 'vms', show: 'all',
+    host: by === 'host' ? String(g.id) : '', policy: by === 'policy' ? String(g.id) : '', tag: by === 'tag' ? g.name : '',
   })
+  const cols: Column<CoverageGroup>[] = [
+    {
+      key: 'name', header: word, width: '220px', title: (g) => g.name,
+      cell: (g) => (by === 'policy' && !g.id) || !g.name
+        ? <span className={s.mono}>{g.name || t.noPolicy}</span>
+        : <button type="button" className={s.name} onClick={() => open(g)}>{g.name}</button>,
+    },
+    { key: 'vms', header: t.cols.vms, numeric: true, width: '80px', cell: (g) => <b className={s.fig}>{n(g.vms)}</b> },
+    {
+      key: 'every', header: t.cols.every,
+      cell: (g) => <span className={s.bar}><StatusBar counts={g.by_status} /><StatusCounts counts={g.by_status} /></span>,
+    },
+    {
+      key: 'rpo', header: t.cols.worstRpo, width: '200px',
+      cell: (g) => {
+        const w = g.worst_proven_rpo
+        if (!w) return <span className={s.none}>{t.nothingProven}</span>
+        const over = w.rpo_target_s !== null && w.proven_rpo_s > w.rpo_target_s
+        return <><b className={over ? s.over : s.fig}>{dur(w.proven_rpo_s)}</b><span className={s.sub}>{w.rpo_target_s !== null ? t.ofTarget(dur(w.rpo_target_s)) : t.noTarget}</span></>
+      },
+    },
+  ]
   return (
-    <section className={s.sec} aria-labelledby="coverage">
-      <SectionHead id="coverage" title={t.coverage(word)} hint={t.coverageHint}>
-        <Seg label={t.groupBy} value={by} options={[['host', t.by.host], ['policy', t.by.policy], ['tag', t.by.tag]]} onChange={(b) => setF({ by: b === 'host' ? '' : b })} />
-      </SectionHead>
-      {q.isPending ? <Loading /> : q.isError ? <Failed error={q.error} onRetry={() => q.refetch()} /> : (
-        <>
-          {q.rows.length > 0 && (
-            <table className={s.tbl}>
-              <thead>
-                <tr>
-                  <th scope="col" className={s.w220}>{word}</th>
-                  <th scope="col" className={s.num}>{t.cols.vms}</th>
-                  <th scope="col">{t.cols.every}</th>
-                  <th scope="col" className={s.w170}>{t.cols.worstRpo}</th>
-                  <th scope="col" className={s.w130}>{t.cols.oldestProof}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {q.rows.map((g) => (
-                  <tr key={`${g.id}/${g.name}`}>
-                    <td><a href="#vms" className={s.vm} onClick={() => pick(g)}>{g.name}</a></td>
-                    <td className={s.num}><b className={s.fig}>{g.vms.toLocaleString('en-US')}</b></td>
-                    <td className={s.mid}>
-                      <StatusBar counts={g.by_status} />
-                      <StatusCounts counts={g.by_status} />
-                    </td>
-                    <td>
-                      {g.worst_proven_rpo ? (
-                        <>
-                          <b className={g.worst_proven_rpo.rpo_target_s !== null && g.worst_proven_rpo.proven_rpo_s > g.worst_proven_rpo.rpo_target_s ? s.bad : s.fig}>
-                            {dur(g.worst_proven_rpo.proven_rpo_s)}
-                          </b>
-                          <span className={s.of}>{g.worst_proven_rpo.vm}{g.worst_proven_rpo.rpo_target_s !== null && `, ${t.target(dur(g.worst_proven_rpo.rpo_target_s))}`}</span>
-                        </>
-                      ) : <span className={s.of}>{t.nothingProven}</span>}
-                    </td>
-                    <td><b className={s.fig}>{dur(g.oldest_proof_s)}</b></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {q.head && q.head.healthy > 0 && (
-            <p className={s.foot}>
-              {t.coverageShown(q.head.shown, q.head.total, q.head.healthy, word, all)}{' '}
-              <button type="button" className={s.link} onClick={() => setF({ all: all ? '' : 'true' })}>{all ? t.hideHealthy : t.showAll(q.head.total, word)}</button>
-            </p>
-          )}
-          {q.hasNextPage && <MoreRows auto={false} shown={q.rows.length} total={q.head?.shown ?? 0} more loading={q.isFetchingNextPage} onMore={() => q.fetchNextPage()} />}
-        </>
+    <>
+      <Toolbar end={all ? t.healthyShown : t.healthyHidden}>
+        <span className={s.label}>{t.groupBy}</span>
+        {(['host', 'policy', 'tag'] as const).map((b) => (
+          <FilterChip key={b} set={by === b} onClick={() => setF({ by: b === 'host' ? '' : b })}>{t.by[b]}</FilterChip>
+        ))}
+      </Toolbar>
+      {pages.isError ? <Failed error={pages.error} onRetry={() => pages.refetch()} /> : (
+        <DataTable caption={t.coverage(word)} columns={cols} pages={pages} rowKey={(g) => `${g.id}/${g.name}`} empty={t.allOk(word)} />
       )}
-    </section>
+      {counts && (
+        <p className={s.foot}>
+          {t.covFoot(all ? counts.groups : (pages.total ?? 0), counts.healthy, all)}{' '}
+          {counts.healthy > 0 && <button type="button" className={s.link} onClick={() => setF({ all: all ? '' : 'true' })}>{all ? t.hideHealthy : t.showHealthy}</button>}
+        </p>
+      )}
+    </>
   )
 }
 
-function VMTable({ v, f, setF }: { v: FleetView; f: Filters; setF: SetFilters }) {
-  const t = useT().home
+/** The search box: typing changes the URL a moment after the last key, so the table asks once. */
+function SearchBox({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const [text, setText] = useState(value)
+  useEffect(() => setText(value), [value])
+  useEffect(() => {
+    if (text.trim() === value) return
+    const h = setTimeout(() => onChange(text.trim()), 250)
+    return () => clearTimeout(h)
+  }, [text, value, onChange])
+  return <input type="search" placeholder={label} aria-label={label} value={text} onChange={(e) => setText(e.target.value)} />
+}
+
+function VMs({ f, setF, fmt, now }: { f: Filters; setF: SetFilters; fmt: Fmt; now: number }) {
+  const t = useT().v3.overview
   const names = useFilterNames()
-  const attention = f.show !== 'all'
-  const filter: VMFilter = {
+  const from = useFrom()
+  const attention = f.show !== 'all' && !f.status
+  const filter: VMFilter = useMemo(() => ({
     attention: attention || undefined,
     status: f.status || undefined,
     host_id: f.host ? Number(f.host) : undefined,
     policy_id: f.policy ? Number(f.policy) : undefined,
     tag: f.tag || undefined,
     code: f.code || undefined,
-    scope_kind: f.scope_kind || undefined,
-    scope_id: f.scope_id ? Number(f.scope_id) : undefined,
+    scope_kind: f.code ? f.scope_kind || undefined : undefined,
+    scope_id: f.code && f.scope_id ? Number(f.scope_id) : undefined,
     q: f.q || undefined,
-  }
-  const q = useVMList(filter)
-  const fmt = serverTime(v.clock)
-  const hours = q.head ? Math.round(q.head.window_s / 3600) : 24
-  const filtered = !!(f.status || f.host || f.policy || f.tag || f.code || f.q)
+  }), [attention, f.status, f.host, f.policy, f.tag, f.code, f.scope_kind, f.scope_id, f.q])
+  const pages = useVMPages(filter)
+  const setQ = useMemo(() => (q: string) => setF({ q }), [setF])
+  const cols = vmColumns(t, fmt, now, from)
+  const status = attention ? 'attention' : f.status || 'all'
+  const scopeName = f.code && f.scope_kind ? scopeLabel(f, names, t) : ''
   return (
-    <section className={s.sec} id="vms" aria-labelledby="vms-h">
-      <SectionHead id="vms-h" title={t.vms}>
-        <Seg label={t.show} value={attention ? 'attention' : 'all'}
-          options={[['attention', t.needsAttention(v.cannot)], ['all', t.all(v.vms)]]} onChange={(x) => setF({ show: x === 'all' ? 'all' : '' })} />
-        <Pick label={t.f.status} value={f.status} onChange={(x) => setF({ status: x })}
-          options={[['', t.f.any], ...ORDER.map((st) => [st, st] as const)]} />
-        <Pick label={t.f.host} value={f.host} onChange={(x) => setF({ host: x })}
-          options={[['', t.f.any], ...names.hosts.map((h) => [String(h.id), h.name] as const)]} />
-        <Pick label={t.f.policy} value={f.policy} onChange={(x) => setF({ policy: x })}
-          options={[['', t.f.any], ...names.policies.map((p) => [String(p.id), p.name] as const)]} />
-        <Pick label={t.f.tag} value={f.tag} onChange={(x) => setF({ tag: x })}
-          options={[['', t.f.any], ...names.tags.map((n) => [n, n] as const)]} />
+    <>
+      <Toolbar end={t.sorted}>
+        <SearchBox value={f.q} onChange={setQ} label={t.filter} />
+        {(['attention', 'all', ...ORDER] as const).map((k) => (
+          <FilterChip key={k} set={status === k}
+            onClick={() => setF(k === 'attention' ? { status: '', show: '' } : k === 'all' ? { status: '', show: 'all' } : { status: status === k ? '' : k, show: status === k ? '' : 'all' })}>
+            {t.chips[k]}
+          </FilterChip>
+        ))}
+        <PickChip label={t.by.host} placeholder={t.pick.host} value={f.host} display={t.picked.host} clearLabel={t.clear(t.by.host.toLowerCase())}
+          options={names.hosts.map((h) => [String(h.id), h.name] as const)} onChange={(x) => setF({ host: x, show: f.show || (x ? 'all' : '') })} />
+        <PickChip label={t.by.policy} placeholder={t.pick.policy} value={f.policy} display={t.picked.policy} clearLabel={t.clear(t.by.policy.toLowerCase())}
+          options={names.policies.map((p) => [String(p.id), p.name] as const)} onChange={(x) => setF({ policy: x, show: f.show || (x ? 'all' : '') })} />
+        <PickChip label={t.by.tag} placeholder={t.pick.tag} value={f.tag} display={t.picked.tag} clearLabel={t.clear(t.by.tag.toLowerCase())}
+          options={names.tags.map((g) => [g, g] as const)} onChange={(x) => setF({ tag: x, show: f.show || (x ? 'all' : '') })} />
         {f.code && (
-          <span className={s.cf}>
-            {t.f.cause(f.code)}
-            <button type="button" className={s.link} onClick={() => setF({ code: '', scope_kind: '', scope_id: '' })}>{t.f.clear}</button>
-          </span>
+          <FilterChip set onClick={() => setF({ code: '', scope_kind: '', scope_id: '' })} title={t.clear(reason(f.code).title)}>
+            {t.cause(reason(f.code).title, scopeName)} <span aria-hidden="true">×</span>
+          </FilterChip>
         )}
-        {filtered && <button type="button" className={s.link} onClick={() => setF({ status: '', host: '', policy: '', tag: '', code: '', scope_kind: '', scope_id: '', q: '' })}>{t.f.clearAll}</button>}
-        <span className={s.sorted}>{t.sorted}</span>
-      </SectionHead>
-      {q.isPending ? <Loading /> : q.isError ? <Failed error={q.error} onRetry={() => q.refetch()} /> : q.rows.length === 0 ? (
-        <p className={s.empty}>{attention && !filtered ? t.noneNeedAttention : t.noneMatch}</p>
-      ) : (
-        <>
-          <div className={s.scroll}>
-            <table className={`${s.tbl} ${s.vmt}`}>
-              <thead>
-                <tr>
-                  <th scope="col">{t.cols.vm}</th>
-                  <th scope="col">{t.cols.ret}</th>
-                  <th scope="col" className={s.cProof}>{t.cols.rpo}<ProofScale width={160} /></th>
-                  <th scope="col" className={s.num}>{t.cols.rto}</th>
-                  <th scope="col" className={s.num}>{t.cols.age}</th>
-                  <th scope="col">{t.cols.hist(hours)}</th>
-                  <th scope="col">{t.cols.why}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {q.rows.map((r) => <VMRow key={r.vm_id} r={r} fmt={fmt} clock={v.clock} windowS={q.head?.window_s ?? 86400} />)}
-              </tbody>
-            </table>
-          </div>
-          <div className={s.legend}><Legend /></div>
-          <MoreRows shown={q.rows.length} total={q.head?.total ?? 0} more={!!q.hasNextPage} loading={q.isFetchingNextPage} onMore={() => q.fetchNextPage()} />
-        </>
+      </Toolbar>
+      {pages.isError ? <Failed error={pages.error} onRetry={() => pages.refetch()} /> : (
+        <div id="vms">
+          <DataTable caption={t.vmTable} columns={cols} pages={pages} rowKey={(r) => String(r.vm_id)} minWidth={1100}
+            rowState={(r) => (asStatus(r.status) === 'CRITICAL' ? 'critical' : asStatus(r.status) === 'UNKNOWN' ? 'bad' : undefined)}
+            empty={attention && !f.host && !f.policy && !f.tag && !f.code && !f.q ? t.noneNeedAttention : t.noneMatch}
+            detail={(r) => <VMDetail r={r} now={now} from={from} />} />
+        </div>
       )}
-    </section>
+    </>
   )
 }
 
-function VMRow({ r, fmt, clock, windowS }: { r: VMListRow; fmt: Fmt; clock: ServerClock; windowS: number }) {
-  const t = useT().home
-  const from = useFrom()
-  const st = asStatus(r.status)
-  const tg = r.targets
+/** The scope of a cause filter in words, from the names the filters know ("host kvm-14"). */
+function scopeLabel(f: Filters, names: ReturnType<typeof useFilterNames>, t: T) {
+  const id = Number(f.scope_id)
+  const name = f.scope_kind === 'host' ? names.hosts.find((h) => h.id === id)?.name : f.scope_kind === 'policy' ? names.policies.find((p) => p.id === id)?.name : undefined
+  return t.scope(f.scope_kind, name ?? `#${f.scope_id}`)
+}
+
+const why = (r: VMListRow, now: number) => (asStatus(r.status) === 'OK' && r.code === 'proven' ? '' : reason(r.code).vm({ code: r.code, params: r.params, scope: r.scope }, now))
+
+function vmColumns(t: T, fmt: Fmt, now: number, from: string): Column<VMListRow>[] {
+  return [
+    { key: 'status', header: t.cols.status, width: '124px', cell: (r) => <StatusChip status={r.status} size="sm" /> },
+    {
+      key: 'vm', header: t.cols.vm, width: '230px', title: (r) => `${r.vm} · ${r.host}${r.policy ? ` · ${r.policy}` : ''}`,
+      cell: (r) => <><Link className={s.vm} to={`/vms/${r.vm_id}`} state={{ from }}>{r.vm}</Link><span className={s.sub}>{r.host}</span></>,
+    },
+    {
+      key: 'ret', header: t.cols.ret, width: '170px',
+      cell: (r) => r.proven ? <span className={s.fg2}>{fmt.at(r.proven.point_taken_at)}</span> : <span className={s.none}>{t.nothingProven}</span>,
+    },
+    {
+      key: 'rpo', header: t.cols.rpo, width: '200px',
+      cell: (r) => {
+        const tg = r.targets
+        const over = !!tg && r.proven_rpo_s !== null && r.proven_rpo_s > tg.rpo_target_s
+        const w = tg && r.proven_rpo_s !== null ? Math.min(1, r.proven_rpo_s / tg.rpo_target_s) : 0
+        return (
+          <>
+            <span className={s.rb} aria-hidden="true"><i className={over ? s.rbBad : undefined} style={{ width: `${Math.round(w * 100)}%` }} /></span>
+            <b className={over ? s.over : s.val}>{dur(r.proven_rpo_s)}</b>
+            {tg && <span className={s.sub}>{t.ofTarget(dur(tg.rpo_target_s))}</span>}
+          </>
+        )
+      },
+    },
+    {
+      key: 'rto', header: t.cols.rto, numeric: true, width: '90px',
+      cell: (r) => <span className={r.targets && r.proven_rto_s !== null && r.proven_rto_s > r.targets.rto_target_s ? s.over : undefined}>{dur(r.proven_rto_s, true)}</span>,
+    },
+    {
+      key: 'age', header: t.cols.age, numeric: true, width: '110px',
+      cell: (r) => <span className={r.targets && r.proof_age_s !== null && r.proof_age_s > r.targets.max_proof_age_s ? s.over : undefined}>{dur(r.proof_age_s)}</span>,
+    },
+    { key: 'why', header: t.cols.why, title: (r) => why(r, now) || undefined, cell: (r) => <span className={s.fg2}>{why(r, now)}</span> },
+  ]
+}
+
+/** A VM row opened: its reason and notes in words, its targets, the raw text folded, the way to its page. */
+function VMDetail({ r, now, from }: { r: VMListRow; now: number; from: string }) {
+  const t = useT().v3.overview
+  const w = why(r, now)
+  const notes = r.notes.map((x) => reason(x.code).vm(x, now))
+  const raw = [r.reason, ...r.notes.map((x) => x.text)].filter(Boolean).join('\n')
   return (
-    <tr className={s[`r${st}`]}>
-      <th scope="row" className={s.cVm}>
-        <span className={s.name}>
-          <StatusChip status={st} size="sm" />
-          <Link className={s.vm} to={`/vms/${r.vm_id}`} state={{ from }}>{r.vm}</Link>
-        </span>
-        <span className={s.of}>{r.host}{r.policy ? ` · ${r.policy}` : `, ${t.noPolicy}`}{r.tags.length > 0 && ` · ${r.tags.join(', ')}`}</span>
-      </th>
-      <td className={s.cRet}>
-        {r.proven ? (
-          <>
-            <b className={s.rt}>{when(fmt, clock, r.proven.point_taken_at, t)}</b>
-            <span className={s.of}>{t.provenBy(r.proven.point_id, r.proven.test_id)}</span>
-          </>
-        ) : (
-          <>
-            <b className={`${s.rt} ${s.none}`}>{t.nothingProven}</b>
-            <span className={s.of}>{t.noPassingTest}</span>
-          </>
-        )}
-      </td>
-      <td className={s.cProof}>
-        {tg && <ProofBar value={r.proven_rpo_s} newest={r.theoretical_rpo_s} target={tg.rpo_target_s} width={160} label={t.cols.rpo} />}
-        <b className={tg && r.proven_rpo_s !== null && r.proven_rpo_s > tg.rpo_target_s ? s.bad : s.fig}>{dur(r.proven_rpo_s)}</b>
-        {tg && <span className={s.of}>{t.target(dur(tg.rpo_target_s))}</span>}
-      </td>
-      <td className={s.num}>
-        <b className={tg && r.proven_rto_s !== null && r.proven_rto_s > tg.rto_target_s ? s.bad : s.fig}>{dur(r.proven_rto_s)}</b>
-        {tg && <span className={s.of}>{t.target(dur(tg.rto_target_s))}</span>}
-      </td>
-      <td className={s.num}>
-        <b className={tg && r.proof_age_s !== null && r.proof_age_s > tg.max_proof_age_s ? s.bad : s.fig}>{dur(r.proof_age_s)}</b>
-        {tg && <span className={s.of}>{t.max(dur(tg.max_proof_age_s))}</span>}
-      </td>
-      <td className={s.mid}>
-        <HistoryStrip events={r.events} now={clock.now} windowS={windowS} returnAt={r.proven?.point_taken_at} width={190} />
-      </td>
-      <td className={s.cWhy}>
-        <p className={s.clamp} title={r.reason}>{r.reason}</p>
-        {r.notes.map((n, i) => <p key={i} className={s.note}><span className={s.nl}>{t.note}</span>{n.text}</p>)}
-      </td>
-    </tr>
+    <>
+      {w && <span className={s.long}>{w === reason(r.code).title ? <b>{w}.</b> : <><b>{reason(r.code).title}:</b> {w}.</>}</span>}
+      {notes.length > 0 && <span className={s.todo}><b>{t.notes}:</b> {notes.join(' · ')}</span>}
+      <span className={s.sub0}>
+        {r.host}{r.policy ? ` · ${r.policy}` : ` · ${t.noPolicy}`}{r.tags.length > 0 && ` · ${r.tags.join(', ')}`}
+        {r.targets && ` · ${t.targets(dur(r.targets.rpo_target_s), dur(r.targets.rto_target_s), dur(r.targets.max_proof_age_s))}`}
+      </span>
+      <span><Link to={`/vms/${r.vm_id}`} state={{ from }}>{t.openVM(r.vm)}</Link></span>
+      <TechDetails>{raw}</TechDetails>
+    </>
   )
 }

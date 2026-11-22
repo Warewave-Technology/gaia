@@ -67,15 +67,16 @@ type Def = {
 }
 
 const target = (s: number | undefined) => (s ? `target ${dur(s)}` : 'no target')
+// The server sends a cause's busiest hosts only (a short list): name them only when they hold all of its VMs.
 const where = (c: CauseIn) => {
-  const h = c.hosts.length === 1 ? `on ${c.hosts[0].name}` : c.hosts.length > 1 ? `on ${c.hosts.length} hosts` : ''
-  return h
+  if (c.hosts.reduce((n, h) => n + h.count, 0) !== c.count) return ''
+  return c.hosts.length === 1 ? `on ${c.hosts[0].name}` : c.hosts.length > 1 ? `on ${c.hosts.length} hosts` : ''
 }
 
 export const reasons: Record<string, Def> = {
   no_backup_in_rpo: {
     title: 'No backup within the RPO target',
-    vm: (r, now) => `Newest backup ${dur(age(r.params?.point_at, now))} old, ${target(r.params?.target_s)}`,
+    vm: (r, now) => (r.params?.point_at ? `Newest backup ${dur(age(r.params.point_at, now))} old, ${target(r.params.target_s)}` : 'No backup within the RPO target'),
     short: () => `newest backups older than the RPO target`,
     long: (c) => `${their(c.count)} have no checked backup within their RPO target, and their newest backup jobs did not fail: the backups are not running often enough.`,
     todo: 'Check the policy’s backup interval against its RPO target, and whether backups wait in the queue (Activity).',
@@ -159,21 +160,21 @@ export const reasons: Record<string, Def> = {
   },
   proven_rpo_over_target: {
     title: 'Proven point older than the RPO target',
-    vm: (r, now) => `Proven point ${dur(age(r.params?.point_at, now))} old, ${target(r.params?.target_s)}`,
+    vm: (r, now) => (r.params?.point_at ? `Proven point ${dur(age(r.params.point_at, now))} old, ${target(r.params.target_s)}` : 'Proven point older than the RPO target'),
     short: () => 'backed up in time, but not proven in time',
     long: (c) => `Backups are within the RPO target, but the newest point a restore test proved is older than it on ${c.count === 1 ? 'this VM' : `these ${vms(c.count)}`}.`,
     todo: 'Test more often, or add sandbox slots: see Proof capacity.',
   },
   rto_over_target: {
     title: 'Restore takes longer than the RTO target',
-    vm: (r) => `Restore takes ${dur(r.params?.rto_s ?? null, true)}, ${target(r.params?.target_s)}`,
+    vm: (r) => (r.params?.rto_s != null ? `Restore takes ${dur(r.params.rto_s, true)}, ${target(r.params.target_s)}` : 'Restore takes longer than the RTO target'),
     short: () => 'restore slower than the target',
     long: (c) => `The restore tests of ${c.count === 1 ? 'this VM' : `these ${vms(c.count)}`} restore and boot slower than the RTO target.`,
     todo: 'Raise the RTO target to what is real, or speed up restores (repository read speed).',
   },
   proof_too_old: {
     title: 'Proof older than its maximum age',
-    vm: (r, now) => `Proof ${dur(age(r.params?.test_at, now))} old, max ${dur(r.params?.target_s ?? null)}`,
+    vm: (r, now) => (r.params?.test_at ? `Proof ${dur(age(r.params.test_at, now))} old, max ${dur(r.params.target_s ?? null)}` : 'Proof older than its maximum age'),
     short: () => 'waited too long for a restore test',
     long: (c) => `The newest passing test of ${c.count === 1 ? 'this VM' : `these ${vms(c.count)}`} is older than the policy’s maximum proof age.`,
     todo: 'Add sandbox slots or lengthen the test interval: see Proof capacity.',

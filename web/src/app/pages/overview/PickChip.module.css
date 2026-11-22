@@ -1,0 +1,8 @@
+.wrap { display: inline-flex; align-items: center; position: relative; }
+.select { appearance: none; -webkit-appearance: none; max-width: 260px; text-overflow: ellipsis; }
+.select[data-set] { padding-right: 28px; }
+.select option { background: var(--page); color: var(--fg1); }
+.x { position: absolute; right: 6px; width: 18px; height: 18px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 9px;
+  background: none; color: var(--fg3); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
+.x:hover { color: var(--fg0); background: var(--line-2); }
+.x:focus-visible { outline: 2px solid var(--blue); }
