@@ -70,7 +70,7 @@ func TestPageRoles(t *testing.T) {
 			for ability, eps := range pg.Actions {
 				for _, ep := range eps {
 					m, p := path(ep)
-					st := f.do(f.tokens[role], m, p, "", nil)
+					st := f.pageCall(role, m, p)
 					allowed := slices.Contains(acc.Abilities[ability], role)
 					if role == "" && st != http.StatusUnauthorized || role != "" && !allowed && st != http.StatusForbidden ||
 						allowed && (st == http.StatusUnauthorized || st == http.StatusForbidden) {
@@ -100,7 +100,21 @@ func pageRow(f *fixture, screen, ep string, roles []string, path func(string) (s
 	row := fmt.Sprintf("| %s | `%s` |", screen, ep)
 	for _, role := range roles {
 		m, p := path(ep)
-		row += fmt.Sprintf(" %d |", f.do(f.tokens[role], m, p, "", nil))
+		row += fmt.Sprintf(" %d |", f.pageCall(role, m, p))
 	}
 	return row + "\n"
+}
+
+// pageCall makes a page's call as a role. Signing everyone else out (end-others) is followed by signing the other
+// roles in again, so the order of the pages in access.json does not matter.
+func (f *fixture) pageCall(role, method, path string) int {
+	st := f.do(f.tokens[role], method, path, "", nil)
+	if method == "POST" && path == "/api/v1/sessions/end-others" && st == http.StatusOK {
+		for _, r := range []string{store.RoleAdmin, store.RoleOperator, store.RoleAuditor} {
+			if r != role {
+				f.tokens[r] = f.login(r)
+			}
+		}
+	}
+	return st
 }
