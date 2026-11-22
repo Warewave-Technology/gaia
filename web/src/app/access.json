@@ -74,9 +74,16 @@
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
-        "GET /api/v1/search"
+        "GET /api/v1/search",
+        "GET /api/v1/views/capacity",
+        "GET /api/v1/views/test-queue",
+        "GET /api/v1/policies"
       ],
-      "actions": {}
+      "actions": {
+        "any": [
+          "POST /api/v1/capacity/what-if"
+        ]
+      }
     },
     {
       "path": "/activity",
@@ -85,7 +92,9 @@
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
-        "GET /api/v1/search"
+        "GET /api/v1/search",
+        "GET /api/v1/views/activity",
+        "GET /api/v1/hosts"
       ],
       "actions": {}
     },
