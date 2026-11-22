@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// fixture: the T27 gate's browser checks (CLAUDE.md T27 (c), (d)), against a running Gaia server and its embedded UI.
+// fixture: the T27 gate's browser checks (CLAUDE.md T27 (c), (d), (e)), against a running Gaia server and its embedded UI.
 // Not part of the product. It drives a headless Chrome over the DevTools protocol (no dependency but Chrome and
 // Node 22, whose WebSocket it uses) and, for every screen:
-//   (d) walks the rendered DOM: every status mark (a StatusChip, [data-status]) carries its word, and every status bar
-//       ([data-status-bar]) has the words of its statuses beside it;
+//   (d) walks the rendered DOM: every status mark (a StatusChip, [data-status]) carries its word, every status bar
+//       ([data-status-bar]) has the words of its statuses beside it, and every job state ([data-job-state], ADR-007
+//       C16) carries its word and is not a status mark;
+//   (e) no list renders more than one page: every table is a data-table ([data-table]) with no more body rows than its
+//       page size; and no text on screen looks like a raw Go duration (4h0m0s, 6m50s) or an ISO timestamp;
 //   lists: every table's rows are counted against the totals the page states ("Showing 50 of 5,000"), and every API
 //       list request is checked for a page size (limit) and a total it did not load at once;
-//   (c) on the overview: the time from navigation until the headline and the first rows of the VM table are drawn.
+//   (c) on the overview: the time from navigation until the headline and the first rows of its first table are drawn.
 // The session is a bearer token sent with every request (Network.setExtraHTTPHeaders): a CLI session of the gate's
 // own user, read from a file, never printed.
 //
@@ -14,6 +17,8 @@
 //        [-vm ID] [-shots DIR] [-width 1440] > ui-gate.json
 //   -vm ID     adds that VM's page (/vms/ID) to the screens
 //   -shots DIR writes a full-page PNG of every screen there (T27 step 1), and of the sign-in page without the session
+//   A route may carry a query (a tab, a filter: /?tab=vms) and end in "!expand": the first expandable row of the
+//   screen is opened before the checks and the shot.
 //
 // Exit 0 OK, 2 CRITICAL (a check failed), 3 UNKNOWN (could not run).
 import { spawn } from 'node:child_process'
@@ -96,9 +101,23 @@ const pageChecks = `(() => {
     const text = cell.textContent
     for (const w of words) if (!text.includes(w)) bad.push({ bar: w, cell: text.slice(0, 120) })
   }
-  const tables = [...document.querySelectorAll('table')].map((t) => ({ rows: t.querySelectorAll(':scope > tbody > tr').length }))
+  const jobs = [...document.querySelectorAll('[data-job-state]')]
+  for (const j of jobs) {
+    const text = j.textContent.replace(/[✓▲◆●]/g, '').trim()
+    if (text.length < 2) bad.push({ job: j.outerHTML.slice(0, 160) })
+    if (j.closest('[data-status]') || j.querySelector('[data-status]')) bad.push({ job_as_status: j.outerHTML.slice(0, 160) })
+  }
+  const tables = [...document.querySelectorAll('table')].map((t) => {
+    const dt = t.closest('[data-table]')
+    // an open row's detail row is not a row of its own
+    const rows = [...t.querySelectorAll(':scope > tbody > tr')].filter((r) => !(r.getAttribute('aria-expanded') === null && r.previousElementSibling?.getAttribute('aria-expanded') === 'true')).length
+    return { name: dt ? dt.getAttribute('data-table') : null, rows, page: dt ? Number(dt.getAttribute('data-page-size')) : null }
+  })
+  const overpage = tables.filter((t) => t.name === null || t.rows > t.page)
+  const text = document.body.innerText
+  const raw = [...text.matchAll(/[^\\n]{0,40}(\\b\\d+h\\d+m|\\b\\d+m\\d+s\\b|\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d)[^\\n]{0,40}/g)].map((m) => m[0])
   const shown = [...document.body.innerText.matchAll(/Showing ([0-9,]+) of ([0-9,]+)/g)].map((m) => [Number(m[1].replace(/,/g, '')), Number(m[2].replace(/,/g, ''))])
-  return { marks: marks.length, bars: bars.length, bad, tables, shown, title: document.querySelector('h1')?.textContent ?? '' }
+  return { marks: marks.length, bars: bars.length, jobs: jobs.length, bad, tables, overpage, raw, shown, title: document.querySelector('h1')?.textContent ?? '' }
 })()`
 
 // shot writes the page, its whole height, as DIR/<route>.png.
@@ -109,7 +128,8 @@ async function shot(c, route) {
   await c.send('Emulation.setDeviceMetricsOverride', { width, height: Math.min(h, 16000), deviceScaleFactor: 1, mobile: false })
   const png = await c.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
   await c.send('Emulation.clearDeviceMetricsOverride')
-  const name = route === '/' ? 'overview' : route.replace(/^\//, '').replace(/\//g, '-')
+  const [path, q = ''] = route.replace(/!expand$/, '').split('?')
+  const name = (path === '/' ? 'overview' : path.replace(/^\//, '').replace(/\//g, '-')) + (q ? '-' + q.replace(/[^a-z0-9]+/gi, '-') : '') + (route.endsWith('!expand') ? '-open' : '')
   writeFileSync(join(shots, `${name}.png`), Buffer.from(png.data, 'base64'))
 }
 
@@ -144,7 +164,7 @@ async function main() {
     await c.send('Page.navigate', { url: base + '/' })
     const ms = await waitFor(c, `(() => {
       const nav = performance.getEntriesByType('navigation')[0]
-      const rows = document.querySelectorAll('#vms tbody tr').length
+      const rows = document.querySelectorAll('[data-table] tbody tr').length
       const h1 = document.querySelector('h1')
       if (!nav || !h1 || rows === 0) return 0
       if (!window.__gaiaReady) {
@@ -152,19 +172,23 @@ async function main() {
       }
       return { ready_ms: Math.round(window.__gaiaReady), rows }
     })()`, 20000)
-    out.overview.push(ms ?? { ready_ms: null, error: 'the VM table did not draw within 20 s' })
+    out.overview.push(ms ?? { ready_ms: null, error: 'the first table did not draw within 20 s' })
     if (i === 0) await new Promise((r) => setTimeout(r, 500))
   }
 
   for (const r of routes) {
     requests.length = 0
-    await c.send('Page.navigate', { url: base + r })
+    await c.send('Page.navigate', { url: base + r.replace(/!expand$/, '') })
     // settled: no new API request for 1.5 s (the screens refresh every 5 to 15 s), at most 20 s
     let last = -1, still = 0
     for (let t = 0; t < 200 && still < 15; t++) {
       await new Promise((res) => setTimeout(res, 100))
       if (requests.length === last) still++
       else { last = requests.length; still = 0 }
+    }
+    if (r.endsWith('!expand')) {
+      await c.send('Runtime.evaluate', { expression: `document.querySelector('[data-table] tr[aria-expanded="false"] td')?.click()` })
+      await new Promise((res) => setTimeout(res, 400))
     }
     const v = (await c.send('Runtime.evaluate', { expression: pageChecks, returnByValue: true })).result.value
     const lists = requests.map((u) => new URL(u)).filter((u) => u.pathname.startsWith('/api/v1/views/') || u.searchParams.has('limit'))
@@ -191,10 +215,15 @@ async function main() {
   const median = readys.length ? [...readys].sort((a, b) => a - b)[Math.floor(readys.length / 2)] : null
   out.checks = {
     c_overview_ready: { median_ms: median, runs: readys, pass: median !== null && median <= READY_MS && readys.length === runs },
-    d_status_words: { marks: out.screens.reduce((n, s) => n + s.marks + s.bars, 0), violations: out.screens.flatMap((s) => s.bad.map((b) => ({ route: s.route, ...b }))),
+    d_status_words: { marks: out.screens.reduce((n, s) => n + s.marks + s.bars, 0), job_states: out.screens.reduce((n, s) => n + s.jobs, 0),
+      violations: out.screens.flatMap((s) => s.bad.map((b) => ({ route: s.route, ...b }))),
       pass: out.screens.every((s) => s.bad.length === 0) && out.screens.some((s) => s.marks > 0) },
     lists_paged: { screens: out.screens.map((s) => ({ route: s.route, rows: s.tables.map((t) => t.rows), shown: s.shown, unpaged: s.unpaged_lists })),
       pass: out.screens.every((s) => s.unpaged_lists.length === 0 && s.shown.every(([n, total]) => n <= 200 && n <= total)) },
+    e_one_page_plain_text: { tables: out.screens.reduce((n, s) => n + s.tables.length, 0),
+      over_one_page: out.screens.flatMap((s) => s.overpage.map((t) => ({ route: s.route, ...t }))),
+      raw_text: out.screens.flatMap((s) => s.raw.map((t) => ({ route: s.route, text: t }))),
+      pass: out.screens.every((s) => s.overpage.length === 0 && s.raw.length === 0) && out.screens.some((s) => s.tables.length > 0) },
   }
   out.verdict = Object.values(out.checks).every((x) => x.pass) ? 'OK' : 'CRITICAL'
   console.log(JSON.stringify(out, null, 2))
