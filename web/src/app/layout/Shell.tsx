@@ -4,9 +4,10 @@ import { can, useLogout, useMe } from '../api/session'
 import { useSystem } from '../api/views'
 import { serverTime } from '../../lib/time'
 import { GaiaMark } from '../ui'
+import { Search } from './Search'
 import s from './Shell.module.css'
 
-/** The bar every screen shares: the installation, the main places, the server's clock, the user. */
+/** The bar every screen shares: the installation, the main places, the search, the server's clock, the user. */
 export function Shell() {
   const t = useT()
   const me = useMe().data
@@ -24,9 +25,13 @@ export function Shell() {
         {sys && <span className={s.inst}>{sys.hostname}</span>}
         <nav className={s.nav} aria-label={t.nav.main}>
           <NavLink to="/" end>{t.nav.overview}</NavLink>
+          <NavLink to="/capacity">{t.nav.capacity}</NavLink>
+          <NavLink to="/activity">{t.nav.activity}</NavLink>
           <NavLink to="/migration">{t.nav.migration}</NavLink>
           {can(me, 'export') && <NavLink to="/evidence">{t.nav.evidence}</NavLink>}
+          <NavLink to="/inventory">{t.nav.inventory}</NavLink>
         </nav>
+        <Search />
         {fmt && sys && (
           <span className={s.clock}>
             {fmt.hhmm(sys.clock.now)}

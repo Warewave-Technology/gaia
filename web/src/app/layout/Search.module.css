@@ -1,0 +1,15 @@
+.find { position: relative; flex: 1 1 220px; max-width: 380px; }
+.box { display: flex; align-items: center; gap: 8px; background: var(--page); border: 1px solid var(--line-2); border-radius: var(--radius);
+  padding: 0 10px; height: 32px; color: var(--fg4); font-size: 13px; }
+.box:focus-within { border-color: var(--fg4); }
+.box input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--fg1); font: inherit; outline: none; }
+.box input::-webkit-search-cancel-button { display: none; }
+.kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0 5px; color: var(--fg4); }
+.list { position: absolute; z-index: 20; top: 36px; left: 0; right: 0; min-width: 320px; margin: 0; padding: 4px 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(0 0 0 / 0.35); }
+.list li { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 7px 12px; cursor: pointer; }
+.list li.on { background: var(--raised); }
+.list li.note { display: block; cursor: default; color: var(--fg4); font-size: 13px; }
+.kind { font-size: var(--text-xs); color: var(--fg4); }
+.name { font-family: var(--mono); font-size: 13px; color: var(--fg0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { font-size: var(--text-sm); color: var(--fg4); white-space: nowrap; }

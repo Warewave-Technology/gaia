@@ -3,7 +3,6 @@ import { api } from '../../api/client'
 import type { components } from '../../api/schema'
 import { unwrap } from './errors'
 
-export type OverviewView = components['schemas']['OverviewView']
 export type VMOverview = components['schemas']['VMOverview']
 export type VMView = components['schemas']['VMView']
 export type TestView = components['schemas']['TestView']
@@ -15,15 +14,6 @@ export type EvidenceBundle = components['schemas']['EvidenceBundle']
 // a job runs or waits, so its end shows within seconds. They refresh in a background tab too: a wall screen is one.
 const REFRESH = 15_000
 const BUSY = 5_000
-
-export function useOverview() {
-  return useQuery({
-    queryKey: ['views', 'overview'],
-    queryFn: () => unwrap(api.GET('/api/v1/views/overview')),
-    refetchInterval: (q) => (q.state.data?.vms.some((v) => v.activity.length > 0) ? BUSY : REFRESH),
-    refetchIntervalInBackground: true,
-  })
-}
 
 export function useVMView(id: number) {
   return useQuery({

@@ -13,6 +13,9 @@
       "auditor",
       "operator",
       "admin"
+    ],
+    "admin": [
+      "admin"
     ]
   },
   "session": [
@@ -35,7 +38,14 @@
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
-        "GET /api/v1/views/overview"
+        "GET /api/v1/search",
+        "GET /api/v1/views/fleet",
+        "GET /api/v1/views/capacity",
+        "GET /api/v1/views/attention",
+        "GET /api/v1/views/coverage",
+        "GET /api/v1/views/vm-list",
+        "GET /api/v1/hosts",
+        "GET /api/v1/policies"
       ],
       "actions": {}
     },
@@ -46,6 +56,7 @@
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
+        "GET /api/v1/search",
         "GET /api/v1/views/vms/{id}",
         "GET /api/v1/evidence/{id}/files/{name}"
       ],
@@ -57,12 +68,46 @@
       }
     },
     {
+      "path": "/capacity",
+      "name": "Proof capacity",
+      "requires": null,
+      "reads": [
+        "GET /api/v1/me",
+        "GET /api/v1/system",
+        "GET /api/v1/search"
+      ],
+      "actions": {}
+    },
+    {
+      "path": "/activity",
+      "name": "Activity",
+      "requires": null,
+      "reads": [
+        "GET /api/v1/me",
+        "GET /api/v1/system",
+        "GET /api/v1/search"
+      ],
+      "actions": {}
+    },
+    {
+      "path": "/inventory",
+      "name": "Inventory",
+      "requires": null,
+      "reads": [
+        "GET /api/v1/me",
+        "GET /api/v1/system",
+        "GET /api/v1/search"
+      ],
+      "actions": {}
+    },
+    {
       "path": "/migration",
       "name": "Migration",
       "requires": null,
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
+        "GET /api/v1/search",
         "GET /api/v1/views/migration",
         "GET /api/v1/evidence/{id}/files/{name}",
         "GET /api/v1/migration-checks/{id}/report"
@@ -81,6 +126,7 @@
       "reads": [
         "GET /api/v1/me",
         "GET /api/v1/system",
+        "GET /api/v1/search",
         "GET /api/v1/evidence",
         "GET /api/v1/vms",
         "GET /api/v1/daily-reports",

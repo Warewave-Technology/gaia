@@ -1,8 +1,28 @@
+import { capacity, jobs } from './en-capacity'
+import { inventory, security } from './en-inventory'
+
 // Every string the UI shows (heimdall's rule: no string literals in components). English only for now (PO decision
-// 2026-11-17); another language is a file of the same type.
+// 2026-11-17); another language is a file of the same type. A screen's strings may live in a file of its own
+// (en-*.ts), spread in here.
 export const en = {
   app: { name: 'Gaia', serverTime: (zone: string) => `server time, ${zone}`, loading: 'Loading…', retry: 'Try again' },
-  nav: { overview: 'Overview', migration: 'Migration', evidence: 'Evidence', logout: 'Log out', main: 'Main' },
+  nav: {
+    overview: 'Overview', capacity: 'Proof capacity', activity: 'Activity', migration: 'Migration', evidence: 'Evidence', inventory: 'Inventory',
+    logout: 'Sign out', main: 'Main',
+  },
+  search: {
+    label: 'Find',
+    placeholder: 'Find a VM, host, policy or point',
+    results: 'Search results',
+    searching: 'Searching…',
+    failed: 'The search did not answer.',
+    none: (q: string) => `Nothing matches “${q}”.`,
+    kinds: { vm: 'VM', host: 'host', policy: 'policy', point: 'point' },
+    vm: 'VM',
+    host: (n: number) => (n === 1 ? '1 VM' : `${n} VMs`),
+    policy: (n: number) => (n === 1 ? '1 VM' : `${n} VMs`),
+    point: (id: number) => `point ${id}`,
+  },
   status: { OK: 'OK', WARNING: 'WARNING', CRITICAL: 'CRITICAL', UNKNOWN: 'UNKNOWN' },
   login: {
     title: 'Sign in to Gaia',
@@ -116,6 +136,83 @@ export const en = {
     target: (d: string) => `target ${d}`,
     max: (d: string) => `max ${d}`,
     moreReasons: (n: number) => (n === 1 ? '1 more reason' : `${n} more reasons`),
+    note: 'note',
+    noPolicy: 'no policy',
+  },
+  home: {
+    question: 'Can I return right now?',
+    ofVMs: (n: number) => `of ${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs'}`,
+    empty: 'No VM is protected yet. Add a host and a VM in Inventory, and give it a policy.',
+    canReturn: 'can return to a point that a restore test proved within its targets.',
+    cannot: (n: number) => `${n.toLocaleString('en-US')} cannot`,
+    causes: (n: number) => (n === 1 ? ', for one cause below.' : `, for ${n} causes below.`),
+    worst: "The fleet's worst proven RPO is",
+    worstOf: (vm: string, target: string | null) => (target ? `(${vm}, target ${target}).` : `(${vm}).`),
+    uncomputed: (n: number) => `${n} not computed yet.`,
+    byStatus: 'VMs by status',
+    facts: 'The installation',
+    capacity: 'Proof capacity',
+    capacityOk: (tests: number, slots: number) => `Policies ask for ${tests.toLocaleString('en-US')} restore tests a day; ${slots} ${slots === 1 ? 'sandbox slot covers' : 'sandbox slots cover'} them all.`,
+    capacityBehind: (tests: number, slots: number, pct: number) =>
+      `Policies ask for ${tests.toLocaleString('en-US')} restore tests a day; ${slots} ${slots === 1 ? 'sandbox slot covers' : 'sandbox slots cover'} ${pct} %.`,
+    expiring: (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'proof expires' : 'proofs expire'} before the next test.`,
+    planCapacity: 'Plan capacity',
+    loading: 'Loading…',
+    ledger: 'Evidence ledger',
+    ledgerText: (n: number, at: string) => `${n.toLocaleString('en-US')} entries, checked ${at}.`,
+    ledgerUnchecked: 'Not checked yet.',
+    kit: 'Recovery kit',
+    kitSaved: (gen: number, at: string, by: string) => `Kit ${gen} stored off the server, confirmed ${at} by ${by}.`,
+    running: 'Running now',
+    idle: 'Nothing is running or waiting.',
+    kind: (k: string, n: number) =>
+      `${n.toLocaleString('en-US')} ${({ backup: ['backup', 'backups'], restore_test: ['restore test', 'restore tests'], verify_repository: ['verification', 'verifications'],
+        state_backup: ['state backup', 'state backups'], migration_check: ['migration check', 'migration checks'] } as Record<string, string[]>)[k]?.[n === 1 ? 0 : 1] ?? k}`,
+    runningText: (what: string, queued: number) => (what ? `${what} running` : 'Nothing running') + (queued ? `, ${queued.toLocaleString('en-US')} waiting.` : '.'),
+    activity: 'Activity',
+    today: (hhmm: string) => `Today ${hhmm}`,
+    attention: 'Needs attention',
+    attentionHint: (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs'}, grouped by cause. One cause usually explains many VMs: fix the cause, not each VM.`,
+    scope: (kind: string, name: string) => `${kind === 'repository' ? 'repository' : kind === 'sandbox' ? 'sandbox' : 'host'} ${name}`,
+    andMore: (n: number) => `and ${n} more`,
+    example: (vm: string, reason: string) => `${vm}: ${reason}`,
+    showVMs: (n: number) => `Show ${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs'}`,
+    hideVMs: 'Hide VMs',
+    asList: 'Open these VMs in the table below',
+    coverage: (word: string) => `Coverage by ${word.toLowerCase()}`,
+    coverageHint: 'Each bar is every VM in the group, by status. Healthy groups stay quiet; worst first.',
+    groupBy: 'Group by',
+    by: { host: 'Host', policy: 'Policy', tag: 'Tag' } as Record<string, string>,
+    coverageShown: (shown: number, total: number, healthy: number, word: string, all: boolean) => {
+      const w = word.toLowerCase()
+      if (all || healthy === 0) return `${total.toLocaleString('en-US')} ${total === 1 ? w : `${w}s`}.`
+      if (shown === 0) return `Every VM of all ${total.toLocaleString('en-US')} ${w}s is OK.`
+      return `Showing ${shown.toLocaleString('en-US')} of ${total.toLocaleString('en-US')} ${w}s. The ${healthy.toLocaleString('en-US')} not shown have every VM OK.`
+    },
+    showAll: (n: number, word: string) => `Show all ${n.toLocaleString('en-US')} ${word.toLowerCase()}s`,
+    hideHealthy: 'Hide the healthy ones',
+    vms: 'VMs',
+    show: 'Show',
+    needsAttention: (n: number) => `Needs attention · ${n.toLocaleString('en-US')}`,
+    all: (n: number) => `All · ${n.toLocaleString('en-US')}`,
+    f: {
+      status: 'Status', host: 'Host', policy: 'Policy', tag: 'Tag', any: 'any',
+      cause: (code: string) => `Cause: ${code}`, clear: 'clear', clearAll: 'Clear filters',
+    },
+    sorted: 'Sorted by: worst first, then oldest proof',
+    noneNeedAttention: 'Every VM can return to a proven point within its targets.',
+    noneMatch: 'No VM matches these filters.',
+    cols: {
+      status: 'Status', cause: 'Cause', vms: 'VMs', where: 'Where', since: 'Since', action: 'Action', vm: 'VM', ret: 'Can return to',
+      rpo: 'Proven RPO', rto: 'Proven RTO', age: 'Proof age', hist: (h: number) => `Last ${h} h`, why: 'Why',
+      every: 'Status of every VM', worstRpo: 'Worst proven RPO', oldestProof: 'Oldest proof',
+    },
+    pointAt: (at: string, id: number) => `${at} · point ${id}`,
+    provenBy: (point: number, test: number) => `point ${point} · proven by test ${test}`,
+    nothingProven: 'Nothing proven yet',
+    noPassingTest: 'no restore test has passed',
+    target: (d: string) => `target ${d}`,
+    max: (d: string) => `max ${d}`,
     note: 'note',
     noPolicy: 'no policy',
   },
@@ -247,6 +344,9 @@ export const en = {
     disks: (n: number, gib: number) => `${n} ${n === 1 ? 'disk' : 'disks'}, ${gib} GiB`,
   },
   table: {
+    shown: (n: number, total: number) => `Showing ${n.toLocaleString('en-US')} of ${total.toLocaleString('en-US')}`,
+    more: 'Show more',
+    loadingMore: 'Loading more…',
     pages: (table: string) => `${table}: pages`,
     range: (from: number, to: number, n: number) => `${from}–${to} of ${n}`,
     page: (p: number, n: number) => `${p} / ${n}`,
@@ -254,6 +354,10 @@ export const en = {
     next: 'Next page',
     details: 'Details',
   },
+  capacity,
+  jobs,
+  inventory,
+  security,
   errors: {
     generic: 'Something went wrong.',
     offline: 'The server did not answer.',

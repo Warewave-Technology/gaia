@@ -1,0 +1,14 @@
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; }
+.seg button { background: transparent; border: 0; border-right: 1px solid var(--line-2); color: var(--fg3); font: inherit; font-size: 12.5px;
+  padding: 0 12px; height: 30px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--fg0); }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--fg0); }
+
+.pick { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px 0 11px; border: 1px solid var(--line-2); border-radius: var(--radius);
+  background: var(--raised); color: var(--fg3); font-size: 13px; }
+.pick:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pick select { background: transparent; border: 0; color: var(--fg1); font: inherit; padding: 0 4px; height: 30px; cursor: pointer; outline: none; max-width: 220px; }
+.pick select option { background: var(--surface); color: var(--fg1); }
+.set { border-color: var(--fg4); }
+.set select { color: var(--fg0); }
