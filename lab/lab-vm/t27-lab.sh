@@ -5,7 +5,8 @@
 # give every screen something to show: six Linux VMs (two policies, tagged), the Windows guest (a policy whose RTO
 # target it misses), and one VM without a policy.
 #
-# Usage (on gaia-lab, as root): lab/lab-vm/t27-lab.sh up | status | token FILE | down
+# Usage (on gaia-lab, as root): lab/lab-vm/t27-lab.sh up | update | status | token FILE | down
+#   update       builds the repository's gaia and restarts the server with it; the data stays
 #   token FILE   signs the admin in (a WebAuthn key in software, lab/tools/softkey) and writes the CLI session's token
 #                to FILE (0600), for the screenshot and gate tools (lab/scale/ui-gate.mjs)
 set -euo pipefail
@@ -62,8 +63,16 @@ token)
 	(umask 077 && jq -r .token "$WORK/.config/gaia/cli.json" >"$out")
 	echo "token written to $out" >&2
 	exit 0 ;;
+update)
+	owner=$(stat -c %U "$repo_root")
+	if [[ "$owner" == root ]]; then make -C "$repo_root" -s build; else runuser -u "$owner" -- env PATH="$PATH" HOME="$(getent passwd "$owner" | cut -d: -f6)" make -C "$repo_root" -s build; fi
+	install -m 0755 "$BIN/gaia" "$SRV_BIN"
+	systemctl restart "$SB_UNIT" "$UNIT"
+	for ((i = 0; i < 30; i++)); do curl -fsk "$PUBLIC/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
+	"$0" status
+	exit 0 ;;
 up) ;;
-*) echo "usage: $0 up | status | token FILE | down"; exit 3 ;;
+*) echo "usage: $0 up | update | status | token FILE | down"; exit 3 ;;
 esac
 
 grep -q " gaia-lab.test\$" /etc/hosts || echo "$(hostname -I | awk '{ print $1 }') gaia-lab.test" >>/etc/hosts
