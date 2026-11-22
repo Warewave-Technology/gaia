@@ -1,0 +1,691 @@
+{
+  "base": "https://localhost:18449",
+  "at": "2026-11-22T20:57:55.735Z",
+  "chrome": "Chrome/157.0.8103.79",
+  "ready_limit_ms": 2000,
+  "overview": [
+    {
+      "ready_ms": null,
+      "error": "the first table did not draw within 20 s"
+    },
+    {
+      "ready_ms": null,
+      "error": "the first table did not draw within 20 s"
+    },
+    {
+      "ready_ms": null,
+      "error": "the first table did not draw within 20 s"
+    }
+  ],
+  "screens": [
+    {
+      "route": "/",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/!expand",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/?tab=coverage",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/?tab=vms",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/vms/858",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/vms/858?tab=points",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/vms/858?tab=history",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/vms/858?tab=evidence",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/capacity",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/capacity?tab=expiring",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/capacity?tab=queue",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/capacity?tab=inputs",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/activity",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/activity?tab=queued",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/activity?tab=all",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/migration",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/evidence",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/hosts",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/hosts!expand",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/policies",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/repositories",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/users",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security?view=local",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security?view=sessions",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security?view=step-up",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security?view=signed-in",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/audit",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Sign in",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/signin-options"
+      ],
+      "unpaged_lists": []
+    }
+  ],
+  "checks": {
+    "c_overview_ready": {
+      "median_ms": null,
+      "runs": [],
+      "pass": false
+    },
+    "d_status_words": {
+      "marks": 0,
+      "job_states": 0,
+      "violations": [],
+      "pass": false
+    },
+    "lists_paged": {
+      "screens": [
+        {
+          "route": "/",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/!expand",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/?tab=coverage",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/?tab=vms",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/vms/858",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/vms/858?tab=points",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/vms/858?tab=history",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/vms/858?tab=evidence",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/capacity",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/capacity?tab=expiring",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/capacity?tab=queue",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/capacity?tab=inputs",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/activity",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/activity?tab=queued",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/activity?tab=all",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/migration",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/evidence",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/hosts",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/hosts!expand",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/policies",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/repositories",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/users",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security?view=local",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security?view=sessions",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security?view=step-up",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security?view=signed-in",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/audit",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        }
+      ],
+      "pass": true
+    },
+    "e_one_page_plain_text": {
+      "tables": 0,
+      "over_one_page": [],
+      "raw_text": [],
+      "pass": false
+    }
+  },
+  "verdict": "CRITICAL"
+}
