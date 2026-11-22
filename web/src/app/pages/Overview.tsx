@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { useT } from '../../i18n'
 import { dur } from '../../lib/duration'
 import { serverTime, type Fmt, type ServerClock } from '../../lib/time'
@@ -19,6 +19,12 @@ const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
 const KEYS = ['show', 'status', 'host', 'policy', 'tag', 'code', 'scope_kind', 'scope_id', 'q', 'by', 'all'] as const
 type Filters = Record<(typeof KEYS)[number], string>
 type SetFilters = (patch: Partial<Filters>) => void
+
+/** The overview as it is now, filters included: a VM page's breadcrumb leads back to it. */
+function useFrom() {
+  const l = useLocation()
+  return l.pathname + l.search
+}
 
 /** "Today 04:51" or "Nov 17 04:51" in the server's zone. */
 function when(fmt: Fmt, clock: ServerClock, iso: string, t: ReturnType<typeof useT>['home']) {
@@ -220,6 +226,7 @@ function GroupRows({ g, isOpen, filter, fmt, clock, where, onToggle, onList }: {
 
 function GroupVMs({ filter, fmt, clock }: { filter: VMFilter; fmt: Fmt; clock: ServerClock }) {
   const t = useT().home
+  const from = useFrom()
   const q = useVMList(filter, 25)
   if (q.isPending) return <Loading />
   if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
@@ -237,7 +244,7 @@ function GroupVMs({ filter, fmt, clock }: { filter: VMFilter; fmt: Fmt; clock: S
         <tbody>
           {q.rows.map((r) => (
             <tr key={r.vm_id}>
-              <td><Link className={s.vm} to={`/vms/${r.vm_id}`}>{r.vm}</Link><span className={s.of}>{r.host}</span></td>
+              <td><Link className={s.vm} to={`/vms/${r.vm_id}`} state={{ from }}>{r.vm}</Link><span className={s.of}>{r.host}</span></td>
               <td className={s.fg2}>{r.proven ? t.pointAt(when(fmt, clock, r.proven.point_taken_at, t), r.proven.point_id) : t.nothingProven}</td>
               <td>
                 <b className={r.targets && r.proven_rpo_s !== null && r.proven_rpo_s > r.targets.rpo_target_s ? s.bad : s.fig}>{dur(r.proven_rpo_s)}</b>
@@ -392,6 +399,7 @@ function VMTable({ v, f, setF }: { v: FleetView; f: Filters; setF: SetFilters })
 
 function VMRow({ r, fmt, clock, windowS }: { r: VMListRow; fmt: Fmt; clock: ServerClock; windowS: number }) {
   const t = useT().home
+  const from = useFrom()
   const st = asStatus(r.status)
   const tg = r.targets
   return (
@@ -399,7 +407,7 @@ function VMRow({ r, fmt, clock, windowS }: { r: VMListRow; fmt: Fmt; clock: Serv
       <th scope="row" className={s.cVm}>
         <span className={s.name}>
           <StatusChip status={st} size="sm" />
-          <Link className={s.vm} to={`/vms/${r.vm_id}`}>{r.vm}</Link>
+          <Link className={s.vm} to={`/vms/${r.vm_id}`} state={{ from }}>{r.vm}</Link>
         </span>
         <span className={s.of}>{r.host}{r.policy ? ` · ${r.policy}` : `, ${t.noPolicy}`}{r.tags.length > 0 && ` · ${r.tags.join(', ')}`}</span>
       </th>
