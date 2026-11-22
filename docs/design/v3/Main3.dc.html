@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — Overview v3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.wrap{max-width:1360px;margin:0 auto;padding:22px 28px 48px;display:flex;flex-direction:column;gap:20px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+.sub{color:#a89984;font-size:12.5px}
+.over{color:#fb4934 !important}
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding-bottom:18px;border-bottom:1px solid #3c3836}
+.tally{display:flex;gap:8px;flex-wrap:nowrap}
+.tally button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:7px 12px;border:1px solid #504945;border-radius:3px}
+.tally button:hover{border-color:#a89984}
+.tally button.on{outline:2px solid #fbf1c7;outline-offset:1px}
+.tally b{font-size:20px;font-weight:600;color:#fbf1c7}
+.facts{display:flex;gap:26px;flex-wrap:wrap;font-size:13px;color:#d5c4a1}
+.facts span b{color:#fbf1c7;font-weight:500}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #504945;align-items:flex-end}
+.tabs button{all:unset;cursor:pointer;padding:9px 14px;color:#bdae93;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:#fbf1c7}
+.tabs button.on{color:#fbf1c7;border-color:#d5c4a1}
+.tabs button span{color:#a89984;font-size:12px;margin-left:6px}
+.tool{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tool input{height:30px;background:#1d2021;border:1px solid #504945;border-radius:3px;color:#ebdbb2;font:inherit;font-size:13px;padding:0 10px;width:260px}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px dashed #504945;border-radius:14px;color:#bdae93;font-size:12.5px;background:transparent;cursor:pointer;font-family:inherit}
+.fchip.set{border-style:solid;border-color:#a89984;color:#fbf1c7;background:#32302f}
+.dt{border:1px solid #3c3836;border-radius:3px;overflow:hidden}
+.dt .scroll{max-height:520px;overflow:auto}
+.dt table{width:100%;border-collapse:collapse;table-layout:fixed}
+.dt th{position:sticky;top:0;background:#282828;font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap;z-index:1;cursor:pointer}
+.dt th.sorted{color:#fbf1c7}
+.dt td{padding:0 12px;height:40px;border-bottom:1px solid #32302f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt tbody tr{cursor:pointer}
+.dt tbody tr:hover td{background:#282828}
+.dt tr.open td{background:#282828}
+.dt .foot{display:flex;align-items:center;gap:12px;padding:6px 12px;background:#282828;border-top:1px solid #3c3836;font-size:12.5px;color:#a89984}
+.dt .foot select{background:#1d2021;color:#ebdbb2;border:1px solid #504945;border-radius:3px;font:inherit;height:26px}
+.pg{display:inline-flex;gap:4px;margin-left:auto;align-items:center}
+.pg button{background:#32302f;border:1px solid #504945;color:#ebdbb2;border-radius:3px;height:26px;min-width:28px;cursor:pointer;font:inherit}
+.pg button:disabled{opacity:.35;cursor:default}
+.num{text-align:right}
+.rb{display:inline-block;width:56px;height:4px;background:#3c3836;position:relative;vertical-align:middle;margin-right:8px}
+.rb i{position:absolute;left:0;top:0;bottom:0;background:#d5c4a1}
+.rb i.bad{background:#fb4934}
+.stack{display:flex;height:10px;gap:1px;min-width:200px}
+.expand td{height:auto;padding:12px 12px 14px;white-space:normal;background:#282828;cursor:default}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main3.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="Main3.dc.html">Overview</a><a href="Capacity.dc.html">Proof capacity</a><a href="Activity.dc.html">Activity</a><a href="Migration.dc.html">Migration</a><a href="Evidence.dc.html">Evidence</a><a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span>
+  </header>
+
+  <main class="wrap">
+    <section class="head">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11px">Can I return right now?</span>
+        <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap">
+          <span style="font-size: 44px; font-weight: 600; color: #fbf1c7; line-height: 1">2,371</span>
+          <span style="font-size: 18px; color: #a89984">of 2,418 VMs can return to a proven point.</span>
+        </div>
+        <div class="facts" style="margin-top: 6px">
+          <span>Proof capacity <span class="chip warn">▲ 94 %</span></span>
+          <span>Ledger <span class="chip ok"><b>✓</b> OK</span> <b>checked 14:30</b></span>
+          <span>Recovery kit <span class="chip ok"><b>✓</b> OK</span></span>
+          <span>Running <b>38 backups, 6 tests</b></span>
+        </div>
+      </div>
+      <div class="tally" role="group" aria-label="Filter by status">
+        <sc-for list="{{tally}}" as="t" hint-placeholder-count="4"><button type="button" class="{{t.on}}" style="{{t.style}}" onClick="{{t.pick}}"><b>{{t.n}}</b><span class="chip {{t.cls}}">{{t.word}}</span></button></sc-for>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}<span>{{t.n}}</span></button></sc-for>
+      <span class="sub" style="margin-left: auto; padding-bottom: 8px">{{tabHint}}</span>
+    </div>
+
+    <sc-if value="{{tabCauses}}" hint-placeholder-val="{{true}}">
+      <div class="dt">
+        <div class="scroll">
+          <table>
+            <colgroup><col style="width: 128px"><col><col style="width: 80px"><col style="width: 260px"><col style="width: 110px"><col style="width: 40px"></colgroup>
+            <thead><tr><th scope="col">Status</th><th scope="col">Cause</th><th scope="col" class="num">VMs</th><th scope="col">Where</th><th scope="col">Since</th><th scope="col"></th></tr></thead>
+            <tbody>
+              <sc-for list="{{causes}}" as="c" hint-placeholder-count="6">
+                <tr class="{{c.rowCls}}" onClick="{{c.toggle}}">
+                  <td><span class="chip {{c.cls}}">{{c.word}}</span></td>
+                  <td><b style="color: #fbf1c7; font-weight: 600">{{c.title}}</b> <span class="sub" style="margin-left: 8px">{{c.short}}</span></td>
+                  <td class="num"><b style="color: #fbf1c7">{{c.n}}</b></td>
+                  <td style="color: #d5c4a1">{{c.where}}</td>
+                  <td class="mono sub">{{c.since}}</td>
+                  <td class="sub">{{c.caret}}</td>
+                </tr>
+                <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                  <tr class="expand"><td></td><td colspan="5">
+                    <div style="display: flex; flex-direction: column; gap: 8px">
+                      <span style="color: #d5c4a1">{{c.long}}</span>
+                      <span class="sub"><b style="color: #fbf1c7; font-weight: 500">What to do:</b> {{c.todo}}</span>
+                      <span><button type="button" onClick="{{c.showVms}}" style="all: unset; cursor: pointer; color: #83a598">Show these {{c.n}} VMs →</button></span>
+                    </div>
+                  </td></tr>
+                </sc-if>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <div class="foot"><span>{{causeFoot}}</span></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{tabCov}}" hint-placeholder-val="{{false}}">
+      <div class="tool">
+        <span class="sub">Group by</span>
+        <sc-for list="{{groupBy}}" as="gb" hint-placeholder-count="3"><button type="button" class="fchip {{gb.cls}}" onClick="{{gb.pick}}">{{gb.label}}</button></sc-for>
+        <span class="sub" style="margin-left: 12px">Groups where every VM is OK are hidden.</span>
+      </div>
+      <div class="dt">
+        <div class="scroll">
+          <table>
+            <colgroup><col style="width: 200px"><col style="width: 70px"><col><col style="width: 170px"></colgroup>
+            <thead><tr><th scope="col">{{groupWord}}</th><th scope="col" class="num">VMs</th><th scope="col">Status of every VM</th><th scope="col">Worst proven RPO</th></tr></thead>
+            <tbody>
+              <sc-for list="{{cov}}" as="r" hint-placeholder-count="8">
+                <tr><td class="mono">{{r.name}}</td><td class="num">{{r.n}}</td><td><div class="stack" title="{{r.aria}}"><span style="{{r.a}}"></span><span style="{{r.b}}"></span><span style="{{r.c}}"></span><span style="{{r.d}}"></span></div></td><td><b class="{{r.rc}}">{{r.rpo}}</b> <span class="sub">/ {{r.t}}</span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <div class="foot"><span>{{covFoot}}</span></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{tabVms}}" hint-placeholder-val="{{false}}">
+      <div class="tool">
+        <input type="search" placeholder="Filter VMs by name, host, policy or tag" aria-label="Filter VMs">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button type="button" class="fchip {{f.cls}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for>
+        <span class="sub" style="margin-left: auto">Sorted by: worst first, then oldest proof</span>
+      </div>
+      <div class="dt">
+        <div class="scroll">
+          <table>
+            <colgroup><col style="width: 120px"><col style="width: 200px"><col style="width: 170px"><col style="width: 170px"><col style="width: 90px"><col style="width: 110px"><col></colgroup>
+            <thead><tr><th scope="col">Status</th><th scope="col" class="sorted">VM ▾</th><th scope="col">Can return to</th><th scope="col">Proven RPO</th><th scope="col" class="num">RTO</th><th scope="col" class="num">Proof age</th><th scope="col">Why</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+                <tr>
+                  <td><span class="chip {{r.cls}}">{{r.word}}</span></td>
+                  <td><a href="VM3.dc.html" class="mono">{{r.name}}</a> <span class="sub">{{r.host}}</span></td>
+                  <td style="{{r.retStyle}}">{{r.ret}}</td>
+                  <td><span class="rb"><i class="{{r.bc}}" style="{{r.bw}}"></i></span><b class="{{r.rc}}" style="font-weight: 500">{{r.rpo}}</b> <span class="sub">/ {{r.t}}</span></td>
+                  <td class="num">{{r.rto}}</td>
+                  <td class="num {{r.ac}}">{{r.age}}</td>
+                  <td style="color: #d5c4a1" title="{{r.why}}">{{r.why}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <div class="foot">
+          <span>Rows</span><select aria-label="Rows per page"><option>25</option><option>50</option><option>100</option></select>
+          <span>{{pgText}}</span>
+          <span class="pg"><button type="button" onClick="{{first}}" disabled="{{noPrev}}">«</button><button type="button" onClick="{{prev}}" disabled="{{noPrev}}">‹</button><span style="padding: 0 6px">page {{pageNo}} of {{pages}}</span><button type="button" onClick="{{next}}" disabled="{{noNext}}">›</button></span>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 'causes', open: -1, by: 'host', status: 'attn', page: 0 }; }
+  renderVals() {
+    var self = this, st = this.state;
+    var T = { crit: ['crit', '◆ CRITICAL'], unk: ['unk', '? UNKNOWN'], warn: ['warn', '▲ WARNING'], ok: ['ok', '✓ OK'] };
+    var counts = { crit: 9, unk: 14, warn: 24, ok: 2371 };
+    var tally = ['crit', 'unk', 'warn', 'ok'].map(function (k) {
+      var bord = { crit: '#6f2420', unk: '#6e4a59', warn: '#6b5014', ok: '#504945' }[k];
+      return { n: counts[k].toLocaleString('en-US'), cls: T[k][0], word: T[k][1], on: st.status === k ? 'on' : '', style: 'border-color: ' + bord + (k === 'crit' ? '; background: #3a1716' : ''),
+        pick: function () { self.setState({ tab: 'vms', status: st.status === k ? 'attn' : k, page: 0 }); } };
+    });
+    var raw = [
+      ['crit', 'Restore test fails to boot', 'kvm-07 ×3 · kvm-11', '09:12', 4, 'no login prompt within 5 min', 'The copy of each VM stops at "no bootable device". The VMs still have an older proven point, outside the RPO target.', 'Started after 05:00 on all four; the source VMs boot UEFI since 05:14 and the test boots BIOS. Check the firmware setting of the policy’s test template.'],
+      ['crit', 'Repository content damaged', 'repository s3-ank-01', '07:40', 3, '2 damaged contents, points quarantined', 'Verification found 2 damaged contents. Points that use them are quarantined; the next backup of each VM is full.', 'Nothing to do unless it repeats. If it does, check the storage behind s3-ank-01.'],
+      ['crit', 'Host does not answer', 'host kvm-14', '11:02', 2, 'SSH timed out', 'kvm-14 has not answered over SSH since 11:02. Its 2 VMs have no backup within their RPO target.', 'Check that kvm-14 is up and that sshd answers from the Gaia server.'],
+      ['unk', 'Never proven', 'gold-db ×9 · std-linux ×5', '13:30', 14, 'first tests are queued', 'Added today. Their first restore tests are in the queue; nothing about them is proven yet.', 'Nothing to do: they are first in the queue after CRITICAL retests.'],
+      ['warn', 'Proof older than its maximum age', 'std-windows ×16 · std-linux ×3', '10:15', 19, 'waiting for a sandbox slot', 'The sandbox is behind; these VMs waited more than their policy’s maximum for a test.', 'Add sandbox slots or lengthen the test interval: see Proof capacity.'],
+      ['warn', 'Restore takes longer than the RTO target', 'std-windows', 'yesterday', 5, '7–8 min, target 5 min', 'Windows restore tests take 7–8 min against a 5 min target.', 'Raise the RTO target to what is real, or speed up restores (repository read speed).']
+    ];
+    var causes = raw.map(function (c, i) {
+      var open = st.open === i;
+      return { cls: T[c[0]][0], word: T[c[0]][1], title: c[1], where: c[2], since: c[3], n: c[4], short: c[5], long: c[6], todo: c[7], open: open, caret: open ? '▴' : '▾', rowCls: open ? 'open' : '',
+        toggle: function () { self.setState({ open: st.open === i ? -1 : i }); },
+        showVms: function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.setState({ tab: 'vms', status: c[0], page: 0 }); } };
+    });
+    var seg = function (n, color, hatch) { if (!n) return 'display: none'; return 'flex: ' + n + ' 1 0; min-width: 3px; background: ' + (hatch ? 'repeating-linear-gradient(135deg,' + color + ' 0 3px,transparent 3px 6px)' : color); };
+    var sets = { host: [['kvm-07', 64, 3, 0, 2, '9 h 41 min', '1 h', 1], ['kvm-14', 41, 2, 0, 0, '3 h 32 min', '1 h', 1], ['kvm-11', 72, 1, 2, 4, '5 h 32 min', '4 h', 1], ['kvm-22', 58, 0, 6, 3, '1 h 05 min', '1 h', 1], ['kvm-03', 66, 0, 4, 5, '58 min', '1 h', 0], ['kvm-30', 70, 0, 2, 6, '3 h 50 min', '4 h', 0]],
+      policy: [['gold-db', 312, 6, 9, 2, '9 h 41 min', '1 h', 1], ['std-windows', 186, 0, 0, 21, '4 h 10 min', '4 h', 1], ['std-linux', 1704, 3, 5, 1, '5 h 32 min', '4 h', 1]],
+      tag: [['payments', 96, 2, 3, 1, '9 h 41 min', '1 h', 1], ['erp', 140, 1, 0, 4, '5 h 32 min', '4 h', 1], ['web', 410, 0, 4, 6, '3 h 58 min', '4 h', 0]] };
+    var cov = sets[st.by].map(function (x) { var ok = x[1] - x[2] - x[3] - x[4]; return { name: x[0], n: x[1], rpo: x[5], t: x[6], rc: x[7] ? 'over' : '', a: seg(x[2], '#fb4934'), b: seg(x[3], '#d3869b', true), c: seg(x[4], '#fabd2f'), d: seg(ok, '#504945'), aria: x[2] + ' critical, ' + x[3] + ' unknown, ' + x[4] + ' warning, ' + ok + ' OK' }; });
+    var hidden = { host: 32, policy: 1, tag: 9 }[st.by];
+    var words = { host: 'Host', policy: 'Policy', tag: 'Tag' };
+    // VM rows, generated
+    var pool = st.status === 'attn' ? ['crit', 'unk', 'warn'] : [st.status];
+    var total = st.status === 'attn' ? 47 : counts[st.status];
+    var per = 25, pages = Math.max(1, Math.ceil(total / per)), page = Math.min(st.page, pages - 1);
+    var names = ['db-ledger', 'app-core', 'erp-batch', 'pay-gw', 'win-ad', 'win-file', 'web-shop', 'mq-broker', 'fin-report', 'cache'];
+    var whyBy = { crit: ['Restore test fails to boot', 'Host does not answer', 'Repository content damaged'], unk: ['Never proven: first test queued'], warn: ['Proof older than 6 h: waiting for a slot', 'Restore takes 7 min 40 s, target 5 min'] };
+    var rows = [];
+    for (var i = page * per; i < Math.min(total, page * per + per); i++) {
+      var k = st.status === 'attn' ? (i < 9 ? 'crit' : (i < 23 ? 'unk' : 'warn')) : st.status;
+      var nm = names[i % names.length] + '-' + String(100 + (i * 37) % 900);
+      var r = { cls: T[k][0], word: T[k][1], name: nm, host: 'kvm-' + String(3 + (i * 7) % 30).padStart(2, '0'), t: k === 'warn' ? '4 h' : '1 h', bc: '', rc: '', ac: '', retStyle: 'color: #d5c4a1' };
+      if (k === 'crit') { r.ret = 'Today 0' + (4 + i % 5) + ':51'; r.rpo = (9 - i % 5) + ' h ' + (41 - i * 3 % 30) + ' min'; r.bw = 'width: 100%'; r.bc = 'bad'; r.rc = 'over'; r.rto = '52 s'; r.age = (9 - i % 5) + ' h 30 min'; r.ac = 'over'; r.why = whyBy.crit[i % 3]; }
+      else if (k === 'unk') { r.ret = 'Nothing proven yet'; r.retStyle = 'color: #d3869b'; r.rpo = '—'; r.bw = 'width: 0'; r.rto = '—'; r.age = '—'; r.why = whyBy.unk[0]; }
+      else if (k === 'warn') { r.ret = 'Today 0' + (6 + i % 3) + ':10'; r.rpo = '3 h ' + (40 + i % 19) + ' min'; r.bw = 'width: 93%'; r.rto = i % 2 ? '7 min 40 s' : '4 min 50 s'; r.age = '8 h ' + (10 + i % 40) + ' min'; r.ac = 'over'; r.why = whyBy.warn[i % 2]; }
+      else { r.ret = 'Today 14:0' + (i % 10); r.rpo = (20 + i % 40) + ' min'; r.bw = 'width: ' + (10 + i % 40) + '%'; r.rto = (44 + i % 12) + ' s'; r.age = (30 + i % 29) + ' min'; r.why = ''; }
+      rows.push(r);
+    }
+    var fdef = [['attn', 'Needs attention'], ['crit', 'Status: critical'], ['unk', 'Status: unknown'], ['warn', 'Status: warning'], ['ok', 'Status: OK']];
+    var filters = fdef.map(function (f) { return { label: f[1], cls: st.status === f[0] ? 'set' : '', pick: function () { self.setState({ status: f[0], page: 0 }); } }; });
+    filters.push({ label: '+ Host', cls: '', pick: function () {} }, { label: '+ Policy', cls: '', pick: function () {} }, { label: '+ Tag', cls: '', pick: function () {} });
+    var tabDefs = [['causes', 'Needs attention', '6 causes · 47 VMs'], ['cov', 'Coverage', ''], ['vms', 'VMs', '2,418']];
+    var hints = { causes: 'Fix the cause, not each VM. Click a row for what to do.', cov: 'Every VM in the group, by status.', vms: '' };
+    return {
+      tally: tally, causes: causes, cov: cov, rows: rows, filters: filters,
+      tabs: tabDefs.map(function (d) { return { label: d[1], n: d[2], cls: st.tab === d[0] ? 'on' : '', pick: function () { self.setState({ tab: d[0] }); } }; }),
+      tabHint: hints[st.tab], tabCauses: st.tab === 'causes', tabCov: st.tab === 'cov', tabVms: st.tab === 'vms',
+      causeFoot: '6 causes explain all 47 VMs that need attention',
+      groupBy: ['host', 'policy', 'tag'].map(function (b) { return { label: words[b], cls: st.by === b ? 'set' : '', pick: function () { self.setState({ by: b }); } }; }),
+      groupWord: words[st.by], covFoot: cov.length + ' groups shown · ' + hidden + ' with every VM OK hidden',
+      pgText: total ? (page * per + 1) + '–' + Math.min(total, page * per + per) + ' of ' + total.toLocaleString('en-US') : '0',
+      pageNo: page + 1, pages: pages, noPrev: page === 0, noNext: page >= pages - 1,
+      first: function () { self.setState({ page: 0 }); }, prev: function () { self.setState({ page: Math.max(0, page - 1) }); }, next: function () { self.setState({ page: Math.min(pages - 1, page + 1) }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

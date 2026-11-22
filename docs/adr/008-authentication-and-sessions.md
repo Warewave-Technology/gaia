@@ -121,3 +121,25 @@ SAML; SCIM provisioning; more than one IdP; hardware-bound client certificates; 
 - New dependencies are justified per CLAUDE.md rule 3; expected: an OIDC client (`github.com/coreos/go-oidc/v3`,
   `golang.org/x/oauth2`) and WebAuthn (`github.com/go-webauthn/webauthn`), all pure Go.
 - The lab needs an IdP: a Keycloak container on the lab network, set up by a script labelled `fixture`.
+
+## Amendments (2026-11-22, after T26 and T27 step 1)
+
+1. **§3, admin factor:** "security key" reads as **WebAuthn with user verification required**: roaming keys and
+   platform authenticators (Touch ID, Windows Hello) are both accepted. TOTP stays closed to admins. (PO decision
+   2026-11-21.)
+2. **§9, CLI:** accepted: `gaia login -browser` and CLI step-up approved in a signed-in browser
+   (`/approve-step-up`), because a terminal cannot use a security key without cgo (ADR-001).
+3. **§4, scope:** accepted as T26 widened it: keeping fewer points, changing the check template or checks, removing
+   a VM's policy or moving it to a looser one count as weakening; the migration readiness report counts as an
+   evidence export; own password and factor changes, new recovery codes and unlocking a user need step-up.
+4. **§4, flow (T27 K2):** accepted: the dialog shows the action and its target, asks for the factor, then the user
+   presses the action's button. If more than 120 s pass between factor and button, the factor is asked again.
+5. **§6:** passwords shorter than 15 characters set before 0.2.0 must be changed at the first sign-in after the
+   upgrade, like a password found on the blocklist.
+6. **§5, §7, §2, §8, §10:** accepted as T26 built them: the new-device definition (`__Host-gaia_device` cookie,
+   CLI identity, or an address not seen in 30 days; a user's first sign-in is not reported); wrong step-up factors
+   count as failed attempts; unknown user names are paused and reported like real ones; an OIDC auditor gets
+   30 days at the first sign-in and only an admin renews it; refresh every 9–9.5 minutes; token use audited at
+   first use and as a daily count.
+7. **IdP guidance:** the install guide tells the IdP administrator how to make the IdP report a second factor
+   (`acr`), with the Keycloak example from T26.

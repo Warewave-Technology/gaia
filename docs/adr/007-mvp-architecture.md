@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5) and 2026-11-20 (C1–C10); amendments win over the text above them.
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10) and 2026-11-22 (C11–C16); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -193,3 +193,64 @@ Accepted: `last_rebuild` field and a `REBUILT:` line for 48 hours after `restore
 Accepted: the `.deb` layout from T22. The T20 review users (`ui-review`, `ui-auditor`) are disabled before any
 further acceptance run. The release location is a PO decision that is still open; until then releases are
 published by hand as T22 documented.
+
+## Amendments (2026-11-22, after T24–T27 step 1)
+
+Decisions on the `ONAY GEREKİYOR` items of reports T24, T25 and T27, approved by the product owner. The UX rules
+and the v3 screens approved on 2026-11-22 are in `docs/design/v3/`.
+
+### C11. Reason codes and the status table (T24 items 1–3)
+
+- Accepted: `rule` (the truth-table row) and `code` (the cause) are separate fields; `notes` (text) and
+  `note_reasons` (codes) are both kept in API v1. The UI uses codes and builds its own sentences (C15); the text
+  fields are for M2 scripts and are marked deprecated in the OpenAPI description.
+- Accepted: a status changed by the clock alone is recorded at most one scheduler tick (15 s) late.
+- The startup full recompute is split into batches so that requests are not slowed for its whole duration
+  (T24: 29.4 s cold, limit 30 s).
+- New code `host_key_untrusted`, scoped to the host. A host whose key is not pinned is one group in "Needs
+  attention", not part of "backups fail".
+
+### C12. Policies that cannot be OK (T24 item 4)
+
+A policy whose test interval is longer than its RPO target can only be `OK` part of the time. The status model is
+right about this and does not change. Instead:
+- The policy API and the policy editor show **how much of the time a VM on this policy can be OK at best**
+  (e.g. "at most 17 % of the day") and suggest the test interval that would make it possible. Saving is allowed.
+- `OK ↔ WARNING` changes whose only reason is `proven_rpo_over_target` or `proof_too_old` on such a policy are not
+  sent as immediate notifications; they are counted in the daily report.
+
+### C13. Parallel tests, settled (T25 items 1–6)
+
+- Accepted: admission may let a small test pass a waiting large one; after 10 minutes of waiting, nobody passes it.
+- Accepted: the setting is the sandbox unit's `slots` (and `memory_mib`); C4's `max_parallel_tests` is renamed.
+- Accepted: expected durations default to Linux 180 s, Windows 600 s. The OS class comes first from the VM's
+  `os:` tag, then from the guest information libvirt reports, and only last from the check template's name.
+- Accepted: a restore reserves the full size of the VM's disks.
+- Accepted: what-if is not audited and every role may call it; it is rate-limited per session.
+- New fleet-level event `capacity_short` (category jobs) when coverage drops below 100 %, with the slots needed.
+  It is a notice on the overview and in the daily report, not a VM status: a VM turns `WARNING` only when its
+  proof actually expires.
+
+### C14. Ledger checks (T27 K4)
+
+- The ledger is checked **every hour**, after every daily report, and on "Check now". Each check verifies the new
+  entries since the last check and the link to the last checked entry; a full check runs daily.
+- On the overview, the ledger is `OK` while unchecked entries are younger than 2 hours (the fact says how many
+  wait); it becomes `UNKNOWN` when a check is overdue (no successful check for 2 hours) or failed to run.
+- A ledger with no entries while restore tests have passed is `CRITICAL` (`evidence_missing`): tests that leave
+  no evidence are a fault, not an empty state.
+
+### C15. UI language and structure (T27 review; replaces nothing, adds rules to C2)
+
+The rules in `docs/design/v3/README.md` are binding for every screen: data-tables for every list, one screen per
+question with details in tabs or expanding rows, human sentences built from reason codes with raw detail folded,
+one duration and time format, charts that explain themselves with at most four legend items.
+
+### C16. Job and point vocabulary (T27 K1, K3)
+
+- **Job states are not VM statuses** and never use the status marks: `● RUNNING` (blue, animated unless reduced
+  motion is set), `QUEUED` (neutral, with queue position and estimated start), `✓ DONE`, `▲ DONE, WARNING`,
+  `◆ FAILED`, `CANCELLED`.
+- **A point that was backed up and checked but not tested is neutral:** `BACKED UP` with "not tested", no ✓ and no
+  hatching. `✓ PROVEN` is only for a point a passing restore test proved; `? UNKNOWN` only for something that
+  should have been checked and could not be.

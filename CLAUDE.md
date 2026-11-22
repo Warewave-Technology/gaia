@@ -2,8 +2,8 @@
 
 You are the implementation engineer for **Gaia**, a free (AGPL-3.0-or-later) end-to-end backup and
 recoverability platform. The MVP was accepted in T23 (2026-11-19). Read `README.md`, every file in `docs/adr/`
-(new: **ADR-008**, **ADR-007 amendments C1–C10**, **ADR-005 amendments A–E**, a note in ADR-006), the design
-reference in `docs/design/v2/` and the reports in `docs/reports/` before you change anything.
+(**ADR-008** with its 2026-11-22 amendments, **ADR-007 amendments C1–C16**, **ADR-005 amendments A–E**, a note in
+ADR-006), the design references in `docs/design/v2/` and `docs/design/v3/` and the reports in `docs/reports/` before you change anything.
 
 ## Who does what
 
@@ -109,24 +109,25 @@ exists. Keep the free-space checks, cache handling and `fstrim` in every lab run
   break-glass sign-in works and notifies admins, and SSO sessions refuse step-up with `idp_unreachable`;
   (f) the T20 role matrix passes with OIDC users and local users.
 
-### T27 — UI v2 (ADR-007 C2; design reference `docs/design/v2/`)
-- Build the screens of the prototype on the existing stack and components: Overview, VM page, Proof capacity,
-  Activity, Migration check, Evidence (auditor), Inventory (hosts, policies, repositories, users, audit log),
-  Sign-in and security, and the sign-in flows (sign in, second factor, enrolment, expired password, step-up dialog,
-  idle sign-out, locked).
-- Keep the approved T20 language (gruvbox, IBM Plex, shape + word + colour, bullet graphs, history strips,
-  tables not cards, `UNKNOWN` hatched). The prototype's numbers are sample data; every number on a real screen
-  comes from the API. Where the prototype shows something the API cannot know, leave it out and list it.
-- Global search (`/` focuses it) over VMs, hosts, policies and points; URLs keep filters, so a filtered view can be
-  shared.
-- Policy editing shows the capacity effect (T25 `what-if`) before saving. Destructive buttons use the step-up
-  dialog. The damaged-point "forget" action (ADR-007 C6) is offered on the VM page.
-- **Step 1:** screenshots of every screen with real lab data **and** with the T24 synthetic catalog (5,000 VMs);
-  stop until Yiğit approves or changes them. Record his decisions as "PO kararı".
-- **Output:** report `T27`. Gate: (a) Yiğit's approval; (b) the role matrix test covers every new page and action;
-  (c) with the 5,000-VM catalog, the overview is interactive within 2 s of navigation on the lab browser, and
-  every list scrolls without loading all rows; (d) no screen shows status by colour alone (automated check of the
-  rendered DOM for the text label next to every status mark).
+### T27 — UI v2 (ADR-007 C2, C15, C16; design reference `docs/design/v2/` and `docs/design/v3/`)
+- **Step 1 is done** (report `2026-11-22-T27.md`): every v2 screen built and shown to the PO.
+- **Step 1b (now):** the PO found the screens effective but too complex. Apply `docs/design/v3/README.md` to every
+  screen: data-tables everywhere, one screen per question with tabs, sentences from reason codes with raw detail
+  folded, one duration/time formatter, the new history strip, honest headlines, job and point vocabulary.
+  Also apply the decisions in ADR-007 C11–C14 and ADR-008's 2026-11-22 amendments that touch the server:
+  `host_key_untrusted`, batched startup recompute, the policy "can be OK at most X %" figure and notification rule,
+  OS class order, `slots`/`memory_mib` naming, `capacity_short`, hourly incremental ledger checks with the overview
+  rule and `evidence_missing`, the 120 s re-ask in the step-up dialog, forced change of short legacy passwords.
+- Then take screenshots again, with lab data and the T24 catalog, the same set as step 1 plus each tab and an
+  expanded cause row; stop until Yiğit approves or changes them. Record his decisions as "PO kararı".
+- Confirm in the report how the password blocklist went from 1,000,000 to the 10,898 entries the security screen
+  shows (expected: only entries of 15+ characters are kept, since shorter ones are refused anyway).
+- **Output:** report `T27` (complete it; step 1b is a section of it). Gate: (a) Yiğit's approval; (b) the role
+  matrix test covers every new page and action; (c) with the 5,000-VM catalog **at full size (3 M points)**, the
+  overview is interactive within 2 s of navigation on the lab browser; (d) no screen shows status by colour alone
+  (automated DOM check, extended to job states); (e) new: an automated check that no list on any screen renders
+  more than one page of rows, and that no on-screen text matches a raw Go duration (`\d+h\d+m`, `\dm\d+s`) or an
+  ISO timestamp.
 
 ### T28 — Migration and evidence follow-ups (ADR-005 A–E, ADR-007 C7–C9)
 - Re-run T21's Windows gate with `settle_s` (ADR-005 B). If the earlier `OK` was a false positive, say so plainly.

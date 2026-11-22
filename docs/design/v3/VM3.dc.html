@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gaia — VM page v3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1d2021}
+a{color:#83a598;text-decoration:none}a:hover{color:#fbf1c7;text-decoration:underline}
+.g{background:#1d2021;color:#ebdbb2;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:0 28px;min-height:52px;background:#282828;border-bottom:1px solid #3c3836}
+.brand{display:flex;align-items:center;gap:9px;color:#fbf1c7;font-weight:600;font-size:15px}
+.inst{color:#a89984;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.nav{display:flex;gap:18px;flex-wrap:wrap}
+.nav a{color:#bdae93;font-size:13.5px;padding:15px 1px 13px;border-bottom:2px solid transparent}
+.nav a:hover{color:#fbf1c7;text-decoration:none}
+.nav a.on{color:#fbf1c7;border-color:#d5c4a1}
+.find{flex:1 1 220px;display:flex;align-items:center;max-width:380px;background:#1d2021;border:1px solid #504945;border-radius:3px;padding:0 10px;height:32px}
+.find input{flex:1;background:transparent;border:0;color:#ebdbb2;font:inherit;font-size:13px;outline:none}
+.clock{margin-left:auto;color:#d5c4a1;font-size:13px}
+.clock span{color:#a89984;font-size:11.5px;margin-left:6px}
+.user{color:#bdae93;font-size:13px}
+.role{font-size:11px;color:#a89984;border:1px solid #504945;border-radius:3px;padding:0 5px;margin-left:4px}
+.proto{display:flex;gap:10px;align-items:center;padding:8px 28px;border-bottom:1px dashed #504945}
+.proto span{font-size:11px;color:#a89984;text-transform:uppercase;letter-spacing:.08em}
+.wrap{max-width:1360px;margin:0 auto;padding:20px 28px 64px;display:flex;flex-direction:column;gap:22px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border:1px solid;border-radius:3px;white-space:nowrap;line-height:18px}
+.crit{color:#fb4934;background:#3a1716;border-color:#6f2420}
+.warn{color:#fabd2f;background:#362a12;border-color:#6b5014}
+.unk{color:#d3869b;border-color:#6e4a59;background:repeating-linear-gradient(135deg,#33262d 0 4px,transparent 4px 8px)}
+.ok{color:#bdae93;border-color:#504945}
+.ok b{color:#b8bb26}
+.neu{color:#a89984;border-color:#504945;font-weight:500}
+h1{margin:0;font-size:28px;font-weight:500;color:#fbf1c7}
+h2{margin:0;font-size:15px;font-weight:600;color:#fbf1c7}
+.sub{color:#a89984;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #504945;border-radius:3px;background:#32302f;color:#ebdbb2;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#a89984;color:#fbf1c7}
+.btn.pri{background:#ebdbb2;color:#1d2021;border-color:#ebdbb2;font-weight:600}
+.seg{display:inline-flex;border:1px solid #504945;border-radius:3px;overflow:hidden}
+.seg button{background:transparent;border:0;border-right:1px solid #504945;color:#bdae93;font:inherit;font-size:12.5px;padding:0 12px;height:28px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#32302f;color:#fbf1c7}
+.over{color:#fb4934 !important}
+.answer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:0;border:1px solid #3c3836;border-radius:3px;background:#282828}
+.answer > div{padding:16px 20px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-left:1px solid #3c3836}
+.metrics > div{padding:16px 18px;border-right:1px solid #3c3836;display:flex;flex-direction:column;gap:4px}
+.metrics > div:last-child{border-right:0}
+.metrics b{font-size:20px;font-weight:600;color:#fbf1c7}
+.mini{position:relative;height:4px;background:#3c3836;margin-top:4px}
+.mini i{position:absolute;left:0;top:0;bottom:0;background:#d5c4a1}
+.mini i.bad{background:#fb4934}
+.mini s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fbf1c7}
+.tl{position:relative;height:118px;margin:4px 0 0;user-select:none}
+.tl .lane{position:absolute;left:84px;right:0;height:1px;background:#3c3836}
+.tl .lab{position:absolute;left:0;width:76px;font-size:11.5px;color:#a89984;text-align:right}
+.tl .band{position:absolute;top:22px;height:76px;border-left:2px solid #fbf1c7}
+.tl .flag{position:absolute;top:0;font-size:12px;color:#fbf1c7;white-space:nowrap;transform:translateX(-1px);font-weight:500}
+.tl .tgt{position:absolute;top:22px;height:76px;border-left:1px dashed #bdae93}
+.tl .tgtl{position:absolute;bottom:0;font-size:11px;color:#bdae93;white-space:nowrap;transform:translateX(-50%)}
+.tl .tk{position:absolute;width:2px;height:12px;background:#7c6f64;transform:translateX(-1px);cursor:pointer}
+.tl .tk.sel{background:#fbf1c7;height:16px}
+.tl .dot{position:absolute;width:11px;height:11px;border-radius:50%;transform:translate(-5px,-5px);cursor:pointer;box-sizing:border-box}
+.tl .dot.p{background:#8ec07c}
+.tl .dot.f{background:#fb4934}
+.tl .dot.u{border:2px dashed #d3869b;background:transparent}
+.tl .dot.sel{box-shadow:0 0 0 2px #1d2021,0 0 0 4px #fbf1c7}
+.tl .now{position:absolute;top:22px;height:76px;right:0;border-left:1px solid #a89984}
+.axis{display:flex;justify-content:space-between;margin-left:84px;font-size:11.5px;color:#a89984;font-family:'IBM Plex Mono',monospace}
+.cap{display:flex;gap:12px;align-items:baseline;padding:10px 14px;background:#282828;border:1px solid #3c3836;border-radius:3px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #504945}
+.tabs button{all:unset;cursor:pointer;padding:9px 14px;color:#bdae93;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:#fbf1c7}
+.tabs button.on{color:#fbf1c7;border-color:#d5c4a1}
+.tabs button span{color:#a89984;font-size:12px;margin-left:6px}
+.dt{border:1px solid #3c3836;border-radius:3px;overflow:hidden}
+.dt .scroll{max-height:380px;overflow:auto}
+.dt table{width:100%;border-collapse:collapse}
+.dt th{position:sticky;top:0;background:#282828;font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:500;color:#a89984;text-align:left;padding:8px 12px;border-bottom:1px solid #504945;white-space:nowrap;z-index:1}
+.dt td{padding:0 12px;height:40px;border-bottom:1px solid #32302f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+.dt tr:hover td{background:#282828}
+.dt .foot{display:flex;align-items:center;gap:12px;padding:6px 12px;background:#282828;border-top:1px solid #3c3836;font-size:12.5px;color:#a89984}
+.dt .foot select{background:#1d2021;color:#ebdbb2;border:1px solid #504945;border-radius:3px;font:inherit;height:26px}
+.pg{display:inline-flex;gap:4px;margin-left:auto}
+.pg button{background:#32302f;border:1px solid #504945;color:#ebdbb2;border-radius:3px;height:26px;min-width:28px;cursor:pointer;font:inherit}
+.pg button:disabled{opacity:.35;cursor:default}
+.num{text-align:right}
+details summary{cursor:pointer;color:#a89984;font-size:12.5px}
+.step{display:grid;grid-template-columns:90px minmax(0,1fr) 70px;gap:12px;padding:9px 0;border-bottom:1px solid #32302f;align-items:baseline}
+.shot{aspect-ratio:16/10;background:#0e0e0e;border:1px solid #3c3836;border-radius:3px;display:flex;align-items:flex-end;padding:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a89984}
+</style>
+</helmet>
+<div class="g">
+  <header class="bar">
+    <a class="brand" href="Main3.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.5 7.5A9 9 0 1 0 21 12h-9" stroke="#fbf1c7" stroke-width="2.2" stroke-linecap="round"></path><circle cx="12" cy="12" r="2.2" fill="#8ec07c"></circle></svg>Gaia</a>
+    <span class="inst">gaia-01.prod.ist</span>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="Main3.dc.html">Overview</a><a href="Capacity.dc.html">Proof capacity</a><a href="Activity.dc.html">Activity</a><a href="Migration.dc.html">Migration</a><a href="Evidence.dc.html">Evidence</a><a href="Inventory.dc.html">Inventory</a>
+    </nav>
+    <label class="find"><input type="search" placeholder="Find a VM, host, policy or point" aria-label="Find"></label>
+    <span class="clock">14:32<span>Europe/Istanbul</span></span>
+    <span class="user">yigit<span class="role">admin</span></span>
+  </header>
+  <div class="proto"><span>Prototype: example VM</span>
+    <div class="seg" role="group"><button type="button" class="{{exCrit}}" onClick="{{setCrit}}">Critical</button><button type="button" class="{{exOk}}" onClick="{{setOk}}">Healthy</button></div>
+  </div>
+
+  <main class="wrap">
+    <nav class="sub"><a href="Main3.dc.html">Overview</a> / <a href="Main3.dc.html">{{crumb}}</a> / <span class="mono" style="color: #d5c4a1">{{v.name}}</span></nav>
+
+    <section style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+      <span class="chip {{v.cls}}">{{v.word}}</span>
+      <h1 class="mono">{{v.name}}</h1>
+      <span class="sub">{{v.since}}</span>
+      <span style="margin-left: auto; display: flex; gap: 8px"><button class="btn" type="button">Back up now</button><button class="btn pri" type="button">Test newest point</button><button class="btn" type="button" aria-label="More actions">More ▾</button></span>
+    </section>
+    <div class="sub" style="margin-top: -14px">{{v.meta}}</div>
+
+    <section class="answer">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="sub" style="text-transform: uppercase; letter-spacing: .08em; font-size: 11px">If it breaks now, you return to</span>
+        <div style="font-size: 26px; font-weight: 600; color: #fbf1c7">{{v.ret}} <span style="font-size: 14px; color: #a89984; font-weight: 400">{{v.retPoint}}</span></div>
+        <div style="color: #d5c4a1">{{v.retText}}</div>
+        <sc-if value="{{v.hasWhy}}" hint-placeholder-val="{{true}}">
+          <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid #3c3836; display: flex; flex-direction: column; gap: 4px">
+            <span style="color: #fbf1c7">{{v.why}}</span>
+            <span class="sub">{{v.why2}} <a href="Main3.dc.html">{{v.whyLink}}</a></span>
+          </div>
+        </sc-if>
+      </div>
+      <div class="metrics">
+        <sc-for list="{{v.metrics}}" as="m" hint-placeholder-count="4">
+          <div>
+            <span class="sub">{{m.label}}</span>
+            <b class="{{m.cls}}">{{m.value}}</b>
+            <span class="sub">{{m.target}}</span>
+            <div class="mini" aria-hidden="true"><i class="{{m.bcls}}" style="{{m.w}}"></i><s style="{{m.t}}"></s></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <h2>Last 24 hours</h2>
+        <div class="seg" role="group"><button type="button" class="on">24 h</button><button type="button">7 days</button></div>
+      </div>
+      <div class="tl" role="img" aria-label="{{v.tlAria}}">
+        <span class="band" style="{{v.bandStyle}}"></span>
+        <span class="flag" style="{{v.flagLeft}}">▼ return here · {{v.flagText}}</span>
+        <span class="tgt" style="{{v.tgtLeft}}"></span>
+        <span class="tgtl" style="{{v.tgtLeft}}">RPO target</span>
+        <span class="now"></span>
+        <span class="lab" style="top: 38px">Restore tests</span>
+        <span class="lane" style="top: 46px"></span>
+        <span class="lab" style="top: 70px">Backups</span>
+        <span class="lane" style="top: 78px"></span>
+        <sc-for list="{{v.tests}}" as="d" hint-placeholder-count="5"><span class="dot {{d.cls}}" style="{{d.pos}}" onClick="{{d.pick}}" title="{{d.tip}}"></span></sc-for>
+        <sc-for list="{{v.backups}}" as="k" hint-placeholder-count="24"><span class="tk {{k.cls}}" style="{{k.pos}}" onClick="{{k.pick}}" title="{{k.tip}}"></span></sc-for>
+      </div>
+      <div class="axis"><span>yesterday 14:32</span><span>20:00</span><span>02:00</span><span>08:00</span><span>now</span></div>
+      <div class="cap" style="margin-top: 8px">
+        <span class="chip {{s.cls}}">{{s.word}}</span>
+        <b style="color: #fbf1c7">{{s.title}}</b>
+        <span style="color: #d5c4a1">{{s.text}}</span>
+      </div>
+      <div class="sub" style="display: flex; gap: 18px; flex-wrap: wrap; margin-top: 2px">
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 9px; height: 9px; border-radius: 50%; background: #8ec07c; display: inline-block"></span>test passed</span>
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 9px; height: 9px; border-radius: 50%; background: #fb4934; display: inline-block"></span>test failed</span>
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 9px; height: 9px; border-radius: 50%; border: 2px dashed #d3869b; box-sizing: border-box; display: inline-block"></span>test could not run</span>
+        <span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 14px; height: 9px; background: {{v.bandColor}}; border-left: 2px solid #fbf1c7; display: inline-block"></span>not proven: what you would lose</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 14px">
+      <div class="tabs" role="tablist">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button type="button" role="tab" class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}<span>{{t.n}}</span></button></sc-for>
+      </div>
+
+      <sc-if value="{{tabTest}}" hint-placeholder-val="{{true}}">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px">
+          <div>
+            <div style="display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px"><span class="chip {{t.cls}}">{{t.word}}</span><span class="sub mono">{{t.id}}</span></div>
+            <sc-for list="{{t.steps}}" as="st" hint-placeholder-count="4">
+              <div class="step"><span class="chip {{st.cls}}" style="justify-self: start">{{st.word}}</span><span><span style="color: #fbf1c7">{{st.name}}</span><span style="display: block; color: #bdae93; font-size: 13px">{{st.text}}</span></span><span class="sub mono num">{{st.took}}</span></div>
+            </sc-for>
+            <details style="margin-top: 10px"><summary>Technical details of this test</summary><pre class="mono" style="font-size: 12px; color: #bdae93; white-space: pre-wrap; background: #282828; padding: 10px; border-radius: 3px">{{t.raw}}</pre></details>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start">
+            <figure style="margin: 0"><div class="shot">{{t.shot1}}</div><figcaption class="sub">at boot</figcaption></figure>
+            <figure style="margin: 0"><div class="shot" style="{{t.shot2Style}}">{{t.shot2}}</div><figcaption class="sub">end of test</figcaption></figure>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{tabPoints}}" hint-placeholder-val="{{false}}">
+        <div class="dt">
+          <div class="scroll">
+            <table>
+              <thead><tr><th scope="col">Point</th><th scope="col">Taken</th><th scope="col">Kind</th><th scope="col" class="num">Size</th><th scope="col">Proof</th><th scope="col">Detail</th></tr></thead>
+              <tbody>
+                <sc-for list="{{pts}}" as="p" hint-placeholder-count="10">
+                  <tr><td class="mono">{{p.id}}</td><td>{{p.at}}</td><td class="sub">{{p.kind}}</td><td class="num mono">{{p.size}}</td><td><span class="chip {{p.cls}}">{{p.word}}</span></td><td class="sub">{{p.note}}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div class="foot">
+            <span>Rows</span><select aria-label="Rows per page"><option>10</option><option>25</option><option>50</option></select>
+            <span>{{pgText}}</span>
+            <span class="pg"><button type="button" onClick="{{prev}}" disabled="{{noPrev}}">‹</button><button type="button" onClick="{{next}}" disabled="{{noNext}}">›</button></span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{tabHist}}" hint-placeholder-val="{{false}}">
+        <div class="dt">
+          <div class="scroll">
+            <table>
+              <thead><tr><th scope="col">When</th><th scope="col">Change</th><th scope="col" class="num">Lasted</th><th scope="col">Why</th></tr></thead>
+              <tbody>
+                <sc-for list="{{v.hist}}" as="h" hint-placeholder-count="4">
+                  <tr><td>{{h.at}}</td><td><span class="chip {{h.fromCls}}">{{h.from}}</span> → <span class="chip {{h.toCls}}">{{h.to}}</span></td><td class="num mono">{{h.lasted}}</td><td style="color: #d5c4a1">{{h.why}}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div class="foot"><span>{{v.histCount}}</span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{tabEv}}" hint-placeholder-val="{{false}}">
+        <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 10px 18px; max-width: 900px">
+          <span class="sub">Bundle</span><span><span class="chip ok"><b>✓</b> VERIFIED</span> <span class="mono">{{t.bundle}}</span></span>
+          <span class="sub">Signed by</span><span class="mono">a676c908…f06e895</span>
+          <span class="sub">In the ledger</span><span>entry 184,218 · checked 14:30</span>
+          <span class="sub">Anchored</span><span>not yet: the next daily report (06:00) will include it</span>
+        </div>
+      </sc-if>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { ex: 'crit', tab: 'test', sel: null, page: 0 }; }
+  renderVals() {
+    var self = this, ex = this.state.ex;
+    var pos = function (h) { return (h / 24 * 100); };
+    var L = function (h) { return 'left: calc(84px + (100% - 84px) * ' + (pos(h) / 100).toFixed(4) + ')'; };
+    var C = { crit: ['crit', '◆ CRITICAL'], ok: ['ok', '✓ OK'], warn: ['warn', '▲ WARNING'], unk: ['unk', '? UNKNOWN'] };
+    var V;
+    if (ex === 'crit') {
+      V = { name: 'db-ledger-03', c: 'crit', since: 'since 09:12 (5 h 20 min)', meta: 'kvm-07 · gold-db (RPO 1 h, RTO 5 min, test every 6 h) · repository s3-ank-01 · payments, ledger',
+        ret: 'Today 04:51', retPoint: 'point 88104', retText: 'Proven by a restore test at 05:02. It would be running again in about 52 s.',
+        hasWhy: true, why: '4 restore tests since then failed: the copy does not boot.', why2: 'Same cause on 3 other VMs on kvm-07 and kvm-11.', whyLink: 'See all 4',
+        retH: 14.3, tgtH: 23.0, band: 'rgba(251,73,52,.16)', flag: 'today 04:51',
+        backups: [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.3, 15.5, 16.5, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5],
+        tests: [[8.4, 'p'], [14.5, 'p'], [16.6, 'f'], [19.5, 'f'], [21.5, 'f'], [23.5, 'f']],
+        metrics: [['Proven RPO', '9 h 41 min', 'target 1 h', true, 100, 10], ['Newest backup', '32 min ago', 'target 1 h', false, 53, 100], ['Proven RTO', '52 s', 'target 5 min', false, 17, 100], ['Proof age', '9 h 30 min', 'max 6 h', true, 100, 63]],
+        hist: [{ at: 'Today 09:12', from: '✓ OK', fromCls: 'ok', to: '◆ CRITICAL', toCls: 'crit', lasted: '5 h 20 min so far', why: 'The restore test at 09:10 failed: the copy does not boot.' },
+               { at: 'Yesterday 22:51', from: '▲ WARNING', fromCls: 'warn', to: '✓ OK', toCls: 'ok', lasted: '10 h 21 min', why: 'A restore test passed.' }], histCount: '2 of 2 changes',
+        test: { c: 'crit', word: '◆ FAILED', id: 'test 71402 · point 88540 · today 14:05', bundle: 'db-ledger-03-20261122T140512Z',
+          steps: [['ok', '✓ OK', 'Restore', 'Copied point 88540 into the sandbox', '6 s'], ['ok', '✓ OK', 'Integrity', 'Every block matches what was backed up', '2 s'], ['crit', '◆ FAILED', 'Boot', 'No login prompt on the serial console within 5 min. The firmware said "no bootable device".', '5 min'], ['neu', 'NOT RUN', 'Service checks', 'Skipped: the copy did not boot.', '—']],
+          raw: 'boot: CRITICAL: no match for "(?m)login: *$" on the serial console within 300s\nfirmware: BIOS (source VM: UEFI since 05:14)', shot1: 'Booting from Hard Disk...', shot2: 'No bootable device.', shot2Style: 'border-color: #6f2420; color: #fb4934' } };
+    } else {
+      V = { name: 'gaia-t25-win', c: 'ok', since: 'since 13:38 (54 min)', meta: 'gaia-lab · std-windows (RPO 4 h, RTO 5 min, test every 6 h) · repository main · env:prod, os:windows',
+        ret: 'Today 13:29', retPoint: 'point 7', retText: 'Proven by a restore test at 13:38. It would be running again in about 4 min 54 s.',
+        hasWhy: false, why: '', why2: '', whyLink: '', retH: 22.95, tgtH: 20.0, band: 'rgba(235,219,178,.08)', flag: 'today 13:29',
+        backups: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22.95],
+        tests: [[4.3, 'p'], [10.3, 'u'], [16.3, 'p'], [23.1, 'p']],
+        metrics: [['Proven RPO', '1 h 03 min', 'target 4 h', false, 26, 100], ['Newest backup', '1 h 03 min ago', 'target 4 h', false, 26, 100], ['Proven RTO', '4 min 54 s', 'target 5 min', false, 98, 100], ['Proof age', '54 min', 'max 12 h', false, 8, 100]],
+        hist: [{ at: 'Today 13:38', from: '? UNKNOWN', fromCls: 'unk', to: '✓ OK', toCls: 'ok', lasted: '54 min so far', why: 'A restore test passed for the first time.' },
+               { at: 'Today 13:28', from: 'added', fromCls: 'neu', to: '? UNKNOWN', toCls: 'unk', lasted: '10 min', why: 'No backup had passed its check yet.' }], histCount: '2 of 2 changes',
+        test: { c: 'ok', word: '✓ PASSED', id: 'test 7 · point 7 · today 13:38', bundle: 'gaia-t25-win-20261122T133511Z',
+          steps: [['ok', '✓ OK', 'Restore', 'Copied point 7 into the sandbox', '3 min 45 s'], ['ok', '✓ OK', 'Boot', 'Windows answered on WinRM (computer GAIA-T11-WIN, build 20348)', '1 min 09 s'], ['ok', '✓ OK', 'Stable', 'Kept answering for 1 min after every check passed', '1 min'], ['ok', '✓ OK', 'Unchanged', 'The backup image was not modified by the test', '—']],
+          raw: 'boot: POST http://10.254.0.10:5985/wsman: Identify refused (401), NTLM NEGOTIATE answered with CHALLENGE from "GAIA-T11-WIN"\nstable: 13 probes, one every 5s', shot1: 'Windows Server 2022', shot2: 'Windows Server 2022', shot2Style: '' } };
+    }
+    var c = C[V.c];
+    var sel = this.state.sel;
+    var tests = V.tests.map(function (t, i) {
+      var id = 't' + i;
+      return { cls: t[1] + (sel === id ? ' sel' : ''), pos: L(t[0]) + '; top: 46px', tip: 'restore test', pick: function () { self.setState({ sel: id }); } };
+    });
+    var backups = V.backups.map(function (h, i) {
+      var id = 'b' + i;
+      return { cls: sel === id ? 'sel' : '', pos: L(h) + '; top: 72px', tip: 'backup', pick: function () { self.setState({ sel: id }); } };
+    });
+    var hhmm = function (h) { var t = (14.53 - 24 + h + 48) % 24; var H = Math.floor(t), M = Math.round((t - H) * 60); if (M === 60) { H = (H + 1) % 24; M = 0; } return (H < 10 ? '0' : '') + H + ':' + (M < 10 ? '0' : '') + M; };
+    var S;
+    if (!sel) {
+      S = { cls: 'ok', word: '▼ RETURN HERE', title: 'Point at ' + V.flag, text: 'The newest point a restore test proved. Everything after it is backed up but not proven.' };
+      if (V.c === 'ok') S.text = 'The newest point a restore test proved. Nothing newer exists yet.';
+    } else if (sel[0] === 't') {
+      var t = V.tests[parseInt(sel.slice(1), 10)];
+      var m = { p: ['ok', '✓ PASSED', 'Restored, booted and every check passed.'], f: ['crit', '◆ FAILED', 'Restored, but the copy did not boot.'], u: ['unk', '? NOT RUN', 'The test could not run: the sandbox was stopped. It proves nothing.'] }[t[1]];
+      S = { cls: m[0], word: m[1], title: 'Restore test at ' + hhmm(t[0]), text: m[2] };
+    } else {
+      var h = V.backups[parseInt(sel.slice(1), 10)];
+      var proven = Math.abs(h - V.retH) < 0.2;
+      S = proven ? { cls: 'ok', word: '✓ PROVEN', title: 'Backup at ' + hhmm(h), text: 'This is the point you would return to.' }
+                 : { cls: 'neu', word: 'BACKED UP', title: 'Backup at ' + hhmm(h), text: h > V.retH ? 'Backed up and checked, not proven by a restore test.' : 'Older than the point you would return to.' };
+    }
+    var allPts = [];
+    for (var i = 0; i < 412; i++) {
+      var id = (ex === 'crit' ? 88540 : 7) - i;
+      var cls = 'neu', word = 'BACKED UP', note = 'not tested';
+      if (ex === 'crit' && (i === 0 || i === 4 || i === 9)) { cls = 'crit'; word = '◆ FAILED'; note = 'copy did not boot'; }
+      if ((ex === 'crit' && i === 11) || (ex !== 'crit' && i === 0)) { cls = 'ok'; word = '✓ PROVEN'; note = 'return here'; }
+      if (ex !== 'crit' && i > 0) break;
+      allPts.push({ id: String(id), at: i === 0 ? 'Today 14:00' : (i < 28 ? 'Today ' + hhmm(23.5 - i * 0.5) : 'Nov ' + (21 - Math.floor(i / 48))), kind: i % 48 === 47 ? 'full' : 'incremental', size: (0.8 + (i * 37 % 19) / 10).toFixed(1) + ' GB', cls: cls, word: word, note: note });
+    }
+    var per = 10, page = this.state.page, total = allPts.length, pages = Math.max(1, Math.ceil(total / per));
+    var pts = allPts.slice(page * per, page * per + per);
+    var tabDefs = [['test', 'Latest test', ''], ['points', 'Points', String(total)], ['hist', 'Status history', '2'], ['ev', 'Evidence', '']];
+    return {
+      exCrit: ex === 'crit' ? 'on' : '', exOk: ex === 'ok' ? 'on' : '',
+      setCrit: function () { self.setState({ ex: 'crit', sel: null, page: 0 }); }, setOk: function () { self.setState({ ex: 'ok', sel: null, page: 0 }); },
+      crumb: ex === 'crit' ? 'Restore test failed to boot' : 'All VMs',
+      v: { name: V.name, cls: c[0], word: c[1], since: V.since, meta: V.meta, ret: V.ret, retPoint: V.retPoint, retText: V.retText,
+        hasWhy: V.hasWhy, why: V.why, why2: V.why2, whyLink: V.whyLink,
+        metrics: V.metrics.map(function (m) { return { label: m[0], value: m[1], target: m[2], cls: m[3] ? 'over' : '', bcls: m[3] ? 'bad' : '', w: 'width: ' + m[4] + '%', t: 'left: ' + m[5] + '%' }; }),
+        bandStyle: L(V.retH) + '; right: 0; background: ' + V.band, bandColor: V.band.replace('.16', '.4').replace('.08', '.25'),
+        flagLeft: L(V.retH), flagText: V.flag, tgtLeft: L(V.tgtH), tests: tests, backups: backups,
+        tlAria: 'Backups and restore tests over the last 24 hours',
+        hist: V.hist, histCount: V.histCount },
+      s: S,
+      t: { cls: C[V.test.c] ? C[V.test.c][0] : 'ok', word: V.test.word, id: V.test.id, bundle: V.test.bundle, raw: V.test.raw, shot1: V.test.shot1, shot2: V.test.shot2, shot2Style: V.test.shot2Style,
+        steps: V.test.steps.map(function (s) { return { cls: s[0], word: s[1], name: s[2], text: s[3], took: s[4] }; }) },
+      tabs: tabDefs.map(function (d) { return { label: d[1], n: d[2], cls: self.state.tab === d[0] ? 'on' : '', pick: function () { self.setState({ tab: d[0] }); } }; }),
+      tabTest: this.state.tab === 'test', tabPoints: this.state.tab === 'points', tabHist: this.state.tab === 'hist', tabEv: this.state.tab === 'ev',
+      pts: pts, pgText: (total ? (page * per + 1) + '–' + Math.min(total, page * per + per) : 0) + ' of ' + total,
+      noPrev: page === 0, noNext: page >= pages - 1,
+      prev: function () { self.setState({ page: Math.max(0, page - 1) }); }, next: function () { self.setState({ page: Math.min(pages - 1, page + 1) }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
