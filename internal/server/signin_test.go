@@ -561,7 +561,7 @@ func TestADR008Local(t *testing.T) {
 				t.Fatalf("failure %d: %d", i+1, c)
 			}
 		}
-		if c, e, _ := f.password("slow1", userPassword("slow1"), ""); c != 429 || !strings.Contains(e.Error, "3 failed attempts") {
+		if c, e, _ := f.password("slow1", userPassword("slow1"), ""); c != 429 || !strings.Contains(e.Error, "3 failed attempts") || e.Reason != "delay" {
 			t.Fatalf("right after the 3rd failure: %d %+v", c, e)
 		}
 		clk.add(time.Second)
@@ -586,7 +586,7 @@ func TestADR008Local(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if c, e, _ := f.password("pause1", userPassword("pause1"), ""); c != 429 || !strings.Contains(e.Error, "paused") {
+		if c, e, _ := f.password("pause1", userPassword("pause1"), ""); c != 429 || !strings.Contains(e.Error, "paused") || e.Reason != "account_paused" {
 			t.Fatalf("the right password while paused: %d %+v", c, e)
 		}
 		cs := f.stateChanges(t, "user_lockout")

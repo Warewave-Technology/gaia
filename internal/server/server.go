@@ -505,7 +505,7 @@ type apiError struct {
 	// unauthorized, session_ended, forbidden, step_up_required, step_up_failed, idp_unreachable, signin_refused,
 	// password_change_required, not_found, conflict, invalid, not_implemented, internal, unavailable, too_many_requests
 	Code   string `json:"code"`
-	Reason string `json:"reason,omitempty"` // session_ended: why (idle, absolute, ...); password_change_required: why
+	Reason string `json:"reason,omitempty"` // session_ended: why (idle, absolute, ...); password_change_required: why; too_many_requests: account_paused or delay
 }
 
 var errNotImplemented = errors.New("not implemented in this version")
@@ -679,7 +679,11 @@ func (s *Server) serve(rt *route) http.Handler {
 				msg = "internal error (details in the server log)"
 			}
 			c.detail = strings.TrimSpace(c.detail + " " + err.Error())
-			writeJSON(rec, code, apiError{Error: msg, Code: name})
+			ae := apiError{Error: msg, Code: name}
+			if we := (*waitError)(nil); errors.As(err, &we) {
+				ae.Reason = we.reason()
+			}
+			writeJSON(rec, code, ae)
 		case c.raw:
 		case body == nil:
 			rec.WriteHeader(status)

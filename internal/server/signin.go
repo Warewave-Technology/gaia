@@ -159,23 +159,24 @@ type NewPassword struct {
 }
 
 // signinWait is when the next attempt for a username from an address may be made (zero: now), and why (§7): an
-// account paused after 10 failures within 15 minutes, or a delay that doubles from the 3rd failure.
-func (s *Server) signinWait(ctx context.Context, username, addr string) (time.Time, string, error) {
+// account paused after 10 failures within 15 minutes (paused), or a delay that doubles from the 3rd failure.
+func (s *Server) signinWait(ctx context.Context, username, addr string) (until time.Time, why string, paused bool, err error) {
 	now := s.now()
 	f, err := s.db.SigninFailures(ctx, username, addr)
 	if err != nil {
-		return time.Time{}, "", err
+		return time.Time{}, "", false, err
 	}
+	pause := fmt.Sprintf("sign-in for this account is paused after %d failed attempts", store.FailuresToPause)
 	if u, err := s.db.UserByName(ctx, username); err == nil {
 		if locked, until := u.Locked(now); locked {
-			return until, fmt.Sprintf("sign-in for this account is paused after %d failed attempts", store.FailuresToPause), nil
+			return until, pause, true, nil
 		}
 	} else if !errors.Is(err, store.ErrNotFound) {
-		return time.Time{}, "", err
+		return time.Time{}, "", false, err
 	}
 	if f.ByUser >= store.FailuresToPause {
 		if until := f.LastUser.Add(store.PauseFor); now.Before(until) {
-			return until, fmt.Sprintf("sign-in for this account is paused after %d failed attempts", store.FailuresToPause), nil
+			return until, pause, true, nil
 		}
 	}
 	wait := func(n int, last time.Time) time.Time {
@@ -191,27 +192,43 @@ func (s *Server) signinWait(ctx context.Context, username, addr string) (time.Ti
 	}{{wait(f.ByUser, f.LastUser), fmt.Sprintf("%d failed attempts for this account", f.ByUser)},
 		{wait(f.ByAddr, f.LastAddr), fmt.Sprintf("%d failed attempts from %s", f.ByAddr, addr)}} {
 		if now.Before(w.until) {
-			return w.until, w.why, nil
+			return w.until, w.why, false, nil
 		}
 	}
-	return time.Time{}, "", nil
+	return time.Time{}, "", false, nil
 }
 
 // checkWait refuses an attempt that comes before its wait is over: 429 with Retry-After, not checked, not counted.
 func (s *Server) checkWait(c *call, username string) error {
-	until, why, err := s.signinWait(c.r.Context(), username, remote(c.r))
+	until, why, paused, err := s.signinWait(c.r.Context(), username, remote(c.r))
 	if err != nil || until.IsZero() {
 		return err
 	}
-	return refuse(c, until, s.now(), why)
+	return refuse(c, until, s.now(), why, paused)
+}
+
+// waitError is a refused attempt: its reason says whether the account is paused (account_paused) or the attempt
+// came before its delay was over (delay), so a client need not read the message.
+type waitError struct {
+	paused bool
+	err    error
+}
+
+func (e *waitError) Error() string { return e.err.Error() }
+func (e *waitError) Unwrap() error { return e.err }
+func (e *waitError) reason() string {
+	if e.paused {
+		return "account_paused"
+	}
+	return "delay"
 }
 
 // refuse answers a refused attempt: 429 with Retry-After.
-func refuse(c *call, until, now time.Time, why string) error {
+func refuse(c *call, until, now time.Time, why string, paused bool) error {
 	secs := int(until.Sub(now).Seconds() + 0.999)
 	c.w.Header().Set("Retry-After", fmt.Sprint(max(secs, 1)))
 	c.detail = "sign-in refused: " + why
-	return fmt.Errorf("%w: %s; try again after %s", errTooManyLogins, why, until.UTC().Format(time.RFC3339))
+	return &waitError{paused: paused, err: fmt.Errorf("%w: %s; try again after %s", errTooManyLogins, why, until.UTC().Format(time.RFC3339))}
 }
 
 // signinFailed counts a failed step for the username and the address; the 10th within 15 minutes pauses the account,

@@ -129,7 +129,7 @@ type Wait = { until: number; why: string; paused: boolean }
 function waitOf(e: unknown): Wait | null {
   if (!(e instanceof ApiError) || e.status !== 429 || !e.retryAfter || !Number.isFinite(e.retryAfter)) return null
   const why = e.message.replace(/;\s*try again after .*$/, '') // the countdown says when
-  return { until: Date.now() + e.retryAfter * 1000, why: why.charAt(0).toUpperCase() + why.slice(1), paused: e.message.includes('paused') }
+  return { until: Date.now() + e.retryAfter * 1000, why: why.charAt(0).toUpperCase() + why.slice(1), paused: e.reason === 'account_paused' }
 }
 
 /** Seconds left until a moment, ticking. */
