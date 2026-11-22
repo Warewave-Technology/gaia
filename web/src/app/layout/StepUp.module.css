@@ -1,12 +1,30 @@
-.dialog { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--ctl); border-radius: 6px; background: var(--surface); color: var(--fg0);
-  padding: 20px; display: grid; gap: 14px; }
-.dialog[open] { display: grid; }
-.dialog::backdrop { background: rgb(0 0 0 / 0.45); }
-.dialog h2 { font-size: var(--text-lg); font-weight: 600; margin: 0; }
-.action code { font: 400 var(--text-sm) var(--mono); color: var(--fg1); word-break: break-all; }
-.hint { margin: 0; font-size: var(--text-sm); color: var(--fg3); }
-.form { display: grid; gap: 10px; }
-.form label { display: grid; gap: 6px; font-size: var(--text-sm); color: var(--fg3); }
-.form input { height: 38px; padding: 0 12px; border-radius: 4px; border: 1px solid var(--ctl); background: var(--surface); color: var(--fg0);
-  font: 400 var(--text-lg) var(--mono); letter-spacing: 0.2em; }
-.dialog button { justify-content: center; height: 36px; }
+/* The step-up dialog (v2, docs/design/v2/Login.dc.html "Confirm action"). */
+.dialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--red-line); border-radius: var(--radius);
+  background: var(--raised); color: var(--fg1); padding: 22px; box-shadow: 0 12px 40px rgb(0 0 0 / 0.5); }
+.dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+.form { display: flex; flex-direction: column; gap: 14px; }
+.dialog h2 { font-size: 18px; font-weight: 600; margin: 0; color: var(--fg0); }
+
+.kv { margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; font-size: 13px; }
+.fact { display: contents; }
+.kv dt { color: var(--fg4); }
+.kv dd { margin: 0; color: var(--fg0); overflow-wrap: anywhere; }
+.kv code { font: 400 var(--text-sm) var(--mono); color: var(--fg1); }
+
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--fg2); }
+.field input { height: 38px; padding: 0 10px; border-radius: var(--radius); border: 1px solid var(--line-2); background: var(--surface); color: var(--fg0);
+  font: 400 var(--text-md) var(--font); }
+.field input:focus { outline: none; border-color: var(--fg2); box-shadow: 0 0 0 1px var(--fg2); }
+.field input.otp { height: 44px; text-align: center; font: 500 19px var(--mono); letter-spacing: 0.4em; padding-left: calc(10px + 0.4em); }
+
+.or { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--fg4); font-size: var(--text-sm); }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+.done { margin: 0; display: flex; gap: 8px; font-size: 13px; color: var(--fg1); }
+.done::before { content: "✓"; color: var(--green); font-weight: 600; }
+
+.dialog .btn { width: 100%; justify-content: center; height: 38px; }
+.actions { display: flex; gap: 8px; }
+.actions > * { flex: 1; }
+.dialog .danger { background: var(--red-tint); color: var(--red); border-color: var(--red-line); font-weight: 600; }
+.dialog .danger:hover:not(:disabled) { background: var(--red-tint); border-color: var(--red); }
+.hint { margin: 0; font-size: 12.5px; color: var(--fg4); }

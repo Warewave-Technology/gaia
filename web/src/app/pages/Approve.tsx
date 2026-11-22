@@ -4,17 +4,20 @@ import { api } from '../../api/client'
 import type { components } from '../../api/schema'
 import { useT } from '../../i18n'
 import { ApiError, unwrap } from '../api/errors'
+import { useSigninOptions } from '../api/session'
 import { getAssertion, webauthnAvailable } from '../api/webauthn'
 import { useStepUp, withStepUp } from '../layout/StepUp'
 import { Button, Notice } from '../ui'
+import { SigninFrame } from './Login'
 import s from './Login.module.css'
 
 // Approvals for the CLI (ADR-008 §9): a CLI sign-in (gaia login -browser), and a step-up the CLI cannot answer itself
-// (a security key). The user is signed in here; the approval is a factor answered here.
+// (a security key). The user is signed in here; the approval is a factor answered here. Both on the sign-in card.
 
 export function ApproveCLI() {
   const t = useT().approve
   const ask = useStepUp()
+  const opts = useSigninOptions()
   const [params] = useSearchParams()
   const [code, setCode] = useState(params.get('code') ?? '')
   const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle')
@@ -25,7 +28,8 @@ export function ApproveCLI() {
     setErr(null)
     try {
       await withStepUp(ask, 'POST', '/api/v1/login/cli/approve', (h) =>
-        unwrap(api.POST('/api/v1/login/cli/approve', { body: { user_code: code.trim() }, headers: h })))
+        unwrap(api.POST('/api/v1/login/cli/approve', { body: { user_code: code.trim() }, headers: h })),
+      { facts: [{ label: t.code, value: <code>{code.trim()}</code> }], confirm: t.approve })
       setState('done')
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : String(e))
@@ -33,27 +37,27 @@ export function ApproveCLI() {
     }
   }
   return (
-    <main className={s.page}>
-      <div className={s.form}>
-        <h1>{t.cliTitle}</h1>
-        {state === 'done' ? <p className={s.hint}>{t.cliDone}</p> : (
-          <form className={s.fields} onSubmit={submit}>
-            <p className={s.hint}>{t.cliHint}</p>
-            <label className={s.field}>
-              <span>{t.code}</span>
-              <input required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoFocus />
-            </label>
-            <Button type="submit" disabled={state === 'busy'}>{t.approve}</Button>
-          </form>
-        )}
-        {err && <Notice tone="critical">{err}</Notice>}
-      </div>
-    </main>
+    <SigninFrame instance={opts.data?.instance}>
+      <h1>{t.cliTitle}</h1>
+      {state === 'done' ? <p className={s.done} role="status">{t.cliDone}</p> : (
+        <form className={s.fields} onSubmit={submit}>
+          <p className={s.sub}>{t.cliHint}</p>
+          <label className={s.field}>
+            <span>{t.code}</span>
+            <input className={s.code} required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoFocus spellCheck={false} />
+          </label>
+          <Button type="submit" className={`${s.btn} ${s.pri}`} disabled={state === 'busy'}>{t.approve}</Button>
+        </form>
+      )}
+      {err && <Notice tone="critical">{err}</Notice>}
+    </SigninFrame>
   )
 }
 
 export function ApproveStepUp() {
   const t = useT().approve
+  const su = useT().stepUp
+  const opts = useSigninOptions()
   const [params] = useSearchParams()
   const id = params.get('id') ?? ''
   const [ch, setCh] = useState<components['schemas']['StepUpChallenge'] | null>(null)
@@ -74,28 +78,47 @@ export function ApproveStepUp() {
   }
   const f = ch?.factors ?? []
   return (
-    <main className={s.page}>
-      <div className={s.form}>
-        <h1>{t.stepUpTitle}</h1>
-        {ch && <p className={s.hint}><code>{ch.action}</code> · {ch.target}</p>}
-        {done ? <p className={s.hint}>{t.stepUpDone}</p> : ch && (
-          <>
-            {f.includes('webauthn') && (
-              <Button disabled={!webauthnAvailable()} onClick={async () => approve({ method: 'webauthn', webauthn: await getAssertion(ch.webauthn) })}>{t.key}</Button>
-            )}
-            {f.includes('totp') && (
+    <SigninFrame instance={opts.data?.instance}>
+      <h1>{t.stepUpTitle}</h1>
+      {ch && (
+        <dl className={s.kv}>
+          <dt>{t.action}</dt><dd>{su.action(ch.action)}</dd>
+          <dt>{t.target}</dt><dd><code>{ch.target}</code></dd>
+        </dl>
+      )}
+      {done ? <p className={s.done} role="status">{t.stepUpDone}</p> : ch && (
+        <>
+          <p className={s.sub}>{t.stepUpHint}</p>
+          {f.includes('webauthn') && (
+            <Button className={`${s.btn} ${s.pri}`} disabled={!webauthnAvailable()} autoFocus
+              onClick={async () => {
+                let a: unknown
+                try {
+                  a = await getAssertion(ch.webauthn)
+                } catch (e) {
+                  setErr(su.keyFailed(e instanceof Error ? e.message : String(e))) // was an unhandled rejection: nothing shown
+                  return
+                }
+                await approve({ method: 'webauthn', webauthn: a })
+              }}>{t.key}</Button>
+          )}
+          {f.includes('totp') && (
+            <>
+              {f.includes('webauthn') && <p className={s.or}>{t.orCode}</p>}
               <form className={s.fields} onSubmit={(e) => { e.preventDefault(); approve({ method: 'totp', code }) }}>
                 <label className={s.field}>
                   <span>{t.appCode}</span>
-                  <input inputMode="numeric" required value={code} onChange={(e) => setCode(e.target.value)} />
+                  <input className={s.otp} inputMode="numeric" autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)}
+                    autoFocus={!f.includes('webauthn')} />
                 </label>
-                <Button type="submit">{t.approve}</Button>
+                <Button type="submit" className={f.includes('webauthn') ? s.btn : `${s.btn} ${s.pri}`}>{t.approve}</Button>
               </form>
-            )}
-          </>
-        )}
-        {err && <Notice tone="critical">{err}</Notice>}
-      </div>
-    </main>
+            </>
+          )}
+          <p className={s.sub}>{su.why}</p>
+        </>
+      )}
+      {err && <Notice tone="critical">{err}</Notice>}
+    </SigninFrame>
   )
 }
