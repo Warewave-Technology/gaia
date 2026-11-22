@@ -56,8 +56,8 @@ export function Search() {
     if (!r) return []
     return [
       ...r.vms.map((v) => ({ key: `vm${v.id}`, kind: 'vm' as const, name: v.name, sub: t.vm, to: `/vms/${v.id}` })),
-      ...r.hosts.map((h) => ({ key: `h${h.id}`, kind: 'host' as const, name: h.name, sub: t.host(h.count), to: `/${query({ tab: 'vms', host: h.id, show: 'all' })}` })),
-      ...r.policies.map((p) => ({ key: `p${p.id}`, kind: 'policy' as const, name: p.name, sub: t.policy(p.count), to: `/${query({ tab: 'vms', policy: p.id, show: 'all' })}` })),
+      ...r.hosts.map((h) => ({ key: `h${h.id}`, kind: 'host' as const, name: h.name, sub: t.host(h.count), to: `/${query({ tab: 'vms', host: h.id })}` })),
+      ...r.policies.map((p) => ({ key: `p${p.id}`, kind: 'policy' as const, name: p.name, sub: t.policy(p.count), to: `/${query({ tab: 'vms', policy: p.id })}` })),
       ...r.points.map((p) => ({
         key: `pt${p.id}`, kind: 'point' as const, name: t3.pointName(p.id), sub: clock && p.taken_at ? t3.point(p.vm, serverTime(clock).at(p.taken_at)) : p.vm,
         to: `/vms/${p.vm_id}${query({ point: p.id })}`,

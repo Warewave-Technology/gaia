@@ -85,7 +85,7 @@ function SameCause({ id, code, scope }: { id: number; code: string; scope: Reaso
   return (
     <span className={s.sub}>
       {t.sameCause(others, where)}{' '}
-      <Link to={`/${query({ code, scope_kind: scope?.kind, scope_id: scope?.id, show: 'all', tab: 'vms' })}`}>{t.seeAll(q.data.total)}</Link>
+      <Link to={`/${query({ code, scope_kind: scope?.kind, scope_id: scope?.id, tab: 'vms' })}`}>{t.seeAll(q.data.total)}</Link>
     </span>
   )
 }

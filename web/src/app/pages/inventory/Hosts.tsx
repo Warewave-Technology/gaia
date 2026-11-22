@@ -255,7 +255,7 @@ function HostDetail({ r, c, k, fmt, writer, busy, onTrust, onRemove }: {
         </div>
       )}
       <span className={s.inline}>
-        {r.vms > 0 && <Link to={`/${query({ show: 'all', host: r.id })}`}>{h.showVMs}</Link>}
+        {r.vms > 0 && <Link to={`/${query({ host: r.id })}`}>{h.showVMs}</Link>}
         {writer && r.vms === 0 && <Confirm label={h.remove} question={h.removeConfirm(r.name)} busy={busy === `remove/${r.id}`} onYes={onRemove} />}
       </span>
     </div>

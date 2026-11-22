@@ -136,11 +136,11 @@ function Meta({ v }: { v: VMView }) {
   const dot = <span className={s.dot} aria-hidden="true"> · </span>
   return (
     <p className={s.meta} aria-label={t.meta.label}>
-      <Link className={s.mono} to={`/${query({ host: v.host.id, show: 'all', tab: 'vms' })}`}>{v.host.name}</Link>
+      <Link className={s.mono} to={`/${query({ host: v.host.id, tab: 'vms' })}`}>{v.host.name}</Link>
       {dot}
       {pol ? (
         <span>
-          <Link className={s.mono} to={`/${query({ policy: pol.id, show: 'all', tab: 'vms' })}`}>{pol.name}</Link>{' '}
+          <Link className={s.mono} to={`/${query({ policy: pol.id, tab: 'vms' })}`}>{pol.name}</Link>{' '}
           {t.meta.targets(dur(pol.rpo_target_s), dur(pol.rto_target_s), dur(pol.test_interval_s))}
         </span>
       ) : <b className={s.none}>{t.meta.noPolicy}</b>}
@@ -148,7 +148,7 @@ function Meta({ v }: { v: VMView }) {
       {dot}
       <span>
         {row.isPending ? '…' : tags.length === 0 ? <span className={s.muted}>{t.meta.noTags}</span> : tags.map((g, i) => (
-          <span key={g}>{i > 0 && ', '}<Link className={s.mono} to={`/${query({ tag: g, show: 'all', tab: 'vms' })}`}>{g}</Link></span>
+          <span key={g}>{i > 0 && ', '}<Link className={s.mono} to={`/${query({ tag: g, tab: 'vms' })}`}>{g}</Link></span>
         ))}
       </span>
     </p>

@@ -91,7 +91,7 @@ function Head({ v, f, tab, setF, fmt }: { v: FleetView; f: Filters; tab: TabKey;
   const capStatus = !cap ? null : cap.sandbox === null && cap.sandbox_error ? 'UNKNOWN' : cap.coverage >= 1 ? 'OK' : 'WARNING'
   const pick = (st: string) => {
     const on = tab === 'vms' && f.status === st
-    setF({ tab: 'vms', status: on ? '' : st, show: on ? '' : 'all' })
+    setF({ tab: 'vms', status: on ? '' : st, show: '' })
   }
   return (
     <section className={s.head}>
@@ -201,7 +201,7 @@ function Attention({ fmt, now, setF }: { fmt: Fmt; now: number; setF: SetFilters
             {def.todo && <span className={s.todo}><b>{t.whatToDo}</b> {def.todo}</span>}
             <span>
               <button type="button" className={s.link}
-                onClick={() => setF({ ...CLEAR_VM, tab: 'vms', show: 'all', code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '' })}>
+                onClick={() => setF({ ...CLEAR_VM, tab: 'vms', code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '' })}>
                 {t.showVMs(g.count)}
               </button>
             </span>
@@ -220,7 +220,7 @@ function Coverage({ f, setF }: { f: Filters; setF: SetFilters }) {
   const counts = pages.data as unknown as CoverageCounts | undefined
   const word = t.by[by]
   const open = (g: CoverageGroup) => setF({
-    ...CLEAR_VM, tab: 'vms', show: 'all',
+    ...CLEAR_VM, tab: 'vms',
     host: by === 'host' ? String(g.id) : '', policy: by === 'policy' ? String(g.id) : '', tag: by === 'tag' ? g.name : '',
   })
   const cols: Column<CoverageGroup>[] = [
@@ -282,7 +282,8 @@ function VMs({ f, setF, fmt, now }: { f: Filters; setF: SetFilters; fmt: Fmt; no
   const t = useT().v3.overview
   const names = useFilterNames()
   const from = useFrom()
-  const attention = f.show !== 'all' && !f.status
+  // The VMs tab shows every VM unless asked (PO decision 2026-11-22: Needs attention has its own tab)
+  const attention = f.show === 'attention' && !f.status
   const filter: VMFilter = useMemo(() => ({
     attention: attention || undefined,
     status: f.status || undefined,
@@ -303,18 +304,18 @@ function VMs({ f, setF, fmt, now }: { f: Filters; setF: SetFilters; fmt: Fmt; no
     <>
       <Toolbar end={t.sorted}>
         <SearchBox value={f.q} onChange={setQ} label={t.filter} />
-        {(['attention', 'all', ...ORDER] as const).map((k) => (
+        {(['all', 'attention', ...ORDER] as const).map((k) => (
           <FilterChip key={k} set={status === k}
-            onClick={() => setF(k === 'attention' ? { status: '', show: '' } : k === 'all' ? { status: '', show: 'all' } : { status: status === k ? '' : k, show: status === k ? '' : 'all' })}>
+            onClick={() => setF(k === 'attention' ? { status: '', show: 'attention' } : k === 'all' ? { status: '', show: '' } : { status: status === k ? '' : k, show: '' })}>
             {t.chips[k]}
           </FilterChip>
         ))}
         <PickChip label={t.by.host} placeholder={t.pick.host} value={f.host} display={t.picked.host} clearLabel={t.clear(t.by.host.toLowerCase())}
-          options={names.hosts.map((h) => [String(h.id), h.name] as const)} onChange={(x) => setF({ host: x, show: f.show || (x ? 'all' : '') })} />
+          options={names.hosts.map((h) => [String(h.id), h.name] as const)} onChange={(x) => setF({ host: x })} />
         <PickChip label={t.by.policy} placeholder={t.pick.policy} value={f.policy} display={t.picked.policy} clearLabel={t.clear(t.by.policy.toLowerCase())}
-          options={names.policies.map((p) => [String(p.id), p.name] as const)} onChange={(x) => setF({ policy: x, show: f.show || (x ? 'all' : '') })} />
+          options={names.policies.map((p) => [String(p.id), p.name] as const)} onChange={(x) => setF({ policy: x })} />
         <PickChip label={t.by.tag} placeholder={t.pick.tag} value={f.tag} display={t.picked.tag} clearLabel={t.clear(t.by.tag.toLowerCase())}
-          options={names.tags.map((g) => [g, g] as const)} onChange={(x) => setF({ tag: x, show: f.show || (x ? 'all' : '') })} />
+          options={names.tags.map((g) => [g, g] as const)} onChange={(x) => setF({ tag: x })} />
         {f.code && (
           <FilterChip set onClick={() => setF({ code: '', scope_kind: '', scope_id: '' })} title={t.clear(reason(f.code).title)}>
             {t.cause(reason(f.code).title, scopeName)} <span aria-hidden="true">×</span>

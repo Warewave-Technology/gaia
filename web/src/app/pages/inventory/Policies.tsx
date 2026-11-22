@@ -202,7 +202,7 @@ function PolicyFacts({ x, g, repo, fmt, writer, busy, onEdit, onRemove }: {
       <p>{p.keep(x.keep_last, x.keep_daily, x.keep_weekly)} {p.repository(repo ?? String(x.repository_id))}</p>
       <p className={s.cellOf}>{p.times(fmt.at(x.created_at), fmt.at(x.updated_at))}</p>
       <span className={s.inline}>
-        {vms > 0 && <Link to={`/${query({ show: 'all', policy: x.id })}`}>{p.showVMs}</Link>}
+        {vms > 0 && <Link to={`/${query({ policy: x.id })}`}>{p.showVMs}</Link>}
         {writer && <Button variant="quiet" onClick={onEdit}>{p.edit}</Button>}
         {writer && vms === 0 && <Confirm label={p.remove} question={p.removeConfirm(x.name)} busy={busy === `remove/${x.id}`} onYes={onRemove} />}
       </span>
