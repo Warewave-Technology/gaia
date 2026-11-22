@@ -1116,6 +1116,9 @@ func (s *Server) table() []route {
 			in: KitPassphrase{}, out: store.RecoveryKit{}, status: http.StatusCreated, example: `{"passphrase":"not the passphrase"}`, h: s.regenerateKit},
 		{method: "POST", path: "/api/v1/recovery-kit/confirm", summary: "Record that a copy of the newest kit, opened with its passphrase, is stored off the server",
 			roles: adminOnly, in: KitConfirm{}, out: store.RecoveryKit{}, example: `{"generation":99,"sha256":"00"}`, h: s.confirmKit},
+
+		// --- the Evidence screen's entries, in pages (T27 step 1b; views_evidence.go) ---
+		s.evidenceViewRoute(),
 	}
 }
 
