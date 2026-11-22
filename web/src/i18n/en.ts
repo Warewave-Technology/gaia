@@ -71,7 +71,6 @@ export const en = {
     lockedHint: 'The pause applies to the account from every address. If these attempts were not you, tell an admin: they can see each one in the audit log.',
     otherAccount: 'Use another account',
     waitNotice: (why: string, left: string) => `${why}. The next attempt is possible in ${left}.`,
-    left: (s: number) => (s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`),
     factorTitle: (u: string) => `Second factor for ${u}`,
     useKey: 'Use security key',
     orCode: 'or the code from your authenticator app',

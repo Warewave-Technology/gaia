@@ -7,7 +7,7 @@ import { ApiError, unwrap } from '../api/errors'
 import { useSigninOptions } from '../api/session'
 import { getAssertion, webauthnAvailable } from '../api/webauthn'
 import { useStepUp, withStepUp } from '../layout/StepUp'
-import { Button, Notice } from '../ui'
+import { Button, Notice, TechDetails } from '../ui'
 import { SigninFrame } from './Login'
 import s from './Login.module.css'
 
@@ -83,9 +83,10 @@ export function ApproveStepUp() {
       {ch && (
         <dl className={s.kv}>
           <dt>{t.action}</dt><dd>{su.action(ch.action)}</dd>
-          <dt>{t.target}</dt><dd><code>{ch.target}</code></dd>
+          <dt>{t.target}</dt><dd>{su.targetOf(ch.target)}</dd>
         </dl>
       )}
+      {ch && <TechDetails summary={su.request}>{`${ch.action.split(' ')[0]} ${ch.target}`}</TechDetails>}
       {done ? <p className={s.done} role="status">{t.stepUpDone}</p> : ch && (
         <>
           <p className={s.sub}>{t.stepUpHint}</p>
