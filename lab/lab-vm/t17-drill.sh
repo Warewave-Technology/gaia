@@ -607,16 +607,22 @@ EOF
 	wait_jobs restore_test 1
 	wait_status OK "B upgraded"
 	snapshot after
+	# The list is the newest 1000 points, pruned ones included: new points push the oldest off the page (T26 run on B:
+	# two points pruned on 2026-11-17). A point of the before list that is not on the after page is asked for by id.
+	jq -r --slurpfile p1 "$OUT/after-points.json" '($p1[0] | map(.id)) as $a | .[] | .id | select(. as $id | $a | index($id) | not)' \
+		"$OUT/before-points.json" | while read -r id; do
+		if p=$(api points get "$id" 2>/dev/null); then echo "$p"; else echo "{\"id\": $id, \"state\": \"missing\"}"; fi
+	done | jq -s . >"$OUT/after-points-off-page.json"
 	jq -n --slurpfile b0 "$OUT/before-system.json" --slurpfile b1 "$OUT/after-system.json" \
 		--slurpfile s0 "$OUT/before-status.json" --slurpfile s1 "$OUT/after-status.json" \
-		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" \
+		--slurpfile p0 "$OUT/before-points.json" --slurpfile p1 "$OUT/after-points.json" --slurpfile op "$OUT/after-points-off-page.json" \
 		--slurpfile j1 "$OUT/after-jobs.json" --slurpfile a1 "$OUT/after-audit-verify.json" --slurpfile c1 "$OUT/after-state-changes.json" \
 		--slurpfile os "$OUT/old-session-check.json" \
 		--argjson since "$since" --arg started "$started" --argjson during "$during" '
 		($j1[0] | map(select(.id > $since))) as $new
-		| ($p1[0] | map(.id)) as $after_ids
 		| {schema: {before: $b0[0].schema_version, after: $b1[0].schema_version}, version: {before: $b0[0].version, after: $b1[0].version},
-		   points: {before: ($p0[0] | length), after: ($p1[0] | length), missing_after: [$p0[0][] | .id | select(. as $id | $after_ids | index($id) | not)]},
+		   points: {before: ($p0[0] | length), after: ($p1[0] | length), off_page: [$op[0][] | {id, state}],
+		            missing_after: [$op[0][] | select(.state == "missing") | .id]},
 		   status_before: [$s0[0][] | {vm, status, changed_at}], status_after: [$s1[0][] | {vm, status, changed_at}],
 		   status_changes_during_upgrade: [$c1[0][] | select(.entity == "vm_status" and .at >= $started) | {at, from, to, reason}],
 		   jobs_failed_during_upgrade: [$j1[0][] | select(.state == "failed" and .finished_at >= $started) | {id, kind, error}],
