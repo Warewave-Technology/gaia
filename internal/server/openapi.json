@@ -589,6 +589,9 @@
           "os_class": {
             "type": "string"
           },
+          "os_class_basis": {
+            "type": "string"
+          },
           "policy": {
             "type": "string"
           },
@@ -608,6 +611,7 @@
           "expected_s",
           "max_proof_age_s",
           "os_class",
+          "os_class_basis",
           "policy",
           "test_interval_s",
           "vm",
@@ -642,6 +646,34 @@
           "items",
           "next",
           "total"
+        ],
+        "type": "object"
+      },
+      "CapacityNotice": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "type": "number"
+          },
+          "since": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "integer"
+          },
+          "slots_needed": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "coverage",
+          "since",
+          "slots",
+          "slots_needed",
+          "text"
         ],
         "type": "object"
       },
@@ -1536,6 +1568,16 @@
           "cannot": {
             "type": "integer"
           },
+          "capacity_short": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityNotice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "causes": {
             "type": "integer"
           },
@@ -1591,6 +1633,7 @@
           "by_status",
           "can_return",
           "cannot",
+          "capacity_short",
           "causes",
           "clock",
           "ledger",

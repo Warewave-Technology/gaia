@@ -39,12 +39,25 @@ func (s *Server) capacityFacts(ctx context.Context) ([]store.CapacityFact, error
 	return fs, nil
 }
 
-// osClass is a VM's class for the expected durations: from its policy's check template.
-func osClass(template string) string {
-	if strings.Contains(template, "windows") {
-		return "windows"
+// osClass is a VM's class for the expected durations, and where it came from (ADR-007 C13): first the VM's os: tag
+// (os:windows, os:linux), then the guest information libvirt reports, and only last the check template's name. Gaia
+// does not record guest information for a protected VM (the libosinfo id is read only for a converted migration
+// check, internal/migrate), so that step has nothing to read yet and the order is tag, then template.
+func osClass(tag, template string) (string, string) {
+	switch t := strings.ToLower(strings.TrimSpace(tag)); {
+	case strings.HasPrefix(t, "windows"):
+		return "windows", "tag os:" + tag
+	case t == "linux":
+		return "linux", "tag os:" + tag
 	}
-	return "linux"
+	basis := "check template " + template
+	if tag != "" {
+		basis = "check template " + template + " (tag os:" + tag + " is neither windows nor linux)"
+	}
+	if strings.Contains(template, "windows") {
+		return "windows", basis
+	}
+	return "linux", basis
 }
 
 func parseTime(s string) *time.Time {
@@ -154,9 +167,10 @@ func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, e
 		in.Slots = *w.Slots
 	}
 	for _, f := range fs {
-		v := capacity.VM{ID: f.VMID, Name: f.VM, PolicyID: f.PolicyID, Policy: f.Policy, Class: osClass(f.CheckTemplate), TestIntervalS: f.TestIntervalS,
+		v := capacity.VM{ID: f.VMID, Name: f.VM, PolicyID: f.PolicyID, Policy: f.Policy, TestIntervalS: f.TestIntervalS,
 			MaxProofAgeS: f.MaxProofAgeS, Durations: f.Durations, Critical: f.Rank == store.RankCritical, LastQueued: parseTime(f.LastQueued),
 			QueuedJob: f.QueuedJob, QueuedAt: parseTime(f.QueuedAt), RunningSince: parseTime(f.RunningSince)}
+		v.Class, v.ClassBasis = osClass(f.OSTag, f.CheckTemplate)
 		if f.ProofAt != nil {
 			t := timeOf(*f.ProofAt)
 			v.ProofAt = &t
@@ -222,6 +236,9 @@ func (s *Server) capacityView(c *call) (int, any, error) {
 }
 
 func (s *Server) whatIfView(c *call) (int, any, error) {
+	if err := s.limitWhatIf(c); err != nil {
+		return 0, nil, err
+	}
 	var w WhatIf
 	if err := c.decode(&w); err != nil {
 		return 0, nil, err
@@ -280,6 +297,7 @@ type CapacityInput struct {
 	VM            string    `json:"vm"`
 	Policy        string    `json:"policy"`
 	OSClass       string    `json:"os_class"`
+	OSClassBasis  string    `json:"os_class_basis"` // where the class came from: the os: tag, or the check template (ADR-007 C13)
 	TestIntervalS int64     `json:"test_interval_s"`
 	MaxProofAgeS  int64     `json:"max_proof_age_s"`
 	Durations     []float64 `json:"durations_s"` // its last tests that ran, newest first (at most 10)
@@ -313,7 +331,7 @@ func (s *Server) capacityInputs(c *call) (int, any, error) {
 		if d == nil {
 			d = []float64{}
 		}
-		out.Items = append(out.Items, CapacityInput{VMID: v.ID, VM: v.Name, Policy: v.Policy, OSClass: v.Class, TestIntervalS: v.TestIntervalS,
+		out.Items = append(out.Items, CapacityInput{VMID: v.ID, VM: v.Name, Policy: v.Policy, OSClass: v.Class, OSClassBasis: v.ClassBasis, TestIntervalS: v.TestIntervalS,
 			MaxProofAgeS: v.MaxProofAgeS, Durations: d, ExpectedS: e, Basis: b})
 	}
 	if off+n < len(in.VMs) {

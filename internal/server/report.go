@@ -45,8 +45,10 @@ type DailyReportDoc struct {
 	Security      ReportSecurity    `json:"security"` // sign-in and security since the previous report (ADR-008 §1, §10)
 	// OK <-> WARNING changes since the previous report that were not sent at once (ADR-007 C12).
 	QuietChanges ReportQuiet `json:"quiet_status_changes"`
-	HowToVerify  string      `json:"how_to_verify"`
-	Problems     []string    `json:"problems"` // what the report could not say
+	// The proof capacity: short now, and its drops below 100 % since the previous report (ADR-007 C13).
+	Capacity    ReportCapacity `json:"proof_capacity"`
+	HowToVerify string         `json:"how_to_verify"`
+	Problems    []string       `json:"problems"` // what the report could not say
 }
 
 // ReportSecurity is what changed in sign-in and security since the previous report: settings, break-glass and
@@ -285,6 +287,9 @@ func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (sto
 	if doc.QuietChanges, err = s.quietChanges(ctx, doc.Security.Since); err != nil {
 		return store.DailyReport{}, err
 	}
+	if doc.Capacity, err = s.reportCapacity(ctx, doc.Security.Since); err != nil {
+		return store.DailyReport{}, err
+	}
 	toks, err := s.db.APITokens(ctx)
 	if err != nil {
 		return store.DailyReport{}, err
@@ -372,6 +377,12 @@ func reportText(d DailyReportDoc) string {
 		for _, c := range d.Security.Changes {
 			fmt.Fprintf(&b, "  %s  %s: %s (by %s)\n", c.At, c.Entity, c.Reason, c.Actor)
 		}
+	}
+	switch c := d.Capacity; {
+	case c.Now != nil:
+		fmt.Fprintf(&b, "\nProof capacity is short since %s: %s (dropped below 100 %% %d time(s) since the previous report).\n", c.Now.Since, c.Now.Text, c.Drops)
+	case c.Drops > 0:
+		fmt.Fprintf(&b, "\nProof capacity dropped below 100 %% %d time(s) since the previous report; it is enough now.\n", c.Drops)
 	}
 	if q := d.QuietChanges; q.Changes > 0 {
 		var parts []string

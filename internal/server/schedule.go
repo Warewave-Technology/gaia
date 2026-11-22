@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -71,7 +72,11 @@ func (s *Server) tick(ctx context.Context, now time.Time) error {
 	if err := s.startDueVerifications(ctx, now); err != nil {
 		return err
 	}
-	return s.refreshStatuses(ctx, now)
+	err := s.refreshStatuses(ctx, now)
+	if werr := s.watchCapacity(ctx, now); werr != nil {
+		err = errors.Join(err, fmt.Errorf("proof capacity: %w", werr))
+	}
+	return err
 }
 
 // queueDueBackups queues a backup for every VM with a policy whose last backup job is at least its interval old.

@@ -34,6 +34,8 @@ type FleetView struct {
 	Notify     NotifySummary    `json:"notifications"`
 	Recompute  *RecomputeStats  `json:"status_recompute"` // the newest full recompute of the status table
 	CodesVer   int              `json:"reason_codes_version"`
+	// The proof capacity's notice while its coverage is below 100 % (ADR-007 C13); null otherwise or while unknown.
+	CapacityShort *CapacityNotice `json:"capacity_short"`
 }
 
 // FleetWorst is the VM with the fleet's worst proven RPO.
@@ -76,6 +78,7 @@ func (s *Server) fleetView(c *call) (int, any, error) {
 	s.recomputed.mu.Lock()
 	out.Recompute = s.recomputed.last
 	s.recomputed.mu.Unlock()
+	out.CapacityShort = s.capacityNotice()
 	return http.StatusOK, out, nil
 }
 

@@ -156,6 +156,32 @@ type StateChange struct {
 	ToCodes   []string `json:"to_codes,omitempty"`
 }
 
+// RecordState records a change of a state that has no table of its own (the proof capacity, ADR-007 C13).
+func (d *DB) RecordState(ctx context.Context, entity string, id int64, from, to, reason, actor string) error {
+	return d.tx(ctx, func(tx *sql.Tx) error { return d.recordState(ctx, tx, entity, id, from, to, reason, actor) })
+}
+
+// LatestStateChange is an entity's newest recorded change; false when it has none.
+func (d *DB) LatestStateChange(ctx context.Context, entity string, id int64) (StateChange, bool, error) {
+	var c StateChange
+	var from, to string
+	err := d.db.QueryRowContext(ctx, `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor, code, from_codes, to_codes
+		FROM state_changes WHERE entity = ? AND entity_id = ? ORDER BY seq DESC LIMIT 1`, entity, id).
+		Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor, &c.Code, &from, &to)
+	if errors.Is(err, sql.ErrNoRows) {
+		return c, false, nil
+	}
+	c.FromCodes, c.ToCodes = splitCodes(from), splitCodes(to)
+	return c, err == nil, err
+}
+
+// CountStateChanges counts an entity's changes to the state to after the time since (RFC 3339; "" = all).
+func (d *DB) CountStateChanges(ctx context.Context, entity, to, since string) (int, error) {
+	var n int
+	err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM state_changes WHERE entity = ? AND to_state = ? AND at > ?`, entity, to, since).Scan(&n)
+	return n, err
+}
+
 func splitCodes(s string) []string {
 	if s == "" {
 		return nil

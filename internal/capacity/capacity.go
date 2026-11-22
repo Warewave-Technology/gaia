@@ -8,7 +8,8 @@
 //	slots needed = ceil(demand / 86,400)
 //
 // The expected duration of a VM's test is the median of its last 10 tests that ran, else the median of its OS
-// class (linux or windows, from its policy's check template), else a fixed default.
+// class (linux or windows: from the VM's os: tag, else its policy's check template; ADR-007 C13), else a fixed default
+// (Linux 180 s, Windows 600 s).
 //
 // The queue (C4): retests of CRITICAL VMs first, then VMs never proven, then by the time their proof expires, then by
 // policy name, then by when the test was queued. Simulate runs that queue on the slots for the next Horizon: every
@@ -41,6 +42,7 @@ type VM struct {
 	PolicyID      int64      `json:"policy_id"`
 	Policy        string     `json:"policy"`
 	Class         string     `json:"os_class"` // linux, windows
+	ClassBasis    string     `json:"-"`        // where the class came from (the os: tag, the check template's name)
 	TestIntervalS int64      `json:"test_interval_s"`
 	MaxProofAgeS  int64      `json:"max_proof_age_s"`
 	Durations     []float64  `json:"-"`             // its last tests that ran, newest first (seconds)
