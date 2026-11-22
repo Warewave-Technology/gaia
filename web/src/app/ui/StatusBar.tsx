@@ -11,7 +11,7 @@ const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
 export function StatusBar({ counts, min = 4 }: { counts: Record<string, number>; min?: number }) {
   const t = useT()
   const parts = ORDER.map((st) => [st, counts[st] ?? 0] as const)
-  const label = parts.map(([st, n]) => `${n} ${t.status[st]}`).join(', ')
+  const label = parts.map(([st, n]) => `${n.toLocaleString('en-US')} ${t.status[st]}`).join(', ')
   return (
     <span className={s.bar} role="img" aria-label={label} data-status-bar="">
       {parts.map(([st, n]) => (n > 0 ? <span key={st} className={s[st.toLowerCase()]} style={{ flex: `${n} 1 0`, minWidth: min }} /> : null))}
