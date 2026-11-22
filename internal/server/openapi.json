@@ -64,6 +64,153 @@
         ],
         "type": "object"
       },
+      "ActivityRow": {
+        "additionalProperties": false,
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "migration_check_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "point_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "point_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "test_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "test_reason": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "by",
+          "created_at",
+          "error",
+          "finished_at",
+          "host",
+          "host_id",
+          "id",
+          "kind",
+          "migration_check_id",
+          "point_bytes",
+          "point_id",
+          "proven_rto_s",
+          "reason",
+          "started_at",
+          "state",
+          "test_id",
+          "test_reason",
+          "verdict",
+          "vm",
+          "vm_id"
+        ],
+        "type": "object"
+      },
+      "ActivityView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "last_hour": {
+            "items": {
+              "$ref": "#/components/schemas/JobCount"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          },
+          "open": {
+            "items": {
+              "$ref": "#/components/schemas/JobCount"
+            },
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRow"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "last_hour",
+          "next",
+          "open",
+          "rows",
+          "total"
+        ],
+        "type": "object"
+      },
       "AppliedMigration": {
         "additionalProperties": false,
         "properties": {
@@ -279,6 +426,33 @@
           "target",
           "user_id",
           "username"
+        ],
+        "type": "object"
+      },
+      "AuditView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "next": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "next",
+          "rows",
+          "total"
         ],
         "type": "object"
       },
@@ -1603,6 +1777,105 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "HostRow": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "critical": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_point_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "integer"
+          },
+          "ssh_host_key": {
+            "type": "string"
+          },
+          "ssh_port": {
+            "type": "integer"
+          },
+          "ssh_user": {
+            "type": "string"
+          },
+          "unknown": {
+            "type": "integer"
+          },
+          "unreachable": {
+            "type": "integer"
+          },
+          "unreachable_since": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "vms": {
+            "type": "integer"
+          },
+          "warning": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "address",
+          "created_at",
+          "critical",
+          "id",
+          "last_point_at",
+          "name",
+          "ok",
+          "ssh_host_key",
+          "ssh_port",
+          "ssh_user",
+          "unknown",
+          "unreachable",
+          "unreachable_since",
+          "updated_at",
+          "vms",
+          "warning"
+        ],
+        "type": "object"
+      },
+      "HostsView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "next": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/HostRow"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "next",
+          "rows",
+          "total"
+        ],
         "type": "object"
       },
       "Info": {
@@ -3491,6 +3764,33 @@
         ],
         "type": "object"
       },
+      "RepositoriesView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "next": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryRow"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "next",
+          "rows",
+          "total"
+        ],
+        "type": "object"
+      },
       "Repository": {
         "additionalProperties": false,
         "properties": {
@@ -3557,6 +3857,65 @@
           "kit_passphrase",
           "location",
           "name"
+        ],
+        "type": "object"
+      },
+      "RepositoryRow": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "last_verification": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Verification"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "policies": {
+            "type": "integer"
+          },
+          "quarantined_contents": {
+            "type": "integer"
+          },
+          "splitter": {
+            "type": "string"
+          },
+          "vms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "hash",
+          "id",
+          "kind",
+          "last_verification",
+          "location",
+          "name",
+          "policies",
+          "quarantined_contents",
+          "splitter",
+          "vms"
         ],
         "type": "object"
       },
@@ -15577,6 +15936,119 @@
         ]
       }
     },
+    "/api/v1/views/activity": {
+      "get": {
+        "operationId": "get_views_activity",
+        "parameters": [
+          {
+            "description": "backup, restore_test, verify_repository, state_backup or migration_check",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "queued, running, open (queued or running), ok, failed or cancelled",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "only the jobs of this host's VMs",
+            "in": "query",
+            "name": "host_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 50, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The Activity screen: open jobs, the last hour's, and the jobs that match, newest first, in pages (T27)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/views/attention": {
       "get": {
         "operationId": "get_views_attention",
@@ -15659,6 +16131,91 @@
         "x-gaia-roles": [
           "admin",
           "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/audit": {
+      "get": {
+        "operationId": "get_views_audit",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 500)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The Inventory's audit log: newest first, in pages (T27)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
           "auditor"
         ]
       }
@@ -15910,6 +16467,92 @@
         ]
       }
     },
+    "/api/v1/views/hosts": {
+      "get": {
+        "operationId": "get_views_hosts",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The Inventory's hosts: each host's VMs by status, unreachable VMs, the newest point, in pages (T27)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
     "/api/v1/views/migration": {
       "get": {
         "operationId": "get_views_migration",
@@ -16032,6 +16675,92 @@
           }
         },
         "summary": "The overview screen: every VM's status, proven point, targets and recent history, worst first",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/repositories": {
+      "get": {
+        "operationId": "get_views_repositories",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 100, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoriesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The Inventory's repositories: who uses each, damaged contents, the newest verification, in pages (T27)",
         "tags": [
           "views"
         ],
@@ -16314,6 +17043,15 @@
             "required": true,
             "schema": {
               "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "the history strip's hours: 6 (default), 24 or 168",
+            "in": "query",
+            "name": "window_h",
+            "required": false,
+            "schema": {
               "type": "integer"
             }
           }

@@ -300,9 +300,22 @@ func (s *Server) vmView(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	now := s.now()
-	v := VMView{Clock: serverClock(now), WindowS: int64(historyWindow / time.Second), VM: vm}
+	h, err := c.intQuery("window_h", 6, 0)
+	if err != nil {
+		return 0, nil, err
+	}
+	window := map[int64]time.Duration{6: historyWindow, 24: 24 * time.Hour, 168: 7 * 24 * time.Hour}[h]
+	if window == 0 {
+		return 0, nil, fmt.Errorf("%w: window_h %d (6, 24 or 168)", store.ErrInvalid, h)
+	}
+	v := VMView{Clock: serverClock(now), WindowS: int64(window / time.Second), VM: vm}
 	if v.Status, err = s.vmOverview(ctx, vm, now, map[int64]string{}); err != nil {
 		return 0, nil, err
+	}
+	if window != historyWindow {
+		if v.Status.Events, err = s.timelineSince(ctx, vm.ID, now, window); err != nil {
+			return 0, nil, err
+		}
 	}
 	if v.Host, err = s.db.Host(ctx, vm.HostID); err != nil {
 		return 0, nil, err

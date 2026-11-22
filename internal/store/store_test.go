@@ -61,24 +61,27 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) || Latest() != 11 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}) || Latest() != 12 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 11 || applied[10].Name != "0011_signin.sql" {
+	if err != nil || len(applied) != 12 || applied[11].Name != "0012_activity.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
 
 // A database at the previous schema version, with data in it, migrates to the latest: the data is kept and the
 // schema ends up exactly as on a database migrated from empty.
+// releasedSchema is the schema of the previous release (0.1.2), which this package upgrades (CLAUDE.md rule 12).
+const releasedSchema = 10
+
 func TestMigrationFromPreviousSchema(t *testing.T) {
 	ctx := context.Background()
 	old := open(t)
-	if _, err := old.Migrate(ctx, Latest()-1); err != nil {
+	if _, err := old.Migrate(ctx, releasedSchema); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -100,7 +103,11 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	done, err := old.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{Latest()}) {
+	var want []int
+	for v := releasedSchema + 1; v <= Latest(); v++ {
+		want = append(want, v)
+	}
+	if err != nil || !slices.Equal(done, want) {
 		t.Fatalf("previous -> latest: %v %v", done, err)
 	}
 	if _, err := old.Authenticate(ctx, "olduser", "previous-schema-password"); err != nil {

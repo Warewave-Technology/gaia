@@ -188,3 +188,17 @@ func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after in
 	}
 	return out, rows.Err()
 }
+
+// AuditNewest lists entries before seq before (0: from the newest), newest first, at most limit, and counts them all.
+func (d *DB) AuditNewest(ctx context.Context, before int64, limit int) ([]AuditEntry, int, error) {
+	var total int
+	if err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM audit_log`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	q, args := `SELECT `+auditCols+` FROM audit_log ORDER BY seq DESC LIMIT ?`, []any{limit}
+	if before > 0 {
+		q, args = `SELECT `+auditCols+` FROM audit_log WHERE seq < ? ORDER BY seq DESC LIMIT ?`, []any{before, limit}
+	}
+	out, err := rowsOf(ctx, d.db, scanAudit, q, args...)
+	return out, total, err
+}
