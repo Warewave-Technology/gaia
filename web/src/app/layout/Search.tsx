@@ -3,6 +3,8 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { useNavigate } from 'react-router'
 import { useT } from '../../i18n'
 import { query } from '../../lib/url'
+import { serverTime } from '../../lib/time'
+import { useSystem } from '../api/views'
 import { api } from '../../api/client'
 import { unwrap } from '../api/errors'
 import s from './Search.module.css'
@@ -15,6 +17,9 @@ type Hit = { key: string; kind: 'vm' | 'host' | 'policy' | 'point'; name: string
  */
 export function Search() {
   const t = useT().search
+  const t3 = useT().v3.search
+  // a point is said with its time, in the server's zone like every time on screen (docs/design/v3 rule 4)
+  const clock = useSystem().data?.clock
   const nav = useNavigate()
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
@@ -51,11 +56,14 @@ export function Search() {
     if (!r) return []
     return [
       ...r.vms.map((v) => ({ key: `vm${v.id}`, kind: 'vm' as const, name: v.name, sub: t.vm, to: `/vms/${v.id}` })),
-      ...r.hosts.map((h) => ({ key: `h${h.id}`, kind: 'host' as const, name: h.name, sub: t.host(h.count), to: `/${query({ host: h.id, show: 'all' })}` })),
-      ...r.policies.map((p) => ({ key: `p${p.id}`, kind: 'policy' as const, name: p.name, sub: t.policy(p.count), to: `/${query({ policy: p.id, show: 'all' })}` })),
-      ...r.points.map((p) => ({ key: `pt${p.id}`, kind: 'point' as const, name: t.point(p.id), sub: p.vm, to: `/vms/${p.vm_id}${query({ point: p.id })}` })),
+      ...r.hosts.map((h) => ({ key: `h${h.id}`, kind: 'host' as const, name: h.name, sub: t.host(h.count), to: `/${query({ tab: 'vms', host: h.id, show: 'all' })}` })),
+      ...r.policies.map((p) => ({ key: `p${p.id}`, kind: 'policy' as const, name: p.name, sub: t.policy(p.count), to: `/${query({ tab: 'vms', policy: p.id, show: 'all' })}` })),
+      ...r.points.map((p) => ({
+        key: `pt${p.id}`, kind: 'point' as const, name: t3.pointName(p.id), sub: clock && p.taken_at ? t3.point(p.vm, serverTime(clock).at(p.taken_at)) : p.vm,
+        to: `/vms/${p.vm_id}${query({ point: p.id })}`,
+      })),
     ]
-  }, [res.data, t])
+  }, [res.data, t, t3, clock])
   useEffect(() => setAt(0), [q])
 
   const go = (h: Hit | undefined) => {
