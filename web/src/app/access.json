@@ -197,6 +197,7 @@
         "GET /api/v1/daily-reports",
         "GET /api/v1/evidence",
         "GET /api/v1/views/evidence",
+        "GET /api/v1/views/fleet",
         "GET /api/v1/vms/{id}",
         "GET /api/v1/evidence-export"
       ],
