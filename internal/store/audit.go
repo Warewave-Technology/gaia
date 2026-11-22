@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const zeroHash = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -149,6 +150,38 @@ type StateChange struct {
 	Reason   string `json:"reason"`
 	Actor    string `json:"actor"`
 	Code     string `json:"code"` // a VM status change: the deciding reason's code (docs/reason-codes.md)
+	// A VM status change (schema 13): every reason's code of the status it left and of the one it went to, worst
+	// first; empty for a change recorded before.
+	FromCodes []string `json:"from_codes,omitempty"`
+	ToCodes   []string `json:"to_codes,omitempty"`
+}
+
+func splitCodes(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, ",")
+}
+
+// VMStatusChangesSince lists the VM status changes recorded after the time since (RFC 3339; "" = all), oldest first.
+func (d *DB) VMStatusChangesSince(ctx context.Context, since string) ([]StateChange, error) {
+	rows, err := d.db.QueryContext(ctx, `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor, code, from_codes, to_codes
+		FROM state_changes WHERE entity = 'vm_status' AND at > ? ORDER BY seq`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []StateChange{}
+	for rows.Next() {
+		var c StateChange
+		var from, to string
+		if err := rows.Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor, &c.Code, &from, &to); err != nil {
+			return nil, err
+		}
+		c.FromCodes, c.ToCodes = splitCodes(from), splitCodes(to)
+		out = append(out, c)
+	}
+	return out, rows.Err()
 }
 
 func (d *DB) recordState(ctx context.Context, tx *sql.Tx, entity string, id int64, from, to, reason, actor string) error {
@@ -163,7 +196,7 @@ func (d *DB) recordStateCode(ctx context.Context, tx *sql.Tx, entity string, id 
 
 // StateChanges lists the recorded changes of one entity (entity "" lists all), oldest first.
 func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after int64, limit int) ([]StateChange, error) {
-	q := `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor, code FROM state_changes WHERE seq > ?`
+	q := `SELECT seq, at, entity, entity_id, from_state, to_state, reason, actor, code, from_codes, to_codes FROM state_changes WHERE seq > ?`
 	args := []any{after}
 	if entity != "" {
 		q += ` AND entity = ?`
@@ -181,9 +214,11 @@ func (d *DB) StateChanges(ctx context.Context, entity string, id int64, after in
 	out := []StateChange{}
 	for rows.Next() {
 		var c StateChange
-		if err := rows.Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor, &c.Code); err != nil {
+		var from, to string
+		if err := rows.Scan(&c.Seq, &c.At, &c.Entity, &c.EntityID, &c.From, &c.To, &c.Reason, &c.Actor, &c.Code, &from, &to); err != nil {
 			return nil, err
 		}
+		c.FromCodes, c.ToCodes = splitCodes(from), splitCodes(to)
 		out = append(out, c)
 	}
 	return out, rows.Err()

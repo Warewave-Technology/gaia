@@ -247,6 +247,7 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	vals := []any{row.Rank, row.Code, row.ScopeKind, row.ScopeID, row.ScopeName, row.NewestPointID, row.NewestTakenAt,
 		row.ProvenPointID, row.ProvenTakenAt, row.ProvenTestID, row.ProvenFinishedAt, row.ProvenRTOS, row.RPOTargetS,
 		row.RTOTargetS, row.MaxProofAgeS, row.NextChangeAt}
+	var fromCodes string
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		if _, err := tx.ExecContext(ctx, `INSERT INTO vm_status (vm_id, status, reason, result, changed_at, computed_at, since) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -256,6 +257,13 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	case err != nil:
 		return false, err
 	case old != status:
+		var oldResult string
+		if err := tx.QueryRowContext(ctx, `SELECT result FROM vm_status WHERE vm_id = ?`, vmID).Scan(&oldResult); err != nil {
+			return false, err
+		}
+		if fromCodes, err = reasonCodes([]byte(oldResult)); err != nil {
+			return false, fmt.Errorf("the stored status: %w", err)
+		}
 		if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET status = ?, reason = ?, result = ?, changed_at = ?, computed_at = ?, since = ? WHERE vm_id = ?`,
 			status, reason, string(b), now, now, unix, vmID); err != nil {
 			return false, err
@@ -275,7 +283,30 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET `+set+` WHERE vm_id = ?`, append(vals, vmID)...); err != nil {
 		return false, err
 	}
-	return true, d.recordStateCode(ctx, tx, "vm_status", vmID, old, status, reason, "system", row.Code)
+	toCodes, err := reasonCodes(b)
+	if err != nil {
+		return false, err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code, from_codes, to_codes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, d.ts(), "vm_status", vmID, old, status, reason, "system", row.Code, fromCodes, toCodes)
+	return true, err
+}
+
+// reasonCodes is the comma-separated codes of a stored status's reasons (a status.Result's JSON), worst first.
+func reasonCodes(result []byte) (string, error) {
+	var r struct {
+		Reasons []struct {
+			Code string `json:"code"`
+		} `json:"reasons"`
+	}
+	if err := json.Unmarshal(result, &r); err != nil {
+		return "", err
+	}
+	cs := make([]string, 0, len(r.Reasons))
+	for _, x := range r.Reasons {
+		cs = append(cs, x.Code)
+	}
+	return strings.Join(cs, ","), nil
 }
 
 // VMStatuses lists the stored statuses, of one VM if vmID > 0.

@@ -300,6 +300,9 @@ func (s *Server) notifyOnce(ctx context.Context, now time.Time) error {
 	if err := s.dailyReportIfDue(ctx, now); err != nil {
 		errs = append(errs, fmt.Errorf("daily report: %w", err))
 	}
+	if err := s.ledgerCheckIfDue(ctx, s.now()); err != nil { // after the report, whose check is the day's full one
+		errs = append(errs, fmt.Errorf("ledger check: %w", err))
+	}
 	chans, err := s.db.Channels(ctx)
 	if err != nil {
 		return err
@@ -350,6 +353,42 @@ func (s *Server) queueEvents(ctx context.Context, ch store.Channel) error {
 	return s.db.QueueEvents(ctx, ch.ID, ch.Cursor, changes[len(changes)-1].Seq, ns)
 }
 
+// quietStatusChange says whether a VM status change is one ADR-007 C12 keeps out of the immediate notifications: OK
+// <-> WARNING, the WARNING's only reasons are proven_rpo_over_target or proof_too_old, and the VM's policy can be OK
+// only part of the time (max_ok_fraction < 1), so the change comes back every test cycle. The daily report counts
+// them. A change recorded before schema 13 has no codes and is not quiet. policies caches policy fractions (nil: none).
+func (s *Server) quietStatusChange(ctx context.Context, sc store.StateChange, vm store.VM, policies map[int64]float64) (bool, error) {
+	var warn []string
+	switch {
+	case sc.From == status.OK && sc.To == status.Warning:
+		warn = sc.ToCodes
+	case sc.From == status.Warning && sc.To == status.OK:
+		warn = sc.FromCodes
+	default:
+		return false, nil
+	}
+	if len(warn) == 0 || vm.PolicyID == nil {
+		return false, nil
+	}
+	for _, c := range warn {
+		if c != string(status.ProvenRPOOverTarget) && c != string(status.ProofTooOld) {
+			return false, nil
+		}
+	}
+	frac, ok := policies[*vm.PolicyID]
+	if !ok {
+		p, err := s.db.Policy(ctx, *vm.PolicyID)
+		if err != nil {
+			return false, err
+		}
+		frac, _ = policyOK(p)
+		if policies != nil {
+			policies[p.ID] = frac
+		}
+	}
+	return frac < 1, nil
+}
+
 // classify says whether a state change is an event, and which.
 func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, error) {
 	ev := s.event("", sc.At)
@@ -360,6 +399,11 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		vm, err := s.db.VM(ctx, sc.EntityID)
 		if err != nil {
 			return nil, err
+		}
+		if quiet, err := s.quietStatusChange(ctx, sc, vm, nil); err != nil {
+			return nil, err
+		} else if quiet { // counted in the daily report instead (ADR-007 C12)
+			return nil, nil
 		}
 		from := sc.From
 		if from == "" {

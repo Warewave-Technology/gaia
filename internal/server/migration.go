@@ -459,7 +459,7 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	}
 	e, err := evidence.Append(s.cfg.ledgerPath(), evidence.Entry{BundleID: res.BundleID, BundleSHA256: sum, Subject: mc.VM, Verdict: readiness}, key)
 	if err != nil {
-		if _, cerr := s.checkLedger(context.WithoutCancel(ctx), "system", "appending bundle "+res.BundleID+" failed: "+err.Error()); cerr != nil {
+		if _, cerr := s.checkLedger(context.WithoutCancel(ctx), "system", "appending bundle "+res.BundleID+" failed: "+err.Error(), store.LedgerCheckFull); cerr != nil {
 			s.log.Error("ledger check", "error", cerr)
 		}
 		return "", "", "", fmt.Errorf("ledger: %w", err)

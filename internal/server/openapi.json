@@ -688,6 +688,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "policies": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOK"
+            },
+            "type": "array"
+          },
           "queue": {
             "items": {
               "$ref": "#/components/schemas/QueueItem"
@@ -2124,6 +2130,9 @@
           "id": {
             "type": "integer"
           },
+          "kind": {
+            "type": "string"
+          },
           "problems": {
             "items": {
               "type": "string"
@@ -2143,6 +2152,7 @@
           "head_seq",
           "head_sha256",
           "id",
+          "kind",
           "problems",
           "reason",
           "verdict"
@@ -2174,6 +2184,9 @@
           "checked_at": {
             "type": "string"
           },
+          "code": {
+            "type": "string"
+          },
           "entries": {
             "type": "integer"
           },
@@ -2186,6 +2199,12 @@
           "id": {
             "type": "integer"
           },
+          "kind": {
+            "type": "string"
+          },
+          "oldest_unchecked_at": {
+            "type": "string"
+          },
           "problems": {
             "items": {
               "type": "string"
@@ -2193,6 +2212,9 @@
             "type": "array"
           },
           "reason": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           },
           "text": {
@@ -2207,12 +2229,16 @@
         },
         "required": [
           "checked_at",
+          "code",
           "entries",
           "head_seq",
           "head_sha256",
           "id",
+          "kind",
+          "oldest_unchecked_at",
           "problems",
           "reason",
+          "status",
           "text",
           "unchecked",
           "verdict"
@@ -3302,6 +3328,12 @@
           "policy_id": {
             "type": "integer"
           },
+          "rpo_target_s": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "test_interval_s": {
             "type": [
               "integer",
@@ -3366,6 +3398,29 @@
           "rpo_target_s",
           "rto_target_s",
           "test_interval_s"
+        ],
+        "type": "object"
+      },
+      "PolicyOK": {
+        "additionalProperties": false,
+        "properties": {
+          "max_ok_fraction": {
+            "type": "number"
+          },
+          "policy_id": {
+            "type": "integer"
+          },
+          "suggested_test_interval_s": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "max_ok_fraction",
+          "policy_id",
+          "suggested_test_interval_s"
         ],
         "type": "object"
       },
@@ -3436,6 +3491,85 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "PolicyView": {
+        "additionalProperties": false,
+        "properties": {
+          "backup_interval_s": {
+            "type": "integer"
+          },
+          "check_template": {
+            "type": "string"
+          },
+          "checks": {
+            "description": "any JSON value"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "keep_daily": {
+            "type": "integer"
+          },
+          "keep_last": {
+            "type": "integer"
+          },
+          "keep_weekly": {
+            "type": "integer"
+          },
+          "max_ok_fraction": {
+            "type": "number"
+          },
+          "max_proof_age_s": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "integer"
+          },
+          "rpo_target_s": {
+            "type": "integer"
+          },
+          "rto_target_s": {
+            "type": "integer"
+          },
+          "suggested_test_interval_s": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "test_interval_s": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "backup_interval_s",
+          "check_template",
+          "checks",
+          "created_at",
+          "id",
+          "keep_daily",
+          "keep_last",
+          "keep_weekly",
+          "max_ok_fraction",
+          "max_proof_age_s",
+          "name",
+          "repository_id",
+          "rpo_target_s",
+          "rto_target_s",
+          "suggested_test_interval_s",
+          "test_interval_s",
+          "updated_at"
+        ],
         "type": "object"
       },
       "Proven": {
@@ -4817,6 +4951,12 @@
           "from": {
             "type": "string"
           },
+          "from_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "reason": {
             "type": "string"
           },
@@ -4825,6 +4965,12 @@
           },
           "to": {
             "type": "string"
+          },
+          "to_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -12237,7 +12383,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Policy"
+                    "$ref": "#/components/schemas/PolicyView"
                   },
                   "type": "array"
                 }
@@ -12313,7 +12459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Policy"
+                  "$ref": "#/components/schemas/PolicyView"
                 }
               }
             },
@@ -12507,7 +12653,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Policy"
+                  "$ref": "#/components/schemas/PolicyView"
                 }
               }
             },
@@ -12602,7 +12748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Policy"
+                  "$ref": "#/components/schemas/PolicyView"
                 }
               }
             },

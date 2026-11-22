@@ -10,6 +10,7 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/capacity"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -57,11 +58,73 @@ func parseTime(s string) *time.Time {
 	return &t
 }
 
-// PolicyChange is a what-if change of one policy.
+// PolicyChange is a what-if change of one policy. The RPO target changes only how much of the time the policy's VMs
+// can be OK (policies in the answer), not the capacity.
 type PolicyChange struct {
 	PolicyID      int64  `json:"policy_id"`
 	TestIntervalS *int64 `json:"test_interval_s,omitempty"`
 	MaxProofAgeS  *int64 `json:"max_proof_age_s,omitempty"`
+	RPOTargetS    *int64 `json:"rpo_target_s,omitempty"`
+}
+
+// PolicyOK is how much of the time a VM on a policy can be OK at best, and the test interval that would make it
+// always possible (ADR-007 C12, status.OKBound); null when nothing needs to change.
+type PolicyOK struct {
+	PolicyID               int64   `json:"policy_id"`
+	MaxOKFraction          float64 `json:"max_ok_fraction"`
+	SuggestedTestIntervalS *int64  `json:"suggested_test_interval_s"`
+}
+
+// PolicyView is a policy as the API shows it: with how much of the time its VMs can be OK (C12). Saving a policy
+// that cannot always be OK is allowed.
+type PolicyView struct {
+	store.Policy
+	MaxOKFraction          float64 `json:"max_ok_fraction"`           // 0..1; 1 when always possible
+	SuggestedTestIntervalS *int64  `json:"suggested_test_interval_s"` // null when nothing needs to change
+}
+
+func policyOK(p store.Policy) (float64, *int64) {
+	return status.OKBound(status.Targets{RPOS: p.RPOTargetS, RTOS: p.RTOTargetS, MaxProofAgeS: p.MaxProofAgeS}, p.TestIntervalS)
+}
+
+func policyView(p store.Policy) PolicyView {
+	v := PolicyView{Policy: p}
+	v.MaxOKFraction, v.SuggestedTestIntervalS = policyOK(p)
+	return v
+}
+
+func policyViewOf(p store.Policy, err error) (PolicyView, error) { return policyView(p), err }
+
+func policyViews(ps []store.Policy, err error) ([]PolicyView, error) {
+	out := make([]PolicyView, 0, len(ps))
+	for _, p := range ps {
+		out = append(out, policyView(p))
+	}
+	return out, err
+}
+
+// whatIfPolicies is the C12 figure of every changed policy, with the change applied; nothing is saved.
+func (s *Server) whatIfPolicies(ctx context.Context, w WhatIf) ([]PolicyOK, error) {
+	out := []PolicyOK{}
+	for _, c := range w.Policies {
+		p, err := s.db.Policy(ctx, c.PolicyID)
+		if err != nil {
+			return nil, err
+		}
+		if c.TestIntervalS != nil {
+			p.TestIntervalS = *c.TestIntervalS
+		}
+		if c.MaxProofAgeS != nil {
+			p.MaxProofAgeS = *c.MaxProofAgeS
+		}
+		if c.RPOTargetS != nil {
+			p.RPOTargetS = *c.RPOTargetS
+		}
+		x := PolicyOK{PolicyID: p.ID}
+		x.MaxOKFraction, x.SuggestedTestIntervalS = policyOK(p)
+		out = append(out, x)
+	}
+	return out, nil
 }
 
 // WhatIf is a changed slot count or changed policies; nothing is saved.
@@ -78,8 +141,8 @@ func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, e
 	}
 	changes := map[int64]PolicyChange{}
 	for _, p := range w.Policies {
-		if p.TestIntervalS != nil && *p.TestIntervalS < 60 || p.MaxProofAgeS != nil && *p.MaxProofAgeS <= 0 {
-			return capacity.Input{}, fmt.Errorf("%w: policy %d: test_interval_s >= 60, max_proof_age_s > 0", store.ErrInvalid, p.PolicyID)
+		if p.TestIntervalS != nil && *p.TestIntervalS < 60 || p.MaxProofAgeS != nil && *p.MaxProofAgeS <= 0 || p.RPOTargetS != nil && *p.RPOTargetS <= 0 {
+			return capacity.Input{}, fmt.Errorf("%w: policy %d: test_interval_s >= 60, max_proof_age_s > 0, rpo_target_s > 0", store.ErrInvalid, p.PolicyID)
 		}
 		changes[p.PolicyID] = p
 	}
@@ -129,6 +192,8 @@ type CapacityView struct {
 	Sandbox       *sandbox.Capacity `json:"sandbox"`       // the helper now; nil when it does not answer
 	SandboxError  string            `json:"sandbox_error"` // why
 	WhatIf        *WhatIf           `json:"what_if,omitempty"`
+	// What-if only: each changed policy's C12 figure with the change applied, for the policy editor before it saves.
+	Policies []PolicyOK `json:"policies,omitempty"`
 }
 
 func (s *Server) capacityResult(ctx context.Context, w WhatIf, limit int) (CapacityView, error) {
@@ -162,8 +227,16 @@ func (s *Server) whatIfView(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	v, err := s.capacityResult(c.r.Context(), w, 50)
+	if err != nil {
+		return 0, nil, err
+	}
 	v.WhatIf = &w
-	return one(v, err)
+	if len(w.Policies) > 0 {
+		if v.Policies, err = s.whatIfPolicies(c.r.Context(), w); err != nil {
+			return 0, nil, err
+		}
+	}
+	return http.StatusOK, v, nil
 }
 
 // TestQueueView is the queued restore tests in the order they start, with their estimated starts, in pages; and the
