@@ -5,10 +5,16 @@
 # give every screen something to show: six Linux VMs (two policies, tagged), the Windows guest (a policy whose RTO
 # target it misses), and one VM without a policy.
 #
-# Usage (on gaia-lab, as root): lab/lab-vm/t27-lab.sh up | update | status | token FILE | down
-#   update       builds the repository's gaia and restarts the server with it; the data stays
-#   token FILE   signs the admin in (a WebAuthn key in software, lab/tools/softkey) and writes the CLI session's token
-#                to FILE (0600), for the screenshot and gate tools (lab/scale/ui-gate.mjs)
+# With the converter image of T21/T23 pinned in /etc/gaia/convert.json, the converter service (gaia-convert, rootless
+# podman, install guide step 10d) runs beside them, so the migration check screen has a converter.
+#
+# Usage (on gaia-lab, as root): lab/lab-vm/t27-lab.sh up | start | update | status | token FILE | source ESXI_IP | down
+#   start           writes the units again and starts them, the data kept (the units live in /run: a reboot drops them)
+#   update          builds the repository's gaia and restarts the server with it; the data stays
+#   token FILE      signs the admin in (a WebAuthn key in software, lab/tools/softkey) and writes the CLI session's token
+#                   to FILE (0600), for the screenshot and gate tools (lab/scale/ui-gate.mjs)
+#   source ESXI_IP  adds the ESXi host as a migration source, its root password read from /root/.gaia-esxi-password
+#                   (0600, never printed), and lists its VMs: read-only, ADR-003 §2
 set -euo pipefail
 SRV_USER=gaia-t27
 SRV_HOME=/var/lib/gaia-t27
@@ -19,6 +25,10 @@ SB_HOME=/var/lib/gaia-t27-sandbox
 SB_SOCK=/run/gaia-t27-sandbox/sandbox.sock
 SB_WORK=/var/lib/libvirt/images/gaia-t27-sandbox
 HOST_USER=gaia-t27-backup
+CONV_USER=gaia-convert
+CONV_HOME=/var/lib/gaia-convert
+CONV_UNIT=/run/systemd/system/gaia-convert.service
+ESXI_PASSWORD_FILE=/root/.gaia-esxi-password
 PUBLIC=https://gaia-lab.test:8448
 WORK=/root/t27w
 LIN=(gaia-t25-lin-1 gaia-t25-lin-2 gaia-t25-lin-3 gaia-t25-lin-4 gaia-t25-lin-5 gaia-t25-lin-6)
@@ -37,8 +47,41 @@ signin() {
 		-password-file "$WORK/admin.pw" -key "$WORK/admin-key.json" >&2
 }
 
+# converter: whether the T21/T23 converter image is pinned here (then the converter service runs beside the server).
+converter() { [[ -s /etc/gaia/convert.json ]] && id "$CONV_USER" >/dev/null 2>&1; }
+
+# units writes the server's, the sandbox helper's and (with a pinned converter image) the converter's units from the
+# packaged ones (packaging/systemd).
+units() {
+	local after="$SB_UNIT.service" rw="$SRV_HOME -$SB_HOME/images"
+	sed -e "s|^ExecStart=.*|ExecStart=$SRV_BIN sandbox serve -group $SRV_USER -socket $SB_SOCK -images $SB_HOME/images -work-dir $SB_WORK -bundle-dir $SB_HOME/bundles -slots 2 -memory-mib 3584|" \
+		"$repo_root/packaging/systemd/gaia-sandbox.service" >"/run/systemd/system/$SB_UNIT.service"
+	if converter; then
+		install -d -o "$CONV_USER" -g "$CONV_USER" -m 2770 "$CONV_HOME/jobs"
+		usermod -aG "$CONV_USER" "$SRV_USER"
+		sed -e "s|^ExecStart=/usr/bin/gaia |ExecStart=$SRV_BIN |" "$repo_root/packaging/systemd/gaia-convert.service" >"$CONV_UNIT"
+		after="$after gaia-convert.service" rw="$rw -$CONV_HOME/jobs"
+	fi
+	sed -e "s|^User=.*|User=$SRV_USER|" -e "s|^Group=.*|Group=$SRV_USER|" \
+		-e "s|^ExecStart=.*|ExecStart=$SRV_BIN server run -config $SRV_HOME/server.json|" \
+		-e "s|^ReadWritePaths=.*|ReadWritePaths=$rw|" \
+		-e "s|gaia-sandbox.service gaia-convert.service|$after|" \
+		"$repo_root/packaging/systemd/gaia.service" >"/run/systemd/system/$UNIT.service"
+	systemctl daemon-reload
+}
+
+# start_units starts the converter (when there is one) and the sandbox helper, then the server, and waits for it.
+start_units() {
+	if converter; then systemctl start gaia-convert; fi
+	systemctl start "$SB_UNIT"
+	for ((i = 0; i < 30; i++)); do [[ -S $SB_SOCK ]] && break; sleep 1; done
+	systemctl start "$UNIT"
+	for ((i = 0; i < 30; i++)); do curl -fsk "$PUBLIC/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
+}
+
 down() {
 	for u in "$UNIT" "$SB_UNIT"; do systemctl stop "$u" 2>/dev/null || true; done
+	if [[ -f $CONV_UNIT ]]; then systemctl stop gaia-convert 2>/dev/null || true; rm -f "$CONV_UNIT"; fi
 	rm -f "/run/systemd/system/$UNIT.service" "/run/systemd/system/$SB_UNIT.service"
 	systemctl daemon-reload
 	pkill -u "$HOST_USER" 2>/dev/null || true
@@ -54,8 +97,24 @@ case "${1:-}" in
 down) down; exit 0 ;;
 status)
 	jq -n --arg u "$PUBLIC" --arg s "$(systemctl is-active "$UNIT" || true)" --arg b "$(systemctl is-active "$SB_UNIT" || true)" \
+		--arg c "$(systemctl is-active gaia-convert || true)" \
 		--arg fp "$(fp 2>/dev/null || true)" --arg df "$(df -h --output=avail "$SRV_HOME" 2>/dev/null | tail -1 | tr -d ' ')" \
-		'{url: $u, server: $s, sandbox: $b, tls_certificate_sha256: $fp, repository_free: $df}'
+		'{url: $u, server: $s, sandbox: $b, converter: $c, tls_certificate_sha256: $fp, repository_free: $df}'
+	exit 0 ;;
+start)
+	[[ -s $SRV_HOME/server.json ]] || { echo "UNKNOWN: no server data in $SRV_HOME: run up"; exit 3; }
+	units
+	start_units
+	"$0" status
+	exit 0 ;;
+source)
+	ip=${2:?source ESXI_IP}
+	[[ -f $ESXI_PASSWORD_FILE && $(stat -c %a "$ESXI_PASSWORD_FILE") == 600 ]] || { echo "UNKNOWN: the ESXi root password must be in $ESXI_PASSWORD_FILE with mode 0600"; exit 3; }
+	signin
+	added=$(GAIA_VSPHERE_PASSWORD="$(cat "$ESXI_PASSWORD_FILE")" api sources add name=esxi url="https://$ip/sdk" username=root insecure=true)
+	jq -c '{id, name, url}' <<<"$added" >&2
+	src=$(jq -r .id <<<"$added")
+	api sources inventory "$src" | jq -r '.vms[] | [.name, .power_state, .guest_id, .firmware, .disks, (.checkable // "")] | @tsv'
 	exit 0 ;;
 token)
 	out=${2:?token FILE}
@@ -67,12 +126,14 @@ update)
 	owner=$(stat -c %U "$repo_root")
 	if [[ "$owner" == root ]]; then make -C "$repo_root" -s build; else runuser -u "$owner" -- env PATH="$PATH" HOME="$(getent passwd "$owner" | cut -d: -f6)" make -C "$repo_root" -s build; fi
 	install -m 0755 "$BIN/gaia" "$SRV_BIN"
+	units
+	if converter; then systemctl restart gaia-convert; fi
 	systemctl restart "$SB_UNIT" "$UNIT"
 	for ((i = 0; i < 30; i++)); do curl -fsk "$PUBLIC/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
 	"$0" status
 	exit 0 ;;
 up) ;;
-*) echo "usage: $0 up | update | status | token FILE | down"; exit 3 ;;
+*) echo "usage: $0 up | start | update | status | token FILE | source ESXI_IP | down"; exit 3 ;;
 esac
 
 grep -q " gaia-lab.test\$" /etc/hosts || echo "$(hostname -I | awk '{ print $1 }') gaia-lab.test" >>/etc/hosts
@@ -97,18 +158,8 @@ runuser -u "$SRV_USER" -- "$SRV_BIN" server init -config "$SRV_HOME/server.json"
 rm -f "$SRV_HOME/admin.pw" "$SRV_HOME/kit.pass"
 jq --arg s "$SB_SOCK" --arg i "$SB_HOME/images" '. + {sandbox_socket: $s, sandbox_images_dir: $i}' "$SRV_HOME/server.json" >"$WORK/server.json"
 install -m 0640 -o "$SRV_USER" -g "$SRV_USER" "$WORK/server.json" "$SRV_HOME/server.json"
-sed -e "s|^ExecStart=.*|ExecStart=$SRV_BIN sandbox serve -group $SRV_USER -socket $SB_SOCK -images $SB_HOME/images -work-dir $SB_WORK -bundle-dir $SB_HOME/bundles -slots 2 -memory-mib 3584|" \
-	"$repo_root/packaging/systemd/gaia-sandbox.service" >"/run/systemd/system/$SB_UNIT.service"
-sed -e "s|^User=.*|User=$SRV_USER|" -e "s|^Group=.*|Group=$SRV_USER|" \
-	-e "s|^ExecStart=.*|ExecStart=$SRV_BIN server run -config $SRV_HOME/server.json|" \
-	-e "s|^ReadWritePaths=.*|ReadWritePaths=$SRV_HOME -$SB_HOME/images|" \
-	-e "s|gaia-sandbox.service gaia-convert.service|$SB_UNIT.service|" \
-	"$repo_root/packaging/systemd/gaia.service" >"/run/systemd/system/$UNIT.service"
-systemctl daemon-reload
-systemctl start "$SB_UNIT"
-for ((i = 0; i < 30; i++)); do [[ -S $SB_SOCK ]] && break; sleep 1; done
-systemctl start "$UNIT"
-for ((i = 0; i < 30; i++)); do curl -fsk "$PUBLIC/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
+units
+start_units
 signin
 api system | jq -c '{version, schema_version, public_url}' >&2
 jq -n --arg l "$SRV_HOME/repo/main" --rawfile k "$WORK/kit.pass" '{name: "main", location: $l, kit_passphrase: ($k | rtrimstr("\n"))}' >"$WORK/repo.json"
