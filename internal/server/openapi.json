@@ -239,6 +239,8 @@
         "additionalProperties": false,
         "properties": {
           "reason": {
+            "deprecated": true,
+            "description": "Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)",
             "type": "string"
           },
           "vm": {
@@ -3583,6 +3585,8 @@
             "type": "string"
           },
           "text": {
+            "deprecated": true,
+            "description": "Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)",
             "type": "string"
           }
         },
@@ -5435,6 +5439,9 @@
             },
             "type": "array"
           },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          },
           "policy": {
             "type": "string"
           },
@@ -5473,6 +5480,8 @@
             ]
           },
           "reason": {
+            "deprecated": true,
+            "description": "Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)",
             "type": "string"
           },
           "scope": {
@@ -5526,6 +5535,7 @@
           "host",
           "host_id",
           "notes",
+          "params",
           "policy",
           "policy_id",
           "proof_age_s",
@@ -5603,6 +5613,8 @@
             "type": "array"
           },
           "notes": {
+            "deprecated": true,
+            "description": "Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)",
             "items": {
               "type": "string"
             },
@@ -5723,6 +5735,8 @@
             "type": "array"
           },
           "notes": {
+            "deprecated": true,
+            "description": "Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)",
             "items": {
               "type": "string"
             },

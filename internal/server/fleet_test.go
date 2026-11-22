@@ -162,6 +162,10 @@ func TestFleetViews(t *testing.T) {
 	if hu1.Total != 3 || hu1.Rows[0].Code != "host_unreachable" || hu1.Rows[0].ProvenRPOS == nil || hu1.Rows[0].Targets == nil {
 		t.Fatalf("host_unreachable VMs: %+v", hu1)
 	}
+	// The deciding reason's params come with the row (ADR-007 C11), the same as the reason's own.
+	if p := hu1.Rows[0].Params; p.Job == 0 || p.JobAt == nil || p.PointAt == nil || p.TargetS != 3600 || p.Detail != "dial tcp: i/o timeout" {
+		t.Fatalf("host_unreachable row params: %+v", p)
+	}
 	var att VMListView
 	get("/api/v1/views/vm-list?attention=true", &att)
 	if att.Total != fl.Cannot {

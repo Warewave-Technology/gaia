@@ -78,7 +78,7 @@ type ReportVM struct {
 	VM             string        `json:"vm"`
 	Status         string        `json:"status"`
 	Since          string        `json:"since"`
-	Reason         string        `json:"reason"`
+	Reason         string        `json:"reason" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"`
 	Code           string        `json:"code"`  // the deciding reason's code (docs/reason-codes.md)
 	Scope          *status.Scope `json:"scope"` // its shared cause, if any
 	Codes          []string      `json:"codes"` // every reason's code, worst first

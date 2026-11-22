@@ -81,19 +81,19 @@ type Reason struct {
 	Code   Code   `json:"code"` // why, from the closed list (codes.go), e.g. host_unreachable
 	Scope  *Scope `json:"scope"`
 	Params Params `json:"params"`
-	Text   string `json:"text"`
+	Text   string `json:"text" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"`
 }
 
 // Result is a VM's status and the figures behind it.
 type Result struct {
 	Status         string   `json:"status"`
-	TheoreticalRPO *float64 `json:"theoretical_rpo_s"` // now - newest checked point
-	ProvenRPO      *float64 `json:"proven_rpo_s"`      // now - point of the newest passing test
-	ProvenRTO      *float64 `json:"proven_rto_s"`      // from that test
-	ProofAge       *float64 `json:"proof_age_s"`       // now - that test
-	Reasons        []Reason `json:"reasons"`           // worst first; the first one says why the status is what it is
-	Notes          []string `json:"notes"`             // facts that do not change the status (the text of NoteReasons)
-	NoteReasons    []Reason `json:"note_reasons"`      // the same notes with their codes
+	TheoreticalRPO *float64 `json:"theoretical_rpo_s"`                                                                                            // now - newest checked point
+	ProvenRPO      *float64 `json:"proven_rpo_s"`                                                                                                 // now - point of the newest passing test
+	ProvenRTO      *float64 `json:"proven_rto_s"`                                                                                                 // from that test
+	ProofAge       *float64 `json:"proof_age_s"`                                                                                                  // now - that test
+	Reasons        []Reason `json:"reasons"`                                                                                                      // worst first; the first one says why the status is what it is
+	Notes          []string `json:"notes" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"` // facts that do not change the status (the text of NoteReasons)
+	NoteReasons    []Reason `json:"note_reasons"`                                                                                                 // the same notes with their codes
 }
 
 // Compute applies ADR-007's truth table:
