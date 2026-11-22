@@ -1,15 +1,18 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useT } from '../../../i18n'
-import { serverTime, type Fmt, type ServerClock } from '../../../lib/time'
+import { dur } from '../../../lib/duration'
+import { serverTime, type Fmt } from '../../../lib/time'
+import { useFilters } from '../../../lib/url'
 import { roles } from '../../access'
 import { change, useSessions, useSettings, type Session, type SettingsUpdate, type SettingsView } from '../../api/inventory'
 import type { User } from '../../api/session'
 import { useSystem } from '../../api/views'
 import { Failed, Loading } from '../../layout/States'
-import { Button, PageHead, SectionHead, Seg, StatusChip } from '../../ui'
+import { Button, by, DataTable, PageHead, SectionHead, Seg, StatusChip, TabPanel, Tabs, TechDetails, type Column } from '../../ui'
 import s from '../Inventory.module.css'
-import { Confirm, Fixed, useAction, when } from './common'
+import { Confirm, Fixed, useAction } from './common'
+import { onlyWhenWeaker, stepUpName, stepUpOrder } from './words'
 
 type Draft = Omit<SettingsUpdate, 'idle_timeout_min' | 'absolute_timeout_h'> & {
   idle_timeout_min: string
@@ -43,31 +46,47 @@ function body(d: Draft): SettingsUpdate {
 }
 
 /**
- * Sign-in and security (docs/design/v2/Security.dc.html; admins): ADR-008 as settings. What ADR-008 leaves to choose
- * has a control and is saved with one PUT through a step-up; what it fixes is listed with its value, labelled
- * "fixed", and has no control. Below, everyone's signed-in sessions, each with its sign-out.
+ * Sign-in and security (docs/design/v2/Security.dc.html, v3 "Sign-in and security"; admins): ADR-008 as settings.
+ * What ADR-008 leaves to choose has a control and is saved with one PUT through a step-up; what it fixes is listed
+ * with its value, labelled "fixed", and has no control. The signed-in sessions are the second tab, a data-table.
  */
 export function Security({ me }: { me: User }) {
   const t = useT().security
   const q = useSettings(true)
+  const sessions = useSessions(true)
   const sys = useSystem().data
+  const [f, setF] = useFilters(VIEW)
   const [gen, setGen] = useState(0)
   // the settings' save outlives the form: after a save the form starts again from what the server now holds
   const act = useAction()
   if (q.isPending || !sys) return <Loading />
   if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
+  const fmt = serverTime(sys.clock)
+  const v = q.data
+  const view: View = (VIEWS as readonly string[]).includes(f.view) ? (f.view as View) : 'sso'
   return (
     <>
       <PageHead
         question={t.question}
-        answer={t.title}
+        answer={t.answerLine(v.oidc.enabled, dur(v.idle_timeout_min * 60), dur(v.absolute_timeout_h * 3600))}
         lede={<p>{t.lede} <Fixed /> {t.ledeEnd}</p>}
       />
-      <Settings key={gen} v={q.data} fmt={serverTime(sys.clock)} clock={sys.clock} act={act} onSaved={() => setGen((g) => g + 1)} />
-      <Sessions me={me} fmt={serverTime(sys.clock)} clock={sys.clock} />
+      <div className={s.sec}>
+        <Tabs label={t.title} value={view} onChange={(k) => setF({ view: k === 'sso' ? '' : k })}
+          tabs={VIEWS.map((k) => ({ key: k, label: t.views[k], count: k === 'signed-in' ? sessions.data?.length : undefined }))} />
+        <TabPanel id={view}>
+          {/* the settings stay mounted across their tabs, so a draft survives a look at another tab */}
+          <Settings key={gen} view={view} v={v} fmt={fmt} act={act} onSaved={() => setGen((g) => g + 1)} />
+          {view === 'signed-in' && <Sessions me={me} fmt={fmt} q={sessions} />}
+        </TabPanel>
+      </div>
     </>
   )
 }
+
+const VIEW = ['view'] as const
+const VIEWS = ['sso', 'local', 'sessions', 'step-up', 'signed-in'] as const
+type View = (typeof VIEWS)[number]
 
 function Row({ term, hint, children }: { term: string; hint?: string; children: ReactNode }) {
   return (
@@ -78,7 +97,7 @@ function Row({ term, hint, children }: { term: string; hint?: string; children: 
   )
 }
 
-function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; clock: ServerClock; act: ReturnType<typeof useAction>; onSaved: () => void }) {
+function Settings({ view, v, fmt, act, onSaved }: { view: View; v: SettingsView; fmt: Fmt; act: ReturnType<typeof useAction>; onSaved: () => void }) {
   const t = useT().security
   const ti = useT().inventory
   const [d, setD] = useState<Draft>(() => draftOf(v))
@@ -94,7 +113,7 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
   }
   return (
     <>
-      <section className={s.sec} aria-labelledby="sso">
+      {view === 'sso' && <section className={s.sec} aria-labelledby="sso">
         <SectionHead id="sso" title={t.oidc.title}>
           <Seg label={t.oidc.title} value={on ? 'on' : 'off'} options={[['on', t.on], ['off', t.off]]} onChange={(x) => oidc({ enabled: x === 'on' })} />
           {v.oidc.enabled && (
@@ -104,11 +123,11 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
                 word={!st.checked_at ? t.oidc.word.notChecked : st.ok ? t.oidc.word.connected : t.oidc.word.failing}
                 size="sm"
               />
-              {st.checked_at && <span className={s.sub}>{t.oidc.checked(when(fmt, clock, st.checked_at, ti))}</span>}
-              {!st.ok && st.error && <span className={s.sub}>{st.error}</span>}
+              {st.checked_at && <span className={s.sub}>{t.oidc.checked(fmt.at(st.checked_at))}</span>}
             </span>
           )}
         </SectionHead>
+        {v.oidc.enabled && !st.ok && st.error && <TechDetails summary={t.oidc.error}>{st.error}</TechDetails>}
         {!on ? <p className={s.sub}>{t.oidc.off}</p> : (
           <dl className={s.dl}>
             <Row term={t.oidc.name} hint={t.oidc.nameHint}>
@@ -170,9 +189,9 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
             )}
           </dl>
         )}
-      </section>
+      </section>}
 
-      <section className={s.sec} aria-labelledby="local">
+      {view === 'local' && <section className={s.sec} aria-labelledby="local">
         <SectionHead id="local" title={t.local.title} />
         <dl className={s.dl}>
           <Row term={t.local.who} hint={on ? t.local.whoSsoHint : t.local.whoAllHint}><span className={s.val}>{on ? t.local.whoSso : t.local.whoAll}</span></Row>
@@ -186,7 +205,8 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
           </Row>
           <Row term={t.local.password}>
             <span className={s.val}>{t.local.passwordVal(fx.password_min_length, fx.password_max_length, fx.password_history)}<Fixed /></span>
-            <span className={s.sub}>{t.local.passwordNote(v.password_blocklist.version, v.password_blocklist.entries)}</span>
+            <span className={s.sub}>{t.local.passwordNote(v.password_blocklist.entries)}</span>
+            <TechDetails summary={t.local.blocklist}>{v.password_blocklist.version}</TechDetails>
           </Row>
           <Row term={t.local.breach} hint={t.local.breachHint}>
             <Seg label={t.local.breach} value={d.online_breach_check ? 'on' : 'off'} options={[['on', t.on], ['off', t.off]]}
@@ -215,9 +235,9 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
             <span className={s.val}>{t.local.tokensVal(fx.api_token_max_days)}<Fixed /></span>
           </Row>
         </dl>
-      </section>
+      </section>}
 
-      <section className={s.sec} aria-labelledby="sessions-rules">
+      {view === 'sessions' && <section className={s.sec} aria-labelledby="sessions-rules">
         <SectionHead id="sessions-rules" title={t.sessions.title} />
         <dl className={s.dl}>
           <Row term={t.sessions.idle} hint={t.sessions.idleRange}>
@@ -235,20 +255,30 @@ function Settings({ v, fmt, clock, act, onSaved }: { v: SettingsView; fmt: Fmt; 
               <span className={s.sub}>{t.sessions.absoluteUnit}</span>
             </span>
           </Row>
-          <Row term={t.sessions.stepUp}>
-            <span className={s.mono}>{v.step_up_actions.join(' · ')}</span>
-            <span className={s.sub}><Fixed />{t.sessions.stepUpNote(fx.step_up_s)}</span>
-          </Row>
           <Row term={t.sessions.perUser}><span className={s.val}>{t.sessions.perUserVal(fx.sessions_per_user)}<Fixed /></span></Row>
           <Row term={t.sessions.cookie}>
-            <span className={s.mono}>{fx.cookie}</span>
-            <span className={s.sub}>{t.sessions.cookieNote}<Fixed /></span>
+            <span className={s.val}>{t.sessions.cookieVal}<Fixed /></span>
+            <span className={s.sub}>{t.sessions.cookieNote}</span>
+            <TechDetails>{fx.cookie}</TechDetails>
           </Row>
           <Row term={t.sessions.onChange}><span className={s.val}>{t.sessions.onChangeVal}<Fixed /></span></Row>
           <Row term={t.sessions.refresh}><span className={s.val}>{t.sessions.refreshVal(fx.oidc_refresh_min)}<Fixed /></span></Row>
           <Row term={t.sessions.newDevice}><span className={s.val}>{t.sessions.newDeviceVal(fx.new_device_days)}<Fixed /></span></Row>
         </dl>
-      </section>
+      </section>}
+
+      {view === 'step-up' && (
+        <section className={s.sec} aria-labelledby="step-up">
+          <SectionHead id="step-up" title={t.sessions.stepUp} hint={<><Fixed />{t.sessions.stepUpNote(fx.step_up_s)}</>} />
+          <ul className={s.stepList}>
+            {stepUpOrder(v.step_up_actions).map((r) => (
+              <li key={r}>{stepUpName(r) ?? ti.audit.other}{onlyWhenWeaker(r) && <span>{t.sessions.whenWeaker}</span>}</li>
+            ))}
+          </ul>
+          <p className={s.sub}>{t.sessions.stepUpHow}</p>
+          <TechDetails summary={t.sessions.routes}>{v.step_up_actions.join('\n')}</TechDetails>
+        </section>
+      )}
 
       {(dirty || act.outcome) && (
         <div className={s.save}>
@@ -269,72 +299,72 @@ function browser(ua: string) {
   return b && os ? `${b}, ${os}` : ua
 }
 
-function Sessions({ me, fmt, clock }: { me: User; fmt: Fmt; clock: ServerClock }) {
+function Sessions({ me, fmt, q }: { me: User; fmt: Fmt; q: ReturnType<typeof useSessions> }) {
   const t = useT().security
-  const ti = useT().inventory
-  const q = useSessions(true)
+  const si = t.signedIn
   const act = useAction()
   const mine = me.session.id
+  const cols: Column<Session>[] = [
+    {
+      key: 'user', header: si.cols.user, width: '200px', compare: by((x) => x.username),
+      cell: (x) => <><span className={s.name}>{x.username}</span><span className={s.cellOf}>{x.id === mine ? si.this : x.role}</span></>,
+    },
+    {
+      key: 'how', header: si.cols.how, title: (x) => si.how(x.method, x.kind, x.break_glass),
+      cell: (x) => (
+        <>
+          {x.new_device && <StatusChip status="WARNING" word={si.word.newDevice} size="xs" />}
+          {x.idp_state === 'idp_unreachable' && <StatusChip status="UNKNOWN" word={si.word.idp} size="xs" />}
+          <span>{si.how(x.method, x.kind, x.break_glass)}</span>
+        </>
+      ),
+    },
+    {
+      key: 'from', header: si.cols.from, width: '230px', title: (x) => x.user_agent,
+      cell: (x) => <><span className={s.mono}>{x.remote_addr}</span><span className={s.cellOf}>{browser(x.user_agent)}</span></>,
+    },
+    { key: 'started', header: si.cols.started, width: '130px', compare: by((x) => x.created_at), cell: (x) => fmt.at(x.created_at) },
+    { key: 'active', header: si.cols.active, width: '130px', compare: by((x) => x.last_active_at), cell: (x) => fmt.at(x.last_active_at) },
+    { key: 'ends', header: si.cols.ends, width: '130px', compare: by((x) => x.absolute_at), cell: (x) => fmt.at(x.absolute_at) },
+    {
+      key: 'action', header: si.cols.action, width: '110px',
+      cell: (x) => (x.id === mine ? null : (
+        <Button variant="quiet" className={s.cellBtn} disabled={act.busy === `end/${x.id}`}
+          onClick={() => act.run(`end/${x.id}`, 'DELETE', `/api/v1/sessions/${x.id}`, (h) => change.endSession(x.id, h))}>
+          {si.signOut}
+        </Button>
+      )),
+    },
+  ]
   return (
-    <section className={s.sec} aria-labelledby="signed-in">
-      <SectionHead id="signed-in" title={t.signedIn.title}>
-        {q.data && <span className={s.sub}>{t.signedIn.count(q.data.length)}</span>}
+    <section className={s.sec} aria-label={si.title}>
+      <div className={s.toolbar}>
+        {q.data && <span className={s.sub}>{si.count(q.data.length)}</span>}
         <span className={s.end}>
-          <Confirm danger label={t.signedIn.endOthers} question={t.signedIn.endOthersConfirm} busy={act.busy === 'others'}
-            onYes={() => act.run('others', 'POST', '/api/v1/sessions/end-others', (h) => change.endOthers(h), (r) => t.signedIn.ended(r.ended))} />
+          <Confirm danger label={si.endOthers} question={si.endOthersConfirm} busy={act.busy === 'others'}
+            onYes={() => act.run('others', 'POST', '/api/v1/sessions/end-others', (h) => change.endOthers(h), (r) => si.ended(r.ended))} />
         </span>
-      </SectionHead>
+      </div>
       {q.isPending ? <Loading /> : q.isError ? <Failed error={q.error} onRetry={() => q.refetch()} /> : (
-        <div className={s.scroll}>
-          <table className={s.tbl}>
-            <thead>
-              <tr>
-                <th scope="col">{t.signedIn.cols.user}</th>
-                <th scope="col">{t.signedIn.cols.how}</th>
-                <th scope="col">{t.signedIn.cols.from}</th>
-                <th scope="col">{t.signedIn.cols.started}</th>
-                <th scope="col">{t.signedIn.cols.active}</th>
-                <th scope="col">{t.signedIn.cols.ends}</th>
-                <th scope="col"><span className={s.vh}>{ti.action}</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.data.map((x: Session) => (
-                <tr key={x.id} className={x.idp_state === 'idp_unreachable' ? s.rUNKNOWN : ''}>
-                  <th scope="row">
-                    <span className={s.name}>{x.username}</span>{x.id === mine && <span className={s.sub}> {t.signedIn.this}</span>}
-                    <span className={s.of}>{x.role}</span>
-                  </th>
-                  <td>
-                    <span className={s.state}>
-                      {x.new_device && <StatusChip status="WARNING" word={t.signedIn.word.newDevice} size="xs" />}
-                      {x.idp_state === 'idp_unreachable' && <StatusChip status="UNKNOWN" word={t.signedIn.word.idp} size="xs" />}
-                      <span>{t.signedIn.how(x.method, x.kind, x.break_glass)}</span>
-                    </span>
-                  </td>
-                  <td>
-                    <span className={s.mono}>{x.remote_addr}</span>
-                    <span className={s.of} title={x.user_agent}>{browser(x.user_agent)}</span>
-                  </td>
-                  <td className={s.fg2}>{when(fmt, clock, x.created_at, ti)}</td>
-                  <td className={s.fg2}>{when(fmt, clock, x.last_active_at, ti)}</td>
-                  <td className={s.fg2}>{when(fmt, clock, x.absolute_at, ti)}</td>
-                  <td>
-                    {x.id !== mine && (
-                      <Button variant="quiet" disabled={act.busy === `end/${x.id}`}
-                        onClick={() => act.run(`end/${x.id}`, 'DELETE', `/api/v1/sessions/${x.id}`, (h) => change.endSession(x.id, h))}>
-                        {t.signedIn.signOut}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<Session>
+          caption={si.caption}
+          columns={cols}
+          rows={q.data}
+          rowKey={(x) => String(x.id)}
+          rowState={(x) => (x.idp_state === 'idp_unreachable' ? 'bad' : undefined)}
+          minWidth={1000}
+          detail={(x) => (
+            <div className={s.facts}>
+              {x.new_device && <p>{si.newDevice}</p>}
+              {x.idp_state === 'idp_unreachable' && <p>{si.idp}</p>}
+              {x.idp_refreshed_at && <p>{si.refreshed(fmt.at(x.idp_refreshed_at))}</p>}
+              <TechDetails summary={si.agent}>{x.user_agent}</TechDetails>
+            </div>
+          )}
+        />
       )}
       {act.outcome}
-      <Link to="/inventory/audit" className={s.sub}>{t.signedIn.auditLink}</Link>
+      <Link to="/inventory/audit" className={s.sub}>{si.auditLink}</Link>
     </section>
   )
 }

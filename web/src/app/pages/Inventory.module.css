@@ -50,7 +50,7 @@
 /* Forms: a grid of labelled fields, under a table or in a row's detail. */
 .form { display: flex; flex-direction: column; gap: 14px; padding: 16px 0 6px; }
 .form h3 { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--fg0); }
-.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px 16px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px 16px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--fg3); }
 .field input, .field select, .inline input, .inline select { height: 32px; padding: 0 9px; border: 1px solid var(--line-2); border-radius: var(--radius);
   background: var(--page); color: var(--fg0); font: inherit; font-size: 13.5px; }
@@ -79,6 +79,24 @@
 .sub { color: var(--fg4); font-size: 12.5px; }
 .save { position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--raised);
   border: 1px solid var(--line-2); border-radius: var(--radius); }
+
+/* v3 (docs/design/v3 rule 1): what the data-tables' one-line cells and expanding rows hold. */
+.cellOf { color: var(--fg4); font-size: 12px; }
+.strong { color: var(--fg0); font-weight: 600; }
+.mono1 { font-family: var(--mono); font-size: 12.5px; color: var(--fg1); }
+.vmsCell { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; max-width: 100%; }
+.vmsCell > [data-status-bar] { min-width: 0; width: 72px; height: 10px; flex: none; }
+.vmsCell > span:last-child { margin-top: 0; flex-wrap: nowrap; }
+.vmsCell > b { min-width: 52px; flex: none; }
+.cellBtn { height: 26px !important; padding: 0 10px !important; font-size: 12.5px !important; }
+.warnText { color: var(--yellow); }
+.facts { display: flex; flex-direction: column; gap: 6px; }
+.facts p { color: var(--fg2); }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.stepList { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 4px 24px; }
+.stepList li { color: var(--fg0); font-size: 13.5px; }
+.stepList li span { color: var(--fg4); font-size: 12px; margin-left: 6px; }
+.routes { margin: 0; padding-left: 18px; font-family: var(--mono); font-size: 12px; color: var(--fg3); }
 
 @media (max-width: 760px) {
   .page { padding: 20px 16px 48px; gap: 20px; }

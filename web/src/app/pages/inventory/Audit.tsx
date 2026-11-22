@@ -1,62 +1,63 @@
 import { useT } from '../../../i18n'
 import { serverTime } from '../../../lib/time'
-import { useAudit } from '../../api/inventory'
+import { useAuditPages, type AuditEntry } from '../../api/inventory'
+import { useSystem } from '../../api/views'
 import { Failed, Loading } from '../../layout/States'
-import { MoreRows, PageHead } from '../../ui'
+import { DataTable, PageHead, TechDetails, type Column } from '../../ui'
 import s from '../Inventory.module.css'
+import { auditOn, auditResult, auditWhat } from './words'
 
-/** The audit log (admins and auditors): newest first, a page at a time as the table scrolls. */
+/**
+ * The audit log (admins and auditors): newest first, a page at a time from the server. Each entry in words (who did
+ * what, on what, from where, and whether it was done); the route, target and detail as recorded are in the row's
+ * technical details (docs/design/v3 rule 3).
+ */
 export function Audit() {
   const t = useT().inventory
   const a = t.audit
-  const q = useAudit()
-  if (q.isPending) return <Loading />
-  if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
-  const head = q.head
-  const total = head?.total ?? 0
-  const fmt = head ? serverTime(head.clock) : null
+  const pages = useAuditPages()
+  const sys = useSystem().data
+  if (pages.isPending || !sys) return <Loading />
+  if (pages.isError) return <Failed error={pages.error} onRetry={() => pages.refetch()} />
+  const fmt = serverTime(sys.clock)
+  const who = (e: AuditEntry) => e.username || (e.user_id === null ? a.anonymous : a.system)
+  const cols: Column<AuditEntry>[] = [
+    { key: 'when', header: a.cols.when, width: '140px', cell: (e) => fmt.at(e.at) },
+    {
+      key: 'who', header: a.cols.who, width: '170px', title: who,
+      cell: (e) => <><span className={s.name}>{who(e)}</span>{e.role && <span className={s.cellOf}>{e.role}</span>}</>,
+    },
+    { key: 'what', header: a.cols.what, title: auditWhat, cell: (e) => auditWhat(e) },
+    { key: 'on', header: a.cols.target, width: '260px', title: auditOn, cell: (e) => auditOn(e) || t.dash },
+    { key: 'from', header: a.cols.from, width: '140px', cell: (e) => <span className={s.mono}>{e.remote_addr || t.dash}</span> },
+    {
+      key: 'result', header: a.cols.result, width: '110px',
+      cell: (e) => {
+        const r = auditResult(e.outcome)
+        return <span className={r === 'done' ? s.fg2 : r === 'asked' ? s.cellOf : s.strong}>{r === 'refused' ? a.refusedCode(e.outcome) : a.result[r]}</span>
+      },
+    },
+  ]
   return (
     <>
-      <PageHead question={a.question} answer={a.answer(total)} lede={<p>{a.hint}</p>} />
+      <PageHead question={a.question} answer={a.answer(pages.total ?? 0)} lede={<p>{a.hint}</p>} />
       <section className={s.sec}>
-        {q.rows.length === 0 || !fmt ? <p className={s.empty}>{a.empty}</p> : (
-          <div className={s.scroll}>
-            <table className={s.tbl}>
-              <thead>
-                <tr>
-                  <th scope="col">{a.cols.when}</th>
-                  <th scope="col">{a.cols.who}</th>
-                  <th scope="col">{a.cols.action}</th>
-                  <th scope="col">{a.cols.target}</th>
-                  <th scope="col">{a.cols.from}</th>
-                  <th scope="col">{a.cols.result}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {q.rows.map((e) => (
-                  <tr key={e.seq}>
-                    <th scope="row">
-                      <span className={s.mono}>{fmt.clock(e.at)}</span>
-                      <span className={s.of}>{fmt.date(e.at)}</span>
-                    </th>
-                    <td>
-                      <span className={s.name}>{e.username || (e.user_id === null ? a.anonymous : a.system)}</span>
-                      {e.role && <span className={s.of}>{e.role}</span>}
-                    </td>
-                    <td>
-                      {e.action}
-                      {e.detail && <span className={s.of}>{e.detail}</span>}
-                    </td>
-                    <td className={s.mono}>{e.target || t.dash}</td>
-                    <td className={s.mono}>{e.remote_addr || t.dash}</td>
-                    <td className={e.outcome >= 400 ? s.fig : s.fg2}>{e.outcome >= 400 ? a.refused(e.outcome) : a.ok}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <MoreRows shown={q.rows.length} total={total} more={!!q.hasNextPage} loading={q.isFetchingNextPage} onMore={() => q.fetchNextPage()} />
+        <DataTable<AuditEntry>
+          caption={a.caption}
+          columns={cols}
+          pages={pages}
+          rowKey={(e) => String(e.seq)}
+          rowState={(e) => (['refused', 'failed'].includes(auditResult(e.outcome)) ? 'bad' : undefined)}
+          minWidth={980}
+          empty={a.empty}
+          detail={(e) => (
+            <div className={s.facts}>
+              <p>{a.asSeq(e.seq, fmt.at(e.at))}</p>
+              <TechDetails>{[`${a.route}: ${e.action}`, e.target && `${a.target}: ${e.target}`, e.detail && `${a.detail}: ${e.detail}`, `sha256 ${e.sha256}`]
+                .filter(Boolean).join('\n')}</TechDetails>
+            </div>
+          )}
+        />
       </section>
     </>
   )
