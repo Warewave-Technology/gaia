@@ -5,14 +5,15 @@ const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
 
 /**
  * Every VM of a group by status, as one bar, worst at the left (the v2 coverage table). The words are in its label
- * and beside it: the bar is never the only place a status is said.
+ * and must be beside it (StatusCounts in the same cell): the bar is never the only place a status is said; the T27
+ * gate checks it in the DOM (lab/scale/ui-gate.mjs).
  */
 export function StatusBar({ counts, min = 4 }: { counts: Record<string, number>; min?: number }) {
   const t = useT()
   const parts = ORDER.map((st) => [st, counts[st] ?? 0] as const)
   const label = parts.map(([st, n]) => `${n} ${t.status[st]}`).join(', ')
   return (
-    <span className={s.bar} role="img" aria-label={label}>
+    <span className={s.bar} role="img" aria-label={label} data-status-bar="">
       {parts.map(([st, n]) => (n > 0 ? <span key={st} className={s[st.toLowerCase()]} style={{ flex: `${n} 1 0`, minWidth: min }} /> : null))}
     </span>
   )
