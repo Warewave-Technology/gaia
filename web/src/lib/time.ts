@@ -5,6 +5,11 @@ export type Fmt = {
   clock(iso: string): string // 19:10:00
   hhmm(iso: string): string // 19:10
   date(iso: string): string // Nov 17
+  /** The one way a moment is written on a screen (docs/design/v3 rule 4): `14:05` today, `yesterday 22:51`,
+   * `tomorrow 03:00`, `Nov 19 10:43` otherwise. Never an ISO string. */
+  at(iso: string): string
+  /** Seconds from `iso` to the server's now (negative: in the future). */
+  age(iso: string): number
   zone: string
 }
 
@@ -30,10 +35,25 @@ export function serverTime(c: ServerClock): Fmt {
   const clock = f({ hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const hhmm = f({ hour: '2-digit', minute: '2-digit' })
   const date = new Intl.DateTimeFormat('en-US', { timeZone: tz, month: 'short', day: 'numeric' })
+  const day = f({ year: 'numeric', month: '2-digit', day: '2-digit' })
+  const now = Date.parse(c.now)
+  const dayOf = (ms: number) => day.format(new Date(ms + shift))
+  const at = (iso: string) => {
+    const ms = Date.parse(iso)
+    if (!Number.isFinite(ms)) return '—'
+    const d = dayOf(ms)
+    const t = hhmm.format(new Date(ms + shift))
+    if (!Number.isFinite(now) || d === dayOf(now)) return t
+    if (d === dayOf(now - 86_400_000)) return `yesterday ${t}`
+    if (d === dayOf(now + 86_400_000)) return `tomorrow ${t}`
+    return `${date.format(new Date(ms + shift))} ${t}`
+  }
   return {
     clock: safe(clock),
     hhmm: safe(hhmm),
     date: safe(date),
+    at,
+    age: (iso: string) => (now - Date.parse(iso)) / 1000,
     zone: c.zone,
   }
 }

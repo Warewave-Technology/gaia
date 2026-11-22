@@ -1,0 +1,9 @@
+.tabs { display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.tab { padding: 9px 14px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--fg3); font: inherit;
+  font-size: var(--text-md); cursor: pointer; }
+.tab:hover { color: var(--fg0); }
+.tab[aria-selected="true"] { color: var(--fg0); border-bottom-color: var(--fg2); }
+.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.count { margin-left: 6px; color: var(--fg4); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.hint { margin-left: auto; padding-bottom: 8px; color: var(--fg4); font-size: var(--text-sm); }
+.panel { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; min-width: 0; }

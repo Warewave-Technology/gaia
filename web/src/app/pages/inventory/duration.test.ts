@@ -17,5 +17,6 @@ test('parseDur refuses what is not a duration', () => {
 })
 
 test('parseDur reads back what dur() writes', () => {
-  for (const s of [37, 410, 720, 13560, 61200, 187200, 604800]) assert.equal(parseDur(dur(s)), s)
+  for (const s of [37, 360, 720, 13560, 61200, 187200, 604800]) assert.equal(parseDur(dur(s)), s)
+  assert.equal(parseDur(dur(410, true)), 410)
 })

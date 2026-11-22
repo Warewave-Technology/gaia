@@ -1,0 +1,13 @@
+/* Job states (ui/JobState.tsx, ADR-007 C16): no fill, a thin frame, never the status chips' tints. */
+.job { display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 7px; border: 1px solid var(--line-2); border-radius: var(--radius);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.045em; line-height: 1; white-space: nowrap; vertical-align: middle; color: var(--fg3); }
+.g { font-size: 9px; letter-spacing: 0; }
+.running { color: var(--blue); border-color: var(--blue); }
+.running .g { animation: pulse 1.6s ease-in-out infinite; }
+.queued, .cancelled { color: var(--fg4); font-weight: 500; }
+.done .g { color: var(--green); }
+.done_warning { color: var(--yellow); border-color: var(--yel-line); }
+.failed { color: var(--red); border-color: var(--red-line); }
+.detail { font-weight: 400; letter-spacing: 0; color: var(--fg4); }
+@keyframes pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .running .g { animation: none; } }

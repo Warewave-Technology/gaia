@@ -1,28 +1,28 @@
-/* A table of loaded rows (ui/DataTable.tsx). */
-.frame { min-width: 0; }
-.scroll { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* Every list (ui/DataTable.tsx, docs/design/v3 rule 1): a frame of fixed height, a sticky header, one line per row. */
+.frame { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--page); }
+.scroll { max-height: 520px; overflow: auto; overscroll-behavior: contain; }
+.table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
 .hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.table th, .table td { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
-.table th:last-child, .table td:last-child { padding-right: 0; }
-.table thead th { font-weight: 500; font-size: var(--text-sm); color: var(--fg4); white-space: nowrap; border-bottom-color: var(--line-2); padding-bottom: 8px; }
-.table td { color: var(--fg2); white-space: nowrap; }
+.table th, .table td { padding: 0 12px; text-align: left; vertical-align: middle; }
+.table thead th { position: sticky; top: 0; z-index: 1; height: 34px; background: var(--surface); border-bottom: 1px solid var(--line-2);
+  font-weight: 500; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--fg4); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.table td { height: 40px; border-bottom: 1px solid var(--raised); color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.table tbody tr:hover > td { background: var(--surface); }
 .table td > * + * { margin-left: 8px; }
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
-.table .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; }
 
 /* a header that sorts: the whole header is the button */
 .sort { display: inline-flex; align-items: center; gap: 5px; margin: -3px -5px; padding: 3px 5px; border: 0; border-radius: var(--radius);
-  background: none; color: inherit; font: inherit; cursor: pointer; }
+  background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
 .sort:hover, .sort[data-dir] { color: var(--fg1); }
 .sort:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 .arrow { color: var(--fg4); font-size: 11px; opacity: 0.7; }
 .sort[data-dir] .arrow { color: var(--yellow); opacity: 1; }
 
 .expandable { cursor: pointer; }
-.expandable:hover > td { background: var(--surface); }
-.expandable[data-open] > td { border-bottom-color: transparent; }
+.expandable[data-open] > td { background: var(--surface); border-bottom-color: transparent; }
 .expandable > td:first-child { box-shadow: inset 2px 0 0 transparent; }
 .expandable[data-open] > td:first-child { box-shadow: inset 2px 0 0 var(--fg4); }
 
@@ -31,19 +31,24 @@ tr[data-state="mark"] > td { background: var(--surface); color: var(--fg0); }
 tr[data-state="bad"] > td:first-child { box-shadow: inset 2px 0 0 var(--purple); }
 tr[data-state="critical"] > td:first-child { box-shadow: inset 2px 0 0 var(--red); }
 
-.detailRow > td { padding: 0 0 12px; white-space: normal; }
-.detail { position: sticky; left: 0; padding: 10px 14px; background: var(--surface); border-radius: var(--radius); color: var(--fg2);
-  font-size: var(--text-sm); overflow-wrap: anywhere; max-width: min(860px, calc(100vw - 48px)); }
+.detailRow > td { height: auto; padding: 4px 12px 14px; white-space: normal; background: var(--surface); border-bottom: 1px solid var(--raised);
+  overflow: visible; }
+.detail { color: var(--fg2); font-size: var(--text-sm); overflow-wrap: anywhere; max-width: 920px; display: flex; flex-direction: column; gap: 8px; }
+.emptyRow > td { height: 56px; color: var(--fg4); white-space: normal; }
 
-.pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 10px; font-size: var(--text-sm); color: var(--fg4);
-  font-variant-numeric: tabular-nums; }
-.range { margin-right: auto; }
-.step { width: 26px; height: 24px; border: 1px solid var(--line-2); border-radius: var(--radius); background: none; color: var(--fg2); font: inherit;
+.foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 38px; padding: 4px 12px; background: var(--surface);
+  border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg4); font-variant-numeric: tabular-nums; }
+.sizes { display: inline-flex; align-items: center; gap: 6px; }
+.sizes select { height: 26px; background: var(--page); color: var(--fg1); border: 1px solid var(--line-2); border-radius: var(--radius); font: inherit; }
+.range { white-space: nowrap; }
+.pager { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.busy { color: var(--fg4); }
+.step { min-width: 28px; height: 26px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--raised); color: var(--fg1); font: inherit;
   line-height: 1; cursor: pointer; }
 .step:hover:not(:disabled) { border-color: var(--fg4); color: var(--fg0); }
 .step:disabled { opacity: 0.35; cursor: default; }
 .step:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.pageno { min-width: 52px; text-align: center; }
+.pageno { padding: 0 6px; white-space: nowrap; }
 .caret { display: inline-grid; place-items: center; width: 16px; height: 16px; margin: 0 4px 0 -2px; padding: 0; border: 0; border-radius: 3px;
   background: none; color: var(--fg4); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; transition: transform 120ms ease; }
 .caret[data-open] { transform: rotate(90deg); color: var(--fg1); }

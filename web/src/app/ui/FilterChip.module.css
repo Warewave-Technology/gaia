@@ -1,0 +1,9 @@
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.bar input[type="search"] { height: 30px; width: 260px; max-width: 100%; padding: 0 10px; background: var(--page); color: var(--fg1);
+  border: 1px solid var(--line-2); border-radius: var(--radius); font: inherit; font-size: var(--text-sm); }
+.end { margin-left: auto; color: var(--fg4); font-size: var(--text-sm); }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border: 1px dashed var(--line-2); border-radius: 14px;
+  background: transparent; color: var(--fg3); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.chip:hover { border-color: var(--fg4); color: var(--fg1); }
+.chip[data-set] { border-style: solid; border-color: var(--fg4); color: var(--fg0); background: var(--raised); }
+.chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }

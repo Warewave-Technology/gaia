@@ -1,0 +1,5 @@
+.d { min-width: 0; }
+.d summary { cursor: pointer; color: var(--fg4); font-size: var(--text-sm); width: fit-content; }
+.d summary:hover { color: var(--fg1); }
+.raw { margin: 6px 0 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--fg3);
+  font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }

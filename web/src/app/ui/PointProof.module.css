@@ -1,0 +1,11 @@
+.wrap { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border: 1px solid; border-radius: var(--radius);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.045em; line-height: 1; white-space: nowrap; }
+.g { font-size: 10px; letter-spacing: 0; }
+.proven { color: var(--fg3); border-color: var(--line-2); }
+.proven .g { color: var(--green); }
+.backed_up { color: var(--fg4); border-color: var(--line-2); font-weight: 500; }
+.failed, .damaged { color: var(--red); background: var(--red-tint); border-color: var(--red-line); }
+.unknown { color: var(--purple); border-style: dashed; border-color: var(--purple);
+  background: repeating-linear-gradient(-45deg, var(--pur-tint) 0 3px, transparent 3px 6px); }
+.note { color: var(--fg4); font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; }
