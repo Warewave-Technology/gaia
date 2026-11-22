@@ -548,27 +548,30 @@ export const en = {
     noSources: 'No source yet. Add one on the command line: gaia sources add name=esxi url=https://ESXI/sdk username=root',
     converter: 'Converter',
     convReady: (v2v: string, img: string) => `Ready: ${v2v}, image ${img}.`,
-    convNoImage: (d: string) => `The pinned converter image is not usable: ${d}`,
-    convDown: (d: string) => `The converter service does not answer, so no VM can be converted: ${d}`,
+    convNoImage: 'The pinned converter image is not usable, so no VM can be converted.',
+    convDown: 'The converter service does not answer, so no VM can be converted.',
     virtioWin: 'virtio-win',
     virtioOk: (v: string) => `${v}, checksum matches.`,
-    virtioMissing: (v: string, d: string) => `${v}: ${d}. Windows guests stay UNKNOWN until it is in place.`,
-    tally: 'VMs by readiness',
-    ofVMs: (n: number) => `of ${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs'}`,
+    virtioMissing: (v: string) => `${v || 'virtio-win'} is not in place: Windows guests stay UNKNOWN until it is.`,
     readVMs: (src: string) => `List the VMs of ${src}`,
     reading: (src: string) => `Reading the VMs of ${src}…`,
-    readFailed: (src: string, m: string) => `Could not read the VMs of ${src}: ${m}`,
+    readFailed: (src: string) => `Could not read the VMs of ${src}.`,
     read: (src: string, n: number, calls: number, blocked: number) =>
       `${src}: ${n} VMs read with ${calls} vSphere calls${blocked ? `, ${blocked} blocked` : ', all read-only'}.`,
     readHint: 'Until a source is read, the list holds the VMs checked so far.',
     noChecks: 'No VM has been checked yet.',
     noChecksAct: "No VM has been checked yet. List a source's VMs above and check a powered-off one.",
+    noneMatch: 'No VM has this result.',
     vmsCaption: 'VMs of the sources',
+    order: 'Worst first, then by name',
+    f: {
+      all: (n: number) => `All ${n.toLocaleString('en-US')}`,
+      rank: (word: string, n: number) => `${word} ${n.toLocaleString('en-US')}`,
+    },
     word: {
       ready: 'READY', warnings: 'READY WITH WARNINGS', notReady: 'NOT READY', notChecked: 'NOT CHECKED', undecided: 'NOT DECIDED',
       inProgress: 'BEING CHECKED', running: 'CHECKING', queued: 'QUEUED', unfinished: 'UNFINISHED', cannotCheck: 'CANNOT BE CHECKED',
     },
-    today: (hhmm: string) => `today ${hhmm}`,
     never: 'never',
     runningSince: (at: string) => `running since ${at}`,
     queuedAt: (at: string) => `queued ${at}`,
@@ -582,12 +585,39 @@ export const en = {
       queued: 'Queued for a check.',
       none: 'Not checked yet. A check copies its disks once, converts them here and boots the copy in the sandbox.',
     },
+    errors: (n: number) => `The check stopped with ${n === 1 ? 'an error' : `${n} errors`}.`,
+    why: 'Technical details',
+    output: 'Output',
     steps: 'Steps of the check',
     step: { download: 'Read', conversion: 'Convert', boot: 'Boot test', checks: 'Checks' } as Record<string, string>,
     stepSub: { download: 'datastore HTTP', conversion: 'virt-v2v', boot: 'sandbox' } as Record<string, string>,
     passedOf: (n: number, total: number) => `${n} of ${total}`,
+    afterBoot: 'after the boot',
     notRun: 'not run',
     findings: 'Findings',
+    passedChecks: (n: number) => `${n} ${n === 1 ? 'check' : 'checks'} passed`,
+    passedLabel: 'Checks that passed',
+    /** A finding as a sentence from its check's name and verdict (internal/migrate, internal/verify); the check's raw
+     * output is folded under it. */
+    finding: (name: string, verdict: string) => {
+      const known: Record<string, Partial<Record<string, string>>> = {
+        source_vm: { OK: 'Found on the source and read with read-only calls.', UNKNOWN: 'Could not be read on the source.' },
+        cold: { OK: 'Powered off, so its disks are read as they are.', UNKNOWN: 'It is running: only powered-off VMs (or clones) are checked.' },
+        layout: { OK: 'Its files are all in one datastore folder.', UNKNOWN: 'Its files could not be laid out for reading.' },
+        download: { OK: 'Its disks were copied over the datastore.', UNKNOWN: 'Its disks could not be copied.' },
+        conversion: {
+          OK: 'virt-v2v converted it.', WARNING: 'virt-v2v converted it, with warnings.', CRITICAL: 'virt-v2v could not convert it as it is.',
+          UNKNOWN: 'The conversion did not finish.',
+        },
+        firmware: { OK: 'It boots with the same firmware on KVM.', CRITICAL: 'It would boot with other firmware on KVM than on the source.' },
+        boot: { OK: 'The converted copy boots in the sandbox.', CRITICAL: 'The converted copy does not boot in the sandbox.', UNKNOWN: 'The boot test did not run.' },
+      }
+      const said = known[name]?.[verdict]
+      if (said) return said
+      const what = name.replace(/_/g, ' ')
+      const cap = what.charAt(0).toUpperCase() + what.slice(1)
+      return ({ OK: `${cap}: passed.`, WARNING: `${cap}: passed with a warning.`, CRITICAL: `${cap}: failed.` } as Record<string, string>)[verdict] ?? `${cap}: could not run.`
+    },
     calls: (n: number, blocked: number) => (blocked ? `${n} vSphere calls, ${blocked} blocked (not read-only).` : `${n} vSphere calls, all read-only.`),
     shot: (vm: string, n: string) => `Console of the converted ${vm} (${n})`,
     converterUsed: 'Converter used',
@@ -595,6 +625,8 @@ export const en = {
     versions: 'Versions',
     noVirtioWin: 'not given (not a Windows guest)',
     report: 'Readiness report',
+    reportOf: 'Report of',
+    reportTarget: (vm: string, id: number) => `${vm}, check ${id}`,
     check: 'Check this VM',
     checkAgain: 'Check again',
     queued: (vm: string, id: number) => `${vm} queued as check ${id}.`,

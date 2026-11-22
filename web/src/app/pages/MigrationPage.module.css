@@ -1,4 +1,4 @@
-.page { max-width: 1360px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-direction: column; gap: 26px; }
+.page { max-width: 1360px; margin: 0 auto; padding: 22px 28px 48px; display: flex; flex-direction: column; gap: 18px; }
 .page :global(p) { margin: 0; }
 .muted { color: var(--fg4); }
 .of { display: block; font-size: 12px; color: var(--fg4); margin-top: 2px; overflow-wrap: anywhere; }
@@ -8,24 +8,14 @@
 .vh { position: absolute; left: -9999px; }
 .scroll { overflow-x: auto; }
 
-/* Tally and source reads */
-.tally { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px 22px; flex-wrap: wrap; align-items: center; }
-.tally li { display: flex; align-items: baseline; gap: 8px; }
-.tally b { font-size: 18px; color: var(--fg0); font-variant-numeric: tabular-nums; }
-.tally .of { display: inline; margin: 0; }
+/* Source reads */
 .read { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .read .of { display: inline; margin: 0; }
+.err { display: flex; flex-direction: column; gap: 4px; }
 
 /* VM list and the selected VM */
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 28px; align-items: start; }
-.tbl { width: 100%; border-collapse: collapse; }
-.tbl th { font-size: var(--text-xs); letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; color: var(--fg4); text-align: left;
-  padding: 8px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
-.tbl td, .tbl tbody th { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; font-weight: 400;
-  text-transform: none; letter-spacing: 0; font-size: var(--text-md); color: var(--fg1); }
-.tbl tbody tr:hover > * { background: color-mix(in srgb, var(--surface) 60%, transparent); }
-.rsel > * { background: var(--surface) !important; box-shadow: inset 0 1px 0 var(--fg4), inset 0 -1px 0 var(--fg4); }
-.pick { background: none; border: 0; padding: 0; font-family: var(--mono); font-size: 13.5px; color: var(--blue); cursor: pointer; text-align: left; }
+.pick { background: none; border: 0; padding: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 13.5px; color: var(--blue); cursor: pointer; text-align: left; }
 .pick:hover { color: var(--fg0); text-decoration: underline; }
 .pick[aria-pressed="true"] { color: var(--fg0); }
 
@@ -40,7 +30,9 @@
 .fv b { color: var(--fg0); font-weight: 600; font-variant-numeric: tabular-nums; }
 .findings { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .findings li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.findings b { color: var(--fg0); font-weight: 500; }
+.finding { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--fg1); }
+.passed summary { cursor: pointer; font-size: 12.5px; color: var(--fg3); padding: 6px 0; }
+.passed summary:hover { color: var(--fg1); }
 .secs { font-family: var(--mono); font-size: 12px; color: var(--fg4); }
 .facts { margin: 0; display: grid; border-top: 1px solid var(--line); }
 .facts > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -50,14 +42,9 @@
 .shots figure { margin: 0; }
 .shots img { display: block; width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--line-2); background: #000; }
 .shots figcaption { margin-top: 3px; font-size: var(--text-xs); color: var(--fg4); }
-.conv summary { cursor: pointer; font-size: 12.5px; color: var(--fg3); }
-.conv dl { margin: 8px 0 0; display: grid; gap: 4px; }
-.conv dl > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; font-size: 12.5px; }
-.conv dt { color: var(--fg4); }
-.conv dd { margin: 0; color: var(--fg2); overflow-wrap: anywhere; }
 .pre { white-space: pre-wrap; font-family: var(--mono); font-size: 12px; }
 .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.earlier { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; }
+.earlierItem { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; }
 
 @media (max-width: 1100px) {
   .two { grid-template-columns: minmax(0, 1fr); }
