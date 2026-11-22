@@ -3220,6 +3220,41 @@
         ],
         "type": "object"
       },
+      "PointTest": {
+        "additionalProperties": false,
+        "properties": {
+          "failed_check": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sandbox_down": {
+            "type": "boolean"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "failed_check",
+          "finished_at",
+          "id",
+          "proven_rto_s",
+          "sandbox_down",
+          "verdict"
+        ],
+        "type": "object"
+      },
       "Policy": {
         "additionalProperties": false,
         "properties": {
@@ -5710,6 +5745,95 @@
         },
         "type": "object"
       },
+      "VMPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "check_state": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "job_id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "kind_reason": {
+            "type": "string"
+          },
+          "latest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointTest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proven": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointTest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "running_test_id": {
+            "type": "integer"
+          },
+          "taken_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "check_state",
+          "id",
+          "job_id",
+          "kind",
+          "kind_reason",
+          "latest",
+          "proven",
+          "running_test_id",
+          "taken_at"
+        ],
+        "type": "object"
+      },
+      "VMPointsView": {
+        "additionalProperties": false,
+        "properties": {
+          "next": {
+            "type": "string"
+          },
+          "pruned": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/VMPoint"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "next",
+          "pruned",
+          "rows",
+          "total"
+        ],
+        "type": "object"
+      },
       "VMStatus": {
         "additionalProperties": false,
         "properties": {
@@ -5780,6 +5904,77 @@
           "theoretical_rpo_s",
           "vm",
           "vm_id"
+        ],
+        "type": "object"
+      },
+      "VMStatusChange": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "from": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "to": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor",
+          "at",
+          "code",
+          "entity",
+          "entity_id",
+          "from",
+          "reason",
+          "seq",
+          "to",
+          "until"
+        ],
+        "type": "object"
+      },
+      "VMStatusHistoryView": {
+        "additionalProperties": false,
+        "properties": {
+          "next": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/VMStatusChange"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "next",
+          "rows",
+          "total"
         ],
         "type": "object"
       },
@@ -17123,6 +17318,216 @@
           }
         },
         "summary": "One VM's page: status, history, tests, points and evidence",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/vms/{id}/points": {
+      "get": {
+        "operationId": "get_views_vms_by_id_points",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 25, at most 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMPointsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "A VM's kept points, newest first, each with the tests that prove it or not, in pages (T27)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/vms/{id}/status-history": {
+      "get": {
+        "operationId": "get_views_vms_by_id_status_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 25, at most 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMStatusHistoryView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "A VM's status changes, newest first, each with how long it lasted, in pages (T27)",
         "tags": [
           "views"
         ],

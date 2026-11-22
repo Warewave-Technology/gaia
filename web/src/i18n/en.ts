@@ -1,6 +1,7 @@
 import { capacity, jobs } from './en-capacity'
 import { inventory, security } from './en-inventory'
 import { v3 } from './en-overview'
+import { vm3 } from './en-vm'
 
 // Every string the UI shows (heimdall's rule: no string literals in components). English only for now (PO decision
 // 2026-11-17); another language is a file of the same type. A screen's strings may live in a file of its own
@@ -579,6 +580,7 @@ export const en = {
     details: 'Details',
   },
   capacity,
+  vm3,
   jobs,
   inventory,
   security,

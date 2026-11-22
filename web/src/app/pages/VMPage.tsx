@@ -1,28 +1,33 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { useT } from '../../i18n'
 import { dur } from '../../lib/duration'
-import { secondsBetween, serverTime, type Fmt } from '../../lib/time'
+import { serverTime } from '../../lib/time'
 import { query, useFilters } from '../../lib/url'
 import { ApiError } from '../api/errors'
 import { can, useMe } from '../api/session'
-import { useReasonCodes, useSameCause, useSetTags, useVMAction, useVMRow, useVMView, type VMView } from '../api/views'
+import { useReasonCodes, useSetTags, useVMAction, useVMRow, useVMView, type VMView } from '../api/views'
+import { useAssignPolicy, usePolicyNames } from '../api/vm'
+import { useStepUp } from '../layout/StepUp'
 import { Failed, Loading } from '../layout/States'
-import { Activity, Button, Notice, ProofBar, StatusChip, asStatus } from '../ui'
-import { detailOf, when, type VMStrings } from './vm/common'
-import { History } from './vm/History'
+import { Activity, Button, Notice, StatusChip, TabPanel, Tabs } from '../ui'
+import { Answer } from './vm/Answer'
+import { Evidence } from './vm/Evidence'
 import { LatestTest } from './vm/LatestTest'
-import { Points, StatusHistory } from './vm/Points'
+import { Points } from './vm/Points'
+import { StatusHistory } from './vm/StatusHistory'
+import { Strip } from './vm/Strip'
 import s from './VMPage.module.css'
 
-const KEYS = ['range', 'point', 'from'] as const
+const KEYS = ['range', 'point', 'from', 'tab'] as const
 export type VMFilters = Record<(typeof KEYS)[number], string>
 export type SetVMFilters = (patch: Partial<VMFilters>) => void
+const TABS = ['test', 'points', 'history', 'evidence'] as const
 
 /**
- * One VM (docs/design/v2/VM.dc.html): where it returns to if it breaks now and the test that proves it, why its status
- * is what it is and whether other VMs share the cause, the four measures against their targets, the history with a
- * point to look at, the latest test and every point with its proof.
+ * One VM (docs/design/v3/VM3.dc.html, rules 2 and 6): the header, the answer band (where it returns to if it breaks
+ * now, why its status is what it is, the four measures against their targets), the history strip, then the tabs
+ * Latest test · Points · Status history · Evidence. Range, tab and a chosen point are in the URL.
  */
 export function VMPage() {
   const id = Number(useParams().id)
@@ -39,33 +44,46 @@ export function VMPage() {
 }
 
 function VMBody({ v, f, setF, windowH }: { v: VMView; f: VMFilters; setF: SetVMFilters; windowH: 24 | 168 }) {
-  const t = useT().vm
+  const t = useT().vm3
   const me = useMe().data
   const fmt = serverTime(v.clock)
   const st = v.status
+  const [edit, setEdit] = useState<'tags' | 'policy' | null>(null)
+  const tab = (TABS as readonly string[]).includes(f.tab) ? f.tab : f.point ? 'points' : 'test'
+  const point = f.point ? Number(f.point) : null
   return (
     <main className={s.page}>
       <Crumbs v={v} from={f.from} />
-      <section className={s.head}>
-        <div className={s.idcol}>
-          <div className={s.stline}>
-            <StatusChip status={st.status} size="lg" />
-            <span className={s.sub}>{t.since(when(fmt, v.clock, st.changed_at, t), dur(secondsBetween(st.changed_at, v.clock.now)))}</span>
-          </div>
-          <h1 className={s.name}>{v.vm.name}</h1>
-          <Where v={v} write={can(me, 'act')} />
-          <Activity jobs={st.activity} fmt={fmt} wide />
-        </div>
-        {can(me, 'act') && <Actions id={v.vm.id} />}
+      <section className={s.head} aria-labelledby="vm-name">
+        <StatusChip status={st.status} size="lg" />
+        <h1 id="vm-name" className={s.name}>{v.vm.name}</h1>
+        <span className={s.sub}>{t.since(fmt.at(st.changed_at), dur(fmt.age(st.changed_at)))}</span>
+        {can(me, 'act') && <Actions id={v.vm.id} onEdit={setEdit} />}
       </section>
+      <Meta v={v} />
+      {st.activity.length > 0 && <Activity jobs={st.activity} fmt={fmt} wide />}
+      {edit === 'tags' && <TagsForm v={v} onDone={() => setEdit(null)} />}
+      {edit === 'policy' && <PolicyForm v={v} onDone={() => setEdit(null)} />}
       <Answer v={v} fmt={fmt} />
-      <Bullets v={v} />
-      <History v={v} fmt={fmt} f={f} setF={setF} windowH={windowH} />
-      <div className={s.two}>
-        <LatestTest v={v} fmt={fmt} />
-        <Points v={v} fmt={fmt} selected={f.point ? Number(f.point) : null} onSelect={(id) => setF({ point: String(id) })} />
-      </div>
-      <StatusHistory v={v} fmt={fmt} />
+      <Strip v={v} fmt={fmt} windowH={windowH} point={point}
+        onRange={(r) => setF({ range: r === 168 ? '7d' : '' })}
+        onPoint={(p) => setF({ point: p === null ? '' : String(p) })}
+        onShowPoint={(p) => setF({ point: String(p), tab: 'points' })} />
+      <section className={s.tabs}>
+        <Tabs label={t.tabs} value={tab} onChange={(k) => setF({ tab: k === 'test' ? '' : k })}
+          tabs={[
+            { key: 'test', label: t.tab.test },
+            { key: 'points', label: t.tab.points, count: v.points.length ? v.points.length.toLocaleString('en-US') : undefined },
+            { key: 'history', label: t.tab.history, count: v.status_history.length ? v.status_history.length.toLocaleString('en-US') : undefined },
+            { key: 'evidence', label: t.tab.evidence },
+          ]} />
+        <TabPanel id={tab}>
+          {tab === 'test' && <LatestTest v={v} fmt={fmt} />}
+          {tab === 'points' && <Points v={v} fmt={fmt} selected={point} />}
+          {tab === 'history' && <StatusHistory v={v} fmt={fmt} />}
+          {tab === 'evidence' && <Evidence v={v} fmt={fmt} />}
+        </TabPanel>
+      </section>
     </main>
   )
 }
@@ -109,64 +127,37 @@ function Crumbs({ v, from: param }: { v: VMView; from: string }) {
   )
 }
 
-/** Host, policy with its targets, repository and tags; each a way to the VMs that share it. */
-function Where({ v, write }: { v: VMView; write: boolean }) {
-  const t = useT().vm
+/** Host · policy with its targets · repository · tags; each a way to the VMs that share it. */
+function Meta({ v }: { v: VMView }) {
+  const t = useT().vm3
   const pol = v.policy
+  const row = useVMRow(v.vm.id, v.host.id, v.vm.name)
+  const tags = row.data?.tags ?? []
+  const dot = <span className={s.dot} aria-hidden="true"> · </span>
   return (
-    <p className={s.where}>
-      {t.host} <Link className={s.mono} to={`/${query({ host: v.host.id, show: 'all' })}#vms`}>{v.host.name}</Link>
-      <span className={s.dot}> · </span>
+    <p className={s.meta} aria-label={t.meta.label}>
+      <Link className={s.mono} to={`/${query({ host: v.host.id, show: 'all', tab: 'vms' })}`}>{v.host.name}</Link>
+      {dot}
       {pol ? (
-        <>
-          {t.policy} <Link className={s.mono} to={`/${query({ policy: pol.id, show: 'all' })}#vms`}>{pol.name}</Link>{' '}
-          {t.targets(dur(pol.rpo_target_s), dur(pol.rto_target_s), dur(pol.backup_interval_s), dur(pol.test_interval_s))}
-        </>
-      ) : <b className={s.none}>{t.noPolicy}</b>}
-      {v.repository && <><span className={s.dot}> · </span>{t.repository} <Link className={s.mono} to="/inventory/repositories">{v.repository.name}</Link></>}
-      <span className={s.dot}> · </span>
-      <Tags v={v} write={write} />
+        <span>
+          <Link className={s.mono} to={`/${query({ policy: pol.id, show: 'all', tab: 'vms' })}`}>{pol.name}</Link>{' '}
+          {t.meta.targets(dur(pol.rpo_target_s), dur(pol.rto_target_s), dur(pol.test_interval_s))}
+        </span>
+      ) : <b className={s.none}>{t.meta.noPolicy}</b>}
+      {v.repository && <>{dot}<span>{t.meta.repository} <Link className={s.mono} to="/inventory/repositories">{v.repository.name}</Link></span></>}
+      {dot}
+      <span>
+        {row.isPending ? '…' : tags.length === 0 ? <span className={s.muted}>{t.meta.noTags}</span> : tags.map((g, i) => (
+          <span key={g}>{i > 0 && ', '}<Link className={s.mono} to={`/${query({ tag: g, show: 'all', tab: 'vms' })}`}>{g}</Link></span>
+        ))}
+      </span>
     </p>
   )
 }
 
-/** The VM's tags, from its row of the VM table; writers replace them ("key" or "key:value", by spaces or commas). */
-function Tags({ v, write }: { v: VMView; write: boolean }) {
-  const t = useT().vm
-  const row = useVMRow(v.vm.id, v.host.id, v.vm.name)
-  const set = useSetTags(v.vm.id)
-  const [edit, setEdit] = useState<string | null>(null)
-  const tags = row.data?.tags ?? []
-  if (edit !== null) {
-    const save = (e: FormEvent) => {
-      e.preventDefault()
-      set.mutate(edit.split(/[\s,]+/).filter(Boolean), { onSuccess: () => setEdit(null) })
-    }
-    return (
-      <form className={s.tagform} onSubmit={save}>
-        <label>
-          <span className={s.vh}>{t.tagsLabel}</span>
-          <input value={edit} onChange={(e) => setEdit(e.target.value)} placeholder={t.tagsHint} autoFocus />
-        </label>
-        <Button type="submit" disabled={set.isPending}>{t.save}</Button>
-        <Button type="button" variant="quiet" onClick={() => setEdit(null)}>{t.cancel}</Button>
-        {set.error && <span role="alert" className={s.err}>{set.error.message}</span>}
-      </form>
-    )
-  }
-  return (
-    <>
-      {t.tags}{' '}
-      {row.isPending ? '…' : tags.length === 0 ? <span className={s.muted}>{t.noTags}</span> : tags.map((g, i) => (
-        <span key={g}>{i > 0 && ', '}<Link className={s.mono} to={`/${query({ tag: g, show: 'all' })}#vms`}>{g}</Link></span>
-      ))}
-      {write && row.data && <button type="button" className={s.link} onClick={() => setEdit(tags.join(' '))}>{t.editTags}</button>}
-    </>
-  )
-}
-
-function Actions({ id }: { id: number }) {
-  const t = useT().vm
+/** Back up now, test the newest point, and the rarer actions under More. */
+function Actions({ id, onEdit }: { id: number; onEdit: (w: 'tags' | 'policy') => void }) {
+  const t = useT().vm3
   const backup = useVMAction(id, 'backup')
   const test = useVMAction(id, 'test')
   const done = backup.data ?? test.data
@@ -176,6 +167,7 @@ function Actions({ id }: { id: number }) {
       <div className={s.btns}>
         <Button variant="quiet" onClick={() => backup.mutate()} disabled={backup.isPending}>{t.backupNow}</Button>
         <Button onClick={() => test.mutate()} disabled={test.isPending}>{t.testNow}</Button>
+        <More onEdit={onEdit} />
       </div>
       {done && <span className={s.muted} role="status">{t.queued(done === backup.data ? t.backupNow : t.testNow, done.id)}</span>}
       {err && <Notice tone="critical">{err.message}</Notice>}
@@ -183,112 +175,90 @@ function Actions({ id }: { id: number }) {
   )
 }
 
-/** "If it breaks now, you return to", and why the status is what it is, with the VMs that share the cause. */
-function Answer({ v, fmt }: { v: VMView; fmt: Fmt }) {
-  const t = useT().vm
-  const st = v.status
-  const pr = st.proven
-  const test = pr ? v.tests.find((x) => x.id === pr.test_id) : undefined
-  const checks = test ? detailOf(test).checks ?? [] : []
-  const boot = checks.find((c) => c.name === 'boot')
-  const passed = checks.filter((c) => c.verdict === 'OK').length
+function More({ onEdit }: { onEdit: (w: 'tags' | 'policy') => void }) {
+  const t = useT().vm3
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [open])
+  const pick = (w: 'tags' | 'policy') => {
+    setOpen(false)
+    onEdit(w)
+  }
   return (
-    <section className={`${s.answer} ${s[`a${asStatus(st.status)}`]}`} aria-label={t.returnTo}>
-      <div className={s.acol}>
-        <span className={s.lbl}>{t.returnTo}</span>
-        {pr ? (
-          <>
-            <div className={s.ret}>{when(fmt, v.clock, pr.point_taken_at, t)} <small>{t.pointN(pr.point_id)}</small></div>
-            <p className={s.atext}>
-              {t.provenBy(pr.test_id, fmt.hhmm(pr.test_finished_at))}
-              {test && checks.length > 0 && <>: {t.provenWhat(boot ? dur(boot.seconds, true) : null, passed, checks.length)}</>}.{' '}
-              {st.proven_rto_s !== null && <>{t.backIn} <b>{dur(st.proven_rto_s, true)}</b>.</>}
-            </p>
-          </>
-        ) : (
-          <>
-            <div className={`${s.ret} ${s.nothing}`}>{t.nothing}</div>
-            <p className={s.atext}>{t.nothingWhat}</p>
-          </>
-        )}
-      </div>
-      <Why v={v} />
-    </section>
-  )
-}
-
-function Why({ v }: { v: VMView }) {
-  const t = useT().vm
-  const st = v.status
-  const top = st.reasons[0]
-  return (
-    <div className={s.acol}>
-      <span className={s.lbl}>{t.why(asStatus(st.status))}</span>
-      <ul className={s.reasons}>
-        {st.reasons.map((x, i) => <li key={i}><StatusChip status={x.status} size="xs" /><span>{x.text}</span></li>)}
-        {st.note_reasons.map((x, i) => <li key={`n${i}`}><span className={s.nl}>{t.note}</span><span>{x.text}</span></li>)}
-      </ul>
-      {top && asStatus(st.status) !== 'OK' && <SameCause id={v.vm.id} code={top.code} scope={top.scope} />}
+    <div className={s.more} ref={ref}>
+      <Button variant="quiet" aria-haspopup="menu" aria-expanded={open} aria-label={t.moreLabel} onClick={() => setOpen(!open)}>{t.more} ▾</Button>
+      {open && (
+        <div className={s.menu} role="menu">
+          <button type="button" role="menuitem" onClick={() => pick('tags')}>{t.editTags}</button>
+          <button type="button" role="menuitem" onClick={() => pick('policy')}>{t.changePolicy}</button>
+        </div>
+      )}
     </div>
   )
 }
 
-/** "Same cause on N other VMs": the VM table with this VM's deciding code and scope. */
-function SameCause({ id, code, scope }: { id: number; code: string; scope: VMView['status']['reasons'][number]['scope'] }) {
-  const t = useT().vm
-  const q = useSameCause(code, scope, true)
-  if (!q.data) return null
-  const self = q.data.rows.some((r) => r.vm_id === id) || q.data.total > q.data.rows.length
-  const others = Math.max(0, q.data.total - (self ? 1 : 0))
-  if (others === 0) return <p className={s.cause}>{t.onlyThis}</p>
-  const hosts = [...new Set(q.data.rows.filter((r) => r.vm_id !== id).map((r) => r.host))]
-  const where = scope ? t.inScope(scope.kind, scope.name) : t.onHosts(hosts.slice(0, 3), hosts.length > 3 || q.data.total > q.data.rows.length)
+/** The VM's tags, replaced as a whole ("key" or "key:value", by spaces or commas). */
+function TagsForm({ v, onDone }: { v: VMView; onDone: () => void }) {
+  const t = useT().vm3
+  const row = useVMRow(v.vm.id, v.host.id, v.vm.name)
+  const set = useSetTags(v.vm.id)
+  const [text, setText] = useState<string | null>(null)
+  const value = text ?? (row.data?.tags ?? []).join(' ')
+  const save = (e: FormEvent) => {
+    e.preventDefault()
+    set.mutate(value.split(/[\s,]+/).filter(Boolean), { onSuccess: onDone })
+  }
   return (
-    <p className={s.cause}>
-      {t.sameCause(others)} {where}{' '}
-      <Link to={`/${query({ code, scope_kind: scope?.kind, scope_id: scope?.id, show: 'all' })}#vms`}>{t.seeGroup}</Link>
-    </p>
+    <form className={s.form} onSubmit={save}>
+      <label>
+        <span>{t.tags.label}</span>
+        <input value={value} onChange={(e) => setText(e.target.value)} placeholder={t.tags.hint} autoFocus />
+      </label>
+      <Button type="submit" disabled={set.isPending || row.isPending}>{t.tags.save}</Button>
+      <Button type="button" variant="quiet" onClick={onDone}>{t.tags.cancel}</Button>
+      {set.error && <span role="alert" className={s.err}>{set.error.message}</span>}
+    </form>
   )
 }
 
-/** Proven RPO, Theoretical RPO, Proven RTO and proof age, each against its target. */
-function Bullets({ v }: { v: VMView }) {
-  const t = useT().vm
-  const st = v.status
-  const pol = v.policy
-  const pr = st.proven
-  const test = pr ? v.tests.find((x) => x.id === pr.test_id) : undefined
-  const restore = test ? detailOf(test).restore_s ?? null : null
-  const rtoNote = test && restore !== null && st.proven_rto_s !== null
-    ? t.rtoNote(dur(restore, true), dur(st.proven_rto_s - restore, true), test.id) : t.rtoNoteNone
+/** Assign another policy (or none); the server asks for a step-up when the new one protects less. */
+function PolicyForm({ v, onDone }: { v: VMView; onDone: () => void }) {
+  const t = useT().vm3
+  const ask = useStepUp()
+  const pols = usePolicyNames(true)
+  const [pick, setPick] = useState(String(v.policy?.id ?? 0))
+  const m = useAssignPolicy(v.vm.id, ask, { title: t.policy.stepUp, facts: [{ label: 'VM', value: v.vm.name }] })
+  const save = (e: FormEvent) => {
+    e.preventDefault()
+    m.mutate(Number(pick), { onSuccess: onDone })
+  }
   return (
-    <section className={s.bullets} aria-label={t.measures}>
-      <Bullet label={t.provenRpo} value={st.proven_rpo_s} target={pol?.rpo_target_s ?? null} word={t.target} note={t.provenRpoNote} />
-      <Bullet label={t.theoreticalRpo} value={st.theoretical_rpo_s} target={pol?.rpo_target_s ?? null} word={t.target} note={t.theoreticalRpoNote} />
-      <Bullet label={t.provenRto} value={st.proven_rto_s} target={pol?.rto_target_s ?? null} word={t.target} note={rtoNote} />
-      <Bullet label={t.proofAge} value={st.proof_age_s} target={pol?.max_proof_age_s ?? null} word={t.max} note={t.proofAgeNote} />
-    </section>
+    <form className={s.form} onSubmit={save}>
+      <label>
+        <span>{t.policy.label}</span>
+        <select value={pick} onChange={(e) => setPick(e.target.value)} disabled={pols.isPending}>
+          <option value="0">{t.policy.none}</option>
+          {(pols.data ?? []).map((p) => (
+            <option key={p.id} value={p.id}>{`${p.name} ${t.meta.targets(dur(p.rpo_target_s), dur(p.rto_target_s), dur(p.test_interval_s))}`}</option>
+          ))}
+        </select>
+      </label>
+      <Button type="submit" disabled={m.isPending || pick === String(v.policy?.id ?? 0)}>{t.policy.save}</Button>
+      <Button type="button" variant="quiet" onClick={onDone}>{t.policy.cancel}</Button>
+      <span className={s.muted}>{t.policy.weaker}</span>
+      {(m.error || pols.error) && <span role="alert" className={s.err}>{(m.error ?? pols.error)!.message}</span>}
+    </form>
   )
 }
 
-function Bullet({ label, value, target, word, note }: {
-  label: string
-  value: number | null
-  target: number | null
-  word: VMStrings['target']
-  note: string
-}) {
-  const t = useT().vm
-  const over = value !== null && target !== null && value > target
-  return (
-    <div className={s.bul}>
-      <span className={s.lbl}>{label}</span>
-      <span className={s.bv}>
-        <b className={over ? s.bad : ''}>{dur(value, true)}</b>
-        <span className={s.of}>{target !== null ? word(dur(target)) : t.noTarget}</span>
-      </span>
-      {target !== null && <ProofBar value={value} target={target} width={280} label={label} />}
-      <span className={s.of}>{note}</span>
-    </div>
-  )
-}
