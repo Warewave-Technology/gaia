@@ -159,6 +159,12 @@ async function main() {
 
   const out = { base, at: new Date().toISOString(), chrome: (await c.send('Browser.getVersion')).product, ready_limit_ms: READY_MS, overview: [], screens: [] }
 
+  // A session the server does not take sends every screen to the sign-in page: that measures nothing (UNKNOWN, not
+  // CRITICAL; CLAUDE.md rule 4).
+  await c.send('Page.navigate', { url: base + '/' })
+  const where = await waitFor(c, `document.querySelector('h1') ? location.pathname : ''`, 20000)
+  if (where !== '/') fail(`the session was not accepted: the overview went to ${where || 'nothing within 20 s'}`)
+
   // (c) the overview, cold and warm: navigation start until the headline and the VM table's rows are drawn.
   for (let i = 0; i < runs; i++) {
     await c.send('Page.navigate', { url: base + '/' })

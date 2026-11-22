@@ -1,94 +1,133 @@
 {
   "base": "https://localhost:18449",
-  "at": "2026-11-22T20:57:55.735Z",
+  "at": "2026-11-22T20:59:55.316Z",
   "chrome": "Chrome/157.0.8103.79",
   "ready_limit_ms": 2000,
   "overview": [
     {
-      "ready_ms": null,
-      "error": "the first table did not draw within 20 s"
+      "ready_ms": 163,
+      "rows": 13
     },
     {
-      "ready_ms": null,
-      "error": "the first table did not draw within 20 s"
+      "ready_ms": 69,
+      "rows": 13
     },
     {
-      "ready_ms": null,
-      "error": "the first table did not draw within 20 s"
+      "ready_ms": 60,
+      "rows": 13
     }
   ],
   "screens": [
     {
       "route": "/",
-      "marks": 0,
+      "marks": 20,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Causes of the VMs that need attention",
+          "rows": 13,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "1,024 of 5,000 VMs can return to a proven point.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/views/attention?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/!expand",
-      "marks": 0,
+      "marks": 20,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Causes of the VMs that need attention",
+          "rows": 13,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "1,024 of 5,000 VMs can return to a proven point.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/views/attention?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/?tab=coverage",
-      "marks": 0,
-      "bars": 0,
+      "marks": 7,
+      "bars": 25,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Coverage by host",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "1,020 of 5,000 VMs can return to a proven point.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/views/coverage?by=host&all=false&limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/?tab=vms",
-      "marks": 0,
+      "marks": 32,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "VMs, worst first",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "1,020 of 5,000 VMs can return to a proven point.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/hosts",
+        "/api/v1/policies",
+        "/api/v1/views/coverage?by=tag&all=true&limit=200",
+        "/api/v1/views/vm-list?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/vms/858",
-      "marks": 0,
+      "marks": 4,
       "bars": 0,
       "jobs": 0,
       "bad": [],
@@ -96,50 +135,76 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "mq-dev-0858",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/vms/858?window_h=24",
+        "/api/v1/reason-codes",
+        "/api/v1/views/vm-list?host_id=58&q=mq-dev-0858&limit=50",
+        "/api/v1/views/vm-list?code=test_failed_boot&limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/vms/858?tab=points",
-      "marks": 0,
+      "marks": 3,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Points",
+          "rows": 7,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "mq-dev-0858",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/vms/858?window_h=24",
+        "/api/v1/reason-codes",
+        "/api/v1/views/vm-list?host_id=58&q=mq-dev-0858&limit=50",
+        "/api/v1/views/vm-list?code=test_failed_boot&limit=25",
+        "/api/v1/views/vms/858/points?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/vms/858?tab=history",
-      "marks": 0,
+      "marks": 3,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Status history",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "mq-dev-0858",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/vms/858?window_h=24",
+        "/api/v1/reason-codes",
+        "/api/v1/views/vm-list?host_id=58&q=mq-dev-0858&limit=50",
+        "/api/v1/views/vm-list?code=test_failed_boot&limit=25",
+        "/api/v1/views/vms/858/status-history?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/vms/858?tab=evidence",
-      "marks": 0,
+      "marks": 3,
       "bars": 0,
       "jobs": 0,
       "bad": [],
@@ -147,78 +212,125 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "mq-dev-0858",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/vms/858?window_h=24",
+        "/api/v1/reason-codes",
+        "/api/v1/views/vm-list?host_id=58&q=mq-dev-0858&limit=50",
+        "/api/v1/views/vm-list?code=test_failed_boot&limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/capacity",
-      "marks": 0,
+      "marks": 2,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Demand by OS class",
+          "rows": 2,
+          "page": 25
+        },
+        {
+          "name": "Demand by policy",
+          "rows": 5,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "?UNKNOWNNot known: the sandbox does not answer.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/policies",
+        "/api/v1/capacity/what-if"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/capacity?tab=expiring",
-      "marks": 0,
+      "marks": 2,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Proofs that expire",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "?UNKNOWNNot known: the sandbox does not answer.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/capacity?limit=1000",
+        "/api/v1/policies",
+        "/api/v1/capacity/what-if"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/capacity?tab=queue",
-      "marks": 0,
+      "marks": 2,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Test queue",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "?UNKNOWNNot known: the sandbox does not answer.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/policies",
+        "/api/v1/views/test-queue?limit=25",
+        "/api/v1/capacity/what-if"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/capacity?tab=inputs",
-      "marks": 0,
+      "marks": 2,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Expected durations",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "?UNKNOWNNot known: the sandbox does not answer.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/policies",
+        "/api/v1/capacity/inputs?limit=25",
+        "/api/v1/capacity/what-if"
       ],
       "unpaged_lists": []
     },
@@ -226,16 +338,24 @@
       "route": "/activity",
       "marks": 0,
       "bars": 0,
-      "jobs": 0,
+      "jobs": 1,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Queued jobs by kind",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "0 running, 526 queued",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/activity?limit=1",
+        "/api/v1/views/test-queue?limit=25"
       ],
       "unpaged_lists": []
     },
@@ -243,16 +363,24 @@
       "route": "/activity?tab=queued",
       "marks": 0,
       "bars": 0,
-      "jobs": 0,
+      "jobs": 1,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Queued jobs by kind",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "0 running, 526 queued",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/activity?limit=1",
+        "/api/v1/views/test-queue?limit=25"
       ],
       "unpaged_lists": []
     },
@@ -260,22 +388,31 @@
       "route": "/activity?tab=all",
       "marks": 0,
       "bars": 0,
-      "jobs": 0,
+      "jobs": 25,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Every job, newest first",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "0 running, 526 queued",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/activity?limit=1",
+        "/api/v1/hosts",
+        "/api/v1/views/activity?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/migration",
-      "marks": 0,
+      "marks": 1,
       "bars": 0,
       "jobs": 0,
       "bad": [],
@@ -283,95 +420,154 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Migration check",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/migration"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/evidence",
-      "marks": 0,
+      "marks": 1,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Ledger entries",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "No. Restore tests passed but left no evidence in the ledger.",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/ledger",
+        "/api/v1/daily-reports?limit=1",
+        "/api/v1/views/evidence?limit=25"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/inventory/hosts",
-      "marks": 0,
-      "bars": 0,
+      "marks": 25,
+      "bars": 25,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Hosts",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "2 unreachable · 0 not trusted yet · 98 OK",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/hosts?limit=200",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/inventory/hosts!expand",
-      "marks": 0,
-      "bars": 0,
+      "marks": 25,
+      "bars": 25,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Hosts",
+          "rows": 25,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "2 unreachable · 0 not trusted yet · 98 OK",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/hosts?limit=200",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/inventory/policies",
       "marks": 0,
-      "bars": 0,
+      "bars": 5,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Policies",
+          "rows": 5,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "5 policies · 5 cannot be OK all day",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/policies",
+        "/api/v1/views/coverage?by=policy&all=true&limit=200",
+        "/api/v1/views/repositories?limit=200",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
     {
       "route": "/inventory/repositories",
-      "marks": 0,
+      "marks": 2,
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Repositories",
+          "rows": 2,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "0 damaged · 2 not verified · 0 OK",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/repositories?limit=25",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -381,14 +577,26 @@
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Users",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "1 user",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/users",
+        "/api/v1/settings/signin",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies"
       ],
       "unpaged_lists": []
     },
@@ -402,10 +610,17 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -419,10 +634,17 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -436,10 +658,17 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -453,10 +682,17 @@
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -466,14 +702,27 @@
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Signed-in sessions",
+          "rows": 1,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     },
@@ -483,53 +732,77 @@
       "bars": 0,
       "jobs": 0,
       "bad": [],
-      "tables": [],
+      "tables": [
+        {
+          "name": "Audit log",
+          "rows": 6,
+          "page": 25
+        }
+      ],
       "overpage": [],
       "raw": [],
       "shown": [],
-      "title": "Sign in",
+      "title": "6 entries",
       "api": [
         "/api/v1/me",
-        "/api/v1/signin-options"
+        "/api/v1/system",
+        "/api/v1/views/audit?limit=25",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
       ],
       "unpaged_lists": []
     }
   ],
   "checks": {
     "c_overview_ready": {
-      "median_ms": null,
-      "runs": [],
-      "pass": false
+      "median_ms": 69,
+      "runs": [
+        163,
+        69,
+        60
+      ],
+      "pass": true
     },
     "d_status_words": {
-      "marks": 0,
-      "job_states": 0,
+      "marks": 234,
+      "job_states": 27,
       "violations": [],
-      "pass": false
+      "pass": true
     },
     "lists_paged": {
       "screens": [
         {
           "route": "/",
-          "rows": [],
+          "rows": [
+            13
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/!expand",
-          "rows": [],
+          "rows": [
+            13
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/?tab=coverage",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/?tab=vms",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
@@ -541,13 +814,17 @@
         },
         {
           "route": "/vms/858?tab=points",
-          "rows": [],
+          "rows": [
+            7
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/vms/858?tab=history",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
@@ -559,43 +836,58 @@
         },
         {
           "route": "/capacity",
-          "rows": [],
+          "rows": [
+            2,
+            5
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/capacity?tab=expiring",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/capacity?tab=queue",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/capacity?tab=inputs",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/activity",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/activity?tab=queued",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/activity?tab=all",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
@@ -607,37 +899,49 @@
         },
         {
           "route": "/evidence",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/hosts",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/hosts!expand",
-          "rows": [],
+          "rows": [
+            25
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/policies",
-          "rows": [],
+          "rows": [
+            5
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/repositories",
-          "rows": [],
+          "rows": [
+            2
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/users",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
@@ -667,13 +971,17 @@
         },
         {
           "route": "/inventory/security?view=signed-in",
-          "rows": [],
+          "rows": [
+            1
+          ],
           "shown": [],
           "unpaged": []
         },
         {
           "route": "/inventory/audit",
-          "rows": [],
+          "rows": [
+            6
+          ],
           "shown": [],
           "unpaged": []
         }
@@ -681,11 +989,11 @@
       "pass": true
     },
     "e_one_page_plain_text": {
-      "tables": 0,
+      "tables": 22,
       "over_one_page": [],
       "raw_text": [],
-      "pass": false
+      "pass": true
     }
   },
-  "verdict": "CRITICAL"
+  "verdict": "OK"
 }
