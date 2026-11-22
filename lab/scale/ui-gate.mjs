@@ -10,11 +10,14 @@
 // The session is a bearer token sent with every request (Network.setExtraHTTPHeaders): a CLI session of the gate's
 // own user, read from a file, never printed.
 //
-//   node lab/scale/ui-gate.mjs -base https://HOST:8443 -token-file F [-chrome PATH] [-runs 3] [-routes /,/capacity,...] > ui-gate.json
+//   node lab/scale/ui-gate.mjs -base https://HOST:8443 -token-file F [-chrome PATH] [-runs 3] [-routes /,/capacity,...]
+//        [-vm ID] [-shots DIR] [-width 1440] > ui-gate.json
+//   -vm ID     adds that VM's page (/vms/ID) to the screens
+//   -shots DIR writes a full-page PNG of every screen there (T27 step 1), and of the sign-in page without the session
 //
 // Exit 0 OK, 2 CRITICAL (a check failed), 3 UNKNOWN (could not run).
 import { spawn } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -28,6 +31,9 @@ const token = readFileSync(args['token-file'], 'utf8').trim()
 const chromePath = args.chrome || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const runs = Number(args.runs || 3)
 const routes = (args.routes || '/,/capacity,/activity,/migration,/evidence,/inventory/hosts,/inventory/policies,/inventory/repositories,/inventory/users,/inventory/security,/inventory/audit').split(',')
+if (args.vm) routes.push(`/vms/${args.vm}`)
+const shots = args.shots || ''
+const width = Number(args.width || 1440)
 const READY_MS = 2000
 
 function fail(msg) {
@@ -40,7 +46,7 @@ async function startChrome() {
   const dir = mkdtempSync(join(tmpdir(), 'gaia-ui-gate-'))
   const port = 9300 + Math.floor(Math.random() * 500)
   const p = spawn(chromePath, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--ignore-certificate-errors',
-    '--window-size=1440,900', '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' })
+    `--window-size=${width},900`, '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' })
   for (let i = 0; i < 100; i++) {
     try {
       const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
@@ -94,6 +100,18 @@ const pageChecks = `(() => {
   const shown = [...document.body.innerText.matchAll(/Showing ([0-9,]+) of ([0-9,]+)/g)].map((m) => [Number(m[1].replace(/,/g, '')), Number(m[2].replace(/,/g, ''))])
   return { marks: marks.length, bars: bars.length, bad, tables, shown, title: document.querySelector('h1')?.textContent ?? '' }
 })()`
+
+// shot writes the page, its whole height, as DIR/<route>.png.
+async function shot(c, route) {
+  mkdirSync(shots, { recursive: true })
+  const m = await c.send('Page.getLayoutMetrics')
+  const h = Math.ceil(m.cssContentSize.height)
+  await c.send('Emulation.setDeviceMetricsOverride', { width, height: Math.min(h, 16000), deviceScaleFactor: 1, mobile: false })
+  const png = await c.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
+  await c.send('Emulation.clearDeviceMetricsOverride')
+  const name = route === '/' ? 'overview' : route.replace(/^\//, '').replace(/\//g, '-')
+  writeFileSync(join(shots, `${name}.png`), Buffer.from(png.data, 'base64'))
+}
 
 async function waitFor(c, expr, ms) {
   const t0 = Date.now()
@@ -151,7 +169,17 @@ async function main() {
     const v = (await c.send('Runtime.evaluate', { expression: pageChecks, returnByValue: true })).result.value
     const lists = requests.map((u) => new URL(u)).filter((u) => u.pathname.startsWith('/api/v1/views/') || u.searchParams.has('limit'))
       .map((u) => ({ path: u.pathname, limit: u.searchParams.get('limit') }))
+    if (shots) await shot(c, r)
     out.screens.push({ route: r, ...v, api: requests.map((u) => new URL(u).pathname + new URL(u).search) , unpaged_lists: lists.filter((l) => l.path.startsWith('/api/v1/views/') && l.limit === null && /list|attention|coverage|activity|hosts|repositories|audit|test-queue/.test(l.path)) })
+  }
+  if (shots) {
+    // the sign-in page, as someone without a session sees it
+    await c.send('Network.setExtraHTTPHeaders', { headers: {} })
+    await c.send('Network.clearBrowserCookies')
+    await c.send('Page.navigate', { url: base + '/login' })
+    await waitFor(c, `!!document.querySelector('h1')`, 10000)
+    await new Promise((res) => setTimeout(res, 800))
+    await shot(c, '/login')
   }
   c.close()
   const exited = new Promise((r) => ch.proc.once('exit', r))
