@@ -1,0 +1,171 @@
+
+== server B (192.168.1.120) before: 0.2.0~dev.20261121203709.gdc738bba406f (dc738bba406f), schema 11
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/README.txt: time stamp 2026-11-22 12:47:54 is 0.261945321 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/anchor.pub: time stamp 2026-11-22 12:47:54 is 0.261798331 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/ledger.jsonl: time stamp 2026-11-22 12:47:54 is 0.258550568 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/config.json: time stamp 2026-11-22 12:47:54 is 0.25832527 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/dnsmasq.leases: time stamp 2026-11-22 12:47:54 is 0.25826947 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/dnsmasq.log: time stamp 2026-11-22 12:47:54 is 0.25821482 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/domain.xml: time stamp 2026-11-22 12:47:54 is 0.258159541 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/manifest.json: time stamp 2026-11-22 12:47:54 is 0.258105431 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/manifest.sig: time stamp 2026-11-22 12:47:54 is 0.258053281 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/network.xml: time stamp 2026-11-22 12:47:54 is 0.258001302 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/result.json: time stamp 2026-11-22 12:47:54 is 0.257941202 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/sandbox.log: time stamp 2026-11-22 12:47:54 is 0.257883362 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/screenshot-boot.png: time stamp 2026-11-22 12:47:54 is 0.257817303 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/screenshot-end.png: time stamp 2026-11-22 12:47:54 is 0.257764433 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T124547Z-887d48/bundles/gaia-t17-web-20261122T124547Z-887d48/serial.log: time stamp 2026-11-22 12:47:54 is 0.257593294 s in the future
+
+== package (guide step 2) and upgrade (step 12, as root on B)
+make: Leaving directory '/root/gaia'
+gaia_0.2.0~dev.20261122124723.g8bdcc949115a_amd64.deb: OK
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Suggested packages:
+  podman uidmap crun catatonit fuse-overlayfs ovmf
+The following packages will be upgraded:
+  gaia
+1 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/15.8 MB of archives.
+After this operation, 0 B of additional disk space will be used.
+Get:1 /tmp/gaia_0.2.0~dev.20261122124723.g8bdcc949115a_amd64.deb gaia amd64 0.2.0~dev.20261122124723.g8bdcc949115a [15.8 MB]
+apt-listchanges: Reading changelogs...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 24853 files and directories currently installed.)
+Preparing to unpack .../gaia_0.2.0~dev.20261122124723.g8bdcc949115a_amd64.deb ...
+gaia: stopping gaia; it waits for running jobs (up to stop_drain, 10 minutes by default)
+Unpacking gaia (0.2.0~dev.20261122124723.g8bdcc949115a) over (0.2.0~dev.20261121203709.gdc738bba406f) ...
+Setting up gaia (0.2.0~dev.20261122124723.g8bdcc949115a) ...
+gaia: restarted; check with: gaia system
+
+real	0m2.255s
+user	0m1.195s
+sys	0m0.412s
+active
+active
+gaia 0.2.0~dev.20261122124723.g8bdcc949115a (8bdcc949115a), go1.26.0, linux/amd64
+{"old_session_status":200,"answer":{"id":1,"username":"admin","role":"admin","source":"local","disabled":false,"break_glass":true,"expires_at":"","created_at":"2026-11-16T22:26:30.589110659Z","updated_at":"2026-11-16T22:26:30.589110659Z","password_changed_at":"2026-11-16T22:26:30.589110659Z","password_change":"","last_login_at":"2026-11-22T12:47:45.231596017Z","locked_until":"","factors":["webauthn"],"session":{"id":4,"user_id":1,"username":"admin","role":"admin","kind":"cli","method":"webauthn","break_glass":false,"created_at":"2026-11-22T12:47:45.231596017Z","last_active_at":"2026-11-22T12:48:35.902992359Z","last_seen_at":"2026-11-22T12:48:35.902992359Z","absolute_at":"2026-11-22T20:47:45.231596017Z","remote_addr":"192.168.1.30","user_agent":"Go-http-client/1.1","new_device":false,"idp_state":"","idp_refreshed_at":"","ended_at":"","end_reason":""},"password_expires_soon":false,"idle_timeout_s":900}}
+{"stage":"second_factor","enrol":null,"token":false}
+{"version":"0.2.0~dev.20261122124723.g8bdcc949115a (8bdcc949115a)","schema_version":11,"migrations":[{"version":1,"name":"0001_init.sql","applied_at":"2026-11-16T22:26:30.371771074Z"},{"version":2,"name":"0002_state_backups.sql","applied_at":"2026-11-16T22:26:30.386806233Z"},{"version":3,"name":"0003_backups.sql","applied_at":"2026-11-16T22:26:30.401811954Z"},{"version":4,"name":"0004_status.sql","applied_at":"2026-11-16T22:26:30.411034271Z"},{"version":5,"name":"0005_recovery.sql","applied_at":"2026-11-16T22:34:15.791510919Z"},{"version":6,"name":"0006_quarantine_logins.sql","applied_at":"2026-11-17T09:38:22.554232013Z"},{"version":7,"name":"0007_notifications.sql","applied_at":"2026-11-17T18:59:14.562653235Z"},{"version":8,"name":"0008_migration_checks.sql","applied_at":"2026-11-18T01:09:26.339598795Z"},{"version":9,"name":"0009_scale.sql","applied_at":"2026-11-20T11:40:17.344124488Z"},{"version":10,"name":"0010_scale_indexes.sql","applied_at":"2026-11-20T11:40:17.383519645Z"},{"version":11,"name":"0011_signin.sql","applied_at":"2026-11-21T20:06:45.475644922Z"}]}
+{"event":"upgraded","at":"2026-11-22T12:48:36Z"}
+
+== after: the next backup and restore test
+[12:56:38] status OK: point 1285 is proven by test 807: proven RPO 5m50s <= 20m0s, proven RTO 25s <= 10m0s, proof age 10s <= 30m0s
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/README.txt: time stamp 2026-11-22 12:56:46 is 0.223029122 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/anchor.pub: time stamp 2026-11-22 12:56:46 is 0.222958063 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/ledger.jsonl: time stamp 2026-11-22 12:56:46 is 0.219611703 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/config.json: time stamp 2026-11-22 12:56:46 is 0.219486303 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/dnsmasq.leases: time stamp 2026-11-22 12:56:46 is 0.219423183 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/dnsmasq.log: time stamp 2026-11-22 12:56:46 is 0.219371575 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/domain.xml: time stamp 2026-11-22 12:56:46 is 0.219317435 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/manifest.json: time stamp 2026-11-22 12:56:46 is 0.219267244 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/manifest.sig: time stamp 2026-11-22 12:56:46 is 0.219215856 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/network.xml: time stamp 2026-11-22 12:56:46 is 0.219160716 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/result.json: time stamp 2026-11-22 12:56:46 is 0.219109216 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/sandbox.log: time stamp 2026-11-22 12:56:46 is 0.219059486 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/screenshot-boot.png: time stamp 2026-11-22 12:56:46 is 0.219001546 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/screenshot-end.png: time stamp 2026-11-22 12:56:46 is 0.218939976 s in the future
+tar: gaia-evidence-gaia-t17-web-20261122T125600Z-2f1740/bundles/gaia-t17-web-20261122T125600Z-2f1740/serial.log: time stamp 2026-11-22 12:56:46 is 0.218804927 s in the future
+{
+  "schema": {
+    "before": 11,
+    "after": 11
+  },
+  "version": {
+    "before": "0.2.0~dev.20261121203709.gdc738bba406f (dc738bba406f)",
+    "after": "0.2.0~dev.20261122124723.g8bdcc949115a (8bdcc949115a)"
+  },
+  "points": {
+    "before": 1000,
+    "after": 1000,
+    "off_page": [
+      {
+        "id": 286,
+        "state": "pruned"
+      },
+      {
+        "id": 285,
+        "state": "pruned"
+      }
+    ],
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-21T23:28:34.786532248Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-21T23:28:34.786532248Z"
+    }
+  ],
+  "status_changes_during_upgrade": [],
+  "jobs_failed_during_upgrade": [],
+  "next_backup": {
+    "id": 2417,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 2419,
+    "state": "ok"
+  },
+  "during": null,
+  "audit": {
+    "entries": 177,
+    "intact": true,
+    "head_sha256": "b7d77da18a12e146cbb8db8ba09147736242791ff04710f6dabb932f61b8e705",
+    "first_broken_seq": 0
+  },
+  "old_session": {
+    "old_session_status": 200,
+    "answer": {
+      "id": 1,
+      "username": "admin",
+      "role": "admin",
+      "source": "local",
+      "disabled": false,
+      "break_glass": true,
+      "expires_at": "",
+      "created_at": "2026-11-16T22:26:30.589110659Z",
+      "updated_at": "2026-11-16T22:26:30.589110659Z",
+      "password_changed_at": "2026-11-16T22:26:30.589110659Z",
+      "password_change": "",
+      "last_login_at": "2026-11-22T12:47:45.231596017Z",
+      "locked_until": "",
+      "factors": [
+        "webauthn"
+      ],
+      "session": {
+        "id": 4,
+        "user_id": 1,
+        "username": "admin",
+        "role": "admin",
+        "kind": "cli",
+        "method": "webauthn",
+        "break_glass": false,
+        "created_at": "2026-11-22T12:47:45.231596017Z",
+        "last_active_at": "2026-11-22T12:48:35.902992359Z",
+        "last_seen_at": "2026-11-22T12:48:35.902992359Z",
+        "absolute_at": "2026-11-22T20:47:45.231596017Z",
+        "remote_addr": "192.168.1.30",
+        "user_agent": "Go-http-client/1.1",
+        "new_device": false,
+        "idp_state": "",
+        "idp_refreshed_at": "",
+        "ended_at": "",
+        "end_reason": ""
+      },
+      "password_expires_soon": false,
+      "idle_timeout_s": 900
+    }
+  },
+  "pass": true,
+  "verdict": "OK"
+}
+{"event":"upgrade-end","at":"2026-11-22T12:56:46Z"}

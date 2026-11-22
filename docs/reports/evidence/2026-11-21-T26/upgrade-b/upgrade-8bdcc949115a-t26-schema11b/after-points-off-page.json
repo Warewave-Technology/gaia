@@ -1,0 +1,48 @@
+[
+  {
+    "id": 286,
+    "vm_id": 1,
+    "job_id": 429,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-17T22:15:24.668462512Z",
+    "check_state": "ok",
+    "bytes": 18874368,
+    "state": "pruned",
+    "checkpoint": "gaia-1-429-9c43dc",
+    "parent_id": 285,
+    "reason": "incremental from point 285 (checkpoint gaia-1-428-9c43dc)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  },
+  {
+    "id": 285,
+    "vm_id": 1,
+    "job_id": 428,
+    "repository_id": 1,
+    "kind": "incremental",
+    "taken_at": "2026-11-17T22:10:22.853198339Z",
+    "check_state": "ok",
+    "bytes": 20971520,
+    "state": "pruned",
+    "checkpoint": "gaia-1-428-9c43dc",
+    "parent_id": 284,
+    "reason": "incremental from point 284 (checkpoint gaia-1-426-9c43dc)",
+    "machine": {
+      "arch": "x86_64",
+      "firmware": "bios",
+      "memory_mib": 1024,
+      "vcpus": 2,
+      "disk_bus": "virtio",
+      "nic_model": "",
+      "mac": ""
+    }
+  }
+]

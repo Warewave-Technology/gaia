@@ -1,0 +1,1 @@
+{"seen_at":"2026-11-22T12:56:38Z","phase":"B upgraded","status":"OK","changed_at":"2026-11-21T23:28:34.786532248Z","reason":"point 1285 is proven by test 807: proven RPO 5m50s <= 20m0s, proven RTO 25s <= 10m0s, proof age 10s <= 30m0s"}

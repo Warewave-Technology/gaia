@@ -1,0 +1,102 @@
+{
+  "schema": {
+    "before": 11,
+    "after": 11
+  },
+  "version": {
+    "before": "0.2.0~dev.20261121203709.gdc738bba406f (dc738bba406f)",
+    "after": "0.2.0~dev.20261122124723.g8bdcc949115a (8bdcc949115a)"
+  },
+  "points": {
+    "before": 1000,
+    "after": 1000,
+    "off_page": [
+      {
+        "id": 286,
+        "state": "pruned"
+      },
+      {
+        "id": 285,
+        "state": "pruned"
+      }
+    ],
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-21T23:28:34.786532248Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-21T23:28:34.786532248Z"
+    }
+  ],
+  "status_changes_during_upgrade": [],
+  "jobs_failed_during_upgrade": [],
+  "next_backup": {
+    "id": 2417,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 2419,
+    "state": "ok"
+  },
+  "during": null,
+  "audit": {
+    "entries": 177,
+    "intact": true,
+    "head_sha256": "b7d77da18a12e146cbb8db8ba09147736242791ff04710f6dabb932f61b8e705",
+    "first_broken_seq": 0
+  },
+  "old_session": {
+    "old_session_status": 200,
+    "answer": {
+      "id": 1,
+      "username": "admin",
+      "role": "admin",
+      "source": "local",
+      "disabled": false,
+      "break_glass": true,
+      "expires_at": "",
+      "created_at": "2026-11-16T22:26:30.589110659Z",
+      "updated_at": "2026-11-16T22:26:30.589110659Z",
+      "password_changed_at": "2026-11-16T22:26:30.589110659Z",
+      "password_change": "",
+      "last_login_at": "2026-11-22T12:47:45.231596017Z",
+      "locked_until": "",
+      "factors": [
+        "webauthn"
+      ],
+      "session": {
+        "id": 4,
+        "user_id": 1,
+        "username": "admin",
+        "role": "admin",
+        "kind": "cli",
+        "method": "webauthn",
+        "break_glass": false,
+        "created_at": "2026-11-22T12:47:45.231596017Z",
+        "last_active_at": "2026-11-22T12:48:35.902992359Z",
+        "last_seen_at": "2026-11-22T12:48:35.902992359Z",
+        "absolute_at": "2026-11-22T20:47:45.231596017Z",
+        "remote_addr": "192.168.1.30",
+        "user_agent": "Go-http-client/1.1",
+        "new_device": false,
+        "idp_state": "",
+        "idp_refreshed_at": "",
+        "ended_at": "",
+        "end_reason": ""
+      },
+      "password_expires_soon": false,
+      "idle_timeout_s": 900
+    }
+  },
+  "pass": true,
+  "verdict": "OK"
+}
