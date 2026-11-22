@@ -169,7 +169,7 @@ func (s *Server) table() []route {
 			in: EnrolBegin{}, out: EnrolChallenge{}, example: `{"signin_token":"none","kind":"totp"}`, h: s.loginEnrol},
 		{method: "POST", path: "/api/v1/login/enrol/finish", summary: "Sign-in step: the authenticator's answer; the answer carries the recovery codes once",
 			roles: public, in: EnrolFinish{}, out: SigninStep{}, example: `{"signin_token":"none","kind":"totp","code":"000000"}`, h: s.loginEnrolFinish},
-		{method: "POST", path: "/api/v1/login/password", summary: "Sign-in step: a new password (expired, reset by an admin, or on the blocklist)",
+		{method: "POST", path: "/api/v1/login/password", summary: "Sign-in step: a new password (expired, reset by an admin, on the blocklist, or shorter than 15 characters from before 0.2.0)",
 			roles: public, in: NewPassword{}, out: SigninStep{}, example: `{"signin_token":"none","new_password":"x"}`, h: s.loginPassword},
 		{method: "POST", path: "/api/v1/login/cli", summary: "Start a CLI sign-in that a signed-in browser approves (gaia login -browser)", roles: public,
 			in: CLIApprovalStart{}, out: DeviceChallenge{}, example: `{}`, h: s.cliApprovalStart},
@@ -428,7 +428,11 @@ func (s *Server) table() []route {
 					return 0, nil, fmt.Errorf("%w: the host's key is %s, not %s: not trusted", store.ErrConflict, sc.Fingerprint, in.Fingerprint)
 				}
 				c.detail = "trusted " + sc.Fingerprint
-				return one(s.db.PinHostKey(c.r.Context(), c.user.Username, h.ID, sc.Key, sc.Fingerprint))
+				pinned, err := s.db.PinHostKey(c.r.Context(), c.user.Username, h.ID, sc.Key, sc.Fingerprint)
+				if err == nil { // host_key_untrusted ends for its VMs: recomputed at the next tick
+					err = s.db.MarkStatusesDue(c.r.Context(), h.ID, 0)
+				}
+				return one(pinned, err)
 			}},
 		{method: "POST", path: "/api/v1/hosts/{id}/check", summary: "Connect over SSH and list the host's libvirt domains", roles: writers, out: HostCheck{},
 			h: func(c *call) (int, any, error) {
@@ -782,9 +786,9 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.Verification(c.r.Context(), id))
 			}},
-		{method: "GET", path: "/api/v1/policies", summary: "List policies", roles: anyRole, out: []store.Policy{},
-			h: func(c *call) (int, any, error) { return list(s.db.Policies(c.r.Context())) }},
-		{method: "POST", path: "/api/v1/policies", summary: "Create a policy", roles: writers, in: store.PolicyInput{}, out: store.Policy{},
+		{method: "GET", path: "/api/v1/policies", summary: "List policies", roles: anyRole, out: []PolicyView{},
+			h: func(c *call) (int, any, error) { return list(policyViews(s.db.Policies(c.r.Context()))) }},
+		{method: "POST", path: "/api/v1/policies", summary: "Create a policy", roles: writers, in: store.PolicyInput{}, out: PolicyView{},
 			status: http.StatusCreated, example: policy,
 			h: func(c *call) (int, any, error) {
 				var in store.PolicyInput
@@ -792,18 +796,18 @@ func (s *Server) table() []route {
 					return 0, nil, err
 				}
 				p, err := s.db.CreatePolicy(c.r.Context(), in)
-				return created(c, "policy "+in.Name, p, p.ID, err)
+				return created(c, "policy "+in.Name, policyView(p), p.ID, err)
 			}},
-		{method: "GET", path: "/api/v1/policies/{id}", summary: "One policy", roles: anyRole, out: store.Policy{},
+		{method: "GET", path: "/api/v1/policies/{id}", summary: "One policy", roles: anyRole, out: PolicyView{},
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
 					return 0, nil, err
 				}
-				return one(s.db.Policy(c.r.Context(), id))
+				return one(policyViewOf(s.db.Policy(c.r.Context(), id)))
 			}},
 		{method: "PATCH", path: "/api/v1/policies/{id}", summary: "Change a policy (a step-up when it makes a target looser)", roles: writers,
-			stepUp: stepIfLoose, in: store.PolicyPatch{}, out: store.Policy{}, example: `{}`,
+			stepUp: stepIfLoose, in: store.PolicyPatch{}, out: PolicyView{}, example: `{}`,
 			h: func(c *call) (int, any, error) {
 				id, err := c.id("id")
 				if err != nil {
@@ -827,7 +831,7 @@ func (s *Server) table() []route {
 				if err == nil {
 					err = s.db.MarkStatusesDue(c.r.Context(), 0, id) // the targets decide its VMs' status
 				}
-				return one(pol, err)
+				return one(policyView(pol), err)
 			}},
 		{method: "DELETE", path: "/api/v1/policies/{id}", summary: "Remove a policy no VM uses", roles: writers, status: http.StatusNoContent,
 			h: func(c *call) (int, any, error) { return s.remove(c, "policy", s.db.DeletePolicy) }},

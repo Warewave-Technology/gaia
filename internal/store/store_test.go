@@ -61,14 +61,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}) || Latest() != 12 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}) || Latest() != 13 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 12 || applied[11].Name != "0012_activity.sql" {
+	if err != nil || len(applied) != 13 || applied[12].Name != "0013_codes_ledger_kind.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -102,6 +102,15 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		VALUES ('abc', 1, ?, ?, ?, '10.0.0.9')`, now, now, now); err != nil {
 		t.Fatal(err)
 	}
+	// Schema 13 (ADR-007 C12, C14): a ledger check from before was a full one; a status change from before has no codes.
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO ledger_checks (checked_at, reason, verdict, entries, head_seq, head_sha256)
+		VALUES (?, 'daily report', 'OK', 3, 3, 'abc')`, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code)
+		VALUES (?, 'vm_status', 1, 'OK', 'WARNING', 'x', 'system', 'proof_too_old')`, now); err != nil {
+		t.Fatal(err)
+	}
 	done, err := old.Migrate(ctx, 0)
 	var want []int
 	for v := releasedSchema + 1; v <= Latest(); v++ {
@@ -118,6 +127,12 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	}
 	if u, _ := old.UserByName(ctx, "oldaudit"); u.ExpiresAt == "" || u.Expired(time.Now().Add(29*24*time.Hour)) || !u.Expired(time.Now().Add(31*24*time.Hour)) {
 		t.Fatalf("auditor after the upgrade %+v", u)
+	}
+	if cs, err := old.LedgerChecks(ctx, 5); err != nil || len(cs) != 1 || cs[0].Kind != LedgerCheckFull || cs[0].Entries != 3 {
+		t.Fatalf("ledger checks after the upgrade %+v %v", cs, err)
+	}
+	if ch, err := old.VMStatusChangesSince(ctx, ""); err != nil || len(ch) != 1 || ch[0].Code != "proof_too_old" || ch[0].FromCodes != nil || ch[0].ToCodes != nil {
+		t.Fatalf("status changes after the upgrade %+v %v", ch, err)
 	}
 	var n int
 	if err := old.SQL().QueryRowContext(ctx, `SELECT count(*) FROM sessions`).Scan(&n); err != nil || n != 0 {

@@ -34,6 +34,8 @@ type FleetView struct {
 	Notify     NotifySummary    `json:"notifications"`
 	Recompute  *RecomputeStats  `json:"status_recompute"` // the newest full recompute of the status table
 	CodesVer   int              `json:"reason_codes_version"`
+	// The proof capacity's notice while its coverage is below 100 % (ADR-007 C13); null otherwise or while unknown.
+	CapacityShort *CapacityNotice `json:"capacity_short"`
 }
 
 // FleetWorst is the VM with the fleet's worst proven RPO.
@@ -76,6 +78,7 @@ func (s *Server) fleetView(c *call) (int, any, error) {
 	s.recomputed.mu.Lock()
 	out.Recompute = s.recomputed.last
 	s.recomputed.mu.Unlock()
+	out.CapacityShort = s.capacityNotice()
 	return http.StatusOK, out, nil
 }
 
@@ -105,7 +108,7 @@ type AttentionGroup struct {
 type AttentionExample struct {
 	VMID   int64  `json:"vm_id"`
 	VM     string `json:"vm"`
-	Reason string `json:"reason"`
+	Reason string `json:"reason" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"`
 }
 
 var rankWord = [...]string{status.Critical, status.Unknown, status.Warning, status.OK}
@@ -252,7 +255,8 @@ type VMListRow struct {
 	Since           string          `json:"since"`
 	Code            string          `json:"code"`
 	Scope           *status.Scope   `json:"scope"`
-	Reason          string          `json:"reason"`
+	Params          status.Params   `json:"params"` // the deciding reason's parameters, as in its reason (ADR-007 C11)
+	Reason          string          `json:"reason" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"`
 	Notes           []status.Reason `json:"notes"`
 	Proven          *Proven         `json:"proven"`
 	Targets         *Targets        `json:"targets"`
@@ -327,7 +331,7 @@ func (s *Server) vmListRow(ctx context.Context, r store.VMRow, now time.Time) (V
 		if err != nil {
 			return row, err
 		}
-		row.Reason, row.Notes = res.Reasons[0].Text, res.NoteReasons
+		row.Reason, row.Params, row.Notes = res.Reasons[0].Text, res.Reasons[0].Params, res.NoteReasons
 		row.TheoreticalRPOS, row.ProvenRPOS, row.ProvenRTOS, row.ProofAgeS = res.TheoreticalRPO, res.ProvenRPO, res.ProvenRTO, res.ProofAge
 	}
 	if st.RPOTargetS != nil && st.RTOTargetS != nil && st.MaxProofAgeS != nil {

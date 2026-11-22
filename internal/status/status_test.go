@@ -254,3 +254,37 @@ func TestTruthTableExamples(t *testing.T) {
 		t.Errorf("a full backup is noted: %+v", r)
 	}
 }
+
+// A host whose SSH key was never trusted is the host's cause (ADR-007 C11): backups that stopped because of it are
+// host_key_untrusted (CRITICAL, not backup_failing), and a VM never backed up on it is UNKNOWN with the same code
+// (not never_backed_up), scoped to the host either way.
+func TestHostKeyUntrusted(t *testing.T) {
+	host := &Scope{Kind: ScopeHost, ID: 3, Name: "kvm-03"}
+	targets := &Targets{RPOS: 900, RTOS: 600, MaxProofAgeS: 3600}
+	failed := &Backup{JobID: 9, FinishedAt: ago(60), Error: "the host's SSH key is not trusted yet", HostKeyUntrusted: true}
+	r := Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, FailedBackup: failed})
+	if x := r.Reasons[0]; r.Status != Critical || x.Code != HostKeyUntrusted || x.Rule != "theoretical_rpo_over_target" || x.Scope != host || x.Params.Job != 9 {
+		t.Fatalf("stopped backups: %s %+v", r.Status, x)
+	}
+	for _, in := range []Input{
+		{Now: now, Targets: targets, Host: host, FailedBackup: failed},   // the job said so
+		{Now: now, Targets: targets, Host: host, HostKeyUntrusted: true}, // the host says so, no job yet
+	} {
+		r := Compute(in)
+		i := slices.IndexFunc(r.Reasons, func(x Reason) bool { return x.Rule == "no_checked_point" })
+		if r.Status != Unknown || i < 0 || r.Reasons[i].Code != HostKeyUntrusted || r.Reasons[i].Status != Unknown || r.Reasons[i].Scope != host {
+			t.Fatalf("never backed up: %s %+v", r.Status, r.Reasons)
+		}
+		if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == NeverBackedUp || x.Code == BackupFailing }) {
+			t.Fatalf("never_backed_up or backup_failing as well: %+v", r.Reasons)
+		}
+		if got := Render(r.Reasons[i], now); got != r.Reasons[i].Text || !strings.Contains(got, "kvm-03's SSH key is not trusted yet") {
+			t.Fatalf("sentence %q / %q", got, r.Reasons[i].Text)
+		}
+	}
+	// A failure for another reason stays backup_failing.
+	other := &Backup{JobID: 9, FinishedAt: ago(60), Error: "libvirt: no such domain"}
+	if r := Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, FailedBackup: other}); r.Reasons[0].Code != BackupFailing {
+		t.Fatalf("another failure: %+v", r.Reasons[0])
+	}
+}

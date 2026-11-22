@@ -243,13 +243,13 @@ func TestNotificationsReachEveryChannel(t *testing.T) {
 		}
 	}
 	// ledger: a bundle's file changes behind Gaia's back
-	if c, err := f.s.checkLedger(ctx, "system", "test"); err != nil || c.Verdict != evidence.OK || c.Entries != 2 {
+	if c, err := f.s.checkLedger(ctx, "system", "test", store.LedgerCheckFull); err != nil || c.Verdict != evidence.OK || c.Entries != 2 {
 		t.Fatalf("first ledger check: %+v %v", c, err)
 	}
 	if err := os.WriteFile(filepath.Join(f.s.cfg.bundlesDir(), "seed-vm-test-1", "result.json"), []byte(`{"verdict":"CRITICAL"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if c, err := f.s.checkLedger(ctx, "system", "test"); err != nil || c.Verdict != evidence.Critical || !strings.Contains(strings.Join(c.Problems, ";"), "file_modified") {
+	if c, err := f.s.checkLedger(ctx, "system", "test", store.LedgerCheckFull); err != nil || c.Verdict != evidence.Critical || !strings.Contains(strings.Join(c.Problems, ";"), "file_modified") {
 		t.Fatalf("ledger check after the change: %+v %v", c, err)
 	}
 	// daily_report
@@ -477,7 +477,7 @@ func TestDailyReportAnchorsLedger(t *testing.T) {
 	if r.Verdict != evidence.Critical || len(r.Findings) != 1 || r.Findings[0].Code != evidence.CodeLedgerTruncated {
 		t.Fatalf("with the report's head: %s %+v", r.Verdict, r.Findings)
 	}
-	c, err := f.s.checkLedger(ctx, "system", "test")
+	c, err := f.s.checkLedger(ctx, "system", "test", store.LedgerCheckFull)
 	if err != nil || c.Verdict != evidence.Critical || !strings.Contains(strings.Join(c.Problems, ";"), "ledger_truncated") {
 		t.Fatalf("Gaia's own check: %+v %v", c, err)
 	}

@@ -52,9 +52,25 @@ const (
 	evNewDevice  = "new_device_signin" // a sign-in from a device or address not seen for the user in 30 days
 	evLocked     = "account_locked"    // an account paused after 10 failed sign-ins in 15 minutes
 	evTest       = "test"              // a test message sent on request
+	// The proof capacity's coverage dropped below 100 % (ADR-007 C13): fleet-level, category jobs.
+	evCapacityShort = "capacity_short"
 )
 
-var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily, evBreakglass, evNewDevice, evLocked}
+var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily, evBreakglass, evNewDevice, evLocked,
+	evCapacityShort}
+
+// eventCategory is an event's notification category (ADR-007 C8, C13), for the events that have one so far: a channel
+// that takes job_failed, the jobs event of M2, also gets the newer events of the jobs category.
+var eventCategory = map[string]string{evJobFailed: "jobs", evCapacityShort: "jobs"}
+
+// channelTakes says whether a channel with these events gets an event: listed, or of the category of one listed.
+func channelTakes(events []string, ev string) bool {
+	if slices.Contains(events, ev) {
+		return true
+	}
+	cat := eventCategory[ev]
+	return cat != "" && slices.ContainsFunc(events, func(e string) bool { return eventCategory[e] == cat })
+}
 
 const (
 	notifyTick  = 5 * time.Second
@@ -87,7 +103,7 @@ type WebhookConfig struct {
 type ChannelCreate struct {
 	Name          string         `json:"name"`
 	Kind          string         `json:"kind"`   // smtp or webhook
-	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report, breakglass_signin, new_device_signin, account_locked)
+	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report, breakglass_signin, new_device_signin, account_locked, capacity_short); job_failed brings capacity_short too (category jobs)
 	SMTP          *SMTPConfig    `json:"smtp,omitempty"`
 	SMTPPassword  string         `json:"smtp_password,omitempty"`
 	Webhook       *WebhookConfig `json:"webhook,omitempty"`
@@ -300,6 +316,9 @@ func (s *Server) notifyOnce(ctx context.Context, now time.Time) error {
 	if err := s.dailyReportIfDue(ctx, now); err != nil {
 		errs = append(errs, fmt.Errorf("daily report: %w", err))
 	}
+	if err := s.ledgerCheckIfDue(ctx, s.now()); err != nil { // after the report, whose check is the day's full one
+		errs = append(errs, fmt.Errorf("ledger check: %w", err))
+	}
 	chans, err := s.db.Channels(ctx)
 	if err != nil {
 		return err
@@ -338,7 +357,7 @@ func (s *Server) queueEvents(ctx context.Context, ch store.Channel) error {
 		if err != nil {
 			return fmt.Errorf("state change %d: %w", sc.Seq, err)
 		}
-		if ev == nil || !slices.Contains(ch.Events, ev.Event) {
+		if ev == nil || !channelTakes(ch.Events, ev.Event) {
 			continue
 		}
 		b, err := json.Marshal(ev)
@@ -348,6 +367,42 @@ func (s *Server) queueEvents(ctx context.Context, ch store.Channel) error {
 		ns = append(ns, store.Notification{Event: ev.Event, Ref: sc.Seq, Subject: ev.Subject, Body: b})
 	}
 	return s.db.QueueEvents(ctx, ch.ID, ch.Cursor, changes[len(changes)-1].Seq, ns)
+}
+
+// quietStatusChange says whether a VM status change is one ADR-007 C12 keeps out of the immediate notifications: OK
+// <-> WARNING, the WARNING's only reasons are proven_rpo_over_target or proof_too_old, and the VM's policy can be OK
+// only part of the time (max_ok_fraction < 1), so the change comes back every test cycle. The daily report counts
+// them. A change recorded before schema 13 has no codes and is not quiet. policies caches policy fractions (nil: none).
+func (s *Server) quietStatusChange(ctx context.Context, sc store.StateChange, vm store.VM, policies map[int64]float64) (bool, error) {
+	var warn []string
+	switch {
+	case sc.From == status.OK && sc.To == status.Warning:
+		warn = sc.ToCodes
+	case sc.From == status.Warning && sc.To == status.OK:
+		warn = sc.FromCodes
+	default:
+		return false, nil
+	}
+	if len(warn) == 0 || vm.PolicyID == nil {
+		return false, nil
+	}
+	for _, c := range warn {
+		if c != string(status.ProvenRPOOverTarget) && c != string(status.ProofTooOld) {
+			return false, nil
+		}
+	}
+	frac, ok := policies[*vm.PolicyID]
+	if !ok {
+		p, err := s.db.Policy(ctx, *vm.PolicyID)
+		if err != nil {
+			return false, err
+		}
+		frac, _ = policyOK(p)
+		if policies != nil {
+			policies[p.ID] = frac
+		}
+	}
+	return frac < 1, nil
 }
 
 // classify says whether a state change is an event, and which.
@@ -360,6 +415,11 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		vm, err := s.db.VM(ctx, sc.EntityID)
 		if err != nil {
 			return nil, err
+		}
+		if quiet, err := s.quietStatusChange(ctx, sc, vm, nil); err != nil {
+			return nil, err
+		} else if quiet { // counted in the daily report instead (ADR-007 C12)
+			return nil, nil
 		}
 		from := sc.From
 		if from == "" {
@@ -465,6 +525,10 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		ev.Event = evQuarantine
 		ev.Subject = fmt.Sprintf("damaged repository contents quarantined (verification %d)", sc.EntityID)
 		ev.Text = fmt.Sprintf("At %s, %s.\nThe next backup of each VM named is full, so new points do not reuse the damaged data.", sc.At, sc.Reason)
+	case sc.Entity == capacityEntity && sc.To == capacityShort: // once per drop; its recovery is no event
+		ev.Event = evCapacityShort
+		ev.Subject = "the proof capacity is short: " + sc.Reason
+		ev.Text = fmt.Sprintf("Since %s the restore tests cannot keep every VM's proof fresh: %s.\nNo VM changes status for this; a VM turns WARNING only when its proof expires. More slots, or longer test intervals, close the gap (Proof capacity, what-if).", sc.At, sc.Reason)
 	case sc.Entity == "ledger" && (sc.To != "OK" || (sc.From != "" && sc.From != "OK")):
 		ev.Event = evLedger
 		if sc.To == "OK" {

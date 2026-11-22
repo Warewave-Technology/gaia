@@ -11,7 +11,8 @@
   need the server opened by a name with its certificate trusted: set `public_url` (install.md step 12).
 - Destructive and security actions ask for the factor again (step-up), every time.
 - Passwords: at least 15 characters, checked against an embedded list of breached and common passwords, not one of
-  the last 5. Optional expiry.
+  the last 5. Optional expiry. A password shorter than 15 characters from 0.1.x must be changed at the first sign-in
+  after the upgrade (after the second factor, before the session starts).
 - Failed sign-ins slow down from the 3rd and pause the account after 10 in 15 minutes; admins are notified.
 - Single sign-on with OIDC (optional), roles from IdP groups, break-glass local admins, `gaia login -sso`.
 - API tokens for automation (operator or auditor, at most 90 days).
@@ -22,3 +23,9 @@
 
 - Reason codes, the status table, paged views and tags (T24); parallel restore tests in sandbox slots and the proof
   capacity view (T25).
+- Reason codes version 2: `host_key_untrusted` (a host whose SSH key was never trusted is one cause for all its VMs).
+- A policy says how much of the time its VMs can be OK at best (`max_ok_fraction`) and which test interval would make
+  it always possible (`suggested_test_interval_s`). OK/WARNING changes caused only by the proof's age on such a policy
+  are counted in the daily report instead of being notified one by one.
+- A new event, `capacity_short`, when the proof capacity drops below 100 %; channels that take `job_failed` get it.
+- The evidence ledger is checked every hour (incremental) and in full with the daily report.

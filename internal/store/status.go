@@ -52,6 +52,7 @@ type StatusFacts struct {
 	Damaged       []int64      // present points whose check failed
 	// What reasons name as their cause (ADR-007 C3).
 	HostName       string
+	HostKeyTrusted bool  // the host has a pinned SSH key (ADR-007 C11: host_key_untrusted when not)
 	RepositoryID   int64 // the policy's repository; 0 without a policy
 	RepositoryName string
 	LastBackup     *Job            // the newest finished backup job (ok or failed)
@@ -67,7 +68,7 @@ func (d *DB) StatusFacts(ctx context.Context, vmID int64) (StatusFacts, error) {
 		return f, err
 	}
 	f.VM = vm
-	if err := d.db.QueryRowContext(ctx, `SELECT name FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName); err != nil {
+	if err := d.db.QueryRowContext(ctx, `SELECT name, ssh_host_key != '' FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName, &f.HostKeyTrusted); err != nil {
 		return f, fmt.Errorf("the VM's host %d: %w", vm.HostID, err)
 	}
 	if vm.PolicyID != nil {
@@ -246,6 +247,7 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	vals := []any{row.Rank, row.Code, row.ScopeKind, row.ScopeID, row.ScopeName, row.NewestPointID, row.NewestTakenAt,
 		row.ProvenPointID, row.ProvenTakenAt, row.ProvenTestID, row.ProvenFinishedAt, row.ProvenRTOS, row.RPOTargetS,
 		row.RTOTargetS, row.MaxProofAgeS, row.NextChangeAt}
+	var fromCodes string
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		if _, err := tx.ExecContext(ctx, `INSERT INTO vm_status (vm_id, status, reason, result, changed_at, computed_at, since) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -255,6 +257,13 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	case err != nil:
 		return false, err
 	case old != status:
+		var oldResult string
+		if err := tx.QueryRowContext(ctx, `SELECT result FROM vm_status WHERE vm_id = ?`, vmID).Scan(&oldResult); err != nil {
+			return false, err
+		}
+		if fromCodes, err = reasonCodes([]byte(oldResult)); err != nil {
+			return false, fmt.Errorf("the stored status: %w", err)
+		}
 		if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET status = ?, reason = ?, result = ?, changed_at = ?, computed_at = ?, since = ? WHERE vm_id = ?`,
 			status, reason, string(b), now, now, unix, vmID); err != nil {
 			return false, err
@@ -274,7 +283,30 @@ func (d *DB) setVMStatus(ctx context.Context, tx *sql.Tx, w StatusWrite) (bool, 
 	if _, err := tx.ExecContext(ctx, `UPDATE vm_status SET `+set+` WHERE vm_id = ?`, append(vals, vmID)...); err != nil {
 		return false, err
 	}
-	return true, d.recordStateCode(ctx, tx, "vm_status", vmID, old, status, reason, "system", row.Code)
+	toCodes, err := reasonCodes(b)
+	if err != nil {
+		return false, err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code, from_codes, to_codes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, d.ts(), "vm_status", vmID, old, status, reason, "system", row.Code, fromCodes, toCodes)
+	return true, err
+}
+
+// reasonCodes is the comma-separated codes of a stored status's reasons (a status.Result's JSON), worst first.
+func reasonCodes(result []byte) (string, error) {
+	var r struct {
+		Reasons []struct {
+			Code string `json:"code"`
+		} `json:"reasons"`
+	}
+	if err := json.Unmarshal(result, &r); err != nil {
+		return "", err
+	}
+	cs := make([]string, 0, len(r.Reasons))
+	for _, x := range r.Reasons {
+		cs = append(cs, x.Code)
+	}
+	return strings.Join(cs, ","), nil
 }
 
 // VMStatuses lists the stored statuses, of one VM if vmID > 0.

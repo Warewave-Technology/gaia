@@ -562,7 +562,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign-in step: a new password (expired, reset by an admin, or on the blocklist) */
+        /** Sign-in step: a new password (expired, reset by an admin, on the blocklist, or shorter than 15 characters from before 0.2.0) */
         post: operations["post_login_password"];
         delete?: never;
         options?: never;
@@ -2123,6 +2123,10 @@ export interface components {
             version: number;
         };
         AttentionExample: {
+            /**
+             * @deprecated
+             * @description Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)
+             */
             reason: string;
             vm: string;
             vm_id: number;
@@ -2204,6 +2208,7 @@ export interface components {
             expected_s: number;
             max_proof_age_s: number;
             os_class: string;
+            os_class_basis: string;
             policy: string;
             test_interval_s: number;
             vm: string;
@@ -2217,6 +2222,13 @@ export interface components {
             next: string;
             total: number;
         };
+        CapacityNotice: {
+            coverage: number;
+            since: string;
+            slots: number;
+            slots_needed: number;
+            text: string;
+        };
         CapacityView: {
             by_os_class: components["schemas"]["Group"][];
             by_policy: components["schemas"]["Group"][];
@@ -2229,6 +2241,7 @@ export interface components {
             horizon_s: number;
             /** Format: date-time */
             now: string;
+            policies?: components["schemas"]["PolicyOK"][];
             queue: components["schemas"]["QueueItem"][];
             queue_total: number;
             sandbox: components["schemas"]["Capacity"] | null;
@@ -2456,6 +2469,7 @@ export interface components {
             };
             can_return: number;
             cannot: number;
+            capacity_short: components["schemas"]["CapacityNotice"] | null;
             causes: number;
             clock: components["schemas"]["ServerClock"];
             ledger: components["schemas"]["LedgerSummary"];
@@ -2597,6 +2611,7 @@ export interface components {
             head_seq: number;
             head_sha256: string;
             id: number;
+            kind: string;
             problems: string[];
             reason: string;
             verdict: string;
@@ -2607,12 +2622,16 @@ export interface components {
         };
         LedgerSummary: {
             checked_at: string;
+            code: string;
             entries: number;
             head_seq: number;
             head_sha256: string;
             id: number;
+            kind: string;
+            oldest_unchecked_at: string;
             problems: string[];
             reason: string;
+            status: string;
             text: string;
             unchecked: number;
             verdict: string;
@@ -2896,6 +2915,7 @@ export interface components {
         PolicyChange: {
             max_proof_age_s?: number | null;
             policy_id: number;
+            rpo_target_s?: number | null;
             test_interval_s?: number | null;
         };
         PolicyInput: {
@@ -2913,6 +2933,11 @@ export interface components {
             rto_target_s: number;
             test_interval_s: number;
         };
+        PolicyOK: {
+            max_ok_fraction: number;
+            policy_id: number;
+            suggested_test_interval_s: number | null;
+        };
         PolicyPatch: {
             backup_interval_s?: number | null;
             check_template?: string | null;
@@ -2926,6 +2951,26 @@ export interface components {
             rpo_target_s?: number | null;
             rto_target_s?: number | null;
             test_interval_s?: number | null;
+        };
+        PolicyView: {
+            backup_interval_s: number;
+            check_template: string;
+            /** @description any JSON value */
+            checks: unknown;
+            created_at: string;
+            id: number;
+            keep_daily: number;
+            keep_last: number;
+            keep_weekly: number;
+            max_ok_fraction: number;
+            max_proof_age_s: number;
+            name: string;
+            repository_id: number;
+            rpo_target_s: number;
+            rto_target_s: number;
+            suggested_test_interval_s: number | null;
+            test_interval_s: number;
+            updated_at: string;
         };
         Proven: {
             bundle_id: string;
@@ -2964,6 +3009,10 @@ export interface components {
             rule: string;
             scope: components["schemas"]["Scope"] | null;
             status: string;
+            /**
+             * @deprecated
+             * @description Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)
+             */
             text: string;
         };
         ReasonCode: {
@@ -3256,9 +3305,11 @@ export interface components {
             entity: string;
             entity_id: number;
             from: string;
+            from_codes?: string[];
             reason: string;
             seq: number;
             to: string;
+            to_codes?: string[];
         };
         StatusCheck: {
             at: string;
@@ -3403,12 +3454,17 @@ export interface components {
             host: string;
             host_id: number;
             notes: components["schemas"]["Reason"][];
+            params: components["schemas"]["Params"];
             policy: string;
             policy_id: number | null;
             proof_age_s: number | null;
             proven: components["schemas"]["Proven"] | null;
             proven_rpo_s: number | null;
             proven_rto_s: number | null;
+            /**
+             * @deprecated
+             * @description Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)
+             */
             reason: string;
             scope: components["schemas"]["Scope"] | null;
             since: string;
@@ -3432,6 +3488,10 @@ export interface components {
             events: components["schemas"]["TimelineEvent"][];
             host: string;
             note_reasons: components["schemas"]["Reason"][];
+            /**
+             * @deprecated
+             * @description Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)
+             */
             notes: string[];
             policy: string;
             proof_age_s: number | null;
@@ -3470,6 +3530,10 @@ export interface components {
         VMStatus: {
             changed_at: string;
             note_reasons: components["schemas"]["Reason"][];
+            /**
+             * @deprecated
+             * @description Deprecated: kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)
+             */
             notes: string[];
             proof_age_s: number | null;
             proven_rpo_s: number | null;
@@ -8456,7 +8520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Policy"][];
+                    "application/json": components["schemas"]["PolicyView"][];
                 };
             };
             /** @description Invalid request */
@@ -8516,7 +8580,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Policy"];
+                    "application/json": components["schemas"]["PolicyView"];
                 };
             };
             /** @description Invalid request */
@@ -8592,7 +8656,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Policy"];
+                    "application/json": components["schemas"]["PolicyView"];
                 };
             };
             /** @description Invalid request */
@@ -8746,7 +8810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Policy"];
+                    "application/json": components["schemas"]["PolicyView"];
                 };
             };
             /** @description Invalid request */

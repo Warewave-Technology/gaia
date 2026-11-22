@@ -110,6 +110,16 @@ type imagesReservation struct {
 	bytes int64
 }
 
+// restoreReservation is what a restore reserves in the images directory: the full (virtual) size of every disk of the
+// point, not its data (ADR-007 C13): a restored image may be written in full.
+func restoreReservation(disks []store.PointDisk) int64 {
+	var need int64
+	for _, k := range disks {
+		need += k.SizeBytes
+	}
+	return need
+}
+
 // reserveImages reserves room for a test's restored disks (their full size: the safe bound) in the sandbox images
 // directory, beside what the running tests reserved; it says why when there is no room. release gives it back.
 func (s *Server) reserveImages(need int64) (release func(), err error) {

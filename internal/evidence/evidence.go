@@ -849,6 +849,13 @@ func (s *ledgerScan) add(code string, n int, detail string) {
 // scanLedger is the specification's ledger procedure (§8.2, steps L2–L4) over the ledger's bytes. With anchor
 // nil the genesis key is taken as given, and reported as anchor_missing if reportAnchor.
 func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledgerScan {
+	return scanLedgerSince(data, anchor, reportAnchor, 0)
+}
+
+// scanLedgerSince is scanLedger that does not verify the signatures of entries 1..checked: an earlier check verified
+// them, and the chain (still checked for every entry) together with the hash of entry checked, which the caller
+// compares with what that check recorded, binds them unchanged (VerifyLedgerSince).
+func scanLedgerSince(data []byte, anchor ed25519.PublicKey, reportAnchor bool, checked int) *ledgerScan {
 	s := &ledgerScan{known: map[string]ed25519.PublicKey{}}
 	raw := bytes.Split(data, []byte("\n"))
 	truncated := len(raw[len(raw)-1]) > 0
@@ -929,7 +936,7 @@ func scanLedger(data []byte, anchor ed25519.PublicKey, reportAnchor bool) *ledge
 		} else if e.keyID != KeyID(s.current) {
 			s.add(CodeSignerInvalid, n, fmt.Sprintf("key_id %s, the current key is %s", e.keyID, KeyID(s.current)))
 		}
-		if sig, ok := decodeSig64(*w.Sig); !ok || !ed25519.Verify(s.current, pb, sig) {
+		if sig, ok := decodeSig64(*w.Sig); n > checked && (!ok || !ed25519.Verify(s.current, pb, sig)) {
 			s.add(CodeEntrySignatureInvalid, n, "sig is not the current key's signature of the payload's bytes")
 		}
 		var next ed25519.PublicKey
@@ -1114,6 +1121,20 @@ func VerifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey) (LedgerRe
 // VerifyLedgerHeads is VerifyLedger with head statements kept outside the ledger (§8.6): each must name an entry the
 // ledger still has, unchanged; a ledger shorter than a statement is ledger_truncated.
 func VerifyLedgerHeads(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte) (LedgerReport, error) {
+	return verifyLedger(ledger, bundlesDir, anchor, heads, 0, "")
+}
+
+// VerifyLedgerSince is an incremental VerifyLedgerHeads (ADR-007 C14): a check that already verified entries
+// 1..checked, whose last entry hashed to checkedSHA256, is continued. Every entry's seq, chain link and key are still
+// checked, and entry checked must still hash to checkedSHA256 (else chain_broken; a ledger shorter than checked is
+// ledger_truncated), so the entries before it are bound unchanged; only the signatures of those entries and the
+// bundles they list are not verified again. Bundle directories without an entry are reported as in a full check.
+// checked 0 is a full check.
+func VerifyLedgerSince(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, checked int, checkedSHA256 string) (LedgerReport, error) {
+	return verifyLedger(ledger, bundlesDir, anchor, heads, checked, checkedSHA256)
+}
+
+func verifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, checked int, checkedSHA256 string) (LedgerReport, error) {
 	r := &LedgerReport{Ledger: ledger, Format: "v1", Findings: []Finding{}, Bundles: []BundleReport{}}
 	data, err := os.ReadFile(ledger)
 	switch {
@@ -1136,12 +1157,22 @@ func VerifyLedgerHeads(ledger, bundlesDir string, anchor ed25519.PublicKey, head
 		}
 		return r.done(), nil
 	}
-	s := scanLedger(data, anchor, true)
+	s := scanLedgerSince(data, anchor, true, checked)
 	r.checkHeads(heads, s, anchor)
 	r.Entries, r.Keys, r.Findings = s.lines, s.keys, append(r.Findings, s.findings...)
+	switch {
+	case checked <= 0:
+	case len(s.hashes) < checked:
+		r.add(CodeLedgerTruncated, fmt.Sprintf("line %d", checked), fmt.Sprintf("the last check verified %d entries; the ledger has %d readable entries", checked, len(s.hashes)))
+	case s.hashes[checked-1] != checkedSHA256:
+		r.add(CodeChainBroken, fmt.Sprintf("line %d", checked), fmt.Sprintf("entry %d hashes to %s; the last check recorded %s", checked, s.hashes[checked-1], checkedSHA256))
+	}
 	listed := map[string]bool{}
 	for _, b := range s.bundles {
 		listed[b.id] = true
+		if b.seq <= checked {
+			continue // verified by the check this one continues
+		}
 		dir := filepath.Join(bundlesDir, b.id)
 		if fi, err := os.Lstat(dir); err != nil || !fi.IsDir() { // a symbolic link is not a bundle
 			r.add(CodeBundleMissing, b.id, fmt.Sprintf("line %d names bundle %s; there is no such directory", b.seq, b.id))

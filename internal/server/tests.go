@@ -156,11 +156,7 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 	if err != nil {
 		return "", "", "", nil, err
 	}
-	var need int64
-	for _, k := range disks {
-		need += k.SizeBytes
-	}
-	release, err := s.reserveImages(need)
+	release, err := s.reserveImages(restoreReservation(disks))
 	if err != nil {
 		return "", "", "", nil, err
 	}
@@ -199,7 +195,7 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 	e, err := evidence.Append(s.cfg.ledgerPath(), evidence.Entry{BundleID: res.BundleID, BundleSHA256: sum, Subject: vm.Name, Verdict: res.Verdict}, key)
 	if err != nil {
 		// A ledger that refuses an entry is a ledger problem, not only this test's: check it now (a change notifies).
-		if _, cerr := s.checkLedger(context.WithoutCancel(ctx), "system", "appending bundle "+res.BundleID+" failed: "+err.Error()); cerr != nil {
+		if _, cerr := s.checkLedger(context.WithoutCancel(ctx), "system", "appending bundle "+res.BundleID+" failed: "+err.Error(), store.LedgerCheckFull); cerr != nil {
 			s.log.Error("ledger check", "error", cerr)
 		}
 		return "", "", "", nil, fmt.Errorf("ledger: %w", err)
@@ -280,7 +276,7 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	if err != nil {
 		return status.Input{}, err
 	}
-	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged,
+	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged, HostKeyUntrusted: !f.HostKeyTrusted,
 		Host: &status.Scope{Kind: status.ScopeHost, ID: f.VM.HostID, Name: f.HostName}}
 	if f.Policy != nil {
 		in.Targets = &status.Targets{RPOS: f.Policy.RPOTargetS, RTOS: f.Policy.RTOTargetS, MaxProofAgeS: f.Policy.MaxProofAgeS}
@@ -295,6 +291,9 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	}
 	if in.FailedBackup, err = failedBackup(f.LastBackup, f.LastBackupInfo, in.NewestChecked); err != nil {
 		return in, err
+	}
+	if b := in.FailedBackup; b != nil && b.HostKeyUntrusted && f.HostKeyTrusted {
+		b.HostKeyUntrusted = false // trusted since the job failed: that cause is gone, the failure stays a failure
 	}
 	test := func(t *store.RestoreTest, p *store.Point) (*status.Test, error) {
 		if t == nil {
@@ -348,7 +347,7 @@ func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*
 	if err := json.Unmarshal(detail, &d); err != nil {
 		return nil, fmt.Errorf("backup job %d: detail: %w", j.ID, err)
 	}
-	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable}, nil
+	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable, HostKeyUntrusted: d.HostKeyUntrusted}, nil
 }
 
 // refreshStatus computes a VM's status now and stores it; a change is recorded with its reason.

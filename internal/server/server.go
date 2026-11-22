@@ -199,6 +199,8 @@ type Server struct {
 	sandboxCap sandboxState                     // the sandbox helper's slots (testqueue.go)
 	images     imagesReservation                // the running tests' restored disks (testqueue.go)
 	capCache   capacityCache                    // the proof capacity's inputs (capacityview.go)
+	whatIfRate rateLimiter                      // what-if calls per session (ADR-007 C13)
+	capWatch   capacityWatch                    // capacity_short (capacitywatch.go)
 	testRun    func(context.Context, store.Job) // runs a restore test job; nil: runTest (tests set it)
 	recomputed recomputeState                   // the status table's newest full recompute (statuscache.go)
 	handler    http.Handler
@@ -505,7 +507,7 @@ type apiError struct {
 	// unauthorized, session_ended, forbidden, step_up_required, step_up_failed, idp_unreachable, signin_refused,
 	// password_change_required, not_found, conflict, invalid, not_implemented, internal, unavailable, too_many_requests
 	Code   string `json:"code"`
-	Reason string `json:"reason,omitempty"` // session_ended: why (idle, absolute, ...); password_change_required: why; too_many_requests: account_paused or delay
+	Reason string `json:"reason,omitempty"` // session_ended: why (idle, absolute, ...); password_change_required: why; too_many_requests: account_paused, delay or rate_limited
 }
 
 var errNotImplemented = errors.New("not implemented in this version")
@@ -580,7 +582,7 @@ func statusOf(err error) (int, string) {
 		return http.StatusNotImplemented, "not_implemented"
 	case errors.Is(err, errHost):
 		return http.StatusBadGateway, "host"
-	case errors.Is(err, errTooManyLogins):
+	case errors.Is(err, errTooManyLogins), errors.Is(err, errRateLimited):
 		return http.StatusTooManyRequests, "too_many_requests"
 	case errors.Is(err, errStepUpRequired):
 		return http.StatusForbidden, "step_up_required"
@@ -671,7 +673,7 @@ func (s *Server) serve(rt *route) http.Handler {
 				s.log.Error("request failed", "route", rt.method+" "+rt.path, "user", c.user.Username, "error", err)
 			}
 			msg := err.Error()
-			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins,
+			for _, e := range []error{store.ErrInvalid, store.ErrConflict, store.ErrNotFound, errUnauthorized, errNotImplemented, errHost, errTooManyLogins, errRateLimited,
 				errStepUpRequired, errStepUpFailed, errIdPUnreachable, errSignin, errForbidden, errWebAuthnOff} {
 				msg = strings.TrimPrefix(msg, e.Error()+": ") // the code says it already
 			}
@@ -682,6 +684,9 @@ func (s *Server) serve(rt *route) http.Handler {
 			ae := apiError{Error: msg, Code: name}
 			if we := (*waitError)(nil); errors.As(err, &we) {
 				ae.Reason = we.reason()
+			}
+			if re := (*rateError)(nil); errors.As(err, &re) {
+				ae.Reason = "rate_limited"
 			}
 			writeJSON(rec, code, ae)
 		case c.raw:

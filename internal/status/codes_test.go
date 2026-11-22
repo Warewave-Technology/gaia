@@ -16,7 +16,7 @@ var updateDoc = flag.Bool("update", false, "rewrite docs/reason-codes.md")
 // causes widens a combination with what the codes tell apart: why backups stopped, which check failed, why a test
 // could not run.
 type causes struct {
-	backup  string // none, unreachable, failed
+	backup  string // none, unreachable, untrusted (the host key was never trusted), failed
 	check   string // boot, stable, ssh
 	sandbox bool
 	full    bool // the newest checked point is a full backup for a reason
@@ -28,6 +28,8 @@ func (k causes) apply(in Input) Input {
 	switch k.backup {
 	case "unreachable":
 		in.FailedBackup = &Backup{JobID: 40, FinishedAt: ago(30), Error: "SSH to gaia@kvm-07: dial tcp: i/o timeout", Unreachable: true}
+	case "untrusted":
+		in.FailedBackup = &Backup{JobID: 42, FinishedAt: ago(30), Error: "the host's SSH key is not trusted yet", HostKeyUntrusted: true}
 	case "failed":
 		in.FailedBackup = &Backup{JobID: 41, FinishedAt: ago(30), Error: "libvirt: domain is not running"}
 	}
@@ -54,7 +56,7 @@ func (k causes) apply(in Input) Input {
 
 func allCauses() []causes {
 	var out []causes
-	for _, b := range []string{"none", "unreachable", "failed"} {
+	for _, b := range []string{"none", "unreachable", "untrusted", "failed"} {
 		for _, c := range []string{"boot", "stable", "ssh"} {
 			for _, s := range []bool{false, true} {
 				for _, full := range []bool{false, true} {
@@ -75,7 +77,7 @@ func TestReasonCodes(t *testing.T) {
 		if !ok {
 			t.Fatalf("%v %+v: reason without a code from the list: %+v", c, k, x)
 		}
-		if note != (d.Status == "") || x.Status != d.Status || x.Rule != d.Rule {
+		if note != (d.Status == "") || !d.Allows(x.Status, x.Rule) {
 			t.Fatalf("%v %+v: %s has status %q rule %q, its definition %q %q", c, k, x.Code, x.Status, x.Rule, d.Status, d.Rule)
 		}
 		if x.Scope != nil && x.Scope.Kind != d.Scope {
@@ -101,9 +103,10 @@ func TestReasonCodes(t *testing.T) {
 					t.Fatalf("%v %+v: note %q is not its reason's text %q", c, k, r.Notes[i], x.Text)
 				}
 			}
-			// The scope is the shared cause: a host only for an unreachable host, the sandbox only when it was down.
+			// The scope is the shared cause: a host only for an unreachable or untrusted host, the sandbox only when it
+			// was down.
 			for _, x := range append(slices.Clone(r.Reasons), r.NoteReasons...) {
-				if (x.Code == HostUnreachable) != (x.Scope != nil && x.Scope.Kind == ScopeHost) ||
+				if (x.Code == HostUnreachable || x.Code == HostKeyUntrusted) != (x.Scope != nil && x.Scope.Kind == ScopeHost) ||
 					(x.Code == TestNotRun && (x.Scope != nil) != k.sandbox) {
 					t.Fatalf("%v %+v: %s with scope %+v", c, k, x.Code, x.Scope)
 				}
@@ -177,12 +180,15 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 |---|---|---|---|---|---|---|
 `, CodesVersion)
 	for _, d := range Defs() {
-		st, rule, scope := d.Status, d.Rule, d.Scope
+		st, rule, scope := d.Status, "`"+d.Rule+"`", d.Scope
+		for _, v := range d.Also {
+			st, rule = st+", "+v.Status, rule+", `"+v.Rule+"`"
+		}
 		if st == "" {
 			st = "note"
 		}
-		if rule == "" {
-			rule = "-"
+		if d.Rule == "" {
+			rule = "`-`"
 		}
 		if scope == "" {
 			scope = "-"
@@ -191,7 +197,7 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 		if len(d.Params) > 0 {
 			params = "`" + strings.Join(d.Params, "`, `") + "`"
 		}
-		fmt.Fprintf(&b, "| `%s` | %s | `%s` | %s | %s | %s | %s |\n", d.Code, st, rule, scope, params, d.Cause, d.Means)
+		fmt.Fprintf(&b, "| `%s` | %s | %s | %s | %s | %s | %s |\n", d.Code, st, rule, scope, params, d.Cause, d.Means)
 	}
 	const path = "../../docs/reason-codes.md"
 	if *updateDoc {

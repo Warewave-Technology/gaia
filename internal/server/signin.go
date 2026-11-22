@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 
@@ -108,7 +109,7 @@ type SigninStep struct {
 	WebAuthn any      `json:"webauthn,omitempty"`
 	// enrol: the kinds the user may enrol (an admin: webauthn only).
 	Enrol []string `json:"enrol,omitempty"`
-	// change_password: why (admin_reset, blocklist, expired).
+	// change_password: why (admin_reset, blocklist, too_short, expired).
 	PasswordChange string `json:"password_change,omitempty"`
 	// done.
 	Token          string      `json:"token,omitempty"` // a CLI session's token (a browser's is in the cookie)
@@ -279,6 +280,14 @@ func (s *Server) login(c *call) (int, any, error) {
 	case u.Expired(now):
 		c.detail = "sign-in refused: the account expired at " + u.ExpiresAt
 		return 0, nil, fmt.Errorf("%w: the account expired at %s: an admin can renew it", errSignin, u.ExpiresAt)
+	}
+	// A password shorter than the minimum was set before 0.2.0 (every later one is refused): it must change at this
+	// sign-in, the way a blocklisted one does (ADR-008 amendment 5). Only now is its length known.
+	if u.PasswordChange == "" && utf8.RuneCountInString(in.Password) < auth.MinPasswordLength {
+		if err := s.db.MustChangePassword(ctx, u.ID, store.PasswordChangeTooShort); err != nil {
+			return 0, nil, err
+		}
+		u.PasswordChange = store.PasswordChangeTooShort
 	}
 	// A password on a newer blocklist must change (§6): only now is it known in clear.
 	if !u.BlocklistChecked() && u.PasswordChange == "" {

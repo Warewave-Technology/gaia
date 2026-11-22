@@ -281,14 +281,23 @@ type LedgerCheck struct {
 	HeadSeq    int      `json:"head_seq"`
 	HeadSHA256 string   `json:"head_sha256"`
 	Problems   []string `json:"problems"`
+	// Kind (ADR-007 C14): incremental (the entries since the last check, and the link to the last checked entry) or
+	// full (every entry and bundle).
+	Kind string `json:"kind"`
 }
 
-const ledgerCheckCols = `id, checked_at, reason, verdict, entries, head_seq, head_sha256, problems`
+// Ledger check kinds.
+const (
+	LedgerCheckIncremental = "incremental"
+	LedgerCheckFull        = "full"
+)
+
+const ledgerCheckCols = `id, checked_at, reason, verdict, entries, head_seq, head_sha256, problems, kind`
 
 func scanLedgerCheck(s interface{ Scan(...any) error }) (LedgerCheck, error) {
 	var c LedgerCheck
 	var problems string
-	if err := s.Scan(&c.ID, &c.CheckedAt, &c.Reason, &c.Verdict, &c.Entries, &c.HeadSeq, &c.HeadSHA256, &problems); err != nil {
+	if err := s.Scan(&c.ID, &c.CheckedAt, &c.Reason, &c.Verdict, &c.Entries, &c.HeadSeq, &c.HeadSHA256, &problems, &c.Kind); err != nil {
 		return c, err
 	}
 	return c, json.Unmarshal([]byte(problems), &c.Problems)
@@ -298,6 +307,9 @@ func scanLedgerCheck(s interface{ Scan(...any) error }) (LedgerCheck, error) {
 func (d *DB) AddLedgerCheck(ctx context.Context, actor string, c LedgerCheck) (LedgerCheck, error) {
 	if c.Problems == nil {
 		c.Problems = []string{}
+	}
+	if c.Kind != LedgerCheckIncremental && c.Kind != LedgerCheckFull {
+		return c, fmt.Errorf("%w: ledger check kind %q (incremental or full)", ErrInvalid, c.Kind)
 	}
 	problems, err := json.Marshal(c.Problems)
 	if err != nil {
@@ -309,8 +321,8 @@ func (d *DB) AddLedgerCheck(ctx context.Context, actor string, c LedgerCheck) (L
 		if err := tx.QueryRowContext(ctx, `SELECT verdict FROM ledger_checks ORDER BY id DESC LIMIT 1`).Scan(&last); err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
-		r, err := tx.ExecContext(ctx, `INSERT INTO ledger_checks (checked_at, reason, verdict, entries, head_seq, head_sha256, problems)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`, d.ts(), c.Reason, c.Verdict, c.Entries, c.HeadSeq, c.HeadSHA256, string(problems))
+		r, err := tx.ExecContext(ctx, `INSERT INTO ledger_checks (checked_at, reason, verdict, entries, head_seq, head_sha256, problems, kind)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, d.ts(), c.Reason, c.Verdict, c.Entries, c.HeadSeq, c.HeadSHA256, string(problems), c.Kind)
 		if err != nil {
 			return err
 		}
@@ -333,6 +345,20 @@ func (d *DB) AddLedgerCheck(ctx context.Context, actor string, c LedgerCheck) (L
 }
 
 // LedgerChecks lists the newest ledger checks first.
+// AnyTestPassed says whether any restore test ever passed (ADR-007 C14: then the ledger must have entries).
+func (d *DB) AnyTestPassed(ctx context.Context) (bool, error) {
+	var ok bool
+	err := d.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM restore_tests WHERE verdict = 'OK' AND finished_at != '')`).Scan(&ok)
+	return ok, err
+}
+
+// OldestBundleAfter is when the first evidence bundle after ledger entry seq was recorded.
+func (d *DB) OldestBundleAfter(ctx context.Context, seq int) (string, error) {
+	var at string
+	err := d.db.QueryRowContext(ctx, `SELECT created_at FROM evidence_bundles WHERE ledger_seq > ? ORDER BY ledger_seq LIMIT 1`, seq).Scan(&at)
+	return at, err
+}
+
 // LedgerHead is the newest ledger entry an evidence bundle recorded (0: none yet).
 func (d *DB) LedgerHead(ctx context.Context) (int, error) {
 	var n int

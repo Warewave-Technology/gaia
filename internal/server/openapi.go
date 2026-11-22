@@ -209,6 +209,14 @@ func (g *schemaGen) schema(t reflect.Type) map[string]any {
 					jname = f.Name
 				}
 				props[jname] = g.schema(f.Type)
+				if why, ok := f.Tag.Lookup("deprecated"); ok { // a field kept for older clients (ADR-007 C11)
+					p := map[string]any{}
+					for k, v := range props[jname].(map[string]any) {
+						p[k] = v
+					}
+					p["deprecated"], p["description"] = true, "Deprecated: "+why
+					props[jname] = p
+				}
 				if !strings.Contains(opts, "omitempty") {
 					required = append(required, jname)
 				}

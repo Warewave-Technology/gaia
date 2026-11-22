@@ -53,6 +53,7 @@ const AuditorMaxAge = 30 * 24 * time.Hour
 const (
 	PasswordChangeAdminReset = "admin_reset" // an admin set the password
 	PasswordChangeBlocklist  = "blocklist"   // the password is on a newer blocklist
+	PasswordChangeTooShort   = "too_short"   // shorter than 15 characters, set before 0.2.0 (ADR-008 amendment 5)
 )
 
 // argon2id parameters (RFC 9106 §4, the second recommended option, with 64 MiB of memory).
@@ -528,7 +529,11 @@ func (d *DB) MustChangePassword(ctx context.Context, id int64, why string) error
 		if _, err := tx.ExecContext(ctx, `UPDATE users SET password_change = ?, updated_at = ? WHERE id = ?`, why, d.ts(), id); err != nil {
 			return err
 		}
-		return d.recordState(ctx, tx, "user_password", id, "set", "must change: "+why, "the password is on the blocklist "+auth.BlocklistVersion, "system")
+		what := "the password is on the blocklist " + auth.BlocklistVersion
+		if why == PasswordChangeTooShort {
+			what = fmt.Sprintf("the password is shorter than %d characters (set before 0.2.0)", MinPasswordLength)
+		}
+		return d.recordState(ctx, tx, "user_password", id, "set", "must change: "+why, what, "system")
 	})
 }
 

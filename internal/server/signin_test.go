@@ -529,7 +529,7 @@ func TestADR008Local(t *testing.T) {
 		f.tokens[store.RoleOperator], f.tokens[store.RoleAdmin], f.tokens[store.RoleAuditor] = op, admin, aud
 	})
 
-	t.Run("§6 forced change after an admin's reset and after a blocklist update", func(t *testing.T) {
+	t.Run("§6 forced change after an admin's reset, after a blocklist update, and for a short password from before 0.2.0", func(t *testing.T) {
 		u := f.newUser("forced1", store.RoleOperator)
 		f.signIn("forced1")
 		path := fmt.Sprintf("/api/v1/users/%d", u.ID)
@@ -550,6 +550,24 @@ func TestADR008Local(t *testing.T) {
 		f.call("", "POST", "/api/v1/login/factor", string(body), nil, &st)
 		if st.Stage != stagePassword || st.PasswordChange != store.PasswordChangeBlocklist {
 			t.Fatalf("a password on a newer blocklist: %+v", st)
+		}
+		// A password shorter than 15 characters set before 0.2.0 (ADR-008 amendment 5): changed at the first sign-in
+		// after the upgrade, the same way, even when the blocklist check was done already; the session needs the new one.
+		h, _ = store.HashPassword("short-pw-0.1.2")
+		f.s.db.SQL().Exec(`UPDATE users SET password_hash = ?, password_change = '' WHERE id = ?`, h, u.ID)
+		f.s.db.NoteBlocklistChecked(context.Background(), u.ID)
+		_, _, st = f.password("forced1", "short-pw-0.1.2", "")
+		body, _ = json.Marshal(FactorAnswer{SigninToken: st.SigninToken, Method: "webauthn", WebAuthn: f.keys["forced1"].get(t, st.WebAuthn)})
+		f.call("", "POST", "/api/v1/login/factor", string(body), nil, &st)
+		if st.Stage != stagePassword || st.PasswordChange != store.PasswordChangeTooShort || st.Token != "" {
+			t.Fatalf("a short password from before 0.2.0: %+v", st)
+		}
+		if cs, _ := f.s.db.StateChanges(context.Background(), "user_password", u.ID, 0, 100); len(cs) == 0 || cs[len(cs)-1].To != "must change: too_short" {
+			t.Fatalf("recorded: %+v", cs)
+		}
+		var done SigninStep
+		if c, _ := f.call("", "POST", "/api/v1/login/password", fmt.Sprintf(`{"signin_token":%q,"new_password":"a long enough new password"}`, st.SigninToken), nil, &done); c != 200 || done.Stage != stageDone {
+			t.Fatalf("the new password: %d %+v", c, done)
 		}
 	})
 

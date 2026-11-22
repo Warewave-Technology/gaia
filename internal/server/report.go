@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -43,8 +43,12 @@ type DailyReportDoc struct {
 	LastRebuild   *ReportRebuild    `json:"last_rebuild"` // the newest rebuild from a recovery kit (restore-state); null: never
 	Notifications NotifySummary     `json:"notifications"`
 	Security      ReportSecurity    `json:"security"` // sign-in and security since the previous report (ADR-008 §1, §10)
-	HowToVerify   string            `json:"how_to_verify"`
-	Problems      []string          `json:"problems"` // what the report could not say
+	// OK <-> WARNING changes since the previous report that were not sent at once (ADR-007 C12).
+	QuietChanges ReportQuiet `json:"quiet_status_changes"`
+	// The proof capacity: short now, and its drops below 100 % since the previous report (ADR-007 C13).
+	Capacity    ReportCapacity `json:"proof_capacity"`
+	HowToVerify string         `json:"how_to_verify"`
+	Problems    []string       `json:"problems"` // what the report could not say
 }
 
 // ReportSecurity is what changed in sign-in and security since the previous report: settings, break-glass and
@@ -53,6 +57,68 @@ type ReportSecurity struct {
 	Since     string              `json:"since"` // the previous report ("" = the first report)
 	Changes   []store.StateChange `json:"changes"`
 	TokenUses []ReportTokenUse    `json:"api_token_uses"`
+}
+
+// ReportQuiet counts the VM status changes ADR-007 C12 keeps out of the immediate notifications: OK <-> WARNING
+// whose only reasons are proven_rpo_over_target or proof_too_old, on a policy whose VMs can be OK only part of the
+// time.
+type ReportQuiet struct {
+	Since    string            `json:"since"` // the previous report ("" = the first report)
+	Changes  int               `json:"changes"`
+	VMs      int               `json:"vms"`
+	Policies []ReportQuietPart `json:"policies"`
+}
+
+// ReportQuietPart is one policy's share of them.
+type ReportQuietPart struct {
+	Policy        string  `json:"policy"`
+	Changes       int     `json:"changes"`
+	MaxOKFraction float64 `json:"max_ok_fraction"`
+}
+
+// quietChanges counts the quiet status changes after since.
+func (s *Server) quietChanges(ctx context.Context, since string) (ReportQuiet, error) {
+	out := ReportQuiet{Since: since, Policies: []ReportQuietPart{}}
+	chs, err := s.db.VMStatusChangesSince(ctx, since)
+	if err != nil {
+		return out, err
+	}
+	fracs := map[int64]float64{}
+	vms := map[int64]store.VM{}
+	byPolicy := map[int64]int{}
+	seen := map[int64]bool{}
+	for _, sc := range chs {
+		vm, ok := vms[sc.EntityID]
+		if !ok {
+			if vm, err = s.db.VM(ctx, sc.EntityID); errors.Is(err, store.ErrNotFound) {
+				continue // removed since
+			} else if err != nil {
+				return out, err
+			}
+			vms[sc.EntityID] = vm
+		}
+		quiet, err := s.quietStatusChange(ctx, sc, vm, fracs)
+		if err != nil {
+			return out, err
+		}
+		if quiet {
+			out.Changes++
+			byPolicy[*vm.PolicyID]++
+			if !seen[vm.ID] {
+				seen[vm.ID] = true
+				out.VMs++
+			}
+		}
+	}
+	for id, n := range byPolicy {
+		p, err := s.db.Policy(ctx, id)
+		if err != nil {
+			return out, err
+		}
+		out.Policies = append(out.Policies, ReportQuietPart{Policy: p.Name, Changes: n, MaxOKFraction: fracs[id]})
+	}
+	slices.SortFunc(out.Policies, func(a, b ReportQuietPart) int { return strings.Compare(a.Policy, b.Policy) })
+	return out, nil
 }
 
 // ReportTokenUse is an API token's use on its last day of use.
@@ -78,7 +144,7 @@ type ReportVM struct {
 	VM             string        `json:"vm"`
 	Status         string        `json:"status"`
 	Since          string        `json:"since"`
-	Reason         string        `json:"reason"`
+	Reason         string        `json:"reason" deprecated:"kept for M2 scripts; the UI builds its sentence from code, scope and params (ADR-007 C11)"`
 	Code           string        `json:"code"`  // the deciding reason's code (docs/reason-codes.md)
 	Scope          *status.Scope `json:"scope"` // its shared cause, if any
 	Codes          []string      `json:"codes"` // every reason's code, worst first
@@ -97,13 +163,6 @@ type NotifySummary struct {
 	Failing  []string `json:"failing"`
 }
 
-// LedgerSummary is the latest ledger check.
-type LedgerSummary struct {
-	store.LedgerCheck
-	Unchecked int    `json:"unchecked"` // entries sealed after this check: not vouched for until the next one
-	Text      string `json:"text"`
-}
-
 const howToVerify = `Keep this report. To check the evidence ledger later against the head recorded here, with the installation's ` +
 	`evidence public key (the trust anchor) and an export of the ledger and bundles:  gaia evidence verify -pubkey anchor.pub ` +
 	`-ledger ledger.jsonl -evidence-dir bundles -head THIS-REPORT.json  -- a ledger cut off or rewritten after this report is CRITICAL ` +
@@ -115,53 +174,6 @@ func loadPub(c Config) (string, error) {
 		return "", err
 	}
 	return evidence.KeyID(pub), nil
-}
-
-// checkLedger verifies the evidence ledger and every bundle against the installation's key, the head of the latest
-// daily report, and the catalog (which knows the highest entry a bundle got), and records the result.
-func (s *Server) checkLedger(ctx context.Context, actor, reason string) (store.LedgerCheck, error) {
-	s.ledgerMu.Lock()
-	defer s.ledgerMu.Unlock()
-	c := store.LedgerCheck{Reason: reason, Problems: []string{}}
-	pub, err := evidence.LoadPublicKey(s.cfg.pubPath())
-	if err != nil {
-		return c, fmt.Errorf("the evidence key: %w", err)
-	}
-	var heads [][]byte
-	if rs, err := s.db.DailyReports(ctx, 1); err != nil {
-		return c, err
-	} else if len(rs) == 1 && string(rs[0].LedgerHead) != "null" {
-		heads = append(heads, rs[0].LedgerHead)
-	}
-	catalog, err := s.db.MaxEvidenceLedgerSeq(ctx)
-	if err != nil {
-		return c, err
-	}
-	_, statErr := os.Stat(s.cfg.ledgerPath())
-	switch {
-	case errors.Is(statErr, fs.ErrNotExist) && catalog == 0 && len(heads) == 0:
-		c.Verdict = evidence.OK // nothing was ever sealed: there is nothing to check yet
-		c.Reason += " (no evidence yet)"
-	default:
-		r, err := evidence.VerifyLedgerHeads(s.cfg.ledgerPath(), s.cfg.bundlesDir(), pub, heads)
-		if err != nil {
-			c.Verdict = evidence.Unknown
-			c.Problems = append(c.Problems, "the ledger cannot be read: "+err.Error())
-			break
-		}
-		c.Verdict, c.Entries = r.Verdict, r.Entries
-		for _, f := range r.AllFindings() {
-			c.Problems = append(c.Problems, strings.TrimPrefix(fmt.Sprintf("%s: %s: %s", f.Where, f.Code, f.Detail), ": "))
-		}
-		if catalog > r.Entries {
-			c.Verdict = evidence.Critical
-			c.Problems = append(c.Problems, fmt.Sprintf("ledger_truncated: the catalog records a bundle at entry %d, the ledger has %d entries", catalog, r.Entries))
-		}
-		if r.Entries > 0 {
-			c.HeadSeq, c.HeadSHA256 = r.Entries, lastEntryHash(s.cfg.ledgerPath())
-		}
-	}
-	return s.db.AddLedgerCheck(context.WithoutCancel(ctx), actor, c)
 }
 
 // lastEntryHash is the entry hash of the ledger's last line ("" if it cannot be read).
@@ -209,7 +221,7 @@ func (s *Server) dailyReportIfDue(ctx context.Context, now time.Time) error {
 func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (store.DailyReport, error) {
 	s.reportMu.Lock()
 	defer s.reportMu.Unlock()
-	lc, err := s.checkLedger(ctx, actor, "daily report")
+	lc, err := s.checkLedger(ctx, actor, "daily report", store.LedgerCheckFull)
 	if err != nil {
 		return store.DailyReport{}, fmt.Errorf("ledger check: %w", err)
 	}
@@ -270,6 +282,12 @@ func (s *Server) makeDailyReport(ctx context.Context, actor, reason string) (sto
 		return store.DailyReport{}, err
 	}
 	if doc.Security.Changes, err = s.db.SecurityChanges(ctx, doc.Security.Since); err != nil {
+		return store.DailyReport{}, err
+	}
+	if doc.QuietChanges, err = s.quietChanges(ctx, doc.Security.Since); err != nil {
+		return store.DailyReport{}, err
+	}
+	if doc.Capacity, err = s.reportCapacity(ctx, doc.Security.Since); err != nil {
 		return store.DailyReport{}, err
 	}
 	toks, err := s.db.APITokens(ctx)
@@ -360,6 +378,21 @@ func reportText(d DailyReportDoc) string {
 			fmt.Fprintf(&b, "  %s  %s: %s (by %s)\n", c.At, c.Entity, c.Reason, c.Actor)
 		}
 	}
+	switch c := d.Capacity; {
+	case c.Now != nil:
+		fmt.Fprintf(&b, "\nProof capacity is short since %s: %s (dropped below 100 %% %d time(s) since the previous report).\n", c.Now.Since, c.Now.Text, c.Drops)
+	case c.Drops > 0:
+		fmt.Fprintf(&b, "\nProof capacity dropped below 100 %% %d time(s) since the previous report; it is enough now.\n", c.Drops)
+	}
+	if q := d.QuietChanges; q.Changes > 0 {
+		var parts []string
+		for _, p := range q.Policies {
+			parts = append(parts, fmt.Sprintf("%s %d (OK at most %.0f %% of the time)", p.Policy, p.Changes, p.MaxOKFraction*100))
+		}
+		fmt.Fprintf(&b, "\nNot sent at once: %d OK <-> WARNING changes of %d VM(s) whose only reason is the proof's age, on policies "+
+			"whose VMs can be OK only part of the time: %s. A shorter test interval would make OK possible (the policy says which).\n",
+			q.Changes, q.VMs, strings.Join(parts, ", "))
+	}
 	for _, u := range d.Security.TokenUses {
 		fmt.Fprintf(&b, "API token %s: used %d times on %s\n", u.Name, u.Count, u.Day)
 	}
@@ -410,31 +443,6 @@ func (s *Server) notifySummary(ctx context.Context) (NotifySummary, error) {
 	return out, nil
 }
 
-// ledgerSummary is the latest ledger check, for the system info.
-func (s *Server) ledgerSummary(ctx context.Context) (LedgerSummary, error) {
-	cs, err := s.db.LedgerChecks(ctx, 1)
-	if err != nil {
-		return LedgerSummary{}, err
-	}
-	if len(cs) == 0 {
-		return LedgerSummary{LedgerCheck: store.LedgerCheck{Verdict: evidence.Unknown, Problems: []string{}}, Text: "the evidence ledger was not checked yet"}, nil
-	}
-	l := LedgerSummary{LedgerCheck: cs[0]}
-	head, err := s.db.LedgerHead(ctx)
-	if err != nil {
-		return LedgerSummary{}, err
-	}
-	l.Unchecked = max(0, head-cs[0].HeadSeq)
-	l.Text = fmt.Sprintf("%s at %s: %d entries", cs[0].Verdict, cs[0].CheckedAt, cs[0].Entries)
-	if len(cs[0].Problems) > 0 {
-		l.Text += ": " + strings.Join(cs[0].Problems, "; ")
-	}
-	if l.Unchecked > 0 {
-		l.Text += fmt.Sprintf("; %d newer not checked yet", l.Unchecked)
-	}
-	return l, nil
-}
-
 // --- API handlers ---
 
 // LedgerInfo is the latest ledger check and the recent ones.
@@ -457,7 +465,7 @@ func (s *Server) ledgerInfo(c *call) (int, any, error) {
 }
 
 func (s *Server) verifyLedger(c *call) (int, any, error) {
-	return one(s.checkLedger(c.r.Context(), c.user.Username, "requested by "+c.user.Username))
+	return one(s.checkLedger(c.r.Context(), c.user.Username, "requested by "+c.user.Username, store.LedgerCheckIncremental))
 }
 
 func (s *Server) createDailyReport(c *call) (int, any, error) {
