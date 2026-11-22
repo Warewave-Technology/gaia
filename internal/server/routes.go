@@ -169,7 +169,7 @@ func (s *Server) table() []route {
 			in: EnrolBegin{}, out: EnrolChallenge{}, example: `{"signin_token":"none","kind":"totp"}`, h: s.loginEnrol},
 		{method: "POST", path: "/api/v1/login/enrol/finish", summary: "Sign-in step: the authenticator's answer; the answer carries the recovery codes once",
 			roles: public, in: EnrolFinish{}, out: SigninStep{}, example: `{"signin_token":"none","kind":"totp","code":"000000"}`, h: s.loginEnrolFinish},
-		{method: "POST", path: "/api/v1/login/password", summary: "Sign-in step: a new password (expired, reset by an admin, or on the blocklist)",
+		{method: "POST", path: "/api/v1/login/password", summary: "Sign-in step: a new password (expired, reset by an admin, on the blocklist, or shorter than 15 characters from before 0.2.0)",
 			roles: public, in: NewPassword{}, out: SigninStep{}, example: `{"signin_token":"none","new_password":"x"}`, h: s.loginPassword},
 		{method: "POST", path: "/api/v1/login/cli", summary: "Start a CLI sign-in that a signed-in browser approves (gaia login -browser)", roles: public,
 			in: CLIApprovalStart{}, out: DeviceChallenge{}, example: `{}`, h: s.cliApprovalStart},

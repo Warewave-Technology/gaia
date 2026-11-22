@@ -9419,7 +9419,7 @@
           }
         },
         "security": [],
-        "summary": "Sign-in step: a new password (expired, reset by an admin, or on the blocklist)",
+        "summary": "Sign-in step: a new password (expired, reset by an admin, on the blocklist, or shorter than 15 characters from before 0.2.0)",
         "tags": [
           "session"
         ],
