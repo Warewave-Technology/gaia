@@ -164,7 +164,9 @@ async function main() {
     await c.send('Page.navigate', { url: base + '/' })
     const ms = await waitFor(c, `(() => {
       const nav = performance.getEntriesByType('navigation')[0]
-      const rows = document.querySelectorAll('[data-table] tbody tr').length
+      // v3 (docs/design/v3): the overview opens on its first tab's data-table (Needs attention), the VM table is a tab
+      const dt = document.querySelector('main [data-table]:not([data-rows="0"])')
+      const rows = dt ? Number(dt.dataset.rows) : 0
       const h1 = document.querySelector('h1')
       if (!nav || !h1 || rows === 0) return 0
       if (!window.__gaiaReady) {
