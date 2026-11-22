@@ -1,0 +1,8 @@
+d77a82554d16
+/usr/bin/python3
+catalog generated in 373 s
+Running as unit: gaia-t27c.service
+{"now": "2026-11-22T21:04:39.171162153Z", "vms": 5000, "hosts": 100, "points": 2931617, "present_points": 86609, "jobs": 3778509, "tests": 845967}
+time=2026-11-22T21:10:55.376Z level=INFO msg="gaia server is listening" address=[::]:18450 version="t27c-d77a82554d16 (d77a82554d16+modified)" schema=13
+time=2026-11-22T21:11:33.120Z level=INFO msg="status table recomputed" reason=start vms=5000 changed=703 seconds=31.408470042 errors=0
+signed in as admin until 2026-11-23T05:11:33.60019962Z (2026-11-22T21:11:33Z)

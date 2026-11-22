@@ -1,0 +1,108 @@
+{
+  "catalog": {
+    "now": "2026-11-22T20:24:37.105257Z",
+    "vms": 2000,
+    "hosts": 40,
+    "policies": 5,
+    "repositories": 2,
+    "points": 1172382,
+    "present_points": 34970,
+    "jobs": 1508069,
+    "tests": 334649,
+    "state_changes": 1508069,
+    "tags": 4468,
+    "seeded": {
+      "backup_failing": 4,
+      "full_backup": 7,
+      "guest_rebooted": 3,
+      "host_unreachable": 100,
+      "never_proven": 45,
+      "no_policy": 2,
+      "proof_too_old": 98,
+      "repo_content_damaged": 9,
+      "rto_over_target": 16,
+      "test_failed_boot": 16,
+      "test_failed_check": 2,
+      "test_not_run": 11,
+      "test_warning": 6
+    },
+    "seconds": 37.380212167
+  },
+  "cpus": 18,
+  "fill_s": 37.380212875,
+  "go": "go1.27.1",
+  "goarch": "arm64",
+  "goos": "darwin",
+  "runs": {
+    "after (C11)": [
+      {
+        "batch": 50,
+        "pause_ms": 5,
+        "recompute_s": 3.247657333,
+        "requests_during": 372,
+        "p50_ms": 7.645,
+        "p95_ms": 12.601,
+        "max_ms": 15.837,
+        "idle_p95_ms": 9.556,
+        "changed": 1
+      },
+      {
+        "batch": 50,
+        "pause_ms": 5,
+        "recompute_s": 3.333184667,
+        "requests_during": 378,
+        "p50_ms": 7.714,
+        "p95_ms": 12.738,
+        "max_ms": 15.187,
+        "idle_p95_ms": 9.637,
+        "changed": 2
+      },
+      {
+        "batch": 50,
+        "pause_ms": 5,
+        "recompute_s": 3.237881417,
+        "requests_during": 368,
+        "p50_ms": 7.665,
+        "p95_ms": 12.696,
+        "max_ms": 13.934,
+        "idle_p95_ms": 9.309,
+        "changed": 0
+      }
+    ],
+    "before (T24: 250 a transaction, no pause)": [
+      {
+        "batch": 250,
+        "pause_ms": 0,
+        "recompute_s": 3.036716917,
+        "requests_during": 330,
+        "p50_ms": 7.886,
+        "p95_ms": 13.219,
+        "max_ms": 24.908,
+        "idle_p95_ms": 9.528,
+        "changed": 0
+      },
+      {
+        "batch": 250,
+        "pause_ms": 0,
+        "recompute_s": 2.953116958,
+        "requests_during": 330,
+        "p50_ms": 7.793,
+        "p95_ms": 12.806,
+        "max_ms": 19.142,
+        "idle_p95_ms": 9.535,
+        "changed": 1
+      },
+      {
+        "batch": 250,
+        "pause_ms": 0,
+        "recompute_s": 2.9839768749999998,
+        "requests_during": 329,
+        "p50_ms": 7.821,
+        "p95_ms": 13.042,
+        "max_ms": 17.338,
+        "idle_p95_ms": 9.45,
+        "changed": 1
+      }
+    ]
+  }
+}

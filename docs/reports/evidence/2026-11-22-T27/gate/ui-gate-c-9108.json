@@ -1,0 +1,565 @@
+{
+  "base": "https://192.168.1.123:18450",
+  "at": "2026-11-22T21:11:46.470Z",
+  "chrome": "Chrome/157.0.8103.79",
+  "ready_limit_ms": 2000,
+  "overview": [
+    {
+      "ready_ms": 345,
+      "rows": 13
+    },
+    {
+      "ready_ms": 277,
+      "rows": 13
+    },
+    {
+      "ready_ms": 282,
+      "rows": 13
+    },
+    {
+      "ready_ms": 280,
+      "rows": 13
+    },
+    {
+      "ready_ms": 279,
+      "rows": 13
+    }
+  ],
+  "screens": [
+    {
+      "route": "/",
+      "marks": 20,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Causes of the VMs that need attention",
+          "rows": 13,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "1,170 of 5,000 VMs can return to a proven point.",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/views/attention?limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/?tab=coverage",
+      "marks": 7,
+      "bars": 25,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Coverage by host",
+          "rows": 25,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "1,170 of 5,000 VMs can return to a proven point.",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/views/coverage?by=host&all=false&limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/?tab=vms",
+      "marks": 32,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "VMs, worst first",
+          "rows": 25,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "1,170 of 5,000 VMs can return to a proven point.",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/fleet",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/hosts",
+        "/api/v1/policies",
+        "/api/v1/views/coverage?by=tag&all=true&limit=200",
+        "/api/v1/views/vm-list?limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/vms/858",
+      "marks": 4,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "mq-dev-0858",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/vms/858?window_h=24",
+        "/api/v1/reason-codes",
+        "/api/v1/views/vm-list?host_id=58&q=mq-dev-0858&limit=50",
+        "/api/v1/views/vm-list?code=test_failed_boot&limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/capacity",
+      "marks": 2,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Demand by OS class",
+          "rows": 2,
+          "page": 25
+        },
+        {
+          "name": "Demand by policy",
+          "rows": 5,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "?UNKNOWNNot known: the sandbox does not answer.",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/capacity?limit=1",
+        "/api/v1/policies",
+        "/api/v1/capacity/what-if"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/activity",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/activity?limit=1"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/activity?tab=all",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 25,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Every job, newest first",
+          "rows": 25,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "0 running, 304 queued",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/activity?limit=1",
+        "/api/v1/hosts",
+        "/api/v1/views/activity?limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/migration",
+      "marks": 1,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Migration check",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/migration"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/evidence",
+      "marks": 1,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Ledger entries",
+          "rows": 1,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "No. Restore tests passed but left no evidence in the ledger.",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/ledger",
+        "/api/v1/daily-reports?limit=1",
+        "/api/v1/views/evidence?limit=25"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/hosts",
+      "marks": 25,
+      "bars": 25,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Hosts",
+          "rows": 25,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "2 unreachable · 0 not trusted yet · 98 OK",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/hosts?limit=200",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/policies",
+      "marks": 0,
+      "bars": 5,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Policies",
+          "rows": 5,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "5 policies · 5 cannot be OK all day",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/policies",
+        "/api/v1/views/coverage?by=policy&all=true&limit=200",
+        "/api/v1/views/repositories?limit=200",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/users"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/repositories",
+      "marks": 2,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Repositories",
+          "rows": 2,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "0 damaged · 2 not verified · 0 OK",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/repositories?limit=25",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/users",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Users",
+          "rows": 1,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "1 user",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/users",
+        "/api/v1/settings/signin",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/security",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "Local accounts, second factor always · 15 min idle · 8 h max",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/settings/signin",
+        "/api/v1/sessions",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
+      ],
+      "unpaged_lists": []
+    },
+    {
+      "route": "/inventory/audit",
+      "marks": 0,
+      "bars": 0,
+      "jobs": 0,
+      "bad": [],
+      "tables": [
+        {
+          "name": "Audit log",
+          "rows": 3,
+          "page": 25
+        }
+      ],
+      "overpage": [],
+      "raw": [],
+      "shown": [],
+      "title": "3 entries",
+      "api": [
+        "/api/v1/me",
+        "/api/v1/system",
+        "/api/v1/views/audit?limit=25",
+        "/api/v1/views/hosts?limit=1",
+        "/api/v1/views/repositories?limit=1",
+        "/api/v1/views/audit?limit=1",
+        "/api/v1/policies",
+        "/api/v1/users"
+      ],
+      "unpaged_lists": []
+    }
+  ],
+  "checks": {
+    "c_overview_ready": {
+      "median_ms": 280,
+      "runs": [
+        345,
+        277,
+        282,
+        280,
+        279
+      ],
+      "pass": true
+    },
+    "d_status_words": {
+      "marks": 149,
+      "job_states": 25,
+      "violations": [],
+      "pass": true
+    },
+    "lists_paged": {
+      "screens": [
+        {
+          "route": "/",
+          "rows": [
+            13
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/?tab=coverage",
+          "rows": [
+            25
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/?tab=vms",
+          "rows": [
+            25
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/vms/858",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/capacity",
+          "rows": [
+            2,
+            5
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/activity",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/activity?tab=all",
+          "rows": [
+            25
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/migration",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/evidence",
+          "rows": [
+            1
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/hosts",
+          "rows": [
+            25
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/policies",
+          "rows": [
+            5
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/repositories",
+          "rows": [
+            2
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/users",
+          "rows": [
+            1
+          ],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/security",
+          "rows": [],
+          "shown": [],
+          "unpaged": []
+        },
+        {
+          "route": "/inventory/audit",
+          "rows": [
+            3
+          ],
+          "shown": [],
+          "unpaged": []
+        }
+      ],
+      "pass": true
+    },
+    "e_one_page_plain_text": {
+      "tables": 12,
+      "over_one_page": [],
+      "raw_text": [],
+      "pass": true
+    }
+  },
+  "verdict": "OK"
+}
