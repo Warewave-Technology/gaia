@@ -6,17 +6,18 @@ import { change, useSettings, useUsers, type User as Account, type UserPatch } f
 import type { User } from '../../api/session'
 import { useSystem } from '../../api/views'
 import { Failed, Loading } from '../../layout/States'
-import { Button, PageHead, Pick, StatusChip } from '../../ui'
+import { Button, by, DataTable, PageHead, Pick, StatusChip, Toolbar, type Column } from '../../ui'
 import s from '../Inventory.module.css'
-import { Confirm, Field, useAction, when } from './common'
+import { Confirm, Field, useAction } from './common'
 
 type T = ReturnType<typeof useT>['inventory']
 
 const after = (iso: string, now: string) => !!iso && Date.parse(iso) > Date.parse(now)
 
 /**
- * The users (admins and auditors read it; only admins change it). Every change is a step-up action (ADR-008 §4):
- * role, disable, factor reset, unlock, renewal and break-glass all go through withStepUp.
+ * The users (admins and auditors read it; only admins change it), one line each in a data-table. A row opens to the
+ * user's facts and every change; the row itself offers only what is pressing (unlock a paused user, renew an
+ * expired auditor). Every change is a step-up action (ADR-008 §4) through withStepUp.
  */
 export function Users({ me }: { me: User }) {
   const t = useT().inventory
@@ -33,14 +34,58 @@ export function Users({ me }: { me: User }) {
   const fmt = serverTime(clock)
   const patch = (x: Account, key: string, body: UserPatch) =>
     act.run(`${key}/${x.id}`, 'PATCH', `/api/v1/users/${x.id}`, (h) => change.patchUser(x.id, body, h))
+  const locked = (x: Account) => after(x.locked_until, clock.now)
+  const expired = (x: Account) => x.role === 'auditor' && !!x.expires_at && !after(x.expires_at, clock.now)
+
+  const cols: Column<Account>[] = [
+    {
+      key: 'user', header: u.cols.user, width: '220px', compare: by((x) => x.username),
+      cell: (x) => (
+        <>
+          <span className={s.name}>{x.username}</span>
+          <span className={s.cellOf}>{u.source(x.source)}{x.break_glass && ` · ${u.breakGlass}`}{x.id === me.id && ` · ${t.users.you}`}</span>
+        </>
+      ),
+    },
+    {
+      key: 'role', header: u.cols.role, width: '175px', compare: by((x) => x.role),
+      cell: (x) => (admin && x.source !== 'oidc' && x.id !== me.id
+        ? <Pick label={u.role} value={x.role} onChange={(role) => patch(x, 'role', { role })} options={roles.map((r) => [r, r] as const)} />
+        : <span className={s.val}>{x.role}</span>),
+    },
+    {
+      key: 'factors', header: u.cols.factors, title: (x) => factors(x, u),
+      cell: (x) => factors(x, u),
+    },
+    { key: 'last', header: u.cols.last, width: '150px', compare: by((x) => x.last_login_at || null), cell: (x) => (x.last_login_at ? fmt.at(x.last_login_at) : t.never) },
+    {
+      key: 'state', header: u.cols.state, title: (x) => stateText(x, locked(x), fmt, u),
+      cell: (x) => (
+        <>
+          {locked(x) && <StatusChip status="WARNING" word={u.word.locked} size="sm" />}
+          {!locked(x) && expired(x) && <StatusChip status="WARNING" word={u.word.expired} size="sm" />}
+          <span>{stateText(x, locked(x), fmt, u)}</span>
+        </>
+      ),
+    },
+  ]
+  if (admin) {
+    cols.push({
+      key: 'action', header: u.cols.action, width: '120px',
+      cell: (x) => (locked(x)
+        ? <Button variant="quiet" className={s.cellBtn} disabled={act.busy === `unlock/${x.id}`}
+          onClick={() => act.run(`unlock/${x.id}`, 'POST', `/api/v1/users/${x.id}/unlock`, (h) => change.unlockUser(x.id, h))}>{u.unlock}</Button>
+        : expired(x)
+          ? <Button variant="quiet" className={s.cellBtn} disabled={act.busy === `renew/${x.id}`} onClick={() => patch(x, 'renew', { expires_at: '' })}>{u.renew}</Button>
+          : null),
+    })
+  }
   return (
     <>
       <PageHead question={u.question} answer={u.answer(q.data.length)} lede={<p>{u.hint}</p>} />
       <section className={s.sec}>
         {admin && (
-          <div className={s.bar}>
-            <Button className={s.end} variant={adding ? 'quiet' : 'primary'} onClick={() => setAdding(!adding)}>{adding ? t.cancel : u.add}</Button>
-          </div>
+          <Toolbar end={<Button variant={adding ? 'quiet' : 'primary'} onClick={() => setAdding(!adding)}>{adding ? t.cancel : u.add}</Button>}>{null}</Toolbar>
         )}
         {adding && settings && (
           <AddUser min={settings.fixed.password_min_length} auditorDays={settings.fixed.auditor_max_days} busy={act.busy === 'add'}
@@ -49,31 +94,21 @@ export function Users({ me }: { me: User }) {
               if (r) setAdding(false)
             }} />
         )}
-        <div className={s.scroll}>
-          <table className={s.tbl}>
-            <thead>
-              <tr>
-                <th scope="col">{u.cols.user}</th>
-                <th scope="col">{u.cols.role}</th>
-                <th scope="col">{u.cols.factors}</th>
-                <th scope="col">{u.cols.last}</th>
-                <th scope="col">{u.cols.state}</th>
-                {admin && <th scope="col"><span className={s.vh}>{t.action}</span></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {q.data.map((x) => (
-                <UserRow key={x.id} x={x} me={me} admin={admin} fmt={fmt} clock={clock} t={t} busy={act.busy}
-                  onRole={(role) => patch(x, 'role', { role })}
-                  onDisable={(disabled) => patch(x, 'disable', { disabled })}
-                  onRenew={() => patch(x, 'renew', { expires_at: '' })}
-                  onBreakGlass={(break_glass) => patch(x, 'bg', { break_glass })}
-                  onReset={() => act.run(`reset/${x.id}`, 'POST', `/api/v1/users/${x.id}/factors/reset`, (h) => change.resetFactors(x.id, h))}
-                  onUnlock={() => act.run(`unlock/${x.id}`, 'POST', `/api/v1/users/${x.id}/unlock`, (h) => change.unlockUser(x.id, h))} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<Account>
+          caption={u.caption}
+          columns={cols}
+          rows={q.data}
+          rowKey={(x) => String(x.id)}
+          minWidth={980}
+          detail={(x) => (
+            <UserDetail x={x} me={me} admin={admin} fmt={fmt} clock={clock} t={t} busy={act.busy} locked={locked(x)}
+              onDisable={(disabled) => patch(x, 'disable', { disabled })}
+              onRenew={() => patch(x, 'renew', { expires_at: '' })}
+              onBreakGlass={(break_glass) => patch(x, 'bg', { break_glass })}
+              onReset={() => act.run(`reset/${x.id}`, 'POST', `/api/v1/users/${x.id}/factors/reset`, (h) => change.resetFactors(x.id, h))}
+              onUnlock={() => act.run(`unlock/${x.id}`, 'POST', `/api/v1/users/${x.id}/unlock`, (h) => change.unlockUser(x.id, h))} />
+          )}
+        />
         {act.outcome}
         <p className={s.foot}>{u.foot}</p>
       </section>
@@ -81,7 +116,16 @@ export function Users({ me }: { me: User }) {
   )
 }
 
-function UserRow({ x, me, admin, fmt, clock, t, busy, onRole, onDisable, onRenew, onBreakGlass, onReset, onUnlock }: {
+function factors(x: Account, u: T['users']) {
+  return x.source === 'oidc' ? u.idpFactor : x.factors.length === 0 ? u.noFactor : x.factors.map(u.factor).join(', ')
+}
+
+function stateText(x: Account, locked: boolean, fmt: Fmt, u: T['users']) {
+  const base = locked ? u.lockedUntil(fmt.at(x.locked_until)) : x.disabled ? u.disabled : u.active
+  return x.password_change ? `${base} · ${u.mustChange(x.password_change)}` : base
+}
+
+function UserDetail({ x, me, admin, fmt, clock, t, busy, locked, onDisable, onRenew, onBreakGlass, onReset, onUnlock }: {
   x: Account
   me: User
   admin: boolean
@@ -89,7 +133,7 @@ function UserRow({ x, me, admin, fmt, clock, t, busy, onRole, onDisable, onRenew
   clock: ServerClock
   t: T
   busy: string | null
-  onRole: (r: string) => void
+  locked: boolean
   onDisable: (d: boolean) => void
   onRenew: () => void
   onBreakGlass: (b: boolean) => void
@@ -97,55 +141,29 @@ function UserRow({ x, me, admin, fmt, clock, t, busy, onRole, onDisable, onRenew
   onUnlock: () => void
 }) {
   const u = t.users
-  const locked = after(x.locked_until, clock.now)
-  const expired = x.role === 'auditor' && !!x.expires_at && !after(x.expires_at, clock.now)
   const sso = x.source === 'oidc'
   const self = x.id === me.id
-  const st = locked ? 'WARNING' : expired ? 'WARNING' : null
   return (
-    <tr className={x.disabled ? s.fg2 : ''}>
-      <th scope="row">
-        <span className={s.name}>{x.username}</span>
-        <span className={s.of}>{u.source(x.source)}{x.break_glass && ` · ${u.breakGlass}`}</span>
-      </th>
-      <td>
-        {admin && !sso && !self ? (
-          <Pick label={u.role} value={x.role} onChange={onRole} options={roles.map((r) => [r, r] as const)} />
-        ) : <span className={s.val}>{x.role}</span>}
-        {sso && <span className={s.of}>{u.roleFromIdP}</span>}
-        {x.role === 'auditor' && x.expires_at && <span className={s.of}>{u.expires(`${fmt.date(x.expires_at)}`)}</span>}
-      </td>
-      <td className={s.fg2}>
-        {sso ? u.idpFactor : x.factors.length === 0 ? u.noFactor : x.factors.map(u.factor).join(', ')}
-      </td>
-      <td className={s.fg2}>{x.last_login_at ? when(fmt, clock, x.last_login_at, t) : t.never}</td>
-      <td>
-        <span className={s.state}>
-          {st && <StatusChip status={st} word={locked ? u.word.locked : u.word.expired} size="sm" />}
-          <span>
-            {locked ? u.lockedUntil(when(fmt, clock, x.locked_until, t)) : x.disabled ? u.disabled : u.active}
-            {x.password_change && ` · ${u.mustChange(x.password_change)}`}
-          </span>
-        </span>
-      </td>
+    <div className={s.facts}>
+      <p>{sso ? u.factsSso(fmt.at(x.created_at)) : u.facts(fmt.at(x.created_at), fmt.at(x.password_changed_at))}</p>
+      {sso && <p>{u.roleFromIdP}</p>}
+      {x.role === 'auditor' && x.expires_at && <p>{after(x.expires_at, clock.now) ? u.expires(fmt.at(x.expires_at)) : u.expired(fmt.at(x.expires_at))}</p>}
       {admin && (
-        <td>
-          <span className={s.acts}>
-            {locked && <Button variant="quiet" disabled={busy === `unlock/${x.id}`} onClick={onUnlock}>{u.unlock}</Button>}
-            {x.role === 'auditor' && <Button variant="quiet" disabled={busy === `renew/${x.id}`} onClick={onRenew}>{u.renew}</Button>}
-            {!sso && x.role === 'admin' && (
-              <Button variant="quiet" disabled={busy === `bg/${x.id}`} onClick={() => onBreakGlass(!x.break_glass)}>
-                {x.break_glass ? u.unmarkBreakGlass : u.markBreakGlass}
-              </Button>
-            )}
-            {!sso && !self && x.factors.length > 0 && (
-              <Confirm label={u.resetFactors} question={u.resetConfirm(x.username)} busy={busy === `reset/${x.id}`} onYes={onReset} />
-            )}
-            {!self && <Button variant="quiet" disabled={busy === `disable/${x.id}`} onClick={() => onDisable(!x.disabled)}>{x.disabled ? u.enable : u.disable}</Button>}
-          </span>
-        </td>
+        <span className={s.inline}>
+          {locked && <Button variant="quiet" disabled={busy === `unlock/${x.id}`} onClick={onUnlock}>{u.unlock}</Button>}
+          {x.role === 'auditor' && <Button variant="quiet" disabled={busy === `renew/${x.id}`} onClick={onRenew}>{u.renew}</Button>}
+          {!sso && x.role === 'admin' && (
+            <Button variant="quiet" disabled={busy === `bg/${x.id}`} onClick={() => onBreakGlass(!x.break_glass)}>
+              {x.break_glass ? u.unmarkBreakGlass : u.markBreakGlass}
+            </Button>
+          )}
+          {!sso && !self && x.factors.length > 0 && (
+            <Confirm label={u.resetFactors} question={u.resetConfirm(x.username)} busy={busy === `reset/${x.id}`} onYes={onReset} />
+          )}
+          {!self && <Button variant="quiet" disabled={busy === `disable/${x.id}`} onClick={() => onDisable(!x.disabled)}>{x.disabled ? u.enable : u.disable}</Button>}
+        </span>
       )}
-    </tr>
+    </div>
   )
 }
 

@@ -1,8 +1,9 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { api } from '../../api/client'
 import type { components } from '../../api/schema'
 import { unwrap } from './errors'
+import { usePages } from './pages'
 import { LIST_REFRESH, usePaged } from './paged'
 
 // The Inventory's tables (T27; docs/design/v2/Inventory.dc.html, Security.dc.html): hosts, policies, repositories,
@@ -28,16 +29,52 @@ export type AuditEntry = components['schemas']['AuditEntry']
 export type SettingsView = components['schemas']['SettingsView']
 export type SettingsUpdate = components['schemas']['SettingsUpdate']
 export type Session = components['schemas']['Session']
+
+/**
+ * ADR-007 C12, from a parallel server change: how much of the time a VM on the policy can be OK at best (0..1) and the
+ * test interval that would make it OK all the time (null: none needed). Optional: a server without the change does
+ * not send them, and the screens then say nothing about it.
+ */
+export type PolicyOK = { max_ok_fraction?: number | null; suggested_test_interval_s?: number | null }
+export type PolicyView = Policy & PolicyOK
+/** The what-if answer with C12's numbers per changed policy, when the server sends them. */
+export type WhatIfView = CapacityView & { policies?: (PolicyOK & { policy_id: number })[] | null }
 type Headers = Record<string, string>
 
 const KEY = 'inventory'
 
-export function useHostRows(limit = 100) {
-  return usePaged(
-    [KEY, 'hosts', limit],
-    (after) => unwrap(api.GET('/api/v1/views/hosts', { params: { query: { after: after ? Number(after) : undefined, limit } } })),
+/**
+ * Every host, for the Hosts table: its headline counts each state over all hosts (docs/design/v3 rule 7), and the
+ * hosts whose key is not trusted are one group. An installation has tens to hundreds of hosts, so they are read in
+ * pages of 200 until the last (one request at 100 hosts); the table still draws one page of rows at a time.
+ */
+export function useAllHosts() {
+  const q = usePaged(
+    [KEY, 'hosts', 'all'],
+    (after) => unwrap(api.GET('/api/v1/views/hosts', { params: { query: { after: after ? Number(after) : undefined, limit: 200 } } })),
     (p) => p.rows,
   )
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = q
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  return { ...q, complete: q.isSuccess && !hasNextPage }
+}
+
+/** The repositories, a page at a time (the view is offset-paged: the cursor is the offset). */
+export function useRepositoryPages() {
+  return usePages([KEY, 'repositories', 'pages'], async (cursor, limit) => {
+    const v = await unwrap(api.GET('/api/v1/views/repositories', { params: { query: { after: cursor ? Number(cursor) : undefined, limit } } }))
+    return { rows: v.rows, total: v.total, next: v.next }
+  })
+}
+
+/** The audit log, newest first, a page at a time: each page continues before the oldest entry of the last. */
+export function useAuditPages() {
+  return usePages([KEY, 'audit', 'pages'], async (cursor, limit) => {
+    const v = await unwrap(api.GET('/api/v1/views/audit', { params: { query: { before: cursor ? Number(cursor) : undefined, limit } } }))
+    return { rows: v.rows, total: v.total, next: v.next }
+  })
 }
 
 export function useRepositoryRows(limit = 100) {
@@ -50,7 +87,7 @@ export function useRepositoryRows(limit = 100) {
 
 /** Every policy (the API answers them in one list: an installation has tens, not thousands). */
 export function usePolicies() {
-  return useQuery({ queryKey: ['policies'], queryFn: () => unwrap(api.GET('/api/v1/policies')), refetchInterval: LIST_REFRESH })
+  return useQuery({ queryKey: ['policies'], queryFn: () => unwrap(api.GET('/api/v1/policies')) as Promise<PolicyView[]>, refetchInterval: LIST_REFRESH })
 }
 
 /** Each policy's VMs by status (the coverage view by policy, healthy ones included), in pages of 200. */
@@ -69,12 +106,12 @@ export function usePolicyCoverage() {
 export function useWhatIf(change: PolicyChange | null) {
   const base = useQuery({
     queryKey: [KEY, 'what-if', null],
-    queryFn: () => unwrap(api.POST('/api/v1/capacity/what-if', { body: {} })),
+    queryFn: () => unwrap(api.POST('/api/v1/capacity/what-if', { body: {} })) as Promise<WhatIfView>,
     staleTime: 30_000,
   })
   const after = useQuery({
     queryKey: [KEY, 'what-if', change],
-    queryFn: () => unwrap(api.POST('/api/v1/capacity/what-if', { body: { policies: change ? [change] : [] } })),
+    queryFn: () => unwrap(api.POST('/api/v1/capacity/what-if', { body: { policies: change ? [change] : [] } })) as Promise<WhatIfView>,
     enabled: change !== null,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
@@ -84,15 +121,6 @@ export function useWhatIf(change: PolicyChange | null) {
 
 export function useUsers(enabled: boolean) {
   return useQuery({ queryKey: [KEY, 'users'], queryFn: () => unwrap(api.GET('/api/v1/users')), enabled, refetchInterval: LIST_REFRESH })
-}
-
-/** The audit log, newest first: each page continues before the oldest entry of the last. */
-export function useAudit(limit = 100) {
-  return usePaged(
-    [KEY, 'audit', limit],
-    (before) => unwrap(api.GET('/api/v1/views/audit', { params: { query: { before: before ? Number(before) : undefined, limit } } })),
-    (p) => p.rows,
-  )
 }
 
 /** The side menu's counts: one row of each paged list is enough for its total. Lists a role may not read are not asked. */

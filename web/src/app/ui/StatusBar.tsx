@@ -25,7 +25,7 @@ export function StatusCounts({ counts }: { counts: Record<string, number> }) {
   return (
     <span className={s.words}>
       {ORDER.filter((st) => (counts[st] ?? 0) > 0).map((st) => (
-        <span key={st} className={s[`w${st}`]}>{counts[st]} {t.status[st]}</span>
+        <span key={st} className={s[`w${st}`]}>{counts[st].toLocaleString('en-US')} {t.status[st]}</span>
       ))}
     </span>
   )

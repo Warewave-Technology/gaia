@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react'
 import { useT } from '../../../i18n'
-import type { Fmt, ServerClock } from '../../../lib/time'
 import { ApiError } from '../../api/errors'
 import { useRefresh } from '../../api/inventory'
 import { useStepUp, withStepUp } from '../../layout/StepUp'
@@ -8,12 +7,6 @@ import { Button, Notice } from '../../ui'
 import s from '../Inventory.module.css'
 
 type Headers = Record<string, string>
-
-/** "today 04:51" or "Nov 17 04:51" in the server's zone; a dash for a time that is not there. */
-export function when(fmt: Fmt, clock: ServerClock, iso: string | null | undefined, t: ReturnType<typeof useT>['inventory']) {
-  if (!iso) return t.dash
-  return fmt.date(iso) === fmt.date(clock.now) ? t.today(fmt.hhmm(iso)) : `${fmt.date(iso)} ${fmt.hhmm(iso)}`
-}
 
 /** The words of a failed call, for the line under the table. */
 export function message(e: unknown): string {
