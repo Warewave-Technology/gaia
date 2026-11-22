@@ -1893,6 +1893,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/views/vms/{id}/points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A VM's kept points, newest first, each with the tests that prove it or not, in pages (T27) */
+        get: operations["get_views_vms_by_id_points"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/views/vms/{id}/status-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A VM's status changes, newest first, each with how long it lasted, in pages (T27) */
+        get: operations["get_views_vms_by_id_status_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vms": {
         parameters: {
             query?: never;
@@ -2797,6 +2831,14 @@ export interface components {
             vm: string;
             vm_id: number;
         };
+        PointTest: {
+            failed_check: string;
+            finished_at: string;
+            id: number;
+            proven_rto_s: number | null;
+            sandbox_down: boolean;
+            verdict: string;
+        };
         Policy: {
             backup_interval_s: number;
             check_template: string;
@@ -3371,6 +3413,24 @@ export interface components {
             policy_id?: number | null;
             uuid?: string | null;
         };
+        VMPoint: {
+            bytes: number;
+            check_state: string;
+            id: number;
+            job_id: number;
+            kind: string;
+            kind_reason: string;
+            latest: components["schemas"]["PointTest"] | null;
+            proven: components["schemas"]["PointTest"] | null;
+            running_test_id: number;
+            taken_at: string;
+        };
+        VMPointsView: {
+            next: string;
+            pruned: number;
+            rows: components["schemas"]["VMPoint"][];
+            total: number;
+        };
         VMStatus: {
             changed_at: string;
             note_reasons: components["schemas"]["Reason"][];
@@ -3383,6 +3443,23 @@ export interface components {
             theoretical_rpo_s: number | null;
             vm: string;
             vm_id: number;
+        };
+        VMStatusChange: {
+            actor: string;
+            at: string;
+            code: string;
+            entity: string;
+            entity_id: number;
+            from: string;
+            reason: string;
+            seq: number;
+            to: string;
+            until: string;
+        };
+        VMStatusHistoryView: {
+            next: string;
+            rows: components["schemas"]["VMStatusChange"][];
+            total: number;
         };
         VMView: {
             clock: components["schemas"]["ServerClock"];
@@ -12071,6 +12148,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VMView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_vms_by_id_points: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                before?: number;
+                /** @description at most this many (default 25, at most 100) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMPointsView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_vms_by_id_status_history: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                before?: number;
+                /** @description at most this many (default 25, at most 100) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMStatusHistoryView"];
                 };
             };
             /** @description Invalid request */

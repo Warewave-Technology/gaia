@@ -1116,6 +1116,14 @@ func (s *Server) table() []route {
 			in: KitPassphrase{}, out: store.RecoveryKit{}, status: http.StatusCreated, example: `{"passphrase":"not the passphrase"}`, h: s.regenerateKit},
 		{method: "POST", path: "/api/v1/recovery-kit/confirm", summary: "Record that a copy of the newest kit, opened with its passphrase, is stored off the server",
 			roles: adminOnly, in: KitConfirm{}, out: store.RecoveryKit{}, example: `{"generation":99,"sha256":"00"}`, h: s.confirmKit},
+
+		// --- the VM page's lists in pages (T27 step 1b, views_vm.go) ---
+		{method: "GET", path: "/api/v1/views/vms/{id}/points", summary: "A VM's kept points, newest first, each with the tests that prove it or not, in pages (T27)",
+			roles: anyRole, out: VMPointsView{}, query: []param{{"before", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many (default 25, at most 100)"}},
+			h: s.vmPointsView},
+		{method: "GET", path: "/api/v1/views/vms/{id}/status-history", summary: "A VM's status changes, newest first, each with how long it lasted, in pages (T27)",
+			roles: anyRole, out: VMStatusHistoryView{}, query: []param{{"before", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many (default 25, at most 100)"}},
+			h: s.vmStatusHistoryView},
 	}
 }
 

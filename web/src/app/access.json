@@ -58,6 +58,8 @@
         "GET /api/v1/system",
         "GET /api/v1/search",
         "GET /api/v1/views/vms/{id}",
+        "GET /api/v1/views/vms/{id}/points",
+        "GET /api/v1/views/vms/{id}/status-history",
         "GET /api/v1/views/vm-list",
         "GET /api/v1/reason-codes",
         "GET /api/v1/evidence/{id}/files/{name}"
