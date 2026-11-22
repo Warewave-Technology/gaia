@@ -1,16 +1,40 @@
-.page { max-width: 1240px; margin: 0 auto; padding: 30px 32px 80px; }
-.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px 48px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
-.head h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.018em; }
-.dl { display: grid; gap: 6px; max-width: 420px; }
-.dl span { font-size: var(--text-sm); color: var(--fg4); }
-.facts { margin: 0; padding: 18px 0; display: grid; gap: 0; border-bottom: 1px solid var(--line); }
-.facts > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px; padding: 8px 0; }
-.facts dt { color: var(--fg4); font-size: 12.5px; }
-.facts dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--fg1); overflow-wrap: anywhere; }
-.hint { font-size: var(--text-sm); color: var(--fg4); }
-h2 { font-size: var(--text-md); font-weight: 600; margin: 30px 0 12px; }
-.h2s { font-weight: 400; color: var(--fg4); margin-left: 6px; }
-.verify code { display: block; padding: 10px 14px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; color: var(--fg1); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.num { font-variant-numeric: tabular-nums; }
-@media (max-width: 640px) { .page { padding-left: 16px; padding-right: 16px; } .facts > div { grid-template-columns: 1fr; } }
-.page code { font-family: var(--mono); font-size: 12.5px; color: var(--fg2); }
+.page { max-width: 1360px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-direction: column; gap: 30px; }
+.page :global(p) { margin: 0; }
+.muted { color: var(--fg4); }
+.of { display: block; font-size: 12.5px; color: var(--fg4); margin-top: 2px; overflow-wrap: anywhere; }
+.mono { font-family: var(--mono); font-size: 12.5px; color: var(--fg2); overflow-wrap: anywhere; }
+.nowrap { white-space: nowrap; }
+.sec { display: flex; flex-direction: column; gap: 12px; }
+.scroll { overflow-x: auto; }
+
+/* The chain, newest at the end */
+.chain { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; }
+.chain li { display: flex; flex-direction: column; gap: 2px; padding: 7px 11px; border: 1px solid var(--line-2); border-radius: var(--radius); font-size: 12px;
+  color: var(--fg3); font-family: var(--mono); position: relative; margin: 4px 22px 4px 0; }
+.chain li:not(:last-child)::after { content: ""; position: absolute; right: -23px; top: 50%; width: 22px; border-top: 1px solid var(--line-2); }
+.chain b { font-family: var(--font); font-weight: 600; color: var(--fg1); font-size: 12px; }
+.gap { border-style: dashed !important; justify-content: center; }
+.anch { border-color: var(--green) !important; }
+.head { border-color: var(--fg2) !important; }
+
+/* Export */
+.box { display: flex; flex-direction: column; gap: 12px; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); }
+.verify { display: flex; flex-direction: column; gap: 6px; }
+.verify code { display: block; padding: 9px 12px; background: var(--page); border: 1px solid var(--line); border-radius: var(--radius); color: var(--fg1);
+  font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
+
+/* Latest entries */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { font-size: var(--text-xs); letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; color: var(--fg4); text-align: left;
+  padding: 8px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+.tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: var(--text-md); color: var(--fg1); }
+.tbl tbody tr:hover > * { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.num { text-align: right !important; white-space: nowrap; }
+.vm { font-family: var(--mono); font-size: 13px; color: var(--blue); text-decoration: none; }
+.vm:hover { color: var(--fg0); text-decoration: underline; }
+.more { display: flex; align-items: center; gap: 14px; }
+.more .of { display: inline; margin: 0; }
+
+@media (max-width: 760px) {
+  .page { padding: 20px 16px 48px; }
+}
