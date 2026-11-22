@@ -168,7 +168,7 @@ func (s *Server) vmStatusHistoryView(c *call) (int, any, error) {
 		n = 25
 	}
 	out := VMStatusHistoryView{Rows: []VMStatusChange{}}
-	if out.Total, err = s.db.CountStateChanges(ctx, "vm_status", id); err != nil {
+	if out.Total, err = s.db.CountEntityChanges(ctx, "vm_status", id); err != nil {
 		return 0, nil, err
 	}
 	rows, err := s.db.StateChangesBefore(ctx, "vm_status", id, before, int(n)+1)

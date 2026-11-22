@@ -71,8 +71,8 @@ func (d *DB) StateChangeAfter(ctx context.Context, entity string, id, seq int64)
 	return at, err
 }
 
-// CountStateChanges counts an entity's recorded changes.
-func (d *DB) CountStateChanges(ctx context.Context, entity string, id int64) (int, error) {
+// CountEntityChanges counts one entity's recorded changes.
+func (d *DB) CountEntityChanges(ctx context.Context, entity string, id int64) (int, error) {
 	var n int
 	err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM state_changes WHERE entity = ? AND entity_id = ?`, entity, id).Scan(&n)
 	return n, err

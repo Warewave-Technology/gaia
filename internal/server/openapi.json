@@ -6222,6 +6222,12 @@
           "from": {
             "type": "string"
           },
+          "from_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "reason": {
             "type": "string"
           },
@@ -6230,6 +6236,12 @@
           },
           "to": {
             "type": "string"
+          },
+          "to_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "until": {
             "type": "string"

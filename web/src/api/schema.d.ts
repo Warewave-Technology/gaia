@@ -3551,9 +3551,11 @@ export interface components {
             entity: string;
             entity_id: number;
             from: string;
+            from_codes?: string[];
             reason: string;
             seq: number;
             to: string;
+            to_codes?: string[];
             until: string;
         };
         VMStatusHistoryView: {
