@@ -105,7 +105,7 @@ export function Hosts({ me }: { me: User }) {
 
   const cols: Column<Row>[] = [
     {
-      key: 'host', header: h.cols.host, width: '200px',
+      key: 'host', header: h.cols.host, width: '170px',
       title: (x) => (x.kind === 'host' ? `${x.r.name} ${h.ssh(x.r.ssh_user, x.r.address, x.r.ssh_port)}` : h.group.label(x.hosts.length)),
       cell: (x) => x.kind === 'group'
         ? <span className={s.strong}>{h.group.hosts(x.hosts.length)}</span>
@@ -121,7 +121,7 @@ export function Hosts({ me }: { me: User }) {
       },
     },
     {
-      key: 'vms', header: h.cols.vms, width: '370px',
+      key: 'vms', header: h.cols.vms, width: '450px',
       title: (x) => (x.kind === 'host' ? h.vms(x.r.vms) : h.vms(x.hosts.reduce((a, r) => a + r.vms, 0))),
       cell: (x) => {
         const rs = x.kind === 'host' ? [x.r] : x.hosts
@@ -132,13 +132,13 @@ export function Hosts({ me }: { me: User }) {
       },
     },
     {
-      key: 'last', header: h.cols.last, width: '125px',
+      key: 'last', header: h.cols.last, width: '120px',
       cell: (x) => (x.kind === 'host' ? (x.r.last_point_at ? fmt.at(x.r.last_point_at) : t.never) : t.dash),
     },
   ]
   if (writer) {
     cols.push({
-      key: 'action', header: h.cols.action, width: '130px',
+      key: 'action', header: h.cols.action, width: '120px',
       cell: (x, ctx) => {
         if (x.kind === 'group') return <Button variant="quiet" className={s.cellBtn} onClick={() => setF({ state: 'untrusted' })}>{h.group.show}</Button>
         const r = x.r
