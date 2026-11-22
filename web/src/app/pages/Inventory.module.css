@@ -1,0 +1,88 @@
+.page { max-width: 1360px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+.page :global(p) { margin: 0; }
+
+/* The side menu: one place per table, with its count. */
+.side { flex: 1 1 200px; max-width: 220px; display: flex; flex-direction: column; gap: 2px; }
+.side a { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-left: 2px solid transparent; color: var(--fg3);
+  font-size: 14px; text-decoration: none; }
+.side a:hover { color: var(--fg0); }
+.side a[aria-current="page"] { border-color: var(--fg2); color: var(--fg0); background: var(--surface); }
+.side a span { color: var(--fg4); font-size: 12px; font-variant-numeric: tabular-nums; }
+.content { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
+
+.sec { display: flex; flex-direction: column; gap: 12px; }
+.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.end { margin-left: auto; }
+.scroll { overflow-x: auto; }
+
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { font-size: var(--text-xs); letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; color: var(--fg4); text-align: left;
+  padding: 8px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; vertical-align: bottom; }
+.tbl td, .tbl tbody th { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; font-weight: 400;
+  text-transform: none; letter-spacing: 0; font-size: var(--text-md); color: var(--fg1); }
+.tbl tbody tr:hover > * { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.num { text-align: right !important; white-space: nowrap; }
+.mid { vertical-align: middle !important; }
+.vh { position: absolute; left: -9999px; }
+.rCRITICAL > * { background: color-mix(in srgb, var(--red-tint) 32%, transparent); }
+.rUNKNOWN > * { background: repeating-linear-gradient(-45deg, transparent 0 10px, color-mix(in srgb, var(--pur-tint) 50%, transparent) 10px 12px); }
+.open > * { background: var(--surface); }
+.detail > td { padding-top: 0; background: var(--surface); border-bottom: 1px solid var(--line-2); }
+
+.name { font-family: var(--mono); font-size: 13.5px; color: var(--fg0); }
+.mono { font-family: var(--mono); font-size: 12.5px; color: var(--fg3); overflow-wrap: anywhere; }
+.of { display: block; font-size: 11.5px; color: var(--fg4); margin-top: 2px; }
+.fig { color: var(--fg0); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fg2 { color: var(--fg2) !important; }
+.state { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.state > span:last-child:not(:first-child) { color: var(--fg2); font-size: 13px; }
+.acts { display: flex; gap: 6px; justify-content: flex-end; }
+.nowrap { white-space: nowrap; }
+.foot { font-size: 12.5px; color: var(--fg4); }
+.empty { color: var(--fg3); padding: 14px 0; }
+.ok { color: var(--fg2); font-size: 13px; }
+.lock { display: inline-block; font-size: 11px; color: var(--fg4); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0 6px;
+  margin: 0 4px; line-height: 17px; vertical-align: 1px; }
+.link { background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: var(--blue); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.danger { color: var(--red) !important; border-color: var(--red-line) !important; background: var(--red-tint) !important; }
+
+/* Forms: a grid of labelled fields, under a table or in a row's detail. */
+.form { display: flex; flex-direction: column; gap: 14px; padding: 16px 0 6px; }
+.form h3 { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--fg0); }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--fg3); }
+.field input, .field select, .inline input, .inline select { height: 32px; padding: 0 9px; border: 1px solid var(--line-2); border-radius: var(--radius);
+  background: var(--page); color: var(--fg0); font: inherit; font-size: 13.5px; }
+.field input:focus, .field select:focus, .inline input:focus, .inline select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.field small { color: var(--fg4); font-size: 11.5px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg2); }
+.inline { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wide { grid-column: 1 / -1; }
+.buttons { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hint { font-size: 12.5px; color: var(--fg4); max-width: 760px; }
+
+/* The what-if: now against after. */
+.effect { border-top: 1px solid var(--line-2); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.effect h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--fg1); }
+.effect table { border-collapse: collapse; max-width: 620px; }
+.effect th, .effect td { padding: 6px 14px 6px 0; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
+.effect th { color: var(--fg4); font-weight: 400; }
+
+/* Settings (Sign-in and security): a term, its explanation, and its value or control. */
+.dl { margin: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line-2); }
+.row { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 18px; padding: 13px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.row dt { color: var(--fg1); }
+.row dt span { display: block; color: var(--fg4); font-size: 12px; margin-top: 2px; }
+.row dd { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.val { color: var(--fg0); font-weight: 500; }
+.sub { color: var(--fg4); font-size: 12.5px; }
+.save { position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--raised);
+  border: 1px solid var(--line-2); border-radius: var(--radius); }
+
+@media (max-width: 760px) {
+  .page { padding: 20px 16px 48px; gap: 20px; }
+  .side { max-width: none; flex-direction: row; flex-wrap: wrap; }
+  .side a { border-left: 0; border-bottom: 2px solid transparent; }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}
