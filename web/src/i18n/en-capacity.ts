@@ -19,6 +19,39 @@ const KINDS: Record<string, [string, string]> = {
   state_backup: ['state backup', 'state backups'], migration_check: ['migration check', 'migration checks'],
 }
 
+const cls = (c: string) => ({ linux: 'Linux', windows: 'Windows' } as Record<string, string>)[c] ?? c
+
+/** Why a queued test is where it is (internal/capacity reasonOf), as a sentence; `at` writes a time the screen's way. */
+export function orderReason(reason: string, at: (iso: string) => string): string {
+  if (reason.startsWith('retest of a CRITICAL VM')) return 'Retest of a CRITICAL VM: these go first'
+  if (reason === 'never proven') return 'Never proven: its first restore test'
+  const m = reason.match(/^proof expires (\S+)(?: \(policy (.+)\))?$/)
+  if (m) return `Its proof expires ${at(m[1])}`
+  return reason
+}
+
+/** Where a VM's expected test duration comes from (internal/capacity Expected), as words. */
+export function durationBasis(basis: string): string {
+  let m = basis.match(/^median of its last (\d+) tests?$/)
+  if (m) return m[1] === '1' ? 'its last test' : `median of its last ${m[1]} tests`
+  m = basis.match(/^median of the (\S+) class$/)
+  if (m) return `no test of its own yet: median of ${cls(m[1])} VMs`
+  m = basis.match(/^default for (\S+)$/)
+  if (m) return `no test measured yet: the default for ${cls(m[1])}`
+  return basis
+}
+
+/** Where a VM's OS class comes from (ADR-007 C13: the `os:` tag, then libvirt's guest information, then the check
+ * template's name). Unknown words are shown as they are. */
+export function osClassBasis(basis: string | undefined): string {
+  if (!basis) return ''
+  const b = basis.toLowerCase()
+  if (b.includes('tag')) return 'from its os: tag'
+  if (b.includes('libvirt') || b.includes('guest')) return 'from libvirt\'s guest information'
+  if (b.includes('template')) return 'guessed from its check template\'s name'
+  return basis
+}
+
 export const capacity = {
   title: 'Proof capacity',
   question: 'Can the sandbox keep every proof fresh?',
@@ -31,21 +64,26 @@ export const capacity = {
   behind: (slots: number, expiring: number, horizon: string) =>
     `With ${plural(slots, 'slot', 'slots')}, ${expiring > 0 ? `${plural(expiring, 'proof expires', 'proofs expire')} before the next test in the next ${horizon}` : 'the tests fall behind'}.`,
   need: (needed: number) => `You need ${plural(needed, 'slot', 'slots')}, or longer test intervals.`,
-  sandboxDown: (err: string) =>
-    `The sandbox helper did not answer${err ? ` (${err})` : ''}. No restore test can run, so nothing new is proven; the numbers below count no slots until it answers.`,
+  sandboxDown: 'No restore test runs and nothing new is proven until the sandbox helper answers; the numbers of now count no slots.',
+  /** The model while the sandbox does not answer: it starts from the configured slots (docs/design/v3), not from 0. */
+  modelFromConfigured: (slots: number, pct: number) =>
+    `With its ${plural(slots, 'configured slot', 'configured slots')} it would cover ${pct} % of what policies ask.`,
+  modelFromOne: (pct: number) =>
+    `Its configured slots are not known while it does not answer, so the model starts from 1 slot (${pct} % covered); set it to the slots the sandbox has.`,
   facts: 'The sandbox',
   slotsNow: 'Test slots',
   slotsText: (slots: number, basis: string) => `${n(slots)}${basis ? `, ${basis}` : ''}`,
+  configured: (slots: number) => `${plural(slots, 'slot', 'slots')} configured`,
   memory: 'Memory for tests',
   memoryText: (used: number, limit: number) => `${n(used)} MiB in use of ${n(limit)} MiB`,
   runningNow: 'Running now',
-  running: (r: number) => (r === 0 ? 'No restore test is running.' : `${plural(r, 'restore test', 'restore tests')}`),
+  running: (r: number) => (r === 0 ? 'no restore test' : plural(r, 'restore test', 'restore tests')),
   waitingMem: 'Waiting for memory',
   waiting: (w: number) => (w === 0 ? 'none' : plural(w, 'test', 'tests')),
   noAnswer: 'does not answer',
 
   model: 'Model a change',
-  modelHint: 'A model only: nothing here is saved or changes a schedule. Slots and policies are changed in Inventory.',
+  modelHint: 'Nothing here is saved or changes a schedule. Slots are set in the sandbox unit, intervals in Inventory.',
   slots: 'Parallel test slots',
   interval: 'Test interval',
   policy: 'Policy',
@@ -55,49 +93,66 @@ export const capacity = {
   policyChange: (name: string, to: string, from: string) => `${name} every ${to} (now ${from})`,
   reset: 'Back to now',
   modelling: 'Modelling…',
-  col: { what: 'Figure', now: 'Now', model: 'Modelled' },
-  row: {
-    slots: 'Slots', capacity: 'Capacity', demand: 'Demand', coverage: 'Covers', needed: 'Slots needed',
-    expiring: (h: string) => `Proofs that expire in the next ${h}`, tests: 'Tests a day',
-  },
-  slotHours: (h: number) => `${n(Math.round(h))} slot-hours a day`,
+  fig: { slots: 'Slots', covers: 'Covers', needed: 'Slots needed', tests: 'Tests a day', expiring: (h: string) => `Proofs expiring, ${h}` },
+  arrow: (now: string, model: string) => `${now} → ${model}`,
   pct: (p: number) => `${p} %`,
   barNow: 'Now',
   barModel: 'Modelled',
   barLabel: (need: number, cap: number) => `Demand ${n(Math.round(need))} slot-hours a day, capacity ${n(Math.round(cap))}`,
-  classLegend: (name: string, h: number, tests: number, median: string) =>
-    `${name} tests ${n(Math.round(h))} slot-hours a day (${n(Math.round(tests))} tests, ${median} each)`,
-  capLegend: (h: number) => `capacity ${n(Math.round(h))} slot-hours a day`,
+  segment: (name: string, h: number) => `${name} ${n(Math.round(h))} slot-h`,
+  classLegend: (name: string, h: number) => `${name} tests, ${n(Math.round(h))} slot-hours a day`,
+  otherClasses: 'other OS classes',
+  capLegend: (h: number) => `capacity, ${n(Math.round(h))} slot-hours a day`,
   gap: 'not covered',
-  osClass: (c: string) => ({ linux: 'Linux', windows: 'Windows' } as Record<string, string>)[c] ?? c,
-  note: 'One slot runs one restore test at a time. A test is expected to take the median of its VM\'s last 10 tests, else the median of its OS class, else a default.',
+  osClass: cls,
+  note: 'One slot runs one restore test at a time. A test is expected to take the median of its VM\'s last 10 tests, else the median of its OS class, else a default (Linux 3 min, Windows 10 min).',
 
+  tabs: 'Proof capacity in detail',
+  tab: { demand: 'Demand', expiring: 'Proofs that expire', queue: 'Test queue', inputs: 'Expected durations' },
+  hint: {
+    demand: 'What each OS class and policy asks of the sandbox.',
+    expiring: (h: string) => `Proofs that expire before their next test finishes, in the next ${h}, with the queue and slots of now.`,
+    queue: 'In order: retests of CRITICAL VMs first, then never proven, then nearest to expiry.',
+    inputs: 'What each VM\'s next test is expected to take, and why.',
+  },
+
+  classes: 'Demand by OS class',
   policies: 'Demand by policy',
-  pcol: { policy: 'Policy', vms: 'VMs', every: 'Test every', tests: 'Tests a day', each: 'Median test', hours: 'Slot-hours a day', model: 'Modelled' },
-  share: (p: number) => `${p} % of test time`,
+  col: {
+    cls: 'OS class', policy: 'Policy', vms: 'VMs', every: 'Test every', tests: 'Tests a day', each: 'Median test', hours: 'Slot-hours a day',
+    share: 'Share', model: 'Modelled',
+  },
+  share: (p: number) => `${p} %`,
   noPolicies: 'No VM has a policy yet.',
 
-  expiring: (h: string) => `Proofs that expire in the next ${h}`,
-  expiringHint: 'Before their next test finishes, with the queue order and slots of now.',
   ecol: { vm: 'VM', policy: 'Policy', expires: 'Proof expires', next: 'Next test' },
+  expired: (at: string) => `expired ${at}`,
   nextTest: (start: string, fin: string) => `${start} to ${fin}`,
   noTest: (h: string) => `none in the next ${h}`,
   noneExpiring: 'Every proof is re-tested before it expires.',
   expiringUnknown: 'Not known while the sandbox does not answer.',
+  expiringCut: (shown: number, total: number) => `The ${n(shown)} that expire first are listed, of ${n(total)}.`,
 
-  queue: 'Test queue',
-  queueHint: (w: number) => `${n(w)} waiting · in order: retests of CRITICAL VMs first, then never proven, then nearest to expiry`,
-  qcol: { pos: '#', vm: 'VM', why: 'Why this place', expected: 'Expected', starts: 'Starts' },
-  run: 'run',
-  wait: 'wait',
+  queueCaption: 'Test queue',
+  nowCaption: 'Running now and waiting for memory',
+  qcol: { pos: '#', vm: 'VM', state: 'State', why: 'Why this place', expected: 'Expected', where: 'Slot', note: 'Why it waits' },
   slot: (s: number, slots: number) => `slot ${s} of ${slots}`,
-  runningFor: (d: string) => `running, ${d}`,
-  waitingFor: (why: string) => `waiting for memory${why ? `: ${why}` : ''}`,
+  runningFor: (d: string) => `for ${d}`,
+  waitingSince: (at: string) => `since ${at}`,
+  waitingMemory: 'waiting for memory',
   memMiB: (m: number) => `${n(m)} MiB`,
-  job: (id: number) => `job ${id}`,
+  position: (p: number) => `#${n(p)}`,
+  startsAt: (at: string) => `starts ${at}`,
   notInHorizon: (h: string) => `not in the next ${h}`,
   queueEmpty: 'No restore test is waiting.',
-  today: (hhmm: string) => `Today ${hhmm}`,
+  queueUnknown: 'No restore test starts while the sandbox does not answer.',
+  basisOf: (b: string) => `Expected: ${b}`,
+
+  icol: { vm: 'VM', policy: 'Policy', cls: 'OS class', every: 'Test every', age: 'Max proof age', expected: 'Expected', basis: 'Why' },
+  durations: (ds: string) => `Last tests, newest first: ${ds}`,
+  noDurations: 'No restore test of this VM has finished yet.',
+  classMedians: (parts: string) => `Medians by OS class: ${parts}`,
+  noInputs: 'No VM has a policy that tests it.',
 }
 
 export const jobs = {

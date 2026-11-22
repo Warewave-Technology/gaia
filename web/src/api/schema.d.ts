@@ -1757,6 +1757,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/views/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Evidence screen's ledger entries, newest first, in pages (T27) */
+        get: operations["get_views_evidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/views/fleet": {
         parameters: {
             query?: never;
@@ -2368,6 +2385,25 @@ export interface components {
             test_id: number | null;
             verdict: string;
             vm_id: number | null;
+        };
+        EvidenceRow: {
+            bundle_id: string;
+            bundle_sha256: string;
+            created_at: string;
+            id: number;
+            ledger_seq: number;
+            migration_check_id: number | null;
+            proven_rto_s: number | null;
+            test_id: number | null;
+            verdict: string;
+            vm: string;
+            vm_id: number | null;
+        };
+        EvidenceView: {
+            clock: components["schemas"]["ServerClock"];
+            next: string;
+            rows: components["schemas"]["EvidenceRow"][];
+            total: number;
         };
         Expiring: {
             /** Format: date-time */
@@ -11655,6 +11691,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoverageView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    get_views_evidence: {
+        parameters: {
+            query?: {
+                /** @description a previous answer's next */
+                before?: number;
+                /** @description at most this many (default 25, at most 200) */
+                limit?: number;
+                /** @description test or migration: only restore tests' or migration checks' entries */
+                kind?: string;
+                /** @description OK, WARNING, CRITICAL or UNKNOWN: only entries with this verdict */
+                verdict?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceView"];
                 };
             };
             /** @description Invalid request */

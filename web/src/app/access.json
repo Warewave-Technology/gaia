@@ -87,6 +87,7 @@
         "GET /api/v1/search",
         "GET /api/v1/views/capacity",
         "GET /api/v1/views/test-queue",
+        "GET /api/v1/capacity/inputs",
         "GET /api/v1/policies"
       ],
       "actions": {
@@ -199,6 +200,8 @@
         "GET /api/v1/ledger",
         "GET /api/v1/daily-reports",
         "GET /api/v1/evidence",
+        "GET /api/v1/views/evidence",
+        "GET /api/v1/views/fleet",
         "GET /api/v1/vms/{id}",
         "GET /api/v1/evidence-export"
       ],

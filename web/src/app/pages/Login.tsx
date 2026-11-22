@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { useT } from '../../i18n'
+import { dur } from '../../lib/duration'
 import { ApiError } from '../api/errors'
 import { ME_KEY, endedReason, sessionEnded, signin, useMe, useSigninOptions, type EnrolChallenge, type SigninStep } from '../api/session'
 import { createCredential, getAssertion, webauthnAvailable } from '../api/webauthn'
@@ -132,6 +133,9 @@ function waitOf(e: unknown): Wait | null {
   return { until: Date.now() + e.retryAfter * 1000, why: why.charAt(0).toUpperCase() + why.slice(1), paused: e.reason === 'account_paused' }
 }
 
+/** A wait as it is said: from 10 min on in whole minutes, rounded up, so it never reads shorter than it is. */
+const waitLeft = (s: number) => (s >= 600 ? Math.ceil(s / 60) * 60 : s)
+
 /** Seconds left until a moment, ticking. */
 function useLeft(until: number | null): number {
   const [now, setNow] = useState(() => Date.now())
@@ -160,7 +164,7 @@ function Locked({ t, wait, done }: { t: T; wait: Wait; done: () => void }) {
   return (
     <>
       <h1>{t.lockedTitle}</h1>
-      {left > 0 ? <Notice tone="critical"><span className="num">{t.lockedNotice(wait.why, t.left(left))}</span></Notice>
+      {left > 0 ? <Notice tone="critical"><span className="num">{t.lockedNotice(wait.why, dur(waitLeft(left), true))}</span></Notice>
         : <p className={s.note} role="status">{t.lockedOver(wait.why)}</p>}
       <p className={s.sub}>{t.lockedHint}</p>
       {left > 0 ? <Button variant="quiet" className={s.btn} onClick={done}>{t.otherAccount}</Button>
@@ -191,7 +195,7 @@ function PasswordForm({ t, busy, wait, sso, onSubmit }: {
           <p className={s.or}>{t.orLocal}</p>
         </>
       )}
-      {wait && left > 0 && <Notice tone="warning"><span className="num">{t.waitNotice(wait.why, t.left(left))}</span></Notice>}
+      {wait && left > 0 && <Notice tone="warning"><span className="num">{t.waitNotice(wait.why, dur(waitLeft(left), true))}</span></Notice>}
       <form onSubmit={submit} className={s.fields} aria-labelledby="login-title">
         <label className={s.field}>
           <span>{t.username}</span>

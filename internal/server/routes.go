@@ -1124,6 +1124,8 @@ func (s *Server) table() []route {
 		{method: "GET", path: "/api/v1/views/vms/{id}/status-history", summary: "A VM's status changes, newest first, each with how long it lasted, in pages (T27)",
 			roles: anyRole, out: VMStatusHistoryView{}, query: []param{{"before", "integer", "a previous answer's next"}, {"limit", "integer", "at most this many (default 25, at most 100)"}},
 			h: s.vmStatusHistoryView},
+		// --- the Evidence screen's entries, in pages (T27 step 1b; views_evidence.go) ---
+		s.evidenceViewRoute(),
 	}
 }
 

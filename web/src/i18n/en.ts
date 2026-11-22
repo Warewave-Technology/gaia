@@ -1,4 +1,5 @@
 import { capacity, jobs } from './en-capacity'
+import { ledger } from './en-evidence'
 import { inventory, security } from './en-inventory'
 import { v3 } from './en-overview'
 import { vm3 } from './en-vm'
@@ -72,7 +73,6 @@ export const en = {
     lockedHint: 'The pause applies to the account from every address. If these attempts were not you, tell an admin: they can see each one in the audit log.',
     otherAccount: 'Use another account',
     waitNotice: (why: string, left: string) => `${why}. The next attempt is possible in ${left}.`,
-    left: (s: number) => (s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`),
     factorTitle: (u: string) => `Second factor for ${u}`,
     useKey: 'Use security key',
     orCode: 'or the code from your authenticator app',
@@ -104,8 +104,13 @@ export const en = {
     newPasswordWhy: (why: string) => ({
       expired: 'Your password must be changed: it is older than this instance allows.',
       admin_reset: 'Your password must be changed: an admin set it, so choose your own.',
-      blocklist: 'Your password must be changed: it is now on the list of breached and common passwords.',
-    } as Record<string, string>)[why] ?? 'Your password must be changed.',
+      // ADR-008 amendment 5: a password shorter than 15 characters set before 0.2.0 takes the blocklist's path, so
+      // "blocklist" says both; a server that names the length says only that.
+      blocklist: 'Your password must be changed: it is on the list of breached and common passwords, or shorter than the 15 characters Gaia asks for since 0.2.0.',
+      too_short: 'Your password must be changed: it is shorter than the 15 characters Gaia asks for since 0.2.0.',
+      short: 'Your password must be changed: it is shorter than the 15 characters Gaia asks for since 0.2.0.',
+      length: 'Your password must be changed: it is shorter than the 15 characters Gaia asks for since 0.2.0.',
+    } as Record<string, string>)[why] ?? 'Your password must be changed before you go on: it no longer meets this instance\'s rules.',
     newPassword: 'New password',
     again: 'Type it again',
     rulesLabel: 'Password rules',
@@ -148,7 +153,61 @@ export const en = {
       'GET /api/v1/evidence/{id}/export': 'Confirm: export an evidence bundle',
       'GET /api/v1/migration-checks/{id}/report': 'Confirm: download a readiness report',
     } as Record<string, string>)[route] ?? 'Confirm with your second factor',
-    request: 'Request',
+    /** The action's own button, pressed after the factor (ADR-008 amendment 4). */
+    button: (route: string) => ({
+      'POST /api/v1/login/cli/approve': 'Approve the sign-in',
+      'PUT /api/v1/me/password': 'Change the password',
+      'POST /api/v1/me/factors': 'Add the factor',
+      'DELETE /api/v1/me/factors/{id}': 'Remove the factor',
+      'POST /api/v1/me/recovery-codes': 'Make new codes',
+      'PUT /api/v1/settings/signin': 'Save the settings',
+      'POST /api/v1/api-tokens': 'Make the token',
+      'DELETE /api/v1/api-tokens/{id}': 'Revoke the token',
+      'POST /api/v1/users': 'Create the user',
+      'POST /api/v1/users/{id}/unlock': 'End the pause',
+      'POST /api/v1/users/{id}/factors/reset': 'Reset the factors',
+      'PATCH /api/v1/users/{id}': 'Change the user',
+      'POST /api/v1/hosts': 'Add the host',
+      'DELETE /api/v1/hosts/{id}': 'Remove the host',
+      'PATCH /api/v1/vms/{id}': 'Save the change',
+      'POST /api/v1/repositories': 'Add the repository',
+      'PATCH /api/v1/policies/{id}': 'Save the policy',
+      'POST /api/v1/points/{id}/forget': 'Forget the point',
+      'GET /api/v1/evidence-export': 'Download the export',
+      'GET /api/v1/evidence/{id}/export': 'Download the bundle',
+      'GET /api/v1/migration-checks/{id}/report': 'Download the report',
+    } as Record<string, string>)[route] ?? 'Confirm',
+    target: 'Acts on',
+    /** What the action acts on, in words, from its path (a caller that knows names says them itself). */
+    targetOf: (path: string) => {
+      const id = (re: RegExp) => path.match(re)?.[1]
+      const n = (what: string, v: string) => `${what} ${Number(v).toLocaleString('en-US')}`
+      let v: string | undefined
+      if (path === '/api/v1/evidence-export') return 'every evidence bundle and the ledger'
+      if (path.startsWith('/api/v1/me/')) return 'your own account'
+      if (path === '/api/v1/settings/signin') return 'this instance\'s sign-in and security settings'
+      if (path === '/api/v1/login/cli/approve') return 'a sign-in from the command line, as you'
+      if ((v = id(/\/points\/(\d+)/))) return n('point', v)
+      if ((v = id(/\/vms\/(\d+)/))) return n('VM', v)
+      if ((v = id(/\/hosts\/(\d+)/))) return n('host', v)
+      if ((v = id(/\/policies\/(\d+)/))) return n('policy', v)
+      if ((v = id(/\/users\/(\d+)/))) return n('user', v)
+      if ((v = id(/\/api-tokens\/(\d+)/))) return n('API token', v)
+      if ((v = id(/\/migration-checks\/(\d+)/))) return n('migration check', v)
+      if ((v = id(/\/evidence\/(\d+)/))) return n('evidence bundle', v)
+      if (path === '/api/v1/hosts') return 'a new host'
+      if (path === '/api/v1/repositories') return 'a new repository'
+      if (path === '/api/v1/users') return 'a new user'
+      if (path === '/api/v1/api-tokens') return 'a new API token'
+      return 'this instance'
+    },
+    pressWithin: (button: string, left: string) => `Press ${button} within ${left}; after that the factor is asked again.`,
+    tooLate: (button: string) => `More than 2 min passed between your factor and ${button}. Nothing was sent. Ask again and give the factor once more.`,
+    tooOld: 'This confirmation waited more than 2 min. Nothing was sent. Ask again to give your factor.',
+    askAgain: 'Ask again',
+    asking: 'Asking…',
+    askedAgain: 'Your last factor came too late. Give it once more.',
+    request: 'The request this sends',
     why: 'Destructive and security actions ask for your factor again, even in an active session. This is not remembered.',
     key: 'Touch your security key',
     keyDone: 'Security key touched for this action',
@@ -176,8 +235,8 @@ export const en = {
     stepUpTitle: 'Approve an action from the command line',
     stepUpHint: 'The command line asked for your second factor for this action. Approve it only if you started it.',
     action: 'Action',
-    target: 'Request',
-    stepUpDone: 'Approved. Press Enter in the terminal within two minutes.',
+    target: 'Acts on',
+    stepUpDone: 'Approved. Press Enter in the terminal within 2 min.',
     key: 'Touch your security key',
     orCode: 'or the code from your authenticator app',
     appCode: 'Code from your authenticator app',
@@ -427,27 +486,12 @@ export const en = {
   },
   evidence: {
     question: 'Can this be proven to someone who does not trust Gaia?',
-    answer: {
-      ok: 'Yes. The ledger is intact and every entry is signed.',
-      critical: 'No. The ledger does not verify.',
-      other: 'Not fully. The ledger check found a problem.',
-      unchecked: 'Not known yet. The ledger has not been checked.',
-      empty: 'Nothing to prove yet. The ledger is empty.',
-      since: (n: number) => `Not yet for the newest ${n === 1 ? 'entry' : `${n.toLocaleString('en-US')} entries`}: ${n === 1 ? 'it was' : 'they were'} sealed after the latest check.`,
-    },
-    today: (hhmm: string) => `today ${hhmm}`,
-    ledeOk: (n: number, at: string) =>
-      `${n.toLocaleString('en-US')} ${n === 1 ? 'entry' : 'entries'} from the genesis entry to the head; every hash link and signature was checked ${at}.`,
-    ledeBad: (at: string, why: string) => `The check ${at} found: ${why}.`,
-    ledeUnchecked: 'Until the ledger is checked, nothing here is vouched for.',
-    ledeSince: (n: number, at: string) =>
-      `The check ${at} verified ${n.toLocaleString('en-US')} ${n === 1 ? 'entry' : 'entries'}; the next daily report checks the rest, or an admin checks now. Until then they are not vouched for.`,
-    checkNow: 'Check now',
-    checking: 'Checking…',
-    ledeEmpty: (at: string) => `No evidence was sealed yet (checked ${at}): the first restore test seals the first entry.`,
     anchorLede: (at: string, seq: number) =>
       `The head was last published in the daily report of ${at}, so entries up to ${seq.toLocaleString('en-US')} cannot be rewritten without its recipients noticing.`,
     noAnchorLede: 'No daily report has published the head yet: nothing outside Gaia anchors the ledger.',
+    checkNow: 'Check now',
+    checking: 'Checking…',
+    checkFailed: (m: string) => `The check could not be started: ${m}`,
     chain: 'Ledger chain, newest at the end',
     genesis: 'genesis',
     anchored: 'anchored head',
@@ -456,9 +500,8 @@ export const en = {
     between: (n: number) => `… ${n.toLocaleString('en-US')} ${n === 1 ? 'entry' : 'entries'}`,
     notAnchored: (n: number) => `${n.toLocaleString('en-US')} since, not yet anchored`,
     facts: 'The ledger',
-    ledgerCheck: 'Ledger check',
-    checked: (n: number, at: string) => `${n.toLocaleString('en-US')} entries verified ${at}`,
-    unchecked: 'not checked yet',
+    ledgerCheck: 'Ledger',
+    problems: 'What the check found',
     signingKey: 'Signing key',
     keyHint: 'Compare it with the key_id recorded at installation, or in a daily report received outside Gaia.',
     lastAnchor: 'Last anchor',
@@ -471,10 +514,12 @@ export const en = {
     exporting: 'Preparing the export…',
     exportHint:
       'One archive: every bundle, the ledger from genesis, the public keys, the newest daily report and its signed head, the specification and how to verify it offline. Downloading asks for your second factor; the export is written to the audit log.',
-    verify: 'Verify offline, with the export and a daily report received outside Gaia:',
-    entries: 'Latest entries',
+    verify: 'How to verify it offline, with the export and a daily report received outside Gaia',
+    entries: 'Ledger entries',
     entriesHint: 'Each sealed bundle is one ledger entry, newest first.',
     none: 'No evidence was sealed yet: the first restore test seals the first bundle.',
+    noneMatch: 'No entry matches these filters.',
+    f: { tests: 'Restore tests', migrations: 'Migration checks', failed: 'Did not pass', clear: 'All entries' },
     col: { seq: '#', when: 'When', entry: 'Entry', vm: 'VM', result: 'Result', hash: 'Hash' },
     kind: {
       test: (id: number) => `restore test ${id}`,
@@ -482,12 +527,14 @@ export const en = {
     },
     vmN: (id: number) => `VM ${id}`,
     migration: 'migration',
+    rto: (d: string) => `RTO ${d}`,
+    bundle: 'Bundle',
+    sha: 'sha256',
+    detailHint: 'The bundle\'s files and its signature are in the export; gaia evidence verify checks this hash against the ledger.',
     word: {
       test: { OK: 'PASSED', WARNING: 'WARNING', CRITICAL: 'FAILED', UNKNOWN: 'NOT DECIDED' },
       migration: { OK: 'READY', WARNING: 'READY WITH WARNINGS', CRITICAL: 'NOT READY', UNKNOWN: 'NOT DECIDED' },
     },
-    shown: (n: number) => `The newest ${n.toLocaleString('en-US')}`,
-    older: 'Show older entries',
   },
   notFound: { title: 'Nothing here', back: 'Back to the overview' },
   migration: {
@@ -502,27 +549,30 @@ export const en = {
     noSources: 'No source yet. Add one on the command line: gaia sources add name=esxi url=https://ESXI/sdk username=root',
     converter: 'Converter',
     convReady: (v2v: string, img: string) => `Ready: ${v2v}, image ${img}.`,
-    convNoImage: (d: string) => `The pinned converter image is not usable: ${d}`,
-    convDown: (d: string) => `The converter service does not answer, so no VM can be converted: ${d}`,
+    convNoImage: 'The pinned converter image is not usable, so no VM can be converted.',
+    convDown: 'The converter service does not answer, so no VM can be converted.',
     virtioWin: 'virtio-win',
     virtioOk: (v: string) => `${v}, checksum matches.`,
-    virtioMissing: (v: string, d: string) => `${v}: ${d}. Windows guests stay UNKNOWN until it is in place.`,
-    tally: 'VMs by readiness',
-    ofVMs: (n: number) => `of ${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs'}`,
+    virtioMissing: (v: string) => `${v || 'virtio-win'} is not in place: Windows guests stay UNKNOWN until it is.`,
     readVMs: (src: string) => `List the VMs of ${src}`,
     reading: (src: string) => `Reading the VMs of ${src}…`,
-    readFailed: (src: string, m: string) => `Could not read the VMs of ${src}: ${m}`,
+    readFailed: (src: string) => `Could not read the VMs of ${src}.`,
     read: (src: string, n: number, calls: number, blocked: number) =>
       `${src}: ${n} VMs read with ${calls} vSphere calls${blocked ? `, ${blocked} blocked` : ', all read-only'}.`,
     readHint: 'Until a source is read, the list holds the VMs checked so far.',
     noChecks: 'No VM has been checked yet.',
     noChecksAct: "No VM has been checked yet. List a source's VMs above and check a powered-off one.",
+    noneMatch: 'No VM has this result.',
     vmsCaption: 'VMs of the sources',
+    order: 'Worst first, then by name',
+    f: {
+      all: (n: number) => `All ${n.toLocaleString('en-US')}`,
+      rank: (word: string, n: number) => `${word} ${n.toLocaleString('en-US')}`,
+    },
     word: {
       ready: 'READY', warnings: 'READY WITH WARNINGS', notReady: 'NOT READY', notChecked: 'NOT CHECKED', undecided: 'NOT DECIDED',
       inProgress: 'BEING CHECKED', running: 'CHECKING', queued: 'QUEUED', unfinished: 'UNFINISHED', cannotCheck: 'CANNOT BE CHECKED',
     },
-    today: (hhmm: string) => `today ${hhmm}`,
     never: 'never',
     runningSince: (at: string) => `running since ${at}`,
     queuedAt: (at: string) => `queued ${at}`,
@@ -536,12 +586,39 @@ export const en = {
       queued: 'Queued for a check.',
       none: 'Not checked yet. A check copies its disks once, converts them here and boots the copy in the sandbox.',
     },
+    errors: (n: number) => `The check stopped with ${n === 1 ? 'an error' : `${n} errors`}.`,
+    why: 'Technical details',
+    output: 'Output',
     steps: 'Steps of the check',
     step: { download: 'Read', conversion: 'Convert', boot: 'Boot test', checks: 'Checks' } as Record<string, string>,
     stepSub: { download: 'datastore HTTP', conversion: 'virt-v2v', boot: 'sandbox' } as Record<string, string>,
     passedOf: (n: number, total: number) => `${n} of ${total}`,
+    afterBoot: 'after the boot',
     notRun: 'not run',
     findings: 'Findings',
+    passedChecks: (n: number) => `${n} ${n === 1 ? 'check' : 'checks'} passed`,
+    passedLabel: 'Checks that passed',
+    /** A finding as a sentence from its check's name and verdict (internal/migrate, internal/verify); the check's raw
+     * output is folded under it. */
+    finding: (name: string, verdict: string) => {
+      const known: Record<string, Partial<Record<string, string>>> = {
+        source_vm: { OK: 'Found on the source and read with read-only calls.', UNKNOWN: 'Could not be read on the source.' },
+        cold: { OK: 'Powered off, so its disks are read as they are.', UNKNOWN: 'It is running: only powered-off VMs (or clones) are checked.' },
+        layout: { OK: 'Its files are all in one datastore folder.', UNKNOWN: 'Its files could not be laid out for reading.' },
+        download: { OK: 'Its disks were copied over the datastore.', UNKNOWN: 'Its disks could not be copied.' },
+        conversion: {
+          OK: 'virt-v2v converted it.', WARNING: 'virt-v2v converted it, with warnings.', CRITICAL: 'virt-v2v could not convert it as it is.',
+          UNKNOWN: 'The conversion did not finish.',
+        },
+        firmware: { OK: 'It boots with the same firmware on KVM.', CRITICAL: 'It would boot with other firmware on KVM than on the source.' },
+        boot: { OK: 'The converted copy boots in the sandbox.', CRITICAL: 'The converted copy does not boot in the sandbox.', UNKNOWN: 'The boot test did not run.' },
+      }
+      const said = known[name]?.[verdict]
+      if (said) return said
+      const what = name.replace(/_/g, ' ')
+      const cap = what.charAt(0).toUpperCase() + what.slice(1)
+      return ({ OK: `${cap}: passed.`, WARNING: `${cap}: passed with a warning.`, CRITICAL: `${cap}: failed.` } as Record<string, string>)[verdict] ?? `${cap}: could not run.`
+    },
     calls: (n: number, blocked: number) => (blocked ? `${n} vSphere calls, ${blocked} blocked (not read-only).` : `${n} vSphere calls, all read-only.`),
     shot: (vm: string, n: string) => `Console of the converted ${vm} (${n})`,
     converterUsed: 'Converter used',
@@ -549,6 +626,8 @@ export const en = {
     versions: 'Versions',
     noVirtioWin: 'not given (not a Windows guest)',
     report: 'Readiness report',
+    reportOf: 'Report of',
+    reportTarget: (vm: string, id: number) => `${vm}, check ${id}`,
     check: 'Check this VM',
     checkAgain: 'Check again',
     queued: (vm: string, id: number) => `${vm} queued as check ${id}.`,
@@ -585,6 +664,7 @@ export const en = {
   inventory,
   security,
   v3,
+  ledger,
   errors: {
     generic: 'Something went wrong.',
     offline: 'The server did not answer.',

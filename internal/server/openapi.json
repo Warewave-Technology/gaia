@@ -1343,6 +1343,97 @@
         ],
         "type": "object"
       },
+      "EvidenceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "bundle_sha256": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "ledger_seq": {
+            "type": "integer"
+          },
+          "migration_check_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "proven_rto_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "test_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "bundle_id",
+          "bundle_sha256",
+          "created_at",
+          "id",
+          "ledger_seq",
+          "migration_check_id",
+          "proven_rto_s",
+          "test_id",
+          "verdict",
+          "vm",
+          "vm_id"
+        ],
+        "type": "object"
+      },
+      "EvidenceView": {
+        "additionalProperties": false,
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/ServerClock"
+          },
+          "next": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRow"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "next",
+          "rows",
+          "total"
+        ],
+        "type": "object"
+      },
       "Expiring": {
         "additionalProperties": false,
         "properties": {
@@ -16590,6 +16681,110 @@
           }
         },
         "summary": "Coverage by host, policy or tag: each group's VMs by status, worst first (T24)",
+        "tags": [
+          "views"
+        ],
+        "x-gaia-roles": [
+          "admin",
+          "operator",
+          "auditor"
+        ]
+      }
+    },
+    "/api/v1/views/evidence": {
+      "get": {
+        "operationId": "get_views_evidence",
+        "parameters": [
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many (default 25, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "test or migration: only restore tests' or migration checks' entries",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "OK, WARNING, CRITICAL or UNKNOWN: only entries with this verdict",
+            "in": "query",
+            "name": "verdict",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "summary": "The Evidence screen's ledger entries, newest first, in pages (T27)",
         "tags": [
           "views"
         ],

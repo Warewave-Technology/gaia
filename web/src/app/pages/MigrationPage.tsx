@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useT } from '../../i18n'
 import { dur } from '../../lib/duration'
-import { serverTime, type Fmt, type ServerClock } from '../../lib/time'
+import { serverTime, type Fmt } from '../../lib/time'
 import { useFilters } from '../../lib/url'
 import { can, useMe } from '../api/session'
 import {
@@ -10,7 +10,7 @@ import {
 } from '../api/views'
 import { Failed, Loading } from '../layout/States'
 import { download, useStepUp } from '../layout/StepUp'
-import { Button, Fact, Facts, Notice, PageHead, SectionHead, StatusChip } from '../ui'
+import { Button, DataTable, Fact, Facts, FilterChip, Notice, PageHead, SectionHead, StatusChip, TechDetails, Toolbar, by, type Column } from '../ui'
 import s from './MigrationPage.module.css'
 
 type T = ReturnType<typeof useT>['migration']
@@ -18,20 +18,25 @@ type T = ReturnType<typeof useT>['migration']
 /** One VM of a source: its newest check (if any), its earlier ones, and what the source says of it (once read). */
 type Row = { key: string; source: MigrationSource | undefined; sourceID: number; vm: string; check?: MigrationCheckView; earlier: MigrationCheckView[]; inv?: SourceVM }
 
-/** A row's result: status, the word for it, and its place in the worst-first order. */
-function resultOf(r: Row, t: T): { status: string; word: string; rank: number } {
+type Rank = 'notReady' | 'warnings' | 'undecided' | 'inProgress' | 'ready' | 'notChecked'
+const ORDER: Rank[] = ['notReady', 'warnings', 'undecided', 'inProgress', 'ready', 'notChecked']
+
+/** A row's result: status, the word for it, and its group (worst first). */
+function resultOf(r: Row, t: T): { status: string; word: string; rank: Rank } {
   const c = r.check
-  if (!c) return { status: 'UNKNOWN', word: t.word.notChecked, rank: 5 }
-  if (!c.readiness) return { status: 'UNKNOWN', word: c.job_state === 'running' ? t.word.running : t.word.queued, rank: 3 }
-  if (c.readiness === 'CRITICAL') return { status: 'CRITICAL', word: t.word.notReady, rank: 0 }
-  if (c.readiness === 'WARNING') return { status: 'WARNING', word: t.word.warnings, rank: 1 }
-  if (c.readiness === 'OK') return { status: 'OK', word: t.word.ready, rank: 4 }
-  return { status: 'UNKNOWN', word: t.word.undecided, rank: 2 }
+  if (!c) return { status: 'UNKNOWN', word: t.word.notChecked, rank: 'notChecked' }
+  if (!c.readiness) return { status: 'UNKNOWN', word: c.job_state === 'running' ? t.word.running : t.word.queued, rank: 'inProgress' }
+  if (c.readiness === 'CRITICAL') return { status: 'CRITICAL', word: t.word.notReady, rank: 'notReady' }
+  if (c.readiness === 'WARNING') return { status: 'WARNING', word: t.word.warnings, rank: 'warnings' }
+  if (c.readiness === 'OK') return { status: 'OK', word: t.word.ready, rank: 'ready' }
+  return { status: 'UNKNOWN', word: t.word.undecided, rank: 'undecided' }
 }
 
 /**
- * The migration check (docs/design/v2/Migration.dc.html; ADR-003, ADR-005): will a VM on vSphere run on KVM before it
- * is moved, proven by converting a copy and booting it in the sandbox. The source is only ever read.
+ * The migration check (docs/design/v2/Migration.dc.html with the v3 rules; ADR-003, ADR-005): will a VM on vSphere run
+ * on KVM before it is moved, proven by converting a copy and booting it in the sandbox. The source is only ever read.
+ * The VMs are a data-table with the results as filter chips; the selected VM's findings are sentences, their raw
+ * output under "Technical details".
  */
 export function MigrationPage() {
   const q = useMigrationView()
@@ -40,7 +45,7 @@ export function MigrationPage() {
   return <MigrationBody v={q.data} />
 }
 
-const KEYS = ['source', 'vm'] as const
+const KEYS = ['source', 'vm', 'result'] as const
 
 function MigrationBody({ v }: { v: MigrationView }) {
   const t = useT().migration
@@ -68,8 +73,10 @@ function MigrationBody({ v }: { v: MigrationView }) {
       else rows.set(key, { key, source: byID.get(sid), sourceID: sid, vm: vm.name, earlier: [], inv: vm })
     }
   }
-  const list = [...rows.values()].sort((a, b) => resultOf(a, t).rank - resultOf(b, t).rank || a.vm.localeCompare(b.vm))
-  const sel = list.find((r) => String(r.sourceID) === f.source && r.vm === f.vm) ?? list[0]
+  const all = [...rows.values()].sort((a, b) => ORDER.indexOf(resultOf(a, t).rank) - ORDER.indexOf(resultOf(b, t).rank) || a.vm.localeCompare(b.vm))
+  const count = (k: Rank) => all.filter((r) => resultOf(r, t).rank === k).length
+  const list = f.result ? all.filter((r) => resultOf(r, t).rank === f.result) : all
+  const sel = all.find((r) => String(r.sourceID) === f.source && r.vm === f.vm) ?? list[0]
   return (
     <main className={s.page}>
       <PageHead
@@ -78,7 +85,6 @@ function MigrationBody({ v }: { v: MigrationView }) {
         lede={<Sources v={v} />}
         aside={<Facts label={t.facts}><Converter v={v} /></Facts>}
       />
-      {list.length > 0 && <Tally rows={list} read={invs.size > 0} />}
       {act && v.sources.length > 0 && (
         <div className={s.read}>
           {v.sources.map((src) => (
@@ -87,13 +93,21 @@ function MigrationBody({ v }: { v: MigrationView }) {
           <span className={s.of}>{t.readHint}</span>
         </div>
       )}
-      {list.length === 0 ? (
+      {all.length === 0 ? (
         v.sources.length > 0 && <p className={s.muted}>{act ? t.noChecksAct : t.noChecks}</p>
       ) : (
-        <section className={s.two}>
-          <VMTable rows={list} sel={sel} fmt={fmt} clock={v.clock} onPick={(r) => setF({ source: String(r.sourceID), vm: r.vm })} />
-          {sel && <Selected key={sel.key} r={sel} fmt={fmt} clock={v.clock} act={act} />}
-        </section>
+        <>
+          <Toolbar end={t.order}>
+            <FilterChip set={!f.result} onClick={() => setF({ result: '' })}>{t.f.all(all.length)}</FilterChip>
+            {ORDER.filter((k) => count(k) > 0 || k === 'ready' || k === 'notReady' || k === 'warnings').map((k) => (
+              <FilterChip key={k} set={f.result === k} onClick={() => setF({ result: f.result === k ? '' : k })}>{t.f.rank(t.word[k], count(k))}</FilterChip>
+            ))}
+          </Toolbar>
+          <section className={s.two}>
+            <VMTable rows={list} sel={sel} fmt={fmt} onPick={(r) => setF({ source: String(r.sourceID), vm: r.vm })} />
+            {sel && <Selected key={sel.key} r={sel} fmt={fmt} act={act} />}
+          </section>
+        </>
       )}
     </main>
   )
@@ -104,7 +118,7 @@ function ReadButton({ src, on, onRead }: { src: MigrationSource; on: boolean; on
   const q = useSourceInventory(src.id, on)
   if (!on) return <Button variant="quiet" onClick={onRead}>{t.readVMs(src.name)}</Button>
   if (q.isPending) return <span className={s.muted}>{t.reading(src.name)}</span>
-  if (q.isError) return <Notice tone="critical">{t.readFailed(src.name, q.error.message)}</Notice>
+  if (q.isError) return <span className={s.err}><Notice tone="critical">{t.readFailed(src.name)}</Notice><TechDetails>{q.error.message}</TechDetails></span>
   return <span className={s.of}>{t.read(src.name, q.data.vms.length, q.data.calls, q.data.blocked_calls)}</span>
 }
 
@@ -140,12 +154,15 @@ function Converter({ v }: { v: MigrationView }) {
   const info = c.info
   let status = 'OK'
   let line: string
+  let raw = ''
   if (!c.reachable || !info) {
     status = 'CRITICAL'
-    line = t.convDown(c.detail)
+    line = t.convDown
+    raw = c.detail
   } else if (!info.image_present) {
     status = 'CRITICAL'
-    line = t.convNoImage(info.image_detail)
+    line = t.convNoImage
+    raw = info.image_detail
   } else {
     const v2v = info.versions.split('\n').find((l) => l.startsWith('virt-v2v')) ?? 'virt-v2v'
     line = t.convReady(v2v, shortID(info.image))
@@ -154,11 +171,11 @@ function Converter({ v }: { v: MigrationView }) {
   const vwOK = vw?.state === 'ok'
   return (
     <>
-      <Fact term={t.converter}><StatusChip status={status} size="xs" />{line}</Fact>
+      <Fact term={t.converter}><StatusChip status={status} size="xs" /> {line}<TechDetails>{raw}</TechDetails></Fact>
       {vw && (
         <Fact term={t.virtioWin}>
-          <StatusChip status={vwOK ? 'OK' : 'WARNING'} size="xs" />
-          {vwOK ? t.virtioOk(vw.version) : t.virtioMissing(vw.version, vw.detail)}
+          <StatusChip status={vwOK ? 'OK' : 'WARNING'} size="xs" /> {vwOK ? t.virtioOk(vw.version) : t.virtioMissing(vw.version)}
+          {!vwOK && <TechDetails>{vw.detail}</TechDetails>}
         </Fact>
       )}
     </>
@@ -167,71 +184,36 @@ function Converter({ v }: { v: MigrationView }) {
 
 const shortID = (id: string) => id.replace(/^sha256:/, '').slice(0, 12)
 
-/** Ready, ready with warnings, not ready, not checked: each with its count. */
-function Tally({ rows, read }: { rows: Row[]; read: boolean }) {
-  const t = useT().migration
-  const n = (rank: number) => rows.filter((r) => resultOf(r, t).rank === rank).length
-  const items: [string, string, number][] = [
-    ['OK', t.word.ready, n(4)], ['WARNING', t.word.warnings, n(1)], ['CRITICAL', t.word.notReady, n(0)],
-  ]
-  if (n(2) > 0) items.push(['UNKNOWN', t.word.undecided, n(2)])
-  if (n(3) > 0) items.push(['UNKNOWN', t.word.inProgress, n(3)])
-  return (
-    <ul className={s.tally} aria-label={t.tally}>
-      {items.map(([st, word, c]) => <li key={word}><StatusChip status={st} size="sm" word={word} /><b>{c.toLocaleString('en-US')}</b></li>)}
-      {read && <li><StatusChip status="UNKNOWN" size="sm" word={t.word.notChecked} /><b>{n(5).toLocaleString('en-US')}</b><span className={s.of}>{t.ofVMs(rows.length)}</span></li>}
-    </ul>
-  )
-}
-
-/** "Today 12:20" or "Nov 17 12:20". */
-function when(fmt: Fmt, clock: ServerClock, iso: string, t: T) {
-  return fmt.date(iso) === fmt.date(clock.now) ? t.today(fmt.hhmm(iso)) : `${fmt.date(iso)} ${fmt.hhmm(iso)}`
-}
-
-function checkedAt(r: Row, fmt: Fmt, clock: ServerClock, t: T) {
+function checkedAt(r: Row, fmt: Fmt, t: T) {
   const c = r.check
   if (!c) return t.never
-  if (c.finished_at) return when(fmt, clock, c.finished_at, t)
-  return c.started_at ? t.runningSince(fmt.hhmm(c.started_at)) : t.queuedAt(fmt.hhmm(c.created_at))
+  if (c.finished_at) return fmt.at(c.finished_at)
+  return c.started_at ? t.runningSince(fmt.at(c.started_at)) : t.queuedAt(fmt.at(c.created_at))
 }
 
 function disks(inv: SourceVM, t: T) {
   return t.disks(inv.disks, inv.disk_bytes / 2 ** 30)
 }
 
-function VMTable({ rows, sel, fmt, clock, onPick }: { rows: Row[]; sel: Row | undefined; fmt: Fmt; clock: ServerClock; onPick: (r: Row) => void }) {
+/** The VMs of the sources, worst first: the checked ones, and every VM of a source once it is read (one request; the
+ * list is not paged by the server, so the table pages it). */
+function VMTable({ rows, sel, fmt, onPick }: { rows: Row[]; sel: Row | undefined; fmt: Fmt; onPick: (r: Row) => void }) {
   const t = useT().migration
+  const cols: Column<Row>[] = [
+    { key: 'vm', header: t.col.vm, width: '36%', title: (r) => r.vm, compare: by((r) => r.vm), cell: (r) => (
+      <button type="button" className={s.pick} aria-pressed={r === sel} onClick={() => onPick(r)}>{r.vm}</button>
+    ) },
+    { key: 'guest', header: t.col.guest, title: (r) => r.inv?.guest_full_name || r.check?.guest_id || undefined,
+      cell: (r) => r.inv?.guest_full_name || r.check?.guest_id || '—' },
+    { key: 'result', header: t.col.result, width: '180px', compare: by((r) => ORDER.indexOf(resultOf(r, t).rank)), cell: (r) => {
+      const res = resultOf(r, t)
+      return <StatusChip status={res.status} size="xs" word={res.word} />
+    } },
+    { key: 'checked', header: t.col.checked, width: '140px', compare: by((r) => r.check?.finished_at || r.check?.created_at || ''), cell: (r) => checkedAt(r, fmt, t) },
+  ]
   return (
-    <div className={s.scroll}>
-      <table className={s.tbl}>
-        <caption className={s.vh}>{t.vmsCaption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t.col.vm}</th>
-            <th scope="col">{t.col.guest}</th>
-            <th scope="col">{t.col.result}</th>
-            <th scope="col">{t.col.checked}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const res = resultOf(r, t)
-            return (
-              <tr key={r.key} className={r === sel ? s.rsel : ''}>
-                <th scope="row">
-                  <button type="button" className={s.pick} aria-pressed={r === sel} onClick={() => onPick(r)}>{r.vm}</button>
-                  <span className={s.of}>{r.inv ? disks(r.inv, t) : r.source?.name ?? r.check?.source}</span>
-                </th>
-                <td className={s.fg2}>{r.inv?.guest_full_name || r.check?.guest_id || '—'}</td>
-                <td><StatusChip status={res.status} size="xs" word={res.word} /></td>
-                <td className={s.muted}>{checkedAt(r, fmt, clock, t)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable caption={t.vmsCaption} columns={cols} rows={rows} rowKey={(r) => r.key} empty={t.noneMatch}
+      rowState={(r) => (r === sel ? 'mark' : resultOf(r, t).status === 'CRITICAL' ? 'critical' : undefined)} />
   )
 }
 
@@ -241,7 +223,7 @@ const PRE = new Set(['source_vm', 'cold', 'layout', 'download', 'conversion', 'f
 const RANK: Record<string, number> = { CRITICAL: 0, UNKNOWN: 1, WARNING: 2, OK: 3 }
 
 /** The selected VM: the verdict in a sentence, the four steps, the findings, and what can be done with it. */
-function Selected({ r, fmt, clock, act }: { r: Row; fmt: Fmt; clock: ServerClock; act: boolean }) {
+function Selected({ r, fmt, act }: { r: Row; fmt: Fmt; act: boolean }) {
   const t = useT().migration
   const res = resultOf(r, t)
   const c = r.check
@@ -253,14 +235,16 @@ function Selected({ r, fmt, clock, act }: { r: Row; fmt: Fmt; clock: ServerClock
     : c.readiness === 'OK' ? t.verdict.ok : c.readiness === 'WARNING' ? t.verdict.warning(checks.filter((k) => k.verdict === 'WARNING').length)
       : c.readiness === 'CRITICAL' ? t.verdict.critical : t.verdict.unknown
   const findings = [...checks].sort((a, b) => (RANK[a.verdict] ?? 1) - (RANK[b.verdict] ?? 1))
+  const raw = [c?.reason, ...(d?.errors ?? [])].filter(Boolean).join('\n')
   return (
     <section className={s.sel} aria-labelledby="sel-vm">
       <SectionHead id="sel-vm" title={r.vm}>
         <StatusChip status={res.status} size="sm" word={res.word} />
-        <span className={s.of}>{c?.finished_at ? t.checkedAt(when(fmt, clock, c.finished_at, t), c.id) : r.source?.name}</span>
+        <span className={s.of}>{c?.finished_at ? t.checkedAt(fmt.at(c.finished_at), c.id) : r.source?.name}</span>
       </SectionHead>
       <p className={s.verdict}>{verdict}</p>
-      {c?.reason && <p className={s.of}>{c.reason}</p>}
+      {d && d.errors.length > 0 && <Notice tone="critical">{t.errors(d.errors.length)}</Notice>}
+      {raw && <TechDetails summary={t.why}>{raw}</TechDetails>}
       {d && (
         <ol className={s.flow} aria-label={t.steps}>
           {STEPS.map((name, i) => {
@@ -279,22 +263,21 @@ function Selected({ r, fmt, clock, act }: { r: Row; fmt: Fmt; clock: ServerClock
               {after.length > 0 && <StatusChip status={after.every((k) => k.verdict === 'OK') ? 'OK' : after.some((k) => k.verdict === 'CRITICAL') ? 'CRITICAL' : 'WARNING'} size="xs" />}
               <b>{after.length > 0 ? t.passedOf(after.filter((k) => k.verdict === 'OK').length, after.length) : '—'}</b>
             </span>
-            <span className={s.of}>{after.length > 0 ? after.map((k) => k.name.replace(/_/g, ' ')).join(', ') : t.notRun}</span>
+            <span className={s.of}>{after.length > 0 ? t.afterBoot : t.notRun}</span>
           </li>
         </ol>
       )}
       {findings.length > 0 && (
-        <ul className={s.findings} aria-label={t.findings}>
-          {findings.map((k) => (
-            <li key={k.name}>
-              <StatusChip status={k.verdict} size="xs" />
-              <span><b>{k.name.replace(/_/g, ' ')}</b><span className={s.of}>{k.detail}</span></span>
-              <span className={s.secs}>{k.seconds ? dur(k.seconds, true) : ''}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <Findings list={findings.filter((k) => k.verdict !== 'OK')} label={t.findings} />
+          {findings.some((k) => k.verdict === 'OK') && (
+            <details className={s.passed}>
+              <summary>{t.passedChecks(findings.filter((k) => k.verdict === 'OK').length)}</summary>
+              <Findings list={findings.filter((k) => k.verdict === 'OK')} label={t.passedLabel} />
+            </details>
+          )}
+        </>
       )}
-      {d && d.errors.length > 0 && d.errors.map((e, i) => <Notice key={i} tone="critical">{e}</Notice>)}
       {d && <p className={d.vsphere_blocked_calls ? s.bad : s.of}>{t.calls(d.vsphere_calls, d.vsphere_blocked_calls)}</p>}
       {!c && r.inv && <SourceFacts inv={r.inv} />}
       {c && c.screenshots.length > 0 && c.evidence_id > 0 && (
@@ -308,28 +291,49 @@ function Selected({ r, fmt, clock, act }: { r: Row; fmt: Fmt; clock: ServerClock
         </div>
       )}
       {d?.converter && (
-        <details className={s.conv}>
-          <summary>{t.converterUsed}</summary>
-          <dl>
-            <div><dt>{t.image}</dt><dd className={s.mono}>{d.converter.image}</dd></div>
-            {d.converter.versions && <div><dt>{t.versions}</dt><dd className={s.pre}>{d.converter.versions}</dd></div>}
-            <div><dt>{t.virtioWin}</dt><dd>{d.converter.virtio_win ? `${d.converter.virtio_win.version}, sha256 ${d.converter.virtio_win.sha256}` : t.noVirtioWin}</dd></div>
-          </dl>
-        </details>
+        <TechDetails summary={t.converterUsed}>
+          {[
+            `${t.image}: ${d.converter.image}`,
+            d.converter.versions ? `${t.versions}:\n${d.converter.versions}` : '',
+            `${t.virtioWin}: ${d.converter.virtio_win ? `${d.converter.virtio_win.version}, sha256 ${d.converter.virtio_win.sha256}` : t.noVirtioWin}`,
+          ].filter(Boolean).join('\n')}
+        </TechDetails>
       )}
       <Actions r={r} act={act} />
       {r.earlier.length > 0 && (
         <p className={s.of}>
           {t.earlier}{' '}
           {r.earlier.slice(0, 6).map((e) => (
-            <span key={e.id} className={s.earlier}>
+            <span key={e.id} className={s.earlierItem}>
               {t.checkN(e.id)} <StatusChip status={e.readiness || 'UNKNOWN'} size="xs" word={e.readiness ? undefined : t.word.unfinished} />
-              {e.finished_at ? ` ${when(fmt, clock, e.finished_at, t)}` : ''}
+              {e.finished_at ? ` ${fmt.at(e.finished_at)}` : ''}
             </span>
           ))}
         </p>
       )}
     </section>
+  )
+}
+
+type Check = NonNullable<MigrationCheckView['result']>['checks'][number]
+
+/** Findings as sentences, each with its check's raw output folded under it (docs/design/v3 rule 3). */
+function Findings({ list, label }: { list: Check[]; label: string }) {
+  const t = useT().migration
+  if (list.length === 0) return null
+  return (
+    <ul className={s.findings} aria-label={label}>
+      {list.map((k) => (
+        <li key={k.name}>
+          <StatusChip status={k.verdict} size="xs" />
+          <span className={s.finding}>
+            <span>{t.finding(k.name, k.verdict)}</span>
+            <TechDetails summary={t.output}>{k.detail}</TechDetails>
+          </span>
+          <span className={s.secs}>{k.seconds ? dur(k.seconds, true) : ''}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -343,7 +347,14 @@ function SourceFacts({ inv }: { inv: SourceVM }) {
       <div><dt>{t.col.size}</dt><dd>{disks(inv, t)}, {t.cpus(inv.cpus, inv.memory_mib)}</dd></div>
       <div>
         <dt>{t.col.state}</dt>
-        <dd>{inv.checkable ? <><StatusChip status="UNKNOWN" size="xs" word={t.word.cannotCheck} />{inv.checkable}</> : t.checkable}</dd>
+        <dd>
+          {inv.checkable ? (
+            <span className={s.finding}>
+              <span><StatusChip status="UNKNOWN" size="xs" word={t.word.cannotCheck} />{/powered ?on/i.test(inv.checkable) && <> {t.finding('cold', 'UNKNOWN')}</>}</span>
+              <TechDetails summary={t.why}>{inv.checkable}</TechDetails>
+            </span>
+          ) : t.checkable}
+        </dd>
       </div>
     </dl>
   )
@@ -361,7 +372,11 @@ function Actions({ r, act }: { r: Row; act: boolean }) {
   return (
     <div className={s.acts}>
       {c?.bundle_id && (
-        <Button variant="quiet" onClick={() => { setErr(null); download(ask, `/api/v1/migration-checks/${c.id}/report`, `gaia-readiness-${c.id}.tar.gz`).catch((e: Error) => setErr(e.message)) }}>
+        <Button variant="quiet" onClick={() => {
+          setErr(null)
+          download(ask, `/api/v1/migration-checks/${c.id}/report`, `gaia-readiness-${c.id}.tar.gz`,
+            { facts: [{ label: t.reportOf, value: t.reportTarget(r.vm, c.id) }] }).catch((e: Error) => setErr(e.message))
+        }}>
           {t.report}
         </Button>
       )}

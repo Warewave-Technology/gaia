@@ -1,62 +1,63 @@
-.page { max-width: 1360px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-direction: column; gap: 30px; }
+.page { max-width: 1360px; margin: 0 auto; padding: 22px 28px 48px; display: flex; flex-direction: column; gap: 20px; }
 .page :global(p) { margin: 0; }
 
 .unknown { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.two { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
-.scroll { overflow-x: auto; }
+.sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.h2 { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--fg1); }
+.detail { display: flex; flex-direction: column; min-width: 0; }
+.demand { display: flex; flex-direction: column; gap: 16px; }
 
 /* The what-if: a model, set apart from the numbers of now. */
-.panel { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); }
-.controls { display: flex; gap: 28px; align-items: flex-end; flex-wrap: wrap; }
+.panel { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); }
+.controls { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
 .ctl { display: flex; flex-direction: column; gap: 6px; }
 .lbl { font-size: 12.5px; color: var(--fg4); }
 .slider { display: flex; gap: 12px; align-items: center; }
-.slider input { accent-color: var(--fg1); width: 260px; max-width: 60vw; }
+.slider input { accent-color: var(--fg1); width: 220px; max-width: 60vw; }
 .big { font-size: var(--text-xl); color: var(--fg0); min-width: 28px; font-variant-numeric: tabular-nums; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .changed { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--fg1); }
 .hint { font-size: 12.5px; color: var(--fg4); }
 
-/* Demand by OS class against the capacity line; the uncovered part hatched. */
-.bars { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+/* The figures of now and, when something is modelled, now → modelled. */
+.figs { display: flex; gap: 6px 22px; flex-wrap: wrap; margin: 0 0 0 auto; }
+.figs > div { display: flex; flex-direction: column; gap: 2px; }
+.figs dt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg4); }
+.figs dd { margin: 0; font-size: 15px; color: var(--fg3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.was { color: var(--fg4); }
+
+/* Demand by OS class against the capacity line; the uncovered part hatched; segments labelled where drawn. */
+.bars { display: flex; flex-direction: column; gap: 8px; }
 .barRow { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; align-items: center; }
 .barLbl { font-size: 12.5px; color: var(--fg3); }
-.cap { position: relative; height: 24px; background: var(--band0); border-radius: 1px; }
-.seg { position: absolute; top: 0; bottom: 0; }
+.cap { position: relative; height: 22px; background: var(--band0); border-radius: 1px; }
+.seg { position: absolute; top: 0; bottom: 0; overflow: hidden; }
+.segLbl { position: absolute; left: 8px; top: 0; bottom: 0; display: flex; align-items: center; font-size: 11.5px; font-weight: 500; color: var(--page);
+  white-space: nowrap; }
 .c0 { background: var(--aqua); }
 .c1 { background: var(--blue); }
-.c2 { background: var(--fg4); }
 .gap { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--red) 0 3px, transparent 3px 7px); opacity: 0.75; }
-.line { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--fg0); }
+.line { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--fg0); }
 .legend { display: flex; gap: 6px 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--fg3); padding-left: 102px; }
 .legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { display: inline-block; width: 10px; height: 10px; }
 .swLine { display: inline-block; width: 2px; height: 12px; background: var(--fg0); }
 .swGap { background: repeating-linear-gradient(135deg, var(--red) 0 2px, transparent 2px 4px); }
-.compare { max-width: 640px; }
 
-.tbl { width: 100%; border-collapse: collapse; }
-.tbl th { font-size: var(--text-xs); letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; color: var(--fg4); text-align: left;
-  padding: 8px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; vertical-align: bottom; }
-.tbl td, .tbl tbody th { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; font-weight: 400;
-  text-transform: none; letter-spacing: 0; font-size: var(--text-md); color: var(--fg1); }
-.compare tbody th { color: var(--fg2); }
-.num { text-align: right !important; white-space: nowrap; }
-.w60 { width: 60px; }
-.mono { font-family: var(--mono); font-size: 12.5px; color: var(--fg3); white-space: nowrap; }
-.of { display: block; font-size: 11.5px; color: var(--fg4); margin-top: 2px; }
+/* cells */
 .fig { color: var(--fg0); font-weight: 600; font-variant-numeric: tabular-nums; }
+.figSm { color: var(--fg0); font-variant-numeric: tabular-nums; }
 .changedFig { color: var(--fg0); font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
-.fg2 { color: var(--fg2) !important; }
-.name { font-family: var(--mono); font-size: 13.5px; color: var(--fg1); }
-.vm { font-family: var(--mono); font-size: 13.5px; color: var(--blue); text-decoration: none; }
+.past { color: var(--yellow); font-weight: 600; }
+.of { margin-left: 8px; font-size: 11.5px; color: var(--fg4); }
+.sub { color: var(--fg4); font-size: 12px; }
+.name { font-family: var(--mono); font-size: 13px; color: var(--fg1); }
+.vm { font-family: var(--mono); font-size: 13px; color: var(--blue); text-decoration: none; }
 .vm:hover { color: var(--fg0); text-decoration: underline; }
-.running { color: var(--aqua) !important; white-space: nowrap; }
 .empty { color: var(--fg3); padding: 8px 0; }
 
 @media (max-width: 1000px) {
-  .two { grid-template-columns: minmax(0, 1fr); }
+  .figs { margin-left: 0; }
 }
 @media (max-width: 760px) {
   .page { padding: 20px 16px 48px; }
