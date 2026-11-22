@@ -428,7 +428,11 @@ func (s *Server) table() []route {
 					return 0, nil, fmt.Errorf("%w: the host's key is %s, not %s: not trusted", store.ErrConflict, sc.Fingerprint, in.Fingerprint)
 				}
 				c.detail = "trusted " + sc.Fingerprint
-				return one(s.db.PinHostKey(c.r.Context(), c.user.Username, h.ID, sc.Key, sc.Fingerprint))
+				pinned, err := s.db.PinHostKey(c.r.Context(), c.user.Username, h.ID, sc.Key, sc.Fingerprint)
+				if err == nil { // host_key_untrusted ends for its VMs: recomputed at the next tick
+					err = s.db.MarkStatusesDue(c.r.Context(), h.ID, 0)
+				}
+				return one(pinned, err)
 			}},
 		{method: "POST", path: "/api/v1/hosts/{id}/check", summary: "Connect over SSH and list the host's libvirt domains", roles: writers, out: HostCheck{},
 			h: func(c *call) (int, any, error) {

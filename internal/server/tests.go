@@ -280,7 +280,7 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	if err != nil {
 		return status.Input{}, err
 	}
-	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged,
+	in := status.Input{Now: s.now().UTC(), DamagedPoints: f.Damaged, HostKeyUntrusted: !f.HostKeyTrusted,
 		Host: &status.Scope{Kind: status.ScopeHost, ID: f.VM.HostID, Name: f.HostName}}
 	if f.Policy != nil {
 		in.Targets = &status.Targets{RPOS: f.Policy.RPOTargetS, RTOS: f.Policy.RTOTargetS, MaxProofAgeS: f.Policy.MaxProofAgeS}
@@ -295,6 +295,9 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	}
 	if in.FailedBackup, err = failedBackup(f.LastBackup, f.LastBackupInfo, in.NewestChecked); err != nil {
 		return in, err
+	}
+	if b := in.FailedBackup; b != nil && b.HostKeyUntrusted && f.HostKeyTrusted {
+		b.HostKeyUntrusted = false // trusted since the job failed: that cause is gone, the failure stays a failure
 	}
 	test := func(t *store.RestoreTest, p *store.Point) (*status.Test, error) {
 		if t == nil {
@@ -348,7 +351,7 @@ func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*
 	if err := json.Unmarshal(detail, &d); err != nil {
 		return nil, fmt.Errorf("backup job %d: detail: %w", j.ID, err)
 	}
-	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable}, nil
+	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable, HostKeyUntrusted: d.HostKeyUntrusted}, nil
 }
 
 // refreshStatus computes a VM's status now and stores it; a change is recorded with its reason.

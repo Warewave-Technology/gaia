@@ -52,6 +52,7 @@ type StatusFacts struct {
 	Damaged       []int64      // present points whose check failed
 	// What reasons name as their cause (ADR-007 C3).
 	HostName       string
+	HostKeyTrusted bool  // the host has a pinned SSH key (ADR-007 C11: host_key_untrusted when not)
 	RepositoryID   int64 // the policy's repository; 0 without a policy
 	RepositoryName string
 	LastBackup     *Job            // the newest finished backup job (ok or failed)
@@ -67,7 +68,7 @@ func (d *DB) StatusFacts(ctx context.Context, vmID int64) (StatusFacts, error) {
 		return f, err
 	}
 	f.VM = vm
-	if err := d.db.QueryRowContext(ctx, `SELECT name FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName); err != nil {
+	if err := d.db.QueryRowContext(ctx, `SELECT name, ssh_host_key != '' FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName, &f.HostKeyTrusted); err != nil {
 		return f, fmt.Errorf("the VM's host %d: %w", vm.HostID, err)
 	}
 	if vm.PolicyID != nil {

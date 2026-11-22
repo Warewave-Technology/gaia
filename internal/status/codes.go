@@ -10,7 +10,7 @@ import (
 type Code string
 
 // CodesVersion is the version of the list; it grows when a code is added, changed or removed.
-const CodesVersion = 1
+const CodesVersion = 2
 
 const (
 	// CRITICAL: the newest checked backup is older than the RPO target (rule theoretical_rpo_over_target). The code
@@ -18,6 +18,9 @@ const (
 	NoBackupInRPO   Code = "no_backup_in_rpo"
 	HostUnreachable Code = "host_unreachable"
 	BackupFailing   Code = "backup_failing"
+	// CRITICAL (no backup within the RPO target) or UNKNOWN (no checked point): the host's SSH key was never trusted,
+	// so Gaia does not connect to it (ADR-007 C11). Scoped to the host: one cause for all its VMs.
+	HostKeyUntrusted Code = "host_key_untrusted"
 	// CRITICAL: the latest restore test with a verdict is CRITICAL (rule latest_test_critical), by its failed check.
 	TestFailedBoot  Code = "test_failed_boot"
 	GuestRebooted   Code = "guest_rebooted"
@@ -77,11 +80,20 @@ type Params struct {
 	MaxProofAgeS int64 `json:"max_proof_age_s,omitempty"`
 }
 
+// Variant is another status and truth-table row a code can be given in, besides its Def's own.
+type Variant struct {
+	Status string
+	Rule   string
+}
+
 // Def is one code: what it means, which status and truth-table row it belongs to, and its sentence.
 type Def struct {
 	Code   Code
 	Status string // OK, WARNING, CRITICAL, UNKNOWN; empty for a note
 	Rule   string // the truth-table row; empty for a note
+	// Also: the other rows the code is given in (host_key_untrusted: CRITICAL when backups stopped, UNKNOWN when the
+	// VM never had a checked point).
+	Also   []Variant
 	Scope  string // the scope kind it can carry; empty: the VM's own
 	Params []string
 	Cause  string // the cause in a few words, for a group of VMs ("Restore test failed to boot")
@@ -126,6 +138,20 @@ var defs = []Def{
 		Cause: "Host does not answer", Means: "no backup within the RPO target because the newest backup job could not reach the host over SSH",
 		text: func(p Params, sc *Scope, now time.Time) string {
 			return fmt.Sprintf("%s: host %s does not answer (backup job %d at %s: %s)", rpoOver(p, now), scopeName(sc), p.Job, clock(p.JobAt), p.Detail)
+		}},
+	{Code: HostKeyUntrusted, Status: Critical, Rule: "theoretical_rpo_over_target", Also: []Variant{{Status: Unknown, Rule: "no_checked_point"}},
+		Scope: ScopeHost, Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail"},
+		Cause: "Host key not trusted yet",
+		Means: "the host's SSH key was never trusted, so Gaia does not connect to it: no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`)",
+		text: func(p Params, sc *Scope, now time.Time) string {
+			s := fmt.Sprintf("host %s's SSH key is not trusted yet, so Gaia does not connect to it (scan the host and trust its fingerprint)", scopeName(sc))
+			if p.Job != 0 {
+				s += fmt.Sprintf(" (backup job %d at %s)", p.Job, clock(p.JobAt))
+			}
+			if p.PointAt == nil {
+				return "there is no backup point that passed its post-backup check: " + s
+			}
+			return rpoOver(p, now) + ": " + s
 		}},
 	{Code: BackupFailing, Status: Critical, Rule: "theoretical_rpo_over_target", Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail"},
 		Cause: "Backups fail", Means: "no backup within the RPO target because the newest backup job failed (for a reason other than the host not answering)",
@@ -222,6 +248,19 @@ var byCode = func() map[Code]Def {
 
 // Defs lists every code, in the documentation's order.
 func Defs() []Def { return defs }
+
+// Allows says whether the code is given with this status in this truth-table row.
+func (d Def) Allows(status, rule string) bool {
+	if d.Status == status && d.Rule == rule {
+		return true
+	}
+	for _, v := range d.Also {
+		if v.Status == status && v.Rule == rule {
+			return true
+		}
+	}
+	return false
+}
 
 // Lookup finds a code's definition.
 func Lookup(c Code) (Def, bool) {

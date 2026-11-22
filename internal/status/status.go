@@ -53,6 +53,8 @@ type Backup struct {
 	FinishedAt  time.Time `json:"finished_at"`
 	Error       string    `json:"error"`
 	Unreachable bool      `json:"unreachable"` // the host did not answer over SSH
+	// HostKeyUntrusted: the job did not connect because the host's SSH key was never trusted (hostconn.ErrUntrusted).
+	HostKeyUntrusted bool `json:"host_key_untrusted"`
 }
 
 // Input is everything the status depends on. A nil field is a missing input.
@@ -68,6 +70,8 @@ type Input struct {
 	Host         *Scope
 	Repository   *Scope
 	FailedBackup *Backup // the newest backup job failed after the newest checked point
+	// HostKeyUntrusted: the VM's host has no trusted SSH key now, so no backup can connect to it.
+	HostKeyUntrusted bool
 }
 
 // Reason is one row of the truth table that applied, with the status that row gives, or a note (Status empty).
@@ -114,6 +118,12 @@ func Compute(in Input) Result {
 		return Reason{Status: d.Status, Rule: d.Rule, Code: c, Scope: sc, Params: p, Text: d.text(p, sc, in.Now)}
 	}
 	add := func(c Code, sc *Scope, p Params) { r.Reasons = append(r.Reasons, mk(c, sc, p)) }
+	// addAs gives a code in one of its other rows (Def.Also).
+	addAs := func(c Code, v Variant, sc *Scope, p Params) {
+		x := mk(c, sc, p)
+		x.Status, x.Rule = v.Status, v.Rule
+		r.Reasons = append(r.Reasons, x)
+	}
 	note := func(c Code, sc *Scope, p Params) {
 		x := mk(c, sc, p)
 		r.NoteReasons, r.Notes = append(r.NoteReasons, x), append(r.Notes, x.Text)
@@ -133,6 +143,9 @@ func Compute(in Input) Result {
 	if t != nil && r.TheoreticalRPO != nil && *r.TheoreticalRPO > float64(t.RPOS) {
 		p := Params{Point: in.NewestChecked.ID, PointAt: at(in.NewestChecked.TakenAt), TargetS: t.RPOS}
 		switch b := in.FailedBackup; {
+		case b != nil && b.HostKeyUntrusted && in.Host != nil:
+			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			add(HostKeyUntrusted, in.Host, p)
 		case b != nil && b.Unreachable && in.Host != nil:
 			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
 			add(HostUnreachable, in.Host, p)
@@ -162,7 +175,17 @@ func Compute(in Input) Result {
 		add(NoPolicy, nil, Params{})
 	}
 	if in.NewestChecked == nil {
-		add(NeverBackedUp, nil, Params{})
+		switch b := in.FailedBackup; {
+		case in.Host != nil && (in.HostKeyUntrusted || b != nil && b.HostKeyUntrusted):
+			// Never backed up because Gaia does not connect to the host: the host's cause, not the VM's (ADR-007 C11).
+			var p Params
+			if b != nil {
+				p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			}
+			addAs(HostKeyUntrusted, Variant{Status: Unknown, Rule: "no_checked_point"}, in.Host, p)
+		default:
+			add(NeverBackedUp, nil, Params{})
+		}
 	}
 	if in.LatestPassingTest == nil {
 		add(NeverProven, nil, Params{})
