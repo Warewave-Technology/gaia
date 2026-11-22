@@ -1,0 +1,60 @@
+/* The VM page's history strip (docs/design/v3 rule 6, VM3.dc.html .tl). */
+.sec { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.top { display: flex; align-items: center; gap: 14px; }
+.h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--fg0); }
+.tl { position: relative; height: 118px; margin-top: 4px; user-select: none; }
+.lane { position: absolute; left: 84px; right: 0; height: 1px; background: var(--line); }
+.lab { position: absolute; left: 0; width: 76px; font-size: 11.5px; color: var(--fg4); text-align: right; }
+.band { position: absolute; top: 22px; height: 76px; border-left: 2px solid var(--fg0); background: color-mix(in srgb, var(--fg1) 8%, transparent); }
+.band.over { background: color-mix(in srgb, var(--red) 16%, transparent); }
+.band.open { border-left: 0; }
+.flag { position: absolute; top: 0; font-size: 12px; color: var(--fg0); white-space: nowrap; transform: translateX(-1px); font-weight: 500; }
+.flagRight { transform: translateX(calc(-100% + 8px)); }
+.tgt { position: absolute; top: 22px; height: 76px; border-left: 1px dashed var(--fg3); }
+.tgtl { position: absolute; bottom: 0; font-size: 11px; color: var(--fg3); white-space: nowrap; transform: translateX(-50%); }
+.tgtlEnd { transform: translateX(calc(-100% + 1px)); }
+.tgtlStart { transform: none; }
+.now { position: absolute; top: 22px; height: 76px; right: 0; border-left: 1px solid var(--fg4); }
+
+/* marks: a button each, chosen with a ring */
+.dot, .tk { position: absolute; padding: 0; border: 0; cursor: pointer; font: inherit; box-sizing: border-box; }
+.dot { width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%, -50%); }
+.dot.many { width: 17px; height: 17px; }
+.tk { width: 2px; height: 12px; transform: translateX(-1px); background: var(--ctl); }
+.tk.many { width: 4px; transform: translateX(-2px); }
+.dot.p, .dot.w { background: var(--aqua); }
+.dot.f { background: var(--red); }
+.dot.u { border: 2px dashed var(--purple); background: var(--page); }
+.tk.d, .tk.x { background: var(--red); }
+.tk.x { height: 7px; margin-top: 5px; }
+.dot.sel, .tk.sel { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--fg0); }
+.tk.sel { background: var(--fg0); }
+.tk.sel.d, .tk.sel.x { background: var(--red); }
+.dot:focus-visible, .tk:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.dot:hover, .tk:hover { filter: brightness(1.25); }
+.n { position: absolute; font-size: 10px; font-weight: 600; line-height: 1; color: var(--page); left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.dot.u .n { color: var(--purple); }
+.tk .n { color: var(--fg3); top: -9px; }
+
+.axis { position: relative; height: 16px; margin-left: 84px; font-size: 11.5px; color: var(--fg4); font-family: var(--mono); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis .first { transform: none; }
+.axis .last { right: 0; transform: none; }
+
+.cap { display: flex; gap: 12px; align-items: baseline; padding: 10px 14px; margin-top: 8px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); flex-wrap: wrap; }
+.cap b { color: var(--fg0); }
+.cap > span:not(:first-child) { color: var(--fg2); }
+.ret { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; padding: 1px 7px; line-height: 18px; border: 1px solid var(--line-2);
+  border-radius: var(--radius); color: var(--fg3); white-space: nowrap; }
+.link { background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: var(--blue); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px; margin-left: auto; }
+
+.legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 2px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--fg4); }
+.legend li { display: inline-flex; gap: 6px; align-items: center; }
+.ldot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-sizing: border-box; }
+.ldot.p { background: var(--aqua); }
+.ldot.f { background: var(--red); }
+.ldot.u { border: 2px dashed var(--purple); }
+.lband { width: 14px; height: 9px; display: inline-block; border-left: 2px solid var(--fg0); background: color-mix(in srgb, var(--fg1) 25%, transparent); }
+.lband.over { background: color-mix(in srgb, var(--red) 40%, transparent); }
