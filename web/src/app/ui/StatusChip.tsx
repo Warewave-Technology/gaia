@@ -8,14 +8,15 @@ export function asStatus(v: string): Status {
   return v === 'OK' || v === 'WARNING' || v === 'CRITICAL' ? v : 'UNKNOWN'
 }
 
-/** A status by shape, word and colour together (never colour alone). OK is quiet; UNKNOWN is hatched, never calm. */
-export function StatusChip({ status, size = 'md' }: { status: string; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
+/** A status by shape, word and colour together (never colour alone). OK is quiet; UNKNOWN is hatched, never calm.
+ * `word` names the status in the screen's terms (FAILED, READY, BEHIND) where the status word would not. */
+export function StatusChip({ status, size = 'md', word }: { status: string; size?: 'xs' | 'sm' | 'md' | 'lg'; word?: string }) {
   const t = useT()
   const st = asStatus(status)
   return (
-    <span className={`${s.chip} ${s[st.toLowerCase()]} ${s[size]}`}>
+    <span className={`${s.chip} ${s[st.toLowerCase()]} ${s[size]}`} data-status={st}>
       <span className={s.g} aria-hidden="true">{GLYPH[st]}</span>
-      {t.status[st]}
+      {word ?? t.status[st]}
     </span>
   )
 }
