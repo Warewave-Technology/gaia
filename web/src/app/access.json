@@ -198,7 +198,11 @@
         "GET /api/v1/vms/{id}",
         "GET /api/v1/evidence-export"
       ],
-      "actions": {}
+      "actions": {
+        "admin": [
+          "POST /api/v1/ledger/verify"
+        ]
+      }
     },
     {
       "path": "/approve-cli",

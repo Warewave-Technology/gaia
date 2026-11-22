@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router'
 import { useT } from '../../i18n'
 import { serverTime, type Fmt, type ServerClock } from '../../lib/time'
 import { can, useMe } from '../api/session'
-import { useDailyReports, useEvidence, useLedger, useSystem, useVMNames, type EvidenceBundle } from '../api/views'
+import { useCheckLedger, useDailyReports, useEvidence, useLedger, useSystem, useVMNames, type EvidenceBundle } from '../api/views'
 import { Failed, Loading } from '../layout/States'
 import { download, useStepUp } from '../layout/StepUp'
 import { Button, Fact, Facts, Notice, PageHead, SectionHead, StatusChip } from '../ui'
@@ -32,6 +32,7 @@ export function EvidencePage() {
   const sys = useSystem()
   const led = useLedger()
   const reps = useDailyReports()
+  const newest = useEvidence(1).data?.[0]
   if (!can(me, 'export')) return <Navigate to="/" replace />
   if (sys.isPending || led.isPending || reps.isPending) return <Loading />
   const err = sys.error ?? led.error ?? reps.error
@@ -39,19 +40,31 @@ export function EvidencePage() {
   const fmt = serverTime(sys.data.clock)
   return (
     <main className={s.page}>
-      <Headline l={led.data.latest} rep={reps.data[0] ?? null} keyID={sys.data.evidence_key_id} fmt={fmt} clock={sys.data.clock} />
+      <Headline l={led.data.latest} head={newest?.ledger_seq ?? 0} admin={can(me, 'admin')} rep={reps.data[0] ?? null} keyID={sys.data.evidence_key_id} fmt={fmt} clock={sys.data.clock} />
       <Export rep={reps.data[0] ?? null} />
       <Entries fmt={fmt} clock={sys.data.clock} />
     </main>
   )
 }
 
-function Headline({ l, rep, keyID, fmt, clock }: { l: Ledger; rep: Report | null; keyID: string; fmt: Fmt; clock: ServerClock }) {
+/** `head` is the newest bundle's ledger entry: entries sealed after the latest check are not vouched for yet. */
+function Headline({ l, head, admin, rep, keyID, fmt, clock }: {
+  l: Ledger
+  head: number
+  admin: boolean
+  rep: Report | null
+  keyID: string
+  fmt: Fmt
+  clock: ServerClock
+}) {
   const t = useT().evidence
+  const check = useCheckLedger()
   const checked = l.checked_at !== ''
-  const v = checked ? l.verdict : 'UNKNOWN'
+  const unchecked = checked ? Math.max(0, head - l.head_seq) : 0
+  const v = checked && unchecked === 0 ? l.verdict : 'UNKNOWN'
   const empty = checked && v === 'OK' && l.entries === 0
-  const answer = !checked ? t.answer.unchecked : empty ? t.answer.empty : v === 'OK' ? t.answer.ok : v === 'CRITICAL' ? t.answer.critical : t.answer.other
+  const answer = !checked ? t.answer.unchecked : unchecked > 0 && l.verdict === 'OK' ? t.answer.since(unchecked)
+    : empty ? t.answer.empty : v === 'OK' ? t.answer.ok : v === 'CRITICAL' || l.verdict === 'CRITICAL' ? t.answer.critical : t.answer.other
   const anchor = rep && rep.head_seq > 0 ? rep : null
   const at = checked ? when(fmt, clock, l.checked_at, t) : ''
   const since = anchor ? Math.max(0, l.head_seq - anchor.head_seq) : l.head_seq
@@ -62,6 +75,8 @@ function Headline({ l, rep, keyID, fmt, clock }: { l: Ledger; rep: Report | null
       lede={
         <>
           <p>
+            {unchecked > 0 && l.verdict === 'OK' && t.ledeSince(l.entries, at)}
+            {unchecked > 0 && admin && <>{' '}<Button variant="quiet" onClick={() => check.mutate()} disabled={check.isPending}>{check.isPending ? t.checking : t.checkNow}</Button></>}
             {empty && t.ledeEmpty(at)}
             {checked && v === 'OK' && !empty && t.ledeOk(l.entries, at)}
             {checked && v !== 'OK' && t.ledeBad(at, l.problems.length ? l.problems.join('; ') : l.reason || l.text)}

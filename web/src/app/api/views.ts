@@ -96,6 +96,15 @@ export function useLedger() {
   return useQuery({ queryKey: ['ledger'], queryFn: () => unwrap(api.GET('/api/v1/ledger')), refetchInterval: REFRESH })
 }
 
+/** "Check now" (admins): the ledger and its bundles are checked at once, not at the next daily report. */
+export function useCheckLedger() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => unwrap(api.POST('/api/v1/ledger/verify')),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ledger'] }),
+  })
+}
+
 /** The names of some VMs, one request each (a page shows a few; the whole list is never loaded). */
 export function useVMNames(ids: readonly number[]) {
   const qs = useQueries({

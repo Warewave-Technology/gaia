@@ -426,12 +426,17 @@ export const en = {
       other: 'Not fully. The ledger check found a problem.',
       unchecked: 'Not known yet. The ledger has not been checked.',
       empty: 'Nothing to prove yet. The ledger is empty.',
+      since: (n: number) => `Not yet for the newest ${n === 1 ? 'entry' : `${n.toLocaleString('en-US')} entries`}: ${n === 1 ? 'it was' : 'they were'} sealed after the latest check.`,
     },
     today: (hhmm: string) => `today ${hhmm}`,
     ledeOk: (n: number, at: string) =>
       `${n.toLocaleString('en-US')} ${n === 1 ? 'entry' : 'entries'} from the genesis entry to the head; every hash link and signature was checked ${at}.`,
     ledeBad: (at: string, why: string) => `The check ${at} found: ${why}.`,
     ledeUnchecked: 'Until the ledger is checked, nothing here is vouched for.',
+    ledeSince: (n: number, at: string) =>
+      `The check ${at} verified ${n.toLocaleString('en-US')} ${n === 1 ? 'entry' : 'entries'}; the next daily report checks the rest, or an admin checks now. Until then they are not vouched for.`,
+    checkNow: 'Check now',
+    checking: 'Checking…',
     ledeEmpty: (at: string) => `No evidence was sealed yet (checked ${at}): the first restore test seals the first entry.`,
     anchorLede: (at: string, seq: number) =>
       `The head was last published in the daily report of ${at}, so entries up to ${seq.toLocaleString('en-US')} cannot be rewritten without its recipients noticing.`,
