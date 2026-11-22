@@ -47,6 +47,9 @@ signin() {
 		-password-file "$WORK/admin.pw" -key "$WORK/admin-key.json" >&2
 }
 
+# hosts_name: the server's name on this host (WebAuthn needs a name; cloud-init writes /etc/hosts again at every boot).
+hosts_name() { grep -q " gaia-lab.test\$" /etc/hosts || echo "$(hostname -I | awk '{ print $1 }') gaia-lab.test" >>/etc/hosts; }
+
 # converter: whether the T21/T23 converter image is pinned here (then the converter service runs beside the server).
 converter() { [[ -s /etc/gaia/convert.json ]] && id "$CONV_USER" >/dev/null 2>&1; }
 
@@ -103,12 +106,14 @@ status)
 	exit 0 ;;
 start)
 	[[ -s $SRV_HOME/server.json ]] || { echo "UNKNOWN: no server data in $SRV_HOME: run up"; exit 3; }
+	hosts_name
 	units
 	start_units
 	"$0" status
 	exit 0 ;;
 source)
 	ip=${2:?source ESXI_IP}
+	hosts_name
 	[[ -f $ESXI_PASSWORD_FILE && $(stat -c %a "$ESXI_PASSWORD_FILE") == 600 ]] || { echo "UNKNOWN: the ESXi root password must be in $ESXI_PASSWORD_FILE with mode 0600"; exit 3; }
 	signin
 	added=$(GAIA_VSPHERE_PASSWORD="$(cat "$ESXI_PASSWORD_FILE")" api sources add name=esxi url="https://$ip/sdk" username=root insecure=true)
@@ -118,6 +123,7 @@ source)
 	exit 0 ;;
 token)
 	out=${2:?token FILE}
+	hosts_name
 	signin
 	(umask 077 && jq -r .token "$WORK/.config/gaia/cli.json" >"$out")
 	echo "token written to $out" >&2
@@ -136,7 +142,7 @@ up) ;;
 *) echo "usage: $0 up | start | update | status | token FILE | source ESXI_IP | down"; exit 3 ;;
 esac
 
-grep -q " gaia-lab.test\$" /etc/hosts || echo "$(hostname -I | awk '{ print $1 }') gaia-lab.test" >>/etc/hosts
+hosts_name
 free_gb=$(df --output=avail -BG /var/lib | tail -1 | tr -dc 0-9)
 ((free_gb >= 30)) || { echo "UNKNOWN: ${free_gb} GB free under /var/lib, the repository wants 30"; exit 3; }
 down
