@@ -83,6 +83,7 @@
         "GET /api/v1/search",
         "GET /api/v1/views/capacity",
         "GET /api/v1/views/test-queue",
+        "GET /api/v1/capacity/inputs",
         "GET /api/v1/policies"
       ],
       "actions": {
