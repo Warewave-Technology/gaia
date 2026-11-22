@@ -1,0 +1,10 @@
+=== RUN   TestPageRoles
+--- PASS: TestPageRoles (1.00s)
+=== RUN   TestRoleMatrix
+--- PASS: TestRoleMatrix (2.28s)
+PASS
+ok  	github.com/Warewave-Technology/gaia/internal/server	3.964s
+✔ can() is what access.json says (0.28025ms)
+✔ every API call in src/app is listed in access.json (3.662084ms)
+ℹ pass 2
+ℹ fail 0
