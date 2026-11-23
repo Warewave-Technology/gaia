@@ -185,7 +185,7 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	           steps: [(x.detail.checks // [])[] | {name, verdict, detail: (.detail | .[0:240])}]};
 	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
 	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
-	 b_t11_windows: {as_is: s($win[0]) + {code: $win[0].detail.code, drivers: $win[0].detail.drivers}, without_smbus: s($wex[0]),
+	 b_t11_windows: {as_is: (s($win[0]) + {code: $win[0].detail.code, drivers: $win[0].detail.drivers}), without_smbus: s($wex[0]),
 	                 broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
 	                 t21_ok_was_a_false_positive: (($win[0] | step("boot").verdict) == "OK" and ($win[0] | step("stable").verdict) == "CRITICAL"),
 	                 pass: ($win[0].readiness == "CRITICAL" and $win[0].detail.code == "driver_install_loop" and ($win[0].detail.drivers | index("smbus")) != null

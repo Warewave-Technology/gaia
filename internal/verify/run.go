@@ -410,7 +410,9 @@ func (x *run) verify(ctx context.Context) error {
 			r.Checks = append(r.Checks, x.probe(ctx, k, ip, x.c.ProbeTimeoutS))
 		}
 	}
-	if Worst(checkVerdicts(r.Checks)...) == OK {
+	// The guest's own checks decide whether it is timed and watched for settle_s: a pre-check's WARNING (a migration
+	// check's drivers_excluded) is not the guest's, and must not skip the stability window (T28).
+	if guestPassed(r.Checks, len(x.o.PreChecks)) {
 		// Seconds since the vCPUs started, so only the guest's own checks count; pre-checks carry
 		// their own durations (a download, a conversion) and are not part of it.
 		ready := 0.0
@@ -639,6 +641,11 @@ func (x *run) alive() error {
 		return fmt.Errorf("the guest stopped (libvirt state %d)", st)
 	}
 	return nil
+}
+
+// guestPassed says whether every check after the first pre checks (the guest's own) passed.
+func guestPassed(checks []CheckResult, pre int) bool {
+	return len(checks) > pre && Worst(checkVerdicts(checks[pre:])...) == OK
 }
 
 // settle checks that a guest booted by a network probe stays up: the boot probe must keep passing, every `every`,

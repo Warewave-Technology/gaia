@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -455,6 +456,24 @@ func TestSettle(t *testing.T) {
 	c.Validate() // defaults apply first (a missing MAC is reported after)
 	if c.SettleS != 60 {
 		t.Errorf("default settle_s: %+v", c)
+	}
+}
+
+// A migration check's pre-check WARNING (drivers_excluded) is not the guest's: the guest is still timed and watched
+// for settle_s (T28 gate (a) found the stability window skipped).
+func TestGuestPassed(t *testing.T) {
+	pre := []CheckResult{{Name: "conversion", Verdict: OK}, {Name: "drivers_excluded", Verdict: Warning}}
+	for _, tc := range []struct {
+		guest []CheckResult
+		want  bool
+	}{
+		{[]CheckResult{{Name: "boot", Verdict: OK}, {Name: "rdp", Verdict: OK}}, true},
+		{[]CheckResult{{Name: "boot", Verdict: OK}, {Name: "rdp", Verdict: Warning}}, false},
+		{nil, false},
+	} {
+		if got := guestPassed(append(slices.Clone(pre), tc.guest...), len(pre)); got != tc.want {
+			t.Errorf("%+v: %v, want %v", tc.guest, got, tc.want)
+		}
 	}
 }
 
