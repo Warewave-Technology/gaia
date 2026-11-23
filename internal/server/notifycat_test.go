@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -223,7 +224,7 @@ func TestMigrationCheckFinishedEvent(t *testing.T) {
 	for _, r := range []string{verify.Warning, verify.Critical, verify.Unknown} {
 		e := got[r]
 		vm := "vm-" + strings.ToLower(r)
-		if e.VM != vm || *e.Migration != (MigrationEvent{Check: ids[r], VM: vm, Source: "esxi1", Readiness: r, Reason: "because " + r}) ||
+		if e.VM != vm || !reflect.DeepEqual(*e.Migration, MigrationEvent{Check: ids[r], VM: vm, Source: "esxi1", Readiness: r, Reason: "because " + r}) ||
 			!strings.Contains(e.Subject, "migration check of "+vm+" on esxi1: "+r) || !strings.Contains(e.Text, "Why: because "+r) {
 			t.Errorf("%s: %+v %+v", r, e, e.Migration)
 		}

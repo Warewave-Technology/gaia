@@ -25,6 +25,7 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/evidence"
 	"github.com/Warewave-Technology/gaia/internal/migrate"
 	"github.com/Warewave-Technology/gaia/internal/sandbox"
+	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
 	"github.com/Warewave-Technology/gaia/internal/verify"
 	"github.com/Warewave-Technology/gaia/internal/vsphereread"
@@ -99,7 +100,7 @@ type MigrationDetail struct {
 	// first-boot install failed on every boot).
 	Code    string   `json:"code,omitempty"`
 	Drivers []string `json:"drivers,omitempty"`
-	Errors    []string             `json:"errors"`
+	Errors  []string `json:"errors"`
 }
 
 func (c Config) sourcePasswordFile(name string) string {
@@ -536,7 +537,7 @@ func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk,
 	for i, l := range loops {
 		names[i] = l.Driver
 	}
-	d.Code, d.Drivers = migrate.CodeDriverInstallLoop, names
+	d.Code, d.Drivers = string(status.DriverInstallLoop), names
 	return &verify.CheckResult{Name: "drivers", Type: "firstboot", Verdict: verify.Critical, Seconds: time.Since(t).Seconds(),
 		Detail: migrate.DriverLoopText(loops)}
 }
@@ -544,7 +545,7 @@ func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk,
 // migrationReason says in one line why a check has its readiness: the first step or check that did not pass, or what
 // passed.
 func migrationReason(r *verify.Result, d *MigrationDetail) string {
-	if d.Code == migrate.CodeDriverInstallLoop { // the cause behind the guest's failed checks
+	if d.Code == string(status.DriverInstallLoop) { // the cause behind the guest's failed checks
 		for _, c := range r.Checks {
 			if c.Name == "drivers" {
 				return fmt.Sprintf("%s %s: %s", c.Name, strings.ToLower(c.Verdict), c.Detail)

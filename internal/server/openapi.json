@@ -3305,6 +3305,12 @@
           "detail": {
             "type": "string"
           },
+          "drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "fingerprint": {
             "type": "string"
           },

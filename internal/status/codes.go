@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -10,7 +11,7 @@ import (
 type Code string
 
 // CodesVersion is the version of the list; it grows when a code is added, changed or removed.
-const CodesVersion = 3
+const CodesVersion = 4
 
 const (
 	// CRITICAL: the newest checked backup is older than the RPO target (rule theoretical_rpo_over_target). The code
@@ -48,7 +49,14 @@ const (
 	TestWarning Code = "test_warning"
 	FullBackup  Code = "full_backup"
 	TestNotRun  Code = "test_not_run"
+	// A migration check's readiness, not a VM's status (ADR-005 C): CRITICAL, the converted Windows restarts on every
+	// boot because a virtio-win driver fails to install at first boot.
+	DriverInstallLoop Code = "driver_install_loop"
 )
+
+// SubjectMigrationCheck marks a code given to a migration check's readiness, not to a protected VM's status: it has no
+// row of the status table.
+const SubjectMigrationCheck = "migration_check"
 
 // Scope kinds: the thing a reason's cause is shared by. A reason without a scope is the VM's own.
 const (
@@ -80,7 +88,9 @@ type Params struct {
 	// host_key_changed: when the key Gaia trusts was pinned, and the fingerprint of the different key the host presents.
 	PinnedAt    *time.Time `json:"pinned_at,omitempty"`
 	Fingerprint string     `json:"fingerprint,omitempty"`
-	RTOS        *float64   `json:"rto_s,omitempty"`
+	// driver_install_loop: the virtio-win drivers whose first-boot install failed on every boot
+	Drivers []string `json:"drivers,omitempty"`
+	RTOS    *float64 `json:"rto_s,omitempty"`
 	// for the OK sentence
 	RPOTargetS   int64 `json:"rpo_target_s,omitempty"`
 	RTOTargetS   int64 `json:"rto_target_s,omitempty"`
@@ -100,12 +110,15 @@ type Def struct {
 	Rule   string // the truth-table row; empty for a note
 	// Also: the other rows the code is given in (host_key_untrusted: CRITICAL when backups stopped, UNKNOWN when the
 	// VM never had a checked point).
-	Also   []Variant
-	Scope  string // the scope kind it can carry; empty: the VM's own
-	Params []string
-	Cause  string // the cause in a few words, for a group of VMs ("Restore test failed to boot")
-	Means  string // one line for the documentation
-	text   func(p Params, sc *Scope, now time.Time) string
+	Also  []Variant
+	Scope string // the scope kind it can carry; empty: the VM's own
+	// Subject: what the code is given to when not a protected VM's status (SubjectMigrationCheck); such a code has no
+	// rule.
+	Subject string
+	Params  []string
+	Cause   string // the cause in a few words, for a group of VMs ("Restore test failed to boot")
+	Means   string // one line for the documentation
+	text    func(p Params, sc *Scope, now time.Time) string
 }
 
 func since(t *time.Time, now time.Time) string {
@@ -249,6 +262,12 @@ var defs = []Def{
 	{Code: FullBackup, Params: []string{"point", "detail"}, Cause: "Full backup for a reason", Means: "note: the newest backup is full although the VM had an earlier one (a checkpoint gone, a disk resized, a quarantine)",
 		text: func(p Params, _ *Scope, _ time.Time) string {
 			return fmt.Sprintf("the newest backup (point %d) is a full backup: %s", p.Point, p.Detail)
+		}},
+	{Code: DriverInstallLoop, Status: Critical, Subject: SubjectMigrationCheck, Params: []string{"drivers", "detail"},
+		Cause: "Converted Windows restarts for a driver", Means: "a migration check: the converted Windows restarts on every boot because virt-v2v's first-boot service cannot install a virtio-win driver (ADR-005 C); checked again with exclude_drivers it can be WARNING at best",
+		text: func(p Params, _ *Scope, _ time.Time) string {
+			return fmt.Sprintf("the converted Windows restarts on every boot: virtio-win's %s driver fails to install at first boot (%s)",
+				strings.Join(p.Drivers, ", "), p.Detail)
 		}},
 	{Code: TestNotRun, Scope: ScopeSandbox, Params: []string{"test", "point", "detail"}, Cause: "Restore test could not run",
 		Means: "note: the newest restore test could not run (the sandbox scope when the sandbox helper did not answer)",

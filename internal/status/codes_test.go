@@ -118,7 +118,7 @@ func TestReasonCodes(t *testing.T) {
 		}
 	}
 	for _, d := range Defs() {
-		if seen[d.Code] == 0 && d.Code != NoRule {
+		if seen[d.Code] == 0 && d.Code != NoRule && d.Subject == "" {
 			t.Errorf("code %s is never given", d.Code)
 		}
 	}
@@ -193,6 +193,9 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 		}
 		if d.Rule == "" {
 			rule = "`-`"
+		}
+		if d.Subject != "" {
+			rule = "`-` (" + strings.ReplaceAll(d.Subject, "_", " ") + ")"
 		}
 		if scope == "" {
 			scope = "-"

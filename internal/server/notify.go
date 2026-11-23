@@ -304,6 +304,9 @@ type MigrationEvent struct {
 	Source    string `json:"source"`
 	Readiness string `json:"readiness"` // WARNING, CRITICAL or UNKNOWN
 	Reason    string `json:"reason"`
+	// Code is the reason code when one names the cause (driver_install_loop, with Drivers).
+	Code    string   `json:"code,omitempty"`
+	Drivers []string `json:"drivers,omitempty"`
 }
 
 // changedSettings names the settings that differ between two values of a setting (JSON objects; "" is the defaults,
@@ -763,6 +766,10 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		}
 		ev.Event, ev.VM = evMigrationCheck, mc.VM
 		ev.Migration = &MigrationEvent{Check: mc.ID, VM: mc.VM, Source: source, Readiness: sc.To, Reason: sc.Reason}
+		var d MigrationDetail
+		if len(mc.Detail) > 0 && json.Unmarshal(mc.Detail, &d) == nil && d.Code != "" {
+			ev.Migration.Code, ev.Migration.Drivers, ev.Code = d.Code, d.Drivers, d.Code
+		}
 		ev.Subject = fmt.Sprintf("migration check of %s on %s: %s", mc.VM, source, sc.To)
 		ev.Text = fmt.Sprintf("The migration check %d of VM %s on source %s ended at %s with the readiness %s.\nWhy: %s\nThe check's page and its readiness report (gaia migration-checks report %d) have the details.",
 			mc.ID, mc.VM, source, sc.At, sc.To, orDash(sc.Reason), mc.ID)

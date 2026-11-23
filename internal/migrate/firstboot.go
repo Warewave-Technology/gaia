@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-// CodeDriverInstallLoop is the reason code of a converted Windows that restarts on every boot because a driver fails
-// to install at first boot (ADR-005 C).
-const CodeDriverInstallLoop = "driver_install_loop"
-
 // DriverLoop is a driver that virt-v2v's first-boot service failed to install on every boot it tried, each time
 // ending with "retrying on next boot": the guest restarts for it for ever.
 type DriverLoop struct {

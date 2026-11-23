@@ -1,4 +1,4 @@
-# Reason codes (version 3)
+# Reason codes (version 4)
 
 Generated from `internal/status/codes.go` by `go test ./internal/status -run TestReasonCodesDoc -update`; do not edit.
 
@@ -31,4 +31,5 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 | `no_rule` | UNKNOWN | `no_rule` | - | - | No rule applied | no row of the status table applied (cannot happen; never shown as healthy) |
 | `test_warning` | note | `-` | - | `test`, `point`, `detail` | Restore test warned | note: the latest restore test with a verdict is WARNING |
 | `full_backup` | note | `-` | - | `point`, `detail` | Full backup for a reason | note: the newest backup is full although the VM had an earlier one (a checkpoint gone, a disk resized, a quarantine) |
+| `driver_install_loop` | CRITICAL | `-` (migration check) | - | `drivers`, `detail` | Converted Windows restarts for a driver | a migration check: the converted Windows restarts on every boot because virt-v2v's first-boot service cannot install a virtio-win driver (ADR-005 C); checked again with exclude_drivers it can be WARNING at best |
 | `test_not_run` | note | `-` | sandbox | `test`, `point`, `detail` | Restore test could not run | note: the newest restore test could not run (the sandbox scope when the sandbox helper did not answer) |

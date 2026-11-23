@@ -2880,6 +2880,7 @@ export interface components {
         Params: {
             check?: string;
             detail?: string;
+            drivers?: string[];
             fingerprint?: string;
             job?: number;
             /** Format: date-time */

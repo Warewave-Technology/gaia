@@ -15,6 +15,7 @@ export type ReasonIn = {
     job?: number
     job_at?: string | null
     check?: string
+    drivers?: string[] | null
     detail?: string
     target_s?: number
     rto_s?: number | null
@@ -125,6 +126,13 @@ export const reasons: Record<string, Def> = {
     short: () => 'the restored copy does not boot',
     long: (c) => `The newest restore test of ${c.count === 1 ? 'this VM' : `each of these ${vms(c.count)}`} restored the point but the copy did not boot. ${c.count === 1 ? 'It keeps' : 'They keep'} an older proven point, if one exists.`,
     todo: 'Look at the test’s screenshots on the VM page. A change of firmware (BIOS/UEFI) or disk controller on the source is the usual cause.',
+  },
+  driver_install_loop: {
+    title: 'Converted Windows restarts for a driver',
+    vm: (r) => `Migration check: Windows restarts for ${(r.params?.drivers ?? []).join(', ') || 'a driver'} on every boot`,
+    short: () => 'a virtio-win driver fails to install at first boot',
+    long: () => 'The converted copy restarts on every boot because virt-v2v’s first-boot service cannot install a virtio-win driver.',
+    todo: 'If the VM does not need the driver, check it again without it (Check again without …): the result is then a warning at best.',
   },
   guest_rebooted: {
     title: 'Restored copy restarts by itself',
