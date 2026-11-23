@@ -38,7 +38,8 @@ import (
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
 //	gaia evidence export-all [-o FILE]                   the auditor's export: every bundle, the ledger, the keys, ...
 //	gaia kit status | save | confirm | regenerate | show  the recovery kit (kit.go)
-//	gaia channels add name=N kind=smtp|webhook smtp={...}|webhook={...} [events=[...]] | test ID | set ID enabled=false
+//	gaia channels add name=N kind=smtp|webhook smtp={...}|webhook={...} [categories=[...]] [daily_report=false] | test ID
+//	gaia channels set ID enabled=false | categories='["status","jobs","integrity","security","migration"]' | daily_report=true
 //	gaia ledger list | check                             gaia daily-reports list | get ID | run
 //	gaia sources add name=N url=https://ESXI/sdk username=root [insecure=true] | inventory ID | check ID vm=NAME [template=T]
 //	gaia migration-checks list [source_id=N] | get ID | report ID [-o FILE]   (ADR-003: read-only migration checks)

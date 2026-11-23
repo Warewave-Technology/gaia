@@ -269,7 +269,7 @@ func (f *fixture) seed() {
 	if err := os.WriteFile(f.s.cfg.notifySecretFile("seed-hook"), []byte("seed secret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	ch, err := f.s.db.AddChannel(ctx, "admin", store.Channel{Name: "seed-hook", Kind: "webhook", Config: []byte(`{"url":"http://127.0.0.1:1/"}`), Events: allEvents})
+	ch, err := f.s.db.AddChannel(ctx, "admin", store.Channel{Name: "seed-hook", Kind: "webhook", Config: []byte(`{"url":"http://127.0.0.1:1/"}`), Categories: allCategories, DailyReport: true})
 	if err != nil {
 		t.Fatal(err)
 	}
