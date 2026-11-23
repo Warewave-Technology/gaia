@@ -1,0 +1,1 @@
+{"verdict": "CRITICAL", "findings": ["file_modified"], "detail": [{"code": "file_modified", "at": "export-20261123T082243Z-10db93:export/SHA256SUMS"}]}

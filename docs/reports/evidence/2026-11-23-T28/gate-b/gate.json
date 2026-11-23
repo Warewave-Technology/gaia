@@ -1,0 +1,189 @@
+{
+  "mode": "lab",
+  "server": {
+    "version": "0.2.0~dev.20261123081005.g0be56c342fb6 (0be56c342fb6)",
+    "schema_version": 15
+  },
+  "key_ids": {
+    "server": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "daily_report": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+    "anchor": [
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    ],
+    "sha256sums_sig": [
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+      "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    ]
+  },
+  "sha256sums_ok": true,
+  "verify": {
+    "export_1": {
+      "gaia": {
+        "exit": 0,
+        "verdict": "OK"
+      },
+      "python": {
+        "exit": 0,
+        "verdict": "OK",
+        "findings": []
+      }
+    },
+    "export_2": {
+      "gaia": {
+        "exit": 0,
+        "verdict": "OK",
+        "sums": {
+          "listed": 11040,
+          "matching": 11040,
+          "signature_valid": true,
+          "key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+        }
+      },
+      "python": {
+        "exit": 0,
+        "verdict": "OK",
+        "findings": []
+      }
+    }
+  },
+  "record": {
+    "bundle_id": "export-20261123T082243Z-10db93",
+    "next_export_record": "export-20261123T082248Z-659c46",
+    "ledger_entry": {
+      "seq": 921,
+      "bundle_sha256": "96772d97a0c395629aef139887ac943af8230b88125e364899dbceda521c852d",
+      "subject": "evidence export by admin",
+      "verdict": "OK",
+      "key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    },
+    "manifest_sha256": "96772d97a0c395629aef139887ac943af8230b88125e364899dbceda521c852d",
+    "export_1_sha256sums": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+    "manifest_subject": {
+      "export": "gaia-evidence-20261123T082243Z",
+      "kind": "evidence_export",
+      "ledger_entries": "920",
+      "period_from": "2026-11-16T22:29:47.976939678Z",
+      "period_to": "2026-11-23T08:17:07.356858963Z",
+      "role": "admin",
+      "scope": "all",
+      "sha256sums_sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+      "user": "admin",
+      "verdict": "OK",
+      "via": "session"
+    },
+    "manifest_export": {
+      "format": "gaia-evidence-export",
+      "format_version": 1,
+      "name": "gaia-evidence-20261123T082243Z",
+      "made": "2026-11-23T08:22:43Z",
+      "installation": "gaia-t17-b",
+      "server_version": "0.2.0~dev.20261123081005.g0be56c342fb6 (0be56c342fb6)",
+      "by": {
+        "user": "admin",
+        "user_id": 1,
+        "role": "admin",
+        "via": "session"
+      },
+      "scope": {
+        "kind": "all",
+        "ledger_entries": 920,
+        "ledger_head_sha256": "979f3d514c7820f7f5eed3867af56bcf5e3e4eff20889b57d432e32261d87ebb",
+        "bundles": 919,
+        "daily_report": 7
+      },
+      "period": {
+        "from": "2026-11-16T22:29:47.976939678Z",
+        "to": "2026-11-23T08:17:07.356858963Z"
+      },
+      "files": 11036,
+      "sha256sums_sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+      "sha256sums_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+    },
+    "holds_export_1_sha256sums": true,
+    "server_catalog": {
+      "ledger_seq": 921,
+      "bundle_sha256": "96772d97a0c395629aef139887ac943af8230b88125e364899dbceda521c852d",
+      "verdict": "OK",
+      "test_id": null,
+      "vm_id": null,
+      "migration_check_id": null
+    },
+    "listed_by_gaia_verify": {
+      "bundle_id": "export-20261123T082243Z-10db93",
+      "ledger_seq": 921,
+      "verdict": "OK",
+      "user": "admin",
+      "scope": "all",
+      "period_from": "2026-11-16T22:29:47.976939678Z",
+      "period_to": "2026-11-23T08:17:07.356858963Z",
+      "sha256sums_sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+      "export": "gaia-evidence-20261123T082243Z",
+      "created": "2026-11-23T08:22:43.687620328Z"
+    }
+  },
+  "server_ledger_check": {
+    "verdict": "OK",
+    "kind": "incremental",
+    "entries": 922,
+    "head_seq": 922
+  },
+  "negative": {
+    "readme_and_its_sum_changed": {
+      "gaia": {
+        "exit": 2,
+        "codes": [
+          "sums_signature_invalid"
+        ]
+      },
+      "python": {
+        "exit": 0,
+        "codes": []
+      },
+      "sha256sum_c_ok": true
+    },
+    "signature_removed": {
+      "gaia": {
+        "exit": 3,
+        "codes": [
+          "sums_signature_missing"
+        ]
+      },
+      "python": {
+        "exit": 0,
+        "codes": []
+      }
+    },
+    "signature_names_other_key": {
+      "gaia": {
+        "exit": 2,
+        "codes": [
+          "sums_key_mismatch",
+          "sums_signature_invalid"
+        ]
+      },
+      "python": {
+        "exit": 0,
+        "codes": []
+      }
+    },
+    "record_changed": {
+      "gaia": {
+        "exit": 2,
+        "codes": [
+          "file_modified",
+          "sums_file_modified"
+        ]
+      },
+      "python": {
+        "exit": 2,
+        "codes": [
+          "file_modified"
+        ]
+      }
+    }
+  },
+  "openssl_sha256sums_sig": "OK",
+  "pass": true,
+  "verdict": "OK"
+}

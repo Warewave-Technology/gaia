@@ -1,0 +1,38 @@
+2026-11-23T08:26:21.201725+0000 gaia-lab systemd[1]: Started gaia-t28c-sink.service - /root/t28c/notify-sink -dir /root/t28/channel-20261123T082604Z/sink -smtp 127.0.0.1:2597 -https 127.0.0.1:2453 -cert /root/t28c/ca/server.crt -key /root/t28c/ca/server.key.
+2026-11-23T08:26:21.203647+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:21 SMTP on 127.0.0.1:2597, HTTPS on 127.0.0.1:2453, messages in /root/t28/channel-20261123T082604Z/sink
+2026-11-23T08:26:21.212073+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:21 webhook   -> /root/t28/channel-20261123T082604Z/sink/hook/0001.json
+2026-11-23T08:26:45.770715+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook job_failed 1 -> /root/t28/channel-20261123T082604Z/sink/hook/0002.json
+2026-11-23T08:26:45.816005+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook job_failed 2 -> /root/t28/channel-20261123T082604Z/sink/hook/0003.json
+2026-11-23T08:26:45.851083+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook status 3 -> /root/t28/channel-20261123T082604Z/sink/hook/0004.json
+2026-11-23T08:26:45.892018+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook status 4 -> /root/t28/channel-20261123T082604Z/sink/hook/0005.json
+2026-11-23T08:26:45.940688+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook status 5 -> /root/t28/channel-20261123T082604Z/sink/hook/0006.json
+2026-11-23T08:26:45.983386+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:45 webhook status 6 -> /root/t28/channel-20261123T082604Z/sink/hook/0007.json
+2026-11-23T08:26:46.011325+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:46 webhook status 7 -> /root/t28/channel-20261123T082604Z/sink/hook/0008.json
+2026-11-23T08:26:46.043551+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:46 webhook status 8 -> /root/t28/channel-20261123T082604Z/sink/hook/0009.json
+2026-11-23T08:26:54.031131+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:54 webhook capacity_short 9 -> /root/t28/channel-20261123T082604Z/sink/hook/0010.json
+2026-11-23T08:26:54.080788+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:54 webhook job_failed 10 -> /root/t28/channel-20261123T082604Z/sink/hook/0011.json
+2026-11-23T08:26:54.111763+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:26:54 webhook job_failed 11 -> /root/t28/channel-20261123T082604Z/sink/hook/0012.json
+2026-11-23T08:27:09.021310+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:27:09 webhook job_failed 12 -> /root/t28/channel-20261123T082604Z/sink/hook/0013.json
+2026-11-23T08:27:09.072381+0000 gaia-lab notify-sink[44494]: 2026/11/23 08:27:09 webhook job_failed 13 -> /root/t28/channel-20261123T082604Z/sink/hook/0014.json
+2026-11-23T08:27:31.773037+0000 gaia-lab systemd[1]: Stopping gaia-t28c-sink.service - /root/t28c/notify-sink -dir /root/t28/channel-20261123T082604Z/sink -smtp 127.0.0.1:2597 -https 127.0.0.1:2453 -cert /root/t28c/ca/server.crt -key /root/t28c/ca/server.key...
+2026-11-23T08:27:31.773458+0000 gaia-lab systemd[1]: gaia-t28c-sink.service: Deactivated successfully.
+2026-11-23T08:27:31.773611+0000 gaia-lab systemd[1]: Stopped gaia-t28c-sink.service - /root/t28c/notify-sink -dir /root/t28/channel-20261123T082604Z/sink -smtp 127.0.0.1:2597 -https 127.0.0.1:2453 -cert /root/t28c/ca/server.crt -key /root/t28c/ca/server.key.
+2026-11-23T08:27:31.774214+0000 gaia-lab systemd[1]: gaia-t28c-sink.service: Failed to open /run/systemd/transient/gaia-t28c-sink.service: No such file or directory
+2026-11-23T08:27:31.774326+0000 gaia-lab systemd[1]: gaia-t28c-sink.service: Failed to open /run/systemd/transient/gaia-t28c-sink.service: No such file or directory
+2026-11-23T08:27:31.774431+0000 gaia-lab systemd[1]: gaia-t28c-sink.service: Failed to open /run/systemd/transient/gaia-t28c-sink.service: No such file or directory
+2026-11-23T08:29:22.837558+0000 gaia-lab systemd[1]: Started gaia-t28c-sink.service - /root/t28c/notify-sink -dir /root/t28/channel-20261123T082911Z/sink -smtp 127.0.0.1:2597 -https 127.0.0.1:2453 -cert /root/t28c/ca/server.crt -key /root/t28c/ca/server.key.
+2026-11-23T08:29:22.839956+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:22 SMTP on 127.0.0.1:2597, HTTPS on 127.0.0.1:2453, messages in /root/t28/channel-20261123T082911Z/sink
+2026-11-23T08:29:22.905644+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:22 webhook   -> /root/t28/channel-20261123T082911Z/sink/hook/0001.json
+2026-11-23T08:29:49.319299+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook job_failed 1 -> /root/t28/channel-20261123T082911Z/sink/hook/0002.json
+2026-11-23T08:29:49.402337+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook job_failed 2 -> /root/t28/channel-20261123T082911Z/sink/hook/0003.json
+2026-11-23T08:29:49.526130+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook status 3 -> /root/t28/channel-20261123T082911Z/sink/hook/0004.json
+2026-11-23T08:29:49.642753+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook status 4 -> /root/t28/channel-20261123T082911Z/sink/hook/0005.json
+2026-11-23T08:29:49.835977+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook status 5 -> /root/t28/channel-20261123T082911Z/sink/hook/0006.json
+2026-11-23T08:29:49.928210+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:49 webhook status 6 -> /root/t28/channel-20261123T082911Z/sink/hook/0007.json
+2026-11-23T08:29:50.025939+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:50 webhook status 7 -> /root/t28/channel-20261123T082911Z/sink/hook/0008.json
+2026-11-23T08:29:50.133292+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:50 webhook status 8 -> /root/t28/channel-20261123T082911Z/sink/hook/0009.json
+2026-11-23T08:29:58.769663+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:58 webhook capacity_short 9 -> /root/t28/channel-20261123T082911Z/sink/hook/0010.json
+2026-11-23T08:29:58.798908+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:58 webhook job_failed 10 -> /root/t28/channel-20261123T082911Z/sink/hook/0011.json
+2026-11-23T08:29:58.828823+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:29:58 webhook job_failed 11 -> /root/t28/channel-20261123T082911Z/sink/hook/0012.json
+2026-11-23T08:30:13.747635+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:30:13 webhook job_failed 12 -> /root/t28/channel-20261123T082911Z/sink/hook/0013.json
+2026-11-23T08:30:13.780363+0000 gaia-lab notify-sink[45719]: 2026/11/23 08:30:13 webhook job_failed 13 -> /root/t28/channel-20261123T082911Z/sink/hook/0014.json

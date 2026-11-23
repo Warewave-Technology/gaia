@@ -1,0 +1,58 @@
+{
+  "bundle_id": "export-20261123T082243Z-10db93",
+  "created": "2026-11-23T08:22:43.687620328Z",
+  "key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909",
+  "subject": {
+    "export": "gaia-evidence-20261123T082243Z",
+    "kind": "evidence_export",
+    "ledger_entries": "920",
+    "period_from": "2026-11-16T22:29:47.976939678Z",
+    "period_to": "2026-11-23T08:17:07.356858963Z",
+    "role": "admin",
+    "scope": "all",
+    "sha256sums_sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+    "user": "admin",
+    "verdict": "OK",
+    "via": "session"
+  },
+  "export": {
+    "format": "gaia-evidence-export",
+    "format_version": 1,
+    "name": "gaia-evidence-20261123T082243Z",
+    "made": "2026-11-23T08:22:43Z",
+    "installation": "gaia-t17-b",
+    "server_version": "0.2.0~dev.20261123081005.g0be56c342fb6 (0be56c342fb6)",
+    "by": {
+      "user": "admin",
+      "user_id": 1,
+      "role": "admin",
+      "via": "session"
+    },
+    "scope": {
+      "kind": "all",
+      "ledger_entries": 920,
+      "ledger_head_sha256": "979f3d514c7820f7f5eed3867af56bcf5e3e4eff20889b57d432e32261d87ebb",
+      "bundles": 919,
+      "daily_report": 7
+    },
+    "period": {
+      "from": "2026-11-16T22:29:47.976939678Z",
+      "to": "2026-11-23T08:17:07.356858963Z"
+    },
+    "files": 11036,
+    "sha256sums_sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+    "sha256sums_key_id": "2695ee2e41e8978c3a77d4a6d9e78d7284908d50053aa4e99dec669a1750c909"
+  },
+  "files": [
+    {
+      "path": "export/SHA256SUMS",
+      "sha256": "bb507d75f70b0185904c41fbad67393b4ebd0c1801cdde43663ddd7749560e79",
+      "bytes": 1374564
+    },
+    {
+      "path": "export/SHA256SUMS.sig",
+      "sha256": "a74706a2986b61b1740750191ef5762be162de6c9ec7eedd87d1c48138730c20",
+      "bytes": 458
+    }
+  ]
+}

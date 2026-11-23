@@ -1,0 +1,15 @@
+{
+  "gaia": {
+    "exit": 2,
+    "codes": [
+      "file_modified",
+      "sums_file_modified"
+    ]
+  },
+  "python": {
+    "exit": 2,
+    "codes": [
+      "file_modified"
+    ]
+  }
+}

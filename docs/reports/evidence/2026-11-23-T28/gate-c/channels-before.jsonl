@@ -1,0 +1,2 @@
+{"id":1,"name":"jobs-m2","kind":"webhook","events":["job_failed"],"enabled":true}
+{"id":2,"name":"status-m2","kind":"webhook","events":["status"],"enabled":true}

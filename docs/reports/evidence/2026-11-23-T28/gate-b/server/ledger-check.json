@@ -1,0 +1,11 @@
+{
+  "id": 9,
+  "checked_at": "2026-11-23T08:22:51.554009989Z",
+  "reason": "requested by admin",
+  "verdict": "OK",
+  "entries": 922,
+  "head_seq": 922,
+  "head_sha256": "0fe61c5f6ef68645991fdf143447fe4c0bbb1ef6404a27c058996172e4c0e2da",
+  "problems": [],
+  "kind": "incremental"
+}

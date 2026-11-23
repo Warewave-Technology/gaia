@@ -1,0 +1,9 @@
+2026-11-23T08:26:48.093526+0000 gaia-lab systemd[1]: Starting gaia-t28c-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-23T08:26:48.239712+0000 gaia-lab gaia[44884]: time=2026-11-23T08:26:48.239Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t28c-sandbox/sandbox.sock group=gaia-t28c images=/var/lib/gaia-t28c-sandbox/images slots=1 memory_limit_mib=2048 basis=configured
+2026-11-23T08:26:48.239878+0000 gaia-lab systemd[1]: Started gaia-t28c-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-23T08:27:31.759856+0000 gaia-lab systemd[1]: Stopping gaia-t28c-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-23T08:27:31.763864+0000 gaia-lab systemd[1]: gaia-t28c-sandbox.service: Deactivated successfully.
+2026-11-23T08:27:31.764027+0000 gaia-lab systemd[1]: Stopped gaia-t28c-sandbox.service - Gaia restore-test sandbox helper.
+2026-11-23T08:29:52.781548+0000 gaia-lab systemd[1]: Starting gaia-t28c-sandbox.service - Gaia restore-test sandbox helper...
+2026-11-23T08:29:52.938446+0000 gaia-lab gaia[46186]: time=2026-11-23T08:29:52.938Z level=INFO msg="sandbox helper listening" socket=/run/gaia-t28c-sandbox/sandbox.sock group=gaia-t28c images=/var/lib/gaia-t28c-sandbox/images slots=1 memory_limit_mib=2048 basis=configured
+2026-11-23T08:29:52.938562+0000 gaia-lab systemd[1]: Started gaia-t28c-sandbox.service - Gaia restore-test sandbox helper.

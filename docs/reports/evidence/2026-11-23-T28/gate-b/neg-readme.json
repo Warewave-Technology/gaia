@@ -1,0 +1,12 @@
+{
+  "gaia": {
+    "exit": 2,
+    "codes": [
+      "sums_signature_invalid"
+    ]
+  },
+  "python": {
+    "exit": 0,
+    "codes": []
+  }
+}

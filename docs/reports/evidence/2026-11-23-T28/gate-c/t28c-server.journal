@@ -1,0 +1,68 @@
+2026-11-23T08:26:25.341543+0000 gaia-lab systemd[1]: Started gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:26:25.518380+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:25.518Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-23T08:26:25.523616+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:25.523Z level=INFO msg="gaia server is listening" address=127.0.0.1:8449 version=devel schema=8
+2026-11-23T08:26:25.523940+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:25.523Z level=INFO msg="next state backup" at=2026-11-24T02:30:00Z
+2026-11-23T08:26:41.245619+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.245Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.289735+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.288Z level=INFO msg="VM status changed" vm=2 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.378183+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.324Z level=INFO msg="VM status changed" vm=3 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.378183+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.375Z level=INFO msg="VM status changed" vm=4 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.408711+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.408Z level=INFO msg="VM status changed" vm=5 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.460719+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.460Z level=INFO msg="VM status changed" vm=6 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:26:41.504338+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.504Z level=ERROR msg="backup failed" job=1 error="domain \"gaia-t25-lin-1\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:26:41.555483+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.555Z level=ERROR msg="backup failed" job=2 error="domain \"gaia-t25-lin-2\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:26:41.656581+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:41.656Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-23T08:26:42.632446+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:42.632Z level=INFO msg="state backup stored" id=1 repository=main snapshot=cfe229d0df6c2b887a7d9b772aec6645 bytes=226816
+2026-11-23T08:26:47.361771+0000 gaia-lab gaia[44560]: time=2026-11-23T08:26:47.361Z level=INFO msg="shutting down"
+2026-11-23T08:26:47.361950+0000 gaia-lab systemd[1]: Stopping gaia-t28c-server.service - Gaia backup and recoverability server...
+2026-11-23T08:26:47.450322+0000 gaia-lab systemd[1]: gaia-t28c-server.service: Deactivated successfully.
+2026-11-23T08:26:47.450517+0000 gaia-lab systemd[1]: Stopped gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:26:47.450771+0000 gaia-lab systemd[1]: gaia-t28c-server.service: Consumed 3.670s CPU time.
+2026-11-23T08:26:48.265747+0000 gaia-lab systemd[1]: Started gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:26:48.930353+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.930Z level=INFO msg="migrated the state database" versions="[9 10 11 12 13 14 15]" schema=15
+2026-11-23T08:26:48.930769+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.930Z level=ERROR msg="security keys are not available" error="security keys are not available: public_url https://gaia-lab:8449 cannot be WebAuthn's relying party (error occurred validating the configuration: field 'RPID' is not a valid domain string: the domain component must actually be a domain): set public_url in /var/lib/gaia-t28c/server.json to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)"
+2026-11-23T08:26:48.930769+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.930Z level=WARN msg="server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)" config=/var/lib/gaia-t28c/server.json
+2026-11-23T08:26:48.931450+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.931Z level=WARN msg="recovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-23T08:26:48.948109+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.948Z level=INFO msg="gaia server is listening" address=127.0.0.1:8449 version=ac5f6382f8a4 schema=15
+2026-11-23T08:26:48.948319+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:48.948Z level=INFO msg="next state backup" at=2026-11-24T02:30:00Z
+2026-11-23T08:26:49.222616+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:49.222Z level=INFO msg="status table recomputed" reason=start vms=6 changed=0 seconds=0.195283997 errors=0
+2026-11-23T08:26:49.370077+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:49.370Z level=ERROR msg="backup failed" job=4 error="domain \"gaia-t25-lin-4\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:26:49.403759+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:49.403Z level=ERROR msg="backup failed" job=3 error="domain \"gaia-t25-lin-3\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:26:50.440993+0000 gaia-lab gaia[44893]: time=2026-11-23T08:26:50.440Z level=INFO msg="state backup stored" id=2 repository=main snapshot=21c30295bbff08537228536eccbde336 bytes=419328
+2026-11-23T08:27:04.335928+0000 gaia-lab gaia[44893]: time=2026-11-23T08:27:04.335Z level=ERROR msg="backup failed" job=5 error="domain \"gaia-t25-lin-5\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:27:04.360891+0000 gaia-lab gaia[44893]: time=2026-11-23T08:27:04.360Z level=ERROR msg="backup failed" job=6 error="domain \"gaia-t25-lin-6\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:27:31.656923+0000 gaia-lab gaia[44893]: time=2026-11-23T08:27:31.656Z level=INFO msg="shutting down"
+2026-11-23T08:27:31.656951+0000 gaia-lab systemd[1]: Stopping gaia-t28c-server.service - Gaia backup and recoverability server...
+2026-11-23T08:27:31.748183+0000 gaia-lab systemd[1]: gaia-t28c-server.service: Deactivated successfully.
+2026-11-23T08:27:31.748446+0000 gaia-lab systemd[1]: Stopped gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:29:28.865522+0000 gaia-lab systemd[1]: Started gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:29:29.060751+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:29.060Z level=WARN msg="recovery kit: recovery kit 1 (server init) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-23T08:29:29.066875+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:29.066Z level=INFO msg="gaia server is listening" address=127.0.0.1:8449 version=devel schema=8
+2026-11-23T08:29:29.067064+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:29.066Z level=INFO msg="next state backup" at=2026-11-24T02:30:00Z
+2026-11-23T08:29:45.776880+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:45.776Z level=INFO msg="VM status changed" vm=1 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:45.939584+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:45.939Z level=INFO msg="VM status changed" vm=2 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:46.083028+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.082Z level=INFO msg="repository verification" id=1 repository=main mode=sampled state=ok points=0 affected=0 skipped_failed=0
+2026-11-23T08:29:46.321648+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.321Z level=INFO msg="VM status changed" vm=3 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:46.467302+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.466Z level=INFO msg="VM status changed" vm=4 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:46.544963+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.544Z level=ERROR msg="backup failed" job=2 error="domain \"gaia-t25-lin-2\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:29:46.600702+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.600Z level=ERROR msg="backup failed" job=1 error="domain \"gaia-t25-lin-1\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:29:46.937991+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:46.937Z level=INFO msg="VM status changed" vm=5 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:47.000456+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:47.000Z level=INFO msg="VM status changed" vm=6 status=UNKNOWN reason="there is no backup point that passed its post-backup check"
+2026-11-23T08:29:47.257704+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:47.257Z level=INFO msg="state backup stored" id=1 repository=main snapshot=3c7a6596e413b8b684e084191f1503fd bytes=226816
+2026-11-23T08:29:52.209358+0000 gaia-lab systemd[1]: Stopping gaia-t28c-server.service - Gaia backup and recoverability server...
+2026-11-23T08:29:52.213276+0000 gaia-lab gaia[45796]: time=2026-11-23T08:29:52.209Z level=INFO msg="shutting down"
+2026-11-23T08:29:52.272270+0000 gaia-lab systemd[1]: gaia-t28c-server.service: Deactivated successfully.
+2026-11-23T08:29:52.272427+0000 gaia-lab systemd[1]: Stopped gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:29:52.272633+0000 gaia-lab systemd[1]: gaia-t28c-server.service: Consumed 3.812s CPU time.
+2026-11-23T08:29:52.961644+0000 gaia-lab systemd[1]: Started gaia-t28c-server.service - Gaia backup and recoverability server.
+2026-11-23T08:29:53.680482+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.680Z level=INFO msg="migrated the state database" versions="[9 10 11 12 13 14 15]" schema=15
+2026-11-23T08:29:53.723981+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.680Z level=ERROR msg="security keys are not available" error="security keys are not available: public_url https://gaia-lab:8449 cannot be WebAuthn's relying party (error occurred validating the configuration: field 'RPID' is not a valid domain string: the domain component must actually be a domain): set public_url in /var/lib/gaia-t28c/server.json to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)"
+2026-11-23T08:29:53.723981+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.680Z level=WARN msg="server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)" config=/var/lib/gaia-t28c/server.json
+2026-11-23T08:29:53.723981+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.682Z level=WARN msg="recovery kit: recovery kit 2 (repository main created) is not confirmed as stored off this server: run gaia kit save on another machine" state="not confirmed"
+2026-11-23T08:29:53.723981+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.697Z level=INFO msg="next state backup" at=2026-11-24T02:30:00Z
+2026-11-23T08:29:53.723981+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:53.697Z level=INFO msg="gaia server is listening" address=127.0.0.1:8449 version=772b035743db schema=15
+2026-11-23T08:29:54.133199+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:54.131Z level=INFO msg="status table recomputed" reason=start vms=6 changed=0 seconds=0.297209008 errors=0
+2026-11-23T08:29:54.266811+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:54.266Z level=ERROR msg="backup failed" job=3 error="domain \"gaia-t25-lin-3\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:29:54.290217+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:54.290Z level=ERROR msg="backup failed" job=4 error="domain \"gaia-t25-lin-4\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:29:55.577349+0000 gaia-lab gaia[46195]: time=2026-11-23T08:29:55.577Z level=INFO msg="state backup stored" id=2 repository=main snapshot=f19a5b160926ba9c813720aa85059fe6 bytes=419328
+2026-11-23T08:30:09.505793+0000 gaia-lab gaia[46195]: time=2026-11-23T08:30:09.505Z level=ERROR msg="backup failed" job=6 error="domain \"gaia-t25-lin-6\" is not running (a pull-mode backup needs a running domain)"
+2026-11-23T08:30:09.527102+0000 gaia-lab gaia[46195]: time=2026-11-23T08:30:09.526Z level=ERROR msg="backup failed" job=5 error="domain \"gaia-t25-lin-5\" is not running (a pull-mode backup needs a running domain)"

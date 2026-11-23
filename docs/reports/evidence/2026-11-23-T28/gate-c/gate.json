@@ -1,0 +1,98 @@
+{
+  "before": {
+    "release": {
+      "version": "devel",
+      "schema_version": 8
+    },
+    "jobs_m2_job_failed": 2,
+    "status_m2_status": 6,
+    "pass": true
+  },
+  "after": {
+    "upgraded_at": "2026-11-23T08:29:52Z",
+    "health": {
+      "status": "OK"
+    },
+    "schema": 15,
+    "jobs_m2": {
+      "id": 1,
+      "name": "jobs-m2",
+      "enabled": 1,
+      "categories": [
+        "jobs",
+        "security"
+      ],
+      "m2_events": [
+        "account_locked",
+        "breakglass_signin",
+        "job_failed",
+        "new_device_signin"
+      ],
+      "daily_report": 0
+    },
+    "status_m2": {
+      "id": 2,
+      "name": "status-m2",
+      "enabled": 1,
+      "categories": [
+        "status",
+        "security"
+      ],
+      "m2_events": [
+        "account_locked",
+        "breakglass_signin",
+        "new_device_signin",
+        "status"
+      ],
+      "daily_report": 0
+    },
+    "mapping_recorded": {
+      "jobs_m2": [
+        {
+          "seq": 42,
+          "at": "2026-11-23T08:29:53.581Z",
+          "entity": "notification_channel_categories",
+          "entity_id": 1,
+          "from_state": "{\"events\":[\"account_locked\",\"breakglass_signin\",\"job_failed\",\"new_device_signin\"]}",
+          "to_state": "{\"categories\":[\"jobs\",\"security\"],\"daily_report\":false}",
+          "reason": "channels take categories since 0.2.0 (ADR-007 C8): events [\"account_locked\",\"breakglass_signin\",\"job_failed\",\"new_device_signin\"] -> categories [\"jobs\",\"security\"], without the daily report",
+          "actor": "system"
+        }
+      ],
+      "status_m2": [
+        {
+          "seq": 43,
+          "at": "2026-11-23T08:29:53.581Z",
+          "entity": "notification_channel_categories",
+          "entity_id": 2,
+          "from_state": "{\"events\":[\"account_locked\",\"breakglass_signin\",\"new_device_signin\",\"status\"]}",
+          "to_state": "{\"categories\":[\"status\",\"security\"],\"daily_report\":false}",
+          "reason": "channels take categories since 0.2.0 (ADR-007 C8): events [\"account_locked\",\"breakglass_signin\",\"new_device_signin\",\"status\"] -> categories [\"status\",\"security\"], without the daily report",
+          "actor": "system"
+        }
+      ]
+    },
+    "capacity": [
+      {
+        "seq": 47,
+        "at": "2026-11-23T08:29:54.132937527Z",
+        "entity": "capacity",
+        "entity_id": 1,
+        "from_state": "",
+        "to_state": "short",
+        "reason": "proof capacity covers 56 % of what the policies ask: 1 slot(s), 2 needed",
+        "actor": "system"
+      }
+    ],
+    "pass": true
+  },
+  "new_event": {
+    "event": "capacity_short",
+    "category": "jobs",
+    "reached_jobs_m2": 1,
+    "reached_status_m2": 0,
+    "signature_valid": true,
+    "pass": true
+  },
+  "verdict": "OK"
+}
