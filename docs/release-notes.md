@@ -28,6 +28,17 @@
   cause, not "backups fail"). Gaia keeps the presented key and reads nothing from the host until an admin compares
   the fingerprints and accepts it on Inventory → Hosts (`POST /api/v1/hosts/{id}/accept-key`, with a step-up). It is
   never accepted automatically; `POST /api/v1/hosts/{id}/trust` no longer replaces a pinned key (409).
+- Reason codes version 5 (ADR-007 C18): **a changed host key acts at once.** From the moment Gaia sees the different
+  key (a backup or a host check), every VM of the host whose newest checked backup is still within its RPO target is
+  at least `WARNING` with `host_key_changed` (new rule `backups_paused`: Gaia reads nothing from the host, so its
+  backups are paused), and `CRITICAL` with the same code when its RPO target passes, as before. The host is a
+  `CRITICAL` cause in "Needs attention" at once, even while its VMs are `WARNING`. `GET /api/v1/reason-codes` lists
+  each code's other rows (`also`) and its group status (`group_status`).
+- **The migration view is paged on the server** (ADR-007 C18): `GET /api/v1/views/migration` answers one page of
+  checks (`after`, `limit` default 50 and at most 200, `total`, `next`) instead of the newest 200, with `latest=true`
+  (each VM's newest check, worst first), `result`, `source_id` and `vm` filters and the counts by result
+  (`by_result`). It no longer reads every evidence bundle: only the page's. The Migration screen shows the checked
+  VMs a page at a time and a read source's VMs in a table of their own.
 - While the sandbox helper does not answer, the proof capacity is modelled from the slot count it last reported
   (`slots_source: last_known`, `slots_at`), shown as "last known: 2 slots, at 14:02".
 - A policy says how much of the time its VMs can be OK at best (`max_ok_fraction`) and which test interval would make

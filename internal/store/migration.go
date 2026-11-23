@@ -183,6 +183,90 @@ func (d *DB) MigrationChecks(ctx context.Context, sourceID int64, limit int) ([]
 	return rowsOf(ctx, d.db, scanMC, `SELECT `+mcCols+` FROM migration_checks ORDER BY id DESC LIMIT ?`, limit)
 }
 
+// MigrationCheckFilter is a page of the migration screen's checks (ADR-007 C18.7: paged on the server, rule 15).
+type MigrationCheckFilter struct {
+	SourceID int64  // only this source's; 0: every source
+	VM       string // only this VM's (with SourceID: one VM's history)
+	// Result: OK, WARNING, CRITICAL, UNKNOWN (the readiness), or "open" (queued or running: no readiness yet); "" any.
+	Result string
+	// Latest: only each VM's newest check (the VM's result), worst first, then by VM name. Otherwise every check, newest
+	// first.
+	Latest bool
+	After  int // the offset: a previous page's next
+	Limit  int
+}
+
+// MigrationResultOpen is a check's result before it has a readiness: queued or running.
+const MigrationResultOpen = "open"
+
+// MigrationCheckRow is a check as a list shows it: the check and its job's state.
+type MigrationCheckRow struct {
+	MigrationCheck
+	JobState     string `json:"job_state"`
+	JobStartedAt string `json:"job_started_at"`
+}
+
+// MigrationCheckPage is one page of the checks that match f, how many match in all, and how many of the checks that
+// match every filter but the result have each result (the screen's filter chips count the whole list, not a page).
+func (d *DB) MigrationCheckPage(ctx context.Context, f MigrationCheckFilter) ([]MigrationCheckRow, int, map[string]int, error) {
+	switch f.Result {
+	case "", "OK", "WARNING", "CRITICAL", "UNKNOWN", MigrationResultOpen:
+	default:
+		return nil, 0, nil, fmt.Errorf("%w: result %q: OK, WARNING, CRITICAL, UNKNOWN or open", ErrInvalid, f.Result)
+	}
+	if f.Limit <= 0 || f.After < 0 {
+		return nil, 0, nil, fmt.Errorf("%w: after %d, limit %d", ErrInvalid, f.After, f.Limit)
+	}
+	where, args := []string{"1 = 1"}, []any{}
+	if f.SourceID > 0 {
+		where, args = append(where, "c.source_id = ?"), append(args, f.SourceID)
+	}
+	if f.VM != "" {
+		where, args = append(where, "c.vm = ?"), append(args, f.VM)
+	}
+	if f.Latest {
+		where = append(where, "c.id IN (SELECT MAX(id) FROM migration_checks GROUP BY source_id, vm)")
+	}
+	base := strings.Join(where, " AND ")
+	const result = `CASE WHEN c.readiness = '' THEN 'open' ELSE c.readiness END`
+	counts := map[string]int{}
+	type count struct {
+		result string
+		n      int
+	}
+	cs, err := rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (count, error) {
+		var c count
+		return c, s.Scan(&c.result, &c.n)
+	}, `SELECT `+result+`, COUNT(*) FROM migration_checks c WHERE `+base+` GROUP BY 1`, args...)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	total := 0
+	for _, c := range cs {
+		counts[c.result] = c.n
+		if f.Result == "" || f.Result == c.result {
+			total += c.n
+		}
+	}
+	if f.Result != "" {
+		base, args = base+" AND "+result+" = ?", append(args, f.Result)
+	}
+	order := "c.id DESC"
+	if f.Latest { // worst first: not ready, warnings, undecided, in progress, ready
+		order = `CASE c.readiness WHEN 'CRITICAL' THEN 0 WHEN 'WARNING' THEN 1 WHEN 'UNKNOWN' THEN 2 WHEN '' THEN 3 ELSE 4 END, c.vm, c.source_id, c.id DESC`
+	}
+	rows, err := rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (MigrationCheckRow, error) {
+		var r MigrationCheckRow
+		var cfg, detail string
+		err := s.Scan(&r.ID, &r.SourceID, &r.VM, &r.JobID, &cfg, &r.Readiness, &r.Reason, &r.BundleID, &r.Firmware, &r.GuestID, &detail,
+			&r.CreatedAt, &r.FinishedAt, &r.JobState, &r.JobStartedAt)
+		r.Config, r.Detail = json.RawMessage(cfg), json.RawMessage(detail)
+		return r, err
+	}, `SELECT `+mcColsC+`, j.state, j.started_at FROM migration_checks c JOIN jobs j ON j.id = c.job_id WHERE `+base+`
+		ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, f.Limit, f.After)...)
+	return rows, total, counts, err
+}
+
 // SetMigrationCheckSource records what the source says about the VM (firmware, guest OS) once it was read.
 func (d *DB) SetMigrationCheckSource(ctx context.Context, id int64, firmware, guestID string) error {
 	_, err := d.db.ExecContext(ctx, `UPDATE migration_checks SET firmware = ?, guest_id = ? WHERE id = ?`, firmware, guestID, id)

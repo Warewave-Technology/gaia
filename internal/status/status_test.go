@@ -278,10 +278,10 @@ func TestHostKeyChanged(t *testing.T) {
 	if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == BackupFailing || x.Code == HostKeyUntrusted }) {
 		t.Fatalf("backup_failing or host_key_untrusted as well: %+v", r.Reasons)
 	}
-	// Within the RPO target the status model has no row for it (the Hosts screen shows the host, C17): nothing here.
-	r = Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(60)}, FailedBackup: failed, HostKeyChanged: key})
-	if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == HostKeyChanged }) {
-		t.Fatalf("within the RPO target: %+v", r.Reasons)
+	// The host says so but no backup job failed on it yet: the same CRITICAL once the RPO target passed.
+	r = Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, HostKeyChanged: key})
+	if x := r.Reasons[0]; r.Status != Critical || x.Code != HostKeyChanged || x.Rule != "theoretical_rpo_over_target" || x.Params.Job != 0 {
+		t.Fatalf("stopped backups, no job yet: %s %+v", r.Status, r.Reasons)
 	}
 	for _, in := range []Input{
 		{Now: now, Targets: targets, Host: host, FailedBackup: failed, HostKeyChanged: key}, // the job said so
@@ -304,6 +304,83 @@ func TestHostKeyChanged(t *testing.T) {
 	accepted.HostKeyChanged = false
 	r = Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, FailedBackup: &accepted})
 	if r.Reasons[0].Code != BackupFailing {
+		t.Fatalf("after the key was accepted: %+v", r.Reasons)
+	}
+}
+
+// A changed host key acts at once (ADR-007 C18): from the moment the change is seen, a VM on the host whose newest
+// checked backup is still within the RPO target is at least WARNING (host_key_changed, rule backups_paused: Gaia reads
+// nothing from the host), even when it was OK; it turns CRITICAL when its RPO target passes, and NextChange says when.
+// A worse status for another reason stays (worst wins); with no checked point it is UNKNOWN (no_checked_point).
+func TestHostKeyChangedPausesBackups(t *testing.T) {
+	host := &Scope{Kind: ScopeHost, ID: 7, Name: "kvm-07"}
+	targets := &Targets{RPOS: 900, RTOS: 600, MaxProofAgeS: 3600}
+	pinned := time.Date(2026, 11, 2, 9, 30, 0, 0, time.UTC)
+	key := &HostKey{PinnedAt: &pinned, PresentedFingerprint: "SHA256:presented"}
+	good := &Test{ID: 3, PointID: 1, Verdict: OK, PointTakenAt: ago(300), FinishedAt: ago(200), ProvenRTOS: f(120)}
+	point := &Point{ID: 1, TakenAt: ago(300)}
+	ok := Input{Now: now, Targets: targets, Host: host, NewestChecked: point, LatestTest: good, LatestPassingTest: good}
+	if r := Compute(ok); r.Status != OK {
+		t.Fatalf("before the change: %s %+v", r.Status, r.Reasons)
+	}
+	paused := ok
+	paused.HostKeyChanged = key // seen by a host check: no backup job failed yet
+	r := Compute(paused)
+	x := r.Reasons[0]
+	if r.Status != Warning || x.Code != HostKeyChanged || x.Status != Warning || x.Rule != RuleBackupsPaused || x.Scope != host ||
+		x.Params.Point != 1 || x.Params.TargetS != 900 || x.Params.Fingerprint != "SHA256:presented" || x.Params.PinnedAt == nil || x.Params.Job != 0 {
+		t.Fatalf("paused: %s %+v", r.Status, r.Reasons)
+	}
+	want := "host kvm-07 presents a different SSH host key (SHA256:presented) than the one pinned on 2026-11-02T09:30:00Z; Gaia reads nothing from it until an admin checks and accepts the new key: backups are paused (the newest checked backup, point 1, is 5m0s old, within the RPO target 15m0s)"
+	if x.Text != want || Render(x, now) != want {
+		t.Fatalf("sentence %q", x.Text)
+	}
+	d, _ := Lookup(HostKeyChanged)
+	if !d.Allows(Warning, RuleBackupsPaused) || d.GroupStatus != Critical {
+		t.Fatalf("definition %+v", d)
+	}
+	// The WARNING comes first among the warnings: it is the VM's deciding reason, so its host is one group.
+	late := paused
+	late.LatestPassingTest = &Test{ID: 2, PointID: 1, Verdict: OK, PointTakenAt: ago(300), FinishedAt: ago(4000), ProvenRTOS: f(120)}
+	late.LatestTest = late.LatestPassingTest
+	if r := Compute(late); r.Status != Warning || r.Reasons[0].Code != HostKeyChanged || !slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == ProofTooOld }) {
+		t.Fatalf("paused and proof too old: %+v", r.Reasons)
+	}
+	// The job that failed on it says the same, with the job.
+	withJob := paused
+	withJob.FailedBackup = &Backup{JobID: 12, FinishedAt: ago(60), Error: "host key SHA256:presented is not the pinned SHA256:pinned: refusing to connect", HostKeyChanged: true}
+	if r := Compute(withJob); r.Status != Warning || r.Reasons[0].Rule != RuleBackupsPaused || r.Reasons[0].Params.Job != 12 ||
+		slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == BackupFailing }) {
+		t.Fatalf("paused, the job failed: %+v", r.Reasons)
+	}
+	// The WARNING turns CRITICAL exactly when the RPO target passes: 900 s after the point.
+	next := NextChange(paused)
+	if at := point.TakenAt.Add(900 * time.Second); next == nil || !next.Equal(at) {
+		t.Fatalf("next change %v, want %v", next, at)
+	}
+	after := paused
+	after.Now = next.Add(time.Second)
+	if r := Compute(after); r.Status != Critical || r.Reasons[0].Code != HostKeyChanged || r.Reasons[0].Rule != "theoretical_rpo_over_target" ||
+		slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Rule == RuleBackupsPaused }) {
+		t.Fatalf("after the RPO target: %s %+v", r.Status, r.Reasons)
+	}
+	// A worse status for another reason stays; the paused backups are still one of its reasons.
+	failing := paused
+	failing.LatestTest = &Test{ID: 4, PointID: 1, Verdict: Critical, FinishedAt: ago(30), FailedCheck: "boot", Detail: "no login prompt"}
+	if r := Compute(failing); r.Status != Critical || r.Reasons[0].Code != TestFailedBoot ||
+		!slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Rule == RuleBackupsPaused && x.Status == Warning }) {
+		t.Fatalf("paused and a failed test: %+v", r.Reasons)
+	}
+	// Without a policy there is no target to be over: paused, and UNKNOWN for the policy.
+	noPolicy := paused
+	noPolicy.Targets = nil
+	if r := Compute(noPolicy); r.Status != Unknown || !slices.ContainsFunc(r.Reasons, func(x Reason) bool {
+		return x.Rule == RuleBackupsPaused && x.Params.TargetS == 0 && strings.HasSuffix(x.Text, "backups are paused (the newest checked backup, point 1, is 5m0s old)")
+	}) {
+		t.Fatalf("paused without a policy: %+v", r.Reasons)
+	}
+	// Accepted: the host's facts are gone and the VM is OK again.
+	if r := Compute(ok); r.Status != OK {
 		t.Fatalf("after the key was accepted: %+v", r.Reasons)
 	}
 }

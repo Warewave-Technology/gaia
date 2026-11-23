@@ -867,6 +867,31 @@ func (d *DB) EvidenceBundles(ctx context.Context, vmID int64, limit int) ([]Evid
 	return rowsOf(ctx, d.db, scanEvidence, `SELECT `+evCols+` FROM evidence_bundles ORDER BY id DESC LIMIT ?`, limit)
 }
 
+// EvidenceOfBundles finds the evidence records of these bundles, by bundle id: a page's bundles, not every bundle
+// (ADR-007 C18.7). A bundle with no record is not in the map.
+func (d *DB) EvidenceOfBundles(ctx context.Context, bundleIDs []string) (map[string]EvidenceBundle, error) {
+	out := map[string]EvidenceBundle{}
+	ids := []any{}
+	seen := map[string]bool{}
+	for _, b := range bundleIDs {
+		if b != "" && !seen[b] {
+			seen[b], ids = true, append(ids, b)
+		}
+	}
+	for len(ids) > 0 { // in chunks well under SQLite's limit on parameters
+		n := min(len(ids), 500)
+		es, err := rowsOf(ctx, d.db, scanEvidence, `SELECT `+evCols+` FROM evidence_bundles WHERE bundle_id IN (?`+strings.Repeat(", ?", n-1)+`)`, ids[:n]...)
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range es {
+			out[e.BundleID] = e
+		}
+		ids = ids[n:]
+	}
+	return out, nil
+}
+
 // --- state backups (schema 2) ---
 
 // StateBackup is one backup of Gaia's own state into a repository.

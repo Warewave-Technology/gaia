@@ -139,8 +139,17 @@ func TestRenderLater(t *testing.T) {
 func TestNextChange(t *testing.T) {
 	sig := signature
 	n := 0
+	// The combinations alone, and with a host whose key changed (ADR-007 C18: WARNING backups_paused turns CRITICAL
+	// when the RPO target passes).
+	var ins []Input
+	var names []string
 	for _, c := range allCombos() {
-		in := c.input()
+		for _, k := range []causes{{backup: "none"}, {backup: "changed"}} {
+			ins, names = append(ins, k.apply(c.input())), append(names, fmt.Sprintf("%v %+v", c, k))
+		}
+	}
+	for i, in := range ins {
+		c := names[i]
 		next := NextChange(in)
 		base := sig(Compute(in))
 		if next == nil {

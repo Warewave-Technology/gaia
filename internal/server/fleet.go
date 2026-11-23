@@ -1,9 +1,11 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -53,7 +55,7 @@ func (s *Server) fleetView(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	gs, err := s.db.AttentionGroups(ctx)
+	gs, err := s.attentionGroups(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -116,6 +118,30 @@ type AttentionExample struct {
 
 var rankWord = [...]string{status.Critical, status.Unknown, status.Warning, status.OK}
 
+// attentionGroups is the store's groups, each at least its code's group status (status.Def.GroupStatus): a host whose
+// SSH key changed is a CRITICAL cause at once while its VMs are WARNING (ADR-007 C18). The order is the store's:
+// worst first, then the largest group.
+func (s *Server) attentionGroups(ctx context.Context) ([]store.AttentionGroup, error) {
+	gs, err := s.db.AttentionGroups(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raised := false
+	for i := range gs {
+		if d, ok := status.Lookup(status.Code(gs[i].Code)); ok && d.GroupStatus != "" {
+			if r, ok := statusRank[d.GroupStatus]; ok && r < gs[i].Rank {
+				gs[i].Rank, raised = r, true
+			}
+		}
+	}
+	if raised {
+		slices.SortStableFunc(gs, func(a, b store.AttentionGroup) int {
+			return cmp.Or(cmp.Compare(a.Rank, b.Rank), cmp.Compare(b.Count, a.Count), cmp.Compare(a.Code, b.Code), cmp.Compare(a.ScopeID, b.ScopeID))
+		})
+	}
+	return gs, nil
+}
+
 func (s *Server) attentionView(c *call) (int, any, error) {
 	ctx := c.r.Context()
 	now := s.now()
@@ -123,7 +149,7 @@ func (s *Server) attentionView(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	gs, err := s.db.AttentionGroups(ctx)
+	gs, err := s.attentionGroups(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -406,6 +432,18 @@ type ReasonCode struct {
 	Params []string `json:"params"`
 	Cause  string   `json:"cause"`
 	Means  string   `json:"means"`
+	// The other rows the code is given in, with their status (host_key_changed: UNKNOWN no_checked_point, WARNING
+	// backups_paused).
+	Also []ReasonVariant `json:"also"`
+	// The status of the code's group in "Needs attention" when it is worse than its VMs' (ADR-007 C18); empty: the
+	// worst of its VMs.
+	GroupStatus string `json:"group_status"`
+}
+
+// ReasonVariant is another status and truth-table row a code is given in.
+type ReasonVariant struct {
+	Status string `json:"status"`
+	Rule   string `json:"rule"`
 }
 
 // ReasonCodes is the list and its version.
@@ -421,7 +459,12 @@ func reasonCodes(*call) (int, any, error) {
 		if ps == nil {
 			ps = []string{}
 		}
-		out.Codes = append(out.Codes, ReasonCode{Code: string(d.Code), Status: d.Status, Rule: d.Rule, Scope: d.Scope, Params: ps, Cause: d.Cause, Means: d.Means})
+		also := []ReasonVariant{}
+		for _, v := range d.Also {
+			also = append(also, ReasonVariant{Status: v.Status, Rule: v.Rule})
+		}
+		out.Codes = append(out.Codes, ReasonCode{Code: string(d.Code), Status: d.Status, Rule: d.Rule, Scope: d.Scope, Params: ps, Cause: d.Cause, Means: d.Means,
+			Also: also, GroupStatus: d.GroupStatus})
 	}
 	return http.StatusOK, out, nil
 }

@@ -17,8 +17,16 @@ test('host_key_changed says when the trusted key was pinned (ADR-007 C17)', () =
   const c = { code: 'host_key_changed', params: { pinned_at: '2026-11-02T09:30:00Z', fingerprint: 'SHA256:x' }, scope: { kind: 'host', id: 7, name: 'kvm-07' },
     count: 3, since: '14:02', hosts: [], policies: [], at: () => 'Nov 2 09:30' }
   assert.equal(reasons.host_key_changed.long(c, 0),
-    'kvm-07 presents a different SSH host key than the one pinned on Nov 2 09:30. Gaia reads nothing from it until an admin checks and accepts the new key.')
+    'kvm-07 presents a different SSH host key than the one pinned on Nov 2 09:30. Gaia reads nothing from it until an admin checks and accepts the new key, so backups of its 3 VMs are paused.')
   assert.doesNotMatch(reasons.host_key_changed.long({ ...c, at: undefined }, 0), /\d{4}-\d\d-\d\dT/)
+})
+
+test('host_key_changed pauses backups at once, then misses the RPO target (ADR-007 C18)', () => {
+  const now = Date.parse('2026-11-22T14:32:00Z')
+  const r = (point_at: string | null) => ({ code: 'host_key_changed', params: { point_at, target_s: 3600, fingerprint: 'SHA256:x' }, scope: { kind: 'host', id: 7, name: 'kvm-07' } })
+  assert.equal(vmReason(r('2026-11-22T14:00:00Z'), now), 'Host kvm-07 presents a different SSH key: backups paused')
+  assert.equal(vmReason(r('2026-11-22T12:00:00Z'), now), 'Host kvm-07 presents a different SSH key: no backup within the RPO target')
+  assert.equal(vmReason(r(null), now), 'Host kvm-07 presents a different SSH key: not backed up yet')
 })
 
 test('sentences are said in words, not formulas', () => {

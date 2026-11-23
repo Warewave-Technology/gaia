@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -790,14 +791,9 @@ Verify, without Gaia's server
 }
 
 func bundleSum(ctx context.Context, s *Server, bundleID string) string {
-	es, err := s.db.EvidenceBundles(ctx, 0, 1000000)
-	if err != nil {
-		return "?"
-	}
-	for _, e := range es {
-		if e.BundleID == bundleID {
-			return e.BundleSHA256
-		}
+	es, err := s.db.EvidenceOfBundles(ctx, []string{bundleID})
+	if e, ok := es[bundleID]; err == nil && ok {
+		return e.BundleSHA256
 	}
 	return "?"
 }
@@ -810,13 +806,19 @@ func oneLine(s string, n int) string {
 	return s
 }
 
-// MigrationView is the migration screen in one request (T21): the converter's state, the sources, and the checks
-// newest first with what each did.
+// MigrationView is the migration screen in one request (T21): the converter's state, the sources, and one page of the
+// checks with what each did (ADR-007 C18.7: paged on the server, CLAUDE.md rule 15). With latest=true the checks are
+// each VM's newest (its result), worst first, then by VM name; otherwise every check, newest first.
 type MigrationView struct {
 	Clock     ServerClock             `json:"clock"`
 	Converter ConverterState          `json:"converter"`
 	Sources   []store.MigrationSource `json:"sources"`
 	Checks    []MigrationCheckView    `json:"checks"`
+	Total     int                     `json:"total"` // checks that match the filter
+	// The checks that match every filter but result, by result: OK, WARNING, CRITICAL, UNKNOWN, open (queued or
+	// running). The screen's filter chips count the whole list, not the page.
+	ByResult map[string]int `json:"by_result"`
+	Next     string         `json:"next"` // pass as after= for the next page; empty on the last
 }
 
 // MigrationCheckView is one check as the screen shows it.
@@ -841,9 +843,19 @@ type MigrationCheckView struct {
 
 func (s *Server) migrationView(c *call) (int, any, error) {
 	ctx := c.r.Context()
+	q := c.r.URL.Query()
+	f := store.MigrationCheckFilter{VM: q.Get("vm"), Result: q.Get("result"), Latest: q.Get("latest") == "true"}
+	sid, err := c.intQuery("source_id", 0, 0)
+	if err != nil {
+		return 0, nil, err
+	}
+	off, n, err := offsetPage(c, 50)
+	if err != nil {
+		return 0, nil, err
+	}
+	f.SourceID, f.After, f.Limit = sid, off, n
 	_, conv, _ := s.converterInfo(c)
 	out := MigrationView{Clock: serverClock(s.now()), Converter: conv.(ConverterState), Checks: []MigrationCheckView{}}
-	var err error
 	if out.Sources, err = s.db.MigrationSources(ctx); err != nil {
 		return 0, nil, err
 	}
@@ -851,26 +863,24 @@ func (s *Server) migrationView(c *call) (int, any, error) {
 	for _, m := range out.Sources {
 		names[m.ID] = m.Name
 	}
-	ev, err := s.db.EvidenceBundles(ctx, 0, 1000000)
+	mcs, total, byResult, err := s.db.MigrationCheckPage(ctx, f)
 	if err != nil {
 		return 0, nil, err
 	}
-	evID := map[string]int64{}
-	for _, e := range ev {
-		evID[e.BundleID] = e.ID
+	out.Total, out.ByResult = total, byResult
+	// The evidence ids of this page's bundles only, not of every bundle in the ledger.
+	bundles := make([]string, 0, len(mcs))
+	for _, m := range mcs {
+		bundles = append(bundles, m.BundleID)
 	}
-	mcs, err := s.db.MigrationChecks(ctx, 0, 200)
+	ev, err := s.db.EvidenceOfBundles(ctx, bundles)
 	if err != nil {
 		return 0, nil, err
 	}
 	for _, m := range mcs {
-		j, err := s.db.Job(ctx, m.JobID)
-		if err != nil {
-			return 0, nil, err
-		}
-		v := MigrationCheckView{ID: m.ID, SourceID: m.SourceID, Source: names[m.SourceID], VM: m.VM, JobState: j.State, Readiness: m.Readiness,
-			Reason: m.Reason, Firmware: m.Firmware, GuestID: m.GuestID, CreatedAt: m.CreatedAt, StartedAt: j.StartedAt, FinishedAt: m.FinishedAt,
-			BundleID: m.BundleID, EvidenceID: evID[m.BundleID], Screenshots: []string{}}
+		v := MigrationCheckView{ID: m.ID, SourceID: m.SourceID, Source: names[m.SourceID], VM: m.VM, JobState: m.JobState, Readiness: m.Readiness,
+			Reason: m.Reason, Firmware: m.Firmware, GuestID: m.GuestID, CreatedAt: m.CreatedAt, StartedAt: m.JobStartedAt, FinishedAt: m.FinishedAt,
+			BundleID: m.BundleID, EvidenceID: ev[m.BundleID].ID, Screenshots: []string{}}
 		if m.BundleID != "" {
 			v.Screenshots = s.screenshots(m.BundleID)
 		}
@@ -882,6 +892,9 @@ func (s *Server) migrationView(c *call) (int, any, error) {
 			v.Result = &d
 		}
 		out.Checks = append(out.Checks, v)
+	}
+	if off+n < total {
+		out.Next = strconv.Itoa(off + n)
 	}
 	return http.StatusOK, out, nil
 }

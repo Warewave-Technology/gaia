@@ -15,6 +15,7 @@
 
 /* VM list and the selected VM */
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 28px; align-items: start; }
+.lists { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .pick { background: none; border: 0; padding: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 13.5px; color: var(--blue); cursor: pointer; text-align: left; }
 .pick:hover { color: var(--fg0); text-decoration: underline; }
 .pick[aria-pressed="true"] { color: var(--fg0); }

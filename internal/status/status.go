@@ -112,7 +112,8 @@ type Result struct {
 // Compute applies ADR-007's truth table:
 //
 //	OK        proven RPO <= RPO target and proven RTO <= RTO target and proof age <= maximum
-//	WARNING   theoretical RPO within target, but proof misses a target (proven RPO, RTO or proof age)
+//	WARNING   theoretical RPO within target, but proof misses a target (proven RPO, RTO or proof age), or the
+//	          host's SSH key changed so backups are paused (backups_paused, ADR-007 C18)
 //	CRITICAL  theoretical RPO over target, or the latest restore test is CRITICAL, or integrity verification failed
 //	UNKNOWN   no restore test ever passed, or any input is missing
 //
@@ -152,12 +153,19 @@ func Compute(in Input) Result {
 		r.ProvenRPO, r.ProofAge, r.ProvenRTO = secs(p.PointTakenAt), secs(p.FinishedAt), p.ProvenRTOS
 	}
 
+	// The VM's host presents another SSH key than the pinned one (ADR-007 C17, C18): Gaia reads nothing from it, so
+	// its backups are paused from the moment the change is seen, whether a backup job failed on it yet or not.
+	keyChanged := in.Host != nil && (in.HostKeyChanged != nil || in.FailedBackup != nil && in.FailedBackup.HostKeyChanged)
+	overRPO := t != nil && r.TheoreticalRPO != nil && *r.TheoreticalRPO > float64(t.RPOS)
+
 	// CRITICAL rows.
-	if t != nil && r.TheoreticalRPO != nil && *r.TheoreticalRPO > float64(t.RPOS) {
+	if overRPO {
 		p := Params{Point: in.NewestChecked.ID, PointAt: at(in.NewestChecked.TakenAt), TargetS: t.RPOS}
 		switch b := in.FailedBackup; {
-		case b != nil && b.HostKeyChanged && in.Host != nil:
-			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+		case keyChanged:
+			if b != nil {
+				p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			}
 			hostKeyParams(&p, in.HostKeyChanged)
 			add(HostKeyChanged, in.Host, p)
 		case b != nil && b.HostKeyUntrusted && in.Host != nil:
@@ -187,13 +195,28 @@ func Compute(in Input) Result {
 		add(RepoContentDamaged, in.Repository, Params{Points: in.DamagedPoints})
 	}
 
+	// WARNING row backups_paused (ADR-007 C18): the host's key changed while the newest checked backup is still within
+	// the RPO target (or there is no target to be over). At least WARNING at once; CRITICAL above once the target
+	// passes; UNKNOWN below when there is no checked point at all.
+	if keyChanged && in.NewestChecked != nil && !overRPO {
+		p := Params{Point: in.NewestChecked.ID, PointAt: at(in.NewestChecked.TakenAt)}
+		if t != nil {
+			p.TargetS = t.RPOS
+		}
+		if b := in.FailedBackup; b != nil {
+			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+		}
+		hostKeyParams(&p, in.HostKeyChanged)
+		addAs(HostKeyChanged, Variant{Status: Warning, Rule: RuleBackupsPaused}, in.Host, p)
+	}
+
 	// UNKNOWN rows: a missing input.
 	if t == nil {
 		add(NoPolicy, nil, Params{})
 	}
 	if in.NewestChecked == nil {
 		switch b := in.FailedBackup; {
-		case in.Host != nil && (in.HostKeyChanged != nil || b != nil && b.HostKeyChanged):
+		case keyChanged:
 			// Never backed up because the host presents another key than the pinned one: the host's cause (C17).
 			var p Params
 			if b != nil {

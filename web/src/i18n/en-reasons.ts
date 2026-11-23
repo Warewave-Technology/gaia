@@ -78,6 +78,13 @@ type Def = {
 }
 
 const target = (s: number | undefined) => (s ? `target ${dur(s)}` : 'no target')
+/** What a changed host key does to one VM: backups paused while its newest backup is within the RPO target, then
+ * none within it; nothing at all for a VM never backed up (ADR-007 C18). */
+const keyChangedVM = (r: ReasonIn, now: number) => {
+  const a = age(r.params?.point_at, now)
+  if (a === null) return 'not backed up yet'
+  return r.params?.target_s && a > r.params.target_s ? 'no backup within the RPO target' : 'backups paused'
+}
 // The server sends a cause's busiest hosts only (a short list): name them only when they hold all of its VMs.
 const where = (c: CauseIn) => {
   if (c.hosts.reduce((n, h) => n + h.count, 0) !== c.count) return ''
@@ -108,9 +115,11 @@ export const reasons: Record<string, Def> = {
   },
   host_key_changed: {
     title: 'Host presents a different SSH key',
-    vm: (r) => `Host ${name(r, '?')} presents a different SSH key`,
-    short: () => 'its SSH key is not the pinned one',
-    long: (c) => `${name(c, 'This host')} presents a different SSH host key than the one pinned on ${day(c, c.params?.pinned_at)}. Gaia reads nothing from it until an admin checks and accepts the new key.`,
+    // From the moment the change is seen the VM's backups are paused (WARNING); once its RPO target passes it has no
+    // backup within it (CRITICAL); a VM never backed up has none at all (ADR-007 C18).
+    vm: (r, now) => `Host ${name(r, '?')} presents a different SSH key: ${keyChangedVM(r, now)}`,
+    short: () => 'its SSH key is not the pinned one: backups paused',
+    long: (c) => `${name(c, 'This host')} presents a different SSH host key than the one pinned on ${day(c, c.params?.pinned_at)}. Gaia reads nothing from it until an admin checks and accepts the new key, so backups of ${c.count === 1 ? 'its VM are' : `its ${vms(c.count)} are`} paused.`,
     todo: 'On Inventory → Hosts, compare the new key’s fingerprint with the host’s own (ssh-keygen -lf on the host). Accept it only if they match; otherwise treat the host as compromised.',
   },
   backup_failing: {

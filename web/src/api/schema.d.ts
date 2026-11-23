@@ -1832,7 +1832,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The migration screen: the converter, the sources and the checks (T21) */
+        /** The migration screen: the converter, the sources and the checks, in pages (T21, ADR-007 C18) */
         get: operations["get_views_migration"];
         put?: never;
         post?: never;
@@ -2792,10 +2792,15 @@ export interface components {
             username: string;
         };
         MigrationView: {
+            by_result: {
+                [key: string]: number;
+            };
             checks: components["schemas"]["MigrationCheckView"][];
             clock: components["schemas"]["ServerClock"];
             converter: components["schemas"]["ConverterState"];
+            next: string;
             sources: components["schemas"]["MigrationSource"][];
+            total: number;
         };
         NameCount: {
             count: number;
@@ -3070,8 +3075,10 @@ export interface components {
             text: string;
         };
         ReasonCode: {
+            also: components["schemas"]["ReasonVariant"][];
             cause: string;
             code: string;
+            group_status: string;
             means: string;
             params: string[];
             rule: string;
@@ -3081,6 +3088,10 @@ export interface components {
         ReasonCodes: {
             codes: components["schemas"]["ReasonCode"][];
             version: number;
+        };
+        ReasonVariant: {
+            rule: string;
+            status: string;
         };
         RecomputeStats: {
             at: string;
@@ -12129,7 +12140,20 @@ export interface operations {
     };
     get_views_migration: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description true: only each VM's newest check, worst first, then by VM name; default: every check, newest first */
+                latest?: boolean;
+                /** @description only this source's */
+                source_id?: number;
+                /** @description only this VM's (with source_id: one VM's checks) */
+                vm?: string;
+                /** @description OK, WARNING, CRITICAL, UNKNOWN, or open (queued or running) */
+                result?: string;
+                /** @description a previous answer's next */
+                after?: number;
+                /** @description at most this many checks (default 50, at most 200) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

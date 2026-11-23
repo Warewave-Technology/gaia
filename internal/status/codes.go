@@ -11,7 +11,7 @@ import (
 type Code string
 
 // CodesVersion is the version of the list; it grows when a code is added, changed or removed.
-const CodesVersion = 4
+const CodesVersion = 5
 
 const (
 	// CRITICAL: the newest checked backup is older than the RPO target (rule theoretical_rpo_over_target). The code
@@ -22,9 +22,10 @@ const (
 	// CRITICAL (no backup within the RPO target) or UNKNOWN (no checked point): the host's SSH key was never trusted,
 	// so Gaia does not connect to it (ADR-007 C11). Scoped to the host: one cause for all its VMs.
 	HostKeyUntrusted Code = "host_key_untrusted"
-	// CRITICAL (no backup within the RPO target) or UNKNOWN (no checked point): the host presents an SSH key other
-	// than the pinned one, so Gaia does not connect to it until an admin checks and accepts the new key (ADR-007 C17).
-	// Scoped to the host; never backup_failing.
+	// WARNING (backups paused: the newest checked backup is still within the RPO target), CRITICAL (no backup within
+	// the RPO target) or UNKNOWN (no checked point): the host presents an SSH key other than the pinned one, so Gaia
+	// does not connect to it until an admin checks and accepts the new key (ADR-007 C17, C18). Scoped to the host;
+	// never backup_failing. Its group in "Needs attention" is CRITICAL at once.
 	HostKeyChanged Code = "host_key_changed"
 	// CRITICAL: the latest restore test with a verdict is CRITICAL (rule latest_test_critical), by its failed check.
 	TestFailedBoot  Code = "test_failed_boot"
@@ -53,6 +54,10 @@ const (
 	// boot because a virtio-win driver fails to install at first boot.
 	DriverInstallLoop Code = "driver_install_loop"
 )
+
+// RuleBackupsPaused is the truth-table row of a VM whose host's SSH key changed while its newest checked backup is
+// within the RPO target: Gaia reads nothing from the host, so its backups are paused (WARNING, ADR-007 C18).
+const RuleBackupsPaused = "backups_paused"
 
 // SubjectMigrationCheck marks a code given to a migration check's readiness, not to a protected VM's status: it has no
 // row of the status table.
@@ -112,6 +117,9 @@ type Def struct {
 	// VM never had a checked point).
 	Also  []Variant
 	Scope string // the scope kind it can carry; empty: the VM's own
+	// GroupStatus: the status of the code's group in "Needs attention" when it is worse than its VMs' (a host whose
+	// key changed is a CRITICAL cause at once while its VMs are WARNING, ADR-007 C18); empty: the worst of its VMs.
+	GroupStatus string
 	// Subject: what the code is given to when not a protected VM's status (SubjectMigrationCheck); such a code has no
 	// rule.
 	Subject string
@@ -173,18 +181,25 @@ var defs = []Def{
 			}
 			return rpoOver(p, now) + ": " + s
 		}},
-	{Code: HostKeyChanged, Status: Critical, Rule: "theoretical_rpo_over_target", Also: []Variant{{Status: Unknown, Rule: "no_checked_point"}},
-		Scope: ScopeHost, Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail", "pinned_at", "fingerprint"},
+	{Code: HostKeyChanged, Status: Critical, Rule: "theoretical_rpo_over_target",
+		Also:  []Variant{{Status: Unknown, Rule: "no_checked_point"}, {Status: Warning, Rule: RuleBackupsPaused}},
+		Scope: ScopeHost, GroupStatus: Critical, Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail", "pinned_at", "fingerprint"},
 		Cause: "Host presents a different SSH key",
-		Means: "the host presents an SSH host key other than the pinned one, so Gaia reads nothing from it until an admin checks and accepts the new key (never automatically): no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`)",
+		Means: "the host presents an SSH host key other than the pinned one, so Gaia reads nothing from it until an admin checks and accepts the new key (never automatically): backups paused while the newest checked backup is within the RPO target (WARNING, rule `backups_paused`, from the moment the change is seen), no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`); its group in Needs attention is CRITICAL at once",
 		text: func(p Params, sc *Scope, now time.Time) string {
 			s := fmt.Sprintf("host %s presents a different SSH host key (%s) than the one pinned on %s; Gaia reads nothing from it until an admin checks and accepts the new key",
 				scopeName(sc), p.Fingerprint, clock(p.PinnedAt))
 			if p.Job != 0 {
 				s += fmt.Sprintf(" (backup job %d at %s)", p.Job, clock(p.JobAt))
 			}
-			if p.PointAt == nil {
+			switch {
+			case p.PointAt == nil:
 				return "there is no backup point that passed its post-backup check: " + s
+			case p.TargetS == 0:
+				return fmt.Sprintf("%s: backups are paused (the newest checked backup, point %d, is %s old)", s, p.Point, since(p.PointAt, now))
+			case now.Sub(*p.PointAt) <= time.Duration(p.TargetS)*time.Second:
+				return fmt.Sprintf("%s: backups are paused (the newest checked backup, point %d, is %s old, within the RPO target %s)",
+					s, p.Point, since(p.PointAt, now), dur(float64(p.TargetS)))
 			}
 			return rpoOver(p, now) + ": " + s
 		}},

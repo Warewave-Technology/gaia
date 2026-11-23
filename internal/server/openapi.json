@@ -2959,6 +2959,12 @@
       "MigrationView": {
         "additionalProperties": false,
         "properties": {
+          "by_result": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
           "checks": {
             "items": {
               "$ref": "#/components/schemas/MigrationCheckView"
@@ -2971,18 +2977,27 @@
           "converter": {
             "$ref": "#/components/schemas/ConverterState"
           },
+          "next": {
+            "type": "string"
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/MigrationSource"
             },
             "type": "array"
+          },
+          "total": {
+            "type": "integer"
           }
         },
         "required": [
+          "by_result",
           "checks",
           "clock",
           "converter",
-          "sources"
+          "next",
+          "sources",
+          "total"
         ],
         "type": "object"
       },
@@ -4061,10 +4076,19 @@
       "ReasonCode": {
         "additionalProperties": false,
         "properties": {
+          "also": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonVariant"
+            },
+            "type": "array"
+          },
           "cause": {
             "type": "string"
           },
           "code": {
+            "type": "string"
+          },
+          "group_status": {
             "type": "string"
           },
           "means": {
@@ -4087,8 +4111,10 @@
           }
         },
         "required": [
+          "also",
           "cause",
           "code",
+          "group_status",
           "means",
           "params",
           "rule",
@@ -4113,6 +4139,22 @@
         "required": [
           "codes",
           "version"
+        ],
+        "type": "object"
+      },
+      "ReasonVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "status"
         ],
         "type": "object"
       },
@@ -17461,6 +17503,62 @@
     "/api/v1/views/migration": {
       "get": {
         "operationId": "get_views_migration",
+        "parameters": [
+          {
+            "description": "true: only each VM's newest check, worst first, then by VM name; default: every check, newest first",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "only this source's",
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "only this VM's (with source_id: one VM's checks)",
+            "in": "query",
+            "name": "vm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "OK, WARNING, CRITICAL, UNKNOWN, or open (queued or running)",
+            "in": "query",
+            "name": "result",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "a previous answer's next",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "at most this many checks (default 50, at most 200)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17513,7 +17611,7 @@
             "description": "Internal error"
           }
         },
-        "summary": "The migration screen: the converter, the sources and the checks (T21)",
+        "summary": "The migration screen: the converter, the sources and the checks, in pages (T21, ADR-007 C18)",
         "tags": [
           "views"
         ],

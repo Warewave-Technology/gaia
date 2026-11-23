@@ -3,10 +3,11 @@ import { useT } from '../../i18n'
 import { dur } from '../../lib/duration'
 import { serverTime, type Fmt } from '../../lib/time'
 import { useFilters } from '../../lib/url'
+import type { Pages } from '../api/pages'
 import { can, useMe } from '../api/session'
 import {
-  useMigrationView, useQueueMigrationCheck, useSourceInventories, useSourceInventory,
-  type MigrationCheckView, type MigrationSource, type MigrationView, type SourceVM,
+  useMigrationPages, useMigrationVMChecks, useQueueMigrationCheck, useSourceInventories, useSourceInventory,
+  type MigrationCheckView, type MigrationPageData, type MigrationResult, type MigrationSource, type MigrationView, type SourceVM,
 } from '../api/views'
 import { Failed, Loading } from '../layout/States'
 import { download, useStepUp } from '../layout/StepUp'
@@ -15,15 +16,20 @@ import s from './MigrationPage.module.css'
 
 type T = ReturnType<typeof useT>['migration']
 
-/** One VM of a source: its newest check (if any), its earlier ones, and what the source says of it (once read). */
+/** The selected VM: its newest check (if any), its earlier ones, and what the source says of it (once read). */
 type Row = { key: string; source: MigrationSource | undefined; sourceID: number; vm: string; check?: MigrationCheckView; earlier: MigrationCheckView[]; inv?: SourceVM }
 
-type Rank = 'notReady' | 'warnings' | 'undecided' | 'inProgress' | 'ready' | 'notChecked'
-const ORDER: Rank[] = ['notReady', 'warnings', 'undecided', 'inProgress', 'ready', 'notChecked']
+/** A VM of a source as the source listed it (read with read-only calls). */
+type SourceRow = { key: string; sourceID: number; source: MigrationSource | undefined; vm: SourceVM }
 
-/** A row's result: status, the word for it, and its group (worst first). */
-function resultOf(r: Row, t: T): { status: string; word: string; rank: Rank } {
-  const c = r.check
+type Rank = 'notReady' | 'warnings' | 'undecided' | 'inProgress' | 'ready' | 'notChecked'
+type Checked = Exclude<Rank, 'notChecked'>
+const ORDER: Checked[] = ['notReady', 'warnings', 'undecided', 'inProgress', 'ready']
+/** The server's result for each filter chip: the list is filtered and counted on the server (ADR-007 C18.7). */
+const RESULT: Record<Checked, MigrationResult> = { notReady: 'CRITICAL', warnings: 'WARNING', undecided: 'UNKNOWN', inProgress: 'open', ready: 'OK' }
+
+/** A check's result: status, the word for it, and its group (worst first). */
+function resultOf(c: MigrationCheckView | undefined, t: T): { status: string; word: string; rank: Rank } {
   if (!c) return { status: 'UNKNOWN', word: t.word.notChecked, rank: 'notChecked' }
   if (!c.readiness) return { status: 'UNKNOWN', word: c.job_state === 'running' ? t.word.running : t.word.queued, rank: 'inProgress' }
   if (c.readiness === 'CRITICAL') return { status: 'CRITICAL', word: t.word.notReady, rank: 'notReady' }
@@ -32,22 +38,25 @@ function resultOf(r: Row, t: T): { status: string; word: string; rank: Rank } {
   return { status: 'UNKNOWN', word: t.word.undecided, rank: 'undecided' }
 }
 
+const KEYS = ['source', 'vm', 'result'] as const
+
 /**
  * The migration check (docs/design/v2/Migration.dc.html with the v3 rules; ADR-003, ADR-005): will a VM on vSphere run
  * on KVM before it is moved, proven by converting a copy and booting it in the sandbox. The source is only ever read.
- * The VMs are a data-table with the results as filter chips; the selected VM's findings are sentences, their raw
- * output under "Technical details".
+ * The checked VMs are a data-table the server pages (each VM's newest check, worst first; ADR-007 C18.7) with the
+ * results as filter chips counted over the whole list; a source's VMs, once read, are a second table; the selected
+ * VM's findings are sentences, their raw output under "Technical details".
  */
 export function MigrationPage() {
-  const q = useMigrationView()
-  if (q.isPending) return <Loading />
-  if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
-  return <MigrationBody v={q.data} />
+  const [f] = useFilters(KEYS)
+  const rank = (ORDER as readonly string[]).includes(f.result) ? (f.result as Checked) : null
+  const pages = useMigrationPages(rank ? RESULT[rank] : '')
+  if (pages.isPending) return <Loading />
+  if (pages.isError) return <Failed error={pages.error} onRetry={() => pages.refetch()} />
+  return <MigrationBody v={(pages.data as MigrationPageData).view} pages={pages} rank={rank} />
 }
 
-const KEYS = ['source', 'vm', 'result'] as const
-
-function MigrationBody({ v }: { v: MigrationView }) {
+function MigrationBody({ v, pages, rank }: { v: MigrationView; pages: Pages<MigrationCheckView>; rank: Checked | null }) {
   const t = useT().migration
   const me = useMe().data
   const act = can(me, 'act')
@@ -56,27 +65,17 @@ function MigrationBody({ v }: { v: MigrationView }) {
   const [read, setRead] = useState<readonly number[]>([])
   const invs = useSourceInventories(read)
   const byID = new Map(v.sources.map((x) => [x.id, x]))
-  const rows = new Map<string, Row>()
-  // checks come newest first: the first of a VM is its result, the others its history
-  for (const c of v.checks) {
-    const key = `${c.source_id}/${c.vm}`
-    const r = rows.get(key)
-    if (r) r.earlier.push(c)
-    else rows.set(key, { key, source: byID.get(c.source_id), sourceID: c.source_id, vm: c.vm, check: c, earlier: [] })
-  }
-  for (const [sid, inv] of invs) {
-    for (const vm of inv.vms) {
-      if (vm.template) continue
-      const key = `${sid}/${vm.name}`
-      const r = rows.get(key)
-      if (r) r.inv = vm
-      else rows.set(key, { key, source: byID.get(sid), sourceID: sid, vm: vm.name, earlier: [], inv: vm })
-    }
-  }
-  const all = [...rows.values()].sort((a, b) => ORDER.indexOf(resultOf(a, t).rank) - ORDER.indexOf(resultOf(b, t).rank) || a.vm.localeCompare(b.vm))
-  const count = (k: Rank) => all.filter((r) => resultOf(r, t).rank === k).length
-  const list = f.result ? all.filter((r) => resultOf(r, t).rank === f.result) : all
-  const sel = all.find((r) => String(r.sourceID) === f.source && r.vm === f.vm) ?? list[0]
+  const counts: Record<string, number> = v.by_result ?? {}
+  const all = Object.values(counts).reduce((a, b) => a + b, 0)
+  const count = (k: Checked) => counts[RESULT[k]] ?? 0
+  const listed: SourceRow[] = [...invs].flatMap(([sid, inv]) =>
+    inv.vms.filter((x) => !x.template).map((vm) => ({ key: `${sid}/${vm.name}`, sourceID: sid, source: byID.get(sid), vm })))
+  // The selected VM: the one in the address, else the first of the page.
+  const first = pages.rows[0]
+  const selSource = f.source && f.vm ? Number(f.source) : first?.source_id
+  const selVM = f.source && f.vm ? f.vm : first?.vm
+  const selKey = selSource !== undefined && selVM ? `${selSource}/${selVM}` : ''
+  const pick = (sourceID: number, vm: string) => setF({ source: String(sourceID), vm })
   return (
     <main className={s.page}>
       <PageHead
@@ -93,19 +92,27 @@ function MigrationBody({ v }: { v: MigrationView }) {
           <span className={s.of}>{t.readHint}</span>
         </div>
       )}
-      {all.length === 0 ? (
+      {all === 0 && listed.length === 0 ? (
         v.sources.length > 0 && <p className={s.muted}>{act ? t.noChecksAct : t.noChecks}</p>
       ) : (
         <>
-          <Toolbar end={t.order}>
-            <FilterChip set={!f.result} onClick={() => setF({ result: '' })}>{t.f.all(all.length)}</FilterChip>
-            {ORDER.filter((k) => count(k) > 0 || k === 'ready' || k === 'notReady' || k === 'warnings').map((k) => (
-              <FilterChip key={k} set={f.result === k} onClick={() => setF({ result: f.result === k ? '' : k })}>{t.f.rank(t.word[k], count(k))}</FilterChip>
-            ))}
-          </Toolbar>
+          {all > 0 && (
+            <Toolbar end={t.order}>
+              <FilterChip set={!rank} onClick={() => setF({ result: '' })}>{t.f.all(all)}</FilterChip>
+              {ORDER.filter((k) => count(k) > 0 || k === 'ready' || k === 'notReady' || k === 'warnings').map((k) => (
+                <FilterChip key={k} set={rank === k} onClick={() => setF({ result: rank === k ? '' : k })}>{t.f.rank(t.word[k], count(k))}</FilterChip>
+              ))}
+            </Toolbar>
+          )}
           <section className={s.two}>
-            <VMTable rows={list} sel={sel} fmt={fmt} onPick={(r) => setF({ source: String(r.sourceID), vm: r.vm })} />
-            {sel && <Selected key={sel.key} r={sel} fmt={fmt} act={act} />}
+            <div className={s.lists}>
+              {all > 0 && <VMTable pages={pages} sel={selKey} fmt={fmt} onPick={(c) => pick(c.source_id, c.vm)} />}
+              {listed.length > 0 && <SourceTable rows={listed} sel={selKey} onPick={(r) => pick(r.sourceID, r.vm.name)} />}
+            </div>
+            {selSource !== undefined && selVM && (
+              <SelectedVM key={selKey} sourceID={selSource} vm={selVM} source={byID.get(selSource)}
+                inv={invs.get(selSource)?.vms.find((x) => x.name === selVM)} fmt={fmt} act={act} />
+            )}
           </section>
         </>
       )}
@@ -184,8 +191,7 @@ function Converter({ v }: { v: MigrationView }) {
 
 const shortID = (id: string) => id.replace(/^sha256:/, '').slice(0, 12)
 
-function checkedAt(r: Row, fmt: Fmt, t: T) {
-  const c = r.check
+function checkedAt(c: MigrationCheckView | undefined, fmt: Fmt, t: T) {
   if (!c) return t.never
   if (c.finished_at) return fmt.at(c.finished_at)
   return c.started_at ? t.runningSince(fmt.at(c.started_at)) : t.queuedAt(fmt.at(c.created_at))
@@ -195,26 +201,56 @@ function disks(inv: SourceVM, t: T) {
   return t.disks(inv.disks, inv.disk_bytes / 2 ** 30)
 }
 
-/** The VMs of the sources, worst first: the checked ones, and every VM of a source once it is read (one request; the
- * list is not paged by the server, so the table pages it). */
-function VMTable({ rows, sel, fmt, onPick }: { rows: Row[]; sel: Row | undefined; fmt: Fmt; onPick: (r: Row) => void }) {
+/** The checked VMs, worst first then by name: each VM's newest check, a page at a time from the server (ADR-007
+ * C18.7; the server orders them, so the columns do not sort). */
+function VMTable({ pages, sel, fmt, onPick }: { pages: Pages<MigrationCheckView>; sel: string; fmt: Fmt; onPick: (c: MigrationCheckView) => void }) {
   const t = useT().migration
-  const cols: Column<Row>[] = [
-    { key: 'vm', header: t.col.vm, width: '36%', title: (r) => r.vm, compare: by((r) => r.vm), cell: (r) => (
-      <button type="button" className={s.pick} aria-pressed={r === sel} onClick={() => onPick(r)}>{r.vm}</button>
+  const key = (c: MigrationCheckView) => `${c.source_id}/${c.vm}`
+  const cols: Column<MigrationCheckView>[] = [
+    { key: 'vm', header: t.col.vm, width: '36%', title: (c) => c.vm, cell: (c) => (
+      <button type="button" className={s.pick} aria-pressed={key(c) === sel} onClick={() => onPick(c)}>{c.vm}</button>
     ) },
-    { key: 'guest', header: t.col.guest, title: (r) => r.inv?.guest_full_name || r.check?.guest_id || undefined,
-      cell: (r) => r.inv?.guest_full_name || r.check?.guest_id || '—' },
-    { key: 'result', header: t.col.result, width: '180px', compare: by((r) => ORDER.indexOf(resultOf(r, t).rank)), cell: (r) => {
-      const res = resultOf(r, t)
+    { key: 'guest', header: t.col.guest, title: (c) => c.guest_id || undefined, cell: (c) => c.guest_id || '—' },
+    { key: 'result', header: t.col.result, width: '180px', cell: (c) => {
+      const res = resultOf(c, t)
       return <StatusChip status={res.status} size="xs" word={res.word} />
     } },
-    { key: 'checked', header: t.col.checked, width: '140px', compare: by((r) => r.check?.finished_at || r.check?.created_at || ''), cell: (r) => checkedAt(r, fmt, t) },
+    { key: 'checked', header: t.col.checked, width: '140px', cell: (c) => checkedAt(c, fmt, t) },
   ]
   return (
-    <DataTable caption={t.vmsCaption} columns={cols} rows={rows} rowKey={(r) => r.key} empty={t.noneMatch}
-      rowState={(r) => (r === sel ? 'mark' : resultOf(r, t).status === 'CRITICAL' ? 'critical' : undefined)} />
+    <DataTable caption={t.vmsCaption} columns={cols} pages={pages} rowKey={key} empty={t.noneMatch}
+      rowState={(c) => (key(c) === sel ? 'mark' : resultOf(c, t).status === 'CRITICAL' ? 'critical' : undefined)} />
   )
+}
+
+/** The VMs of the sources read just now (one read-only listing each; the table pages them). Picking one shows its
+ * checks, or what the source says of it when it was never checked. */
+function SourceTable({ rows, sel, onPick }: { rows: SourceRow[]; sel: string; onPick: (r: SourceRow) => void }) {
+  const t = useT().migration
+  const cols: Column<SourceRow>[] = [
+    { key: 'vm', header: t.col.vm, width: '36%', title: (r) => r.vm.name, compare: by((r) => r.vm.name), cell: (r) => (
+      <button type="button" className={s.pick} aria-pressed={r.key === sel} onClick={() => onPick(r)}>{r.vm.name}</button>
+    ) },
+    { key: 'guest', header: t.col.guest, title: (r) => r.vm.guest_full_name || undefined, compare: by((r) => r.vm.guest_full_name), cell: (r) => r.vm.guest_full_name || '—' },
+    { key: 'power', header: t.col.power, width: '90px', compare: by((r) => r.vm.power_state), cell: (r) => r.vm.power_state.replace(/^powered/, '').toLowerCase() },
+    { key: 'size', header: t.col.size, width: '150px', compare: by((r) => r.vm.disk_bytes), cell: (r) => disks(r.vm, t) },
+  ]
+  return (
+    <DataTable caption={t.sourceCaption} columns={cols} rows={rows} rowKey={(r) => r.key} empty={t.noneMatch}
+      rowState={(r) => (r.key === sel ? 'mark' : undefined)} />
+  )
+}
+
+/** The selected VM with its checks, newest first: the first is its result, the others its history. */
+function SelectedVM({ sourceID, vm, source, inv, fmt, act }: {
+  sourceID: number; vm: string; source: MigrationSource | undefined; inv: SourceVM | undefined; fmt: Fmt; act: boolean
+}) {
+  const q = useMigrationVMChecks(sourceID, vm)
+  if (q.isPending) return <Loading />
+  if (q.isError) return <Failed error={q.error} onRetry={() => q.refetch()} />
+  const [check, ...earlier] = q.data.checks
+  if (!check && !inv) return null
+  return <Selected r={{ key: `${sourceID}/${vm}`, source, sourceID, vm, check, earlier, inv }} fmt={fmt} act={act} />
 }
 
 /** The steps a check takes; each is a check of its own in the result (migrate.go). */
@@ -225,7 +261,7 @@ const RANK: Record<string, number> = { CRITICAL: 0, UNKNOWN: 1, WARNING: 2, OK: 
 /** The selected VM: the verdict in a sentence, the four steps, the findings, and what can be done with it. */
 function Selected({ r, fmt, act }: { r: Row; fmt: Fmt; act: boolean }) {
   const t = useT().migration
-  const res = resultOf(r, t)
+  const res = resultOf(r.check, t)
   const c = r.check
   const d = c?.result ?? null
   const checks = d?.checks ?? []

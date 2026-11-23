@@ -562,11 +562,12 @@ export const en = {
     readFailed: (src: string) => `Could not read the VMs of ${src}.`,
     read: (src: string, n: number, calls: number, blocked: number) =>
       `${src}: ${n} VMs read with ${calls} vSphere calls${blocked ? `, ${blocked} blocked` : ', all read-only'}.`,
-    readHint: 'Until a source is read, the list holds the VMs checked so far.',
+    readHint: 'The table holds the VMs checked so far; a source, once read, lists all its VMs below it.',
     noChecks: 'No VM has been checked yet.',
     noChecksAct: "No VM has been checked yet. List a source's VMs above and check a powered-off one.",
     noneMatch: 'No VM has this result.',
-    vmsCaption: 'VMs of the sources',
+    vmsCaption: 'Checked VMs of the sources',
+    sourceCaption: 'VMs the sources list',
     order: 'Worst first, then by name',
     f: {
       all: (n: number) => `All ${n.toLocaleString('en-US')}`,

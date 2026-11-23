@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } f
 import { api } from '../../api/client'
 import type { components } from '../../api/schema'
 import { unwrap } from './errors'
+import { usePages, type Page } from './pages'
 import { withStepUp, type useStepUp } from '../layout/StepUp'
 
 export type VMOverview = components['schemas']['VMOverview']
@@ -143,12 +144,33 @@ export type MigrationCheckView = components['schemas']['MigrationCheckView']
 export type SourceVM = components['schemas']['SourceVM']
 export type MigrationSource = components['schemas']['MigrationSource']
 
-/** The migration screen; it refreshes faster while a check is queued or running. */
-export function useMigrationView() {
+/** A check's result as the server filters it: its readiness, or `open` while it is queued or running. */
+export type MigrationResult = 'OK' | 'WARNING' | 'CRITICAL' | 'UNKNOWN' | 'open'
+/** One page of the migration screen: the checks, and the screen's head (converter, sources, counts) it came with. */
+export type MigrationPageData = Page<MigrationCheckView> & { view: MigrationView }
+
+/**
+ * The migration screen's VMs, a page at a time from the server (ADR-007 C18.7): each VM's newest check (its result),
+ * worst first, then by name, optionally only one result. Every page carries the converter, the sources and the
+ * counts by result over the whole list (MigrationPageData.view).
+ */
+export function useMigrationPages(result: MigrationResult | '') {
+  return usePages<MigrationCheckView>(['views', 'migration', 'latest', result], async (cursor, limit): Promise<MigrationPageData> => {
+    const v = await unwrap(api.GET('/api/v1/views/migration', {
+      params: { query: { latest: true, result: result || undefined, after: cursor ? Number(cursor) : undefined, limit } },
+    }))
+    return { rows: v.checks, total: v.total, next: v.next, view: v }
+  }, 25, REFRESH)
+}
+
+/** One VM's checks, newest first (its result, then its history); faster while one is queued or running. */
+export function useMigrationVMChecks(sourceID: number, vm: string, limit = 7) {
   return useQuery({
-    queryKey: ['views', 'migration'],
-    queryFn: () => unwrap(api.GET('/api/v1/views/migration')),
-    refetchInterval: (q) => (q.state.data?.checks.some((c) => c.job_state === 'queued' || c.job_state === 'running') ? 5_000 : REFRESH),
+    queryKey: ['views', 'migration', 'vm', sourceID, vm, limit],
+    queryFn: () => unwrap(api.GET('/api/v1/views/migration', { params: { query: { source_id: sourceID, vm, limit } } })),
+    refetchInterval: (q) => (q.state.data?.checks.some((c) => c.job_state === 'queued' || c.job_state === 'running') ? BUSY : REFRESH),
+    refetchIntervalInBackground: true,
+    placeholderData: keepPreviousData,
   })
 }
 
