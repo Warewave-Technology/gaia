@@ -509,11 +509,16 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk, kept, bundle string, d *MigrationDetail) *verify.CheckResult {
 	t := time.Now()
 	after := filepath.Base(disk) + ".after.qcow2"
-	if err := copyFile(kept, filepath.Join(conv.out, after)); err != nil {
+	// group gaia-convert (the out directory is setgid) may read and write it: the converter points it at its disk
+	err := copyFile(kept, filepath.Join(conv.out, after))
+	defer os.Remove(filepath.Join(conv.out, after))
+	if err == nil {
+		err = os.Chmod(filepath.Join(conv.out, after), 0o660)
+	}
+	if err != nil {
 		d.Errors = append(d.Errors, "handing the guest's disk to the converter: "+err.Error())
 		return nil
 	}
-	defer os.Remove(filepath.Join(conv.out, after))
 	fb, err := conv.client.Firstboot(ctx, convert.FirstbootRequest{Job: conv.job, Disk: filepath.Base(disk), After: after})
 	if err != nil {
 		d.Errors = append(d.Errors, "reading the first-boot log: "+err.Error())
@@ -521,7 +526,9 @@ func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk,
 	}
 	d.Timings["firstboot_read"] = time.Since(t).Seconds()
 	if b, err := json.MarshalIndent(fb, "", "  "); err == nil {
-		if err := os.WriteFile(filepath.Join(bundle, "migration", "firstboot.json"), append(b, '\n'), 0o644); err != nil {
+		if err := os.MkdirAll(filepath.Join(bundle, "migration"), 0o755); err != nil {
+			d.Errors = append(d.Errors, "bundle directory migration: "+err.Error())
+		} else if err := os.WriteFile(filepath.Join(bundle, "migration", "firstboot.json"), append(b, '\n'), 0o644); err != nil {
 			d.Errors = append(d.Errors, "bundle file migration/firstboot.json: "+err.Error())
 		}
 	}
