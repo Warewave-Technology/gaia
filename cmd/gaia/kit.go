@@ -328,6 +328,11 @@ func cmdServerRestoreState(ctx context.Context, args []string) int {
 `, r.Verdict, r.ConfigPath, r.DataDir, r.StateBackup.ID, r.StateBackup.Created, r.StateBackup.Hostname, r.StateBackup.SchemaVersion,
 		r.Catalog.Hosts, r.Catalog.VMs, r.Catalog.Points, r.Catalog.PresentPoints, r.Catalog.RestoreTests, r.Catalog.EvidenceBundles,
 		r.Evidence.Restored, r.Ledger.Verdict, r.Ledger.Entries, r.EvidenceKeyID, r.CertSHA256)
+	if n := len(r.PendingExports); n > 0 {
+		// ADR-007 C19.3: exports the lost server gave while its ledger could not record them.
+		fmt.Printf("  export records         %d not in the ledger yet, re-queued: appended with the next successful ledger write (%s)\n",
+			n, strings.Join(r.PendingExports, ", "))
+	}
 	for _, rr := range r.Repositories {
 		state := "connected"
 		if !rr.Connected {

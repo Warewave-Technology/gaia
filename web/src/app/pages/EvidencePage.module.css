@@ -20,6 +20,8 @@
 
 /* Export */
 .box { display: flex; flex-direction: column; gap: 10px; padding: 14px 20px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); }
+/* Exports given without a ledger record (ADR-007 C19.6), next to the download: in words, not by colour */
+.notRecorded { font-size: 13px; color: var(--fg2); }
 
 /* Entries */
 .vm { font-family: var(--mono); font-size: 13px; color: var(--blue); text-decoration: none; }

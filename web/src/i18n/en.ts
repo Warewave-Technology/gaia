@@ -1,5 +1,5 @@
 import { capacity, jobs } from './en-capacity'
-import { ledger } from './en-evidence'
+import { ledger, notRecorded } from './en-evidence'
 import { inventory, security } from './en-inventory'
 import { v3 } from './en-overview'
 import { vm3 } from './en-vm'
@@ -513,10 +513,11 @@ export const en = {
     export: 'Download the evidence export',
     exporting: 'Preparing the export…',
     exportHint:
-      'One archive: every bundle, the ledger from genesis, the public keys, the newest daily report and its signed head, the specification and how to verify it offline. Its file list (SHA256SUMS) is signed with the evidence key. Downloading asks for your second factor; the export is recorded in the ledger as an entry of its own (who, when, the hash of its file list) and in the audit log.',
+      'One archive: every bundle, the ledger from genesis, the public keys, the newest daily report and its signed head, the specification and how to verify it offline. Its file list (SHA256SUMS) is signed with the evidence key. Downloading asks for your second factor; the export is recorded in the ledger as an entry of its own (who, when, the hash of its file list) and in the audit log. When the ledger cannot record it, the export is given all the same and says "not recorded in the ledger" until the next successful ledger write appends its record.',
+    notRecorded,
     verify: 'How to verify it offline, with the export and a daily report received outside Gaia',
     entries: 'Ledger entries',
-    entriesHint: 'Each sealed bundle is one ledger entry, newest first.',
+    entriesHint: 'Each sealed bundle is one ledger entry, newest first. An export not recorded in the ledger yet comes first, without an entry or a hash.',
     none: 'No evidence was sealed yet: the first restore test seals the first bundle.',
     noneMatch: 'No entry matches these filters.',
     f: { tests: 'Restore tests', migrations: 'Migration checks', exports: 'Exports', failed: 'Did not pass', clear: 'All entries' },

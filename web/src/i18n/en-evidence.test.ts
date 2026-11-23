@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ledger, ledgerState, type LedgerIn } from './en-evidence.ts'
+import { isNotRecorded, ledger, ledgerState, notRecorded, type LedgerIn } from './en-evidence.ts'
 
 const now = Date.parse('2026-11-22T14:30:00Z')
 const base: LedgerIn = { checked_at: '2026-11-22T14:00:00Z', verdict: 'OK', entries: 184220, unchecked: 0, problems: [], reason: 'hourly' }
@@ -34,4 +34,26 @@ test('each state is said in a sentence, with no raw text in it', () => {
   assert.doesNotMatch(ledger.lede(ledgerState(b, now), b, '14:00'), /signature does not verify/)
   const e = { ...base, entries: 0 }
   assert.match(ledger.answer(ledgerState(e, now, true), e, 0), /passed but left no evidence/)
+})
+
+test('an export without a ledger record says so, next to the download and in its row (ADR-007 C19.6)', () => {
+  assert.equal(isNotRecorded({ kind: 'export', ledger_record: 'not_recorded' }), true)
+  assert.equal(isNotRecorded({ kind: 'export', ledger_record: 'recorded_late' }), false)
+  assert.equal(isNotRecorded({ kind: 'export', ledger_record: 'recorded' }), false)
+  assert.equal(isNotRecorded({ kind: 'export' }), false) // an older server
+  assert.equal(isNotRecorded({ kind: 'test', ledger_record: 'not_recorded' }), false)
+  const said = /not recorded in the ledger/i
+  assert.match(notRecorded.word, said)
+  assert.match(notRecorded.waiting(1), said)
+  assert.match(notRecorded.waiting(2), /^2 exports are not recorded in the ledger yet/)
+  assert.match(notRecorded.waiting(1200), /^1,200 exports/)
+  assert.equal(notRecorded.waiting(0), '') // once appended, it disappears
+  assert.match(notRecorded.given('export-20261123T101500Z-3f9a1c'), said)
+  assert.match(notRecorded.given('export-20261123T101500Z-3f9a1c'), /appends the record as export-20261123T101500Z-3f9a1c/)
+  assert.match(notRecorded.given(''), /audit log entry is its only record/)
+  assert.match(notRecorded.detail('export-x'), said)
+  // no sentence claims an entry, a hash or a seal it does not have
+  for (const s of [notRecorded.waiting(1), notRecorded.given('export-x'), notRecorded.detail('export-x')]) {
+    assert.doesNotMatch(s, /\bis recorded\b|\bsealed\b/)
+  }
 })

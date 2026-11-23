@@ -2442,8 +2442,10 @@ export interface components {
             created_at: string;
             id: number;
             kind: string;
+            ledger_record: string;
             ledger_seq: number;
             migration_check_id: number | null;
+            not_recorded_reason: string;
             proven_rto_s: number | null;
             test_id: number | null;
             verdict: string;
@@ -2453,6 +2455,7 @@ export interface components {
         EvidenceView: {
             clock: components["schemas"]["ServerClock"];
             next: string;
+            not_recorded: number;
             rows: components["schemas"]["EvidenceRow"][];
             total: number;
         };

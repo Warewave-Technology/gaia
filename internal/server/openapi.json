@@ -1484,6 +1484,9 @@
           "kind": {
             "type": "string"
           },
+          "ledger_record": {
+            "type": "string"
+          },
           "ledger_seq": {
             "type": "integer"
           },
@@ -1492,6 +1495,9 @@
               "integer",
               "null"
             ]
+          },
+          "not_recorded_reason": {
+            "type": "string"
           },
           "proven_rto_s": {
             "type": [
@@ -1525,8 +1531,10 @@
           "created_at",
           "id",
           "kind",
+          "ledger_record",
           "ledger_seq",
           "migration_check_id",
+          "not_recorded_reason",
           "proven_rto_s",
           "test_id",
           "verdict",
@@ -1544,6 +1552,9 @@
           "next": {
             "type": "string"
           },
+          "not_recorded": {
+            "type": "integer"
+          },
           "rows": {
             "items": {
               "$ref": "#/components/schemas/EvidenceRow"
@@ -1557,6 +1568,7 @@
         "required": [
           "clock",
           "next",
+          "not_recorded",
           "rows",
           "total"
         ],

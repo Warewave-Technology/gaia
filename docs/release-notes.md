@@ -121,6 +121,14 @@
   bundle, another export, or a ledger check that finds the ledger intact); that record's subject carries
   `recorded_late`, `not_recorded_reason` and `given`. Both steps are state changes (`entity=evidence_export`).
   `gaia evidence export-all` prints a `WARNING` and exits 1 for such an export (the file is written).
+  The pending records are in Gaia's state backup (members `evidence/pending-exports/<bundle>.json`, counted in
+  `MANIFEST.json` as `pending_export_records`), and `gaia server restore-state` re-queues them: its output and audit
+  entry name them (`pending_exports_requeued` in `-json`), and the rebuilt server appends them with its next
+  successful ledger write (ADR-007 C19.3). A state backup from an older version has no such member and restores as
+  before. The Evidence screen lists such an export first among the entries, "not recorded in the ledger" (no entry,
+  no hash, `UNKNOWN`), and says so next to the download, until its record is appended (ADR-007 C19.6;
+  `GET /api/v1/views/evidence` rows carry `ledger_record`: `recorded`, `recorded_late` or `not_recorded`, and the
+  view counts them in `not_recorded`).
 - The single-bundle export (`gaia evidence export <id>`, `GET /api/v1/evidence/{id}/export`) now has `EXPORT.json`
   and a signed `SHA256SUMS` / `SHA256SUMS.sig` like the full export (ADR-007 C18.6). It is an audit entry, not a ledger
   bundle.
