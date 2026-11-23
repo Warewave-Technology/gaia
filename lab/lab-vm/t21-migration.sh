@@ -9,7 +9,8 @@
 #                                                            WinRM and RDP answer once, but virtio-win 0.1.302's smbus driver
 #                                                            fails to install at first boot and Windows restarts on every
 #                                                            boot, so it does not stay up for settle_s (T21's OK was a false
-#                                                            positive); checked again with exclude_drivers ["smbus"]: WARNING,
+#                                                            positive); checked again with exclude_drivers ["smbus"]: WARNING
+#                                                            (ADR-005 F: its first-boot restarts listed, before it stays up),
 #                                                            WinRM (an Identify, or as Windows Server's default an NTLM
 #                                                            CHALLENGE with the computer's name and Windows version) and RDP
 #                                                            answer and keep answering, the left-out driver a warning step
@@ -185,7 +186,8 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	           steps: [(x.detail.checks // [])[] | {name, verdict, detail: (.detail | .[0:240])}]};
 	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
 	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
-	 b_t11_windows: {as_is: (s($win[0]) + {code: $win[0].detail.code, drivers: $win[0].detail.drivers}), without_smbus: s($wex[0]),
+	 b_t11_windows: {as_is: (s($win[0]) + {code: $win[0].detail.code, drivers: $win[0].detail.drivers, restarts: $win[0].detail.restarts}),
+	                 without_smbus: (s($wex[0]) + {first_boot_restarts_s: $wex[0].detail.restarts}),
 	                 broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
 	                 t21_ok_was_a_false_positive: (($win[0] | step("boot").verdict) == "OK" and ($win[0] | step("stable").verdict) == "CRITICAL"),
 	                 pass: ($win[0].readiness == "CRITICAL" and $win[0].detail.code == "driver_install_loop" and ($win[0].detail.drivers | index("smbus")) != null
@@ -195,6 +197,7 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	                        and ($wex[0] | step("rdp").verdict) == "OK" and ($wex[0] | step("stable").verdict) == "OK"
 	                        and ($wex[0] | step("drivers_excluded") | .verdict == "WARNING" and (.detail | contains("smbus")))
 	                        and ([$wex[0].detail.checks[] | select(.verdict != "OK") | .name] == ["drivers_excluded"])
+	                        and (($wex[0].detail.restarts // []) | length) > 0 and ($wex[0].reason | contains("on its first boot"))
 	                        and $wbrk[0].readiness == "CRITICAL" and ($wbrk[0] | step("boot").detail | contains("WinRM answers only from a running Windows"))
 	                        and $nov[0].readiness == "UNKNOWN" and ($nov[0] | step("conversion").detail | contains("virtio-win")))},
 	 c_uefi: {check: s($uefi[0]),

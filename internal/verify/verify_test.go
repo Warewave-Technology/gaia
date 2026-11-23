@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -435,19 +436,58 @@ func TestSettle(t *testing.T) {
 		}
 	}
 	up := func() error { return nil }
+	// restarts at the given probe numbers (1-based): a reboot event right before that probe
+	restartsAt := func(at func(n int) bool) (func(int) CheckResult, func(time.Time) int) {
+		var mu sync.Mutex
+		var times []time.Time
+		n := 0
+		return func(int) CheckResult {
+				mu.Lock()
+				defer mu.Unlock()
+				n++
+				if at(n) {
+					times = append(times, time.Now())
+				}
+				return CheckResult{Verdict: OK}
+			}, func(since time.Time) int {
+				mu.Lock()
+				defer mu.Unlock()
+				c := 0
+				for _, t := range times {
+					if !t.Before(since) {
+						c++
+					}
+				}
+				return c
+			}
+	}
+	none := func(time.Time) int { return 0 }
+	again := func() bool { return true }
+	loop, loopRestarts := restartsAt(func(n int) bool { return n%2 == 0 }) // for ever
+	healthy, healthyRestarts := restartsAt(func(n int) bool { return n == 2 || n == 4 })
+	restored, restoredRestarts := restartsAt(func(n int) bool { return n == 2 })
 	for _, c := range []struct {
-		name  string
-		probe func(int) CheckResult
-		alive func() error
-		want  string
-		text  string
+		name      string
+		probe     func(int) CheckResult
+		restarts  func(time.Time) int
+		alive     func() error
+		firstBoot bool
+		want      string
+		text      string
 	}{
-		{"keeps answering", answers(), up, OK, "kept answering for 50ms"},
-		{"restarts", answers(true, true, false), up, Critical, "stopped answering"},
-		{"stops", answers(), func() error { return errors.New("the guest stopped (libvirt state 5)") }, Critical, "the guest stopped"},
-		{"probe could not run", func(int) CheckResult { return CheckResult{Verdict: Unknown, Detail: "probe runner failed"} }, up, Unknown, "probe runner failed"},
+		{"keeps answering", answers(), none, up, false, OK, "kept answering for 50ms"},
+		{"stops answering, never comes back", answers(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false),
+			none, up, false, Critical, "without a break inside"},
+		{"restarts on every boot", loop, loopRestarts, up, true, Critical, "without a break inside"},
+		{"first-boot restarts, then stays (migration check)", healthy, healthyRestarts, up, true, OK, "restarted 2 time(s) on its first boot"},
+		{"a restored guest restarts while it boots", restored, restoredRestarts, up, false, Warning, "guest_restarted_during_boot"},
+		{"stops", answers(), none, func() error { return errors.New("the guest stopped (libvirt state 5)") }, false, Critical, "the guest stopped"},
+		{"probe could not run", func(int) CheckResult { return CheckResult{Verdict: Unknown, Detail: "probe runner failed"} }, none, up, false, Unknown, "probe runner failed"},
 	} {
-		r := settle(ctx, k, 50*time.Millisecond, 10*time.Millisecond, c.probe, c.alive)
+		t0 := time.Now()
+		w := window{d: 50 * time.Millisecond, every: 10 * time.Millisecond, deadline: t0.Add(300 * time.Millisecond), firstBoot: c.firstBoot,
+			probe: c.probe, alive: c.alive, restarts: c.restarts, again: again}
+		r := w.settle(ctx, k, t0)
 		if r.Verdict != c.want || r.Name != "stable" || !strings.Contains(r.Detail, c.text) {
 			t.Errorf("%s: %+v", c.name, r)
 		}

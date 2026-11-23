@@ -100,7 +100,10 @@ type MigrationDetail struct {
 	// first-boot install failed on every boot).
 	Code    string   `json:"code,omitempty"`
 	Drivers []string `json:"drivers,omitempty"`
-	Errors  []string `json:"errors"`
+	// Restarts: the converted guest's own restarts before its stability window (virt-v2v's first-boot scripts), in
+	// seconds since it started (ADR-005 F): stated in the readiness report, they do not change the result.
+	Restarts []float64 `json:"restarts,omitempty"`
+	Errors   []string  `json:"errors"`
 }
 
 func (c Config) sourcePasswordFile(name string) string {
@@ -412,14 +415,13 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	// A converted Windows that does not pass may be stuck on a first-boot driver install (ADR-005 C): the sandbox keeps
 	// what the guest wrote, and the converter reads virt-v2v's first-boot log out of it.
 	windows := conv.result != nil && conv.result.VirtioWin != nil
-	sreq := sandbox.Request{Config: p.Declared, Disks: images, PreChecks: p.PreChecks, SkipReason: p.SkipReason, KeepDisks: windows}
+	sreq := sandbox.Request{Config: p.Declared, Disks: images, PreChecks: p.PreChecks, SkipReason: p.SkipReason, KeepDisks: windows,
+		FirstBoot: true}
 	dir, res, err := s.sandbox.Verify(ctx, sreq, s.cfg.bundlesDir())
 	if res != nil {
 		defer func() {
 			for _, k := range res.KeptDisks {
-				if err := os.Remove(filepath.Join(s.cfg.SandboxImagesDir, filepath.Base(k))); err != nil && !errors.Is(err, os.ErrNotExist) {
-					s.log.Error("removing a guest's kept disk", "file", k, "error", err)
-				}
+				s.removeKeptDisk(filepath.Join(s.cfg.SandboxImagesDir, filepath.Base(k)), "the migration check finished")
 			}
 		}()
 	}
@@ -435,7 +437,7 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 			res.Verdict = verify.Worst(res.Verdict, k.Verdict)
 		}
 	}
-	d.Checks = res.Checks
+	d.Checks, d.Restarts = res.Checks, res.Restarts
 	for k, v := range res.Timings {
 		d.Timings[k] = v
 	}
@@ -470,7 +472,7 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	}
 	summary, _ := json.MarshalIndent(map[string]any{"source": map[string]any{"name": src.Name, "host": cl.Host, "product": d.Product},
 		"vm": mc.VM, "request": req, "readiness": readiness, "reason": reason, "converter": d.Converter, "timings_s": d.Timings,
-		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "missing_files": d.Missing, "code": d.Code, "drivers": d.Drivers}, "", "  ")
+		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "missing_files": d.Missing, "code": d.Code, "drivers": d.Drivers, "first_boot_restarts_s": d.Restarts}, "", "  ")
 	if err := os.WriteFile(filepath.Join(dir, "migration", "check.json"), append(summary, '\n'), 0o644); err != nil {
 		return "", "", "", err
 	}
@@ -511,7 +513,7 @@ func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk,
 	after := filepath.Base(disk) + ".after.qcow2"
 	// group gaia-convert (the out directory is setgid) may read and write it: the converter points it at its disk
 	err := copyFile(kept, filepath.Join(conv.out, after))
-	defer os.Remove(filepath.Join(conv.out, after))
+	defer s.removeKeptDisk(filepath.Join(conv.out, after), "the first-boot log was read")
 	if err == nil {
 		err = os.Chmod(filepath.Join(conv.out, after), 0o660)
 	}
@@ -562,7 +564,11 @@ func migrationReason(r *verify.Result, d *MigrationDetail) string {
 	for _, want := range []string{verify.Critical, verify.Unknown, verify.Warning} {
 		for _, c := range r.Checks {
 			if c.Verdict == want {
-				return fmt.Sprintf("%s %s: %s", c.Name, strings.ToLower(c.Verdict), c.Detail)
+				more := ""
+				if want == verify.Warning {
+					more = firstBootRestarts(r.Restarts)
+				}
+				return fmt.Sprintf("%s %s: %s%s", c.Name, strings.ToLower(c.Verdict), c.Detail, more)
 			}
 		}
 	}
@@ -572,8 +578,20 @@ func migrationReason(r *verify.Result, d *MigrationDetail) string {
 			boot = fmt.Sprintf(", booted in %.0f s", c.Seconds)
 		}
 	}
-	return fmt.Sprintf("ready for KVM: converted in %.0f s%s, all %d checks passed, %d vSphere calls, all read-only",
-		d.Timings["conversion"], boot, len(r.Checks), d.Calls)
+	return fmt.Sprintf("ready for KVM: converted in %.0f s%s%s, all %d checks passed, %d vSphere calls, all read-only",
+		d.Timings["conversion"], boot, firstBootRestarts(r.Restarts), len(r.Checks), d.Calls)
+}
+
+// firstBootRestarts states a converted guest's restarts before it stayed up (ADR-005 F), for the readiness line.
+func firstBootRestarts(at []float64) string {
+	if len(at) == 0 {
+		return ""
+	}
+	s := make([]string, len(at))
+	for i, a := range at {
+		s[i] = fmt.Sprintf("%.0f s", a)
+	}
+	return fmt.Sprintf(", restarted %d time(s) on its first boot (at %s) before it stayed up", len(at), strings.Join(s, ", "))
 }
 
 // serverConverter has gaia convert serve convert the job's downloaded VM.
@@ -705,7 +723,8 @@ func (s *Server) readinessReport(c *call) (int, any, error) {
 	summary, _ := json.MarshalIndent(map[string]any{"check": mc.ID, "source": src.Name, "source_host": d.Source, "source_product": d.Product,
 		"vm": mc.VM, "readiness": mc.Readiness, "reason": mc.Reason, "firmware": mc.Firmware, "guest_id": mc.GuestID,
 		"checked_at": mc.FinishedAt, "checks": d.Checks, "timings_s": d.Timings, "converter": d.Converter,
-		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "bundle": mc.BundleID, "ledger_seq": d.LedgerSeq}, "", "  ")
+		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "bundle": mc.BundleID, "ledger_seq": d.LedgerSeq,
+		"first_boot_restarts_s": d.Restarts}, "", "  ")
 	for _, f := range []struct {
 		name string
 		body []byte
