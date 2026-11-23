@@ -14,6 +14,8 @@
 # Gate: before the upgrade jobs-m2 got job_failed and status-m2 got status; after it, the server's database maps
 # jobs-m2 to the category jobs and status-m2 to status (each with its M2 list kept and the mapping recorded as a state
 # change), capacity_short reaches jobs-m2 with a valid signature and never status-m2. Writes OUT/gate.json.
+# The kept list (m2_events) is the one the upgrade maps: 0.1.2's list plus the three sign-in events schema 11 (T26)
+# gives every existing channel earlier in the same upgrade, so each M2 channel also takes the category security.
 #
 # Usage (on gaia-lab, as root): lab/lab-vm/t28-channel.sh [OUT]     (default /root/t28/channel-<UTC time>)
 # Env: KEEP=1 keeps the server. Exit: 0 OK / 2 CRITICAL / 3 UNKNOWN (also when the harness failed).
@@ -210,9 +212,10 @@ jq -n --argjson before_jobs "$before_jobs" --argjson before_status "$before_stat
 	 after: {upgraded_at: $upgraded, health: $health[0], schema: $schema[0][0].version, jobs_m2: chan("jobs-m2"), status_m2: chan("status-m2"),
 	         mapping_recorded: {jobs_m2: mapped("jobs-m2"), status_m2: mapped("status-m2")},
 	         capacity: [$sc[0][] | select(.entity == "capacity")],
-	         pass: ((chan("jobs-m2").categories | index("jobs")) != null and chan("jobs-m2").m2_events == ["job_failed"]
+	         pass: ((chan("jobs-m2").categories | index("jobs")) != null and (chan("jobs-m2").m2_events | index("job_failed")) != null
 	                and (chan("status-m2").categories | index("status")) != null and (chan("status-m2").categories | index("jobs")) == null
-	                and chan("status-m2").m2_events == ["status"] and (mapped("jobs-m2") | length) == 1 and (mapped("status-m2") | length) == 1)},
+	                and (chan("status-m2").m2_events | index("status")) != null and (chan("status-m2").m2_events | index("job_failed")) == null
+	                and (mapped("jobs-m2") | length) == 1 and (mapped("status-m2") | length) == 1)},
 	 new_event: {event: "capacity_short", category: "jobs", reached_jobs_m2: $short_jobs, reached_status_m2: $short_status, signature_valid: $sig,
 	             pass: ($short_jobs > 0 and $short_status == 0 and $sig)}}
 	| . + {verdict: (if .before.pass and .after.pass and .new_event.pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json" |
