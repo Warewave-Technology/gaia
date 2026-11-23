@@ -53,6 +53,8 @@ type MigrationCheckRequest struct {
 	Checks        []verify.Check `json:"checks,omitempty"`
 	BootTimeoutS  int            `json:"boot_timeout_s,omitempty"`
 	ProbeTimeoutS int            `json:"probe_timeout_s,omitempty"`
+	// ExcludeDrivers: virtio-win drivers a Windows guest is converted without (ADR-005 C); the result is at best WARNING.
+	ExcludeDrivers []string `json:"exclude_drivers,omitempty"`
 }
 
 // SourceVM is one VM of a source's inventory, as a screen lists it.
@@ -93,6 +95,10 @@ type MigrationDetail struct {
 	Bundle    string               `json:"bundle"`
 	LedgerSeq int                  `json:"ledger_seq"`
 	Missing   []string             `json:"missing_files,omitempty"` // bundle files the steps did not produce
+	// Code is the reason code when one names the cause (driver_install_loop, with Drivers: the drivers whose
+	// first-boot install failed on every boot).
+	Code    string   `json:"code,omitempty"`
+	Drivers []string `json:"drivers,omitempty"`
 	Errors    []string             `json:"errors"`
 }
 
@@ -239,6 +245,9 @@ func (s *Server) queueMigrationCheck(c *call) (int, any, error) {
 	if err := c.decode(&in); err != nil {
 		return 0, nil, err
 	}
+	if err := convert.CheckExcludeDrivers(in.ExcludeDrivers); err != nil {
+		return 0, nil, fmt.Errorf("%w: %v", store.ErrInvalid, err)
+	}
 	if in.Template != "" || len(in.Checks) > 0 {
 		cfg := verify.Config{VM: "x", Template: in.Template, Checks: in.Checks, Machine: verify.Machine{MAC: "52:54:00:00:00:01"}}
 		if err := cfg.Validate(); err != nil {
@@ -357,8 +366,9 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 		}
 	}
 	checks := migrate.ChecksFile{}
-	if req.Template != "" || len(req.Checks) > 0 || req.BootTimeoutS > 0 || req.ProbeTimeoutS > 0 {
-		checks[mc.VM] = migrate.Checks{Template: req.Template, Checks: req.Checks, BootTimeoutS: req.BootTimeoutS, ProbeTimeoutS: req.ProbeTimeoutS}
+	if req.Template != "" || len(req.Checks) > 0 || req.BootTimeoutS > 0 || req.ProbeTimeoutS > 0 || len(req.ExcludeDrivers) > 0 {
+		checks[mc.VM] = migrate.Checks{Template: req.Template, Checks: req.Checks, BootTimeoutS: req.BootTimeoutS, ProbeTimeoutS: req.ProbeTimeoutS,
+			ExcludeDrivers: req.ExcludeDrivers}
 	}
 	conv := &serverConverter{client: convert.Client{Socket: s.cfg.ConvertSocket}, job: job, dir: jobDir, out: out}
 	p, err := migrate.Prepare(ctx, migrate.Options{Source: cl, Checks: checks, CallLog: callLog, Converter: conv,
@@ -398,13 +408,31 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 		d.Timings["handover"] = time.Since(t).Seconds()
 	}
 
-	sreq := sandbox.Request{Config: p.Declared, Disks: images, PreChecks: p.PreChecks, SkipReason: p.SkipReason}
+	// A converted Windows that does not pass may be stuck on a first-boot driver install (ADR-005 C): the sandbox keeps
+	// what the guest wrote, and the converter reads virt-v2v's first-boot log out of it.
+	windows := conv.result != nil && conv.result.VirtioWin != nil
+	sreq := sandbox.Request{Config: p.Declared, Disks: images, PreChecks: p.PreChecks, SkipReason: p.SkipReason, KeepDisks: windows}
 	dir, res, err := s.sandbox.Verify(ctx, sreq, s.cfg.bundlesDir())
+	if res != nil {
+		defer func() {
+			for _, k := range res.KeptDisks {
+				if err := os.Remove(filepath.Join(s.cfg.SandboxImagesDir, filepath.Base(k))); err != nil && !errors.Is(err, os.ErrNotExist) {
+					s.log.Error("removing a guest's kept disk", "file", k, "error", err)
+				}
+			}
+		}()
+	}
 	if err != nil {
 		if dir != "" {
 			os.RemoveAll(dir)
 		}
 		return "", "", "", err
+	}
+	if windows && len(res.KeptDisks) > 0 && len(p.Disks) > 0 {
+		if k := s.firstbootStep(ctx, conv, p.Disks[0], filepath.Join(s.cfg.SandboxImagesDir, filepath.Base(res.KeptDisks[0])), dir, d); k != nil {
+			res.Checks = append(res.Checks, *k)
+			res.Verdict = verify.Worst(res.Verdict, k.Verdict)
+		}
 	}
 	d.Checks = res.Checks
 	for k, v := range res.Timings {
@@ -441,7 +469,7 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	}
 	summary, _ := json.MarshalIndent(map[string]any{"source": map[string]any{"name": src.Name, "host": cl.Host, "product": d.Product},
 		"vm": mc.VM, "request": req, "readiness": readiness, "reason": reason, "converter": d.Converter, "timings_s": d.Timings,
-		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "missing_files": d.Missing}, "", "  ")
+		"vsphere_calls": d.Calls, "vsphere_blocked_calls": d.Blocked, "missing_files": d.Missing, "code": d.Code, "drivers": d.Drivers}, "", "  ")
 	if err := os.WriteFile(filepath.Join(dir, "migration", "check.json"), append(summary, '\n'), 0o644); err != nil {
 		return "", "", "", err
 	}
@@ -472,9 +500,57 @@ func (s *Server) checkMigration(ctx context.Context, mc store.MigrationCheck, d 
 	return readiness, reason, res.BundleID, nil
 }
 
+// firstbootStep reads virt-v2v's first-boot log out of what a converted Windows wrote in the sandbox and names a
+// driver whose install failed on every boot (ADR-005 C: CRITICAL, driver_install_loop, with the driver's name). The
+// log and the service's file list go into the bundle. It returns the step's result, or nil when the log shows no such
+// loop (the guest's own failed check then stands as the reason). A log that cannot be read is recorded, not fatal:
+// the check already has its readiness from the sandbox.
+func (s *Server) firstbootStep(ctx context.Context, conv *serverConverter, disk, kept, bundle string, d *MigrationDetail) *verify.CheckResult {
+	t := time.Now()
+	after := filepath.Base(disk) + ".after.qcow2"
+	if err := copyFile(kept, filepath.Join(conv.out, after)); err != nil {
+		d.Errors = append(d.Errors, "handing the guest's disk to the converter: "+err.Error())
+		return nil
+	}
+	defer os.Remove(filepath.Join(conv.out, after))
+	fb, err := conv.client.Firstboot(ctx, convert.FirstbootRequest{Job: conv.job, Disk: filepath.Base(disk), After: after})
+	if err != nil {
+		d.Errors = append(d.Errors, "reading the first-boot log: "+err.Error())
+		return nil
+	}
+	d.Timings["firstboot_read"] = time.Since(t).Seconds()
+	if b, err := json.MarshalIndent(fb, "", "  "); err == nil {
+		if err := os.WriteFile(filepath.Join(bundle, "migration", "firstboot.json"), append(b, '\n'), 0o644); err != nil {
+			d.Errors = append(d.Errors, "bundle file migration/firstboot.json: "+err.Error())
+		}
+	}
+	if fb.State != "read" {
+		d.Errors = append(d.Errors, "the first-boot log: "+fb.Detail)
+		return nil
+	}
+	loops := migrate.DriverInstallLoops(fb.Log)
+	if len(loops) == 0 {
+		return nil
+	}
+	names := make([]string, len(loops))
+	for i, l := range loops {
+		names[i] = l.Driver
+	}
+	d.Code, d.Drivers = migrate.CodeDriverInstallLoop, names
+	return &verify.CheckResult{Name: "drivers", Type: "firstboot", Verdict: verify.Critical, Seconds: time.Since(t).Seconds(),
+		Detail: migrate.DriverLoopText(loops)}
+}
+
 // migrationReason says in one line why a check has its readiness: the first step or check that did not pass, or what
 // passed.
 func migrationReason(r *verify.Result, d *MigrationDetail) string {
+	if d.Code == migrate.CodeDriverInstallLoop { // the cause behind the guest's failed checks
+		for _, c := range r.Checks {
+			if c.Name == "drivers" {
+				return fmt.Sprintf("%s %s: %s", c.Name, strings.ToLower(c.Verdict), c.Detail)
+			}
+		}
+	}
 	for _, want := range []string{verify.Critical, verify.Unknown, verify.Warning} {
 		for _, c := range r.Checks {
 			if c.Verdict == want {
@@ -502,13 +578,14 @@ type serverConverter struct {
 }
 
 func (c *serverConverter) Convert(ctx context.Context, in migrate.ConvertInput) migrate.ConvertOutput {
-	res, err := c.client.Convert(ctx, convert.Request{Job: c.job, VMX: filepath.Base(in.VMX), Name: in.Name, Windows: in.Windows})
+	res, err := c.client.Convert(ctx, convert.Request{Job: c.job, VMX: filepath.Base(in.VMX), Name: in.Name, Windows: in.Windows,
+		ExcludeDrivers: in.ExcludeDrivers})
 	if err != nil {
 		return migrate.ConvertOutput{State: "not_run", Detail: err.Error()}
 	}
 	c.result = &res
 	out := migrate.ConvertOutput{State: res.State, Detail: res.Detail, Seconds: res.Seconds, VirtioWin: res.VirtioWin != nil, Info: res,
-		Files: map[string]string{}}
+		Excluded: res.ExcludedPaths, Files: map[string]string{}}
 	if b, err := json.MarshalIndent(res, "", "  "); err == nil {
 		p := filepath.Join(c.dir, "converter.json")
 		if os.WriteFile(p, append(b, '\n'), 0o640) == nil {

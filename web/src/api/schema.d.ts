@@ -2694,6 +2694,7 @@ export interface components {
         MigrationCheckRequest: {
             boot_timeout_s?: number;
             checks?: components["schemas"]["Check"][];
+            exclude_drivers?: string[];
             probe_timeout_s?: number;
             template?: string;
             vm: string;
@@ -2719,7 +2720,9 @@ export interface components {
         MigrationDetail: {
             bundle: string;
             checks: components["schemas"]["CheckResult"][];
+            code?: string;
             converter?: components["schemas"]["Result"] | null;
+            drivers?: string[];
             errors: string[];
             ledger_seq: number;
             missing_files?: string[];
@@ -3117,6 +3120,8 @@ export interface components {
             detail: string;
             disks: string[];
             domain_xml: string;
+            excluded_drivers?: string[];
+            excluded_paths?: string[];
             image: string;
             log: string;
             seconds: number;

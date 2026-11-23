@@ -612,6 +612,9 @@ export const en = {
         },
         firmware: { OK: 'It boots with the same firmware on KVM.', CRITICAL: 'It would boot with other firmware on KVM than on the source.' },
         boot: { OK: 'The converted copy boots in the sandbox.', CRITICAL: 'The converted copy does not boot in the sandbox.', UNKNOWN: 'The boot test did not run.' },
+        stable: { OK: 'It stays up after its checks pass.', CRITICAL: 'It restarts by itself after its checks pass.', UNKNOWN: 'Whether it stays up was not checked.' },
+        drivers: { CRITICAL: 'A virtio-win driver fails to install at first boot, and Windows restarts for it on every boot.' },
+        drivers_excluded: { WARNING: 'It was converted without some virtio-win drivers, as the check asked.' },
       }
       const said = known[name]?.[verdict]
       if (said) return said
@@ -630,6 +633,7 @@ export const en = {
     reportTarget: (vm: string, id: number) => `${vm}, check ${id}`,
     check: 'Check this VM',
     checkAgain: 'Check again',
+    checkAgainWithout: (drivers: string[]) => `Check again without ${drivers.join(', ')}`,
     queued: (vm: string, id: number) => `${vm} queued as check ${id}.`,
     earlier: 'Earlier:',
     checkN: (id: number) => `check ${id}`,

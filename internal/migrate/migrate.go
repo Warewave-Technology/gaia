@@ -33,6 +33,10 @@ type Checks struct {
 	Checks        []verify.Check `json:"checks"`
 	BootTimeoutS  int            `json:"boot_timeout_s,omitempty"`
 	ProbeTimeoutS int            `json:"probe_timeout_s,omitempty"`
+	// ExcludeDrivers are virtio-win drivers a Windows guest is converted without (ADR-005 C step 2): a driver that
+	// cannot be installed and makes the guest restart on every boot (driver_install_loop). Leaving one out is
+	// recorded as a WARNING step, so a check with it is never OK.
+	ExcludeDrivers []string `json:"exclude_drivers,omitempty"`
 }
 
 // ChecksFile maps VM names to their checks; "*" applies to VMs without an entry.
@@ -87,6 +91,8 @@ type ConvertInput struct {
 	Name     string
 	Windows  bool
 	ImageDir string // where the disks, domain XML and log go
+	// ExcludeDrivers: virtio-win drivers virt-v2v is not given (Windows only)
+	ExcludeDrivers []string
 }
 
 // ConvertOutput is what a conversion produced.
@@ -98,6 +104,7 @@ type ConvertOutput struct {
 	DomainXML string            // path
 	Log       string            // path
 	VirtioWin bool              // virtio-win was given to virt-v2v
+	Excluded  []string          // what of virtio-win was left out (ExcludeDrivers): its folders and files
 	Info      any               // the converter's facts for the bundle (image, versions, virtio-win)
 	Files     map[string]string // more files for the bundle (bundle path -> local file)
 }
@@ -365,7 +372,14 @@ func (x *vmRun) convertStep(ctx context.Context, vmx string) ([]string, *verify.
 		conv = localConverter{o: x.o}
 	}
 	windows := defaultTemplate(x.vm.GuestID) == "windows-basic"
-	out := conv.Convert(ctx, ConvertInput{VMX: vmx, Name: x.name, Windows: windows, ImageDir: x.images})
+	exclude := x.checks().ExcludeDrivers
+	if len(exclude) > 0 && !windows {
+		x.add("conversion", "virt-v2v", verify.Unknown, fmt.Sprintf("exclude_drivers %v is for Windows guests, and the source's guest OS %q is not Windows",
+			exclude, x.vm.GuestID), t)
+		x.notRun("drivers to leave out were given for a guest that gets none", "firmware")
+		return nil, nil, "exclude_drivers given for a guest that is not Windows"
+	}
+	out := conv.Convert(ctx, ConvertInput{VMX: vmx, Name: x.name, Windows: windows, ImageDir: x.images, ExcludeDrivers: exclude})
 	x.t["conversion"] = out.Seconds
 	x.convInfo = out.Info
 	if out.Log != "" {
@@ -403,6 +417,12 @@ func (x *vmRun) convertStep(ctx context.Context, vmx string) ([]string, *verify.
 	x.add("conversion", "virt-v2v", verify.OK, fmt.Sprintf("%d disk(s), %s (%s, %s, %d vCPU, %d MiB, NIC %s)%s in %.1f s",
 		len(out.Disks), osID, cfg.Machine.Arch, cfg.Machine.Firmware, cfg.Machine.VCPUs, cfg.Machine.MemoryMiB, cfg.Machine.MAC,
 		opt(out.VirtioWin, ", virtio-win drivers"), out.Seconds), t)
+	if len(exclude) > 0 {
+		// ADR-005 C step 2: a driver left out is a warning in the bundle and the readiness report, never OK
+		x.add("drivers_excluded", "exclude_drivers", verify.Warning, fmt.Sprintf("converted without virtio-win's %s driver(s), as the check "+
+			"asked (exclude_drivers): the guest neither has nor installs them; left out of virtio-win: %s", strings.Join(exclude, ", "),
+			strings.Join(out.Excluded, ", ")), t)
+	}
 
 	// UEFI detection: the firmware the source boots with must be the one the converted guest is started with (OVMF
 	// for UEFI), or the sandbox would prove a boot path the VM does not have.
@@ -473,6 +493,10 @@ func (c localConverter) Convert(ctx context.Context, in ConvertInput) ConvertOut
 	out := ConvertOutput{Log: filepath.Join(filepath.Dir(in.VMX), "virt-v2v.log")}
 	if c.o.virtioWin != nil {
 		out.Info = map[string]any{"virtio_win": c.o.virtioWin}
+	}
+	if len(in.ExcludeDrivers) > 0 {
+		out.State, out.Detail = "not_run", "exclude_drivers needs the converter service (gaia convert serve); the lab tool converts with virtio-win as it is"
+		return out
 	}
 	disk, xml, err := c.convert(ctx, in, out.Log)
 	out.Seconds = time.Since(start).Seconds()
@@ -597,10 +621,7 @@ func (x *vmRun) config(domXMLPath string) (*verify.Config, string, error) {
 	if m.MAC == "" && len(x.vm.NICs) > 0 {
 		m.MAC = x.vm.NICs[0].MAC
 	}
-	ch, ok := x.o.Checks[x.name]
-	if !ok {
-		ch = x.o.Checks["*"]
-	}
+	ch := x.checks()
 	if ch.Template == "" && len(ch.Checks) == 0 {
 		ch.Template = defaultTemplate(x.vm.GuestID)
 	}
@@ -613,6 +634,15 @@ func (x *vmRun) config(domXMLPath string) (*verify.Config, string, error) {
 		os = "an unknown OS"
 	}
 	return cfg, os, resolveConfig(cfg)
+}
+
+// checks is what the caller asked to check for this VM: its own entry, else the "*" entry.
+func (x *vmRun) checks() Checks {
+	ch, ok := x.o.Checks[x.name]
+	if !ok {
+		ch = x.o.Checks["*"]
+	}
+	return ch
 }
 
 // defaultTemplate picks the built-in checks from the source's guest OS identifier

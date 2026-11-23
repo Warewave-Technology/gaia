@@ -34,7 +34,7 @@ newest)
 	newest=$(grep -o 'virtio-win-0\.1\.[0-9]*-[0-9]*/' <<<"$page" | tr -d / | sort -uV | tail -1)
 	when=$(grep -o "$newest/</a> *[0-9-]* [0-9:]*" <<<"$page" | sed 's/.*a> *//' | head -1)
 	latest=$(curl -fsSI --max-time 30 "${INDEX%archive-virtio/}latest-virtio/virtio-win.iso" | tr -d '\r' | sed -n 's/^[Ll]ocation: //p')
-	jq -n --arg index "$INDEX" --arg newest "$newest" --arg listed "$when" --arg latest "$latest" --arg pinned 0.1.302-1 \
+	jq -n --arg index "$INDEX" --arg newest "$newest" --arg listed "$when" --arg latest "$latest" --arg pinned virtio-win-0.1.302-1 \
 		--arg at "$(date -u +%FT%TZ)" '{read_at: $at, index: $index, newest_release: $newest, listed: $listed,
 		latest_link_points_to: $latest, pinned: $pinned, newer_than_pinned: ($newest != $pinned)}'
 	exit 0 ;;
@@ -104,9 +104,10 @@ cat >"$w/domain.xml" <<EOF
   </devices></domain>
 EOF
 virsh -q create "$w/domain.xml"
-# libvirt reports every restart the guest asks for as a reboot event (on_reboot=restart keeps the same QEMU)
+# libvirt reports every restart the guest asks for as a reboot event (on_reboot=restart keeps the same QEMU); libvirt
+# 9 sends two events, milliseconds apart, for one restart, so restarts are counted per second
 timeout $((BOOT_S + 5)) virsh event --domain "$name" --event reboot --loop --timeout "$BOOT_S" --timestamp >"$out/reboot-events.txt" 2>&1 || true
-reboots=$(grep -c "event 'reboot'" "$out/reboot-events.txt" || true)
+reboots=$(grep "event 'reboot'" "$out/reboot-events.txt" | cut -c1-19 | sort -u | wc -l)
 virsh -q destroy "$name"
 log "$variant: $reboots restart(s) in $BOOT_S s; reading the first-boot service's files"
 

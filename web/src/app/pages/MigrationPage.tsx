@@ -369,6 +369,9 @@ function Actions({ r, act }: { r: Row; act: boolean }) {
   const c = r.check
   const busy = c !== undefined && !c.readiness
   const checkable = !r.inv || r.inv.checkable === ''
+  // A driver left out stays left out when the VM is checked again; one that loops at first boot is offered (ADR-005 C)
+  const kept = c?.result?.converter?.excluded_drivers ?? []
+  const looping = c?.result?.code === 'driver_install_loop' ? (c.result.drivers ?? []).filter((d) => !kept.includes(d)) : []
   return (
     <div className={s.acts}>
       {c?.bundle_id && (
@@ -381,7 +384,14 @@ function Actions({ r, act }: { r: Row; act: boolean }) {
         </Button>
       )}
       {act && !busy && checkable && (
-        <Button onClick={() => queue.mutate(r.vm)} disabled={queue.isPending}>{c ? t.checkAgain : t.check}</Button>
+        <Button onClick={() => queue.mutate({ vm: r.vm, exclude: kept })} disabled={queue.isPending}>
+          {c ? (kept.length ? t.checkAgainWithout(kept) : t.checkAgain) : t.check}
+        </Button>
+      )}
+      {act && !busy && checkable && looping.length > 0 && (
+        <Button variant="quiet" onClick={() => queue.mutate({ vm: r.vm, exclude: [...kept, ...looping] })} disabled={queue.isPending}>
+          {t.checkAgainWithout([...kept, ...looping])}
+        </Button>
       )}
       {queue.data && <span role="status" className={s.muted}>{t.queued(queue.data.vm, queue.data.id)}</span>}
       {queue.error && <Notice tone="critical">{queue.error.message}</Notice>}

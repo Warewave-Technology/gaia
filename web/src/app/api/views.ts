@@ -178,7 +178,11 @@ export function useSourceInventories(ids: readonly number[]) {
 export function useQueueMigrationCheck(source: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (vm: string) => unwrap(api.POST('/api/v1/migration-sources/{id}/checks', { params: { path: { id: source } }, body: { vm } })),
+    // exclude: virtio-win drivers the Windows guest is converted without (ADR-005 C); the result is at best WARNING
+    mutationFn: ({ vm, exclude }: { vm: string; exclude?: string[] }) =>
+      unwrap(api.POST('/api/v1/migration-sources/{id}/checks', {
+        params: { path: { id: source } }, body: { vm, ...(exclude?.length ? { exclude_drivers: exclude } : {}) },
+      })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['views', 'migration'] }),
   })
 }

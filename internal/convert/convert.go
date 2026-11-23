@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 )
 
 // virtio-win, pinned (ADR-005 §2): the version Gaia was tested with, its sha256, and where the operator gets it.
@@ -94,7 +95,12 @@ var (
 	imageRE = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 	jobRE   = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 	nameRE  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$`)
+	// a virtio-win driver's name: its folder at the top of the ISO (smbus, viostor, NetKVM) and its files' base name
+	driverRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`)
 )
+
+// MaxExcludedDrivers is how many drivers one check may leave out.
+const MaxExcludedDrivers = 8
 
 // VirtioWin is the state of the operator's virtio-win ISO.
 type VirtioWin struct {
@@ -124,6 +130,10 @@ type Request struct {
 	// Windows says the source is a Windows guest (from its guest OS): it needs virtio-win, and without a checked ISO
 	// it is not converted at all (ADR-005 §2: UNKNOWN, never a guest without drivers).
 	Windows bool `json:"windows"`
+	// ExcludeDrivers are virtio-win drivers virt-v2v is not given (ADR-005 C step 2): each one's folders and files are
+	// left out of the copy of the ISO's tree virt-v2v reads, so the converted guest neither has nor installs it. Only
+	// for a Windows guest; a name virtio-win does not have stops the conversion (not_run), it is never ignored.
+	ExcludeDrivers []string `json:"exclude_drivers,omitempty"`
 }
 
 // Result is the outcome of one conversion. The files are in JOB-out (OutDir).
@@ -134,10 +144,13 @@ type Result struct {
 	Image     string     `json:"image"`
 	Versions  string     `json:"versions"`
 	VirtioWin *VirtioWin `json:"virtio_win,omitempty"` // when it was given to virt-v2v
-	Disks     []string   `json:"disks"`                // file names in JOB-out, boot disk first (NAME-sda, ...)
-	DomainXML string     `json:"domain_xml"`           // file name in JOB-out
-	Log       string     `json:"log"`                  // file name in JOB-out
-	Command   []string   `json:"command"`              // the podman command, as run
+	// The drivers left out (Request.ExcludeDrivers) and every folder and file of virtio-win that went with them.
+	ExcludedDrivers []string `json:"excluded_drivers,omitempty"`
+	ExcludedPaths   []string `json:"excluded_paths,omitempty"`
+	Disks           []string `json:"disks"`      // file names in JOB-out, boot disk first (NAME-sda, ...)
+	DomainXML       string   `json:"domain_xml"` // file name in JOB-out
+	Log             string   `json:"log"`        // file name in JOB-out
+	Command         []string `json:"command"`    // the podman command, as run
 }
 
 // Serve runs the service until ctx ends.
@@ -174,6 +187,7 @@ func Serve(ctx context.Context, c Config, log *slog.Logger) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/info", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, s.info(r.Context())) })
 	mux.HandleFunc("POST /v1/convert", s.convert)
+	mux.HandleFunc("POST /v1/firstboot", s.firstboot)
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
@@ -279,6 +293,12 @@ func (s *service) checkRequest(r *Request) (job string, err error) {
 	if !jobRE.MatchString(r.Job) || !nameRE.MatchString(r.Name) || filepath.Base(r.VMX) != r.VMX || !strings.HasSuffix(r.VMX, ".vmx") {
 		return "", errors.New("job, name or vmx not allowed")
 	}
+	if err := CheckExcludeDrivers(r.ExcludeDrivers); err != nil {
+		return "", err
+	}
+	if len(r.ExcludeDrivers) > 0 && !r.Windows {
+		return "", errors.New("exclude_drivers: only for a Windows guest (virtio-win is given to Windows guests only)")
+	}
 	job = filepath.Join(s.c.JobsDir, r.Job)
 	for _, p := range []string{job, filepath.Join(job, "in")} {
 		fi, err := os.Lstat(p)
@@ -342,6 +362,7 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 	args := []string{"--cgroup-manager=cgroupfs", "run", "--rm", "--init", "--network=none", "--cgroups=disabled", "--cap-drop=all",
 		"--security-opt=no-new-privileges", "--userns=keep-id", "--group-add=keep-groups", "--device=/dev/kvm",
 		"--volume=" + filepath.Join(job, "in") + ":/in:ro", "--volume=" + out + ":/out"}
+	v2v := []string{"virt-v2v", "-i", "vmx", "/in/" + req.VMX, "-o", "local", "-os", "/out", "-of", "qcow2", "-on", req.Name}
 	if req.Windows {
 		vw := in.VirtioWin
 		if vw.State != "ok" {
@@ -350,9 +371,18 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 			return res
 		}
 		res.VirtioWin = &vw
-		args = append(args, "--volume="+vw.Path+":/virtio-win.iso:ro", "--env=VIRTIO_WIN=/virtio-win.iso")
+		args = append(args, "--volume="+vw.Path+":/virtio-win.iso:ro")
+		if len(req.ExcludeDrivers) > 0 {
+			// virt-v2v takes VIRTIO_WIN as an ISO or a directory: the script unpacks the ISO in the container, takes the
+			// drivers out and runs virt-v2v on what is left
+			res.ExcludedDrivers = req.ExcludeDrivers
+			args = append(args, "--env=GAIA_EXCLUDE="+strings.Join(req.ExcludeDrivers, " "))
+			v2v = append([]string{"bash", "-c", excludeScript, "exclude"}, v2v...)
+		} else {
+			args = append(args, "--env=VIRTIO_WIN=/virtio-win.iso")
+		}
 	}
-	args = append(args, s.c.Image, "virt-v2v", "-i", "vmx", "/in/"+req.VMX, "-o", "local", "-os", "/out", "-of", "qcow2", "-on", req.Name)
+	args = append(append(args, s.c.Image), v2v...)
 	res.Command = append([]string{s.c.Podman}, args...)
 	fmt.Fprintf(lf, "$ %s\n%s\n", strings.Join(res.Command, " "), in.Versions)
 	if res.VirtioWin != nil {
@@ -369,10 +399,22 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 	}
 	runErr := cmd.Wait()
 	res.Seconds = time.Since(start).Seconds()
+	if len(res.ExcludedDrivers) > 0 {
+		paths, err := excludedPaths(filepath.Join(out, excludedList))
+		if err != nil && runErr == nil {
+			res.State, res.Detail = "not_run", "the list of what was left out of virtio-win: "+err.Error()
+			return res
+		}
+		res.ExcludedPaths = paths
+	}
 	if runErr != nil {
 		res.State, res.Detail = "failed", fmt.Sprintf("virt-v2v: %v (%s)", runErr, errorLine(logPath))
-		if cctx.Err() != nil {
+		var ee *exec.ExitError
+		switch {
+		case cctx.Err() != nil:
 			res.State, res.Detail = "not_run", fmt.Sprintf("the conversion did not end within %s", timeout)
+		case errors.As(runErr, &ee) && ee.ExitCode() == exitNoSuchDriver:
+			res.State, res.Detail = "not_run", errorLine(logPath)
 		}
 		return res
 	}
@@ -395,24 +437,95 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 	return res
 }
 
-// errorLine returns virt-v2v's own error message from its log, or the last line when there is none (after an error
-// virt-v2v prints how to report a bug, so the last line is rarely the reason).
+// excludeScript runs in the converter image ahead of virt-v2v (its arguments) when drivers are left out: it unpacks
+// virtio-win's ISO with libguestfs, removes every folder and file named after each driver in $GAIA_EXCLUDE (smbus:
+// smbus/ and smbus.*, at any depth, in any case), lists what it removed in /out/gaia-excluded.txt, and runs virt-v2v
+// with VIRTIO_WIN on the rest. A name with nothing to remove is an operator's mistake: exit 64, nothing converted.
+const excludeScript = `set -euo pipefail
+tree=/tmp/virtio-win
+mkdir "$tree"
+guestfish --ro --format=raw -a /virtio-win.iso -m /dev/sda tar-out / - | tar -x -C "$tree"
+: >/out/gaia-excluded.txt
+for d in $GAIA_EXCLUDE; do
+	found=$(find "$tree" \( -iname "$d" -o -iname "$d.*" \) -print -prune)
+	if [ -z "$found" ]; then
+		echo "gaia: error: virtio-win has no driver named $d (no folder or file $d or $d.*)" >&2
+		exit 64
+	fi
+	printf '%s\n' "$found" | sed "s|^$tree/||" >>/out/gaia-excluded.txt
+	find "$tree" \( -iname "$d" -o -iname "$d.*" \) -prune -exec rm -rf {} +
+done
+echo "gaia: virtio-win given to virt-v2v without $GAIA_EXCLUDE ($(wc -l </out/gaia-excluded.txt) folders and files left out)"
+export VIRTIO_WIN="$tree"
+exec "$@"
+`
+
+const (
+	excludedList     = "gaia-excluded.txt" // in JOB-out
+	exitNoSuchDriver = 64
+)
+
+// CheckExcludeDrivers validates a list of virtio-win driver names (ADR-005 C).
+func CheckExcludeDrivers(names []string) error {
+	if len(names) > MaxExcludedDrivers {
+		return fmt.Errorf("exclude_drivers: at most %d", MaxExcludedDrivers)
+	}
+	seen := map[string]bool{}
+	for _, n := range names {
+		if !driverRE.MatchString(n) {
+			return fmt.Errorf("exclude_drivers: %q is not a driver name (letters, digits, - and _, as virtio-win names its folders)", n)
+		}
+		if seen[strings.ToLower(n)] {
+			return fmt.Errorf("exclude_drivers: %s twice", n)
+		}
+		seen[strings.ToLower(n)] = true
+	}
+	return nil
+}
+
+// excludedPaths reads what the exclude script left out of virtio-win.
+func excludedPaths(p string) ([]string, error) {
+	b, err := os.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, l := range strings.Split(string(b), "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			out = append(out, l)
+		}
+	}
+	if len(out) == 0 {
+		return nil, errors.New("nothing was left out")
+	}
+	return out, nil
+}
+
+// errorLine returns the conversion's own error message from its log (Gaia's exclude script's, then virt-v2v's), or the
+// last line when there is none (after an error virt-v2v prints how to report a bug, so the last line is rarely the
+// reason).
 func errorLine(p string) string {
 	f, err := os.Open(p)
 	if err != nil {
 		return err.Error()
 	}
 	defer f.Close()
-	var last, errLine string
+	var last, errLine, gaiaLine string
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 64*1024), 1<<20)
 	for sc.Scan() {
 		if l := strings.TrimSpace(sc.Text()); l != "" {
 			last = l
-			if strings.HasPrefix(l, "virt-v2v: error:") {
+			switch {
+			case strings.HasPrefix(l, "gaia: error: "):
+				gaiaLine = strings.TrimPrefix(l, "gaia: error: ")
+			case strings.HasPrefix(l, "virt-v2v: error:"):
 				errLine = l
 			}
 		}
+	}
+	if gaiaLine != "" {
+		return gaiaLine
 	}
 	if errLine != "" {
 		return errLine
@@ -437,8 +550,134 @@ func notifyReady() {
 	}
 }
 
+// FirstbootRequest asks what virt-v2v's first-boot service did in a converted Windows guest after it ran in the
+// sandbox (ADR-005 C): After is what the guest wrote, a qcow2 overlay gaia server put in JOB-out; Disk is the converted
+// disk it was written over (a file of the conversion in JOB-out).
+type FirstbootRequest struct {
+	Job   string `json:"job"`
+	Disk  string `json:"disk"`
+	After string `json:"after"`
+}
+
+// Firstboot is the first-boot service's state in the guest: its log (C:\Program Files\Guestfs\Firstboot\log.txt)
+// and the files of its folder (the scripts still to run, and those done).
+type Firstboot struct {
+	State  string   `json:"state"` // read, missing (no log on the disk), not_run
+	Detail string   `json:"detail"`
+	Log    string   `json:"log"`   // as UTF-8, at most MaxFirstbootLog bytes (the end of it)
+	Files  []string `json:"files"` // paths under the service's folder
+}
+
+// MaxFirstbootLog is how much of the first-boot log is kept: its end, where the latest boots wrote.
+const MaxFirstbootLog = 256 << 10
+
+// firstbootScript reads the first-boot service's folder out of the guest's disk, in the converter image: it points the
+// overlay at the converted disk (both in /out, a relative backing file), clears the NTFS dirty flag on the overlay
+// (the guest was stopped, not shut down, and ntfs-3g otherwise refuses it) and copies the log and the folder's list.
+const firstbootScript = `set -euo pipefail
+cd /out
+qemu-img rebase -u -F qcow2 -b "$GAIA_DISK" "$GAIA_AFTER"
+root=$(guestfish --ro -a "$GAIA_AFTER" -i inspect-get-roots | head -1)
+[ -n "$root" ] || { echo "gaia: error: no operating system found on the disk" >&2; exit 65; }
+mkdir -p gaia-firstboot
+guestfish --rw -a "$GAIA_AFTER" <<GF
+run
+ntfsfix $root
+mount-ro $root /
+-download "/Program Files/Guestfs/Firstboot/log.txt" /out/gaia-firstboot/log.txt
+-find "/Program Files/Guestfs/Firstboot" | cat >/out/gaia-firstboot/files.txt
+GF
+`
+
 // OutDir is where the converter puts a job's disks, domain XML and log.
 func OutDir(jobsDir, job string) string { return filepath.Join(jobsDir, job+"-out") }
+
+func (s *service) firstboot(w http.ResponseWriter, r *http.Request) {
+	var req FirstbootRequest
+	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<16))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, "request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	out := OutDir(s.c.JobsDir, req.Job)
+	if !jobRE.MatchString(req.Job) || !nameRE.MatchString(req.Disk) || !nameRE.MatchString(req.After) || req.Disk == req.After {
+		http.Error(w, "job, disk or after not allowed", http.StatusBadRequest)
+		return
+	}
+	for _, f := range []string{req.Disk, req.After} {
+		if fi, err := os.Lstat(filepath.Join(out, f)); err != nil || !fi.Mode().IsRegular() {
+			http.Error(w, fmt.Sprintf("%s: not a regular file in the job's out directory", f), http.StatusBadRequest)
+			return
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	fb := s.readFirstboot(r.Context(), req, out)
+	s.log.Info("first-boot log", "job", req.Job, "state", fb.State, "detail", fb.Detail)
+	writeJSON(w, fb)
+}
+
+func (s *service) readFirstboot(ctx context.Context, req FirstbootRequest, out string) Firstboot {
+	fb := Firstboot{State: "not_run", Files: []string{}}
+	dir := filepath.Join(out, "gaia-firstboot")
+	os.RemoveAll(dir) // a later read starts clean
+	logPath := filepath.Join(out, "gaia-firstboot.log")
+	lf, err := os.Create(logPath)
+	if err != nil {
+		fb.Detail = err.Error()
+		return fb
+	}
+	defer lf.Close()
+	args := []string{"--cgroup-manager=cgroupfs", "run", "--rm", "--init", "--network=none", "--cgroups=disabled", "--cap-drop=all",
+		"--security-opt=no-new-privileges", "--userns=keep-id", "--group-add=keep-groups", "--device=/dev/kvm",
+		"--volume=" + out + ":/out", "--env=GAIA_DISK=" + req.Disk, "--env=GAIA_AFTER=" + req.After,
+		s.c.Image, "bash", "-c", firstbootScript}
+	cctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(cctx, s.c.Podman, args...)
+	cmd.Stdout, cmd.Stderr = lf, lf
+	if err := cmd.Run(); err != nil {
+		fb.Detail = fmt.Sprintf("reading the guest's disk: %v (%s)", err, errorLine(logPath))
+		return fb
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "files.txt")); err == nil {
+		for _, l := range strings.Split(string(b), "\n") {
+			if l = strings.TrimSpace(l); l != "" {
+				fb.Files = append(fb.Files, l)
+			}
+		}
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "log.txt"))
+	if err != nil {
+		fb.State, fb.Detail = "missing", "virt-v2v's first-boot service left no log on the disk"
+		return fb
+	}
+	text := decodeText(b)
+	if len(text) > MaxFirstbootLog {
+		text = text[len(text)-MaxFirstbootLog:]
+	}
+	fb.State, fb.Log, fb.Detail = "read", text, fmt.Sprintf("%d bytes of log, %d files in the service's folder", len(b), len(fb.Files))
+	return fb
+}
+
+// decodeText returns Windows text as UTF-8: UTF-16 (with its byte order mark) is converted, anything else is kept,
+// with CRLF line ends made LF.
+func decodeText(b []byte) string {
+	if len(b) >= 2 && (b[0] == 0xff && b[1] == 0xfe || b[0] == 0xfe && b[1] == 0xff) {
+		be := b[0] == 0xfe
+		u := make([]uint16, 0, len(b)/2)
+		for i := 2; i+1 < len(b); i += 2 {
+			if be {
+				u = append(u, uint16(b[i])<<8|uint16(b[i+1]))
+			} else {
+				u = append(u, uint16(b[i+1])<<8|uint16(b[i]))
+			}
+		}
+		return strings.ReplaceAll(string(utf16.Decode(u)), "\r\n", "\n")
+	}
+	return strings.ReplaceAll(strings.TrimPrefix(string(b), "\ufeff"), "\r\n", "\n")
+}
 
 // Client is gaia server's side.
 type Client struct {
@@ -466,6 +705,24 @@ func (c Client) Info(ctx context.Context) (Info, error) {
 		return in, fmt.Errorf("converter service: %s: %s", resp.Status, strings.TrimSpace(string(b)))
 	}
 	return in, json.NewDecoder(resp.Body).Decode(&in)
+}
+
+// Firstboot reads the first-boot service's log out of what a converted Windows guest wrote in the sandbox.
+func (c Client) Firstboot(ctx context.Context, r FirstbootRequest) (Firstboot, error) {
+	var fb Firstboot
+	b, _ := json.Marshal(r)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "http://convert/v1/firstboot", strings.NewReader(string(b)))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http().Do(req)
+	if err != nil {
+		return fb, fmt.Errorf("converter service at %s: %w", c.Socket, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fb, fmt.Errorf("converter service: %s: %s", resp.Status, strings.TrimSpace(string(b)))
+	}
+	return fb, json.NewDecoder(resp.Body).Decode(&fb)
 }
 
 // Convert runs one conversion and waits for it.

@@ -2612,6 +2612,12 @@
             },
             "type": "array"
           },
+          "exclude_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "probe_timeout_s": {
             "type": "integer"
           },
@@ -2720,6 +2726,9 @@
             },
             "type": "array"
           },
+          "code": {
+            "type": "string"
+          },
           "converter": {
             "oneOf": [
               {
@@ -2729,6 +2738,12 @@
                 "type": "null"
               }
             ]
+          },
+          "drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "errors": {
             "items": {
@@ -4329,6 +4344,18 @@
           },
           "domain_xml": {
             "type": "string"
+          },
+          "excluded_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "excluded_paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "image": {
             "type": "string"

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -215,4 +216,52 @@ func TestConvertStep(t *testing.T) {
 			t.Errorf("%s: config %+v", tc.name, cfg)
 		}
 	}
+}
+
+// ADR-005 C step 2: drivers left out are passed to the converter and recorded as a WARNING step; asking for it on a
+// guest that is not Windows converts nothing.
+func TestConvertStepExcludeDrivers(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	var asked []string
+	conv := recordingConverter{fakeConverter{"converted", "http://microsoft.com/win/2k22", "bios", true}, &asked}
+	x := &vmRun{o: Options{Converter: conv, Checks: ChecksFile{"vm1": {ExcludeDrivers: []string{"smbus"}}}}, name: "vm1",
+		vm: vsphereread.VM{GuestID: "windows2019srvNext_64Guest", Firmware: "bios"}, work: dir, images: dir, extra: map[string]string{}, t: map[string]float64{}}
+	if disks, _, skip := x.convertStep(ctx, filepath.Join(dir, "vm1.vmx")); len(disks) == 0 || skip != "" {
+		t.Fatalf("not converted: %q", skip)
+	}
+	if !slices.Equal(asked, []string{"smbus"}) {
+		t.Errorf("the converter was asked to leave out %v", asked)
+	}
+	var found bool
+	for _, c := range x.pre {
+		if c.Name == "drivers_excluded" {
+			found = true
+			if c.Verdict != verify.Warning || !strings.Contains(c.Detail, "smbus") || !strings.Contains(c.Detail, "amd64/2k22/smbus.sys") {
+				t.Errorf("drivers_excluded: %+v", c)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("no drivers_excluded step: %+v", x.pre)
+	}
+
+	x = &vmRun{o: Options{Converter: conv, Checks: ChecksFile{"*": {ExcludeDrivers: []string{"smbus"}}}}, name: "vm2",
+		vm: vsphereread.VM{GuestID: "debian12_64Guest", Firmware: "bios"}, work: dir, images: dir, extra: map[string]string{}, t: map[string]float64{}}
+	asked = nil
+	if disks, _, skip := x.convertStep(ctx, filepath.Join(dir, "vm2.vmx")); len(disks) > 0 || skip == "" || asked != nil {
+		t.Errorf("a Linux guest with exclude_drivers: disks %v, skip %q, converter asked %v", disks, skip, asked)
+	}
+}
+
+type recordingConverter struct {
+	fakeConverter
+	asked *[]string
+}
+
+func (c recordingConverter) Convert(ctx context.Context, in ConvertInput) ConvertOutput {
+	*c.asked = in.ExcludeDrivers
+	out := c.fakeConverter.Convert(ctx, in)
+	out.Excluded = []string{"smbus", "amd64/2k22/smbus.sys"}
+	return out
 }

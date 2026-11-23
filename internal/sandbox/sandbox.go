@@ -43,6 +43,10 @@ type Request struct {
 	// the guest's own checks; and, with no disks, why the guest could not be started (the bundle then records only that).
 	PreChecks  []verify.CheckResult `json:"pre_checks,omitempty"`
 	SkipReason string               `json:"skip_reason,omitempty"`
+	// KeepDisks: when the guest's own checks do not all pass, what it wrote to its disks is kept in the images
+	// directory (Result.KeptDisks) for gaia server to read and remove: a migration check reads a converted Windows'
+	// first-boot log there (ADR-005 C, driver_install_loop).
+	KeepDisks bool `json:"keep_disks,omitempty"`
 }
 
 // Config is the helper's own configuration.
@@ -237,8 +241,12 @@ func (h *handler) verify(w http.ResponseWriter, r *http.Request) {
 	}
 	var progress bytes.Buffer
 	h.log.Info("verifying", "vm", req.Config.VM, "disks", len(req.Disks), "slot", slot)
+	keep := ""
+	if req.KeepDisks {
+		keep = h.c.ImagesDir
+	}
 	res, err := verify.Run(r.Context(), verify.Options{Config: &req.Config, Disks: req.Disks, RestoreS: req.RestoreS,
-		PreChecks: req.PreChecks, SkipReason: req.SkipReason,
+		PreChecks: req.PreChecks, SkipReason: req.SkipReason, KeepDisks: keep,
 		WorkDir: h.c.WorkDir, SerialDir: h.c.SerialDir, EvidenceDir: h.c.BundleDir, Socket: h.c.LibvirtSocket,
 		Self: h.c.Self, Log: &progress, Slot: slot})
 	if res != nil && res.BundleDir != "" {

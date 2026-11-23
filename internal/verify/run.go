@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/digitalocean/go-libvirt"
@@ -92,6 +93,11 @@ type Options struct {
 	PreChecks  []CheckResult
 	Extra      map[string]string
 	SkipReason string
+	// KeepDisks, a directory: when the guest's own checks did not all pass, what it wrote to its disks (each overlay,
+	// backed by its image) is moved there as <bundle id>-after-<target>.qcow2 instead of removed, for the caller to
+	// read (a migration check reads a converted Windows' first-boot log, ADR-005 C). Owned by the directory's group,
+	// mode 0640; the caller removes it. The images stay untouched either way.
+	KeepDisks string
 }
 
 // DiskImage is one restored disk of the guest.
@@ -156,6 +162,9 @@ type Result struct {
 	Errors      []string           `json:"errors"`
 	Started     time.Time          `json:"started"`
 	Finished    time.Time          `json:"finished"`
+	// KeptDisks are the overlays kept for the caller (Options.KeepDisks), file names in that directory; they are not
+	// part of the bundle.
+	KeptDisks []string `json:"kept_disks,omitempty"`
 	// Filled after sealing (not part of the bundle's result.json).
 	BundleDir    string `json:"bundle_dir,omitempty"`
 	BundleSHA256 string `json:"bundle_sha256,omitempty"`
@@ -826,7 +835,68 @@ func (x *run) teardown() {
 		}
 	}
 	os.Remove(x.serial)
+	x.keepDisks()
 	os.RemoveAll(x.work)
+}
+
+// keepDisks moves the overlays to Options.KeepDisks when the guest's own checks did not all pass (a guest that did not
+// start wrote nothing worth reading).
+func (x *run) keepDisks() {
+	if x.o.KeepDisks == "" || x.t0.IsZero() || len(x.r.Checks) <= len(x.o.PreChecks) ||
+		Worst(checkVerdicts(x.r.Checks[len(x.o.PreChecks):])...) == OK {
+		return
+	}
+	fi, err := os.Stat(x.o.KeepDisks)
+	if err != nil {
+		x.r.Errors = append(x.r.Errors, "keeping the guest's disks: "+err.Error())
+		return
+	}
+	gid := -1
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
+		gid = int(st.Gid)
+	}
+	for i, ov := range x.overlays {
+		name := fmt.Sprintf("%s-after-%s.qcow2", x.r.BundleID, x.disks[i].Target)
+		dst := filepath.Join(x.o.KeepDisks, name)
+		if err := moveFile(ov, dst); err != nil {
+			x.r.Errors = append(x.r.Errors, fmt.Sprintf("keeping the guest's disk %s: %v", x.disks[i].Target, err))
+			continue
+		}
+		if err := os.Chown(dst, -1, gid); err != nil {
+			x.r.Errors = append(x.r.Errors, fmt.Sprintf("keeping the guest's disk %s: %v", x.disks[i].Target, err))
+		}
+		if err := os.Chmod(dst, 0o640); err != nil {
+			x.r.Errors = append(x.r.Errors, fmt.Sprintf("keeping the guest's disk %s: %v", x.disks[i].Target, err))
+		}
+		x.r.KeptDisks = append(x.r.KeptDisks, name)
+		x.logf("kept what the guest wrote to %s: %s", x.disks[i].Target, dst)
+	}
+}
+
+// moveFile renames, or copies and removes across filesystems.
+func moveFile(src, dst string) error {
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		os.Remove(dst)
+		return err
+	}
+	if err := out.Close(); err != nil {
+		os.Remove(dst)
+		return err
+	}
+	return os.Remove(src)
 }
 
 func (x *run) finish() {

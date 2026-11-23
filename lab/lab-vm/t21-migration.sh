@@ -5,9 +5,14 @@
 #   gaia-t8-broken       the same, MBR boot code zeroed   -> CRITICAL (no boot)
 #   gaia-t21-uefi        MBR boot code zeroed, firmware efi: boots only through UEFI -> OK, firmware UEFI
 #   gaia-t11-win         Windows Server 2022, BIOS        -> UNKNOWN before virtio-win is in place (not converted),
-#                                                            then OK: WinRM answers (an Identify, or as Windows Server's
-#                                                            default an NTLM CHALLENGE with the computer's name and Windows
-#                                                            version), RDP the handshake
+#                                                            then (since T28, ADR-005 B and C) CRITICAL driver_install_loop:
+#                                                            WinRM and RDP answer once, but virtio-win 0.1.302's smbus driver
+#                                                            fails to install at first boot and Windows restarts on every
+#                                                            boot, so it does not stay up for settle_s (T21's OK was a false
+#                                                            positive); checked again with exclude_drivers ["smbus"]: WARNING,
+#                                                            WinRM (an Identify, or as Windows Server's default an NTLM
+#                                                            CHALLENGE with the computer's name and Windows version) and RDP
+#                                                            answer and keep answering, the left-out driver a warning step
 #   gaia-t21-win-broken  the same disk, MBR boot code zeroed -> CRITICAL, the WinRM check saying why it cannot pass
 # The fixtures (lab/esxi/fixture-t8.sh, fixture-t11.sh) are made through the ESXi host's own shell (lab only, rule 9).
 #
@@ -169,14 +174,22 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	--argjson host_unchanged "$host_unchanged" --slurpfile conv "$OUT_DIR/converter.json" \
 	--slurpfile lin "$OUT_DIR/check-gaia-t8-linux.json" --slurpfile brk "$OUT_DIR/check-gaia-t8-broken.json" \
 	--slurpfile uefi "$OUT_DIR/check-gaia-t21-uefi.json" --slurpfile win "$OUT_DIR/check-gaia-t11-win.json" \
-	--slurpfile wbrk "$OUT_DIR/check-gaia-t21-win-broken.json" --slurpfile nov "$OUT_DIR/check-gaia-t11-win-no-virtio.json" "$step"'
+	--slurpfile wbrk "$OUT_DIR/check-gaia-t21-win-broken.json" --slurpfile nov "$OUT_DIR/check-gaia-t11-win-no-virtio.json" \
+	--slurpfile wex "$OUT_DIR/check-gaia-t11-win@no-smbus.json" "$step"'
 	def s(x): {readiness: x.readiness, reason: x.reason, firmware: x.firmware, bundle: x.bundle_id,
 	           steps: [(x.detail.checks // [])[] | {name, verdict, detail: (.detail | .[0:240])}]};
 	{a_t8_linux: {ready: s($lin[0]), broken: s($brk[0]),
 	              pass: ($lin[0].readiness == "OK" and $brk[0].readiness == "CRITICAL" and ($brk[0] | step("boot").verdict) == "CRITICAL")},
-	 b_t11_windows: {ready: s($win[0]), broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
-	                 pass: ($win[0].readiness == "OK" and ($win[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse") or (contains("NTLM NEGOTIATE with a CHALLENGE from computer") and test("Windows [0-9]+[.][0-9]+ build [0-9]+"))))
-	                        and ($win[0] | step("rdp").verdict) == "OK"
+	 b_t11_windows: {as_is: s($win[0]) + {code: $win[0].detail.code, drivers: $win[0].detail.drivers}, without_smbus: s($wex[0]),
+	                 broken: s($wbrk[0]), without_virtio_win: s($nov[0]),
+	                 t21_ok_was_a_false_positive: (($win[0] | step("boot").verdict) == "OK" and ($win[0] | step("stable").verdict) == "CRITICAL"),
+	                 pass: ($win[0].readiness == "CRITICAL" and $win[0].detail.code == "driver_install_loop" and ($win[0].detail.drivers | index("smbus")) != null
+	                        and ($win[0] | step("drivers").verdict) == "CRITICAL" and ($win[0] | step("stable").verdict) == "CRITICAL"
+	                        and $wex[0].readiness == "WARNING"
+	                        and ($wex[0] | step("boot") | .type == "winrm" and .verdict == "OK" and (.detail | contains("IdentifyResponse") or (contains("NTLM NEGOTIATE with a CHALLENGE from computer") and test("Windows [0-9]+[.][0-9]+ build [0-9]+"))))
+	                        and ($wex[0] | step("rdp").verdict) == "OK" and ($wex[0] | step("stable").verdict) == "OK"
+	                        and ($wex[0] | step("drivers_excluded") | .verdict == "WARNING" and (.detail | contains("smbus")))
+	                        and ([$wex[0].detail.checks[] | select(.verdict != "OK") | .name] == ["drivers_excluded"])
 	                        and $wbrk[0].readiness == "CRITICAL" and ($wbrk[0] | step("boot").detail | contains("WinRM answers only from a running Windows"))
 	                        and $nov[0].readiness == "UNKNOWN" and ($nov[0] | step("conversion").detail | contains("virtio-win")))},
 	 c_uefi: {check: s($uefi[0]),
@@ -186,11 +199,11 @@ jq -n --argjson calls "$(jq -s . "$OUT_DIR/calls.jsonl")" --argjson reports "$re
 	                 hostd_read_tasks_during_checks: $reads, get_folder_calls: $gets, hostd_write_tasks_by_fixtures_positive_control: $fixture_tasks,
 	                 fixture_vms_unchanged: $host_unchanged,
 	                 pass: (($calls | length) > 0 and ($calls | all(.allowed)) and $tasks == 0 and $reads == $gets and $fixture_tasks > 0 and $host_unchanged)},
-	 e_reports: {reports: $reports, pass: ($reports | length == 6 and all(.sha256sums and .gaia.exit == 0 and .gaia.verdict == "OK" and .python.exit == 0 and .python.verdict == "OK"))},
+	 e_reports: {reports: $reports, pass: ($reports | length == 7 and all(.sha256sums and .gaia.exit == 0 and .gaia.verdict == "OK" and .python.exit == 0 and .python.verdict == "OK"))},
 	 f_converter: {image: $image, versions: $conv[0].info.versions, virtio_win: ($conv[0].info.virtio_win | {version, state, sha256}),
-	               bundles_name_the_image: ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)),
+	               bundles_name_the_image: ([$lin[0], $uefi[0], $win[0], $wex[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)),
 	               pass: ($conv[0].info.image == $image and $conv[0].info.image_present and $conv[0].info.virtio_win.state == "ok"
-	                      and ([$lin[0], $uefi[0], $win[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)))}}
+	                      and ([$lin[0], $uefi[0], $win[0], $wex[0], $wbrk[0], $brk[0]] | all(.detail.converter.image == $image)))}}
 	| . + {verdict: (if [.a_t8_linux, .b_t11_windows, .c_uefi, .d_zero_writes, .e_reports, .f_converter] | all(.pass) then "OK" else "CRITICAL" end)}' |
 	tee "$OUT_DIR/gate.json" | jq -c '{verdict, a: .a_t8_linux.pass, b: .b_t11_windows.pass, c: .c_uefi.pass, d: .d_zero_writes.pass, e: .e_reports.pass, f: .f_converter.pass}'
 echo "out: $OUT_DIR"
@@ -329,13 +342,14 @@ api sources inventory "$src" >"$OUT_DIR/inventory.json"
 jq -r '.vms[] | [.name, .power_state, .guest_id, .firmware, .disks, (.checkable // "")] | @tsv' "$OUT_DIR/inventory.json"
 
 declare -A CHECK_ID
-check() { # check VM TEMPLATE [CHECKS_JSON]: queue a migration check, record its id
-	local args=("vm=$1" "template=$2")
+check() { # check VM[@LABEL] TEMPLATE [CHECKS_JSON [KEY=VALUE...]]: queue a migration check, record its id under VM[@LABEL]
+	local args=("vm=${1%%@*}" "template=$2")
 	[[ -n "${3:-}" ]] && args+=("checks=$3")
+	args+=("${@:4}")
 	CHECK_ID[$1]=$(api sources check "$src" "${args[@]}" | jq -r .id)
 	log "queued: $1 as check ${CHECK_ID[$1]}"
 }
-wait_check() { # wait_check VM: until it has a readiness; its JSON goes to OUT_DIR/check-VM.json
+wait_check() { # wait_check VM[@LABEL]: until it has a readiness; its JSON goes to OUT_DIR/check-VM[@LABEL].json
 	local id=${CHECK_ID[$1]} r
 	for ((i = 0; i < 360; i++)); do
 		r=$(api migration-checks get "$id" | tee "$OUT_DIR/check-$1.json" | jq -r .readiness)
@@ -359,7 +373,9 @@ section "checks: every fixture VM"
 health='[{"name":"health","type":"http","port":8080,"path":"/health","expect_body":"ok"}]'
 for vm in "${LINUX_VMS[@]}"; do check "$vm" linux-basic "$health"; done
 for vm in "${WIN_VMS[@]}"; do check "$vm" windows-rdp; done
-for vm in "${LINUX_VMS[@]}" "${WIN_VMS[@]}"; do wait_check "$vm"; done
+# ADR-005 C step 2 (T28): the same Windows without virtio-win's smbus driver
+check gaia-t11-win@no-smbus windows-rdp "" 'exclude_drivers=["smbus"]'
+for vm in "${LINUX_VMS[@]}" "${WIN_VMS[@]}" gaia-t11-win@no-smbus; do wait_check "$vm"; done
 hostd_since "$hostd_checks" "$OUT_DIR/hostd-window.log"
 host_state "$OUT_DIR/host-after.txt"
 

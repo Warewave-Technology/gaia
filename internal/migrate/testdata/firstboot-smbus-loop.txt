@@ -1,0 +1,1429 @@
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem2.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed balloon.inf.
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem4.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: smbus.inf.
+Microsoft PnP Utility
+
+Processing inf :            smbus.inf
+Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Failed to install smbus.inf.
+.... exit code 249
+Script finished with exit code 249, retrying on next boot
