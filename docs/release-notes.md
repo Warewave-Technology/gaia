@@ -30,6 +30,18 @@
 - A new event, `capacity_short`, when the proof capacity drops below 100 % (category `jobs`).
 - The evidence ledger is checked every hour (incremental) and in full with the daily report.
 
+### Migration checks of Windows (ADR-005 B, C, T28)
+
+- A converted Windows must keep answering for `settle_s` (60 s) after its checks pass. One that restarts on every
+  boot because a virtio-win driver fails to install at first boot is `CRITICAL` with the reason code
+  `driver_install_loop` and the driver's name, read from virt-v2v's first-boot log on the guest's disk (in the
+  bundle: `migration/firstboot.json`).
+- **T21's Windows `OK` was a false positive**: with virtio-win 0.1.302, Windows Server 2022 restarts for `smbus` on
+  every boot; T21 saw only its first answer.
+- New per-check option `exclude_drivers` (a list of virtio-win driver names): the guest is converted without them,
+  recorded as a `WARNING` step (`drivers_excluded`) in the bundle and the readiness report, so the check is never
+  `OK`. The Migration screen offers **Check again without <driver>**.
+
 ### Notification categories (ADR-007 C8, T28)
 
 - **Channels take categories, not a list of events**, so a new event of a category reaches every channel that takes

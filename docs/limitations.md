@@ -200,10 +200,11 @@ fixtures) are in the reports, not here.
   needs it.
 - **A Windows Server 2022 converted with virtio-win 0.1.302 restarts on every boot**: virt-v2v's first-boot script
   cannot install the `smbus` driver ("a root certificate which is not trusted") and retries it on the next boot, for
-  ever. Since T23 the check sees it (Windows must keep answering WinRM for a minute) and says `CRITICAL`; Gaia does
-  not work around it in the converted disk. [T23]
-  *Why it waits:* leaving the driver out changes what virt-v2v makes, which ADR-005 leaves to virt-v2v; a newer
-  virtio-win, or an option to drop drivers, needs the architect's decision.
+  ever (T28: 17 boots in 8 minutes). The check says `CRITICAL` `driver_install_loop` with the driver's name; checked
+  again with `exclude_drivers ["smbus"]` it is `WARNING` at best. Gaia does not change the converted disk itself.
+  [T23, T28]
+  *Why it waits:* 0.1.302 is the newest virtio-win release (read on 2026-11-23); a release whose `smbus` installs
+  on Server 2022 would be measured and pinned (ADR-005 C step 1).
 - **Windows guests need virtio-win 0.1.302, downloaded by the operator**; without it a Windows check is `UNKNOWN`.
   [T11, T21]
   *Why it waits:* ADR-005 has the operator supply it (Gaia does not redistribute it); its sha256 is pinned.
