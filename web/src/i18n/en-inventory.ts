@@ -28,6 +28,7 @@ export const stepUpNames: Record<string, string> = {
   'PATCH /api/v1/vms/{id}': 'Change a VM\'s policy',
   'POST /api/v1/hosts': 'Add a host',
   'DELETE /api/v1/hosts/{id}': 'Remove a host',
+  'POST /api/v1/hosts/{id}/accept-key': 'Accept a host’s changed SSH key',
   'POST /api/v1/repositories': 'Add a repository',
   'DELETE /api/v1/repositories/{id}': 'Remove a repository',
   'POST /api/v1/users': 'Create a user',
@@ -83,6 +84,7 @@ export const auditDid: Record<string, string> = {
   'DELETE /api/v1/hosts/{id}': 'removed a host',
   'POST /api/v1/hosts/{id}/scan': 'read a host\'s SSH key',
   'POST /api/v1/hosts/{id}/trust': 'trusted a host\'s SSH key',
+  'POST /api/v1/hosts/{id}/accept-key': 'accepted a host\'s changed SSH key',
   'POST /api/v1/hosts/{id}/check': 'checked a host\'s connection',
   'POST /api/v1/vms': 'registered a VM',
   'PATCH /api/v1/vms/{id}': 'changed a VM\'s policy',
@@ -165,15 +167,18 @@ export const inventory = {
     question: 'Can Gaia reach every host it backs up from?',
     none: 'No host yet',
     /** Rule 7: every state said with its own count, UNKNOWN never folded into OK. */
-    states: { unreachable: 'unreachable', untrusted: 'not trusted yet', unchecked: 'not checked yet', ok: 'OK' },
-    chips: { unreachable: 'Unreachable', untrusted: 'Not trusted yet', unchecked: 'Not checked yet', ok: 'OK' },
+    states: { changed: 'SSH key changed', unreachable: 'unreachable', untrusted: 'not trusted yet', unchecked: 'not checked yet', ok: 'OK' },
+    chips: { changed: 'Key changed', unreachable: 'Unreachable', untrusted: 'Not trusted yet', unchecked: 'Not checked yet', ok: 'OK' },
     hint: 'KVM hosts Gaia backs up from, over SSH. Gaia connects to a host only after someone has confirmed its SSH key.',
     add: 'Add host',
     all: 'All',
     chip: (word: string, x: number) => `${word} · ${n(x)}`,
     cols: { host: 'Host', connection: 'Connection', vms: 'VMs by status', last: 'Last backup', action: 'Action' },
-    word: { unreachable: 'UNREACHABLE', untrusted: 'NOT TRUSTED YET', unchecked: 'NOT CHECKED', answered: 'ANSWERED', failed: 'NO ANSWER' },
+    word: { changed: 'KEY CHANGED', unreachable: 'UNREACHABLE', untrusted: 'NOT TRUSTED YET', unchecked: 'NOT CHECKED', answered: 'ANSWERED', failed: 'NO ANSWER' },
     text: {
+      /** ADR-007 C17's sentence. */
+      changed: (name: string, pinnedOn: string) =>
+        `${name} presents a different SSH host key than the one pinned on ${pinnedOn}. Gaia reads nothing from it until an admin checks and accepts the new key`,
       unreachable: (x: number, since: string) => `${plural(x, 'VM', 'VMs')} cannot reach it since ${since}`,
       untrusted: 'Its SSH key was never confirmed: Gaia reads nothing from it',
       noVMs: 'No VM on it yet, so nothing has read it',
@@ -184,6 +189,7 @@ export const inventory = {
     },
     /** The same, in a few words for the table's one-line cell. */
     short: {
+      changed: (at: string) => `different key since ${at}`,
       since: (at: string) => `since ${at}`,
       untrusted: 'key never confirmed',
       noVMs: 'no VM on it yet',
@@ -218,6 +224,17 @@ export const inventory = {
     keyHead: 'The key the host offered:',
     keyHint: 'Compare this fingerprint with the host\'s own (ssh-keygen -lf on the host\'s public key) before you trust it.',
     trusted: (name: string) => `The key of ${name} is pinned. Gaia now checks the connection.`,
+    /** A host that presents another key than the pinned one (ADR-007 C17): both keys, and the admin's accept. */
+    changed: {
+      pinned: (fp: string, on: string) => `Pinned on ${on}: ${fp}`,
+      presented: (fp: string, at: string) => `Presented since ${at}: ${fp}`,
+      hint: 'Compare the presented fingerprint with the host\'s own (ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the host). Accept it only if they match: a key that changed without a reinstall can mean someone is in between.',
+      review: 'Check the new key',
+      accept: 'Accept the new key',
+      confirm: (name: string) => `Pin the presented key of ${name} in place of the old one? This asks for your second factor.`,
+      accepted: (name: string) => `The new key of ${name} is pinned. Gaia now checks the connection.`,
+      adminOnly: 'Only an admin can accept a changed key.',
+    },
     form: {
       title: 'Add a host',
       name: 'Name',

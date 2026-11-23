@@ -72,6 +72,12 @@ type TrustRequest struct {
 	Fingerprint string `json:"fingerprint"`
 }
 
+// AcceptKeyRequest accepts the different SSH key a host presented (ADR-007 C17): the fingerprint the admin checked
+// against the host's own, which must be the presented key's.
+type AcceptKeyRequest struct {
+	Fingerprint string `json:"fingerprint"`
+}
+
 // HostCheck is what Gaia sees on a host over its SSH connection.
 type HostCheck struct {
 	Libvirt string   `json:"libvirt"`
@@ -409,7 +415,7 @@ func (s *Server) table() []route {
 				c.detail = "scanned " + sc.Fingerprint
 				return http.StatusOK, sc, nil
 			}},
-		{method: "POST", path: "/api/v1/hosts/{id}/trust", summary: "Pin the host's SSH key if it has the fingerprint given", roles: writers,
+		{method: "POST", path: "/api/v1/hosts/{id}/trust", summary: "Pin the SSH key of a host that has none yet, if it has the fingerprint given", roles: writers,
 			in: TrustRequest{}, out: store.Host{}, example: `{"fingerprint":"SHA256:none"}`,
 			h: func(c *call) (int, any, error) {
 				h, err := s.hostOf(c)
@@ -419,6 +425,10 @@ func (s *Server) table() []route {
 				var in TrustRequest
 				if err := c.decode(&in); err != nil {
 					return 0, nil, err
+				}
+				if h.SSHHostKey != "" { // a different key is accept-key's, with a step-up (ADR-007 C17)
+					return 0, nil, fmt.Errorf("%w: host %s has a pinned SSH key; a different key the host presents is accepted with POST /api/v1/hosts/%d/accept-key (an admin, with a step-up)",
+						store.ErrConflict, h.Name, h.ID)
 				}
 				sc, err := hostconn.Scan(c.r.Context(), h.Address, h.SSHPort)
 				if err != nil {
@@ -434,6 +444,34 @@ func (s *Server) table() []route {
 				}
 				return one(pinned, err)
 			}},
+		{method: "POST", path: "/api/v1/hosts/{id}/accept-key", summary: "Accept the different SSH key a host presented, in place of the pinned one (ADR-007 C17)",
+			roles: adminOnly, stepUp: stepAlways, in: AcceptKeyRequest{}, out: store.Host{}, example: `{"fingerprint":"SHA256:none"}`,
+			h: func(c *call) (int, any, error) {
+				h, err := s.hostOf(c)
+				if err != nil {
+					return 0, nil, err
+				}
+				var in AcceptKeyRequest
+				if err := c.decode(&in); err != nil {
+					return 0, nil, err
+				}
+				fp := strings.TrimSpace(in.Fingerprint)
+				if fp == "" {
+					return 0, nil, fmt.Errorf("%w: fingerprint: the presented key's fingerprint, as checked on the host", store.ErrInvalid)
+				}
+				old := "no pinned key"
+				if h.SSHHostKey != "" {
+					if old, err = hostconn.KeyFingerprint(h.SSHHostKey); err != nil {
+						return 0, nil, fmt.Errorf("host %s: pinned key: %w", h.Name, err)
+					}
+				}
+				c.detail = "accepted " + fp + " in place of " + old
+				accepted, err := s.db.AcceptPresentedHostKey(c.r.Context(), c.user.Username, h.ID, fp, old)
+				if err == nil { // host_key_changed ends for its VMs: recomputed at the next tick
+					err = s.db.MarkStatusesDue(c.r.Context(), h.ID, 0)
+				}
+				return one(accepted, err)
+			}},
 		{method: "POST", path: "/api/v1/hosts/{id}/check", summary: "Connect over SSH and list the host's libvirt domains", roles: writers, out: HostCheck{},
 			h: func(c *call) (int, any, error) {
 				h, err := s.hostOf(c)
@@ -443,6 +481,9 @@ func (s *Server) table() []route {
 				t := time.Now()
 				hc, err := hostconn.Dial(c.r.Context(), hostTarget(h), s.sshKey)
 				if err != nil {
+					if nerr := s.hostKeyPresented(context.WithoutCancel(c.r.Context()), h, err); nerr != nil {
+						return 0, nil, nerr
+					}
 					return 0, nil, fmt.Errorf("%w: %v", errHost, err)
 				}
 				defer hc.Close()

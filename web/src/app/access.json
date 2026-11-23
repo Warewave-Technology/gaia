@@ -134,6 +134,9 @@
           "DELETE /api/v1/policies/{id}",
           "POST /api/v1/repositories/{id}/verify"
         ],
+        "admin": [
+          "POST /api/v1/hosts/{id}/accept-key"
+        ],
         "any": [
           "POST /api/v1/capacity/what-if"
         ]

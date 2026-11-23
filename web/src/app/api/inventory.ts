@@ -165,6 +165,8 @@ export const change = {
   scanHost: (id: number, h?: Headers) => unwrap(api.POST('/api/v1/hosts/{id}/scan', { params: { path: { id } }, headers: h })),
   trustHost: (id: number, fingerprint: string, h?: Headers) =>
     unwrap(api.POST('/api/v1/hosts/{id}/trust', { params: { path: { id } }, body: { fingerprint }, headers: h })),
+  acceptHostKey: (id: number, fingerprint: string, h?: Headers) =>
+    unwrap(api.POST('/api/v1/hosts/{id}/accept-key', { params: { path: { id } }, body: { fingerprint }, headers: h })),
   checkHost: (id: number, h?: Headers) => unwrap(api.POST('/api/v1/hosts/{id}/check', { params: { path: { id } }, headers: h })),
   removeHost: (id: number, h?: Headers) => unwrap(api.DELETE('/api/v1/hosts/{id}', { params: { path: { id } }, headers: h })),
   addPolicy: (body: PolicyInput, h?: Headers) => unwrap(api.POST('/api/v1/policies', { body, headers: h })),

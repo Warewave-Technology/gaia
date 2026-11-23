@@ -67,8 +67,15 @@ type Host struct {
 	SSHPort    int    `json:"ssh_port"`
 	SSHUser    string `json:"ssh_user"`
 	SSHHostKey string `json:"ssh_host_key"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	// When the pinned key was pinned; "" while no key is pinned.
+	SSHHostKeyPinnedAt string `json:"ssh_host_key_pinned_at"`
+	// A key the host presented that is not the pinned one (ADR-007 C17 host_key_changed), kept until an admin checks
+	// and accepts it; all "" when there is none.
+	PresentedHostKey     string `json:"presented_host_key"`
+	PresentedFingerprint string `json:"presented_fingerprint"`
+	PresentedAt          string `json:"presented_at"` // when the host first presented it
+	CreatedAt            string `json:"created_at"`
+	UpdatedAt            string `json:"updated_at"`
 }
 
 // HostInput creates a host.
@@ -86,11 +93,18 @@ type HostPatch struct {
 	SSHUser *string `json:"ssh_user,omitempty"`
 }
 
-const hostCols = `id, name, address, ssh_port, ssh_user, ssh_host_key, created_at, updated_at`
+const hostCols = `id, name, address, ssh_port, ssh_user, ssh_host_key, ssh_host_key_pinned_at, presented_host_key, presented_fingerprint, presented_at,
+	created_at, updated_at`
+
+// hostFields are a Host's fields in hostCols' order, for Scan.
+func hostFields(h *Host) []any {
+	return []any{&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.SSHHostKey, &h.SSHHostKeyPinnedAt, &h.PresentedHostKey,
+		&h.PresentedFingerprint, &h.PresentedAt, &h.CreatedAt, &h.UpdatedAt}
+}
 
 func scanHost(s interface{ Scan(...any) error }) (Host, error) {
 	var h Host
-	err := s.Scan(&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.SSHHostKey, &h.CreatedAt, &h.UpdatedAt)
+	err := s.Scan(hostFields(&h)...)
 	return h, err
 }
 

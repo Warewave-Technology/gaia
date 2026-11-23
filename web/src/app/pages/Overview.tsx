@@ -176,7 +176,8 @@ function Notices({ v }: { v: FleetView }) {
 function Attention({ fmt, now, setF }: { fmt: Fmt; now: number; setF: SetFilters }) {
   const t = useT().v3.overview
   const pages = useAttentionPages()
-  const cause = (g: AttentionGroup): CauseIn => ({ code: g.code, scope: g.scope, count: g.count, since: g.since ? fmt.at(g.since) : '—', hosts: g.hosts, policies: g.policies })
+  const cause = (g: AttentionGroup): CauseIn => ({ code: g.code, params: g.params, scope: g.scope, count: g.count, since: g.since ? fmt.at(g.since) : '—', hosts: g.hosts,
+    policies: g.policies, at: fmt.at })
   const cols: Column<AttentionGroup>[] = [
     { key: 'status', header: t.cols.status, width: '128px', cell: (g) => <StatusChip status={g.status} size="sm" /> },
     {

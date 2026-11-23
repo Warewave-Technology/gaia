@@ -52,11 +52,15 @@ type StatusFacts struct {
 	Damaged       []int64      // present points whose check failed
 	// What reasons name as their cause (ADR-007 C3).
 	HostName       string
-	HostKeyTrusted bool  // the host has a pinned SSH key (ADR-007 C11: host_key_untrusted when not)
-	RepositoryID   int64 // the policy's repository; 0 without a policy
-	RepositoryName string
-	LastBackup     *Job            // the newest finished backup job (ok or failed)
-	LastBackupInfo json.RawMessage // its detail
+	HostKeyTrusted bool // the host has a pinned SSH key (ADR-007 C11: host_key_untrusted when not)
+	// The host presented another key than the pinned one, not accepted yet (ADR-007 C17: host_key_changed): its
+	// fingerprint, and when the pinned key was pinned; "" when it did not.
+	HostKeyPresented string
+	HostKeyPinnedAt  string
+	RepositoryID     int64 // the policy's repository; 0 without a policy
+	RepositoryName   string
+	LastBackup       *Job            // the newest finished backup job (ok or failed)
+	LastBackupInfo   json.RawMessage // its detail
 }
 
 // StatusFacts reads the facts for one VM. A passing test only counts while its point can still be restored: a
@@ -68,7 +72,8 @@ func (d *DB) StatusFacts(ctx context.Context, vmID int64) (StatusFacts, error) {
 		return f, err
 	}
 	f.VM = vm
-	if err := d.db.QueryRowContext(ctx, `SELECT name, ssh_host_key != '' FROM hosts WHERE id = ?`, vm.HostID).Scan(&f.HostName, &f.HostKeyTrusted); err != nil {
+	if err := d.db.QueryRowContext(ctx, `SELECT name, ssh_host_key != '', presented_fingerprint, ssh_host_key_pinned_at FROM hosts WHERE id = ?`, vm.HostID).Scan(
+		&f.HostName, &f.HostKeyTrusted, &f.HostKeyPresented, &f.HostKeyPinnedAt); err != nil {
 		return f, fmt.Errorf("the VM's host %d: %w", vm.HostID, err)
 	}
 	if vm.PolicyID != nil {

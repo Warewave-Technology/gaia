@@ -10,7 +10,7 @@ import (
 type Code string
 
 // CodesVersion is the version of the list; it grows when a code is added, changed or removed.
-const CodesVersion = 2
+const CodesVersion = 3
 
 const (
 	// CRITICAL: the newest checked backup is older than the RPO target (rule theoretical_rpo_over_target). The code
@@ -21,6 +21,10 @@ const (
 	// CRITICAL (no backup within the RPO target) or UNKNOWN (no checked point): the host's SSH key was never trusted,
 	// so Gaia does not connect to it (ADR-007 C11). Scoped to the host: one cause for all its VMs.
 	HostKeyUntrusted Code = "host_key_untrusted"
+	// CRITICAL (no backup within the RPO target) or UNKNOWN (no checked point): the host presents an SSH key other
+	// than the pinned one, so Gaia does not connect to it until an admin checks and accepts the new key (ADR-007 C17).
+	// Scoped to the host; never backup_failing.
+	HostKeyChanged Code = "host_key_changed"
 	// CRITICAL: the latest restore test with a verdict is CRITICAL (rule latest_test_critical), by its failed check.
 	TestFailedBoot  Code = "test_failed_boot"
 	GuestRebooted   Code = "guest_rebooted"
@@ -73,7 +77,10 @@ type Params struct {
 	Check   string     `json:"check,omitempty"`
 	Detail  string     `json:"detail,omitempty"`
 	TargetS int64      `json:"target_s,omitempty"`
-	RTOS    *float64   `json:"rto_s,omitempty"`
+	// host_key_changed: when the key Gaia trusts was pinned, and the fingerprint of the different key the host presents.
+	PinnedAt    *time.Time `json:"pinned_at,omitempty"`
+	Fingerprint string     `json:"fingerprint,omitempty"`
+	RTOS        *float64   `json:"rto_s,omitempty"`
 	// for the OK sentence
 	RPOTargetS   int64 `json:"rpo_target_s,omitempty"`
 	RTOTargetS   int64 `json:"rto_target_s,omitempty"`
@@ -153,8 +160,23 @@ var defs = []Def{
 			}
 			return rpoOver(p, now) + ": " + s
 		}},
+	{Code: HostKeyChanged, Status: Critical, Rule: "theoretical_rpo_over_target", Also: []Variant{{Status: Unknown, Rule: "no_checked_point"}},
+		Scope: ScopeHost, Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail", "pinned_at", "fingerprint"},
+		Cause: "Host presents a different SSH key",
+		Means: "the host presents an SSH host key other than the pinned one, so Gaia reads nothing from it until an admin checks and accepts the new key (never automatically): no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`)",
+		text: func(p Params, sc *Scope, now time.Time) string {
+			s := fmt.Sprintf("host %s presents a different SSH host key (%s) than the one pinned on %s; Gaia reads nothing from it until an admin checks and accepts the new key",
+				scopeName(sc), p.Fingerprint, clock(p.PinnedAt))
+			if p.Job != 0 {
+				s += fmt.Sprintf(" (backup job %d at %s)", p.Job, clock(p.JobAt))
+			}
+			if p.PointAt == nil {
+				return "there is no backup point that passed its post-backup check: " + s
+			}
+			return rpoOver(p, now) + ": " + s
+		}},
 	{Code: BackupFailing, Status: Critical, Rule: "theoretical_rpo_over_target", Params: []string{"point", "point_at", "target_s", "job", "job_at", "detail"},
-		Cause: "Backups fail", Means: "no backup within the RPO target because the newest backup job failed (for a reason other than the host not answering)",
+		Cause: "Backups fail", Means: "no backup within the RPO target because the newest backup job failed (for a reason other than the host not answering or its SSH key)",
 		text: func(p Params, _ *Scope, now time.Time) string {
 			return fmt.Sprintf("%s: backup job %d failed at %s: %s", rpoOver(p, now), p.Job, clock(p.JobAt), p.Detail)
 		}},

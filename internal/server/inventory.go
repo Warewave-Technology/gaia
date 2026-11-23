@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/Warewave-Technology/gaia/internal/hostconn"
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
@@ -74,6 +76,15 @@ func (s *Server) hostsView(c *call) (int, any, error) {
 	out := HostsView{Clock: serverClock(s.now())}
 	if out.Rows, out.Total, err = s.db.HostRows(c.r.Context(), off, n); err != nil {
 		return 0, nil, err
+	}
+	for i, r := range out.Rows {
+		if r.PresentedFingerprint == "" {
+			continue
+		}
+		// The admin compares both before accepting (ADR-007 C17); the pinned key was read to see it differ.
+		if out.Rows[i].PinnedFingerprint, err = hostconn.KeyFingerprint(r.SSHHostKey); err != nil {
+			return 0, nil, fmt.Errorf("host %s: pinned key: %w", r.Name, err)
+		}
 	}
 	if off+n < out.Total {
 		out.Next = strconv.Itoa(off + n)

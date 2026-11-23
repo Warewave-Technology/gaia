@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // PointDisk is one disk of a point.
@@ -295,26 +296,130 @@ func (d *DB) SyncDisks(ctx context.Context, actor string, vmID int64, now []Disk
 	})
 }
 
-// PinHostKey stores the host key Gaia trusts for a host.
+// PinHostKey stores the host key Gaia trusts for a host that has none yet. A host with a pinned key keeps it: a
+// different key is only ever an admin's AcceptPresentedHostKey, with a step-up (ADR-007 C17).
 func (d *DB) PinHostKey(ctx context.Context, actor string, id int64, key, fingerprint string) (Host, error) {
 	err := d.tx(ctx, func(tx *sql.Tx) error {
 		var old string
 		if err := tx.QueryRowContext(ctx, `SELECT ssh_host_key FROM hosts WHERE id = ?`, id).Scan(&old); err != nil {
 			return notFound("host", id, err)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE hosts SET ssh_host_key = ?, updated_at = ? WHERE id = ?`, key, d.ts(), id); err != nil {
+		if old == key {
+			return nil
+		}
+		if old != "" {
+			return fmt.Errorf("%w: host %d has a pinned SSH key; a different key is accepted only by an admin with a step-up (accept-key)", ErrConflict, id)
+		}
+		now := d.ts()
+		if _, err := tx.ExecContext(ctx, `UPDATE hosts SET ssh_host_key = ?, ssh_host_key_pinned_at = ?, updated_at = ? WHERE id = ?`, key, now, now, id); err != nil {
 			return err
 		}
-		from := "untrusted"
-		if old != "" {
-			from = "trusted (replaced)"
-		}
-		return d.recordState(ctx, tx, "host_key", id, from, "trusted", "host key "+fingerprint+" trusted by "+actor, actor)
+		return d.recordState(ctx, tx, "host_key", id, "untrusted", "trusted", "host key "+fingerprint+" trusted by "+actor, actor)
 	})
 	if err != nil {
 		return Host{}, err
 	}
 	return d.Host(ctx, id)
+}
+
+// HostKeyPresented records that a host presented an SSH key other than the pinned one (ADR-007 C17). The first time
+// a key is seen it is kept, with the time, for an admin to check; the change is a state change (host_key trusted ->
+// changed). The same key seen again changes nothing. It never pins anything. True when the key was new.
+func (d *DB) HostKeyPresented(ctx context.Context, id int64, key, fingerprint, pinnedFingerprint string) (bool, error) {
+	recorded := false
+	err := d.tx(ctx, func(tx *sql.Tx) error {
+		var pinned, presented string
+		if err := tx.QueryRowContext(ctx, `SELECT ssh_host_key, presented_host_key FROM hosts WHERE id = ?`, id).Scan(&pinned, &presented); err != nil {
+			return notFound("host", id, err)
+		}
+		if pinned == "" || key == pinned || key == presented {
+			return nil
+		}
+		from := "trusted"
+		if presented != "" {
+			from = "changed"
+		}
+		now := d.ts()
+		if _, err := tx.ExecContext(ctx, `UPDATE hosts SET presented_host_key = ?, presented_fingerprint = ?, presented_at = ?, updated_at = ? WHERE id = ?`,
+			key, fingerprint, now, now, id); err != nil {
+			return err
+		}
+		recorded = true
+		return d.recordState(ctx, tx, "host_key", id, from, "changed",
+			"the host presented SSH key "+fingerprint+", not the pinned "+pinnedFingerprint+": Gaia does not connect until an admin accepts it", "system")
+	})
+	return recorded, err
+}
+
+// AcceptPresentedHostKey pins the key a host presented in place of the pinned one, when fingerprint is the presented
+// key's: the admin accepts the key they checked, never whatever the host shows now (ADR-007 C17). The change is a
+// state change (host_key changed -> trusted) with both fingerprints.
+func (d *DB) AcceptPresentedHostKey(ctx context.Context, actor string, id int64, fingerprint, oldFingerprint string) (Host, error) {
+	err := d.tx(ctx, func(tx *sql.Tx) error {
+		var presented, presentedFP string
+		if err := tx.QueryRowContext(ctx, `SELECT presented_host_key, presented_fingerprint FROM hosts WHERE id = ?`, id).Scan(&presented, &presentedFP); err != nil {
+			return notFound("host", id, err)
+		}
+		if presented == "" {
+			return fmt.Errorf("%w: host %d presented no different SSH key: nothing to accept", ErrConflict, id)
+		}
+		if fingerprint != presentedFP {
+			return fmt.Errorf("%w: the key host %d presented is %s, not %s: not accepted", ErrConflict, id, presentedFP, fingerprint)
+		}
+		now := d.ts()
+		if _, err := tx.ExecContext(ctx, `UPDATE hosts SET ssh_host_key = presented_host_key, ssh_host_key_pinned_at = ?, presented_host_key = '',
+			presented_fingerprint = '', presented_at = '', updated_at = ? WHERE id = ?`, now, now, id); err != nil {
+			return err
+		}
+		return d.recordState(ctx, tx, "host_key", id, "changed", "trusted",
+			"host key "+fingerprint+" accepted by "+actor+" in place of "+oldFingerprint, actor)
+	})
+	if err != nil {
+		return Host{}, err
+	}
+	return d.Host(ctx, id)
+}
+
+// SandboxSlots is the slot count the sandbox helper last reported, and when (ADR-007 C17).
+type SandboxSlots struct {
+	Slots      int    `json:"slots"`
+	ReportedAt string `json:"reported_at"`
+}
+
+// SetSandboxSlots records the slot count the sandbox helper reported at a time. A changed count is a state change
+// (entity sandbox_slots).
+func (d *DB) SetSandboxSlots(ctx context.Context, slots int, at time.Time) error {
+	if slots < 0 {
+		return fmt.Errorf("%w: slots %d", ErrInvalid, slots)
+	}
+	return d.tx(ctx, func(tx *sql.Tx) error {
+		old := -1
+		if err := tx.QueryRowContext(ctx, `SELECT slots FROM sandbox_last_known WHERE id = 1`).Scan(&old); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO sandbox_last_known (id, slots, reported_at) VALUES (1, ?, ?)
+			ON CONFLICT (id) DO UPDATE SET slots = excluded.slots, reported_at = excluded.reported_at`, slots, at.UTC().Format(time.RFC3339Nano)); err != nil {
+			return err
+		}
+		if old == slots {
+			return nil
+		}
+		from := ""
+		if old >= 0 {
+			from = fmt.Sprint(old)
+		}
+		return d.recordState(ctx, tx, "sandbox_slots", 0, from, fmt.Sprint(slots), "the sandbox helper reports "+fmt.Sprint(slots)+" slots", "system")
+	})
+}
+
+// LastSandboxSlots is the slot count the sandbox helper last reported; false when it never reported one.
+func (d *DB) LastSandboxSlots(ctx context.Context) (SandboxSlots, bool, error) {
+	var s SandboxSlots
+	err := d.db.QueryRowContext(ctx, `SELECT slots, reported_at FROM sandbox_last_known WHERE id = 1`).Scan(&s.Slots, &s.ReportedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return s, false, nil
+	}
+	return s, err == nil, err
 }
 
 // Verification is one repository verification (core matrix #2).

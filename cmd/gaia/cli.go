@@ -32,7 +32,7 @@ import (
 //	gaia RESOURCE rm ID
 //	gaia status [VM ID]                                  every VM's status (exit code: the worst status)
 //	gaia vms disks ID | add-disk ID target=vda size_bytes=N | backup ID | test ID | status ID
-//	gaia hosts scan ID | trust ID fingerprint=SHA256:... | check ID
+//	gaia hosts scan ID | trust ID fingerprint=SHA256:... | accept-key ID fingerprint=SHA256:... | check ID
 //	gaia points disks ID | restore-check ID | forget ID reason="..."   (forget: a failed point only, admins)
 //	gaia repositories verify ID mode=sampled|full | maintenance ID [force=true]
 //	gaia evidence export ID [-o FILE]                    gaia audit verify          gaia state-backups run
@@ -56,7 +56,7 @@ var resources = map[string]resource{
 	"sessions":         {"/api/v1/sessions", []string{"list", "rm"}},
 	"tokens":           {"/api/v1/api-tokens", []string{"list", "add", "rm"}},
 	"factors":          {"/api/v1/me/factors", []string{"list", "rm"}},
-	"hosts":            {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "check"}},
+	"hosts":            {"/api/v1/hosts", []string{"list", "get", "add", "set", "rm", "scan", "trust", "accept-key", "check"}},
 	"vms":              {"/api/v1/vms", []string{"list", "get", "add", "set", "rm", "disks", "add-disk", "backup", "test", "status", "tags"}},
 	"repositories":     {"/api/v1/repositories", []string{"list", "get", "add", "verify", "maintenance"}},
 	"policies":         {"/api/v1/policies", []string{"list", "get", "add", "set", "rm"}},
@@ -279,7 +279,7 @@ func runCLI(ctx context.Context, args []string) int {
 		return call("GET", res.path+"/"+id+"/status", nil)
 	case "tags": // gaia vms tags ID [key|key:value ...]: replaces the VM's tags (none: removes them)
 		return call("PUT", res.path+"/"+id+"/tags", map[string]any{"tags": append([]string{}, rest...)})
-	case "trust", "verify", "maintenance", "forget":
+	case "trust", "accept-key", "verify", "maintenance", "forget":
 		body, err := keyValues(rest)
 		if err != nil {
 			return fail(asJSON, cmd, err)

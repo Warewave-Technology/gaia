@@ -315,6 +315,23 @@ export interface paths {
         patch: operations["patch_hosts_by_id"];
         trace?: never;
     };
+    "/api/v1/hosts/{id}/accept-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the different SSH key a host presented, in place of the pinned one (ADR-007 C17) */
+        post: operations["post_hosts_by_id_accept_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hosts/{id}/check": {
         parameters: {
             query?: never;
@@ -358,7 +375,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pin the host's SSH key if it has the fingerprint given */
+        /** Pin the SSH key of a host that has none yet, if it has the fingerprint given */
         post: operations["post_hosts_by_id_trust"];
         delete?: never;
         options?: never;
@@ -2086,6 +2103,9 @@ export interface components {
             use_count: number;
             use_day: string;
         };
+        AcceptKeyRequest: {
+            fingerprint: string;
+        };
         ActivityRow: {
             by: string;
             created_at: string;
@@ -2137,6 +2157,7 @@ export interface components {
             count: number;
             example: components["schemas"]["AttentionExample"];
             hosts: components["schemas"]["NameCount"][];
+            params?: components["schemas"]["Params"] | null;
             policies: components["schemas"]["NameCount"][];
             scope: components["schemas"]["Scope"] | null;
             since: string;
@@ -2247,7 +2268,10 @@ export interface components {
             sandbox: components["schemas"]["Capacity"] | null;
             sandbox_error: string;
             slots: number;
+            /** Format: date-time */
+            slots_at: string | null;
             slots_needed: number;
+            slots_source: string;
             tests_in_horizon: number;
             vms: number;
             what_if?: components["schemas"]["WhatIf"] | null;
@@ -2503,7 +2527,11 @@ export interface components {
             created_at: string;
             id: number;
             name: string;
+            presented_at: string;
+            presented_fingerprint: string;
+            presented_host_key: string;
             ssh_host_key: string;
+            ssh_host_key_pinned_at: string;
             ssh_port: number;
             ssh_user: string;
             updated_at: string;
@@ -2533,7 +2561,12 @@ export interface components {
             last_point_at: string;
             name: string;
             ok: number;
+            pinned_fingerprint: string;
+            presented_at: string;
+            presented_fingerprint: string;
+            presented_host_key: string;
             ssh_host_key: string;
+            ssh_host_key_pinned_at: string;
             ssh_port: number;
             ssh_user: string;
             unknown: number;
@@ -2830,10 +2863,13 @@ export interface components {
         Params: {
             check?: string;
             detail?: string;
+            fingerprint?: string;
             job?: number;
             /** Format: date-time */
             job_at?: string | null;
             max_proof_age_s?: number;
+            /** Format: date-time */
+            pinned_at?: string | null;
             point?: number;
             /** Format: date-time */
             point_at?: string | null;
@@ -3380,6 +3416,9 @@ export interface components {
             next: string;
             running: components["schemas"]["Running"][];
             slots: number;
+            /** Format: date-time */
+            slots_at: string | null;
+            slots_source: string;
             total: number;
             waiting_for_admission: components["schemas"]["Waiting"][];
         };
@@ -5092,6 +5131,95 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["HostPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Host"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Not logged in, or the session is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The user's role may not do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description No such record */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Conflicts with existing records */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description Internal error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+            /** @description The audit log cannot be written, so the action was not done */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["apiError"];
+                };
+            };
+        };
+    };
+    post_hosts_by_id_accept_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptKeyRequest"];
             };
         };
         responses: {

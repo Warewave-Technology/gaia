@@ -93,12 +93,15 @@ type AttentionView struct {
 
 // AttentionGroup is one cause: its code and scope, how many VMs, since when, where, and one VM's sentence.
 type AttentionGroup struct {
-	Status   string            `json:"status"`
-	Code     string            `json:"code"`
-	Cause    string            `json:"cause"` // the code's cause in words
-	Scope    *status.Scope     `json:"scope"` // the shared cause; nil when the cause is each VM's own
-	Count    int               `json:"count"`
-	Since    string            `json:"since"`
+	Status string        `json:"status"`
+	Code   string        `json:"code"`
+	Cause  string        `json:"cause"` // the code's cause in words
+	Scope  *status.Scope `json:"scope"` // the shared cause; nil when the cause is each VM's own
+	Count  int           `json:"count"`
+	Since  string        `json:"since"`
+	// The parameters of the example VM's reason when it has the group's code: for a cause scoped to a host or a
+	// repository they are the scope's facts (host_key_changed: when the key was pinned, the new key's fingerprint).
+	Params   *status.Params    `json:"params,omitempty"`
 	Example  AttentionExample  `json:"example"`
 	Hosts    []store.NameCount `json:"hosts"`
 	Policies []store.NameCount `json:"policies"`
@@ -150,6 +153,10 @@ func (s *Server) attentionView(c *call) (int, any, error) {
 				return 0, nil, err
 			}
 			ag.Example = AttentionExample{VMID: vm.ID, VM: vm.Name, Reason: r.Reasons[0].Text}
+			if string(r.Reasons[0].Code) == g.Code {
+				p := r.Reasons[0].Params
+				ag.Params = &p
+			}
 		}
 		out.Groups = append(out.Groups, ag)
 	}

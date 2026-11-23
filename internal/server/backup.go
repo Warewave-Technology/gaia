@@ -49,6 +49,7 @@ type BackupDetail struct {
 	StaleJobEnded     bool                         `json:"stale_job_ended,omitempty"`
 	Unreachable       bool                         `json:"host_unreachable,omitempty"`   // failed: the host did not answer over SSH
 	HostKeyUntrusted  bool                         `json:"host_key_untrusted,omitempty"` // failed: the host's SSH key was never trusted
+	HostKeyChanged    bool                         `json:"host_key_changed,omitempty"`   // failed: the host presented another key than the pinned one
 	Check             []string                     `json:"check_problems"`
 	CheckpointsKept   []string                     `json:"checkpoints_kept"`
 	CheckpointsPruned []string                     `json:"checkpoints_deleted"`
@@ -70,6 +71,26 @@ type DiskDetail struct {
 	RepoReadBytes uint64 `json:"repo_read_bytes"`   // parent blocks read back to complete partly changed blocks
 	WrittenBytes  uint64 `json:"written_bytes"`
 	StoreID       string `json:"store_id"`
+}
+
+// hostKeyPresented keeps the key a host presented when a connection found it is not the pinned one (ADR-007 C17), for
+// an admin to check and accept; it never pins it. Its VMs are recomputed at the next tick (host_key_changed). Nil for
+// any other error.
+func (s *Server) hostKeyPresented(ctx context.Context, h store.Host, err error) error {
+	var hk *hostconn.HostKeyChangedError
+	if !errors.As(err, &hk) {
+		return nil
+	}
+	recorded, rerr := s.db.HostKeyPresented(ctx, h.ID, hk.Presented.Key, hk.PresentedFingerprint, hk.PinnedFingerprint)
+	if rerr != nil {
+		return fmt.Errorf("recording the SSH key host %s presented: %w", h.Name, rerr)
+	}
+	if !recorded {
+		return nil
+	}
+	s.log.Warn("host presents a different SSH key than the pinned one; not connecting until an admin accepts it", "host", h.Name,
+		"presented", hk.PresentedFingerprint, "pinned", hk.PinnedFingerprint)
+	return s.db.MarkStatusesDue(ctx, h.ID, 0)
 }
 
 // hostTarget is how to reach a host.
@@ -137,6 +158,7 @@ func (s *Server) runBackup(ctx context.Context, j store.Job) {
 	err := s.backup(ctx, j, d)
 	d.Unreachable = errors.Is(err, hostconn.ErrUnreachable)
 	d.HostKeyUntrusted = errors.Is(err, hostconn.ErrUntrusted)
+	d.HostKeyChanged = errors.Is(err, hostconn.ErrHostKeyChanged)
 	d.Timings["total"] = time.Since(start).Seconds()
 	if derr := s.db.SetJobDetail(context.WithoutCancel(ctx), j.ID, d); derr != nil {
 		s.log.Error("job detail", "job", j.ID, "error", derr)
@@ -187,6 +209,9 @@ func (s *Server) backup(ctx context.Context, j store.Job, d *BackupDetail) error
 	t := time.Now()
 	hc, err := hostconn.Dial(ctx, hostTarget(host), s.sshKey)
 	if err != nil {
+		if nerr := s.hostKeyPresented(context.WithoutCancel(ctx), host, err); nerr != nil {
+			return errors.Join(err, nerr)
+		}
 		return err
 	}
 	defer hc.Close()

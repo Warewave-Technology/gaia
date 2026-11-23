@@ -224,6 +224,7 @@ export const vm3 = {
     no_backup_in_rpo: 'No backup within the RPO target.',
     host_unreachable: 'The host stopped answering over SSH.',
     host_key_untrusted: 'The host’s SSH key is not trusted yet.',
+    host_key_changed: 'The host presented a different SSH key than the pinned one.',
     backup_failing: 'The newest backup failed.',
     repo_content_damaged: 'A check found a kept point damaged.',
     no_policy: 'The VM has no policy.',

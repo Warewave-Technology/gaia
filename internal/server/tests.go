@@ -295,6 +295,19 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 	if b := in.FailedBackup; b != nil && b.HostKeyUntrusted && f.HostKeyTrusted {
 		b.HostKeyUntrusted = false // trusted since the job failed: that cause is gone, the failure stays a failure
 	}
+	if f.HostKeyPresented != "" { // the host presents another key than the pinned one, not accepted yet (C17)
+		k := &status.HostKey{PresentedFingerprint: f.HostKeyPresented}
+		if f.HostKeyPinnedAt != "" {
+			pt, err := time.Parse(time.RFC3339Nano, f.HostKeyPinnedAt)
+			if err != nil {
+				return in, fmt.Errorf("host %d: ssh_host_key_pinned_at: %w", f.VM.HostID, err)
+			}
+			k.PinnedAt = &pt
+		}
+		in.HostKeyChanged = k
+	} else if b := in.FailedBackup; b != nil && b.HostKeyChanged {
+		b.HostKeyChanged = false // the new key was accepted since the job failed: the failure stays a failure
+	}
 	test := func(t *store.RestoreTest, p *store.Point) (*status.Test, error) {
 		if t == nil {
 			return nil, nil
@@ -347,7 +360,8 @@ func failedBackup(j *store.Job, detail json.RawMessage, newest *status.Point) (*
 	if err := json.Unmarshal(detail, &d); err != nil {
 		return nil, fmt.Errorf("backup job %d: detail: %w", j.ID, err)
 	}
-	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable, HostKeyUntrusted: d.HostKeyUntrusted}, nil
+	return &status.Backup{JobID: j.ID, FinishedAt: fin, Error: j.Error, Unreachable: d.Unreachable, HostKeyUntrusted: d.HostKeyUntrusted,
+		HostKeyChanged: d.HostKeyChanged}, nil
 }
 
 // refreshStatus computes a VM's status now and stores it; a change is recorded with its reason.

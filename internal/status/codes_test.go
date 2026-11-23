@@ -16,7 +16,7 @@ var updateDoc = flag.Bool("update", false, "rewrite docs/reason-codes.md")
 // causes widens a combination with what the codes tell apart: why backups stopped, which check failed, why a test
 // could not run.
 type causes struct {
-	backup  string // none, unreachable, untrusted (the host key was never trusted), failed
+	backup  string // none, unreachable, untrusted (the host key was never trusted), changed (another key than the pinned one), failed
 	check   string // boot, stable, ssh
 	sandbox bool
 	full    bool // the newest checked point is a full backup for a reason
@@ -30,6 +30,10 @@ func (k causes) apply(in Input) Input {
 		in.FailedBackup = &Backup{JobID: 40, FinishedAt: ago(30), Error: "SSH to gaia@kvm-07: dial tcp: i/o timeout", Unreachable: true}
 	case "untrusted":
 		in.FailedBackup = &Backup{JobID: 42, FinishedAt: ago(30), Error: "the host's SSH key is not trusted yet", HostKeyUntrusted: true}
+	case "changed":
+		pinned := ago(86400 * 30)
+		in.FailedBackup = &Backup{JobID: 43, FinishedAt: ago(30), Error: "host key SHA256:new is not the pinned SHA256:old: refusing to connect", HostKeyChanged: true}
+		in.HostKeyChanged = &HostKey{PinnedAt: &pinned, PresentedFingerprint: "SHA256:new"}
 	case "failed":
 		in.FailedBackup = &Backup{JobID: 41, FinishedAt: ago(30), Error: "libvirt: domain is not running"}
 	}
@@ -56,7 +60,7 @@ func (k causes) apply(in Input) Input {
 
 func allCauses() []causes {
 	var out []causes
-	for _, b := range []string{"none", "unreachable", "untrusted", "failed"} {
+	for _, b := range []string{"none", "unreachable", "untrusted", "changed", "failed"} {
 		for _, c := range []string{"boot", "stable", "ssh"} {
 			for _, s := range []bool{false, true} {
 				for _, full := range []bool{false, true} {
@@ -106,7 +110,7 @@ func TestReasonCodes(t *testing.T) {
 			// The scope is the shared cause: a host only for an unreachable or untrusted host, the sandbox only when it
 			// was down.
 			for _, x := range append(slices.Clone(r.Reasons), r.NoteReasons...) {
-				if (x.Code == HostUnreachable || x.Code == HostKeyUntrusted) != (x.Scope != nil && x.Scope.Kind == ScopeHost) ||
+				if (x.Code == HostUnreachable || x.Code == HostKeyUntrusted || x.Code == HostKeyChanged) != (x.Scope != nil && x.Scope.Kind == ScopeHost) ||
 					(x.Code == TestNotRun && (x.Scope != nil) != k.sandbox) {
 					t.Fatalf("%v %+v: %s with scope %+v", c, k, x.Code, x.Scope)
 				}

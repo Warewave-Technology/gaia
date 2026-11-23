@@ -61,14 +61,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}) || Latest() != 13 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}) || Latest() != 15 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 13 || applied[12].Name != "0013_codes_ledger_kind.sql" {
+	if err != nil || len(applied) != 15 || applied[14].Name != "0015_host_key_changed_slots.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -91,6 +91,15 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO hosts (name, address, ssh_user, created_at, updated_at) VALUES ('kvm1', '10.0.0.1', 'root', ?, ?)`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	// Schema 15 (ADR-007 C17): a pinned key's time is the state change that trusted it, else the host's updated_at.
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO hosts (name, address, ssh_user, ssh_host_key, created_at, updated_at)
+		VALUES ('kvm2', '10.0.0.2', 'root', 'ssh-ed25519 AAAA2', ?, '2026-11-10T08:00:00Z'), ('kvm3', '10.0.0.3', 'root', 'ssh-ed25519 AAAA3', ?, '2026-11-11T08:00:00Z')`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code)
+		VALUES ('2026-11-09T07:00:00Z', 'host_key', 2, 'untrusted', 'trusted', 'host key SHA256:x trusted by admin', 'admin', '')`); err != nil {
 		t.Fatal(err)
 	}
 	// Schema 11 (ADR-008): the earlier sessions end, admins become break-glass, auditors get an expiry.
@@ -138,8 +147,12 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	if err := old.SQL().QueryRowContext(ctx, `SELECT count(*) FROM sessions`).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("%d sessions from the previous schema survived (%v)", n, err)
 	}
-	if hs, err := old.Hosts(ctx); err != nil || len(hs) != 1 || hs[0].Name != "kvm1" {
+	if hs, err := old.Hosts(ctx); err != nil || len(hs) != 3 || hs[0].Name != "kvm1" || hs[0].SSHHostKeyPinnedAt != "" ||
+		hs[1].SSHHostKeyPinnedAt != "2026-11-09T07:00:00Z" || hs[2].SSHHostKeyPinnedAt != "2026-11-11T08:00:00Z" || hs[1].PresentedHostKey != "" {
 		t.Fatalf("hosts %+v %v", hs, err)
+	}
+	if _, ok, err := old.LastSandboxSlots(ctx); err != nil || ok {
+		t.Fatalf("a last known slot count after the upgrade: %v %v", ok, err)
 	}
 	fresh := migrated(t)
 	a, _ := old.Schema(ctx)
