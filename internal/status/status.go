@@ -43,7 +43,7 @@ type Test struct {
 	FinishedAt   time.Time `json:"finished_at"`
 	ProvenRTOS   *float64  `json:"proven_rto_s"` // restore + ready (ADR-004 A4); set when the test passed
 	Detail       string    `json:"detail"`       // what failed, for a test that did not pass
-	FailedCheck  string    `json:"failed_check"` // the first CRITICAL check (boot, stable, ssh, ...), for a CRITICAL test
+	FailedCheck  string    `json:"failed_check"` // the first CRITICAL check (boot, stable, ssh, ...), for a CRITICAL test; the first WARNING one for a WARNING test
 	SandboxDown  bool      `json:"sandbox_down"` // a test that could not run because the sandbox helper did not answer
 }
 
@@ -264,7 +264,11 @@ func Compute(in Input) Result {
 	}
 
 	if lt := in.LatestTest; lt != nil && lt.Verdict == Warning {
-		note(TestWarning, nil, Params{Test: lt.ID, Point: lt.PointID, Detail: lt.Detail})
+		code := TestWarning
+		if lt.FailedCheck == "stable" { // ADR-005 F: the restored guest restarted before it stayed up
+			code = GuestRestartedDuringBoot
+		}
+		note(code, nil, Params{Test: lt.ID, Point: lt.PointID, Check: lt.FailedCheck, Detail: lt.Detail})
 	}
 	if p := in.NewestChecked; p != nil && p.FullReason != "" {
 		note(FullBackup, nil, Params{Point: p.ID, Detail: p.FullReason})

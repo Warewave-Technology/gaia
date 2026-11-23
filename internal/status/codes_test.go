@@ -37,9 +37,9 @@ func (k causes) apply(in Input) Input {
 	case "failed":
 		in.FailedBackup = &Backup{JobID: 41, FinishedAt: ago(30), Error: "libvirt: domain is not running"}
 	}
-	if lt := in.LatestTest; lt != nil && lt.Verdict == Critical {
+	if lt := in.LatestTest; lt != nil && (lt.Verdict == Critical || lt.Verdict == Warning) {
 		c := *lt
-		c.FailedCheck = k.check
+		c.FailedCheck = k.check // a WARNING test's "stable" is a restart while it booted (ADR-005 F)
 		in.LatestTest = &c
 		if in.LatestAttempt != nil && in.LatestAttempt.ID == lt.ID {
 			in.LatestAttempt = &c

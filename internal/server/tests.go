@@ -328,6 +328,8 @@ func (s *Server) statusInput(ctx context.Context, vmID int64) (status.Input, err
 			SandboxDown: d.SandboxDown}
 		if i := slices.IndexFunc(d.Checks, func(c verify.CheckResult) bool { return c.Verdict == verify.Critical }); i >= 0 {
 			st.FailedCheck = d.Checks[i].Name
+		} else if i := slices.IndexFunc(d.Checks, func(c verify.CheckResult) bool { return c.Verdict == verify.Warning }); i >= 0 && t.Verdict == verify.Warning {
+			st.FailedCheck = d.Checks[i].Name // the check that warned
 		}
 		return st, nil
 	}

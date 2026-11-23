@@ -143,6 +143,13 @@ export const reasons: Record<string, Def> = {
     long: () => 'The converted copy restarts on every boot because virt-v2v’s first-boot service cannot install a virtio-win driver.',
     todo: 'If the VM does not need the driver, check it again without it (Check again without …): the result is then a warning at best.',
   },
+  guest_restarted_during_boot: {
+    title: 'Restored copy restarted while booting',
+    vm: () => 'Restore test: the copy restarted while it booted',
+    short: () => 'the restored copy restarted before it stayed up',
+    long: (c) => `The restored ${c.count === 1 ? 'copy' : 'copies'} restarted by ${c.count === 1 ? 'itself' : 'themselves'} before staying up: a backup finished its first boot long ago, so this is not expected. The test still passed with a warning.`,
+    todo: 'Open the latest test on the VM page: its stability step says how often and when the copy restarted.',
+  },
   guest_rebooted: {
     title: 'Restored copy restarts by itself',
     vm: () => 'Restore test: the copy restarted by itself',

@@ -50,6 +50,9 @@ const (
 	TestWarning Code = "test_warning"
 	FullBackup  Code = "full_backup"
 	TestNotRun  Code = "test_not_run"
+	// The latest restore test is WARNING because the restored guest restarted by itself before it kept answering
+	// (ADR-005 F): a backup finished its first boot long ago.
+	GuestRestartedDuringBoot Code = "guest_restarted_during_boot"
 	// A migration check's readiness, not a VM's status (ADR-005 C): CRITICAL, the converted Windows restarts on every
 	// boot because a virtio-win driver fails to install at first boot.
 	DriverInstallLoop Code = "driver_install_loop"
@@ -273,6 +276,11 @@ var defs = []Def{
 	{Code: TestWarning, Params: []string{"test", "point", "detail"}, Cause: "Restore test warned", Means: "note: the latest restore test with a verdict is WARNING",
 		text: func(p Params, _ *Scope, _ time.Time) string {
 			return fmt.Sprintf("the latest restore test (%d, point %d) is WARNING: %s", p.Test, p.Point, p.Detail)
+		}},
+	{Code: GuestRestartedDuringBoot, Params: []string{"test", "point", "check", "detail"}, Cause: "Restored guest restarted while booting",
+		Means: "note: the latest restore test is WARNING because the restored guest restarted by itself before it kept answering for settle_s (ADR-005 F)",
+		text: func(p Params, _ *Scope, _ time.Time) string {
+			return fmt.Sprintf("the latest restore test (%d, point %d) is WARNING: the restored guest restarted while it booted: %s", p.Test, p.Point, p.Detail)
 		}},
 	{Code: FullBackup, Params: []string{"point", "detail"}, Cause: "Full backup for a reason", Means: "note: the newest backup is full although the VM had an earlier one (a checkpoint gone, a disk resized, a quarantine)",
 		text: func(p Params, _ *Scope, _ time.Time) string {

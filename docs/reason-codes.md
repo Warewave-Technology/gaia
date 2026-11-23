@@ -30,6 +30,7 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 | `proven` | OK | `proven` | - | `test`, `point`, `point_at`, `test_at`, `rto_s`, `rpo_target_s`, `rto_target_s`, `max_proof_age_s` | Proven | the newest passing test meets every target |
 | `no_rule` | UNKNOWN | `no_rule` | - | - | No rule applied | no row of the status table applied (cannot happen; never shown as healthy) |
 | `test_warning` | note | `-` | - | `test`, `point`, `detail` | Restore test warned | note: the latest restore test with a verdict is WARNING |
+| `guest_restarted_during_boot` | note | `-` | - | `test`, `point`, `check`, `detail` | Restored guest restarted while booting | note: the latest restore test is WARNING because the restored guest restarted by itself before it kept answering for settle_s (ADR-005 F) |
 | `full_backup` | note | `-` | - | `point`, `detail` | Full backup for a reason | note: the newest backup is full although the VM had an earlier one (a checkpoint gone, a disk resized, a quarantine) |
 | `driver_install_loop` | CRITICAL | `-` (migration check) | - | `drivers`, `detail` | Converted Windows restarts for a driver | a migration check: the converted Windows restarts on every boot because virt-v2v's first-boot service cannot install a virtio-win driver (ADR-005 C); checked again with exclude_drivers it can be WARNING at best |
 | `test_not_run` | note | `-` | sandbox | `test`, `point`, `detail` | Restore test could not run | note: the newest restore test could not run (the sandbox scope when the sandbox helper did not answer) |
