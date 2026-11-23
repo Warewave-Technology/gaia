@@ -14,7 +14,11 @@
 # Secrets (the client secret, the users' passwords and OTP seeds, Keycloak's admin password) are generated here into
 # $DIR/secrets.json (0600, root) and never printed.
 #
-# Usage (on gaia-lab, as root): lab/lab-vm/t26-keycloak.sh up | stop | start | down | status
+# Usage (on gaia-lab, as root): lab/lab-vm/t26-keycloak.sh up | stop | start | down | status | redirect URL | user NAME GROUP
+#   redirect URL     lets the Gaia server at URL (https://name:port) use the client too (T29: the PO's server)
+#   user NAME GROUP  a user of one group (gaia-admins, gaia-operators, internal-audit) with a first password that must
+#                    be changed and an OTP to enrol at the first sign-in (T29: the PO's own SSO user); the password is in
+#                    secrets.json (.users.NAME.password), for the PO to read; it is never printed
 set -euo pipefail
 
 DIR=${KC_DIR:-/root/t26-keycloak}
@@ -78,9 +82,54 @@ status)
 	status
 	exit 0
 	;;
+redirect | user)
+	# Keycloak's admin REST API from here: the admin password is read from secrets.json by Python, never on a command line.
+	python3 -I - "$DIR/secrets.json" "$DIR/certs/kc.crt" "https://$HOSTNAME_:$PORT" "$@" <<'EOF'
+import json, secrets, ssl, sys, urllib.parse, urllib.request
+path, ca, base, mode, args = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:]
+sec = json.load(open(path))
+ctx = ssl.create_default_context(cafile=ca)
+def call(method, url, body=None, token=None, form=False):
+    data, headers = None, {}
+    if body is not None:
+        data = urllib.parse.urlencode(body).encode() if form else json.dumps(body).encode()
+        headers["Content-Type"] = "application/x-www-form-urlencoded" if form else "application/json"
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    with urllib.request.urlopen(urllib.request.Request(base + url, data=data, headers=headers, method=method), context=ctx) as r:
+        b = r.read()
+        return json.loads(b) if b else None
+tok = call("POST", "/realms/master/protocol/openid-connect/token", {"grant_type": "password", "client_id": "admin-cli",
+           "username": "admin", "password": sec["admin_password"]}, form=True)["access_token"]
+if mode == "redirect":
+    if len(args) != 1 or not args[0].startswith("https://"):
+        sys.exit("usage: redirect https://NAME:PORT")
+    c = call("GET", "/admin/realms/gaia/clients?clientId=gaia", token=tok)[0]
+    uri = args[0].rstrip("/") + "/api/v1/oidc/callback"
+    if uri not in c["redirectUris"]:
+        c["redirectUris"].append(uri)
+        call("PUT", "/admin/realms/gaia/clients/" + c["id"], c, token=tok)
+    print(json.dumps({"client": "gaia", "redirect_uris": c["redirectUris"]}))
+else:
+    if len(args) != 2 or args[1] not in ("gaia-admins", "gaia-operators", "internal-audit"):
+        sys.exit("usage: user NAME gaia-admins|gaia-operators|internal-audit")
+    name, group = args
+    if call("GET", "/admin/realms/gaia/users?exact=true&username=" + urllib.parse.quote(name), token=tok):
+        sys.exit(f"user {name} exists")
+    pw = "lab " + secrets.token_urlsafe(18)
+    call("POST", "/admin/realms/gaia/users", {"username": name, "enabled": True, "email": f"{name}@lab.test", "emailVerified": True,
+         "firstName": name, "lastName": "Lab", "groups": ["/" + group], "requiredActions": ["CONFIGURE_TOTP", "UPDATE_PASSWORD"],
+         "credentials": [{"type": "password", "value": pw, "temporary": True}]}, token=tok)
+    sec["users"][name] = {"password": pw, "otp": None, "group": group}
+    json.dump(sec, open(path, "w"), indent=2)
+    print(json.dumps({"user": name, "group": group, "first_password": f"{path} .users.{name}.password (change it at the first sign-in)",
+                      "otp": "enrolled at the first sign-in"}))
+EOF
+	exit 0
+	;;
 up) ;;
 *)
-	echo "usage: $0 up | stop | start | down | status"
+	echo "usage: $0 up | stop | start | down | status | redirect URL | user NAME GROUP"
 	exit 3
 	;;
 esac
