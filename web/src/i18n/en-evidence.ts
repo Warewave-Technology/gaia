@@ -91,3 +91,33 @@ export const ledger = {
     evidence_missing: 'tests passed, no evidence sealed',
   })[s.code],
 }
+
+/** What the screen knows of an entry's ledger record (EvidenceRow, ADR-007 C19.6); an older server sends no field. */
+export type RecordIn = { kind: string; ledger_record?: string }
+
+/** An export given while the ledger could not record it (C18.5): its record waits for the next ledger write. */
+export const isNotRecorded = (r: RecordIn) => r.kind === 'export' && r.ledger_record === 'not_recorded'
+
+/**
+ * ADR-007 C19.6: an export given without a ledger record says "not recorded in the ledger", next to the download and
+ * in its row, until the next successful ledger write appends its record. Nothing about evidence may look more
+ * finished than it is. The ledger's reason is raw text: the screen folds it under "Technical details".
+ */
+export const notRecorded = {
+  /** The row's result, in place of RECORDED. */
+  word: 'NOT RECORDED IN THE LEDGER',
+  /** Its sequence number and hash: it has neither yet. */
+  none: '—',
+  /** Next to the download while records wait ('' when none does). */
+  waiting: (n: number) => (n <= 0 ? ''
+    : n === 1 ? '1 export is not recorded in the ledger yet: its record is appended with the next successful ledger write.'
+      : `${n.toLocaleString('en-US')} exports are not recorded in the ledger yet: their records are appended with the next successful ledger write.`),
+  /** Next to the download, right after one the ledger could not record. */
+  given: (pending: string) => (pending
+    ? `Downloaded, but not recorded in the ledger: the ledger refused its record. The export says so in its README.txt and EXPORT.json; the server appends the record as ${pending} with the next successful ledger write.`
+    : 'Downloaded, but not recorded in the ledger: the ledger refused its record, and the server could not keep it to append later. The audit log entry is its only record.'),
+  /** The row's detail when it is opened. */
+  detail: (bundle: string) =>
+    `This export was given while the ledger could not record it, so it is not recorded in the ledger: no entry, no hash yet. Its record is appended as ${bundle} with the next successful ledger write (a restore test's evidence, another export, or a ledger check that finds the ledger intact).`,
+  reason: 'Why the ledger refused it',
+}

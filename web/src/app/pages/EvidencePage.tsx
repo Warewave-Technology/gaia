@@ -1,11 +1,12 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router'
 import { useT } from '../../i18n'
-import { ledgerState } from '../../i18n/en-evidence'
+import { isNotRecorded, ledgerState } from '../../i18n/en-evidence'
 import { dur } from '../../lib/duration'
 import { serverTime, type Fmt } from '../../lib/time'
 import { useFilters } from '../../lib/url'
-import { useAnyTestPassed, useEvidencePages, type EvidenceFilter, type EvidenceRow, type LedgerSummary } from '../api/evidence'
+import { useAnyTestPassed, useEvidencePages, useNotRecorded, type EvidenceFilter, type EvidenceRow, type LedgerSummary } from '../api/evidence'
 import { can, useMe } from '../api/session'
 import { useCheckLedger, useDailyReports, useLedger, useSystem } from '../api/views'
 import { Failed, Loading } from '../layout/States'
@@ -120,14 +121,26 @@ function Headline({ l, passed, admin, rep, keyID, fmt, now }: {
 function Export({ rep }: { rep: Report | null }) {
   const t = useT().evidence
   const ask = useStepUp()
+  const qc = useQueryClient()
+  const waiting = useNotRecorded()
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // ADR-007 C19.6: the export just given without a ledger record (C18.5): the pending record's id and the reason.
+  const [given, setGiven] = useState<{ pending: string; why: string } | null>(null)
   const get = () => {
     setErr(null)
+    setGiven(null)
     setBusy(true)
     download(ask, '/api/v1/evidence-export', 'gaia-evidence-export.tar.gz')
+      .then((h) => {
+        const why = h.get('X-Gaia-Export-Not-Recorded')
+        if (why !== null) setGiven({ pending: h.get('X-Gaia-Export-Pending-Record') ?? '', why })
+      })
       .catch((e: Error) => setErr(e.message))
-      .finally(() => setBusy(false))
+      .finally(() => {
+        setBusy(false)
+        qc.invalidateQueries({ queryKey: ['evidence'] })
+      })
   }
   const head = rep ? ` -head ledger-head-${rep.id}.json` : ''
   return (
@@ -136,6 +149,15 @@ function Export({ rep }: { rep: Report | null }) {
         <Button onClick={get} disabled={busy}>{busy ? t.exporting : t.export}</Button>
       </SectionHead>
       {err && <Notice tone="critical">{err}</Notice>}
+      {given && (
+        <>
+          <Notice tone="warning">{t.notRecorded.given(given.pending)}</Notice>
+          <TechDetails summary={t.notRecorded.reason}>{given.why}</TechDetails>
+        </>
+      )}
+      {!!waiting && (
+        <p className={s.notRecorded}><StatusChip status="UNKNOWN" size="xs" word={t.notRecorded.word} /> {t.notRecorded.waiting(waiting)}</p>
+      )}
       <TechDetails summary={t.verify}>
         {`gaia evidence verify -pubkey anchor.pub -export .\ngaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles${head}\npython3 -I verify.py ledger ledger.jsonl bundles --key anchor.pub${rep ? ` --head ledger-head-${rep.id}.json` : ''}`}
       </TechDetails>
@@ -168,8 +190,9 @@ function Entries({ fmt }: { fmt: Fmt }) {
     ...(f.result === 'failed' ? { verdict: 'CRITICAL' as const } : {}),
   }
   const pages = useEvidencePages(filter)
+  const nr = t.notRecorded
   const cols: Column<EvidenceRow>[] = [
-    { key: 'seq', header: t.col.seq, numeric: true, width: '96px', cell: (b) => <span className={s.mono}>{b.ledger_seq.toLocaleString('en-US')}</span> },
+    { key: 'seq', header: t.col.seq, numeric: true, width: '96px', cell: (b) => <span className={s.mono}>{isNotRecorded(b) ? nr.none : b.ledger_seq.toLocaleString('en-US')}</span> },
     { key: 'when', header: t.col.when, width: '150px', cell: (b) => fmt.at(b.created_at) },
     { key: 'entry', header: t.col.entry, width: '190px', cell: (b) => entry(b, t) },
     { key: 'vm', header: t.col.vm, title: (b) => b.vm || undefined, cell: (b) => (b.kind === 'export'
@@ -179,11 +202,11 @@ function Entries({ fmt }: { fmt: Fmt }) {
         : <Link className={s.vm} to="/migration">{b.vm || t.migration}</Link>) },
     { key: 'result', header: t.col.result, width: '240px', cell: (b) => (
       <>
-        <StatusChip status={b.verdict} size="xs" word={result(b, t)} />
+        <StatusChip status={b.verdict} size="xs" word={isNotRecorded(b) ? nr.word : result(b, t)} />
         {b.proven_rto_s !== null && b.verdict !== 'CRITICAL' && <span className={s.of}>{t.rto(dur(b.proven_rto_s, true))}</span>}
       </>
     ) },
-    { key: 'hash', header: t.col.hash, width: '110px', title: (b) => b.bundle_sha256, cell: (b) => <span className={s.mono}>{short(b.bundle_sha256)}</span> },
+    { key: 'hash', header: t.col.hash, width: '110px', title: (b) => b.bundle_sha256 || undefined, cell: (b) => <span className={s.mono}>{short(b.bundle_sha256)}</span> },
   ]
   const any = !!(f.kind || f.result)
   return (
@@ -197,9 +220,15 @@ function Entries({ fmt }: { fmt: Fmt }) {
         <FilterChip set={f.result === 'failed'} onClick={() => setF({ result: f.result === 'failed' ? '' : 'failed' })}>{t.f.failed}</FilterChip>
       </Toolbar>
       {pages.isError ? <Failed error={pages.error} onRetry={() => pages.refetch()} /> : (
-        <DataTable caption={t.entries} columns={cols} pages={pages} rowKey={(b) => String(b.id)} empty={any ? t.noneMatch : t.none}
+        <DataTable caption={t.entries} columns={cols} pages={pages} rowKey={(b) => (isNotRecorded(b) ? `pending:${b.bundle_id}` : String(b.id))}
+          empty={any ? t.noneMatch : t.none}
           rowState={(b) => (b.verdict === 'CRITICAL' ? 'critical' : undefined)}
-          detail={(b) => (
+          detail={(b) => isNotRecorded(b) ? (
+            <div className={s.kv}>
+              <p>{nr.detail(b.bundle_id)}</p>
+              {b.not_recorded_reason && <TechDetails summary={nr.reason}>{b.not_recorded_reason}</TechDetails>}
+            </div>
+          ) : (
             <dl className={s.kv}>
               <div><dt>{t.bundle}</dt><dd className={s.mono}>{b.bundle_id}</dd></div>
               <div><dt>{t.sha}</dt><dd className={s.mono}>{b.bundle_sha256}</dd></div>

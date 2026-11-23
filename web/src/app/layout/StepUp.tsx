@@ -59,14 +59,16 @@ export async function download(ask: Ask, path: string, name: string, about?: Ste
       const b = (await r.json().catch(() => ({}))) as { code?: string; error?: string }
       throw new ApiError(r.status, b.code ?? 'internal', b.error ?? r.statusText)
     }
-    return r.blob()
+    return { blob: await r.blob(), headers: r.headers }
   }
-  const blob = await withStepUp(ask, 'GET', path, get, about)
+  const { blob, headers } = await withStepUp(ask, 'GET', path, get, about)
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+  // The response's headers: what the server says about the file (e.g. an export the ledger could not record).
+  return headers
 }
 
 /** An open dialog: a challenge to answer, or (ch null) the identity provider's refusal to check a factor now. */

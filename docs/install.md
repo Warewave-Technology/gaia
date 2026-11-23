@@ -243,7 +243,8 @@ The new line must say `ok`.
 
 Besides this nightly run, Gaia backs its state up a few minutes after backups and restore tests end, so a
 rebuilt server (step 13) misses at most the last few minutes. The state backup holds no secrets: those are in
-the recovery kit.
+the recovery kit. It also holds the records of evidence exports given while the ledger could not record them
+(step 10c), so a rebuilt server still appends them.
 
 ## 8b. Save the recovery kit off the server (do not skip)
 
@@ -670,7 +671,10 @@ audit log, and the channels that take `security` get `export_not_recorded`. The 
 1. The server keeps the record (in `/var/lib/gaia/evidence/pending-exports/`; do not delete it) and appends it to the
 ledger with its next successful ledger write: a restore test's bundle, another export, or a ledger check that finds
 the ledger intact again (hourly, or **Check now** on the Evidence screen). The record says it was made late and why;
-later exports list it. `gaia state-changes list entity=evidence_export` shows both steps.
+later exports list it. `gaia state-changes list entity=evidence_export` shows both steps. Until then the Evidence
+screen lists the export first among the entries as **not recorded in the ledger** (no entry number, no hash), and
+says so next to the download. The waiting record is in Gaia's state backup: a server rebuilt before it was appended
+(step 13) re-queues it and appends it with its own next ledger write.
 
 A single bundle is exported with `gaia evidence export <id> -o FILE` (for example the bundle of one restore test):
 the bundle with the whole ledger and the trust anchor, `EXPORT.json`, and `SHA256SUMS` with `SHA256SUMS.sig` like
@@ -904,7 +908,10 @@ new Debian 12 machine (step 1).
    certificate, and `gaia login` asks you to confirm the new sha256 it prints.
 
    The first line says `OK` or `WARNING`, then what was restored. `WARNING` lists what could not be restored,
-   usually the work of the last minutes before the loss (a point or a test after the last state backup). If it
+   usually the work of the last minutes before the loss (a point or a test after the last state backup). A line
+   `export records  N not in the ledger yet, re-queued` names exports the lost server gave while its ledger could
+   not record them (step 10c): the rebuilt server appends their records with its next successful ledger write (the
+   hourly check at the latest), and the Evidence screen shows them as not recorded in the ledger until then. If it
    says `CRITICAL`, the restored evidence ledger does not verify: keep the output and do not delete anything.
 4. Start the services (step 5), log in (step 6; the rebuild ended every login made on the lost server) and look:
 

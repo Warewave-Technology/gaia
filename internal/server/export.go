@@ -46,7 +46,9 @@ import (
 // bundle that says it was recorded late, by the next successful ledger write: after a restore test's bundle or another
 // export's record is appended, and after a ledger check (hourly, daily, "Check now") that finds the ledger intact.
 // Migration checks' appends do not call it (internal/server/migration.go is not this change's); the hourly check
-// follows within the hour.
+// follows within the hour. ADR-007 C19.3: the pending records are members of the state backup (statebackup.go), and
+// restore-state re-queues them (restore.go), so a rebuilt server appends them; C19.6: until then the Evidence screen
+// lists each as an export "not recorded in the ledger" (views_evidence.go).
 
 // AuditTest is one restore test in the export's summary.
 type AuditTest struct {

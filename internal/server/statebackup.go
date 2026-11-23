@@ -61,9 +61,9 @@ func (s *Server) OpenRepository(ctx context.Context, r store.Repository) (*disks
 }
 
 // BackupState stores a consistent copy of Gaia's state in its repository: the database (VACUUM INTO), the
-// evidence ledger, the public evidence key and the config, and each evidence bundle not stored yet. Never secrets:
-// those are in the recovery kit (ADR-007 B5). The returned record says how it ended; err is set only if no record
-// could be made. It refuses to run beside another state backup.
+// evidence ledger, the public evidence key and the config, the pending export records (ADR-007 C19.3), and each
+// evidence bundle not stored yet. Never secrets: those are in the recovery kit (ADR-007 B5). The returned record
+// says how it ended; err is set only if no record could be made. It refuses to run beside another state backup.
 func (s *Server) BackupState(ctx context.Context, actor, reason string) (store.StateBackup, error) {
 	if !s.backupMu.TryLock() {
 		return store.StateBackup{}, fmt.Errorf("%w: a state backup is already running", store.ErrConflict)
@@ -227,17 +227,44 @@ func (s *Server) writeStateArchive(ctx context.Context, repo store.Repository, i
 		return "", 0, "", err
 	}
 	defer os.RemoveAll(tmp)
+	// ADR-007 C19.3: the records of exports the ledger could not record are members too (pendingExportMember). Only
+	// a holder of exportMu appends them, so holding it from the database snapshot until they are read keeps the three
+	// in step: a record is either pending in the archive or appended in its database and ledger, never neither.
+	s.exportMu.Lock()
+	locked := true
+	unlock := func() {
+		if locked {
+			locked = false
+			s.exportMu.Unlock()
+		}
+	}
+	defer unlock()
 	snapshot := filepath.Join(tmp, "gaia.db")
 	if _, err := s.db.SQL().ExecContext(ctx, "VACUUM INTO '"+strings.ReplaceAll(snapshot, "'", "''")+"'"); err != nil {
 		return "", 0, "", fmt.Errorf("database snapshot: %w", err)
 	}
-	type member struct{ name, path string }
-	members := []member{{"gaia.db", snapshot}, {"server.json", s.cfgPath}, {"keys/evidence-key.pub", s.cfg.pubPath()}}
-	if _, err := os.Stat(s.cfg.ledgerPath()); err == nil {
-		members = append(members, member{"evidence/ledger.jsonl", s.cfg.ledgerPath()})
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", 0, "", err
+	type member struct {
+		name, path string
+		data       []byte // read already (path "")
 	}
+	members := []member{{"gaia.db", snapshot, nil}, {"server.json", s.cfgPath, nil}, {"keys/evidence-key.pub", s.cfg.pubPath(), nil}}
+	if b, err := os.ReadFile(s.cfg.ledgerPath()); err == nil {
+		members = append(members, member{"evidence/ledger.jsonl", "", b})
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", 0, "", fmt.Errorf("evidence/ledger.jsonl: %w", err)
+	}
+	pending, err := s.pendingExports()
+	if err != nil {
+		return "", 0, "", fmt.Errorf("pending export records: %w", err)
+	}
+	for _, p := range pending {
+		b, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			return "", 0, "", err
+		}
+		members = append(members, member{pendingExportMember(p.BundleID), "", append(b, '\n')})
+	}
+	unlock()
 	archive := filepath.Join(tmp, "state.tar")
 	f, err := os.Create(archive)
 	if err != nil {
@@ -247,9 +274,11 @@ func (s *Server) writeStateArchive(ctx context.Context, repo store.Repository, i
 	tw := tar.NewWriter(f)
 	var entries []FileEntry
 	for _, m := range members {
-		b, err := os.ReadFile(m.path)
-		if err != nil {
-			return "", 0, "", fmt.Errorf("%s: %w", m.name, err)
+		b := m.data
+		if m.path != "" {
+			if b, err = os.ReadFile(m.path); err != nil {
+				return "", 0, "", fmt.Errorf("%s: %w", m.name, err)
+			}
 		}
 		h := sha256.Sum256(b)
 		entries = append(entries, FileEntry{m.name, int64(len(b)), hex.EncodeToString(h[:])})
@@ -261,7 +290,8 @@ func (s *Server) writeStateArchive(ctx context.Context, repo store.Repository, i
 		}
 	}
 	idx, err := json.MarshalIndent(StateManifest{Format: "gaia-state-backup/1", BackupID: id, Created: time.Now().UTC().Format(time.RFC3339Nano),
-		GaiaVersion: s.version, SchemaVersion: store.Latest(), Files: entries, BundlesStoredNow: bundlesStored, BundlesMissing: bundlesMissing}, "", "  ")
+		GaiaVersion: s.version, SchemaVersion: store.Latest(), Files: entries, BundlesStoredNow: bundlesStored, BundlesMissing: bundlesMissing,
+		PendingExports: len(pending)}, "", "  ")
 	if err != nil {
 		return "", 0, "", err
 	}
@@ -300,7 +330,16 @@ type StateManifest struct {
 	Files            []FileEntry `json:"files"`
 	BundlesStoredNow int         `json:"evidence_bundles_stored_now"`
 	BundlesMissing   []string    `json:"evidence_bundles_missing"`
+	// ADR-007 C19.3: the records of exports given while the ledger could not record them, one member each under
+	// pendingExportsMemberDir. An archive from before 0.2.0 has none (and no such member).
+	PendingExports int `json:"pending_export_records"`
 }
+
+// pendingExportsMemberDir is where a state archive keeps the pending export records (ADR-007 C19.3): the same
+// path as under the data directory, evidence/pending-exports/<bundle>.json.
+const pendingExportsMemberDir = "evidence/pending-exports/"
+
+func pendingExportMember(bundleID string) string { return pendingExportsMemberDir + bundleID + ".json" }
 
 // FileEntry is one member of a state archive.
 type FileEntry struct {

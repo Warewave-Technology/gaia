@@ -20,6 +20,17 @@ export function useEvidencePages(f: EvidenceFilter) {
   })
 }
 
+/** How many exports were given without a ledger record and wait for the next ledger write (ADR-007 C19.6), for the
+ * line next to the download; null while not known. One small request: the view's count, whatever its page. */
+export function useNotRecorded() {
+  const q = useQuery({
+    queryKey: ['evidence', 'not-recorded'],
+    queryFn: () => unwrap(api.GET('/api/v1/views/evidence', { params: { query: { kind: 'export', limit: 1 } } })),
+    refetchInterval: 30_000,
+  })
+  return q.data ? q.data.not_recorded ?? 0 : null
+}
+
 /** Whether any restore test passed: an empty ledger is then a fault (C14 evidence_missing), for a server that does not
  * say so itself. The fleet's "can return" counts VMs with a point a passing test proved. */
 export function useAnyTestPassed(enabled: boolean) {

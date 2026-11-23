@@ -56,6 +56,10 @@ type RestoreResult struct {
 	SessionsEnded    int64                `json:"sessions_ended"` // logins on the lost server; everyone logs in again
 	Tag              string               `json:"restore_tag"`
 	MigratedVersions []int                `json:"migrated_versions"`
+
+	// ADR-007 C19.3: the records of exports the lost server gave while its ledger could not record them, back under
+	// <data>/evidence/pending-exports/; the rebuilt server appends them with its next successful ledger write.
+	PendingExports []string `json:"pending_exports_requeued"`
 }
 
 // RestoredState is the state archive the server was rebuilt from.
@@ -103,7 +107,7 @@ const restoreActor = "gaia server restore-state"
 // RestoreState rebuilds a lost server: the secrets from the kit, the catalog, ledger and evidence from the
 // repository. It refuses to touch an existing installation; if it fails, the data directory is emptied again.
 func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) {
-	res := RestoreResult{Problems: []string{}, Repositories: []RestoredRepository{}, ConfigPath: o.ConfigPath}
+	res := RestoreResult{Problems: []string{}, Repositories: []RestoredRepository{}, PendingExports: []string{}, ConfigPath: o.ConfigPath}
 	kit, err := recoverykit.Open(o.Kit, o.Passphrase)
 	if err != nil {
 		return res, err
@@ -231,6 +235,9 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 	for _, id := range res.Evidence.MissingFromRepository {
 		res.Problems = append(res.Problems, "evidence bundle "+id+" is in the catalog but was never stored in the repository")
 	}
+	if res.PendingExports, err = requeuePendingExports(cfg, files, man); err != nil {
+		return res, err
+	}
 	if n := len(res.Evidence.NotInCatalog); n > 0 {
 		res.Problems = append(res.Problems, fmt.Sprintf("%d evidence bundle(s) were sealed after the state backup and are not in the restored ledger; they stay in the repository: %s",
 			n, strings.Join(res.Evidence.NotInCatalog, ", ")))
@@ -342,6 +349,10 @@ func RestoreState(ctx context.Context, o RestoreOptions) (RestoreResult, error) 
 	}
 	summary := fmt.Sprintf("rebuilt from state backup %s (%s, lost server %s) with recovery kit %d; %d problem(s)",
 		res.StateBackup.ID, res.StateBackup.Created, res.StateBackup.Hostname, kit.Generation, len(res.Problems))
+	if n := len(res.PendingExports); n > 0 {
+		summary += fmt.Sprintf("; %d export record(s) the ledger had not recorded re-queued, appended with the next successful ledger write: %s",
+			n, strings.Join(res.PendingExports, ", "))
+	}
 	if _, err := db.AppendAudit(ctx, store.AuditEntry{Username: restoreActor, Action: "gaia server restore-state", Target: "state-backup:" + res.StateBackup.ID,
 		Outcome: 200, RemoteAddr: "local", Detail: summary}); err != nil {
 		return res, err
@@ -591,6 +602,39 @@ func restoreBundles(ctx context.Context, cfg Config, db *store.DB, st *diskstore
 		}
 	}
 	return nil
+}
+
+// requeuePendingExports writes the state archive's pending export records (ADR-007 C19.3) back into the pending
+// directory, where the rebuilt server's next successful ledger write appends them, and returns their bundle ids. An
+// archive from before 0.2.0 has none. Only members its manifest lists (and so checked) are taken, each a record of
+// the bundle its name says.
+func requeuePendingExports(cfg Config, files map[string][]byte, man StateManifest) ([]string, error) {
+	out := []string{}
+	for _, f := range man.Files {
+		name, ok := strings.CutPrefix(f.Name, pendingExportsMemberDir)
+		if !ok {
+			continue
+		}
+		id, ok := strings.CutSuffix(name, ".json")
+		if !ok || !strings.HasPrefix(id, "export-") || !filepath.IsLocal(name) || strings.ContainsAny(name, `/\`) {
+			return nil, fmt.Errorf("state backup: member %s is not a pending export record", f.Name)
+		}
+		var p pendingExport
+		if err := json.Unmarshal(files[f.Name], &p); err != nil {
+			return nil, fmt.Errorf("state backup: %s: %w", f.Name, err)
+		}
+		if p.BundleID != id {
+			return nil, fmt.Errorf("state backup: %s names bundle %s", f.Name, p.BundleID)
+		}
+		if err := os.MkdirAll(cfg.pendingExportsDir(), 0o750); err != nil {
+			return nil, err
+		}
+		if err := writeExclusive(filepath.Join(cfg.pendingExportsDir(), name), files[f.Name], 0o600); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, nil
 }
 
 // checkLedger verifies the restored ledger and bundles against the ledger's own anchor and the given head statements

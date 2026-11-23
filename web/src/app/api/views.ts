@@ -102,7 +102,8 @@ export function useCheckLedger() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => unwrap(api.POST('/api/v1/ledger/verify')),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ledger'] }),
+    // An intact ledger takes the records of exports it could not record (ADR-007 C18.5): the entries change too.
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ['ledger'] }), qc.invalidateQueries({ queryKey: ['evidence'] })]),
   })
 }
 

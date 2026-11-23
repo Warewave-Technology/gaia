@@ -281,6 +281,13 @@ func testRestoreState(t *testing.T, s3 string) {
 	if r.Verdict != "WARNING" || len(r.Repositories) != 1 || len(r.Repositories[0].PointsNotInCatalog) != 1 || r.Repositories[0].PointsNotInCatalog[0] != late.ID {
 		t.Fatalf("the point stored after the state backup is not named: %+v", r)
 	}
+	// An archive without pending export records (as every one before 0.2.0): nothing re-queued, no directory.
+	if r.PendingExports == nil || len(r.PendingExports) != 0 {
+		t.Fatalf("re-queued %v from an archive without records", r.PendingExports)
+	}
+	if _, err := os.Stat(filepath.Join(o.DataDir, "evidence", "pending-exports")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a pending directory from an archive without records: %v", err)
+	}
 	if r.KitGenerationIn != 2 || r.KitGeneration != 3 || r.SessionsEnded != 3 || len(r.Tag) != 6 || r.StateBackup.SchemaVersion != store.Latest() || r.EvidenceKeyID == "" {
 		t.Fatalf("rebuild record %+v", r)
 	}
