@@ -174,11 +174,11 @@ jq -n --slurpfile sys "$OUT/b-system.json" --argjson sb "$sb" --slurpfile kit "$
 
 section "(c) install.md step 12 to $V_NEW"
 put "$NEW/$DEB_NEW" /tmp/
-put "$NEW/SHA256SUMS" /tmp/SHA256SUMS
+put "$NEW/SHA256SUMS" /tmp/SHA256SUMS.new
 on <<EOF | tee "$OUT/c-upgrade.txt"
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-cd /tmp && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Timeout=300 install -y ./$DEB_NEW
+cd /tmp && cp SHA256SUMS.new SHA256SUMS && sha256sum -c --ignore-missing SHA256SUMS && apt-get -o DPkg::Lock::Timeout=300 install -y ./$DEB_NEW
 EOF
 on <<<'sleep 5; systemctl is-active gaia-sandbox gaia; journalctl -u gaia --no-pager -o cat --since "-3min" | grep -E "migrat|schema|signin_problem|public_url|ignored" | tail -20' | tee "$OUT/c-journal.txt"
 old_session=0
