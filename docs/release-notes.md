@@ -1,6 +1,6 @@
 # Release notes
 
-## 0.2.0 (in preparation: package M3)
+## 0.2.0 (2026-11-23, package M3)
 
 ### Strict sign-in (ADR-008, T26)
 
@@ -34,6 +34,13 @@
   backups are paused), and `CRITICAL` with the same code when its RPO target passes, as before. The host is a
   `CRITICAL` cause in "Needs attention" at once, even while its VMs are `WARNING`. `GET /api/v1/reason-codes` lists
   each code's other rows (`also`) and its group status (`group_status`).
+- **A host-scoped cause shows its full reach** (ADR-007 C19): "Needs attention" still groups each VM by its deciding
+  cause, but a group whose cause is a host (`host_unreachable`, `host_key_untrusted`, `host_key_changed`) says how many
+  VMs the host has in all: "affects 41 VMs · 38 here, 3 under other causes" (and "N still OK"); the group's
+  `reach` is `{host_vms, elsewhere, ok}`. Its **Show these VMs** lists every VM on the host
+  (`GET /api/v1/views/vm-list?…&reach=true`).
+- `GET /api/v1/migration-checks` is paged like the other lists: `before=` (the last id of the previous page) and
+  `limit` (default 100, at most 1000), newest first (ADR-007 C19).
 - **The migration view is paged on the server** (ADR-007 C18): `GET /api/v1/views/migration` answers one page of
   checks (`after`, `limit` default 50 and at most 200, `total`, `next`) instead of the newest 200, with `latest=true`
   (each VM's newest check, worst first), `result`, `source_id` and `vm` filters and the counts by result
