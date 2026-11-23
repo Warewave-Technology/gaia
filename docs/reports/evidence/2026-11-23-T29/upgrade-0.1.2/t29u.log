@@ -1,0 +1,169 @@
+[16:17:35] releases /root/rel/0.1.2 -> /root/rel/0.2.0, out /root/t29u/out-20261123T161735Z, repository 4901ec4da20d
+
+== (a) install.md step 2 for both releases
+Good "gaia-release" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc
+gaia_0.1.2_amd64.deb: OK
+gaia-0.1.2-darwin-amd64.tar.gz: OK
+gaia-0.1.2-darwin-arm64.tar.gz: OK
+gaia-0.1.2-linux-amd64.tar.gz: OK
+gaia-0.1.2-linux-arm64.tar.gz: OK
+BUILDINFO.txt: OK
+Good "gaia-release" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc
+gaia_0.2.0_amd64.deb: OK
+gaia-0.2.0-darwin-amd64.tar.gz: OK
+gaia-0.2.0-darwin-arm64.tar.gz: OK
+gaia-0.2.0-linux-amd64.tar.gz: OK
+gaia-0.2.0-linux-arm64.tar.gz: OK
+BUILDINFO.txt: OK
+{
+  "old": {
+    "version": "0.1.2",
+    "exit": 0,
+    "signature": "Good \"gaia-release\" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc"
+  },
+  "new": {
+    "version": "0.2.0",
+    "exit": 0,
+    "signature": "Good \"gaia-release\" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc"
+  },
+  "pass": true
+}
+
+== the clean server: gaia-t29-upgrade from debian-12-genericcloud-amd64.qcow2, network gaia-t29u
+
+== (b) 0.1.2 from the guide, steps 3 to 8b
+gaia_0.1.2_amd64.deb: OK
+gaia 0.1.2 (b9101efd5db2), go1.27.1, linux/amd64
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia-sandbox.service → /lib/systemd/system/gaia-sandbox.service.
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia.service → /lib/systemd/system/gaia.service.
+active
+active
+logged in to https://192.168.229.10:8443 as admin (admin) until 2026-11-24T04:20:06.291909743Z; saved in /root/t29u/ws/cli.json
+{"version":"0.1.2 (b9101efd5db2)","schema_version":8}
+{"id":1,"name":"main"}
+{"id":2,"username":"op1","role":"operator"}
+{"id":1,"state":"ok"}
+{"id":1,"state":"ok"}
+wrote gaia-recovery-kit-2.age (recovery kit 2)
+{"state":"confirmed","generation":2}
+{
+  "version": "0.1.2 (b9101efd5db2)",
+  "schema": 8,
+  "services": "active active",
+  "state_backup": "ok",
+  "kit": "confirmed",
+  "pass": true
+}
+
+== (c) install.md step 12 to 0.2.0
+gaia_0.2.0_amd64.deb: OK
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Suggested packages:
+  podman uidmap crun catatonit fuse-overlayfs
+The following packages will be upgraded:
+  gaia
+1 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/16.1 MB of archives.
+After this operation, 4439 kB of additional disk space will be used.
+Get:1 /tmp/gaia_0.2.0_amd64.deb gaia amd64 0.2.0 [16.1 MB]
+apt-listchanges: Reading changelogs...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 34412 files and directories currently installed.)
+Preparing to unpack /tmp/gaia_0.2.0_amd64.deb ...
+gaia: stopping gaia; it waits for running jobs (up to stop_drain, 10 minutes by default)
+Unpacking gaia (0.2.0) over (0.1.2) ...
+Setting up gaia (0.2.0) ...
+gaia: restarted; check with: gaia system
+active
+active
+time=2026-11-23T16:20:02.804Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.1.2 (b9101efd5db2)" schema=8
+time=2026-11-23T16:20:13.731Z level=INFO msg="migrated the state database" versions="[9 10 11 12 13 14 15 16]" schema=16
+time=2026-11-23T16:20:13.732Z level=ERROR msg="security keys are not available" error="security keys are not available: public_url https://gaia-t29u:8443 cannot be WebAuthn's relying party (error occurred validating the configuration: field 'RPID' is not a valid domain string: the domain component must actually be a domain): set public_url in /etc/gaia/server.json to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)"
+time=2026-11-23T16:20:13.732Z level=WARN msg="server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)" config=/etc/gaia/server.json
+time=2026-11-23T16:20:13.739Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.2.0 (4901ec4da20d)" schema=16
+UNKNOWN: whoami: 401 unauthorized: the session is not valid
+UNKNOWN: whoami: 401 unauthorized: the session is not valid
+{
+  "restarted": true,
+  "active": true,
+  "old_cli_login_exit": 3,
+  "old_login_with_new_cli_exit": 3,
+  "journal": [
+    "time=2026-11-23T16:20:02.804Z level=INFO msg=\"gaia server is listening\" address=[::]:8443 version=\"0.1.2 (b9101efd5db2)\" schema=8",
+    "time=2026-11-23T16:20:13.731Z level=INFO msg=\"migrated the state database\" versions=\"[9 10 11 12 13 14 15 16]\" schema=16",
+    "time=2026-11-23T16:20:13.732Z level=ERROR msg=\"security keys are not available\" error=\"security keys are not available: public_url https://gaia-t29u:8443 cannot be WebAuthn's relying party (error occurred validating the configuration: field 'RPID' is not a valid domain string: the domain component must actually be a domain): set public_url in /etc/gaia/server.json to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)\"",
+    "time=2026-11-23T16:20:13.732Z level=WARN msg=\"server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)\" config=/etc/gaia/server.json",
+    "time=2026-11-23T16:20:13.739Z level=INFO msg=\"gaia server is listening\" address=[::]:8443 version=\"0.2.0 (4901ec4da20d)\" schema=16"
+  ],
+  "pass": true
+}
+
+== (d) "To 0.2.0": public_url, a certificate for the name, sign in again with a security key
+
+The old one is kept as /var/lib/gaia/tls/cert.pem.replaced-20261123T162019Z. Now: systemctl restart gaia, then write a new recovery kit, which holds the certificate:
+gaia kit regenerate && gaia kit save
+active
+signed in as admin until 2026-11-24T00:20:23.321944787Z (2026-11-23T16:20:23Z)
+id:                     1
+username:               admin
+role:                   admin
+source:                 local
+disabled:               false
+break_glass:            true
+expires_at:             -
+created_at:             2026-11-23T16:20:01.085335767Z
+updated_at:             2026-11-23T16:20:01.085335767Z
+password_changed_at:    2026-11-23T16:20:01.085335767Z
+password_change:        -
+last_login_at:          2026-11-23T16:20:23.321944787Z
+locked_until:           -
+factors:                ["webauthn"]
+session:                {"id":1,"user_id":1,"username":"admin","role":"admin","kind":"cli","method":"webauthn","break_glass":false,"created_at":"2026-11-23T16:20:23.321944787Z","last_active_at":"2026-11-23T16:20:23.475198525Z","last_seen_at":"2026-11-23T16:20:23.475198525Z","absolute_at":"2026-11-24T00:20:23.321944787Z","remote_addr":"192.168.229.1","user_agent":"Go-http-client/1.1","new_device":false,"idp_state":"","idp_refreshed_at":"","ended_at":"","end_reason":""}
+password_expires_soon:  false
+idle_timeout_s:         900
+{"version":"0.2.0 (4901ec4da20d)","schema_version":16,"signin_problem":null}
+[{"id":1,"name":"main"}]
+[{"username":"admin","role":"admin"},{"username":"op1","role":"operator"}]
+[{"id":2,"state":"ok"},{"id":1,"state":"ok"}]
+{"id":3,"state":"ok"}
+{"id":3,"state":"ok"}
+{"stage":"enrol","password_change":null}
+{"username":"op1","password_change":"too_short"}
+{
+  "version": "0.2.0 (4901ec4da20d)",
+  "schema": 16,
+  "signin_problem": "",
+  "whoami": "id:                     1\nusername:               admin\nrole:                   admin\nsource:                 local\ndisabled:               false\nbreak_glass:            true\nexpires_at:             -\ncreated_at:             2026-11-23T16:20:01.085335767Z\nupdated_at:             2026-11-23T16:20:01.085335767Z\npassword_changed_at:    2026-11-23T16:20:01.085335767Z\npassword_change:        -\nlast_login_at:          2026-11-23T16:20:23.321944787Z\nlocked_until:           -\nfactors:                [\"webauthn\"]\nsession:                {\"id\":1,\"user_id\":1,\"username\":\"admin\",\"role\":\"admin\",\"kind\":\"cli\",\"method\":\"webauthn\",\"break_glass\":false,\"created_at\":\"2026-11-23T16:20:23.321944787Z\",\"last_active_at\":\"2026-11-23T16:20:23.475198525Z\",\"last_seen_at\":\"2026-11-23T16:20:23.475198525Z\",\"absolute_at\":\"2026-11-24T00:20:23.321944787Z\",\"remote_addr\":\"192.168.229.1\",\"user_agent\":\"Go-http-client/1.1\",\"new_device\":false,\"idp_state\":\"\",\"idp_refreshed_at\":\"\",\"ended_at\":\"\",\"end_reason\":\"\"}\npassword_expires_soon:  false\nidle_timeout_s:         900",
+  "repository_kept": true,
+  "users": [
+    {
+      "username": "admin",
+      "role": "admin"
+    },
+    {
+      "username": "op1",
+      "role": "operator"
+    }
+  ],
+  "state_backup_of_0_1_2_kept": true,
+  "new_state_backup": "ok",
+  "op1": {
+    "stage": "enrol",
+    "password_change": null,
+    "marked": "too_short"
+  },
+  "pass": true
+}
+
+== gate (T29: the upgrade from 0.1.2)
+{
+  "from": "0.1.2",
+  "to": "0.2.0",
+  "a": true,
+  "b": true,
+  "c": true,
+  "d": true,
+  "verdict": "OK"
+}
+[16:20:25] out: /root/t29u/out-20261123T161735Z (the VM stays until: lab/lab-vm/t29-upgrade.sh cleanup)

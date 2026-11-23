@@ -289,10 +289,10 @@ Not:
 
 ### 4.8 Windows migration check'i (T28, ADR-005 F)
 
-gaia-lab'de (root), T29 hazırlığındaki runner'ı `v0.2.0` ile:
+gaia-lab'de (root), T29 hazırlığındaki runner'ı çalıştır (`/root/gaia`'nın `main`'i: `v0.2.0`'ın ürün kodu ve sonraki lab betikleri):
 
 ```bash
-cd /root/gaia && git checkout -q v0.2.0 && systemd-run --unit=gaia-t21 --collect -E HOME=/root lab/lab-vm/t21-migration.sh 192.168.1.29 && journalctl -fu gaia-t21
+cd /root/gaia && systemd-run --unit=gaia-t21 --collect -E HOME=/root lab/lab-vm/t21-migration.sh 192.168.1.29 && journalctl -fu gaia-t21
 ```
 
 - [ ] `gaia-t11-win` as-is: `CRITICAL` `driver_install_loop` (smbus); "without smbus": `WARNING`, ilk açılıştaki

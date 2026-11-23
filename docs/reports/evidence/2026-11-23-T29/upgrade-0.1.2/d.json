@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0 (4901ec4da20d)",
+  "schema": 16,
+  "signin_problem": "",
+  "whoami": "id:                     1\nusername:               admin\nrole:                   admin\nsource:                 local\ndisabled:               false\nbreak_glass:            true\nexpires_at:             -\ncreated_at:             2026-11-23T16:20:01.085335767Z\nupdated_at:             2026-11-23T16:20:01.085335767Z\npassword_changed_at:    2026-11-23T16:20:01.085335767Z\npassword_change:        -\nlast_login_at:          2026-11-23T16:20:23.321944787Z\nlocked_until:           -\nfactors:                [\"webauthn\"]\nsession:                {\"id\":1,\"user_id\":1,\"username\":\"admin\",\"role\":\"admin\",\"kind\":\"cli\",\"method\":\"webauthn\",\"break_glass\":false,\"created_at\":\"2026-11-23T16:20:23.321944787Z\",\"last_active_at\":\"2026-11-23T16:20:23.475198525Z\",\"last_seen_at\":\"2026-11-23T16:20:23.475198525Z\",\"absolute_at\":\"2026-11-24T00:20:23.321944787Z\",\"remote_addr\":\"192.168.229.1\",\"user_agent\":\"Go-http-client/1.1\",\"new_device\":false,\"idp_state\":\"\",\"idp_refreshed_at\":\"\",\"ended_at\":\"\",\"end_reason\":\"\"}\npassword_expires_soon:  false\nidle_timeout_s:         900",
+  "repository_kept": true,
+  "users": [
+    {
+      "username": "admin",
+      "role": "admin"
+    },
+    {
+      "username": "op1",
+      "role": "operator"
+    }
+  ],
+  "state_backup_of_0_1_2_kept": true,
+  "new_state_backup": "ok",
+  "op1": {
+    "stage": "enrol",
+    "password_change": null,
+    "marked": "too_short"
+  },
+  "pass": true
+}

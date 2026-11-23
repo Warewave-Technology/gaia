@@ -1,0 +1,4 @@
+gaia_0.1.2_amd64.deb: OK
+gaia 0.1.2 (b9101efd5db2), go1.27.1, linux/amd64
+active
+active

@@ -1,0 +1,13 @@
+{
+  "old": {
+    "version": "0.1.2",
+    "exit": 0,
+    "signature": "Good \"gaia-release\" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc"
+  },
+  "new": {
+    "version": "0.2.0",
+    "exit": 0,
+    "signature": "Good \"gaia-release\" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc"
+  },
+  "pass": true
+}

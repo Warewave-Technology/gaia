@@ -1,0 +1,110 @@
+{
+  "schema": {
+    "before": 15,
+    "after": 16
+  },
+  "version": {
+    "before": "0.2.0~dev.20261123081005.g0be56c342fb6 (0be56c342fb6)",
+    "after": "0.2.0 (4901ec4da20d)"
+  },
+  "points": {
+    "before": 1000,
+    "after": 1000,
+    "off_page": [
+      {
+        "id": 609,
+        "state": "pruned"
+      },
+      {
+        "id": 608,
+        "state": "pruned"
+      },
+      {
+        "id": 607,
+        "state": "pruned"
+      }
+    ],
+    "missing_after": []
+  },
+  "status_before": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-22T21:56:53.723016329Z"
+    }
+  ],
+  "status_after": [
+    {
+      "vm": "gaia-t17-web",
+      "status": "OK",
+      "changed_at": "2026-11-22T21:56:53.723016329Z"
+    }
+  ],
+  "status_changes_during_upgrade": [],
+  "jobs_failed_during_upgrade": [],
+  "next_backup": {
+    "id": 2909,
+    "state": "ok",
+    "reason": "schedule: policy t17, every 300 s"
+  },
+  "next_test": {
+    "id": 2911,
+    "state": "ok"
+  },
+  "during": {
+    "id": 2908,
+    "kind": "restore_test",
+    "state": "ok"
+  },
+  "audit": {
+    "entries": 230,
+    "intact": true,
+    "head_sha256": "6f2f94be205a82c80a9f419aee9fc8318f8ba102970d9fc01c9ebb61c10fcf5c",
+    "first_broken_seq": 0
+  },
+  "old_session": {
+    "old_session_status": 200,
+    "answer": {
+      "id": 1,
+      "username": "admin",
+      "role": "admin",
+      "source": "local",
+      "disabled": false,
+      "break_glass": true,
+      "expires_at": "",
+      "created_at": "2026-11-16T22:26:30.589110659Z",
+      "updated_at": "2026-11-16T22:26:30.589110659Z",
+      "password_changed_at": "2026-11-16T22:26:30.589110659Z",
+      "password_change": "",
+      "last_login_at": "2026-11-23T16:02:35.556378996Z",
+      "locked_until": "",
+      "factors": [
+        "webauthn"
+      ],
+      "session": {
+        "id": 6,
+        "user_id": 1,
+        "username": "admin",
+        "role": "admin",
+        "kind": "cli",
+        "method": "webauthn",
+        "break_glass": false,
+        "created_at": "2026-11-23T16:02:35.556378996Z",
+        "last_active_at": "2026-11-23T16:06:45.727363929Z",
+        "last_seen_at": "2026-11-23T16:06:45.727363929Z",
+        "absolute_at": "2026-11-24T00:02:35.556378996Z",
+        "remote_addr": "192.168.1.30",
+        "user_agent": "Go-http-client/1.1",
+        "new_device": false,
+        "idp_state": "",
+        "idp_refreshed_at": "",
+        "ended_at": "",
+        "end_reason": ""
+      },
+      "password_expires_soon": false,
+      "idle_timeout_s": 900
+    }
+  },
+  "pass": true,
+  "verdict": "OK"
+}

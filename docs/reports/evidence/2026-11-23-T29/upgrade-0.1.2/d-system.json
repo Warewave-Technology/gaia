@@ -1,0 +1,146 @@
+{
+  "version": "0.2.0 (4901ec4da20d)",
+  "schema_version": 16,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "0001_init.sql",
+      "sha256": "15cd9b5ce0eb1669c55503b38d99866fb877702373331bea66a9a3d6e3d65427",
+      "applied_at": "2026-11-23T16:20:00.764013655Z"
+    },
+    {
+      "version": 2,
+      "name": "0002_state_backups.sql",
+      "sha256": "4400c16c690dbaa068b3f4517a6fdc166d6d0555f5c8a5e899796827e5489546",
+      "applied_at": "2026-11-23T16:20:00.774288092Z"
+    },
+    {
+      "version": 3,
+      "name": "0003_backups.sql",
+      "sha256": "299eb8b7ee024822dcbcb14547ae4728f21ddc7d371d6078a6c10bd128630206",
+      "applied_at": "2026-11-23T16:20:00.785039515Z"
+    },
+    {
+      "version": 4,
+      "name": "0004_status.sql",
+      "sha256": "4a6ff0331088426b6fa6976bc4977b0636a77ad061dd85dee03dc89b8ac113cd",
+      "applied_at": "2026-11-23T16:20:00.797526399Z"
+    },
+    {
+      "version": 5,
+      "name": "0005_recovery.sql",
+      "sha256": "c57c01654d0963305963c3ee1040bb5e1e5a72d1f3ff33373307505d426eeeea",
+      "applied_at": "2026-11-23T16:20:00.803040311Z"
+    },
+    {
+      "version": 6,
+      "name": "0006_quarantine_logins.sql",
+      "sha256": "d3c7b1615d49b1225000d2a5e1a08f1397a3949c49e7154545ea19b997f9b9fa",
+      "applied_at": "2026-11-23T16:20:00.813500453Z"
+    },
+    {
+      "version": 7,
+      "name": "0007_notifications.sql",
+      "sha256": "a89635df3aa5dbd8a53722c4a7e0a5cde7872fe7cff0d55cd3c9742eafb03aff",
+      "applied_at": "2026-11-23T16:20:00.818831192Z"
+    },
+    {
+      "version": 8,
+      "name": "0008_migration_checks.sql",
+      "sha256": "5f7d09a2d14ce71cc4fd85cbad6a3f3cf988e22f4131d4bf5685b4fe2616894b",
+      "applied_at": "2026-11-23T16:20:00.830517217Z"
+    },
+    {
+      "version": 9,
+      "name": "0009_scale.sql",
+      "sha256": "93ca976c049a69d62a27437a595b580e0f9413b8607984cedbfd1f9681715fbe",
+      "applied_at": "2026-11-23T16:20:13.64145977Z"
+    },
+    {
+      "version": 10,
+      "name": "0010_scale_indexes.sql",
+      "sha256": "50a85a85213b7a6b1316e5489600b66d62b15ff86235e533177c6e3f7c25a77a",
+      "applied_at": "2026-11-23T16:20:13.65816254Z"
+    },
+    {
+      "version": 11,
+      "name": "0011_signin.sql",
+      "sha256": "98cdd32701053f369daff50194bff3c9c11ebf7b00d5776666c7d1e5c8a4533b",
+      "applied_at": "2026-11-23T16:20:13.671387637Z"
+    },
+    {
+      "version": 12,
+      "name": "0012_activity.sql",
+      "sha256": "b5fdb08e22150cc1aeca1cbd980bc7f31c3e33e38534b26203c8b9b6e9eb75fc",
+      "applied_at": "2026-11-23T16:20:13.68081252Z"
+    },
+    {
+      "version": 13,
+      "name": "0013_codes_ledger_kind.sql",
+      "sha256": "e589cdd8c53ca45a86ae39ab4ce6bbf7e4ff572ba06ea586056d9c1ec5732463",
+      "applied_at": "2026-11-23T16:20:13.700324813Z"
+    },
+    {
+      "version": 14,
+      "name": "0014_notification_categories.sql",
+      "sha256": "9836eea00ebe4af6622c532cbabd048b59f40e333cd5014484ece6223e872d9f",
+      "applied_at": "2026-11-23T16:20:13.712097619Z"
+    },
+    {
+      "version": 15,
+      "name": "0015_host_key_changed_slots.sql",
+      "sha256": "31593ecae3a83b92da3ea4f042f951f857fe27d3905d2e11fbad34c9fda45567",
+      "applied_at": "2026-11-23T16:20:13.719459853Z"
+    },
+    {
+      "version": 16,
+      "name": "0016_all_events_channels.sql",
+      "sha256": "7bccfb14c801b994adae68199c3589e59a17bcd0c48ed22d223188c146adbe7f",
+      "applied_at": "2026-11-23T16:20:13.727704299Z"
+    }
+  ],
+  "evidence_key_id": "1334727dbcfdf818c893ee948a5923a438144b5491382a8a251d1c357abba258",
+  "ssh_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPB9U7dxEXXSX+cHeeeKY25p9yxqiW6jiP/SWv7VHxrc gaia@gaia-t29u",
+  "ssh_authorized_keys_line": "restrict,port-forwarding,command=\"/usr/bin/false\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPB9U7dxEXXSX+cHeeeKY25p9yxqiW6jiP/SWv7VHxrc gaia@gaia-t29u",
+  "started_at": "2026-11-23T16:20:20Z",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "recovery_kit": {
+    "state": "confirmed",
+    "generation": 2,
+    "text": "recovery kit 2 was saved off the server on 2026-11-23T16:20:10.22725858Z by admin",
+    "confirmed_at": "2026-11-23T16:20:10.22725858Z",
+    "confirmed_by": "admin"
+  },
+  "ledger": {
+    "id": 1,
+    "checked_at": "2026-11-23T16:20:02.80433057Z",
+    "reason": "daily report (no evidence yet)",
+    "verdict": "OK",
+    "entries": 0,
+    "head_seq": 0,
+    "head_sha256": "",
+    "problems": [],
+    "kind": "full",
+    "status": "OK",
+    "code": "ok",
+    "unchecked": 0,
+    "oldest_unchecked_at": "",
+    "text": "OK at 2026-11-23T16:20:02.80433057Z: 0 entries (full check)"
+  },
+  "notifications": {
+    "state": "WARNING",
+    "channels": 0,
+    "enabled": 0,
+    "text": "no notification channel is enabled: nobody is told when a VM's status changes",
+    "failing": []
+  },
+  "daily_report_at": "07:00",
+  "hostname": "gaia-t29u",
+  "public_url": "https://gaia-t29u.lab.test:8443",
+  "clock": {
+    "now": "2026-11-23T16:20:23.641177135Z",
+    "zone": "Etc/UTC",
+    "offset_s": 0
+  }
+}

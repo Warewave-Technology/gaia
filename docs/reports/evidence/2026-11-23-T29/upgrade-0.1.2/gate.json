@@ -1,0 +1,9 @@
+{
+  "from": "0.1.2",
+  "to": "0.2.0",
+  "a": true,
+  "b": true,
+  "c": true,
+  "d": true,
+  "verdict": "OK"
+}

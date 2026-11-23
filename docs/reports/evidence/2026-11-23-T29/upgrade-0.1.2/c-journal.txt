@@ -1,0 +1,7 @@
+active
+active
+time=2026-11-23T16:20:02.804Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.1.2 (b9101efd5db2)" schema=8
+time=2026-11-23T16:20:13.731Z level=INFO msg="migrated the state database" versions="[9 10 11 12 13 14 15 16]" schema=16
+time=2026-11-23T16:20:13.732Z level=ERROR msg="security keys are not available" error="security keys are not available: public_url https://gaia-t29u:8443 cannot be WebAuthn's relying party (error occurred validating the configuration: field 'RPID' is not a valid domain string: the domain component must actually be a domain): set public_url in /etc/gaia/server.json to https://NAME:PORT with a DNS name and restart gaia (install.md step 12)"
+time=2026-11-23T16:20:13.732Z level=WARN msg="server.json: session_ttl and login_* are ignored since 0.2.0: sessions and failed sign-ins follow ADR-008 (gaia settings)" config=/etc/gaia/server.json
+time=2026-11-23T16:20:13.739Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.2.0 (4901ec4da20d)" schema=16

@@ -1,0 +1,4 @@
+
+The old one is kept as /var/lib/gaia/tls/cert.pem.replaced-20261123T162019Z. Now: systemctl restart gaia, then write a new recovery kit, which holds the certificate:
+gaia kit regenerate && gaia kit save
+active
