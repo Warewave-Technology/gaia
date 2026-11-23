@@ -137,34 +137,46 @@ function Export({ rep }: { rep: Report | null }) {
       </SectionHead>
       {err && <Notice tone="critical">{err}</Notice>}
       <TechDetails summary={t.verify}>
-        {`gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles${head}\npython3 -I verify.py ledger ledger.jsonl bundles --key anchor.pub${rep ? ` --head ledger-head-${rep.id}.json` : ''}`}
+        {`gaia evidence verify -pubkey anchor.pub -export .\ngaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles${head}\npython3 -I verify.py ledger ledger.jsonl bundles --key anchor.pub${rep ? ` --head ledger-head-${rep.id}.json` : ''}`}
       </TechDetails>
     </section>
   )
 }
 
-/** The bundle's result in its own words: a test passed or failed, a migration check ready or not. */
+/** The bundle's result in its own words: a test passed or failed, a migration check ready or not, an export recorded. */
 function result(b: EvidenceRow, t: T): string {
-  const w = b.migration_check_id !== null ? t.word.migration : t.word.test
+  const w = b.kind === 'export' ? t.word.export : b.migration_check_id !== null ? t.word.migration : t.word.test
   return (w as Record<string, string>)[b.verdict] ?? b.verdict
 }
+
+/** What the entry is: a restore test, a migration check, or the record of an evidence export (ADR-007 C7). */
+function entry(b: EvidenceRow, t: T): string {
+  if (b.kind === 'export') return t.kind.export
+  return b.migration_check_id !== null ? t.kind.migration(b.migration_check_id) : t.kind.test(b.test_id ?? 0)
+}
+
+const KINDS = ['test', 'migration', 'export'] as const
+type Kind = (typeof KINDS)[number]
+const isKind = (k: string): k is Kind => (KINDS as readonly string[]).includes(k)
 
 /** The sealed bundles, each a ledger entry, newest first, one page at a time; the filters live in the URL. */
 function Entries({ fmt }: { fmt: Fmt }) {
   const t = useT().evidence
   const [f, setF] = useFilters(KEYS)
   const filter: EvidenceFilter = {
-    ...(f.kind === 'test' || f.kind === 'migration' ? { kind: f.kind } : {}),
+    ...(isKind(f.kind) ? { kind: f.kind } : {}),
     ...(f.result === 'failed' ? { verdict: 'CRITICAL' as const } : {}),
   }
   const pages = useEvidencePages(filter)
   const cols: Column<EvidenceRow>[] = [
     { key: 'seq', header: t.col.seq, numeric: true, width: '96px', cell: (b) => <span className={s.mono}>{b.ledger_seq.toLocaleString('en-US')}</span> },
     { key: 'when', header: t.col.when, width: '150px', cell: (b) => fmt.at(b.created_at) },
-    { key: 'entry', header: t.col.entry, width: '190px', cell: (b) => (b.migration_check_id !== null ? t.kind.migration(b.migration_check_id) : t.kind.test(b.test_id ?? 0)) },
-    { key: 'vm', header: t.col.vm, title: (b) => b.vm || undefined, cell: (b) => (b.vm_id !== null
-      ? <Link className={s.vm} to={`/vms/${b.vm_id}`}>{b.vm || t.vmN(b.vm_id)}</Link>
-      : <Link className={s.vm} to="/migration">{b.vm || t.migration}</Link>) },
+    { key: 'entry', header: t.col.entry, width: '190px', cell: (b) => entry(b, t) },
+    { key: 'vm', header: t.col.vm, title: (b) => b.vm || undefined, cell: (b) => (b.kind === 'export'
+      ? <span>{t.by(b.by)}</span>
+      : b.vm_id !== null
+        ? <Link className={s.vm} to={`/vms/${b.vm_id}`}>{b.vm || t.vmN(b.vm_id)}</Link>
+        : <Link className={s.vm} to="/migration">{b.vm || t.migration}</Link>) },
     { key: 'result', header: t.col.result, width: '240px', cell: (b) => (
       <>
         <StatusChip status={b.verdict} size="xs" word={result(b, t)} />
@@ -181,6 +193,7 @@ function Entries({ fmt }: { fmt: Fmt }) {
         <FilterChip set={!any} onClick={() => setF({ kind: '', result: '' })}>{t.f.clear}</FilterChip>
         <FilterChip set={f.kind === 'test'} onClick={() => setF({ kind: f.kind === 'test' ? '' : 'test' })}>{t.f.tests}</FilterChip>
         <FilterChip set={f.kind === 'migration'} onClick={() => setF({ kind: f.kind === 'migration' ? '' : 'migration' })}>{t.f.migrations}</FilterChip>
+        <FilterChip set={f.kind === 'export'} onClick={() => setF({ kind: f.kind === 'export' ? '' : 'export' })}>{t.f.exports}</FilterChip>
         <FilterChip set={f.result === 'failed'} onClick={() => setF({ result: f.result === 'failed' ? '' : 'failed' })}>{t.f.failed}</FilterChip>
       </Toolbar>
       {pages.isError ? <Failed error={pages.error} onRetry={() => pages.refetch()} /> : (

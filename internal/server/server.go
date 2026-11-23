@@ -237,6 +237,7 @@ type Server struct {
 	testFreed  chan struct{}    // a restore test ended: its slot goes to the next queued test now (testqueue.go)
 	ledgerMu   sync.Mutex       // one ledger check at a time
 	reportMu   sync.Mutex       // one daily report at a time
+	exportMu   sync.Mutex       // one evidence export at a time: its record (a bundle) is not in another export's half-read ledger
 	// Set by gaia server restore-state: the lost server may have made checkpoints after its last state backup with
 	// the job IDs this one issues again, so names made on hosts after a rebuild carry the rebuild's tag.
 	restoreTag string

@@ -2402,8 +2402,10 @@ export interface components {
         EvidenceRow: {
             bundle_id: string;
             bundle_sha256: string;
+            by: string;
             created_at: string;
             id: number;
+            kind: string;
             ledger_seq: number;
             migration_check_id: number | null;
             proven_rto_s: number | null;
@@ -11804,7 +11806,7 @@ export interface operations {
                 before?: number;
                 /** @description at most this many (default 25, at most 200) */
                 limit?: number;
-                /** @description test or migration: only restore tests' or migration checks' entries */
+                /** @description test, migration or export: only restore tests', migration checks' or evidence exports' entries */
                 kind?: string;
                 /** @description OK, WARNING, CRITICAL or UNKNOWN: only entries with this verdict */
                 verdict?: string;

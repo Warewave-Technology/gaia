@@ -29,3 +29,19 @@
   are counted in the daily report instead of being notified one by one.
 - A new event, `capacity_short`, when the proof capacity drops below 100 %; channels that take `job_failed` get it.
 - The evidence ledger is checked every hour (incremental) and in full with the daily report.
+
+### Evidence export (T28, ADR-007 C7)
+
+- The export's `SHA256SUMS` is signed with the installation's evidence key: `SHA256SUMS.sig` (JSON: `key_id`, the
+  public key in the specification's form, the Ed25519 signature of the file's bytes). It shows the files did not
+  change on the way; it is not a trust anchor: `README.txt` still says to compare the key_ids with a daily report
+  received by email first.
+- Every export is recorded as an evidence bundle of its own (`export-<time>-<random>`), with its ledger entry: who
+  made it, scope, period, and the SHA-256 of its `SHA256SUMS`. The record is made once the export is complete, so it
+  is in the server's ledger and in every later export, not in the one it records. Any Restore Evidence Format v1
+  verifier checks it unchanged (no new ledger entry type). An export that cannot be recorded (a ledger that is not
+  intact) is refused. The Evidence screen lists the records as exports, by whom.
+- `gaia evidence verify -pubkey anchor.pub -export DIR` checks an unpacked export: every file against `SHA256SUMS`,
+  the signature against the key the ledger leads to from the anchor, the ledger with every bundle and the export's
+  daily-report head, and lists the exports the ledger records. A missing `SHA256SUMS.sig` (an export made before
+  0.2.0) is UNKNOWN, never OK.

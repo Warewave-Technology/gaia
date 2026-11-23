@@ -632,22 +632,38 @@ JavaScript; without it, use `gaia status`.
 
 The **evidence export** is what an auditor takes away. It holds every bundle, the ledger, the trust anchor and
 the current public key, the newest daily report with its signed ledger head, the evidence specification, a list of
-every restore test, `SHA256SUMS`, and a `README.txt` that says how to verify it without Gaia's server. From the
-command line (as `admin` or `auditor`):
+every restore test, `SHA256SUMS` with its signature `SHA256SUMS.sig`, and a `README.txt` that says how to verify it
+without Gaia's server. From the command line (as `admin` or `auditor`; it asks for your second factor):
 
 ```bash
 gaia evidence export-all -o gaia-evidence.tar.gz
 ```
 
-Verify it on any machine, after unpacking it:
+Every export is recorded in the evidence ledger as a bundle of its own (the command prints its name, e.g.
+`export-20261123T101500Z-3f9a1c`): who made it, its scope and period, and the SHA-256 of its `SHA256SUMS`. The
+record is sealed once the export is complete, so it is in the server's ledger and in every later export. A server
+whose ledger is not intact refuses the export, because it cannot record it; the Evidence screen shows why.
+
+Verify it on any machine, after unpacking it. First compare the trust anchor's `key_id` and the `key_id` that
+signed `SHA256SUMS` (both in `README.txt`) with the one recorded in step 4, or with the `evidence_key_id` of a daily
+report that reached you by email. The signature only shows that the files did not change on the way; the key_id
+comparison is what makes the key trusted. Then, in the export's directory:
+
+```bash
+gaia evidence verify -pubkey anchor.pub -export .
+```
+
+It checks every file against `SHA256SUMS`, the signature against the key the ledger leads to from the anchor, the
+ledger with every bundle and the export's daily-report head (`ledger-head-<n>.json`), and lists the earlier exports
+the ledger records. OK exits 0, CRITICAL 2, UNKNOWN 3 (for example an export made before 0.2.0, which has no
+`SHA256SUMS.sig`). The ledger alone, as before:
 
 ```bash
 gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head ledger-head-<n>.json
 ```
 
-`<n>` is the daily report in the export (`ls ledger-head-*.json`). Compare the trust anchor's `key_id` in
-`README.txt` with the one recorded in step 4 first. A daily report that reached you by email is a stronger anchor
-than the one in the export: give it with `-head` as well.
+A daily report that reached you by email is a stronger anchor than the one in the export: give it with `-head` as
+well.
 
 ## 10d. Migration checks (optional)
 

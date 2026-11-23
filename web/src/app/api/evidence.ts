@@ -11,7 +11,7 @@ export type EvidenceRow = components['schemas']['EvidenceRow']
 /** The ledger summary with ADR-007 C14's fields, which a newer server sends. */
 export type LedgerSummary = components['schemas']['LedgerSummary'] & { status?: string; code?: string; oldest_unchecked_at?: string | null }
 
-export type EvidenceFilter = { kind?: 'test' | 'migration'; verdict?: 'CRITICAL' }
+export type EvidenceFilter = { kind?: 'test' | 'migration' | 'export'; verdict?: 'CRITICAL' }
 
 export function useEvidencePages(f: EvidenceFilter) {
   return usePages(['evidence', 'view', f], async (before, limit) => {
