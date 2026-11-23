@@ -90,8 +90,8 @@ func TestCapacityShort(t *testing.T) {
 	if st, _, err := f.s.storedStatus(ctx, f.ids["vms"]); err != nil || strings.Contains(st.Reasons[0].Text, "capacity") {
 		t.Fatalf("VM status: %+v %v", st.Reasons, err)
 	}
-	// Category jobs: a channel that takes job_failed gets it; one that takes only status does not.
-	if !channelTakes([]string{evJobFailed}, evCapacityShort) || channelTakes([]string{evStatus}, evCapacityShort) || !channelTakes([]string{evCapacityShort}, evCapacityShort) {
+	// Category jobs (ADR-007 C17 item 4): a channel that takes jobs gets it; one that takes only status does not.
+	if !channelTakes(store.Channel{Categories: []string{catJobs}}, evCapacityShort) || channelTakes(store.Channel{Categories: []string{catStatus}}, evCapacityShort) {
 		t.Fatal("channelTakes")
 	}
 }

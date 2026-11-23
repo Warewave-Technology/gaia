@@ -13,35 +13,69 @@ import (
 
 // Channel is where notifications go. Config holds no secrets.
 type Channel struct {
-	ID        int64           `json:"id"`
-	Name      string          `json:"name"`
-	Kind      string          `json:"kind"` // smtp or webhook
-	Config    json.RawMessage `json:"config"`
-	Events    []string        `json:"events"`
-	Enabled   bool            `json:"enabled"`
-	Cursor    int64           `json:"cursor"` // the last state change turned into notifications
-	CreatedAt string          `json:"created_at"`
-	UpdatedAt string          `json:"updated_at"`
+	ID     int64           `json:"id"`
+	Name   string          `json:"name"`
+	Kind   string          `json:"kind"` // smtp or webhook
+	Config json.RawMessage `json:"config"`
+	// Categories are the kinds of event the channel takes (ADR-007 C8), of status, jobs, integrity, security and
+	// migration, in that order. A new event of a category reaches the channels that take the category.
+	Categories []string `json:"categories"`
+	// DailyReport: the channel takes the daily report, which belongs to no category.
+	DailyReport bool `json:"daily_report"`
+	// M2Events is the event list of a channel added before 0.2.0, as it was when schema 14 mapped it to categories
+	// ([] for a channel added since). It only says what the channel had; the categories decide what it gets.
+	M2Events  []string `json:"m2_events"`
+	Enabled   bool     `json:"enabled"`
+	Cursor    int64    `json:"cursor"` // the last state change turned into notifications
+	CreatedAt string   `json:"created_at"`
+	UpdatedAt string   `json:"updated_at"`
 }
 
-const channelCols = `id, name, kind, config, events, enabled, cursor, created_at, updated_at`
+// ChannelCategoriesEntity is the state_changes entity of a change in what a channel takes. From and to are JSON,
+// {"categories":[...],"daily_report":true|false}; schema 14's mapping of an M2 list has {"events":[...]} as from.
+const ChannelCategoriesEntity = "notification_channel_categories"
+
+const channelCols = `id, name, kind, config, categories, daily_report, m2_events, enabled, cursor, created_at, updated_at`
 
 func scanChannel(s interface{ Scan(...any) error }) (Channel, error) {
 	var c Channel
-	var cfg, events string
-	if err := s.Scan(&c.ID, &c.Name, &c.Kind, &cfg, &events, &c.Enabled, &c.Cursor, &c.CreatedAt, &c.UpdatedAt); err != nil {
+	var cfg, cats, m2 string
+	if err := s.Scan(&c.ID, &c.Name, &c.Kind, &cfg, &cats, &c.DailyReport, &m2, &c.Enabled, &c.Cursor, &c.CreatedAt, &c.UpdatedAt); err != nil {
 		return c, err
 	}
 	c.Config = json.RawMessage(cfg)
-	if err := json.Unmarshal([]byte(events), &c.Events); err != nil {
-		return c, fmt.Errorf("channel %d: events: %w", c.ID, err)
+	if err := json.Unmarshal([]byte(cats), &c.Categories); err != nil {
+		return c, fmt.Errorf("channel %d: categories: %w", c.ID, err)
+	}
+	if err := json.Unmarshal([]byte(m2), &c.M2Events); err != nil {
+		return c, fmt.Errorf("channel %d: m2_events: %w", c.ID, err)
 	}
 	return c, nil
 }
 
-// AddChannel records a channel. It starts at the newest state change: it reports what happens from now on.
+// subscription is what a channel takes, as a state_changes value.
+func subscription(categories []string, dailyReport bool) (string, error) {
+	if categories == nil {
+		categories = []string{}
+	}
+	b, err := json.Marshal(struct {
+		Categories  []string `json:"categories"`
+		DailyReport bool     `json:"daily_report"`
+	}{categories, dailyReport})
+	return string(b), err
+}
+
+// AddChannel records a channel with its categories (the caller checks them) and daily report. It starts at the newest
+// state change: it reports what happens from now on.
 func (d *DB) AddChannel(ctx context.Context, actor string, c Channel) (Channel, error) {
-	events, err := json.Marshal(c.Events)
+	if c.Categories == nil {
+		c.Categories = []string{}
+	}
+	cats, err := json.Marshal(c.Categories)
+	if err != nil {
+		return c, err
+	}
+	sub, err := subscription(c.Categories, c.DailyReport)
 	if err != nil {
 		return c, err
 	}
@@ -52,18 +86,60 @@ func (d *DB) AddChannel(ctx context.Context, actor string, c Channel) (Channel, 
 			return err
 		}
 		now := d.ts()
-		r, err := tx.ExecContext(ctx, `INSERT INTO notification_channels (name, kind, config, events, enabled, cursor, created_at, updated_at)
-			VALUES (?, ?, ?, ?, 1, ?, ?, ?)`, c.Name, c.Kind, string(c.Config), string(events), cursor, now, now)
+		r, err := tx.ExecContext(ctx, `INSERT INTO notification_channels (name, kind, config, categories, daily_report, m2_events, enabled, cursor, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, '[]', 1, ?, ?, ?)`, c.Name, c.Kind, string(c.Config), string(cats), c.DailyReport, cursor, now, now)
 		if err != nil {
 			return err
 		}
 		if id, err = r.LastInsertId(); err != nil {
 			return err
 		}
-		return d.recordState(ctx, tx, "notification_channel", id, "", "enabled", fmt.Sprintf("%s channel %s added, events %v", c.Kind, c.Name, c.Events), actor)
+		if err := d.recordState(ctx, tx, "notification_channel", id, "", "enabled", fmt.Sprintf("%s channel %s added", c.Kind, c.Name), actor); err != nil {
+			return err
+		}
+		return d.recordState(ctx, tx, ChannelCategoriesEntity, id, "", sub,
+			fmt.Sprintf("channel %s added: categories %s, daily report %t", c.Name, cats, c.DailyReport), actor)
 	})
 	if err != nil {
 		return c, err
+	}
+	return d.Channel(ctx, id)
+}
+
+// SetChannelCategories changes what a channel takes (the caller checks the categories); a change is a state change
+// (ChannelCategoriesEntity). The cursor stays: from the next state change on, the new categories decide.
+func (d *DB) SetChannelCategories(ctx context.Context, actor string, id int64, categories []string, dailyReport bool, reason string) (Channel, error) {
+	if categories == nil {
+		categories = []string{}
+	}
+	cats, err := json.Marshal(categories)
+	if err != nil {
+		return Channel{}, err
+	}
+	sub, err := subscription(categories, dailyReport)
+	if err != nil {
+		return Channel{}, err
+	}
+	err = d.tx(ctx, func(tx *sql.Tx) error {
+		c, err := scanChannel(tx.QueryRowContext(ctx, `SELECT `+channelCols+` FROM notification_channels WHERE id = ?`, id))
+		if err != nil {
+			return notFound("notification channel", id, err)
+		}
+		old, err := subscription(c.Categories, c.DailyReport)
+		if err != nil {
+			return err
+		}
+		if old == sub {
+			return nil
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE notification_channels SET categories = ?, daily_report = ?, updated_at = ? WHERE id = ?`,
+			string(cats), dailyReport, d.ts(), id); err != nil {
+			return err
+		}
+		return d.recordState(ctx, tx, ChannelCategoriesEntity, id, old, sub, reason, actor)
+	})
+	if err != nil {
+		return Channel{}, err
 	}
 	return d.Channel(ctx, id)
 }
@@ -426,28 +502,18 @@ func (d *DB) AddDailyReport(ctx context.Context, r DailyReport, subject string, 
 			VALUES (?, ?, ?, ?, ?, ?, ?)`, r.ID, r.GeneratedAt, r.Reason, r.HeadSeq, r.HeadSHA256, head, string(r.Report)); err != nil {
 			return err
 		}
-		rows, err := tx.QueryContext(ctx, `SELECT id, events FROM notification_channels WHERE enabled = 1`)
+		rows, err := tx.QueryContext(ctx, `SELECT id FROM notification_channels WHERE enabled = 1 AND daily_report = 1 ORDER BY id`)
 		if err != nil {
 			return err
 		}
 		var ids []int64
 		for rows.Next() {
 			var id int64
-			var events string
-			if err := rows.Scan(&id, &events); err != nil {
+			if err := rows.Scan(&id); err != nil {
 				rows.Close()
 				return err
 			}
-			var es []string
-			if err := json.Unmarshal([]byte(events), &es); err != nil {
-				rows.Close()
-				return err
-			}
-			for _, e := range es {
-				if e == "daily_report" {
-					ids = append(ids, id)
-				}
-			}
+			ids = append(ids, id)
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {

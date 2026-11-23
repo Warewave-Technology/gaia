@@ -712,26 +712,8 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.Channel(c.r.Context(), id))
 			}},
-		{method: "PATCH", path: "/api/v1/notification-channels/{id}", summary: "Turn a channel off or on (on again, it starts from now)", roles: adminOnly,
-			in: ChannelUpdate{}, out: store.Channel{}, example: `{"enabled":false,"reason":"mail server replaced"}`,
-			h: func(c *call) (int, any, error) {
-				id, err := c.id("id")
-				if err != nil {
-					return 0, nil, err
-				}
-				var in ChannelUpdate
-				if err := c.decode(&in); err != nil {
-					return 0, nil, err
-				}
-				if in.Enabled == nil {
-					return 0, nil, fmt.Errorf("%w: \"enabled\" is required", store.ErrInvalid)
-				}
-				reason := in.Reason
-				if reason == "" {
-					reason = "changed by " + c.user.Username
-				}
-				return one(s.db.SetChannelEnabled(c.r.Context(), c.user.Username, id, *in.Enabled, reason))
-			}},
+		{method: "PATCH", path: "/api/v1/notification-channels/{id}", summary: "Turn a channel off or on (on again, it starts from now), or change its categories and daily report",
+			roles: adminOnly, in: ChannelUpdate{}, out: store.Channel{}, example: `{"enabled":false,"reason":"mail server replaced"}`, h: s.updateChannel},
 		{method: "POST", path: "/api/v1/notification-channels/{id}/test", summary: "Send a test message now; the answer is the notification with its outcome",
 			roles: adminOnly, out: store.Notification{}, h: s.testChannel},
 		{method: "GET", path: "/api/v1/notifications", summary: "Messages sent or to be sent, newest first", roles: []string{store.RoleAdmin, store.RoleOperator},

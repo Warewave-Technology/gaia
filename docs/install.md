@@ -323,10 +323,21 @@ gaia channels test <channel id>
 Gaia keeps trying (after 1, 2, 4 ... minutes, at most hourly, for 24 hours). Until every enabled channel delivers,
 `gaia status` ends with `WARNING notifications: ...`, and with no channel at all it says nobody is told.
 
-`events=` limits a channel to some events, for example `events='["status","daily_report"]'`. The events are
-`status`, `job_failed`, `integrity`, `quarantine`, `ledger`, `full_backup` (a backup was full although the VM had an
-earlier one: its checkpoint was gone from the host, a disk was resized, a quarantine) and `daily_report`. A channel
-added before 0.1.1 keeps the events it was added with; to get `full_backup` too, turn it off and add it again.
+A channel takes every **category** of events unless `categories=` limits it, for example
+`categories='["status","security"]'`, and the daily report unless `daily_report=false`. A new event of a category
+reaches the channels that take the category. The categories and their events:
+
+| Category | Events |
+|---|---|
+| `status` | `status`: a VM's status changed, with the reason |
+| `jobs` | `job_failed` (a backup, restore test, verification or state backup failed), `full_backup` (a backup was full although the VM had an earlier one: its checkpoint was gone from the host, a disk was resized, a quarantine), `capacity_short` (the restore tests cannot keep every proof fresh) |
+| `integrity` | `integrity` (a verification found damage), `quarantine`, `ledger` (the evidence ledger does not verify, or verifies again) |
+| `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed` |
+| `migration` | `migration_check_finished` (a migration check ended `WARNING`, `CRITICAL` or `UNKNOWN`) |
+
+`gaia channels set <id> categories='[...]'` or `daily_report=true|false` changes what a channel takes. A channel
+added before 0.2.0 was mapped at the upgrade from its event list (still shown as `m2_events`) to the categories of
+those events, and to `security`; it does not get `migration` until you add it (release notes, 0.2.0).
 The daily report goes out at
 `daily_report_at` (in `/etc/gaia/server.json`, default `07:00`, server time); `gaia daily-reports run` sends one now.
 A channel is turned off with `gaia channels set <id> enabled=false` (and on again with `enabled=true`; it then

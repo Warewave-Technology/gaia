@@ -27,5 +27,35 @@
 - A policy says how much of the time its VMs can be OK at best (`max_ok_fraction`) and which test interval would make
   it always possible (`suggested_test_interval_s`). OK/WARNING changes caused only by the proof's age on such a policy
   are counted in the daily report instead of being notified one by one.
-- A new event, `capacity_short`, when the proof capacity drops below 100 %; channels that take `job_failed` get it.
+- A new event, `capacity_short`, when the proof capacity drops below 100 % (category `jobs`).
 - The evidence ledger is checked every hour (incremental) and in full with the daily report.
+
+### Notification categories (ADR-007 C8, T28)
+
+- **Channels take categories, not a list of events**, so a new event of a category reaches every channel that takes
+  the category:
+
+  | Category | Events |
+  |---|---|
+  | `status` | `status` |
+  | `jobs` | `job_failed`, `full_backup`, `capacity_short` |
+  | `integrity` | `integrity`, `quarantine`, `ledger` |
+  | `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed` |
+  | `migration` | `migration_check_finished` |
+
+  The daily report belongs to no category: a channel takes it when its `daily_report` is true. A test message
+  (`gaia channels test ID`) goes to the channel it is asked for, whatever it takes.
+- New events: `migration_check_finished` when a migration check ends `WARNING`, `CRITICAL` or `UNKNOWN` (not `OK`),
+  with the VM, the source, the readiness and the reason; `settings_changed` when the sign-in and security settings
+  change, naming the settings that changed (not their values).
+- **Channels from 0.1.x are mapped at the upgrade:** each keeps its event list, readable as `m2_events`, and gets every
+  category one of its events belongs to, whole (a channel that took only `quarantine` now also gets `integrity` and
+  `ledger`); it takes the daily report when its list held `daily_report`. Every channel of 0.1.x also gets
+  `security`, since the upgrade gives the sign-in events to every existing channel. No 0.1.x event belongs to
+  `migration`, so no existing channel gets it: add it with
+  `gaia channels set ID categories='["status","jobs","integrity","security","migration"]'`. Each channel's mapping is
+  in `gaia state-changes list` (entity `notification_channel_categories`, with the list before and the categories
+  after).
+- API: `categories` (default: all five) and `daily_report` (default true) on create; `PATCH` changes them as well as
+  `enabled`. A channel shows `categories`, `daily_report` and `m2_events`; `events` is no longer shown. `events` is
+  still accepted on create in 0.2.x (deprecated), mapped to categories as above; giving both is refused.

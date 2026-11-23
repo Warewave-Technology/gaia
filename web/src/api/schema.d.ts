@@ -877,7 +877,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Turn a channel off or on (on again, it starts from now) */
+        /** Turn a channel off or on (on again, it starts from now), or change its categories and daily report */
         patch: operations["patch_notification_channels_by_id"];
         trace?: never;
     };
@@ -2253,19 +2253,27 @@ export interface components {
             what_if?: components["schemas"]["WhatIf"] | null;
         };
         Channel: {
+            categories: string[];
             /** @description any JSON value */
             config: unknown;
             created_at: string;
             cursor: number;
+            daily_report: boolean;
             enabled: boolean;
-            events: string[];
             id: number;
             kind: string;
+            m2_events: string[];
             name: string;
             updated_at: string;
         };
         ChannelCreate: {
-            events: string[];
+            categories?: string[];
+            daily_report?: boolean | null;
+            /**
+             * @deprecated
+             * @description Deprecated: give categories (and daily_report); events are mapped to the categories they belong to, whole
+             */
+            events?: string[];
             kind: string;
             name: string;
             smtp?: components["schemas"]["SMTPConfig"] | null;
@@ -2274,20 +2282,24 @@ export interface components {
             webhook_secret?: string;
         };
         ChannelCreated: {
+            categories: string[];
             /** @description any JSON value */
             config: unknown;
             created_at: string;
             cursor: number;
+            daily_report: boolean;
             enabled: boolean;
-            events: string[];
             id: number;
             kind: string;
+            m2_events: string[];
             name: string;
             updated_at: string;
             webhook_secret?: string;
         };
         ChannelUpdate: {
-            enabled: boolean | null;
+            categories?: string[];
+            daily_report?: boolean | null;
+            enabled?: boolean | null;
             reason: string;
         };
         Check: {

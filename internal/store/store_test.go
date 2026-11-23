@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -61,14 +62,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}) || Latest() != 13 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}) || Latest() != 14 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 13 || applied[12].Name != "0013_codes_ledger_kind.sql" {
+	if err != nil || len(applied) != 14 || applied[13].Name != "0014_notification_categories.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -111,6 +112,19 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		VALUES (?, 'vm_status', 1, 'OK', 'WARNING', 'x', 'system', 'proof_too_old')`, now); err != nil {
 		t.Fatal(err)
 	}
+	// Schema 14 (ADR-007 C8): channels of 0.1.2 with their event lists (0.1.2's default list, one event, the report
+	// alone) take categories; schema 11 gave every one of them the security events first.
+	m2 := map[string]string{
+		"all":        `["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]`,
+		"quarantine": `["quarantine"]`,
+		"report":     `["daily_report"]`,
+	}
+	for _, name := range []string{"all", "quarantine", "report"} {
+		if _, err := old.SQL().ExecContext(ctx, `INSERT INTO notification_channels (name, kind, config, events, enabled, cursor, created_at, updated_at)
+			VALUES (?, 'webhook', '{"url":"https://hooks.example.org/"}', ?, 1, 0, ?, ?)`, name, m2[name], now, now); err != nil {
+			t.Fatal(err)
+		}
+	}
 	done, err := old.Migrate(ctx, 0)
 	var want []int
 	for v := releasedSchema + 1; v <= Latest(); v++ {
@@ -140,6 +154,60 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	}
 	if hs, err := old.Hosts(ctx); err != nil || len(hs) != 1 || hs[0].Name != "kvm1" {
 		t.Fatalf("hosts %+v %v", hs, err)
+	}
+	chans, err := old.Channels(ctx)
+	if err != nil || len(chans) != 3 {
+		t.Fatalf("channels after the upgrade %+v %v", chans, err)
+	}
+	security := []string{"account_locked", "breakglass_signin", "new_device_signin"}
+	for _, want := range []struct {
+		name  string
+		cats  []string
+		daily bool
+		m2    []string
+	}{
+		{"all", []string{"status", "jobs", "integrity", "security"}, true,
+			append([]string{"daily_report", "full_backup", "integrity", "job_failed", "ledger", "quarantine", "status"}, security...)},
+		{"quarantine", []string{"integrity", "security"}, false, append(security, "quarantine")},
+		{"report", []string{"security"}, true, append(security, "daily_report")},
+	} {
+		i := slices.IndexFunc(chans, func(c Channel) bool { return c.Name == want.name })
+		c := chans[i]
+		m2 := slices.Sorted(slices.Values(c.M2Events))
+		if !slices.Equal(c.Categories, want.cats) || c.DailyReport != want.daily || !slices.Equal(m2, slices.Sorted(slices.Values(want.m2))) || !c.Enabled {
+			t.Fatalf("channel %s after the upgrade: %+v, want categories %v, daily report %t, m2 events %v", want.name, c, want.cats, want.daily, want.m2)
+		}
+		sc, err := old.StateChanges(ctx, ChannelCategoriesEntity, c.ID, 0, 10)
+		if err != nil || len(sc) != 1 || !strings.HasPrefix(sc[0].From, `{"events":[`) || sc[0].Actor != "system" ||
+			!strings.Contains(sc[0].Reason, "-> categories") || sc[0].At == "" {
+			t.Fatalf("channel %s: the recorded mapping %+v %v", want.name, sc, err)
+		}
+		var to struct {
+			Categories  []string `json:"categories"`
+			DailyReport bool     `json:"daily_report"`
+		}
+		if err := json.Unmarshal([]byte(sc[0].To), &to); err != nil || !slices.Equal(to.Categories, want.cats) || to.DailyReport != want.daily {
+			t.Fatalf("channel %s: recorded to %q %v", want.name, sc[0].To, err)
+		}
+		if _, err := time.Parse(time.RFC3339Nano, sc[0].At); err != nil {
+			t.Fatalf("channel %s: the mapping's time %q: %v", want.name, sc[0].At, err)
+		}
+	}
+	// A daily report goes to the channels whose list held daily_report.
+	if _, err := old.AddDailyReport(ctx, DailyReport{ID: 1, GeneratedAt: now, Reason: "test", LedgerHead: json.RawMessage("null"), Report: json.RawMessage(`{}`)},
+		"report", json.RawMessage(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, c := range chans {
+		if ns, err := old.Notifications(ctx, c.ID, 5); err != nil {
+			t.Fatal(err)
+		} else if len(ns) > 0 {
+			got = append(got, c.Name)
+		}
+	}
+	if slices.Sort(got); !slices.Equal(got, []string{"all", "report"}) {
+		t.Fatalf("the daily report went to %v", got)
 	}
 	fresh := migrated(t)
 	a, _ := old.Schema(ctx)

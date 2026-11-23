@@ -796,6 +796,12 @@
       "Channel": {
         "additionalProperties": false,
         "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "config": {
             "description": "any JSON value"
           },
@@ -805,20 +811,23 @@
           "cursor": {
             "type": "integer"
           },
-          "enabled": {
+          "daily_report": {
             "type": "boolean"
           },
-          "events": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+          "enabled": {
+            "type": "boolean"
           },
           "id": {
             "type": "integer"
           },
           "kind": {
             "type": "string"
+          },
+          "m2_events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "name": {
             "type": "string"
@@ -828,13 +837,15 @@
           }
         },
         "required": [
+          "categories",
           "config",
           "created_at",
           "cursor",
+          "daily_report",
           "enabled",
-          "events",
           "id",
           "kind",
+          "m2_events",
           "name",
           "updated_at"
         ],
@@ -843,7 +854,21 @@
       "ChannelCreate": {
         "additionalProperties": false,
         "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "daily_report": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "events": {
+            "deprecated": true,
+            "description": "Deprecated: give categories (and daily_report); events are mapped to the categories they belong to, whole",
             "items": {
               "type": "string"
             },
@@ -883,7 +908,6 @@
           }
         },
         "required": [
-          "events",
           "kind",
           "name"
         ],
@@ -892,6 +916,12 @@
       "ChannelCreated": {
         "additionalProperties": false,
         "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "config": {
             "description": "any JSON value"
           },
@@ -901,20 +931,23 @@
           "cursor": {
             "type": "integer"
           },
-          "enabled": {
+          "daily_report": {
             "type": "boolean"
           },
-          "events": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+          "enabled": {
+            "type": "boolean"
           },
           "id": {
             "type": "integer"
           },
           "kind": {
             "type": "string"
+          },
+          "m2_events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "name": {
             "type": "string"
@@ -927,13 +960,15 @@
           }
         },
         "required": [
+          "categories",
           "config",
           "created_at",
           "cursor",
+          "daily_report",
           "enabled",
-          "events",
           "id",
           "kind",
+          "m2_events",
           "name",
           "updated_at"
         ],
@@ -942,6 +977,18 @@
       "ChannelUpdate": {
         "additionalProperties": false,
         "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "daily_report": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "enabled": {
             "type": [
               "boolean",
@@ -953,7 +1000,6 @@
           }
         },
         "required": [
-          "enabled",
           "reason"
         ],
         "type": "object"
@@ -11773,7 +11819,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Turn a channel off or on (on again, it starts from now)",
+        "summary": "Turn a channel off or on (on again, it starts from now), or change its categories and daily report",
         "tags": [
           "notification-channels"
         ],

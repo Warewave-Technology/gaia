@@ -32,13 +32,14 @@ import (
 
 	"github.com/Warewave-Technology/gaia/internal/status"
 	"github.com/Warewave-Technology/gaia/internal/store"
+	"github.com/Warewave-Technology/gaia/internal/verify"
 )
 
 // Notifications (ADR-007 §10, T19). Events come from state_changes: each channel keeps a cursor there, so an event is
 // queued once per channel even across restarts, and a message that cannot be sent is tried again with a growing pause
 // until giveUpAfter. Email goes through an SMTP server, webhooks are HTTPS POSTs signed with an HMAC.
 
-// Event kinds a channel can take.
+// Event kinds.
 const (
 	evStatus     = "status"       // a VM's status changed, with the reason
 	evJobFailed  = "job_failed"   // a backup, restore test, verification or state backup failed
@@ -46,30 +47,94 @@ const (
 	evQuarantine = "quarantine"   // damaged contents were quarantined (ADR-007 B3)
 	evLedger     = "ledger"       // the evidence ledger does not verify, or verifies again
 	evFullBackup = "full_backup"  // a backup was full although the VM had an earlier one (a checkpoint gone from the host, a disk resized, a quarantine)
-	evDaily      = "daily_report" // the daily report (report.go)
-	// Sign-in events that notify admins (ADR-008 §1, §5, §7).
+	evDaily      = "daily_report" // the daily report (report.go); a channel takes it or not, it has no category
+	// Sign-in events that notify admins (ADR-008 §1, §5, §7, §10).
 	evBreakglass = "breakglass_signin" // a break-glass admin signed in locally while single sign-on is on
 	evNewDevice  = "new_device_signin" // a sign-in from a device or address not seen for the user in 30 days
 	evLocked     = "account_locked"    // an account paused after 10 failed sign-ins in 15 minutes
-	evTest       = "test"              // a test message sent on request
-	// The proof capacity's coverage dropped below 100 % (ADR-007 C13): fleet-level, category jobs.
+	evSettings   = "settings_changed"  // the sign-in and security settings changed (ADR-008 §10)
+	evTest       = "test"              // a test message sent on request, to that channel whatever it takes
+	// The proof capacity's coverage dropped below 100 % (ADR-007 C13): fleet-level.
 	evCapacityShort = "capacity_short"
+	// A migration check ended with a readiness other than OK (ADR-007 C8).
+	evMigrationCheck = "migration_check_finished"
 )
 
-var allEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily, evBreakglass, evNewDevice, evLocked,
-	evCapacityShort}
+// Notification categories (ADR-007 C8): a channel takes categories, and every event of a category it takes, also
+// one added in a later version.
+const (
+	catStatus    = "status"
+	catJobs      = "jobs"
+	catIntegrity = "integrity"
+	catSecurity  = "security"
+	catMigration = "migration"
+)
 
-// eventCategory is an event's notification category (ADR-007 C8, C13), for the events that have one so far: a channel
-// that takes job_failed, the jobs event of M2, also gets the newer events of the jobs category.
-var eventCategory = map[string]string{evJobFailed: "jobs", evCapacityShort: "jobs"}
+// allCategories are the categories in their order in a channel's list; a new channel takes them all by default.
+var allCategories = []string{catStatus, catJobs, catIntegrity, catSecurity, catMigration}
 
-// channelTakes says whether a channel with these events gets an event: listed, or of the category of one listed.
-func channelTakes(events []string, ev string) bool {
-	if slices.Contains(events, ev) {
-		return true
+// eventCategory is the category of every event sent by category. The daily report and the test message have none: a
+// channel takes the daily report by its own switch (daily_report), and a test goes to the channel it was asked for.
+// Schema 14 maps the event lists of M2 channels with the same table (TestM2EventListsMapToCategories).
+var eventCategory = map[string]string{
+	evStatus:         catStatus,
+	evJobFailed:      catJobs,
+	evFullBackup:     catJobs,
+	evCapacityShort:  catJobs,
+	evIntegrity:      catIntegrity,
+	evQuarantine:     catIntegrity,
+	evLedger:         catIntegrity,
+	evBreakglass:     catSecurity,
+	evNewDevice:      catSecurity,
+	evLocked:         catSecurity,
+	evSettings:       catSecurity,
+	evMigrationCheck: catMigration,
+}
+
+// allEvents are the events a channel can name in the deprecated "events" of ChannelCreate: every event of a category,
+// and the daily report.
+var allEvents = []string{evStatus, evJobFailed, evFullBackup, evCapacityShort, evIntegrity, evQuarantine, evLedger, evBreakglass, evNewDevice,
+	evLocked, evSettings, evMigrationCheck, evDaily}
+
+// channelTakes says whether a channel gets an event: the event's category is one of the channel's.
+func channelTakes(ch store.Channel, ev string) bool {
+	cat, ok := eventCategory[ev]
+	return ok && slices.Contains(ch.Categories, cat)
+}
+
+// checkCategories checks a list of categories and returns it in the canonical order, without repeats.
+func checkCategories(cats []string) ([]string, error) {
+	for _, c := range cats {
+		if !slices.Contains(allCategories, c) {
+			return nil, fmt.Errorf("%w: category %q (one of %s)", store.ErrInvalid, c, strings.Join(allCategories, ", "))
+		}
 	}
-	cat := eventCategory[ev]
-	return cat != "" && slices.ContainsFunc(events, func(e string) bool { return eventCategory[e] == cat })
+	out := []string{}
+	for _, c := range allCategories {
+		if slices.Contains(cats, c) {
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
+// categoriesOfEvents maps an event list (the deprecated "events" of ChannelCreate) to the categories it covers, whole,
+// and whether it holds the daily report: the rule schema 14 applies to the channels of M2.
+func categoriesOfEvents(events []string) ([]string, bool, error) {
+	var cats []string
+	daily := false
+	for _, e := range events {
+		switch cat, ok := eventCategory[e]; {
+		case e == evDaily:
+			daily = true
+		case ok:
+			cats = append(cats, cat)
+		default:
+			return nil, false, fmt.Errorf("%w: event %q (one of %s)", store.ErrInvalid, e, strings.Join(allEvents, ", "))
+		}
+	}
+	cats, err := checkCategories(cats)
+	return cats, daily, err
 }
 
 const (
@@ -101,9 +166,16 @@ type WebhookConfig struct {
 
 // ChannelCreate adds a notification channel.
 type ChannelCreate struct {
-	Name          string         `json:"name"`
-	Kind          string         `json:"kind"`   // smtp or webhook
-	Events        []string       `json:"events"` // default: all (status, job_failed, integrity, quarantine, ledger, full_backup, daily_report, breakglass_signin, new_device_signin, account_locked, capacity_short); job_failed brings capacity_short too (category jobs)
+	Name string `json:"name"`
+	Kind string `json:"kind"` // smtp or webhook
+	// Categories (ADR-007 C8): status, jobs, integrity, security, migration. Left out: all of them; [] none (a channel
+	// for the daily report only).
+	Categories []string `json:"categories,omitempty"`
+	// DailyReport: the channel takes the daily report (default true; with events, whether they name daily_report).
+	DailyReport *bool `json:"daily_report,omitempty"`
+	// Events is the M2 way, accepted in 0.2.x: the channel gets every category one of them belongs to, and the daily
+	// report when daily_report is one of them. Not together with categories.
+	Events        []string       `json:"events,omitempty" deprecated:"give categories (and daily_report); events are mapped to the categories they belong to, whole"`
 	SMTP          *SMTPConfig    `json:"smtp,omitempty"`
 	SMTPPassword  string         `json:"smtp_password,omitempty"`
 	Webhook       *WebhookConfig `json:"webhook,omitempty"`
@@ -116,10 +188,87 @@ type ChannelCreated struct {
 	WebhookSecret string `json:"webhook_secret,omitempty"`
 }
 
-// ChannelUpdate turns a channel on or off.
+// ChannelUpdate turns a channel on or off, or changes what it takes; at least one of enabled, categories and
+// daily_report.
 type ChannelUpdate struct {
-	Enabled *bool  `json:"enabled"`
-	Reason  string `json:"reason"`
+	Enabled     *bool    `json:"enabled,omitempty"`
+	Categories  []string `json:"categories,omitempty"` // replaces the list; [] takes none
+	DailyReport *bool    `json:"daily_report,omitempty"`
+	Reason      string   `json:"reason"`
+}
+
+// channelSubscription is what a new channel takes: categories (all when left out) or the deprecated events, and the
+// daily report. A channel that would take nothing is refused.
+func channelSubscription(in ChannelCreate) ([]string, bool, error) {
+	if in.Events != nil && in.Categories != nil {
+		return nil, false, fmt.Errorf("%w: give categories, or the deprecated events, not both", store.ErrInvalid)
+	}
+	cats, daily := slices.Clone(allCategories), true
+	var err error
+	switch {
+	case len(in.Events) > 0:
+		cats, daily, err = categoriesOfEvents(in.Events)
+	case in.Categories != nil:
+		cats, err = checkCategories(in.Categories)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	if in.DailyReport != nil {
+		daily = *in.DailyReport
+	}
+	if len(cats) == 0 && !daily {
+		return nil, false, fmt.Errorf("%w: the channel would take nothing: give a category or daily_report true", store.ErrInvalid)
+	}
+	return cats, daily, nil
+}
+
+// updateChannel turns a channel on or off and changes what it takes.
+func (s *Server) updateChannel(c *call) (int, any, error) {
+	id, err := c.id("id")
+	if err != nil {
+		return 0, nil, err
+	}
+	var in ChannelUpdate
+	if err := c.decode(&in); err != nil {
+		return 0, nil, err
+	}
+	if in.Enabled == nil && in.Categories == nil && in.DailyReport == nil {
+		return 0, nil, fmt.Errorf("%w: give enabled, categories or daily_report", store.ErrInvalid)
+	}
+	ctx := c.r.Context()
+	reason := in.Reason
+	if reason == "" {
+		reason = "changed by " + c.user.Username
+	}
+	ch, err := s.db.Channel(ctx, id)
+	if err != nil {
+		return 0, nil, err
+	}
+	if in.Categories != nil || in.DailyReport != nil {
+		cats, daily := ch.Categories, ch.DailyReport
+		if in.Categories != nil {
+			if cats, err = checkCategories(in.Categories); err != nil {
+				return 0, nil, err
+			}
+		}
+		if in.DailyReport != nil {
+			daily = *in.DailyReport
+		}
+		if len(cats) == 0 && !daily {
+			return 0, nil, fmt.Errorf("%w: the channel would take nothing (turn it off instead: enabled false)", store.ErrInvalid)
+		}
+		if ch, err = s.db.SetChannelCategories(ctx, c.user.Username, id, cats, daily, reason); err != nil {
+			return 0, nil, err
+		}
+		c.detail = fmt.Sprintf("channel %s takes categories %v, daily report %t", ch.Name, cats, daily)
+	}
+	if in.Enabled != nil {
+		if ch, err = s.db.SetChannelEnabled(ctx, c.user.Username, id, *in.Enabled, reason); err != nil {
+			return 0, nil, err
+		}
+	}
+	return http.StatusOK, ch, nil
 }
 
 // Event is the body of a notification: what a webhook receives, and what an email says.
@@ -141,6 +290,76 @@ type Event struct {
 	// gaia evidence verify -head.
 	LedgerHead json.RawMessage `json:"ledger_head,omitempty"`
 	Report     json.RawMessage `json:"report,omitempty"`
+	// migration_check_finished only.
+	Migration *MigrationEvent `json:"migration_check,omitempty"`
+	// settings_changed only: the settings that changed, as their JSON names (oidc.issuer); never their values,
+	// which the state change carries.
+	Settings []string `json:"settings,omitempty"`
+}
+
+// MigrationEvent is a migration check that ended with a readiness other than OK.
+type MigrationEvent struct {
+	Check     int64  `json:"check"`
+	VM        string `json:"vm"`
+	Source    string `json:"source"`
+	Readiness string `json:"readiness"` // WARNING, CRITICAL or UNKNOWN
+	Reason    string `json:"reason"`
+}
+
+// changedSettings names the settings that differ between two values of a setting (JSON objects; "" is the defaults,
+// never set before), one level deep in nested objects: oidc.issuer.
+func changedSettings(from, to string) ([]string, error) {
+	if from == "" {
+		b, err := json.Marshal(defaultSettings())
+		if err != nil {
+			return nil, err
+		}
+		from = string(b)
+	}
+	var a, b map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(from), &a); err != nil {
+		return nil, fmt.Errorf("the value before: %w", err)
+	}
+	if err := json.Unmarshal([]byte(to), &b); err != nil {
+		return nil, fmt.Errorf("the value after: %w", err)
+	}
+	var out []string
+	diff := func(prefix string, a, b map[string]json.RawMessage, deeper func(k string, x, y json.RawMessage) bool) {
+		keys := map[string]bool{}
+		for k := range a {
+			keys[k] = true
+		}
+		for k := range b {
+			keys[k] = true
+		}
+		for k := range keys {
+			if !bytes.Equal(compactJSON(a[k]), compactJSON(b[k])) && (deeper == nil || !deeper(k, a[k], b[k])) {
+				out = append(out, prefix+k)
+			}
+		}
+	}
+	diff("", a, b, func(k string, x, y json.RawMessage) bool {
+		var xm, ym map[string]json.RawMessage
+		if json.Unmarshal(x, &xm) != nil || json.Unmarshal(y, &ym) != nil || xm == nil || ym == nil {
+			return false
+		}
+		diff(k+".", xm, ym, nil)
+		return true
+	})
+	slices.Sort(out)
+	if len(out) == 0 {
+		out = []string{"(only the way the value is written)"}
+	}
+	return out, nil
+}
+
+// compactJSON is v without insignificant space (nil when it is not JSON, or missing).
+func compactJSON(v json.RawMessage) []byte {
+	var buf bytes.Buffer
+	if len(v) == 0 || json.Compact(&buf, v) != nil {
+		return nil
+	}
+	return buf.Bytes()
 }
 
 func (c Config) notifySecretFile(name string) string {
@@ -165,16 +384,10 @@ func (s *Server) createChannel(c *call) (int, any, error) {
 	if !store.ValidName(in.Name) {
 		return 0, nil, fmt.Errorf("%w: a channel name is 1-128 of A-Z a-z 0-9 . _ - and starts with a letter or digit", store.ErrInvalid)
 	}
-	if len(in.Events) == 0 {
-		in.Events = slices.Clone(allEvents)
+	cats, daily, err := channelSubscription(in)
+	if err != nil {
+		return 0, nil, err
 	}
-	for _, e := range in.Events {
-		if !slices.Contains(allEvents, e) {
-			return 0, nil, fmt.Errorf("%w: event %q (one of %s)", store.ErrInvalid, e, strings.Join(allEvents, ", "))
-		}
-	}
-	slices.Sort(in.Events)
-	in.Events = slices.Compact(in.Events)
 	var cfg any
 	var secret string
 	out := ChannelCreated{}
@@ -226,7 +439,7 @@ func (s *Server) createChannel(c *call) (int, any, error) {
 			return 0, nil, fmt.Errorf("storing the channel's secret: %w", err)
 		}
 	}
-	ch, err := s.db.AddChannel(ctx, c.user.Username, store.Channel{Name: in.Name, Kind: in.Kind, Config: b, Events: in.Events})
+	ch, err := s.db.AddChannel(ctx, c.user.Username, store.Channel{Name: in.Name, Kind: in.Kind, Config: b, Categories: cats, DailyReport: daily})
 	if err != nil {
 		if secret != "" {
 			os.Remove(path)
@@ -357,7 +570,7 @@ func (s *Server) queueEvents(ctx context.Context, ch store.Channel) error {
 		if err != nil {
 			return fmt.Errorf("state change %d: %w", sc.Seq, err)
 		}
-		if ev == nil || !channelTakes(ch.Events, ev.Event) {
+		if ev == nil || !channelTakes(ch, ev.Event) {
 			continue
 		}
 		b, err := json.Marshal(ev)
@@ -537,6 +750,32 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 			ev.Subject = "the evidence ledger is " + sc.To
 		}
 		ev.Text = fmt.Sprintf("Ledger check at %s: %s (was %s).\n%s", sc.At, sc.To, orDash(sc.From), sc.Reason)
+	case sc.Entity == "migration_check" && sc.From == "queued" && sc.To != verify.OK: // the end of a check; OK is no event
+		mc, err := s.db.MigrationCheck(ctx, sc.EntityID)
+		if err != nil {
+			return nil, err
+		}
+		source := fmt.Sprintf("source %d (removed since)", mc.SourceID)
+		if src, err := s.db.MigrationSource(ctx, mc.SourceID); err == nil {
+			source = src.Name
+		} else if !errors.Is(err, store.ErrNotFound) {
+			return nil, err
+		}
+		ev.Event, ev.VM = evMigrationCheck, mc.VM
+		ev.Migration = &MigrationEvent{Check: mc.ID, VM: mc.VM, Source: source, Readiness: sc.To, Reason: sc.Reason}
+		ev.Subject = fmt.Sprintf("migration check of %s on %s: %s", mc.VM, source, sc.To)
+		ev.Text = fmt.Sprintf("The migration check %d of VM %s on source %s ended at %s with the readiness %s.\nWhy: %s\nThe check's page and its readiness report (gaia migration-checks report %d) have the details.",
+			mc.ID, mc.VM, source, sc.At, sc.To, orDash(sc.Reason), mc.ID)
+	case sc.Entity == "setting":
+		changed, err := changedSettings(sc.From, sc.To)
+		if err != nil {
+			return nil, fmt.Errorf("setting change: %w", err)
+		}
+		ev.Event = evSettings
+		ev.Settings = changed
+		ev.Subject = "the sign-in and security settings changed: " + strings.Join(changed, ", ")
+		ev.Text = fmt.Sprintf("At %s: %s.\nChanged: %s.\nIf nobody meant to change them, find out who did: the audit log has the request, and the next daily report lists the change.",
+			sc.At, sc.Reason, strings.Join(changed, ", "))
 	default:
 		return nil, nil
 	}
