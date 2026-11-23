@@ -383,9 +383,10 @@ section "checks: every fixture VM"
 health='[{"name":"health","type":"http","port":8080,"path":"/health","expect_body":"ok"}]'
 for vm in "${LINUX_VMS[@]}"; do check "$vm" linux-basic "$health"; done
 for vm in "${WIN_VMS[@]}"; do check "$vm" windows-rdp; done
-# ADR-005 C step 2 (T28): the same Windows without virtio-win's smbus driver
+for vm in "${LINUX_VMS[@]}" "${WIN_VMS[@]}"; do wait_check "$vm"; done
+# ADR-005 C step 2 (T28): the same Windows without virtio-win's smbus driver (one check of a VM at a time)
 check gaia-t11-win@no-smbus windows-rdp "" 'exclude_drivers=["smbus"]'
-for vm in "${LINUX_VMS[@]}" "${WIN_VMS[@]}" gaia-t11-win@no-smbus; do wait_check "$vm"; done
+wait_check gaia-t11-win@no-smbus
 hostd_since "$hostd_checks" "$OUT_DIR/hostd-window.log"
 host_state "$OUT_DIR/host-after.txt"
 
