@@ -161,6 +161,41 @@ func (d *DB) AttentionGroups(ctx context.Context) ([]AttentionGroup, error) {
 	return gs, nil
 }
 
+// HostVMs is how many VMs a host has, and how many of them are OK (ADR-007 C19.2: a host-scoped cause's reach).
+type HostVMs struct {
+	VMs int `json:"vms"`
+	OK  int `json:"ok"` // a VM without a stored status is UNKNOWN, not OK
+}
+
+// HostVMCounts counts the VMs of the given hosts, and the OK ones among them, in one grouped query. A host without
+// VMs is absent.
+func (d *DB) HostVMCounts(ctx context.Context, hostIDs []int64) (map[int64]HostVMs, error) {
+	out := map[int64]HostVMs{}
+	if len(hostIDs) == 0 {
+		return out, nil
+	}
+	args := make([]any, len(hostIDs))
+	for i, id := range hostIDs {
+		args[i] = id
+	}
+	type row struct {
+		id int64
+		HostVMs
+	}
+	rs, err := rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (row, error) {
+		var r row
+		return r, s.Scan(&r.id, &r.VMs, &r.OK)
+	}, `SELECT v.host_id, COUNT(*), COALESCE(SUM(s.rank = 3), 0) FROM vms v LEFT JOIN vm_status s ON s.vm_id = v.id
+		WHERE v.host_id IN (`+strings.TrimSuffix(strings.Repeat("?,", len(hostIDs)), ",")+`) GROUP BY v.host_id`, args...)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rs {
+		out[r.id] = r.HostVMs
+	}
+	return out, nil
+}
+
 // CoverageGroup is a host, a policy or a tag with its VMs counted by status.
 type CoverageGroup struct {
 	ID       int64  `json:"id"` // the host's or policy's id; 0 for a tag
@@ -217,10 +252,13 @@ type VMFilter struct {
 	Code      string // only VMs whose deciding reason has this code
 	ScopeKind string // and this scope (with ScopeID)
 	ScopeID   int64
-	Q         string // text: VM, host or policy name, or a point id
-	Sort      string // "" (worst first, then oldest proof) or "name"
-	After     string // the cursor of the last row of the previous page
-	Limit     int
+	// Reach: with a host-scoped cause (ScopeKind "host"), every VM on that host whatever its deciding reason, so Code
+	// does not filter (ADR-007 C19.2); the caller checks that the code is host-scoped.
+	Reach bool
+	Q     string // text: VM, host or policy name, or a point id
+	Sort  string // "" (worst first, then oldest proof) or "name"
+	After string // the cursor of the last row of the previous page
+	Limit int
 }
 
 // VMRow is one VM in the list: the VM, its host and policy names, its tags and its stored status.
@@ -277,7 +315,12 @@ func (d *DB) ListVMs(ctx context.Context, f VMFilter) (rows []VMRow, total int, 
 			where, args = append(where, `EXISTS (SELECT 1 FROM vm_tags t WHERE t.vm_id = v.id AND t.key = ?)`), append(args, k)
 		}
 	}
-	if f.Code != "" {
+	if f.Reach {
+		if f.ScopeKind != "host" || f.ScopeID <= 0 {
+			return nil, 0, fmt.Errorf("%w: reach needs scope_kind=host and a scope_id", ErrInvalid)
+		}
+		where, args = append(where, `v.host_id = ?`), append(args, f.ScopeID)
+	} else if f.Code != "" {
 		where, args = append(where, `s.code = ?`), append(args, f.Code)
 		if f.ScopeKind != "" || f.ScopeID != 0 {
 			where, args = append(where, `s.scope_kind = ? AND s.scope_id = ?`), append(args, f.ScopeKind, f.ScopeID)

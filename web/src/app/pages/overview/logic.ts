@@ -35,6 +35,20 @@ export function where(g: Group, w: WhereWords): string {
   return pol.length ? list(pol, w.morePolicies) : ''
 }
 
+type Reach = { host_vms: number; elsewhere: number; ok: number }
+export type ReachCounts = { all: number; here: number; elsewhere: number; ok: number }
+
+/**
+ * A host-scoped cause's full reach (ADR-007 C19.2): every VM on the host, when that is more than the group's own VMs
+ * (the others are grouped under other causes, or still OK); null for any other group, or when the group is the whole
+ * host.
+ */
+export function reachOf(g: { count: number; reach?: Reach | null }): ReachCounts | null {
+  const r = g.reach
+  if (!r || r.host_vms <= g.count) return null
+  return { all: r.host_vms, here: g.count, elsewhere: r.elsewhere, ok: r.ok }
+}
+
 type Ledger = { checked_at: string; verdict: string; entries: number; unchecked: number; status?: string; code?: string }
 
 /** Unchecked entries may wait this long before the ledger is not OK any more (ADR-007 C14). */

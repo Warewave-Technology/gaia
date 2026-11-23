@@ -14,12 +14,12 @@ import { Failed, Loading } from '../layout/States'
 import {
   DataTable, FilterChip, Notice, RowToggle, StatusBar, StatusChip, StatusCounts, TabPanel, Tabs, TechDetails, Toolbar, asStatus, type Column,
 } from '../ui'
-import { ledgerState, where } from './overview/logic'
+import { ledgerState, reachOf, where } from './overview/logic'
 import { PickChip } from './overview/PickChip'
 import s from './Overview.module.css'
 
 const ORDER = ['CRITICAL', 'UNKNOWN', 'WARNING', 'OK'] as const
-const KEYS = ['tab', 'show', 'status', 'host', 'policy', 'tag', 'code', 'scope_kind', 'scope_id', 'q', 'by', 'all'] as const
+const KEYS = ['tab', 'show', 'status', 'host', 'policy', 'tag', 'code', 'scope_kind', 'scope_id', 'reach', 'q', 'by', 'all'] as const
 type Filters = Record<(typeof KEYS)[number], string>
 type SetFilters = (patch: Partial<Filters>) => void
 type T = ReturnType<typeof useT>['v3']['overview']
@@ -27,7 +27,7 @@ const TABS = ['attention', 'coverage', 'vms'] as const
 type TabKey = (typeof TABS)[number]
 /** The filters of the VM table; any of them in a link (the VM page's, the search's) opens the VMs tab. */
 const VM_FILTERS = ['show', 'status', 'host', 'policy', 'tag', 'code', 'q'] as const
-const CLEAR_VM: Partial<Filters> = { show: '', status: '', host: '', policy: '', tag: '', code: '', scope_kind: '', scope_id: '', q: '' }
+const CLEAR_VM: Partial<Filters> = { show: '', status: '', host: '', policy: '', tag: '', code: '', scope_kind: '', scope_id: '', reach: '', q: '' }
 
 const n = (v: number) => v.toLocaleString('en-US')
 
@@ -184,7 +184,13 @@ function Attention({ fmt, now, setF }: { fmt: Fmt; now: number; setF: SetFilters
       key: 'cause', header: t.cols.cause, title: (g) => `${reason(g.code).title}: ${reason(g.code).short(cause(g), now)}`,
       cell: (g) => <><b className={s.title}>{reason(g.code).title}</b><span className={s.sub}>{reason(g.code).short(cause(g), now)}</span></>,
     },
-    { key: 'vms', header: t.cols.vms, numeric: true, width: '80px', cell: (g) => <b className={s.fig}>{n(g.count)}</b> },
+    {
+      key: 'vms', header: t.cols.vms, numeric: true, width: '96px', title: (g) => { const r = reachOf(g); return r ? t.reach(r) : undefined },
+      cell: (g) => {
+        const r = reachOf(g)
+        return <><b className={s.fig}>{n(g.count)}</b>{r && <span className={s.sub}>{t.ofHost(r.all)}</span>}</>
+      },
+    },
     { key: 'where', header: t.cols.where, width: '260px', title: (g) => where(g, t), cell: (g) => <span className={s.fg2}>{where(g, t)}</span> },
     { key: 'since', header: t.cols.since, width: '130px', cell: (g) => <span className={s.mono}>{g.since ? fmt.at(g.since) : '—'}</span> },
     { key: 'open', header: '', width: '44px', cell: (_g, ctx) => <RowToggle ctx={ctx} label={t.open} /> },
@@ -196,14 +202,19 @@ function Attention({ fmt, now, setF }: { fmt: Fmt; now: number; setF: SetFilters
       empty={t.noneNeedAttention}
       detail={(g) => {
         const def = reason(g.code)
+        const r = reachOf(g)
+        // a host-scoped cause's "Show these VMs" lists every VM on the host (ADR-007 C19.2)
+        const host = !!g.reach && g.scope?.kind === 'host'
         return (
           <>
             <span className={s.long}>{def.long(cause(g), now)}</span>
+            {r && <span className={s.long}>{t.reachOf(where(g, t), r)}</span>}
             {def.todo && <span className={s.todo}><b>{t.whatToDo}</b> {def.todo}</span>}
             <span>
               <button type="button" className={s.link}
-                onClick={() => setF({ ...CLEAR_VM, tab: 'vms', code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '' })}>
-                {t.showVMs(g.count)}
+                onClick={() => setF({ ...CLEAR_VM, tab: 'vms', code: g.code, scope_kind: g.scope?.kind ?? '', scope_id: g.scope ? String(g.scope.id) : '',
+                  reach: host ? 'true' : '' })}>
+                {t.showVMs(host && g.reach ? g.reach.host_vms : g.count)}
               </button>
             </span>
             <TechDetails summary={t.example(g.example.vm)}>{g.example.reason}</TechDetails>
@@ -294,13 +305,14 @@ function VMs({ f, setF, fmt, now }: { f: Filters; setF: SetFilters; fmt: Fmt; no
     code: f.code || undefined,
     scope_kind: f.code ? f.scope_kind || undefined : undefined,
     scope_id: f.code && f.scope_id ? Number(f.scope_id) : undefined,
+    reach: f.code && f.scope_kind === 'host' && f.scope_id && f.reach === 'true' ? true : undefined,
     q: f.q || undefined,
-  }), [attention, f.status, f.host, f.policy, f.tag, f.code, f.scope_kind, f.scope_id, f.q])
+  }), [attention, f.status, f.host, f.policy, f.tag, f.code, f.scope_kind, f.scope_id, f.reach, f.q])
   const pages = useVMPages(filter)
   const setQ = useMemo(() => (q: string) => setF({ q }), [setF])
   const cols = vmColumns(t, fmt, now, from)
   const status = attention ? 'attention' : f.status || 'all'
-  const scopeName = f.code && f.scope_kind ? scopeLabel(f, names, t) : ''
+  const scopeName = f.code && f.scope_kind ? scopeLabel(f, names, t) + (filter.reach ? ` · ${t.onHost}` : '') : ''
   return (
     <>
       <Toolbar end={t.sorted}>
@@ -318,7 +330,7 @@ function VMs({ f, setF, fmt, now }: { f: Filters; setF: SetFilters; fmt: Fmt; no
         <PickChip label={t.by.tag} placeholder={t.pick.tag} value={f.tag} display={t.picked.tag} clearLabel={t.clear(t.by.tag.toLowerCase())}
           options={names.tags.map((g) => [g, g] as const)} onChange={(x) => setF({ tag: x })} />
         {f.code && (
-          <FilterChip set onClick={() => setF({ code: '', scope_kind: '', scope_id: '' })} title={t.clear(reason(f.code).title)}>
+          <FilterChip set onClick={() => setF({ code: '', scope_kind: '', scope_id: '', reach: '' })} title={t.clear(reason(f.code).title)}>
             {t.cause(reason(f.code).title, scopeName)} <span aria-hidden="true">×</span>
           </FilterChip>
         )}

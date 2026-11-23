@@ -69,6 +69,15 @@ const overview = {
   noneNeedAttention: 'Every VM can return to a proven point within its targets.',
   whatToDo: 'What to do:',
   showVMs: (c: number) => `Show ${c === 1 ? 'this VM' : `these ${n(c)} VMs`} →`,
+  // a host-scoped cause states every VM on its host (ADR-007 C19.2): "affects 41 VMs · 38 here, 3 under other causes"
+  reach: (r: { all: number; here: number; elsewhere: number; ok: number }) =>
+    `affects ${plural(r.all, 'VM', 'VMs')} · ${n(r.here)} here` +
+    (r.elsewhere > 0 ? `, ${n(r.elsewhere)} under ${r.elsewhere === 1 ? 'another cause' : 'other causes'}` : '') +
+    (r.ok > 0 ? `, ${n(r.ok)} still OK` : ''),
+  reachOf: (where: string, r: { all: number; here: number; elsewhere: number; ok: number }) =>
+    `${where.charAt(0).toUpperCase()}${where.slice(1)}: this cause ${overview.reach(r)}.`,
+  ofHost: (all: number) => `of ${n(all)}`,
+  onHost: 'every VM on the host',
   example: (vm: string) => `Technical details (${vm})`,
   scope: (kind: string, name: string) => `${kind === 'repository' ? 'repository' : kind === 'sandbox' ? 'sandbox' : kind === 'policy' ? 'policy' : 'host'} ${name}`,
   times: (name: string, c: number) => `${name} ×${n(c)}`,

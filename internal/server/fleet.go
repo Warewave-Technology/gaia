@@ -107,6 +107,17 @@ type AttentionGroup struct {
 	Example  AttentionExample  `json:"example"`
 	Hosts    []store.NameCount `json:"hosts"`
 	Policies []store.NameCount `json:"policies"`
+	// Reach: for a host-scoped cause (host_key_changed, host_key_untrusted, host_unreachable), every VM on the host
+	// (ADR-007 C19.2); null for any other group.
+	Reach *AttentionReach `json:"reach"`
+}
+
+// AttentionReach is a host-scoped cause's full reach: the group counts each VM once, under its deciding reason, but
+// the cause acts on every VM of the host. HostVMs = the group's count + Elsewhere + OK.
+type AttentionReach struct {
+	HostVMs   int `json:"host_vms"`  // every VM on the host: what vm-list?reach=true lists
+	Elsewhere int `json:"elsewhere"` // VMs on the host that are not OK and grouped under another cause
+	OK        int `json:"ok"`        // VMs on the host that are OK
 }
 
 // AttentionExample is the group's VM longest in this state, with its deciding reason as it reads now.
@@ -157,9 +168,13 @@ func (s *Server) attentionView(c *call) (int, any, error) {
 	for _, g := range gs {
 		out.VMs += g.Count
 	}
+	reach, err := s.attentionReach(ctx, gs[min(off, len(gs)):min(off+n, len(gs))])
+	if err != nil {
+		return 0, nil, err
+	}
 	for i := off; i < len(gs) && i < off+n; i++ {
 		g := gs[i]
-		ag := AttentionGroup{Status: rankWord[min(max(g.Rank, 0), 3)], Code: g.Code, Count: g.Count, Hosts: g.Hosts, Policies: g.Policies}
+		ag := AttentionGroup{Reach: reach[i-off], Status: rankWord[min(max(g.Rank, 0), 3)], Code: g.Code, Count: g.Count, Hosts: g.Hosts, Policies: g.Policies}
 		if d, ok := status.Lookup(status.Code(g.Code)); ok {
 			ag.Cause = d.Cause
 		}
@@ -190,6 +205,40 @@ func (s *Server) attentionView(c *call) (int, any, error) {
 		out.Next = strconv.Itoa(off + n)
 	}
 	return http.StatusOK, out, nil
+}
+
+// hostScoped says whether a group's cause is its VMs' host (status.Def.Scope), so its reach is every VM on the host.
+func hostScoped(code, scopeKind string, scopeID int64) bool {
+	d, ok := status.Lookup(status.Code(code))
+	return ok && d.Scope == status.ScopeHost && scopeKind == status.ScopeHost && scopeID > 0
+}
+
+// attentionReach is the reach of each host-scoped group of a page (nil for the others), from one grouped query.
+func (s *Server) attentionReach(ctx context.Context, gs []store.AttentionGroup) ([]*AttentionReach, error) {
+	out := make([]*AttentionReach, len(gs))
+	var hosts []int64
+	for _, g := range gs {
+		if hostScoped(g.Code, g.ScopeKind, g.ScopeID) {
+			hosts = append(hosts, g.ScopeID)
+		}
+	}
+	if len(hosts) == 0 {
+		return out, nil
+	}
+	counts, err := s.db.HostVMCounts(ctx, hosts)
+	if err != nil {
+		return nil, err
+	}
+	for i, g := range gs {
+		if !hostScoped(g.Code, g.ScopeKind, g.ScopeID) {
+			continue
+		}
+		c := counts[g.ScopeID]
+		// The group's VMs are on the host (the scope is each VM's own host); never below zero should a VM have
+		// moved since its status was stored.
+		out[i] = &AttentionReach{HostVMs: max(c.VMs, g.Count), OK: c.OK, Elsewhere: max(c.VMs-g.Count-c.OK, 0)}
+	}
+	return out, nil
 }
 
 // CoverageView is "Coverage by host / policy / tag": every group's VMs by status, worst first; groups whose VMs are
@@ -305,7 +354,7 @@ func (s *Server) vmListView(c *call) (int, any, error) {
 	now := s.now()
 	q := c.r.URL.Query()
 	f := store.VMFilter{Attention: q.Get("attention") == "true", Tag: q.Get("tag"), Code: q.Get("code"), ScopeKind: q.Get("scope_kind"),
-		Q: q.Get("q"), Sort: q.Get("sort"), After: q.Get("after")}
+		Reach: q.Get("reach") == "true", Q: q.Get("q"), Sort: q.Get("sort"), After: q.Get("after")}
 	for _, w := range strings.Split(q.Get("status"), ",") {
 		if w = strings.ToUpper(strings.TrimSpace(w)); w != "" {
 			if w != status.OK && w != status.Warning && w != status.Unknown && w != status.Critical {
@@ -323,6 +372,9 @@ func (s *Server) vmListView(c *call) (int, any, error) {
 	}
 	if f.ScopeID, err = c.intQuery("scope_id", 0, 0); err != nil {
 		return 0, nil, err
+	}
+	if f.Reach && !hostScoped(f.Code, f.ScopeKind, f.ScopeID) {
+		return 0, nil, fmt.Errorf("%w: reach=true lists every VM on the host of a host-scoped cause: it needs a code scoped to a host, scope_kind=host and scope_id", store.ErrInvalid)
 	}
 	n, err := c.intQuery("limit", 50, 200)
 	if err != nil {
