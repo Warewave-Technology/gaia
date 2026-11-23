@@ -1,0 +1,40 @@
+Nov 23 10:50:00 dnsmasq[72758]: started, version 2.90 DNS disabled
+Nov 23 10:50:00 dnsmasq[72758]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua TFTP conntrack ipset nftset auth cryptohash DNSSEC loop-detect inotify dumpfile
+Nov 23 10:50:00 dnsmasq-dhcp[72758]: DHCP, IP range 10.254.0.10 -- 10.254.0.99, lease time 1h
+Nov 23 10:50:00 dnsmasq-dhcp[72758]: DHCP, sockets bound exclusively to interface gvn-4b3a6c
+Nov 23 10:50:10 dnsmasq-dhcp[72758]: 2722527155 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 23 10:50:10 dnsmasq-dhcp[72758]: 2722527155 client provides name: gaia-t8-linux
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 DHCPDISCOVER(gvn-4b3a6c) 00:50:56:3f:a8:01 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 tags: gvn-4b3a6c
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 DHCPOFFER(gvn-4b3a6c) 10.254.0.10 00:50:56:3f:a8:01 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 1:netmask, 3:router, 6:dns-server, 12:hostname, 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 15:domain-name, 33:static-route, 42:ntp-server, 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 120:sip-server, 121:classless-static-route
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 next server: 10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  1 option: 53 message-type  2
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 51 lease-time  1h
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 58 T1  30m
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 59 T2  52m30s
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option:  3 router  10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 client provides name: gaia-t8-linux
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 DHCPREQUEST(gvn-4b3a6c) 10.254.0.10 00:50:56:3f:a8:01 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 tags: gvn-4b3a6c
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 DHCPACK(gvn-4b3a6c) 10.254.0.10 00:50:56:3f:a8:01 gaia-t8-linux
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 1:netmask, 3:router, 6:dns-server, 12:hostname, 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 15:domain-name, 33:static-route, 42:ntp-server, 
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 requested options: 120:sip-server, 121:classless-static-route
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 next server: 10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  1 option: 53 message-type  5
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 51 lease-time  1h
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 58 T1  30m
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 59 T2  52m30s
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size:  4 option:  3 router  10.254.0.1
+Nov 23 10:50:13 dnsmasq-dhcp[72758]: 2722527155 sent size: 13 option: 12 hostname  gaia-t8-linux
+Nov 23 10:50:21 dnsmasq-dhcp[72758]: 2722527155 available DHCP range: 10.254.0.10 -- 10.254.0.99

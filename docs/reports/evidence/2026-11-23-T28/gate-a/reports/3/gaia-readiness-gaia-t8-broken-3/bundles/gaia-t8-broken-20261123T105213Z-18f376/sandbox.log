@@ -1,0 +1,47 @@
+[10:52:14.492] image /var/lib/gaia-t21-sandbox/images/mc3-vda.qcow2 (vda): sha256 bcf2283c4ff4f477dcd2635aaa01e266825afe7e44c1c3645601d2c48a065594 (1252720640 bytes)
+[10:52:14.579] $ sysctl -q -w net.ipv6.conf.gvb-18f376.disable_ipv6=1
+
+[10:52:14.640] $ ip netns add gaia-verify-18f376
+
+[10:52:14.643] $ ip netns exec gaia-verify-18f376 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[10:52:14.654] $ ip link add gvh-18f376 type veth peer name gvn-18f376
+
+[10:52:14.656] $ sysctl -q -w net.ipv6.conf.gvh-18f376.disable_ipv6=1
+
+[10:52:14.677] $ ip link set gvh-18f376 master gvb-18f376 up
+
+[10:52:14.713] $ ip link set gvn-18f376 netns gaia-verify-18f376
+
+[10:52:14.715] $ ip -n gaia-verify-18f376 addr add 10.254.0.1/24 dev gvn-18f376
+
+[10:52:14.722] $ ip -n gaia-verify-18f376 link set gvn-18f376 up
+
+[10:52:14.725] $ ip -n gaia-verify-18f376 link set lo up
+
+[10:52:14.725] $ ip netns exec gaia-verify-18f376 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-18f376 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/dnsmasq.log --user=root --group=root
+[10:52:14.998] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc3-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/overlay.qcow2
+
+[10:52:17.351] $ ip -o addr show dev gvb-18f376
+
+[10:52:17.352] $ ip -n gaia-verify-18f376 route show table all
+10.254.0.0/24 dev gvn-18f376 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-18f376 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-18f376 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-18f376 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::78b6:4bff:fec3:bbf1 dev gvn-18f376 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-18f376 table local proto kernel metric 256 pref medium
+[10:52:17.355] $ ip netns exec gaia-verify-18f376 cat /proc/sys/net/ipv4/ip_forward
+0
+[10:52:17.357] guest started (kvm)
+[10:57:17.534] boot not reached within 300 s
+[10:57:17.907] $ virsh screenshot gaia-verify-18f376 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/screenshot-boot.ppm, with type of image/png
+[10:57:18.232] $ virsh screenshot gaia-verify-18f376 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-18f376/screenshot-end.ppm, with type of image/png
+[10:57:18.612] $ ip netns del gaia-verify-18f376
+

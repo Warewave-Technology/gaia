@@ -1,0 +1,18 @@
+{
+  "state": "missing",
+  "detail": "virt-v2v's first-boot service left no log on the disk",
+  "log": "",
+  "files": [
+    "/Temp",
+    "/Temp/install-qemu-ga.ps1",
+    "/Temp/qemu-ga-x86_64.msi",
+    "/firstboot.bat",
+    "/pnp_wait.exe",
+    "/rhsrvany.exe",
+    "/scripts",
+    "/scripts/2000-0001-pnputil-install-drivers.bat",
+    "/scripts/5000-0002-wait-pnp.bat",
+    "/scripts/5000-0003-install-qemu-ga.bat",
+    "/scripts/5000-0004-install-blnsvr.bat"
+  ]
+}

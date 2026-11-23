@@ -1,0 +1,54 @@
+[10:58:58.216] image /var/lib/gaia-t21-sandbox/images/mc4-vda.qcow2 (vda): sha256 84f62a9e9d7281703137f4816c6cc7e6f8658332e6c360c578d50603a42481d8 (1252720640 bytes)
+[10:58:58.291] $ sysctl -q -w net.ipv6.conf.gvb-01cf87.disable_ipv6=1
+
+[10:58:58.305] $ ip netns add gaia-verify-01cf87
+
+[10:58:58.307] $ ip netns exec gaia-verify-01cf87 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[10:58:58.309] $ ip link add gvh-01cf87 type veth peer name gvn-01cf87
+
+[10:58:58.310] $ sysctl -q -w net.ipv6.conf.gvh-01cf87.disable_ipv6=1
+
+[10:58:58.319] $ ip link set gvh-01cf87 master gvb-01cf87 up
+
+[10:58:58.350] $ ip link set gvn-01cf87 netns gaia-verify-01cf87
+
+[10:58:58.353] $ ip -n gaia-verify-01cf87 addr add 10.254.0.1/24 dev gvn-01cf87
+
+[10:58:58.360] $ ip -n gaia-verify-01cf87 link set gvn-01cf87 up
+
+[10:58:58.362] $ ip -n gaia-verify-01cf87 link set lo up
+
+[10:58:58.362] $ ip netns exec gaia-verify-01cf87 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-01cf87 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/dnsmasq.log --user=root --group=root
+[10:58:58.820] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc4-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/overlay.qcow2
+
+[10:59:01.169] $ ip -o addr show dev gvb-01cf87
+
+[10:59:01.170] $ ip -n gaia-verify-01cf87 route show table all
+10.254.0.0/24 dev gvn-01cf87 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-01cf87 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-01cf87 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-01cf87 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::c44d:7aff:fef5:2ac1 dev gvn-01cf87 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-01cf87 table local proto kernel metric 256 pref medium
+[10:59:01.219] $ ip netns exec gaia-verify-01cf87 cat /proc/sys/net/ipv4/ip_forward
+0
+[10:59:01.220] guest started (kvm)
+[10:59:25.318] boot reached after 24.097 s
+[10:59:25.735] $ virsh screenshot gaia-verify-01cf87 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/screenshot-boot.ppm, with type of image/png
+[10:59:25.735] guest 00:50:56:3f:a8:03 has 10.254.0.10 after 24.515 s
+[10:59:25.900] $ ip netns exec gaia-verify-01cf87 /usr/local/sbin/gaia-t21 probe -check {"name":"ssh","type":"tcp","port":22} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.000907405,"detail":"connected to 10.254.0.10:22"}
+[10:59:25.900] check ssh: OK (connected to 10.254.0.10:22)
+[10:59:26.059] $ ip netns exec gaia-verify-01cf87 /usr/local/sbin/gaia-t21 probe -check {"name":"health","type":"http","port":8080,"path":"/health","expect_status":200,"expect_body":"ok"} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.017224388,"detail":"GET http://10.254.0.10:8080/health: 200","status":200,"body_head":"ok"}
+[10:59:26.059] check health: OK (GET http://10.254.0.10:8080/health: 200)
+[10:59:26.397] $ virsh screenshot gaia-verify-01cf87 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-01cf87/screenshot-end.ppm, with type of image/png
+[10:59:29.402] $ ip netns del gaia-verify-01cf87
+

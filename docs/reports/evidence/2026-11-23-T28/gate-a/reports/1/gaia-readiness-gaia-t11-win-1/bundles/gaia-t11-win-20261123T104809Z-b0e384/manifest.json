@@ -1,0 +1,67 @@
+{
+  "format": "restore-evidence",
+  "format_version": 1,
+  "bundle_id": "gaia-t11-win-20261123T104809Z-b0e384",
+  "created": "2026-11-23T10:48:09.109542463Z",
+  "key_id": "2265f9385124e81a98e8c2f986d959fc130577d1a235d6d21c003d086230bba0",
+  "subject": {
+    "check": "1",
+    "converter_image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "kind": "migration_check",
+    "source": "esxi",
+    "verdict": "UNKNOWN",
+    "vm": "gaia-t11-win"
+  },
+  "files": [
+    {
+      "path": "config.json",
+      "sha256": "1e6e031c63e5d89c9a323e39c98dcf2eaab9f327f3313ba14881e573ceda1888",
+      "bytes": 460
+    },
+    {
+      "path": "migration/calls.jsonl",
+      "sha256": "bb8bb334451ea495d779912aff5761e7a9a9921fda413b519829deacac1480ae",
+      "bytes": 773
+    },
+    {
+      "path": "migration/check.json",
+      "sha256": "7963f1d8992ed836b7aaae5043ee4dcd5949698f15e876867a2dba5a143163bc",
+      "bytes": 1462
+    },
+    {
+      "path": "migration/converter.json",
+      "sha256": "b7aa9185e5d975d9aef95853d2b0f1a4167c5b1e7d66354b0f9115ab9e0efb91",
+      "bytes": 672
+    },
+    {
+      "path": "migration/downloads.json",
+      "sha256": "844eb83698f4f84cd7f6567fe4b34c1e7eba6c20e7196b0c8b932615050ff2c4",
+      "bytes": 810
+    },
+    {
+      "path": "migration/inventory.json",
+      "sha256": "4546411007100841c4cd239283cfc1632d4928412970570ce55f7295650f2e56",
+      "bytes": 1228
+    },
+    {
+      "path": "migration/source.vmx",
+      "sha256": "f35716aa7f79ac3a28cbb45e2fe10a8cbf8a233ded4c7b9e13478c8ba74e4eb9",
+      "bytes": 435
+    },
+    {
+      "path": "migration/virt-v2v.log",
+      "sha256": "8d652f51d052d8f34eb0342d857d06484fcd65edfa50a79c1435dd4ae708ee18",
+      "bytes": 264
+    },
+    {
+      "path": "result.json",
+      "sha256": "23e8fea44a304f47af3c26917598e985123256f91e1ae0caaeb509ae04bf86df",
+      "bytes": 2427
+    },
+    {
+      "path": "sandbox.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

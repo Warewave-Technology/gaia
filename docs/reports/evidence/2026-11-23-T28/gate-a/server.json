@@ -1,0 +1,22 @@
+{
+  "listen": ":8443",
+  "data_dir": "/var/lib/gaia-t21/data",
+  "tls_cert": "/var/lib/gaia-t21/data/tls/cert.pem",
+  "tls_key": "/var/lib/gaia-t21/data/tls/key.pem",
+  "public_url": "https://gaia-lab.test:8443",
+  "state_backup_at": "02:30",
+  "state_backup_repository": "",
+  "host_socket_dir": "/var/lib/libvirt/qemu",
+  "host_scratch_dir": "/var/lib/libvirt/images",
+  "nbd_connections": 2,
+  "max_parallel_backups": 2,
+  "verify_at": "03:30",
+  "full_verify_day": "sunday",
+  "verify_sample": 0.02,
+  "sandbox_socket": "/run/gaia-t21-sandbox/sandbox.sock",
+  "sandbox_images_dir": "/var/lib/gaia-t21-sandbox/images",
+  "daily_report_at": "07:00",
+  "convert_socket": "/run/gaia-convert/convert.sock",
+  "convert_jobs_dir": "/var/lib/gaia-convert/jobs",
+  "stop_drain": "10m"
+}

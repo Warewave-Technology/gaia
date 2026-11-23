@@ -1,0 +1,54 @@
+[10:49:59.939] image /var/lib/gaia-t21-sandbox/images/mc2-vda.qcow2 (vda): sha256 485db3c067cc962f68bf7e089980971048bc7c04272d65647f8596f38af96cb3 (1252720640 bytes)
+[10:50:00.104] $ sysctl -q -w net.ipv6.conf.gvb-4b3a6c.disable_ipv6=1
+
+[10:50:00.175] $ ip netns add gaia-verify-4b3a6c
+
+[10:50:00.179] $ ip netns exec gaia-verify-4b3a6c sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[10:50:00.189] $ ip link add gvh-4b3a6c type veth peer name gvn-4b3a6c
+
+[10:50:00.190] $ sysctl -q -w net.ipv6.conf.gvh-4b3a6c.disable_ipv6=1
+
+[10:50:00.209] $ ip link set gvh-4b3a6c master gvb-4b3a6c up
+
+[10:50:00.245] $ ip link set gvn-4b3a6c netns gaia-verify-4b3a6c
+
+[10:50:00.247] $ ip -n gaia-verify-4b3a6c addr add 10.254.0.1/24 dev gvn-4b3a6c
+
+[10:50:00.253] $ ip -n gaia-verify-4b3a6c link set gvn-4b3a6c up
+
+[10:50:00.255] $ ip -n gaia-verify-4b3a6c link set lo up
+
+[10:50:00.272] $ ip netns exec gaia-verify-4b3a6c dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-4b3a6c --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/dnsmasq.log --user=root --group=root
+[10:50:00.381] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc2-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/overlay.qcow2
+
+[10:50:02.005] $ ip -o addr show dev gvb-4b3a6c
+
+[10:50:02.015] $ ip -n gaia-verify-4b3a6c route show table all
+10.254.0.0/24 dev gvn-4b3a6c proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-4b3a6c table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-4b3a6c table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-4b3a6c proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::84dd:79ff:fe7c:b73d dev gvn-4b3a6c table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-4b3a6c table local proto kernel metric 256 pref medium
+[10:50:02.019] $ ip netns exec gaia-verify-4b3a6c cat /proc/sys/net/ipv4/ip_forward
+0
+[10:50:02.021] guest started (kvm)
+[10:50:18.099] boot reached after 16.078 s
+[10:50:18.483] $ virsh screenshot gaia-verify-4b3a6c --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/screenshot-boot.ppm, with type of image/png
+[10:50:18.484] guest 00:50:56:3f:a8:01 has 10.254.0.10 after 16.463 s
+[10:50:18.652] $ ip netns exec gaia-verify-4b3a6c /usr/local/sbin/gaia-t21 probe -check {"name":"ssh","type":"tcp","port":22} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.001305774,"detail":"connected to 10.254.0.10:22"}
+[10:50:18.652] check ssh: OK (connected to 10.254.0.10:22)
+[10:50:18.809] $ ip netns exec gaia-verify-4b3a6c /usr/local/sbin/gaia-t21 probe -check {"name":"health","type":"http","port":8080,"path":"/health","expect_status":200,"expect_body":"ok"} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.007973569,"detail":"GET http://10.254.0.10:8080/health: 200","status":200,"body_head":"ok"}
+[10:50:18.809] check health: OK (GET http://10.254.0.10:8080/health: 200)
+[10:50:19.168] $ virsh screenshot gaia-verify-4b3a6c --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-4b3a6c/screenshot-end.ppm, with type of image/png
+[10:50:22.366] $ ip netns del gaia-verify-4b3a6c
+

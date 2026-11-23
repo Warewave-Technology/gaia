@@ -1,0 +1,128 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t8-broken-20261123T105213Z-18f376",
+  "vm": "gaia-t8-broken",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000134669,
+      "detail": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 1.1e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000553,
+      "detail": "3 files to read, all in [datastore1] gaia-t8-broken"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 20.97580553,
+      "detail": "3 files, 3221226474 bytes in 21.0 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 74.318015927,
+      "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:02) in 74.3 s"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 6.5e-7,
+      "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "CRITICAL",
+      "seconds": 300.17783097,
+      "attempts": 301,
+      "detail": "no match for \"(?m)login: *$\" on the serial console within 300 s"
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "health",
+      "type": "http",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia-t21-sandbox/images/mc3-vda.qcow2",
+    "format": "qcow2",
+    "bytes": 1252720640,
+    "sha256_before": "bcf2283c4ff4f477dcd2635aaa01e266825afe7e44c1c3645601d2c48a065594",
+    "sha256_after": "bcf2283c4ff4f477dcd2635aaa01e266825afe7e44c1c3645601d2c48a065594",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-18f376",
+    "network": "gaia-verify-18f376",
+    "bridge": "gvb-18f376",
+    "netns": "gaia-verify-18f376",
+    "slot": 0,
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-18f376 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-18f376 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-18f376 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-18f376 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "local fe80::78b6:4bff:fec3:bbf1 dev gvn-18f376 table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-18f376 table local proto kernel metric 256 pref medium"
+    ],
+    "netns_ip_forward": "0",
+    "isolated": true
+  },
+  "timings_s": {
+    "image_hash": 0.815454664,
+    "sandbox_setup": 2.862836693,
+    "shutdown": 0.376769067,
+    "total": 306.1251641
+  },
+  "shutdown": "forced (not booted)",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-23T10:52:13.676824679Z",
+  "finished": "2026-11-23T10:57:19.801988779Z"
+}

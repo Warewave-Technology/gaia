@@ -1,0 +1,19 @@
+{
+  "anchor_key_id": "2265f9385124e81a98e8c2f986d959fc130577d1a235d6d21c003d086230bba0",
+  "checked_at": "2026-11-23T11:24:59.892412258Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "2265f9385124e81a98e8c2f986d959fc130577d1a235d6d21c003d086230bba0",
+  "report": {
+    "dir": "/root/t28/gate-a-20261123T103257Z/reports/2/gaia-readiness-gaia-t8-linux-2/bundles/gaia-t8-linux-20261123T104959Z-4b3a6c",
+    "format": "v1",
+    "bundle_id": "gaia-t8-linux-20261123T104959Z-4b3a6c",
+    "bundle_sha256": "893eb66d8556ba64fc2e55266c0fd7ed142afa1a313d91231ac8b98b93906042",
+    "key_id": "2265f9385124e81a98e8c2f986d959fc130577d1a235d6d21c003d086230bba0",
+    "files": 18,
+    "verdict": "OK",
+    "findings": [],
+    "problems": []
+  },
+  "verdict": "OK"
+}

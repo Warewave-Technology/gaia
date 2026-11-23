@@ -1,0 +1,23 @@
+[
+  {
+    "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx",
+    "local": "/var/lib/gaia-convert/jobs/mc4/in/gaia-t21-uefi.vmx",
+    "bytes": 492,
+    "sha256": "3f980941148524b0b23c47596d54beb80fc0f7bc5b6fbe858adb3132eb6aabeb",
+    "seconds": 0.069431915
+  },
+  {
+    "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmdk",
+    "local": "/var/lib/gaia-convert/jobs/mc4/in/gaia-t21-uefi.vmdk",
+    "bytes": 506,
+    "sha256": "6fd07f407e07b0ca6b410cffb8c2c66802c45257d205898465aa2a89efee7573",
+    "seconds": 0.009801839
+  },
+  {
+    "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi-flat.vmdk",
+    "local": "/var/lib/gaia-convert/jobs/mc4/in/gaia-t21-uefi-flat.vmdk",
+    "bytes": 3221225472,
+    "sha256": "24bd8b35940c78873a394562fb8c83531e50b086fe73e111f590bd5f36db566d",
+    "seconds": 21.246730763
+  }
+]

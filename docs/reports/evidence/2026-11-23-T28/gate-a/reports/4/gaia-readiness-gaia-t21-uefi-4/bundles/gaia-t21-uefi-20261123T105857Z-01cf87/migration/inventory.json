@@ -1,0 +1,53 @@
+{
+  "name": "gaia-t21-uefi",
+  "uuid": "",
+  "power_state": "poweredOff",
+  "guest_id": "debian12_64Guest",
+  "guest_full_name": "Debian GNU/Linux 12 (64-bit)",
+  "firmware": "efi",
+  "secure_boot": false,
+  "cpus": 2,
+  "memory_mib": 1024,
+  "vmx": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx",
+  "datacenter": "ha-datacenter",
+  "disks": [
+    {
+      "label": "Hard disk 1",
+      "file": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmdk",
+      "capacity_bytes": 3221225472,
+      "thin": true
+    }
+  ],
+  "nics": [
+    {
+      "label": "Network adapter 1",
+      "type": "VirtualVmxnet3",
+      "mac": "00:50:56:3f:a8:03"
+    }
+  ],
+  "files": [
+    {
+      "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx",
+      "type": "config",
+      "size": 492
+    },
+    {
+      "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmsd",
+      "type": "snapshotList",
+      "size": 0
+    },
+    {
+      "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmdk",
+      "type": "diskDescriptor",
+      "size": 506
+    },
+    {
+      "name": "[datastore1] gaia-t21-uefi/gaia-t21-uefi-flat.vmdk",
+      "type": "diskExtent",
+      "size": 3221225472
+    }
+  ],
+  "has_snapshots": false,
+  "template": false,
+  "moref": "59"
+}

@@ -1,0 +1,89 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t11-win-20261123T104809Z-b0e384",
+  "vm": "gaia-t11-win",
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000186169,
+      "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 6e-8,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000334,
+      "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 166.536112529,
+      "detail": "3 files, 34359739281 bytes in 166.5 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "UNKNOWN",
+      "seconds": 0.041375711,
+      "detail": "a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso"
+    },
+    {
+      "name": "firmware",
+      "type": "migration",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the conversion did not finish"
+    },
+    {
+      "name": "boot",
+      "type": "winrm",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the conversion failed"
+    }
+  ],
+  "image": {
+    "path": "",
+    "format": "",
+    "bytes": 0,
+    "sha256_before": "",
+    "sha256_after": "",
+    "unchanged": null
+  },
+  "sandbox": {
+    "domain": "gaia-verify-b0e384",
+    "network": "gaia-verify-b0e384",
+    "bridge": "gvb-b0e384",
+    "netns": "gaia-verify-b0e384",
+    "slot": 0,
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "",
+    "libvirt": "",
+    "qemu": "",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [],
+    "netns_ip_forward": "",
+    "isolated": false
+  },
+  "timings_s": {
+    "total": 0.000244478
+  },
+  "shutdown": "",
+  "screenshots": [],
+  "errors": [],
+  "started": "2026-11-23T10:48:09.105216637Z",
+  "finished": "2026-11-23T10:48:09.105461115Z"
+}

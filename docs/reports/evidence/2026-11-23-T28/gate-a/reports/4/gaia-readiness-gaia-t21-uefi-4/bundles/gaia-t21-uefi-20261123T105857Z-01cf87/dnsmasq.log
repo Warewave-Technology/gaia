@@ -1,0 +1,40 @@
+Nov 23 10:58:58 dnsmasq[74521]: started, version 2.90 DNS disabled
+Nov 23 10:58:58 dnsmasq[74521]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua TFTP conntrack ipset nftset auth cryptohash DNSSEC loop-detect inotify dumpfile
+Nov 23 10:58:58 dnsmasq-dhcp[74521]: DHCP, IP range 10.254.0.10 -- 10.254.0.99, lease time 1h
+Nov 23 10:58:58 dnsmasq-dhcp[74521]: DHCP, sockets bound exclusively to interface gvn-01cf87
+Nov 23 10:59:17 dnsmasq-dhcp[74521]: 201056722 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 23 10:59:17 dnsmasq-dhcp[74521]: 201056722 client provides name: gaia-t21-uefi
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 DHCPDISCOVER(gvn-01cf87) 00:50:56:3f:a8:03 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 tags: gvn-01cf87
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 DHCPOFFER(gvn-01cf87) 10.254.0.10 00:50:56:3f:a8:03 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 1:netmask, 3:router, 6:dns-server, 12:hostname, 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 15:domain-name, 33:static-route, 42:ntp-server, 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 120:sip-server, 121:classless-static-route
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 next server: 10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  1 option: 53 message-type  2
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 51 lease-time  1h
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 58 T1  30m
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 59 T2  52m30s
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option:  3 router  10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 available DHCP range: 10.254.0.10 -- 10.254.0.99
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 client provides name: gaia-t21-uefi
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 DHCPREQUEST(gvn-01cf87) 10.254.0.10 00:50:56:3f:a8:03 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 tags: gvn-01cf87
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 DHCPACK(gvn-01cf87) 10.254.0.10 00:50:56:3f:a8:03 gaia-t21-uefi
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 1:netmask, 3:router, 6:dns-server, 12:hostname, 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 15:domain-name, 33:static-route, 42:ntp-server, 
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 requested options: 120:sip-server, 121:classless-static-route
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 next server: 10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  1 option: 53 message-type  5
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 54 server-identifier  10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 51 lease-time  1h
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 58 T1  30m
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 59 T2  52m30s
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option:  1 netmask  255.255.255.0
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option: 28 broadcast  10.254.0.255
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size:  4 option:  3 router  10.254.0.1
+Nov 23 10:59:20 dnsmasq-dhcp[74521]: 201056722 sent size: 13 option: 12 hostname  gaia-t21-uefi
+Nov 23 10:59:27 dnsmasq-dhcp[74521]: 201056722 available DHCP range: 10.254.0.10 -- 10.254.0.99

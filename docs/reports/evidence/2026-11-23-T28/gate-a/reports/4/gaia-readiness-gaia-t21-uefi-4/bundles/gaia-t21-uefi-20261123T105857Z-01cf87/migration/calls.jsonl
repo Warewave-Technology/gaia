@@ -1,0 +1,6 @@
+{"time":"2026-11-23T10:57:22.478139239Z","method":"POST","path":"/sdk","op":"RetrieveServiceContent","allowed":true,"status":200}
+{"time":"2026-11-23T10:57:22.486515117Z","method":"POST","path":"/sdk","op":"Login","allowed":true,"status":200}
+{"time":"2026-11-23T10:57:22.514769353Z","method":"POST","path":"/sdk","op":"RetrievePropertiesEx","allowed":true,"status":200}
+{"time":"2026-11-23T10:57:22.536375911Z","method":"GET","path":"/folder/gaia-t21-uefi/gaia-t21-uefi.vmx","allowed":true,"status":200}
+{"time":"2026-11-23T10:57:22.605831705Z","method":"GET","path":"/folder/gaia-t21-uefi/gaia-t21-uefi.vmdk","allowed":true,"status":200}
+{"time":"2026-11-23T10:57:22.615655745Z","method":"GET","path":"/folder/gaia-t21-uefi/gaia-t21-uefi-flat.vmdk","allowed":true,"status":200}

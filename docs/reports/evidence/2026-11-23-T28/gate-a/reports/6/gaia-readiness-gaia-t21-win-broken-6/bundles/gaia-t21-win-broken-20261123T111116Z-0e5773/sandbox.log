@@ -1,0 +1,47 @@
+[11:11:25.528] image /var/lib/gaia-t21-sandbox/images/mc6-vda.qcow2 (vda): sha256 edacf3b77da95f226836f093e00b54529329679909eed90e4dcafb7772b0c739 (9080406016 bytes)
+[11:11:25.611] $ sysctl -q -w net.ipv6.conf.gvb-0e5773.disable_ipv6=1
+
+[11:11:25.616] $ ip netns add gaia-verify-0e5773
+
+[11:11:25.618] $ ip netns exec gaia-verify-0e5773 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[11:11:25.622] $ ip link add gvh-0e5773 type veth peer name gvn-0e5773
+
+[11:11:25.623] $ sysctl -q -w net.ipv6.conf.gvh-0e5773.disable_ipv6=1
+
+[11:11:25.639] $ ip link set gvh-0e5773 master gvb-0e5773 up
+
+[11:11:25.665] $ ip link set gvn-0e5773 netns gaia-verify-0e5773
+
+[11:11:25.666] $ ip -n gaia-verify-0e5773 addr add 10.254.0.1/24 dev gvn-0e5773
+
+[11:11:25.670] $ ip -n gaia-verify-0e5773 link set gvn-0e5773 up
+
+[11:11:25.672] $ ip -n gaia-verify-0e5773 link set lo up
+
+[11:11:25.672] $ ip netns exec gaia-verify-0e5773 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-0e5773 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/dnsmasq.log --user=root --group=root
+[11:11:25.721] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc6-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/overlay.qcow2
+
+[11:11:27.017] $ ip -o addr show dev gvb-0e5773
+
+[11:11:27.019] $ ip -n gaia-verify-0e5773 route show table all
+10.254.0.0/24 dev gvn-0e5773 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-0e5773 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-0e5773 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-0e5773 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-0e5773 table local proto kernel metric 256 pref medium
+[11:11:27.022] $ ip netns exec gaia-verify-0e5773 cat /proc/sys/net/ipv4/ip_forward
+0
+[11:11:27.024] guest started (kvm)
+[11:16:27.199] boot not reached: the guest took no DHCP lease within the 300 s boot timeout
+[11:16:27.614] $ virsh screenshot gaia-verify-0e5773 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/screenshot-boot.ppm, with type of image/png
+[11:16:28.009] $ virsh screenshot gaia-verify-0e5773 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-0e5773/screenshot-end.ppm, with type of image/png
+[11:16:28.386] $ ip netns del gaia-verify-0e5773
+
+[11:16:28.818] kept what the guest wrote to vda: /var/lib/gaia-t21-sandbox/images/gaia-t21-win-broken-20261123T111116Z-0e5773-after-vda.qcow2

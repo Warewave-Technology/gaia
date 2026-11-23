@@ -763,6 +763,8 @@ gaia migration-checks report <check id> -o readiness.tar.gz
   `driver_install_loop` and the driver's name (Windows Server 2022 with virtio-win 0.1.302: `smbus`). If the VM does
   not need that driver, check it again without it: `exclude_drivers='["smbus"]'` (or **Check again without smbus** on
   the Migration screen). A check with a driver left out is at best `WARNING`, and the readiness report says which.
+  For now a converted Windows is `CRITICAL` on `stable` either way (docs/limitations.md): its first-boot restarts
+  fall inside the stability window.
 - The **Migration** screen shows the same: the converter's state, every check with its steps and console, and, for
   admins and operators, each source's VMs with a **Check** button.
 - The readiness report holds the signed bundle and says how to verify it offline.

@@ -47,6 +47,8 @@
 - New per-check option `exclude_drivers` (a list of virtio-win driver names): the guest is converted without them,
   recorded as a `WARNING` step (`drivers_excluded`) in the bundle and the readiness report, so the check is never
   `OK`. The Migration screen offers **Check again without <driver>**.
+- Known limit (docs/limitations.md): a converted Windows is still `CRITICAL` on `stable`, even without the looping
+  driver, because virt-v2v's own first-boot restarts fall inside the stability window (ADR-005 B, awaiting a decision).
 
 ### Notification categories (ADR-007 C8, T28)
 

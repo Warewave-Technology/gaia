@@ -1,0 +1,18 @@
+<domain type='kvm'>
+  <name>gaia-verify-5365e5</name>
+  <description>Gaia verification sandbox for gaia-t11-win (transient)</description>
+  <memory unit='MiB'>4096</memory>
+  <vcpu>2</vcpu>
+  <os><type arch='x86_64' machine='q35'>hvm</type><boot dev='hd'/></os><features><acpi/><apic/></features>
+  <cpu mode='host-passthrough'/>
+  <on_poweroff>destroy</on_poweroff><on_reboot>restart</on_reboot><on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    
+    <disk type='file' device='disk'><driver name='qemu' type='qcow2'/><source file='/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-5365e5/overlay.qcow2'/><target dev='vda' bus='virtio'/></disk>
+    <interface type='network'><source network='gaia-verify-5365e5'/><mac address='00:50:56:3f:b1:01'/><model type='virtio'/><rom enabled='no'/></interface>
+    <serial type='file'><source path='/var/log/libvirt/qemu/gaia-verify-5365e5-serial.log'/><target port='0'/></serial>
+    <graphics type='vnc'><listen type='none'/></graphics>
+    <video><model type='vga'/></video>
+  </devices>
+</domain>

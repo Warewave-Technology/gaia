@@ -1,0 +1,62 @@
+[11:03:51.182] image /var/lib/gaia-t21-sandbox/images/mc5-vda.qcow2 (vda): sha256 ba6e304bc88398f25f4e0e6a0f8b4266dc8e4d574196de7a2fdde24be166a185 (9080406016 bytes)
+[11:03:51.266] $ sysctl -q -w net.ipv6.conf.gvb-04b121.disable_ipv6=1
+
+[11:03:51.270] $ ip netns add gaia-verify-04b121
+
+[11:03:51.272] $ ip netns exec gaia-verify-04b121 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[11:03:51.276] $ ip link add gvh-04b121 type veth peer name gvn-04b121
+
+[11:03:51.278] $ sysctl -q -w net.ipv6.conf.gvh-04b121.disable_ipv6=1
+
+[11:03:51.292] $ ip link set gvh-04b121 master gvb-04b121 up
+
+[11:03:51.321] $ ip link set gvn-04b121 netns gaia-verify-04b121
+
+[11:03:51.323] $ ip -n gaia-verify-04b121 addr add 10.254.0.1/24 dev gvn-04b121
+
+[11:03:51.330] $ ip -n gaia-verify-04b121 link set gvn-04b121 up
+
+[11:03:51.332] $ ip -n gaia-verify-04b121 link set lo up
+
+[11:03:51.332] $ ip netns exec gaia-verify-04b121 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-04b121 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/dnsmasq.log --user=root --group=root
+[11:03:51.378] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc5-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/overlay.qcow2
+
+[11:03:52.789] $ ip -o addr show dev gvb-04b121
+
+[11:03:52.790] $ ip -n gaia-verify-04b121 route show table all
+10.254.0.0/24 dev gvn-04b121 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-04b121 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-04b121 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-04b121 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::413:c7ff:fe24:1079 dev gvn-04b121 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-04b121 table local proto kernel metric 256 pref medium
+[11:03:52.794] $ ip netns exec gaia-verify-04b121 cat /proc/sys/net/ipv4/ip_forward
+0
+[11:03:52.795] guest started (kvm)
+[11:04:33.821] guest 00:50:56:3f:b1:01 has 10.254.0.10 after 41.025 s
+[11:04:35.047] $ ip netns exec gaia-verify-04b121 /usr/local/sbin/gaia-t21 probe -check {"name":"boot","type":"winrm","port":5985,"boot":true} -host 10.254.0.10 -timeout 258
+{"ok":true,"attempts":1,"seconds":1.045163157,"detail":"POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 3a b3 13 1f c1 86 0d 7b 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 27 35 0d 6c 3a 7b dd 01 00 00 00 00)","status":401,"body_head":"Negotiate TlRMTVNTUAACAAAAGAAYADgAAAAFgoqiOrMTH8GGDXsAAAAAAAAAAIAAgABQAAAACgB8TwAAAA9HAEEASQBBAC0AVAAxADEALQBXAEkATgACABgARwBBAEkAQQAtAFQAMQAxAC0AVwBJAE4AAQAYAEcAQQBJAEEALQBUADEAMQAtAFcASQBOAAQAGABHAEEASQBBAC0AVAAxADEALQBXAEkATgADABgARwBBAEkAQQAtAFQAMQAxAC0AVwBJAE4ABwAIACc1DWw6e90BAAAAAA=="}
+[11:04:35.047] check boot: OK (POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer "GAIA-T11-WIN" (DNS "GAIA-T11-WIN", domain "GAIA-T11-WIN"), Windows 10.0 build 20348, server "Microsoft-HTTPAPI/2.0" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 3a b3 13 1f c1 86 0d 7b 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 27 35 0d 6c 3a 7b dd 01 00 00 00 00))
+[11:04:35.047] boot reached after 42.252 s
+[11:04:35.436] $ virsh screenshot gaia-verify-04b121 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/screenshot-boot.ppm, with type of image/png
+[11:04:35.976] $ ip netns exec gaia-verify-04b121 /usr/local/sbin/gaia-t21 probe -check {"name":"rdp","type":"rdp","port":3389} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.383701566,"detail":"10.254.0.10:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00)"}
+[11:04:35.976] check rdp: OK (10.254.0.10:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00))
+[11:04:36.183] $ ip netns exec gaia-verify-04b121 /usr/local/sbin/gaia-t21 probe -check {"name":"boot","type":"winrm","port":5985,"boot":true} -host 10.254.0.10 -timeout 5
+{"ok":true,"attempts":1,"seconds":0.040472247,"detail":"POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 a0 fa d7 96 bb 45 72 88 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 38 38 bb 6c 3a 7b dd 01 00 00 00 00)","status":401,"body_head":"Negotiate TlRMTVNTUAACAAAAGAAYADgAAAAFgoqioPrXlrtFcogAAAAAAAAAAIAAgABQAAAACgB8TwAAAA9HAEEASQBBAC0AVAAxADEALQBXAEkATgACABgARwBBAEkAQQAtAFQAMQAxAC0AVwBJAE4AAQAYAEcAQQBJAEEALQBUADEAMQAtAFcASQBOAAQAGABHAEEASQBBAC0AVAAxADEALQBXAEkATgADABgARwBBAEkAQQAtAFQAMQAxAC0AVwBJAE4ABwAIADg4u2w6e90BAAAAAA=="}
+[11:04:36.183] check boot: OK (POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer "GAIA-T11-WIN" (DNS "GAIA-T11-WIN", domain "GAIA-T11-WIN"), Windows 10.0 build 20348, server "Microsoft-HTTPAPI/2.0" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 a0 fa d7 96 bb 45 72 88 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 38 38 bb 6c 3a 7b dd 01 00 00 00 00))
+[11:04:46.352] $ ip netns exec gaia-verify-04b121 /usr/local/sbin/gaia-t21 probe -check {"name":"boot","type":"winrm","port":5985,"boot":true} -host 10.254.0.10 -timeout 5
+{"ok":false,"attempts":1,"seconds":5.000594121,"detail":"gave up after 5s: Post \"http://10.254.0.10:5985/wsman-anon/identify\": context deadline exceeded"}
+[11:04:46.352] check boot: CRITICAL (gave up after 5s: Post "http://10.254.0.10:5985/wsman-anon/identify": context deadline exceeded)
+[11:04:46.352] check stable: CRITICAL (boot stopped answering 10 s after it passed (probe 2, one every 5s for 1m0s): gave up after 5s: Post "http://10.254.0.10:5985/wsman-anon/identify": context deadline exceeded. A guest that restarts itself answers for a few seconds only (a Windows whose first-boot scripts fail restarts on every boot))
+[11:04:46.737] $ virsh screenshot gaia-verify-04b121 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-04b121/screenshot-end.ppm, with type of image/png
+[11:05:47.353] $ ip netns del gaia-verify-04b121
+
+[11:05:47.729] kept what the guest wrote to vda: /var/lib/gaia-t21-sandbox/images/gaia-t11-win-20261123T110341Z-04b121-after-vda.qcow2

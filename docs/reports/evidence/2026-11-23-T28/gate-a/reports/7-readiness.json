@@ -1,0 +1,171 @@
+{
+  "bundle": "gaia-t11-win-20261123T112140Z-5365e5",
+  "check": 7,
+  "checked_at": "2026-11-23T11:24:40.641173485Z",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000144159,
+      "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 1.3e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000473,
+      "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 144.238296394,
+      "detail": "3 files, 34359739281 bytes in 144.2 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 75.943002878,
+      "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01), virtio-win drivers in 75.8 s"
+    },
+    {
+      "name": "drivers_excluded",
+      "type": "exclude_drivers",
+      "verdict": "WARNING",
+      "seconds": 75.943008558,
+      "detail": "converted without virtio-win's smbus driver(s), as the check asked (exclude_drivers): the guest neither has nor installs them; left out of virtio-win: smbus"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 4e-7,
+      "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+    },
+    {
+      "name": "boot",
+      "type": "winrm",
+      "verdict": "OK",
+      "seconds": 47.377188677,
+      "attempts": 1,
+      "detail": "POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-WIN\"), Windows 10.0 build 20348, server \"Microsoft-HTTPAPI/2.0\" (challenge 4e 54 4c 4d 53 53 50 00 02 00 00 00 18 00 18 00 38 00 00 00 05 82 8a a2 04 91 3b b2 9c 53 8c 59 00 00 00 00 00 00 00 00 80 00 80 00 50 00 00 00 0a 00 7c 4f 00 00 00 0f 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 02 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 01 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 04 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 03 00 18 00 47 00 41 00 49 00 41 00 2d 00 54 00 31 00 31 00 2d 00 57 00 49 00 4e 00 07 00 08 00 c3 55 ac f2 3c 7b dd 01 00 00 00 00) (DHCP lease 10.254.0.10, then the probe)"
+    },
+    {
+      "name": "rdp",
+      "type": "rdp",
+      "verdict": "OK",
+      "seconds": 48.623438349,
+      "attempts": 1,
+      "detail": "10.254.0.10:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00)"
+    },
+    {
+      "name": "stable",
+      "type": "winrm",
+      "verdict": "CRITICAL",
+      "seconds": 59.020995268,
+      "detail": "boot stopped answering 10 s after it passed (probe 2, one every 5s for 1m0s): gave up after 5s: Post \"http://10.254.0.10:5985/wsman-anon/identify\": context deadline exceeded. A guest that restarts itself answers for a few seconds only (a Windows whose first-boot scripts fail restarts on every boot)"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "converter": {
+    "state": "converted",
+    "detail": "1 disk(s) in 75.8 s",
+    "seconds": 75.799993742,
+    "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+    "virtio_win": {
+      "path": "/var/lib/gaia-convert/virtio-win-0.1.302.iso",
+      "version": "0.1.302",
+      "state": "ok",
+      "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+      "want_sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+      "url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+      "detail": "virtio-win 0.1.302, sha256 matches"
+    },
+    "excluded_drivers": [
+      "smbus"
+    ],
+    "excluded_paths": [
+      "smbus"
+    ],
+    "disks": [
+      "gaia-t11-win-sda"
+    ],
+    "domain_xml": "gaia-t11-win.xml",
+    "log": "virt-v2v.log",
+    "command": [
+      "podman",
+      "--cgroup-manager=cgroupfs",
+      "run",
+      "--rm",
+      "--init",
+      "--network=none",
+      "--cgroups=disabled",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--userns=keep-id",
+      "--group-add=keep-groups",
+      "--device=/dev/kvm",
+      "--volume=/var/lib/gaia-convert/jobs/mc7/in:/in:ro",
+      "--volume=/var/lib/gaia-convert/jobs/mc7-out:/out",
+      "--volume=/var/lib/gaia-convert/virtio-win-0.1.302.iso:/virtio-win.iso:ro",
+      "--env=GAIA_EXCLUDE=smbus",
+      "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "bash",
+      "-c",
+      "set -euo pipefail\ntrap 'echo \"gaia: error: preparing virtio-win without $GAIA_EXCLUDE failed: $BASH_COMMAND\" \u003e\u00262; exit 66' ERR\ntree=/tmp/virtio-win\nmkdir \"$tree\"\nguestfish --ro --format=raw -a /virtio-win.iso -m /dev/sda tar-out / - | tar -x -C \"$tree\"\nchmod -R u+w \"$tree\" # an ISO's files and folders are read-only\n: \u003e/out/gaia-excluded.txt\nfor d in $GAIA_EXCLUDE; do\n\tfound=$(find \"$tree\" \\( -iname \"$d\" -o -iname \"$d.*\" \\) -print -prune)\n\tif [ -z \"$found\" ]; then\n\t\techo \"gaia: error: virtio-win has no driver named $d (no folder or file $d or $d.*)\" \u003e\u00262\n\t\texit 64\n\tfi\n\tprintf '%s\\n' \"$found\" | sed \"s|^$tree/||\" \u003e\u003e/out/gaia-excluded.txt\n\tfind \"$tree\" \\( -iname \"$d\" -o -iname \"$d.*\" \\) -prune -exec rm -rf {} +\ndone\necho \"gaia: virtio-win given to virt-v2v without $GAIA_EXCLUDE ($(wc -l \u003c/out/gaia-excluded.txt) folders and files left out)\"\nexport VIRTIO_WIN=\"$tree\"\nexec \"$@\"\n",
+      "exclude",
+      "virt-v2v",
+      "-i",
+      "vmx",
+      "/in/gaia-t11-win.vmx",
+      "-o",
+      "local",
+      "-os",
+      "/out",
+      "-of",
+      "qcow2",
+      "-on",
+      "gaia-t11-win"
+    ]
+  },
+  "firmware": "bios",
+  "guest_id": "windows2019srvNext_64Guest",
+  "ledger_seq": 8,
+  "readiness": "CRITICAL",
+  "reason": "stable critical: boot stopped answering 10 s after it passed (probe 2, one every 5s for 1m0s): gave up after 5s: Post \"http://10.254.0.10:5985/wsman-anon/identify\": context deadline exceeded. A guest that restarts itself answers for a few seconds only (a Windows whose first-boot scripts fail restarts on every boot)",
+  "source": "esxi",
+  "source_host": "192.168.1.29",
+  "source_product": "VMware ESXi 8.0.3 build-24677879",
+  "timings_s": {
+    "boot": 47.377188677,
+    "conversion": 75.799993742,
+    "download": 144.238287915,
+    "firstboot_read": 38.338668459,
+    "handover": 23.030522285,
+    "image_hash": 9.337354774,
+    "ready": 48.623438349,
+    "sandbox_setup": 1.4707535059999999,
+    "shutdown": 60.613925095,
+    "total": 139.979918323
+  },
+  "vm": "gaia-t11-win",
+  "vsphere_blocked_calls": 0,
+  "vsphere_calls": 6
+}
