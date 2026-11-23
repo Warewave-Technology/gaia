@@ -2159,9 +2159,15 @@ export interface components {
             hosts: components["schemas"]["NameCount"][];
             params?: components["schemas"]["Params"] | null;
             policies: components["schemas"]["NameCount"][];
+            reach: components["schemas"]["AttentionReach"] | null;
             scope: components["schemas"]["Scope"] | null;
             since: string;
             status: string;
+        };
+        AttentionReach: {
+            elsewhere: number;
+            host_vms: number;
+            ok: number;
         };
         AttentionView: {
             clock: components["schemas"]["ServerClock"];
@@ -12405,6 +12411,8 @@ export interface operations {
                 scope_kind?: string;
                 /** @description with code: the scope's id */
                 scope_id?: number;
+                /** @description true, with a host-scoped code, scope_kind=host and scope_id: every VM on that host whatever its deciding reason (ADR-007 C19.2) */
+                reach?: boolean;
                 /** @description a VM, host or policy name, or a point id */
                 q?: string;
                 /** @description name; default: worst first */

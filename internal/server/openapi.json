@@ -306,6 +306,16 @@
             },
             "type": "array"
           },
+          "reach": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttentionReach"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "scope": {
             "oneOf": [
               {
@@ -330,9 +340,30 @@
           "example",
           "hosts",
           "policies",
+          "reach",
           "scope",
           "since",
           "status"
+        ],
+        "type": "object"
+      },
+      "AttentionReach": {
+        "additionalProperties": false,
+        "properties": {
+          "elsewhere": {
+            "type": "integer"
+          },
+          "host_vms": {
+            "type": "integer"
+          },
+          "ok": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "elsewhere",
+          "host_vms",
+          "ok"
         ],
         "type": "object"
       },
@@ -17941,6 +17972,15 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "description": "true, with a host-scoped code, scope_kind=host and scope_id: every VM on that host whatever its deciding reason (ADR-007 C19.2)",
+            "in": "query",
+            "name": "reach",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {

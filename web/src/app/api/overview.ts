@@ -53,6 +53,8 @@ export type VMFilter = {
   code?: string
   scope_kind?: string
   scope_id?: number
+  /** With a host-scoped code and its host: every VM on the host, whatever its deciding reason (ADR-007 C19.2). */
+  reach?: boolean
   q?: string
 }
 
