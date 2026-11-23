@@ -1,0 +1,53 @@
+{
+  "name": "gaia-t8-linux",
+  "uuid": "",
+  "power_state": "poweredOff",
+  "guest_id": "debian12_64Guest",
+  "guest_full_name": "Debian GNU/Linux 12 (64-bit)",
+  "firmware": "bios",
+  "secure_boot": false,
+  "cpus": 2,
+  "memory_mib": 1024,
+  "vmx": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx",
+  "datacenter": "ha-datacenter",
+  "disks": [
+    {
+      "label": "Hard disk 1",
+      "file": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmdk",
+      "capacity_bytes": 3221225472,
+      "thin": true
+    }
+  ],
+  "nics": [
+    {
+      "label": "Network adapter 1",
+      "type": "VirtualVmxnet3",
+      "mac": "00:50:56:3f:a8:01"
+    }
+  ],
+  "files": [
+    {
+      "name": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx",
+      "type": "config",
+      "size": 493
+    },
+    {
+      "name": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmsd",
+      "type": "snapshotList",
+      "size": 0
+    },
+    {
+      "name": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmdk",
+      "type": "diskDescriptor",
+      "size": 506
+    },
+    {
+      "name": "[datastore1] gaia-t8-linux/gaia-t8-linux-flat.vmdk",
+      "type": "diskExtent",
+      "size": 3221225472
+    }
+  ],
+  "has_snapshots": false,
+  "template": false,
+  "moref": "62"
+}

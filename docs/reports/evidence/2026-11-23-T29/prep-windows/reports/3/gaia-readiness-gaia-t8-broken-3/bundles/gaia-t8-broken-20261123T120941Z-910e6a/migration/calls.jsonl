@@ -1,0 +1,6 @@
+{"time":"2026-11-23T12:08:02.41666211Z","method":"POST","path":"/sdk","op":"RetrieveServiceContent","allowed":true,"status":200}
+{"time":"2026-11-23T12:08:02.426948984Z","method":"POST","path":"/sdk","op":"Login","allowed":true,"status":200}
+{"time":"2026-11-23T12:08:02.453493888Z","method":"POST","path":"/sdk","op":"RetrievePropertiesEx","allowed":true,"status":200}
+{"time":"2026-11-23T12:08:02.473867608Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken.vmx","allowed":true,"status":200}
+{"time":"2026-11-23T12:08:02.548966984Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken.vmdk","allowed":true,"status":200}
+{"time":"2026-11-23T12:08:02.560481279Z","method":"GET","path":"/folder/gaia-t8-broken/gaia-t8-broken-flat.vmdk","allowed":true,"status":200}

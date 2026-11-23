@@ -1,0 +1,6 @@
+{"time":"2026-11-23T12:30:32.435467196Z","method":"POST","path":"/sdk","op":"RetrieveServiceContent","allowed":true,"status":200}
+{"time":"2026-11-23T12:30:32.45009472Z","method":"POST","path":"/sdk","op":"Login","allowed":true,"status":200}
+{"time":"2026-11-23T12:30:32.5668222Z","method":"POST","path":"/sdk","op":"RetrievePropertiesEx","allowed":true,"status":200}
+{"time":"2026-11-23T12:30:32.636137876Z","method":"GET","path":"/folder/gaia-t21-win-broken/gaia-t21-win-broken.vmx","allowed":true,"status":200}
+{"time":"2026-11-23T12:30:33.106010623Z","method":"GET","path":"/folder/gaia-t21-win-broken/gaia-t21-win-broken.vmdk","allowed":true,"status":200}
+{"time":"2026-11-23T12:30:33.167011838Z","method":"GET","path":"/folder/gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk","allowed":true,"status":200}

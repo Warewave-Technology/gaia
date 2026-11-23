@@ -1,0 +1,54 @@
+[12:16:46.856] image /var/lib/gaia-t21-sandbox/images/mc4-vda.qcow2 (vda): sha256 2911a152554b3ae18da14b7bcad558dd7635bb957906da69820f74cb001a116a (1252851712 bytes)
+[12:16:46.913] $ sysctl -q -w net.ipv6.conf.gvb-ee3174.disable_ipv6=1
+
+[12:16:46.915] $ ip netns add gaia-verify-ee3174
+
+[12:16:46.917] $ ip netns exec gaia-verify-ee3174 sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[12:16:46.919] $ ip link add gvh-ee3174 type veth peer name gvn-ee3174
+
+[12:16:46.924] $ sysctl -q -w net.ipv6.conf.gvh-ee3174.disable_ipv6=1
+
+[12:16:46.935] $ ip link set gvh-ee3174 master gvb-ee3174 up
+
+[12:16:46.969] $ ip link set gvn-ee3174 netns gaia-verify-ee3174
+
+[12:16:46.971] $ ip -n gaia-verify-ee3174 addr add 10.254.0.1/24 dev gvn-ee3174
+
+[12:16:46.974] $ ip -n gaia-verify-ee3174 link set gvn-ee3174 up
+
+[12:16:46.976] $ ip -n gaia-verify-ee3174 link set lo up
+
+[12:16:46.976] $ ip netns exec gaia-verify-ee3174 dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-ee3174 --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/dnsmasq.log --user=root --group=root
+[12:16:47.623] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc4-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/overlay.qcow2
+
+[12:16:49.760] $ ip -o addr show dev gvb-ee3174
+
+[12:16:49.761] $ ip -n gaia-verify-ee3174 route show table all
+10.254.0.0/24 dev gvn-ee3174 proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-ee3174 table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-ee3174 table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-ee3174 proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::308e:19ff:fe4b:77be dev gvn-ee3174 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-ee3174 table local proto kernel metric 256 pref medium
+[12:16:49.780] $ ip netns exec gaia-verify-ee3174 cat /proc/sys/net/ipv4/ip_forward
+0
+[12:16:49.781] guest started (kvm)
+[12:17:12.859] boot reached after 23.078 s
+[12:17:13.293] $ virsh screenshot gaia-verify-ee3174 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/screenshot-boot.ppm, with type of image/png
+[12:17:13.294] guest 00:50:56:3f:a8:03 has 10.254.0.10 after 23.512 s
+[12:17:13.466] $ ip netns exec gaia-verify-ee3174 /usr/local/sbin/gaia-t21 probe -check {"name":"ssh","type":"tcp","port":22} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.000610567,"detail":"connected to 10.254.0.10:22"}
+[12:17:13.466] check ssh: OK (connected to 10.254.0.10:22)
+[12:17:13.636] $ ip netns exec gaia-verify-ee3174 /usr/local/sbin/gaia-t21 probe -check {"name":"health","type":"http","port":8080,"path":"/health","expect_status":200,"expect_body":"ok"} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.008206458,"detail":"GET http://10.254.0.10:8080/health: 200","status":200,"body_head":"ok"}
+[12:17:13.636] check health: OK (GET http://10.254.0.10:8080/health: 200)
+[12:17:14.051] $ virsh screenshot gaia-verify-ee3174 --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-ee3174/screenshot-end.ppm, with type of image/png
+[12:17:17.057] $ ip netns del gaia-verify-ee3174
+

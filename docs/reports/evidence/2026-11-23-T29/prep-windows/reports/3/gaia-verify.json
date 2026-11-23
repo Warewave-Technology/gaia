@@ -1,0 +1,19 @@
+{
+  "anchor_key_id": "d859a0105b974b2e9c00950b750468b5f5e98c487d3dc2bc33a1345c25848556",
+  "checked_at": "2026-11-23T12:50:15.996801467Z",
+  "command": "evidence verify",
+  "findings": [],
+  "key_fingerprint": "d859a0105b974b2e9c00950b750468b5f5e98c487d3dc2bc33a1345c25848556",
+  "report": {
+    "dir": "/root/t29/gate-win-20261123T115026Z/reports/3/gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a",
+    "format": "v1",
+    "bundle_id": "gaia-t8-broken-20261123T120941Z-910e6a",
+    "bundle_sha256": "bbb22631b20d37fb7e0b660ac1e7a136a6757b990d5a718461b18941a8b5ad94",
+    "key_id": "d859a0105b974b2e9c00950b750468b5f5e98c487d3dc2bc33a1345c25848556",
+    "files": 18,
+    "verdict": "OK",
+    "findings": [],
+    "problems": []
+  },
+  "verdict": "OK"
+}

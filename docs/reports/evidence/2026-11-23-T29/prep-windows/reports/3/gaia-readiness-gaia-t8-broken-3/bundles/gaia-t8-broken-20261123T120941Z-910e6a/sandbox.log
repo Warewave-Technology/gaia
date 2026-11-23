@@ -1,0 +1,47 @@
+[12:09:42.646] image /var/lib/gaia-t21-sandbox/images/mc3-vda.qcow2 (vda): sha256 1f84e3fb555e6fb4c23b95e935ccf86f6a83ce32c92a2506c4de30eb6809c610 (1252720640 bytes)
+[12:09:42.711] $ sysctl -q -w net.ipv6.conf.gvb-910e6a.disable_ipv6=1
+
+[12:09:42.721] $ ip netns add gaia-verify-910e6a
+
+[12:09:42.723] $ ip netns exec gaia-verify-910e6a sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[12:09:42.729] $ ip link add gvh-910e6a type veth peer name gvn-910e6a
+
+[12:09:42.730] $ sysctl -q -w net.ipv6.conf.gvh-910e6a.disable_ipv6=1
+
+[12:09:42.741] $ ip link set gvh-910e6a master gvb-910e6a up
+
+[12:09:42.773] $ ip link set gvn-910e6a netns gaia-verify-910e6a
+
+[12:09:42.775] $ ip -n gaia-verify-910e6a addr add 10.254.0.1/24 dev gvn-910e6a
+
+[12:09:42.781] $ ip -n gaia-verify-910e6a link set gvn-910e6a up
+
+[12:09:42.783] $ ip -n gaia-verify-910e6a link set lo up
+
+[12:09:42.783] $ ip netns exec gaia-verify-910e6a dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-910e6a --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/dnsmasq.log --user=root --group=root
+[12:09:43.107] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc3-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/overlay.qcow2
+
+[12:09:44.950] $ ip -o addr show dev gvb-910e6a
+
+[12:09:44.953] $ ip -n gaia-verify-910e6a route show table all
+10.254.0.0/24 dev gvn-910e6a proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-910e6a table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-910e6a table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-910e6a proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::7c67:1cff:fe49:b92b dev gvn-910e6a table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-910e6a table local proto kernel metric 256 pref medium
+[12:09:44.956] $ ip netns exec gaia-verify-910e6a cat /proc/sys/net/ipv4/ip_forward
+0
+[12:09:44.958] guest started (kvm)
+[12:14:45.129] boot not reached within 300 s
+[12:14:45.499] $ virsh screenshot gaia-verify-910e6a --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/screenshot-boot.ppm, with type of image/png
+[12:14:45.879] $ virsh screenshot gaia-verify-910e6a --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-910e6a/screenshot-end.ppm, with type of image/png
+[12:14:46.260] $ ip netns del gaia-verify-910e6a
+

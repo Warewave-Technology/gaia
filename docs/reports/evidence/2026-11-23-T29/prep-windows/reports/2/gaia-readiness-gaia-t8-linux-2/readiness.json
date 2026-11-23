@@ -1,0 +1,144 @@
+{
+  "bundle": "gaia-t8-linux-20261123T120731Z-54812b",
+  "check": 2,
+  "checked_at": "2026-11-23T12:07:57.652902591Z",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000141679,
+      "detail": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 3.1e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.0000075,
+      "detail": "3 files to read, all in [datastore1] gaia-t8-linux"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 21.856048891,
+      "detail": "3 files, 3221226471 bytes in 21.9 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 96.690958988,
+      "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:01) in 96.7 s"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 4.7e-7,
+      "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 16.071385991,
+      "attempts": 17,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t8-linux login:\""
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "OK",
+      "seconds": 16.616471944,
+      "attempts": 1,
+      "detail": "connected to 10.254.0.10:22"
+    },
+    {
+      "name": "health",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 16.771209178,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.10:8080/health: 200"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "converter": {
+    "state": "converted",
+    "detail": "1 disk(s) in 96.7 s",
+    "seconds": 96.688671945,
+    "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+    "disks": [
+      "gaia-t8-linux-sda"
+    ],
+    "domain_xml": "gaia-t8-linux.xml",
+    "log": "virt-v2v.log",
+    "command": [
+      "podman",
+      "--cgroup-manager=cgroupfs",
+      "run",
+      "--rm",
+      "--init",
+      "--network=none",
+      "--cgroups=disabled",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--userns=keep-id",
+      "--group-add=keep-groups",
+      "--device=/dev/kvm",
+      "--volume=/var/lib/gaia-convert/jobs/mc2/in:/in:ro",
+      "--volume=/var/lib/gaia-convert/jobs/mc2-out:/out",
+      "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "virt-v2v",
+      "-i",
+      "vmx",
+      "/in/gaia-t8-linux.vmx",
+      "-o",
+      "local",
+      "-os",
+      "/out",
+      "-of",
+      "qcow2",
+      "-on",
+      "gaia-t8-linux"
+    ]
+  },
+  "firmware": "bios",
+  "first_boot_restarts_s": null,
+  "guest_id": "debian12_64Guest",
+  "ledger_seq": 3,
+  "readiness": "OK",
+  "reason": "ready for KVM: converted in 97 s, booted in 16 s, all 10 checks passed, 6 vSphere calls, all read-only",
+  "source": "esxi",
+  "source_host": "192.168.1.29",
+  "source_product": "VMware ESXi 8.0.3 build-24677879",
+  "timings_s": {
+    "boot": 16.071385991,
+    "conversion": 96.688671945,
+    "download": 21.85603896,
+    "handover": 0.745450819,
+    "image_hash": 0.756918124,
+    "ready": 16.771209178,
+    "sandbox_setup": 3.273430803,
+    "shutdown": 3.003045448,
+    "total": 25.485592184
+  },
+  "vm": "gaia-t8-linux",
+  "vsphere_blocked_calls": 0,
+  "vsphere_calls": 6
+}

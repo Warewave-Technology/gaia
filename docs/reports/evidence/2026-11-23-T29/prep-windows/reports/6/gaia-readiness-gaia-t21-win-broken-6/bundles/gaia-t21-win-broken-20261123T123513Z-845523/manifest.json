@@ -1,0 +1,112 @@
+{
+  "format": "restore-evidence",
+  "format_version": 1,
+  "bundle_id": "gaia-t21-win-broken-20261123T123513Z-845523",
+  "created": "2026-11-23T12:41:05.121880344Z",
+  "key_id": "d859a0105b974b2e9c00950b750468b5f5e98c487d3dc2bc33a1345c25848556",
+  "subject": {
+    "check": "6",
+    "converter_image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "kind": "migration_check",
+    "source": "esxi",
+    "verdict": "CRITICAL",
+    "vm": "gaia-t21-win-broken"
+  },
+  "files": [
+    {
+      "path": "config.json",
+      "sha256": "da8e541172d25f5535be1ae07985bfb82b80bc22c8362003cfb5747645c47701",
+      "bytes": 539
+    },
+    {
+      "path": "dnsmasq.leases",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dnsmasq.log",
+      "sha256": "d48da2b46efbfa931f3f3abb39703365c4c8ea5d6003fe9f61ff61300f2cc22d",
+      "bytes": 446
+    },
+    {
+      "path": "domain.xml",
+      "sha256": "5572323a30c649461651217f6ebe23f32376084f82ddadc38d8e1d8c568b80aa",
+      "bytes": 1098
+    },
+    {
+      "path": "migration/calls.jsonl",
+      "sha256": "12bf59b1ecff974fb3ea126f838f79f9b884fdd2ce577baed329002d9cf5dff6",
+      "bytes": 813
+    },
+    {
+      "path": "migration/check.json",
+      "sha256": "627b610a77944b4d5291e77a650aa4b2ad86630ac40707ffe3b29a4e7f9a5704",
+      "bytes": 2929
+    },
+    {
+      "path": "migration/converted-domain.xml",
+      "sha256": "b16e2192978a3686be6d1e261ae9eb78f74aee610d3ac3d8842223407ba39ef8",
+      "bytes": 1693
+    },
+    {
+      "path": "migration/converter.json",
+      "sha256": "8429e585ecdf878352809041cf58fa5a029a844e35b7fe39c92ecad77eaecf5e",
+      "bytes": 1748
+    },
+    {
+      "path": "migration/downloads.json",
+      "sha256": "eeb108582fd95515b5abcddbdd68455685ad9aa13edd7a8b38c46596b993baa4",
+      "bytes": 873
+    },
+    {
+      "path": "migration/firstboot.json",
+      "sha256": "23ac43d1c6a0be751f3d291303abf88ed442300e2490c915db6e7b3a13f88149",
+      "bytes": 466
+    },
+    {
+      "path": "migration/inventory.json",
+      "sha256": "4b1042f8b9d751df7117424f4f8f6d1483e37845e42e8b6ff841691bf004af7f",
+      "bytes": 1319
+    },
+    {
+      "path": "migration/source.vmx",
+      "sha256": "590dc124b25f7f099af43c9e08e61ab7b0789283ef0109351051ec804adce1a6",
+      "bytes": 449
+    },
+    {
+      "path": "migration/virt-v2v.log",
+      "sha256": "d5767cd3e07edae9043e9b30d35d07122bdf20cc2c83e1f7e6c1774da30231bb",
+      "bytes": 15599
+    },
+    {
+      "path": "network.xml",
+      "sha256": "e6a12d6edafb4e15eb6194286b73691251fdf0aba703b0fb1975c20a2aea904c",
+      "bytes": 97
+    },
+    {
+      "path": "result.json",
+      "sha256": "45f7ea75ac137c677b5855ff17710a7cae39ce6b541c3980130f43e74474b64a",
+      "bytes": 4217
+    },
+    {
+      "path": "sandbox.log",
+      "sha256": "25071d833acc53ad65d11201b41347a041ffce83e452aa567c57bc55b4f15418",
+      "bytes": 3354
+    },
+    {
+      "path": "screenshot-boot.png",
+      "sha256": "a8febd6a28a0d3d14e18ae586c3e3e31d05fc9cd5d9a5564bd79abcbde6850e3",
+      "bytes": 2511
+    },
+    {
+      "path": "screenshot-end.png",
+      "sha256": "f7b9c63992dbd8420882c3bf8b6a31c1ac7e141028a0b9a0a6a811ee827f5445",
+      "bytes": 2497
+    },
+    {
+      "path": "serial.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

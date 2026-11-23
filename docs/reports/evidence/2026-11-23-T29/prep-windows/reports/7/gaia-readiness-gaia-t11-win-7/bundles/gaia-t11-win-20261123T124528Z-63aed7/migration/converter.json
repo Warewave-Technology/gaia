@@ -1,0 +1,62 @@
+{
+  "state": "converted",
+  "detail": "1 disk(s) in 70.8 s",
+  "seconds": 70.846188179,
+  "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+  "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+  "virtio_win": {
+    "path": "/var/lib/gaia-convert/virtio-win-0.1.302.iso",
+    "version": "0.1.302",
+    "state": "ok",
+    "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+    "want_sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+    "url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+    "detail": "virtio-win 0.1.302, sha256 matches"
+  },
+  "excluded_drivers": [
+    "smbus"
+  ],
+  "excluded_paths": [
+    "smbus"
+  ],
+  "disks": [
+    "gaia-t11-win-sda"
+  ],
+  "domain_xml": "gaia-t11-win.xml",
+  "log": "virt-v2v.log",
+  "command": [
+    "podman",
+    "--cgroup-manager=cgroupfs",
+    "run",
+    "--rm",
+    "--init",
+    "--network=none",
+    "--cgroups=disabled",
+    "--cap-drop=all",
+    "--security-opt=no-new-privileges",
+    "--userns=keep-id",
+    "--group-add=keep-groups",
+    "--device=/dev/kvm",
+    "--volume=/var/lib/gaia-convert/jobs/mc7/in:/in:ro",
+    "--volume=/var/lib/gaia-convert/jobs/mc7-out:/out",
+    "--volume=/var/lib/gaia-convert/virtio-win-0.1.302.iso:/virtio-win.iso:ro",
+    "--env=GAIA_EXCLUDE=smbus",
+    "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "bash",
+    "-c",
+    "set -euo pipefail\ntrap 'echo \"gaia: error: preparing virtio-win without $GAIA_EXCLUDE failed: $BASH_COMMAND\" \u003e\u00262; exit 66' ERR\ntree=/tmp/virtio-win\nmkdir \"$tree\"\nguestfish --ro --format=raw -a /virtio-win.iso -m /dev/sda tar-out / - | tar -x -C \"$tree\"\nchmod -R u+w \"$tree\" # an ISO's files and folders are read-only\n: \u003e/out/gaia-excluded.txt\nfor d in $GAIA_EXCLUDE; do\n\tfound=$(find \"$tree\" \\( -iname \"$d\" -o -iname \"$d.*\" \\) -print -prune)\n\tif [ -z \"$found\" ]; then\n\t\techo \"gaia: error: virtio-win has no driver named $d (no folder or file $d or $d.*)\" \u003e\u00262\n\t\texit 64\n\tfi\n\tprintf '%s\\n' \"$found\" | sed \"s|^$tree/||\" \u003e\u003e/out/gaia-excluded.txt\n\tfind \"$tree\" \\( -iname \"$d\" -o -iname \"$d.*\" \\) -prune -exec rm -rf {} +\ndone\necho \"gaia: virtio-win given to virt-v2v without $GAIA_EXCLUDE ($(wc -l \u003c/out/gaia-excluded.txt) folders and files left out)\"\nexport VIRTIO_WIN=\"$tree\"\nexec \"$@\"\n",
+    "exclude",
+    "virt-v2v",
+    "-i",
+    "vmx",
+    "/in/gaia-t11-win.vmx",
+    "-o",
+    "local",
+    "-os",
+    "/out",
+    "-of",
+    "qcow2",
+    "-on",
+    "gaia-t11-win"
+  ]
+}

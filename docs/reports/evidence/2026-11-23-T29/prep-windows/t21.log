@@ -1,0 +1,309 @@
+
+== date / commit
+2026-11-23T11:50:26Z
+e0d08f90b9750f504a2c79c7602794c0ea4df904
+
+== build
+	build	vcs.revision=e0d08f90b9750f504a2c79c7602794c0ea4df904
+	build	vcs.modified=false
+Compiled against library: libvirt 9.0.0
+Using library: libvirt 9.0.0
+Using API: QEMU 9.0.0
+Running hypervisor: QEMU 7.2.22
+podman version 4.3.1
+
+== free space
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t8-linux (vmid none)
+deleted: gaia-t8-broken (vmid none)
+deleted: gaia-t21-uefi (vmid none)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t11-win (vmid none)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t21-win-broken (vmid none)
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G  114G   76G  61% /
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+Filesystem   Size   Used Available Use% Mounted on
+VMFS-6      71.8G   1.4G     70.3G   2% /vmfs/volumes/datastore1
+
+== fixtures (lab only: ESXi host shell)
+d597a8b422a0fa7f7cf1a0477d23be7f7514f32e57ccb8d0c69156e1be4a7e1712fb64aee6298520d70aa573b801d0cfe3392ab5de39829728760c0cf99ef4ec  debian-12-generic-amd64.qcow2
+debian-12-generic-amd64.qcow2: OK
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+virt-customize: warning: random seed could not be set for this type of guest
+gaia-t8-linux: vmid 62, Powered off
+total 3145736
+-rw-------    1 root     root     3221225472 Nov 23 11:51 gaia-t8-linux-flat.vmdk
+-rw-------    1 root     root           506 Nov 23 11:51 gaia-t8-linux.vmdk
+-rw-r--r--    1 root     root             0 Nov 23 11:51 gaia-t8-linux.vmsd
+-rw-r--r--    1 root     root           493 Nov 23 11:51 gaia-t8-linux.vmx
+virt-customize: warning: random seed could not be set for this type of guest
+gaia-t8-broken: zeroed the MBR boot code (bytes 0-439)
+gaia-t8-broken: vmid 63, Powered off
+total 3145736
+-rw-------    1 root     root     3221225472 Nov 23 11:52 gaia-t8-broken-flat.vmdk
+-rw-------    1 root     root           507 Nov 23 11:52 gaia-t8-broken.vmdk
+-rw-r--r--    1 root     root             0 Nov 23 11:52 gaia-t8-broken.vmsd
+-rw-r--r--    1 root     root           495 Nov 23 11:52 gaia-t8-broken.vmx
+virt-customize: warning: random seed could not be set for this type of guest
+gaia-t21-uefi: zeroed the MBR boot code (bytes 0-439)
+gaia-t21-uefi: vmid 64, Powered off
+total 3145736
+-rw-------    1 root     root     3221225472 Nov 23 11:53 gaia-t21-uefi-flat.vmdk
+-rw-------    1 root     root           506 Nov 23 11:53 gaia-t21-uefi.vmdk
+-rw-r--r--    1 root     root             0 Nov 23 11:53 gaia-t21-uefi.vmsd
+-rw-r--r--    1 root     root           492 Nov 23 11:53 gaia-t21-uefi.vmx
+fixture disk cached: /var/lib/gaia/images/gaia-t11-win.qcow2 (8.7G); REBUILD=1 rebuilds
+{"iso":{"link":"https://go.microsoft.com/fwlink/p/?LinkID=2195280&clcid=0x409&culture=en-us&country=US","url":"https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso","bytes":5044094976,"sha256":"3e4fa6d8507b554856fc9ca6079cc402df11a8b79344871669f0251535255325","downloaded":"2026-11-16T07:12:59Z"},"image_index":2,"install_seconds":510,"built":"2026-11-16T08:02:16Z","disk_gib":32,"mac":"00:50:56:3f:b1:01","qemu":"QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)","hardware":"pc (i440FX) + AHCI disk + e1000e (82574L), as VMware sata0 + e1000e"}
+disk: 34359738368 bytes, 8.6G allocated, sha256 1ac8bc4544d227d763f1111a5ff084def0f9fc814a4a237ba6f88e3f0380873e
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+wrote 9164959744 bytes
+gaia-t11-win: vmid 65, Powered off
+total 9034760
+-rw-------    1 root     root     34359738368 Nov 23 11:57 gaia-t11-win-flat.vmdk
+-rw-------    1 root     root           478 Nov 23 11:55 gaia-t11-win.vmdk
+-rw-r--r--    1 root     root             0 Nov 23 11:57 gaia-t11-win.vmsd
+-rw-r--r--    1 root     root           435 Nov 23 11:57 gaia-t11-win.vmx
+8.6G	/vmfs/volumes/datastore1/gaia-t11-win
+fixture disk cached: /var/lib/gaia/images/gaia-t11-win.qcow2 (8.7G); REBUILD=1 rebuilds
+{"iso":{"link":"https://go.microsoft.com/fwlink/p/?LinkID=2195280&clcid=0x409&culture=en-us&country=US","url":"https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso","bytes":5044094976,"sha256":"3e4fa6d8507b554856fc9ca6079cc402df11a8b79344871669f0251535255325","downloaded":"2026-11-16T07:12:59Z"},"image_index":2,"install_seconds":510,"built":"2026-11-16T08:02:16Z","disk_gib":32,"mac":"00:50:56:3f:b1:01","qemu":"QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)","hardware":"pc (i440FX) + AHCI disk + e1000e (82574L), as VMware sata0 + e1000e"}
+gaia-t21-win-broken: zeroed the MBR boot code (bytes 0-439)
+disk: 34359738368 bytes, 8.6G allocated, sha256 c326c9044b827e6d78e2926b9b3b6c452184e7d92b541580daaf353247677a34
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+wrote 9164959744 bytes
+gaia-t21-win-broken: vmid 66, Powered off
+total 9034760
+-rw-------    1 root     root     34359738368 Nov 23 12:00 gaia-t21-win-broken-flat.vmdk
+-rw-------    1 root     root           485 Nov 23 11:59 gaia-t21-win-broken.vmdk
+-rw-r--r--    1 root     root             0 Nov 23 12:00 gaia-t21-win-broken.vmsd
+-rw-r--r--    1 root     root           449 Nov 23 12:00 gaia-t21-win-broken.vmx
+8.6G	/vmfs/volumes/datastore1/gaia-t21-win-broken
+hostd.log while the fixtures were made (positive control): 5 write task(s)
+gaia-t8-linux vmid=62 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:51:13 +0000 gaia-t8-linux-flat.vmdk
+  -rw-------    1 root     root           506 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmsd
+  -rw-r--r--    1 root     root           493 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmx
+gaia-t8-broken vmid=63 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:52:06 +0000 gaia-t8-broken-flat.vmdk
+  -rw-------    1 root     root           507 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmsd
+  -rw-r--r--    1 root     root           495 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmx
+gaia-t21-uefi vmid=64 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:53:00 +0000 gaia-t21-uefi-flat.vmdk
+  -rw-------    1 root     root           506 2026-11-23 11:53:20 +0000 gaia-t21-uefi.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:53:21 +0000 gaia-t21-uefi.vmsd
+  -rw-r--r--    1 root     root           492 2026-11-23 11:53:20 +0000 gaia-t21-uefi.vmx
+gaia-t11-win vmid=65 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-23 11:57:03 +0000 gaia-t11-win-flat.vmdk
+  -rw-------    1 root     root           478 2026-11-23 11:55:42 +0000 gaia-t11-win.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:57:05 +0000 gaia-t11-win.vmsd
+  -rw-r--r--    1 root     root           435 2026-11-23 11:57:04 +0000 gaia-t11-win.vmx
+gaia-t21-win-broken vmid=66 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-23 12:00:39 +0000 gaia-t21-win-broken-flat.vmdk
+  -rw-------    1 root     root           485 2026-11-23 11:59:35 +0000 gaia-t21-win-broken.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 12:00:40 +0000 gaia-t21-win-broken.vmsd
+  -rw-r--r--    1 root     root           449 2026-11-23 12:00:40 +0000 gaia-t21-win-broken.vmx
+
+== converter service (user gaia-convert, rootless podman; install guide step 10d)
+Successfully tagged localhost/gaia-converter:latest
+6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d
+time="2026-11-23T12:01:56Z" level=warning msg="Failed to add pause process to systemd sandbox cgroup: exec: \"dbus-launch\": executable file not found in $PATH"
+converter image sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d (build 69 s)
+
+== gaia server and sandbox helper (packaged units)
+{"version":"e0d08f90b975","schema_version":15}
+CapabilityBoundingSet=cap_dac_override cap_setgid cap_setuid cap_sys_admin
+User=gaia-convert
+NoNewPrivileges=no
+{"reachable":true,"image":"sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d","present":true,"virtio_win":"missing"}
+
+== source (install guide step 10d) and inventory: read-only
+gaia-t11-win	poweredOff	windows2019srvNext_64Guest	bios	1	
+gaia-t21-uefi	poweredOff	debian12_64Guest	efi	1	
+gaia-t21-win-broken	poweredOff	windows2019srvNext_64Guest	bios	1	
+gaia-t8-broken	poweredOff	debian12_64Guest	bios	1	
+gaia-t8-linux	poweredOff	debian12_64Guest	bios	1	
+
+== checks: Windows before virtio-win is in place (ADR-005 §2)
+[12:02:35] queued: gaia-t11-win as check 1
+[12:05:19] gaia-t11-win: UNKNOWN: conversion unknown: a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso
+
+== virtio-win 0.1.302 (the operator's download, checked against the pinned sha256)
+{"reachable":true,"image":"sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d","virtio_win":"ok","versions":"virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64"}
+
+== checks: every fixture VM
+[12:05:20] queued: gaia-t8-linux as check 2
+[12:05:21] queued: gaia-t8-broken as check 3
+[12:05:21] queued: gaia-t21-uefi as check 4
+[12:05:21] queued: gaia-t11-win as check 5
+[12:05:21] queued: gaia-t21-win-broken as check 6
+[12:08:05] gaia-t8-linux: OK: ready for KVM: converted in 97 s, booted in 16 s, all 10 checks passed, 6 vSphere calls, all read-only
+[12:14:53] gaia-t8-broken: CRITICAL: boot critical: no match for "(?m)login: *$" on the serial console within 300 s
+[12:17:26] gaia-t21-uefi: OK: ready for KVM: converted in 82 s, booted in 23 s, all 10 checks passed, 6 vSphere calls, all read-only
+[12:30:33] gaia-t11-win: CRITICAL: drivers critical: Windows restarts on every boot: virt-v2v's first-boot service cannot install virtio-win's smbus driver and retries it on the next boot: smbus failed to install on 9 of 9 boots (Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.). Check again with exclude_drivers ["smbus"] if the VM does not need it
+[12:41:16] gaia-t21-win-broken: CRITICAL: boot critical: the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985
+[12:41:16] queued: gaia-t11-win@no-smbus as check 7
+[12:50:07] gaia-t11-win@no-smbus: WARNING: drivers_excluded warning: converted without virtio-win's smbus driver(s), as the check asked (exclude_drivers): the guest neither has nor installs them; left out of virtio-win: smbus, restarted 4 time(s) on its first boot (at 55 s, 84 s, 129 s, 161 s) before it stayed up
+
+== readiness reports: gaia evidence verify and the independent verifier (bundle mode)
+tar: gaia-readiness-gaia-t11-win-1/readiness.json: time stamp 2026-11-23 12:50:14 is 0.279345657 s in the future
+tar: gaia-readiness-gaia-t11-win-1/anchor.pub: time stamp 2026-11-23 12:50:14 is 0.279239757 s in the future
+tar: gaia-readiness-gaia-t11-win-1/keys/evidence-key-current.pub: time stamp 2026-11-23 12:50:14 is 0.279150088 s in the future
+tar: gaia-readiness-gaia-t11-win-1/ledger.jsonl: time stamp 2026-11-23 12:50:14 is 0.279082028 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/config.json: time stamp 2026-11-23 12:50:14 is 0.278968969 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/manifest.json: time stamp 2026-11-23 12:50:14 is 0.278883489 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/manifest.sig: time stamp 2026-11-23 12:50:14 is 0.27882796 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/calls.jsonl: time stamp 2026-11-23 12:50:14 is 0.27873663 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/check.json: time stamp 2026-11-23 12:50:14 is 0.278681101 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/converter.json: time stamp 2026-11-23 12:50:14 is 0.278625351 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/downloads.json: time stamp 2026-11-23 12:50:14 is 0.278574271 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/inventory.json: time stamp 2026-11-23 12:50:14 is 0.278523792 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/source.vmx: time stamp 2026-11-23 12:50:14 is 0.278473162 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/migration/virt-v2v.log: time stamp 2026-11-23 12:50:14 is 0.278423902 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/result.json: time stamp 2026-11-23 12:50:14 is 0.278375072 s in the future
+tar: gaia-readiness-gaia-t11-win-1/bundles/gaia-t11-win-20261123T120512Z-5d2c06/sandbox.log: time stamp 2026-11-23 12:50:14 is 0.278334743 s in the future
+tar: gaia-readiness-gaia-t11-win-1/README.txt: time stamp 2026-11-23 12:50:14 is 0.278274603 s in the future
+tar: gaia-readiness-gaia-t11-win-1/SHA256SUMS: time stamp 2026-11-23 12:50:14 is 0.278225083 s in the future
+tar: gaia-readiness-gaia-t11-win-7/readiness.json: time stamp 2026-11-23 12:50:15 is 0.415263206 s in the future
+tar: gaia-readiness-gaia-t11-win-7/anchor.pub: time stamp 2026-11-23 12:50:15 is 0.415139018 s in the future
+tar: gaia-readiness-gaia-t11-win-7/keys/evidence-key-current.pub: time stamp 2026-11-23 12:50:15 is 0.415020648 s in the future
+tar: gaia-readiness-gaia-t11-win-7/ledger.jsonl: time stamp 2026-11-23 12:50:15 is 0.414890638 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/config.json: time stamp 2026-11-23 12:50:15 is 0.414741929 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/dnsmasq.leases: time stamp 2026-11-23 12:50:15 is 0.41466523 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/dnsmasq.log: time stamp 2026-11-23 12:50:15 is 0.41455657 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/domain.xml: time stamp 2026-11-23 12:50:15 is 0.414495141 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/manifest.json: time stamp 2026-11-23 12:50:15 is 0.414425181 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/manifest.sig: time stamp 2026-11-23 12:50:15 is 0.414363962 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/calls.jsonl: time stamp 2026-11-23 12:50:15 is 0.414251732 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/check.json: time stamp 2026-11-23 12:50:15 is 0.414192843 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/converted-domain.xml: time stamp 2026-11-23 12:50:15 is 0.414136323 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/converter.json: time stamp 2026-11-23 12:50:15 is 0.414071303 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/downloads.json: time stamp 2026-11-23 12:50:15 is 0.414012414 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/inventory.json: time stamp 2026-11-23 12:50:15 is 0.413956204 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/source.vmx: time stamp 2026-11-23 12:50:15 is 0.413899484 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/migration/virt-v2v.log: time stamp 2026-11-23 12:50:15 is 0.413808175 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/network.xml: time stamp 2026-11-23 12:50:15 is 0.413691376 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/result.json: time stamp 2026-11-23 12:50:15 is 0.413619595 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/sandbox.log: time stamp 2026-11-23 12:50:15 is 0.413383447 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/screenshot-boot.png: time stamp 2026-11-23 12:50:15 is 0.410033505 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/screenshot-end.png: time stamp 2026-11-23 12:50:15 is 0.406774213 s in the future
+tar: gaia-readiness-gaia-t11-win-7/bundles/gaia-t11-win-20261123T124528Z-63aed7/serial.log: time stamp 2026-11-23 12:50:15 is 0.406713523 s in the future
+tar: gaia-readiness-gaia-t11-win-7/README.txt: time stamp 2026-11-23 12:50:15 is 0.406652543 s in the future
+tar: gaia-readiness-gaia-t11-win-7/SHA256SUMS: time stamp 2026-11-23 12:50:15 is 0.406598534 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/readiness.json: time stamp 2026-11-23 12:50:15 is 0.011433814 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/anchor.pub: time stamp 2026-11-23 12:50:15 is 0.011356215 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/keys/evidence-key-current.pub: time stamp 2026-11-23 12:50:15 is 0.011288315 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/ledger.jsonl: time stamp 2026-11-23 12:50:15 is 0.011235325 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/config.json: time stamp 2026-11-23 12:50:15 is 0.011152006 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/dnsmasq.leases: time stamp 2026-11-23 12:50:15 is 0.011111456 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/dnsmasq.log: time stamp 2026-11-23 12:50:15 is 0.011073056 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/domain.xml: time stamp 2026-11-23 12:50:15 is 0.011029597 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/manifest.json: time stamp 2026-11-23 12:50:15 is 0.010991427 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/manifest.sig: time stamp 2026-11-23 12:50:15 is 0.010954577 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/calls.jsonl: time stamp 2026-11-23 12:50:15 is 0.010875098 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/check.json: time stamp 2026-11-23 12:50:15 is 0.010827668 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/converted-domain.xml: time stamp 2026-11-23 12:50:15 is 0.010790648 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/converter.json: time stamp 2026-11-23 12:50:15 is 0.010753948 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/downloads.json: time stamp 2026-11-23 12:50:15 is 0.010715799 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/inventory.json: time stamp 2026-11-23 12:50:15 is 0.010679269 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/source.vmx: time stamp 2026-11-23 12:50:15 is 0.010642319 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/migration/virt-v2v.log: time stamp 2026-11-23 12:50:15 is 0.010602819 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/network.xml: time stamp 2026-11-23 12:50:15 is 0.010566299 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/result.json: time stamp 2026-11-23 12:50:15 is 0.0105257 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/sandbox.log: time stamp 2026-11-23 12:50:15 is 0.01048304 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/screenshot-boot.png: time stamp 2026-11-23 12:50:15 is 0.01044651 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/screenshot-end.png: time stamp 2026-11-23 12:50:15 is 0.01040334 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/bundles/gaia-t21-uefi-20261123T121646Z-ee3174/serial.log: time stamp 2026-11-23 12:50:15 is 0.010200042 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/README.txt: time stamp 2026-11-23 12:50:15 is 0.010156822 s in the future
+tar: gaia-readiness-gaia-t21-uefi-4/SHA256SUMS: time stamp 2026-11-23 12:50:15 is 0.010119442 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/readiness.json: time stamp 2026-11-23 12:50:16 is 0.204919345 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/anchor.pub: time stamp 2026-11-23 12:50:16 is 0.204805426 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/keys/evidence-key-current.pub: time stamp 2026-11-23 12:50:16 is 0.204714355 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/ledger.jsonl: time stamp 2026-11-23 12:50:16 is 0.204638527 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/config.json: time stamp 2026-11-23 12:50:16 is 0.204494968 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/dnsmasq.leases: time stamp 2026-11-23 12:50:16 is 0.204438768 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/dnsmasq.log: time stamp 2026-11-23 12:50:16 is 0.204379947 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/domain.xml: time stamp 2026-11-23 12:50:16 is 0.204322998 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/manifest.json: time stamp 2026-11-23 12:50:16 is 0.204258258 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/manifest.sig: time stamp 2026-11-23 12:50:16 is 0.204199438 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/calls.jsonl: time stamp 2026-11-23 12:50:16 is 0.204100139 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/check.json: time stamp 2026-11-23 12:50:16 is 0.204038549 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/converted-domain.xml: time stamp 2026-11-23 12:50:16 is 0.20398196 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/converter.json: time stamp 2026-11-23 12:50:16 is 0.20391933 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/downloads.json: time stamp 2026-11-23 12:50:16 is 0.20386051 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/inventory.json: time stamp 2026-11-23 12:50:16 is 0.203803261 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/source.vmx: time stamp 2026-11-23 12:50:16 is 0.203745521 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/migration/virt-v2v.log: time stamp 2026-11-23 12:50:16 is 0.203688081 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/network.xml: time stamp 2026-11-23 12:50:16 is 0.203626952 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/result.json: time stamp 2026-11-23 12:50:16 is 0.203568752 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/sandbox.log: time stamp 2026-11-23 12:50:16 is 0.203512242 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/screenshot-boot.png: time stamp 2026-11-23 12:50:16 is 0.203446753 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/screenshot-end.png: time stamp 2026-11-23 12:50:16 is 0.203389003 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/bundles/gaia-t8-broken-20261123T120941Z-910e6a/serial.log: time stamp 2026-11-23 12:50:16 is 0.203341803 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/README.txt: time stamp 2026-11-23 12:50:16 is 0.203287724 s in the future
+tar: gaia-readiness-gaia-t8-broken-3/SHA256SUMS: time stamp 2026-11-23 12:50:16 is 0.203225084 s in the future
+{"check":1,"vm":"gaia-t11-win","readiness":"UNKNOWN","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":5,"vm":"gaia-t11-win","readiness":"CRITICAL","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":7,"vm":"gaia-t11-win","readiness":"WARNING","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":4,"vm":"gaia-t21-uefi","readiness":"OK","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":6,"vm":"gaia-t21-win-broken","readiness":"CRITICAL","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":3,"vm":"gaia-t8-broken","readiness":"CRITICAL","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+{"check":2,"vm":"gaia-t8-linux","readiness":"OK","sha256sums":true,"gaia":{"exit":0,"verdict":"OK"},"python":{"exit":0,"verdict":"OK"}}
+
+== read-only proof
+      3 GET	/folder/gaia-t11-win/gaia-t11-win-flat.vmdk	-	true	200
+      3 GET	/folder/gaia-t11-win/gaia-t11-win.vmdk	-	true	200
+      3 GET	/folder/gaia-t11-win/gaia-t11-win.vmx	-	true	200
+      1 GET	/folder/gaia-t21-uefi/gaia-t21-uefi-flat.vmdk	-	true	200
+      1 GET	/folder/gaia-t21-uefi/gaia-t21-uefi.vmdk	-	true	200
+      1 GET	/folder/gaia-t21-uefi/gaia-t21-uefi.vmx	-	true	200
+      1 GET	/folder/gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk	-	true	200
+      1 GET	/folder/gaia-t21-win-broken/gaia-t21-win-broken.vmdk	-	true	200
+      1 GET	/folder/gaia-t21-win-broken/gaia-t21-win-broken.vmx	-	true	200
+      1 GET	/folder/gaia-t8-broken/gaia-t8-broken-flat.vmdk	-	true	200
+      1 GET	/folder/gaia-t8-broken/gaia-t8-broken.vmdk	-	true	200
+      1 GET	/folder/gaia-t8-broken/gaia-t8-broken.vmx	-	true	200
+      1 GET	/folder/gaia-t8-linux/gaia-t8-linux-flat.vmdk	-	true	200
+      1 GET	/folder/gaia-t8-linux/gaia-t8-linux.vmdk	-	true	200
+      1 GET	/folder/gaia-t8-linux/gaia-t8-linux.vmx	-	true	200
+      8 POST	/sdk	Login	true	200
+      1 POST	/sdk	Logout	true	200
+      8 POST	/sdk	RetrievePropertiesEx	true	200
+      8 POST	/sdk	RetrieveServiceContent	true	200
+hostd.log while the server ran the checks: write tasks 0, read tasks 21 (GET /folder calls: 21)
+      1   haTask--vim.SearchIndex.findByInventoryPath-7700
+      1   haTask--vim.SearchIndex.findByInventoryPath-7703
+      1   haTask--vim.SearchIndex.findByInventoryPath-7706
+      1   haTask--vim.SearchIndex.findByInventoryPath-7712
+      1   haTask--vim.SearchIndex.findByInventoryPath-7715
+      1   haTask--vim.SearchIndex.findByInventoryPath-7718
+      1   haTask--vim.SearchIndex.findByInventoryPath-7722
+      1   haTask--vim.SearchIndex.findByInventoryPath-7725
+      1   haTask--vim.SearchIndex.findByInventoryPath-7728
+      1   haTask--vim.SearchIndex.findByInventoryPath-7736
+      1   haTask--vim.SearchIndex.findByInventoryPath-7739
+      1   haTask--vim.SearchIndex.findByInventoryPath-7742
+      1   haTask--vim.SearchIndex.findByInventoryPath-7746
+      1   haTask--vim.SearchIndex.findByInventoryPath-7749
+      1   haTask--vim.SearchIndex.findByInventoryPath-7752
+      1   haTask--vim.SearchIndex.findByInventoryPath-7762
+      1   haTask--vim.SearchIndex.findByInventoryPath-7765
+      1   haTask--vim.SearchIndex.findByInventoryPath-7768
+      1   haTask--vim.SearchIndex.findByInventoryPath-7776
+      1   haTask--vim.SearchIndex.findByInventoryPath-7779
+      1   haTask--vim.SearchIndex.findByInventoryPath-7782
+fixture VMs (power state, folder listing) unchanged: true
+
+== gate (CLAUDE.md T21)
+{"verdict":"OK","a":true,"b":true,"c":true,"d":true,"e":true,"f":true}
+out: /root/t29/gate-win-20261123T115026Z
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t8-linux (vmid 62)
+deleted: gaia-t8-broken (vmid 63)
+deleted: gaia-t21-uefi (vmid 64)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t11-win (vmid 65)
+Warning: Permanently added '192.168.1.29' (ECDSA) to the list of known hosts.
+deleted: gaia-t21-win-broken (vmid 66)

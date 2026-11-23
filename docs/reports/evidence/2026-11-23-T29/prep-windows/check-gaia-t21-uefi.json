@@ -1,0 +1,162 @@
+{
+  "id": 4,
+  "source_id": 1,
+  "vm": "gaia-t21-uefi",
+  "job_id": 4,
+  "config": {
+    "vm": "gaia-t21-uefi",
+    "template": "linux-basic",
+    "checks": [
+      {
+        "name": "health",
+        "type": "http",
+        "port": 8080,
+        "path": "/health",
+        "expect_body": "ok"
+      }
+    ]
+  },
+  "readiness": "OK",
+  "reason": "ready for KVM: converted in 82 s, booted in 23 s, all 10 checks passed, 6 vSphere calls, all read-only",
+  "bundle_id": "gaia-t21-uefi-20261123T121646Z-ee3174",
+  "firmware": "efi",
+  "guest_id": "debian12_64Guest",
+  "detail": {
+    "source": "192.168.1.29",
+    "product": "VMware ESXi 8.0.3 build-24677879",
+    "checks": [
+      {
+        "name": "source_vm",
+        "type": "inventory",
+        "verdict": "OK",
+        "seconds": 0.000124959,
+        "detail": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware efi, 1 disk(s), 1 NIC(s)"
+      },
+      {
+        "name": "cold",
+        "type": "power_state",
+        "verdict": "OK",
+        "seconds": 1.9e-7,
+        "detail": "poweredOff"
+      },
+      {
+        "name": "layout",
+        "type": "files",
+        "verdict": "OK",
+        "seconds": 0.00000463,
+        "detail": "3 files to read, all in [datastore1] gaia-t21-uefi"
+      },
+      {
+        "name": "download",
+        "type": "datastore_http",
+        "verdict": "OK",
+        "seconds": 21.068423742,
+        "detail": "3 files, 3221226470 bytes in 21.1 s (GET /folder, sha256 in downloads.json)"
+      },
+      {
+        "name": "conversion",
+        "type": "virt-v2v",
+        "verdict": "OK",
+        "seconds": 81.712553412,
+        "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, efi, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:03) in 81.7 s"
+      },
+      {
+        "name": "firmware",
+        "type": "firmware",
+        "verdict": "OK",
+        "seconds": 5.8e-7,
+        "detail": "UEFI on the source and in the sandbox (OVMF)"
+      },
+      {
+        "name": "boot",
+        "type": "boot_serial",
+        "verdict": "OK",
+        "seconds": 23.077640682,
+        "attempts": 24,
+        "detail": "serial console matched \"(?m)login: *$\": \"gaia-t21-uefi login:\""
+      },
+      {
+        "name": "ssh",
+        "type": "tcp",
+        "verdict": "OK",
+        "seconds": 23.68457491,
+        "attempts": 1,
+        "detail": "connected to 10.254.0.10:22"
+      },
+      {
+        "name": "health",
+        "type": "http",
+        "verdict": "OK",
+        "seconds": 23.85495013,
+        "attempts": 1,
+        "detail": "GET http://10.254.0.10:8080/health: 200"
+      },
+      {
+        "name": "image_unchanged",
+        "type": "image_hash",
+        "verdict": "OK",
+        "seconds": 0,
+        "detail": "sha256 before and after are equal"
+      }
+    ],
+    "timings_s": {
+      "boot": 23.077640682,
+      "conversion": 81.711099752,
+      "download": 21.068393122,
+      "handover": 0.83653538,
+      "image_hash": 0.777316246,
+      "ready": 23.85495013,
+      "sandbox_setup": 2.9232871879999998,
+      "shutdown": 3.003297616,
+      "total": 32.162471613
+    },
+    "converter": {
+      "state": "converted",
+      "detail": "1 disk(s) in 81.7 s",
+      "seconds": 81.711099752,
+      "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+      "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+      "disks": [
+        "gaia-t21-uefi-sda"
+      ],
+      "domain_xml": "gaia-t21-uefi.xml",
+      "log": "virt-v2v.log",
+      "command": [
+        "podman",
+        "--cgroup-manager=cgroupfs",
+        "run",
+        "--rm",
+        "--init",
+        "--network=none",
+        "--cgroups=disabled",
+        "--cap-drop=all",
+        "--security-opt=no-new-privileges",
+        "--userns=keep-id",
+        "--group-add=keep-groups",
+        "--device=/dev/kvm",
+        "--volume=/var/lib/gaia-convert/jobs/mc4/in:/in:ro",
+        "--volume=/var/lib/gaia-convert/jobs/mc4-out:/out",
+        "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+        "virt-v2v",
+        "-i",
+        "vmx",
+        "/in/gaia-t21-uefi.vmx",
+        "-o",
+        "local",
+        "-os",
+        "/out",
+        "-of",
+        "qcow2",
+        "-on",
+        "gaia-t21-uefi"
+      ]
+    },
+    "vsphere_calls": 6,
+    "vsphere_blocked_calls": 0,
+    "bundle": "gaia-t21-uefi-20261123T121646Z-ee3174",
+    "ledger_seq": 5,
+    "errors": []
+  },
+  "created_at": "2026-11-23T12:05:21.268736249Z",
+  "finished_at": "2026-11-23T12:17:18.715558972Z"
+}

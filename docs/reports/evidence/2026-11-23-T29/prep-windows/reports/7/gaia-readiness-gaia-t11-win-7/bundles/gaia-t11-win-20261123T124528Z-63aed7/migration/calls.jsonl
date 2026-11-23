@@ -1,0 +1,6 @@
+{"time":"2026-11-23T12:41:17.490943366Z","method":"POST","path":"/sdk","op":"RetrieveServiceContent","allowed":true,"status":200}
+{"time":"2026-11-23T12:41:17.517566752Z","method":"POST","path":"/sdk","op":"Login","allowed":true,"status":200}
+{"time":"2026-11-23T12:41:17.549059755Z","method":"POST","path":"/sdk","op":"RetrievePropertiesEx","allowed":true,"status":200}
+{"time":"2026-11-23T12:41:17.734182108Z","method":"GET","path":"/folder/gaia-t11-win/gaia-t11-win.vmx","allowed":true,"status":200}
+{"time":"2026-11-23T12:41:18.165459183Z","method":"GET","path":"/folder/gaia-t11-win/gaia-t11-win.vmdk","allowed":true,"status":200}
+{"time":"2026-11-23T12:41:18.207895591Z","method":"GET","path":"/folder/gaia-t11-win/gaia-t11-win-flat.vmdk","allowed":true,"status":200}

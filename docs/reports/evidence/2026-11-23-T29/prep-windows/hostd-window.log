@@ -1,0 +1,456 @@
+2026-11-23T12:02:34.359Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad9939da sid=52ef4143] Accepted password for user root from 192.168.1.30 - session=52ef4143-bff7-5bc3-6eb6-cc3bea491ddf
+2026-11-23T12:02:34.359Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad9939da sid=52ef4143] [Auth]: User root
+2026-11-23T12:02:34.360Z Wa(164) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad9939da sid=52ef4143] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:02:34.360Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad9939da sid=52ef4143] Event 7805 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:02:34.389Z In(166) Hostd[263207]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad9939dc sid=52ef4143 user=root] Event 7806 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:02:34 PM, number of API invocations: 1, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:02:38.498Z Er(163) Hostd[263216]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-23T12:02:38.505Z Wa(164) Hostd[263216]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-23T12:02:46.343Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad9939de sid=5288c601] Accepted password for user root from 192.168.1.30 - session=5288c601-1510-4480-8c91-6c5d26d15ba8
+2026-11-23T12:02:46.343Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad9939de sid=5288c601] [Auth]: User root
+2026-11-23T12:02:46.343Z Wa(164) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad9939de sid=5288c601] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:02:46.344Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad9939de sid=5288c601] Event 7807 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:02:46.370Z In(166) Hostd[263238]: [Originator@6876 sub=HTTP server /folder req=0000005b1656a350 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:02:46.370Z In(166) Hostd[263241]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1656a350-39e0 sid=5288c601 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7700
+2026-11-23T12:02:46.371Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1656a350-39e0 sid=5288c601 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7700 Status success
+2026-11-23T12:02:46.372Z In(166) Hostd[263219]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b1656a350-39e2 sid=5288c601 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:02:46.434Z In(166) Hostd[263238]: [Originator@6876 sub=HTTP server /folder req=0000005b1656a350] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:02:46.435Z In(166) Hostd[263238]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7808 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:02:46.441Z In(166) Hostd[263217]: [Originator@6876 sub=HTTP server /folder req=0000005b151a15a0 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:02:46.442Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b151a15a0-39e9 sid=5288c601 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7703
+2026-11-23T12:02:46.442Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b151a15a0-39e9 sid=5288c601 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7703 Status success
+2026-11-23T12:02:46.443Z In(166) Hostd[263229]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b151a15a0-39eb sid=5288c601 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:02:46.447Z In(166) Hostd[263222]: [Originator@6876 sub=HTTP server /folder req=0000005b151a15a0] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:02:46.447Z In(166) Hostd[263222]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7809 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:02:46.454Z In(166) Hostd[263223]: [Originator@6876 sub=HTTP server /folder req=0000005b14ece480 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:02:46.455Z In(166) Hostd[263218]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b14ece480-39f2 sid=5288c601 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7706
+2026-11-23T12:02:46.455Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b14ece480-39f2 sid=5288c601 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7706 Status success
+2026-11-23T12:02:46.456Z In(166) Hostd[263240]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b14ece480-39f4 sid=5288c601 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:03:20.330Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad9939ff sid=52eb955e] Accepted password for user vpxuser from 127.0.0.1 - session=52eb955e-3d14-f4c4-0405-602585f300a1
+2026-11-23T12:03:20.330Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc opID=ad9939ff sid=52eb955e] [Auth]: User vpxuser
+2026-11-23T12:03:20.330Z Wa(164) Hostd[263221]: [Originator@6876 sub=Vimsvc opID=ad9939ff sid=52eb955e] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:03:20.331Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad9939ff sid=52eb955e] Event 7810 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:03:20.372Z In(166) Hostd[263209]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a00 sid=52eb955e user=vpxuser] Event 7811 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:03:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:04:10.328Z In(166) Hostd[263207]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14f190d0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 17964'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14f190d0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 17964'>>, duration: 00:00:49.997594 (hh:mm:ss.us))
+2026-11-23T12:04:10.329Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:04:10.328Z In(166) Hostd[263217]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b149a3f40, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 23456'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b149a3f40, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 23456'>>, duration: 00:00:49.955814 (hh:mm:ss.us))
+2026-11-23T12:04:10.330Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:05:11.335Z In(166) Hostd[263235]: [Originator@6876 sub=HTTP server /folder req=0000005b14ece480] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:11.336Z In(166) Hostd[263235]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7812 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:05:11.415Z In(166) Hostd[263210]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a01 sid=5288c601 user=root] Event 7813 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:02:46 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:05:31.342Z In(166) Hostd[263207]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a03 sid=52be867e] Accepted password for user root from 192.168.1.30 - session=52be867e-b015-95f0-560e-90dc91de250e
+2026-11-23T12:05:31.342Z In(166) Hostd[263207]: [Originator@6876 sub=Vimsvc opID=ad993a03 sid=52be867e] [Auth]: User root
+2026-11-23T12:05:31.342Z Wa(164) Hostd[263207]: [Originator@6876 sub=Vimsvc opID=ad993a03 sid=52be867e] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:05:31.342Z In(166) Hostd[263207]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a03 sid=52be867e] Event 7814 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:05:31.365Z In(166) Hostd[263236]: [Originator@6876 sub=HTTP server /folder req=0000005b16478ed0 user=root] Got HTTP GET request for /folder/gaia-t8-linux/gaia-t8-linux.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:31.365Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16478ed0-3a05 sid=52be867e user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7712
+2026-11-23T12:05:31.366Z In(166) Hostd[263240]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16478ed0-3a05 sid=52be867e user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7712 Status success
+2026-11-23T12:05:31.367Z In(166) Hostd[263237]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16478ed0-3a07 sid=52be867e user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-linux recursive:false
+2026-11-23T12:05:31.433Z In(166) Hostd[263236]: [Originator@6876 sub=HTTP server /folder req=0000005b16478ed0] Sent OK response for GET /folder/gaia-t8-linux/gaia-t8-linux.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:31.433Z In(166) Hostd[263236]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7815 : File download from path '[datastore1]gaia-t8-linux/gaia-t8-linux.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:05:31.438Z In(166) Hostd[263215]: [Originator@6876 sub=HTTP server /folder req=0000005b16f27e70 user=root] Got HTTP GET request for /folder/gaia-t8-linux/gaia-t8-linux.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:31.439Z In(166) Hostd[263208]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16f27e70-3a0e sid=52be867e user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7715
+2026-11-23T12:05:31.439Z In(166) Hostd[263211]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16f27e70-3a0e sid=52be867e user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7715 Status success
+2026-11-23T12:05:31.440Z In(166) Hostd[263241]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16f27e70-3a10 sid=52be867e user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-linux recursive:false
+2026-11-23T12:05:31.444Z In(166) Hostd[263205]: [Originator@6876 sub=HTTP server /folder req=0000005b16f27e70] Sent OK response for GET /folder/gaia-t8-linux/gaia-t8-linux.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:31.444Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7816 : File download from path '[datastore1]gaia-t8-linux/gaia-t8-linux.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:05:31.448Z In(166) Hostd[263231]: [Originator@6876 sub=HTTP server /folder req=0000005abc650950 user=root] Got HTTP GET request for /folder/gaia-t8-linux/gaia-t8-linux-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:31.448Z In(166) Hostd[263210]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005abc650950-3a17 sid=52be867e user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7718
+2026-11-23T12:05:31.449Z In(166) Hostd[263208]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005abc650950-3a17 sid=52be867e user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7718 Status success
+2026-11-23T12:05:31.450Z In(166) Hostd[263229]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005abc650950-3a19 sid=52be867e user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-linux recursive:false
+2026-11-23T12:05:53.026Z In(166) Hostd[263237]: [Originator@6876 sub=HTTP server /folder req=0000005abc650950] Sent OK response for GET /folder/gaia-t8-linux/gaia-t8-linux-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:05:53.026Z In(166) Hostd[263237]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7817 : File download from path '[datastore1]gaia-t8-linux/gaia-t8-linux-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:06:00.356Z In(166) Hostd[263218]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14e9a970, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 38525'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14e9a970, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 38525'>>, duration: 00:00:48.939680 (hh:mm:ss.us))
+2026-11-23T12:06:00.357Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:07:52.325Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:07:52.325Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ccc2700] [cs:1:1082188447]BeginTransaction invoked.
+2026-11-23T12:07:52.325Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ccc2700] [cs:1:1082188447]Transaction started, level = 1
+2026-11-23T12:07:52.326Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ccc2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:07:52.327Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ccc2700] [cs:1:1082188447]CommitTransaction invoked.
+2026-11-23T12:07:52.327Z In(166) Hostd[263230]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ccc2700] [cs:1:1082188447]Transaction committed,level = 1
+2026-11-23T12:07:56.309Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a20 sid=52be867e user=root] Event 7818 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:05:31 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:07:56.587Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:07:56.587Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1616257534]BeginTransaction invoked.
+2026-11-23T12:07:56.588Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1616257534]Transaction started, level = 1
+2026-11-23T12:07:56.589Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:07:56.590Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1616257534]CommitTransaction invoked.
+2026-11-23T12:07:56.590Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1616257534]Transaction committed,level = 1
+2026-11-23T12:08:01.355Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a22 sid=52447e01] Accepted password for user root from 192.168.1.30 - session=52447e01-cf0f-fe01-04c0-b8fece651ed1
+2026-11-23T12:08:01.355Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc opID=ad993a22 sid=52447e01] [Auth]: User root
+2026-11-23T12:08:01.355Z Wa(164) Hostd[263215]: [Originator@6876 sub=Vimsvc opID=ad993a22 sid=52447e01] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:08:01.356Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a22 sid=52447e01] Event 7819 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:08:01.379Z In(166) Hostd[263238]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50 user=root] Got HTTP GET request for /folder/gaia-t8-broken/gaia-t8-broken.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:01.380Z In(166) Hostd[263209]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3a24 sid=52447e01 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7722
+2026-11-23T12:08:01.380Z In(166) Hostd[263214]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3a24 sid=52447e01 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7722 Status success
+2026-11-23T12:08:01.382Z In(166) Hostd[263216]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16a0fd50-3a26 sid=52447e01 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-broken recursive:false
+2026-11-23T12:08:01.447Z In(166) Hostd[263212]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50] Sent OK response for GET /folder/gaia-t8-broken/gaia-t8-broken.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:01.447Z In(166) Hostd[263212]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7820 : File download from path '[datastore1]gaia-t8-broken/gaia-t8-broken.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:08:01.454Z In(166) Hostd[263209]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50 user=root] Got HTTP GET request for /folder/gaia-t8-broken/gaia-t8-broken.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:01.455Z In(166) Hostd[263227]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3a2d sid=52447e01 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7725
+2026-11-23T12:08:01.455Z In(166) Hostd[263214]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3a2d sid=52447e01 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7725 Status success
+2026-11-23T12:08:01.456Z In(166) Hostd[263220]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16a0fd50-3a2f sid=52447e01 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-broken recursive:false
+2026-11-23T12:08:01.460Z In(166) Hostd[263218]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50] Sent OK response for GET /folder/gaia-t8-broken/gaia-t8-broken.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:01.460Z In(166) Hostd[263218]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7821 : File download from path '[datastore1]gaia-t8-broken/gaia-t8-broken.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:08:01.465Z In(166) Hostd[263224]: [Originator@6876 sub=HTTP server /folder req=0000005b14ece3c0 user=root] Got HTTP GET request for /folder/gaia-t8-broken/gaia-t8-broken-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:01.466Z In(166) Hostd[263212]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b14ece3c0-3a35 sid=52447e01 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7728
+2026-11-23T12:08:01.466Z In(166) Hostd[263227]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b14ece3c0-3a35 sid=52447e01 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7728 Status success
+2026-11-23T12:08:01.467Z In(166) Hostd[263241]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b14ece3c0-3a37 sid=52447e01 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t8-broken recursive:false
+2026-11-23T12:08:20.349Z In(166) Hostd[263240]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a43 sid=52c016f3] Accepted password for user vpxuser from 127.0.0.1 - session=52c016f3-d8db-c63e-7efc-0cbe61445c9b
+2026-11-23T12:08:20.349Z In(166) Hostd[263240]: [Originator@6876 sub=Vimsvc opID=ad993a43 sid=52c016f3] [Auth]: User vpxuser
+2026-11-23T12:08:20.349Z Wa(164) Hostd[263240]: [Originator@6876 sub=Vimsvc opID=ad993a43 sid=52c016f3] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:08:20.349Z In(166) Hostd[263240]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a43 sid=52c016f3] Event 7822 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:08:20.390Z In(166) Hostd[263231]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a44 sid=52c016f3 user=vpxuser] Event 7823 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:08:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:08:22.731Z In(166) Hostd[263234]: [Originator@6876 sub=HTTP server /folder req=0000005b14ece3c0] Sent OK response for GET /folder/gaia-t8-broken/gaia-t8-broken-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:08:22.731Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7824 : File download from path '[datastore1]gaia-t8-broken/gaia-t8-broken-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:08:45.419Z In(166) Hostd[263227]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b1526d240, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 53084'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b1526d240, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 53084'>>, duration: 00:00:49.110045 (hh:mm:ss.us))
+2026-11-23T12:08:45.421Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:09:05.429Z In(166) Hostd[263212]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b13f8af20, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 32821'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b13f8af20, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 32821'>>, duration: 00:00:45.081045 (hh:mm:ss.us))
+2026-11-23T12:09:05.430Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:09:34.398Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:09:34.398Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:589011216]BeginTransaction invoked.
+2026-11-23T12:09:34.398Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:589011216]Transaction started, level = 1
+2026-11-23T12:09:34.400Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:09:34.401Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:589011216]CommitTransaction invoked.
+2026-11-23T12:09:34.401Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:589011216]Transaction committed,level = 1
+2026-11-23T12:10:48.038Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:10:48.038Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cdc6700] [cs:1:1028181108]BeginTransaction invoked.
+2026-11-23T12:10:48.039Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cdc6700] [cs:1:1028181108]Transaction started, level = 1
+2026-11-23T12:10:48.040Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cdc6700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:10:48.040Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cdc6700] [cs:1:1028181108]CommitTransaction invoked.
+2026-11-23T12:10:48.041Z In(166) Hostd[263234]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cdc6700] [cs:1:1028181108]Transaction committed,level = 1
+2026-11-23T12:10:52.617Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:10:52.617Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ce07700] [cs:1:1295741977]BeginTransaction invoked.
+2026-11-23T12:10:52.617Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ce07700] [cs:1:1295741977]Transaction started, level = 1
+2026-11-23T12:10:52.618Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ce07700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:10:52.619Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ce07700] [cs:1:1295741977]CommitTransaction invoked.
+2026-11-23T12:10:52.619Z In(166) Hostd[263235]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ce07700] [cs:1:1295741977]Transaction committed,level = 1
+2026-11-23T12:10:56.627Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:10:56.627Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c681700] [cs:1:923696339]BeginTransaction invoked.
+2026-11-23T12:10:56.627Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c681700] [cs:1:923696339]Transaction started, level = 1
+2026-11-23T12:10:56.629Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c681700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:10:56.630Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c681700] [cs:1:923696339]CommitTransaction invoked.
+2026-11-23T12:10:56.630Z In(166) Hostd[263226]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c681700] [cs:1:923696339]Transaction committed,level = 1
+2026-11-23T12:11:42.848Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:11:42.849Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:79762275]BeginTransaction invoked.
+2026-11-23T12:11:42.849Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:79762275]Transaction started, level = 1
+2026-11-23T12:11:42.850Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:11:42.851Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:79762275]CommitTransaction invoked.
+2026-11-23T12:11:42.851Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:79762275]Transaction committed,level = 1
+2026-11-23T12:12:38.509Z Er(163) Hostd[263238]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-23T12:12:38.513Z Wa(164) Hostd[263238]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-23T12:13:20.344Z In(166) Hostd[263236]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a4a sid=526bdd10] Accepted password for user vpxuser from 127.0.0.1 - session=526bdd10-0c3a-282c-1f05-5e6fbbd0ea6e
+2026-11-23T12:13:20.344Z In(166) Hostd[263236]: [Originator@6876 sub=Vimsvc opID=ad993a4a sid=526bdd10] [Auth]: User vpxuser
+2026-11-23T12:13:20.345Z Wa(164) Hostd[263236]: [Originator@6876 sub=Vimsvc opID=ad993a4a sid=526bdd10] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:13:20.345Z In(166) Hostd[263236]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a4a sid=526bdd10] Event 7825 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:13:20.396Z In(166) Hostd[263232]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a4b sid=526bdd10 user=vpxuser] Event 7826 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:13:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:14:05.565Z In(166) Hostd[263229]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b0b287570, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 11899'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b0b287570, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 11899'>>, duration: 00:00:45.168868 (hh:mm:ss.us))
+2026-11-23T12:14:05.566Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:14:46.520Z In(166) Hostd[263221]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a4c sid=52447e01 user=root] Event 7827 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:08:01 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:15:01.345Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a4e sid=52c8b61b] Accepted password for user root from 192.168.1.30 - session=52c8b61b-cd5a-f59d-f78c-70f38a70d686
+2026-11-23T12:15:01.345Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc opID=ad993a4e sid=52c8b61b] [Auth]: User root
+2026-11-23T12:15:01.345Z Wa(164) Hostd[263219]: [Originator@6876 sub=Vimsvc opID=ad993a4e sid=52c8b61b] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:15:01.345Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a4e sid=52c8b61b] Event 7828 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:15:01.367Z In(166) Hostd[263229]: [Originator@6876 sub=HTTP server /folder req=0000005b152b50b0 user=root] Got HTTP GET request for /folder/gaia-t21-uefi/gaia-t21-uefi.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:01.368Z In(166) Hostd[263209]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b152b50b0-3a50 sid=52c8b61b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7736
+2026-11-23T12:15:01.368Z In(166) Hostd[263218]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b152b50b0-3a50 sid=52c8b61b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7736 Status success
+2026-11-23T12:15:01.370Z In(166) Hostd[263205]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b152b50b0-3a52 sid=52c8b61b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-uefi recursive:false
+2026-11-23T12:15:01.432Z In(166) Hostd[263212]: [Originator@6876 sub=HTTP server /folder req=0000005b152b50b0] Sent OK response for GET /folder/gaia-t21-uefi/gaia-t21-uefi.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:01.432Z In(166) Hostd[263212]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7829 : File download from path '[datastore1]gaia-t21-uefi/gaia-t21-uefi.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:15:01.437Z In(166) Hostd[263222]: [Originator@6876 sub=HTTP server /folder req=0000005b17019830 user=root] Got HTTP GET request for /folder/gaia-t21-uefi/gaia-t21-uefi.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:01.437Z In(166) Hostd[263229]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b17019830-3a59 sid=52c8b61b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7739
+2026-11-23T12:15:01.438Z In(166) Hostd[263210]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b17019830-3a59 sid=52c8b61b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7739 Status success
+2026-11-23T12:15:01.439Z In(166) Hostd[263226]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b17019830-3a5b sid=52c8b61b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-uefi recursive:false
+2026-11-23T12:15:01.443Z In(166) Hostd[263220]: [Originator@6876 sub=HTTP server /folder req=0000005b17019830] Sent OK response for GET /folder/gaia-t21-uefi/gaia-t21-uefi.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:01.443Z In(166) Hostd[263220]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7830 : File download from path '[datastore1]gaia-t21-uefi/gaia-t21-uefi.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:15:01.447Z In(166) Hostd[263240]: [Originator@6876 sub=HTTP server /folder req=0000005abc650950 user=root] Got HTTP GET request for /folder/gaia-t21-uefi/gaia-t21-uefi-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:01.447Z In(166) Hostd[263222]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005abc650950-3a61 sid=52c8b61b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7742
+2026-11-23T12:15:01.448Z In(166) Hostd[263209]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005abc650950-3a61 sid=52c8b61b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7742 Status success
+2026-11-23T12:15:01.449Z In(166) Hostd[263215]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005abc650950-3a63 sid=52c8b61b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-uefi recursive:false
+2026-11-23T12:15:22.107Z In(166) Hostd[263234]: [Originator@6876 sub=HTTP server /folder req=0000005abc650950] Sent OK response for GET /folder/gaia-t21-uefi/gaia-t21-uefi-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:15:22.107Z In(166) Hostd[263234]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7831 : File download from path '[datastore1]gaia-t21-uefi/gaia-t21-uefi-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:15:35.597Z In(166) Hostd[263221]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b143c44c0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 37414'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b143c44c0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 37414'>>, duration: 00:00:49.076985 (hh:mm:ss.us))
+2026-11-23T12:15:35.599Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:17:17.350Z In(166) Hostd[263238]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a6a sid=52c8b61b user=root] Event 7832 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:15:01 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:17:31.367Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a6c sid=5260244b] Accepted password for user root from 192.168.1.30 - session=5260244b-87bd-1491-2f19-64a8b8a7b19a
+2026-11-23T12:17:31.367Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc opID=ad993a6c sid=5260244b] [Auth]: User root
+2026-11-23T12:17:31.367Z Wa(164) Hostd[263228]: [Originator@6876 sub=Vimsvc opID=ad993a6c sid=5260244b] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:17:31.367Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a6c sid=5260244b] Event 7833 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:17:31.393Z In(166) Hostd[263211]: [Originator@6876 sub=HTTP server /folder req=0000005b16c22450 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:17:31.394Z In(166) Hostd[263237]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16c22450-3a6e sid=5260244b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7746
+2026-11-23T12:17:31.394Z In(166) Hostd[263241]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16c22450-3a6e sid=5260244b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7746 Status success
+2026-11-23T12:17:31.396Z In(166) Hostd[263213]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16c22450-3a70 sid=5260244b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:17:31.450Z In(166) Hostd[263225]: [Originator@6876 sub=HTTP server /folder req=0000005b16c22450] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:17:31.450Z In(166) Hostd[263225]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7834 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:17:31.457Z In(166) Hostd[263207]: [Originator@6876 sub=HTTP server /folder req=0000005b16b2a890 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:17:31.457Z In(166) Hostd[263241]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16b2a890-3a77 sid=5260244b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7749
+2026-11-23T12:17:31.458Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16b2a890-3a77 sid=5260244b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7749 Status success
+2026-11-23T12:17:31.458Z In(166) Hostd[263227]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16b2a890-3a79 sid=5260244b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:17:31.462Z In(166) Hostd[263237]: [Originator@6876 sub=HTTP server /folder req=0000005b16b2a890] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:17:31.462Z In(166) Hostd[263237]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7835 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:17:31.469Z In(166) Hostd[263207]: [Originator@6876 sub=HTTP server /folder req=0000005b16a126f0 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:17:31.470Z In(166) Hostd[263231]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a126f0-3a80 sid=5260244b user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7752
+2026-11-23T12:17:31.470Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a126f0-3a80 sid=5260244b user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7752 Status success
+2026-11-23T12:17:31.471Z In(166) Hostd[263238]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16a126f0-3a82 sid=5260244b user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:17:33.114Z In(166) Hostd[263219]: [Originator@6876 sub=Hostsvc.VmkVprobSource] VmkVprobSource::Post event: (vim.event.EventEx) {
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    key = 91, 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    chainId = 384899032, 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    createdTime = "1970-01-01T00:00:00Z", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    userName = "", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    host = (vim.event.HostEventArgument) {
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       name = "gaia-esxi.", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       host = 'vim.HostSystem:ha-host'
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    }, 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    eventTypeId = "esx.audit.ssh.session.closed", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    arguments = (vmodl.KeyAnyValue) [
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->          key = "1", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->          value = "root"
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       }, 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->          key = "2", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->          value = "192.168.1.30"
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->       }
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    ], 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    objectId = "ha-host", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: -->    objectType = "vim.HostSystem", 
+2026-11-23T12:17:33.115Z In(166) Hostd[263192]: --> }
+2026-11-23T12:17:33.115Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7836 : SSH session was closed for 'root@192.168.1.30'.
+2026-11-23T12:17:33.260Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:17:33.260Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1777315425]BeginTransaction invoked.
+2026-11-23T12:17:33.260Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1777315425]Transaction started, level = 1
+2026-11-23T12:17:33.262Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:17:33.262Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1777315425]CommitTransaction invoked.
+2026-11-23T12:17:33.263Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1777315425]Transaction committed,level = 1
+2026-11-23T12:18:05.661Z In(166) Hostd[263211]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b15333010, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 58282'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b15333010, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 58282'>>, duration: 00:00:48.310164 (hh:mm:ss.us))
+2026-11-23T12:18:05.662Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:18:20.365Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a8e sid=52347193] Accepted password for user vpxuser from 127.0.0.1 - session=52347193-d514-d164-6fa0-4680885c590e
+2026-11-23T12:18:20.365Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad993a8e sid=52347193] [Auth]: User vpxuser
+2026-11-23T12:18:20.365Z Wa(164) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad993a8e sid=52347193] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:18:20.365Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a8e sid=52347193] Event 7837 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:18:20.410Z In(166) Hostd[263208]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a8f sid=52347193 user=vpxuser] Event 7838 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:18:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:19:05.668Z In(166) Hostd[263231]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14ec15b0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 29275'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14ec15b0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 29275'>>, duration: 00:00:45.257434 (hh:mm:ss.us))
+2026-11-23T12:19:05.669Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:19:54.788Z In(166) Hostd[263215]: [Originator@6876 sub=HTTP server /folder req=0000005b16a126f0] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:19:54.789Z In(166) Hostd[263215]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7839 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:22:38.521Z Er(163) Hostd[263210]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-23T12:22:38.527Z Wa(164) Hostd[263210]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-23T12:23:20.336Z In(166) Hostd[263217]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a95 sid=52bb2ab1] Accepted password for user vpxuser from 127.0.0.1 - session=52bb2ab1-0406-bb8c-c68f-2dcc4f901332
+2026-11-23T12:23:20.336Z In(166) Hostd[263217]: [Originator@6876 sub=Vimsvc opID=ad993a95 sid=52bb2ab1] [Auth]: User vpxuser
+2026-11-23T12:23:20.337Z Wa(164) Hostd[263217]: [Originator@6876 sub=Vimsvc opID=ad993a95 sid=52bb2ab1] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:23:20.337Z In(166) Hostd[263217]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a95 sid=52bb2ab1] Event 7840 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:23:20.378Z In(166) Hostd[263211]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a96 sid=52bb2ab1 user=vpxuser] Event 7841 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:23:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:24:05.779Z In(166) Hostd[263233]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b15181050, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 11309'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b15181050, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 11309'>>, duration: 00:00:45.400743 (hh:mm:ss.us))
+2026-11-23T12:24:05.780Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:24:05.779Z In(166) Hostd[263207]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b151aa110, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 54674'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b151aa110, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 54674'>>, duration: 00:00:45.443612 (hh:mm:ss.us))
+2026-11-23T12:24:05.781Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:24:22.707Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:24:22.707Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:1416336723]BeginTransaction invoked.
+2026-11-23T12:24:22.707Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:1416336723]Transaction started, level = 1
+2026-11-23T12:24:22.709Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:24:22.710Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:1416336723]CommitTransaction invoked.
+2026-11-23T12:24:22.710Z In(166) Hostd[263215]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b9c2700] [cs:1:1416336723]Transaction committed,level = 1
+2026-11-23T12:24:27.504Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:24:27.504Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:1497804110]BeginTransaction invoked.
+2026-11-23T12:24:27.504Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:1497804110]Transaction started, level = 1
+2026-11-23T12:24:27.506Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:24:27.507Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:1497804110]CommitTransaction invoked.
+2026-11-23T12:24:27.507Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:1497804110]Transaction committed,level = 1
+2026-11-23T12:24:32.337Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:24:32.337Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:727879742]BeginTransaction invoked.
+2026-11-23T12:24:32.338Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:727879742]Transaction started, level = 1
+2026-11-23T12:24:32.339Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:24:32.340Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:727879742]CommitTransaction invoked.
+2026-11-23T12:24:32.340Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:727879742]Transaction committed,level = 1
+2026-11-23T12:25:15.808Z In(166) Hostd[263212]: [Originator@6876 sub=Solo.HttpSvc.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14f0cd70, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 25932'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14f0cd70, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 25932'>>, duration: 00:20:04.473382 (hh:mm:ss.us))
+2026-11-23T12:25:15.810Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:28:20.357Z In(166) Hostd[263213]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993a9c sid=52c25648] Accepted password for user vpxuser from 127.0.0.1 - session=52c25648-ccc7-2b81-faba-91c5dffc96e5
+2026-11-23T12:28:20.357Z In(166) Hostd[263213]: [Originator@6876 sub=Vimsvc opID=ad993a9c sid=52c25648] [Auth]: User vpxuser
+2026-11-23T12:28:20.357Z Wa(164) Hostd[263213]: [Originator@6876 sub=Vimsvc opID=ad993a9c sid=52c25648] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:28:20.358Z In(166) Hostd[263213]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a9c sid=52c25648] Event 7842 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:28:20.747Z In(166) Hostd[263232]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a9d sid=52c25648 user=vpxuser] Event 7843 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:28:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:28:25.897Z In(166) Hostd[263229]: [Originator@6876 sub=Solo.HttpSvc.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b15193f50, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 28818'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b15193f50, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 28818'>>, duration: 00:20:03.165945 (hh:mm:ss.us))
+2026-11-23T12:28:25.898Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:29:05.916Z In(166) Hostd[263217]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b145dacf0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 26798'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b145dacf0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 26798'>>, duration: 00:00:45.168730 (hh:mm:ss.us))
+2026-11-23T12:29:05.917Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:29:05.916Z In(166) Hostd[263240]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b143c44c0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 60426'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b143c44c0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 60426'>>, duration: 00:00:45.557588 (hh:mm:ss.us))
+2026-11-23T12:29:05.919Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:30:28.265Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993a9e sid=5260244b user=root] Event 7844 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:17:31 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:30:31.393Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993aa0 sid=527ddb6c] Accepted password for user root from 192.168.1.30 - session=527ddb6c-8581-4d13-2187-b9627338f4c8
+2026-11-23T12:30:31.393Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad993aa0 sid=527ddb6c] [Auth]: User root
+2026-11-23T12:30:31.393Z Wa(164) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad993aa0 sid=527ddb6c] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:30:31.393Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993aa0 sid=527ddb6c] Event 7845 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:30:31.542Z In(166) Hostd[263226]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50 user=root] Got HTTP GET request for /folder/gaia-t21-win-broken/gaia-t21-win-broken.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:30:31.542Z In(166) Hostd[263225]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3aa2 sid=527ddb6c user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7762
+2026-11-23T12:30:31.543Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3aa2 sid=527ddb6c user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7762 Status success
+2026-11-23T12:30:31.544Z In(166) Hostd[263239]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16a0fd50-3aa4 sid=527ddb6c user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-win-broken recursive:false
+2026-11-23T12:30:31.985Z In(166) Hostd[263236]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50] Sent OK response for GET /folder/gaia-t21-win-broken/gaia-t21-win-broken.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:30:31.985Z In(166) Hostd[263236]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7846 : File download from path '[datastore1]gaia-t21-win-broken/gaia-t21-win-broken.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:30:32.012Z In(166) Hostd[263214]: [Originator@6876 sub=HTTP server /folder req=0000005b1541c6f0 user=root] Got HTTP GET request for /folder/gaia-t21-win-broken/gaia-t21-win-broken.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:30:32.012Z In(166) Hostd[263218]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1541c6f0-3aab sid=527ddb6c user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7765
+2026-11-23T12:30:32.013Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1541c6f0-3aab sid=527ddb6c user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7765 Status success
+2026-11-23T12:30:32.014Z In(166) Hostd[263210]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b1541c6f0-3aad sid=527ddb6c user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-win-broken recursive:false
+2026-11-23T12:30:32.038Z In(166) Hostd[263216]: [Originator@6876 sub=HTTP server /folder req=0000005b1541c6f0] Sent OK response for GET /folder/gaia-t21-win-broken/gaia-t21-win-broken.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:30:32.038Z In(166) Hostd[263216]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7847 : File download from path '[datastore1]gaia-t21-win-broken/gaia-t21-win-broken.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:30:32.073Z In(166) Hostd[263214]: [Originator@6876 sub=HTTP server /folder req=0000005b1541c6f0 user=root] Got HTTP GET request for /folder/gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:30:32.074Z In(166) Hostd[263223]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1541c6f0-3ab4 sid=527ddb6c user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7768
+2026-11-23T12:30:32.074Z In(166) Hostd[263228]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b1541c6f0-3ab4 sid=527ddb6c user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7768 Status success
+2026-11-23T12:30:32.076Z In(166) Hostd[263241]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b1541c6f0-3ab6 sid=527ddb6c user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t21-win-broken recursive:false
+2026-11-23T12:30:49.546Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:30:49.546Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:884779307]BeginTransaction invoked.
+2026-11-23T12:30:49.546Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:884779307]Transaction started, level = 1
+2026-11-23T12:30:49.548Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:30:49.549Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:884779307]CommitTransaction invoked.
+2026-11-23T12:30:49.549Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:884779307]Transaction committed,level = 1
+2026-11-23T12:31:15.963Z In(166) Hostd[263223]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b143aecc0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 29383'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b143aecc0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 29383'>>, duration: 00:00:47.697790 (hh:mm:ss.us))
+2026-11-23T12:31:15.964Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:32:38.532Z Er(163) Hostd[263214]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-23T12:32:38.538Z Wa(164) Hostd[263214]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-23T12:33:20.397Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993ac2 sid=520e570b] Accepted password for user vpxuser from 127.0.0.1 - session=520e570b-ef68-5284-0412-8f06cd3315a1
+2026-11-23T12:33:20.397Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad993ac2 sid=520e570b] [Auth]: User vpxuser
+2026-11-23T12:33:20.397Z Wa(164) Hostd[263230]: [Originator@6876 sub=Vimsvc opID=ad993ac2 sid=520e570b] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:33:20.397Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993ac2 sid=520e570b] Event 7848 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:33:20.429Z In(166) Hostd[263241]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993ac3 sid=520e570b user=vpxuser] Event 7849 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:33:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:33:38.522Z In(166) Hostd[263219]: [Originator@6876 sub=HTTP server /folder req=0000005b1541c6f0] Sent OK response for GET /folder/gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:33:38.522Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7850 : File download from path '[datastore1]gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:34:06.014Z In(166) Hostd[263235]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b13d8b080, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 35650'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b13d8b080, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 35650'>>, duration: 00:00:45.616244 (hh:mm:ss.us))
+2026-11-23T12:34:06.015Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:35:14.751Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:35:14.751Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1125422080]BeginTransaction invoked.
+2026-11-23T12:35:14.751Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1125422080]Transaction started, level = 1
+2026-11-23T12:35:14.752Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:35:14.754Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1125422080]CommitTransaction invoked.
+2026-11-23T12:35:14.754Z In(166) Hostd[263238]: [Originator@6876 sub=Libs] info [ConfigStore:5b0ceca700] [cs:1:1125422080]Transaction committed,level = 1
+2026-11-23T12:38:20.353Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993ac9 sid=526d2763] Accepted password for user vpxuser from 127.0.0.1 - session=526d2763-5545-410c-e9e9-ca9197191dec
+2026-11-23T12:38:20.353Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc opID=ad993ac9 sid=526d2763] [Auth]: User vpxuser
+2026-11-23T12:38:20.353Z Wa(164) Hostd[263233]: [Originator@6876 sub=Vimsvc opID=ad993ac9 sid=526d2763] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:38:20.354Z In(166) Hostd[263233]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993ac9 sid=526d2763] Event 7851 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:38:20.397Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993aca sid=526d2763 user=vpxuser] Event 7852 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:38:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:39:06.150Z In(166) Hostd[263235]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b0b5fbd20, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 20604'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b0b5fbd20, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 20604'>>, duration: 00:00:45.752677 (hh:mm:ss.us))
+2026-11-23T12:39:06.151Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:39:06.150Z In(166) Hostd[263224]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b16516600, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 62664'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b16516600, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 62664'>>, duration: 00:00:45.795324 (hh:mm:ss.us))
+2026-11-23T12:39:06.152Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:39:52.358Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:39:52.359Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1778737236]BeginTransaction invoked.
+2026-11-23T12:39:52.359Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1778737236]Transaction started, level = 1
+2026-11-23T12:39:52.360Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:39:52.361Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1778737236]CommitTransaction invoked.
+2026-11-23T12:39:52.362Z In(166) Hostd[263221]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c2c2700] [cs:1:1778737236]Transaction committed,level = 1
+2026-11-23T12:39:56.175Z In(166) Hostd[263231]: [Originator@6876 sub=Solo.HttpSvc.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b14ea7af0, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 35019'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b14ea7af0, h:-1, <TCP '127.0.0.1 : 8309'>, <TCP '127.0.0.1 : 35019'>>, duration: 00:20:01.387330 (hh:mm:ss.us))
+2026-11-23T12:39:56.176Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:41:04.622Z In(166) Hostd[263237]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993acb sid=527ddb6c user=root] Event 7853 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:30:31 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:41:16.450Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993acd sid=52e649f8] Accepted password for user root from 192.168.1.30 - session=52e649f8-d945-4f64-30d0-9b21d9c31278
+2026-11-23T12:41:16.450Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad993acd sid=52e649f8] [Auth]: User root
+2026-11-23T12:41:16.450Z Wa(164) Hostd[263226]: [Originator@6876 sub=Vimsvc opID=ad993acd sid=52e649f8] Refresh function is not configured.User data can't be added to scheduler.User name: root
+2026-11-23T12:41:16.450Z In(166) Hostd[263226]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993acd sid=52e649f8] Event 7854 : User root@192.168.1.30 logged in as gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)
+2026-11-23T12:41:16.640Z In(166) Hostd[263218]: [Originator@6876 sub=HTTP server /folder req=0000005b152c1ef0 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:41:16.641Z In(166) Hostd[263238]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b152c1ef0-3acf sid=52e649f8 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7776
+2026-11-23T12:41:16.642Z In(166) Hostd[263219]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b152c1ef0-3acf sid=52e649f8 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7776 Status success
+2026-11-23T12:41:16.643Z In(166) Hostd[263229]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b152c1ef0-3ad1 sid=52e649f8 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:41:17.048Z In(166) Hostd[263241]: [Originator@6876 sub=HTTP server /folder req=0000005b152c1ef0] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmx?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:41:17.048Z In(166) Hostd[263241]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7855 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmx' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:41:17.071Z In(166) Hostd[263230]: [Originator@6876 sub=HTTP server /folder req=0000005b16927cf0 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:41:17.071Z In(166) Hostd[263227]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16927cf0-3ad8 sid=52e649f8 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7779
+2026-11-23T12:41:17.072Z In(166) Hostd[263227]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16927cf0-3ad8 sid=52e649f8 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7779 Status success
+2026-11-23T12:41:17.073Z In(166) Hostd[263234]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16927cf0-3ada sid=52e649f8 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:41:17.081Z In(166) Hostd[263213]: [Originator@6876 sub=HTTP server /folder req=0000005b16927cf0] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:41:17.081Z In(166) Hostd[263213]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7856 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:41:17.113Z In(166) Hostd[263214]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50 user=root] Got HTTP GET request for /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:41:17.114Z In(166) Hostd[263205]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3ae1 sid=52e649f8 user=root] Task Created : haTask--vim.SearchIndex.findByInventoryPath-7782
+2026-11-23T12:41:17.114Z In(166) Hostd[263224]: [Originator@6876 sub=Vimsvc.TaskManager opID=req=0000005b16a0fd50-3ae1 sid=52e649f8 user=root] Task Completed : haTask--vim.SearchIndex.findByInventoryPath-7782 Status success
+2026-11-23T12:41:17.116Z In(166) Hostd[263228]: [Originator@6876 sub=DatastoreBrowser opID=req=0000005b16a0fd50-3ae3 sid=52e649f8 user=root] DatastoreBrowserImpl::SearchInt MoId:6af79b09-111d926d-d3be-bc2411a82581-datastorebrowser dsPath:[datastore1]gaia-t11-win recursive:false
+2026-11-23T12:41:17.362Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:41:17.362Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:533181923]BeginTransaction invoked.
+2026-11-23T12:41:17.362Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:533181923]Transaction started, level = 1
+2026-11-23T12:41:17.364Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:41:17.365Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:533181923]CommitTransaction invoked.
+2026-11-23T12:41:17.365Z In(166) Hostd[263223]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c481700] [cs:1:533181923]Transaction committed,level = 1
+2026-11-23T12:41:21.558Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:41:21.559Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b340700] [cs:1:1638948366]BeginTransaction invoked.
+2026-11-23T12:41:21.559Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b340700] [cs:1:1638948366]Transaction started, level = 1
+2026-11-23T12:41:21.561Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b340700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:41:21.562Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b340700] [cs:1:1638948366]CommitTransaction invoked.
+2026-11-23T12:41:21.562Z In(166) Hostd[263207]: [Originator@6876 sub=Libs] info [ConfigStore:5b0b340700] [cs:1:1638948366]Transaction committed,level = 1
+2026-11-23T12:41:25.700Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:41:25.700Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:765233875]BeginTransaction invoked.
+2026-11-23T12:41:25.700Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:765233875]Transaction started, level = 1
+2026-11-23T12:41:25.701Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:41:25.702Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:765233875]CommitTransaction invoked.
+2026-11-23T12:41:25.702Z In(166) Hostd[263239]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf0b700] [cs:1:765233875]Transaction committed,level = 1
+2026-11-23T12:41:51.219Z In(166) Hostd[263219]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b147dabd0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 34750'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b147dabd0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 34750'>>, duration: 00:00:46.596041 (hh:mm:ss.us))
+2026-11-23T12:41:51.219Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:42:38.544Z Er(163) Hostd[263235]: [Originator@6876 sub=Default] IpmiIfcOpenIpmiOpen: open(/dev/ipmi0, RDWR) failed 2 m
+2026-11-23T12:42:38.549Z Wa(164) Hostd[263235]: [Originator@6876 sub=Cimsvc] Numeric sensors reset to unknown state
+2026-11-23T12:42:44.229Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:42:44.230Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:1589786596]BeginTransaction invoked.
+2026-11-23T12:42:44.230Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:1589786596]Transaction started, level = 1
+2026-11-23T12:42:44.231Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:42:44.233Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:1589786596]CommitTransaction invoked.
+2026-11-23T12:42:44.233Z In(166) Hostd[263240]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf4c700] [cs:1:1589786596]Transaction committed,level = 1
+2026-11-23T12:42:50.231Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:42:50.232Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:399552036]BeginTransaction invoked.
+2026-11-23T12:42:50.232Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:399552036]Transaction started, level = 1
+2026-11-23T12:42:50.238Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:42:50.239Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:399552036]CommitTransaction invoked.
+2026-11-23T12:42:50.239Z In(166) Hostd[263241]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cf8d700] [cs:1:399552036]Transaction committed,level = 1
+2026-11-23T12:42:54.995Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:42:54.995Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c6c2700] [cs:1:1327882390]BeginTransaction invoked.
+2026-11-23T12:42:54.995Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c6c2700] [cs:1:1327882390]Transaction started, level = 1
+2026-11-23T12:42:54.996Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c6c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:42:54.997Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c6c2700] [cs:1:1327882390]CommitTransaction invoked.
+2026-11-23T12:42:54.997Z In(166) Hostd[263227]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c6c2700] [cs:1:1327882390]Transaction committed,level = 1
+2026-11-23T12:42:59.566Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:42:59.566Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c4c2700] [cs:1:539851053]BeginTransaction invoked.
+2026-11-23T12:42:59.566Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c4c2700] [cs:1:539851053]Transaction started, level = 1
+2026-11-23T12:42:59.567Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c4c2700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:42:59.567Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c4c2700] [cs:1:539851053]CommitTransaction invoked.
+2026-11-23T12:42:59.567Z In(166) Hostd[263224]: [Originator@6876 sub=Libs] info [ConfigStore:5b0c4c2700] [cs:1:539851053]Transaction committed,level = 1
+2026-11-23T12:43:20.395Z In(166) Hostd[263220]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993aef sid=52a1ce71] Accepted password for user vpxuser from 127.0.0.1 - session=52a1ce71-a3d1-4260-edc7-ff699c896a8f
+2026-11-23T12:43:20.395Z In(166) Hostd[263220]: [Originator@6876 sub=Vimsvc opID=ad993aef sid=52a1ce71] [Auth]: User vpxuser
+2026-11-23T12:43:20.395Z Wa(164) Hostd[263220]: [Originator@6876 sub=Vimsvc opID=ad993aef sid=52a1ce71] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:43:20.395Z In(166) Hostd[263220]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993aef sid=52a1ce71] Event 7857 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:43:20.442Z In(166) Hostd[263230]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993af0 sid=52a1ce71 user=vpxuser] Event 7858 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:43:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:43:48.847Z In(166) Hostd[263225]: [Originator@6876 sub=HTTP server /folder req=0000005b16a0fd50] Sent OK response for GET /folder/gaia-t11-win/gaia-t11-win-flat.vmdk?dcPath=ha-datacenter&dsName=datastore1
+2026-11-23T12:43:48.847Z In(166) Hostd[263225]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7859 : File download from path '[datastore1]gaia-t11-win/gaia-t11-win-flat.vmdk' was initiated from 'gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64)@192.168.1.30' and completed with status ''
+2026-11-23T12:46:54.777Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:46:54.777Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cc40700] [cs:1:674056986]BeginTransaction invoked.
+2026-11-23T12:46:54.777Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cc40700] [cs:1:674056986]Transaction started, level = 1
+2026-11-23T12:46:54.779Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cc40700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:46:54.781Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cc40700] [cs:1:674056986]CommitTransaction invoked.
+2026-11-23T12:46:54.781Z In(166) Hostd[263228]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cc40700] [cs:1:674056986]Transaction committed,level = 1
+2026-11-23T12:48:20.345Z In(166) Hostd[263229]: [Originator@6876 sub=Vimsvc.HaSessionManager opID=ad993af6 sid=52bd903a] Accepted password for user vpxuser from 127.0.0.1 - session=52bd903a-76a9-8415-ec07-c2dd3f9401cb
+2026-11-23T12:48:20.345Z In(166) Hostd[263229]: [Originator@6876 sub=Vimsvc opID=ad993af6 sid=52bd903a] [Auth]: User vpxuser
+2026-11-23T12:48:20.345Z Wa(164) Hostd[263229]: [Originator@6876 sub=Vimsvc opID=ad993af6 sid=52bd903a] Refresh function is not configured.User data can't be added to scheduler.User name: vpxuser
+2026-11-23T12:48:20.345Z In(166) Hostd[263229]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993af6 sid=52bd903a] Event 7860 : User vpxuser@127.0.0.1 logged in as VMware-client/8.0.3
+2026-11-23T12:48:20.382Z In(166) Hostd[263217]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993af7 sid=52bd903a user=vpxuser] Event 7861 : User vpxuser@127.0.0.1 logged out (login time: Monday, 23 November, 2026 12:48:20 PM, number of API invocations: 1, user agent: VMware-client/8.0.3)
+2026-11-23T12:49:06.395Z In(166) Hostd[263233]: [Originator@6876 sub=SoapAdapter.HTTPService.HttpConnection] HTTP Connection has timed out while waiting for further requests; <io_obj p:0x0000005b169119f0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 59974'>>, N7Vmacore16TimeoutExceptionE(Operation timed out: Stream: <io_obj p:0x0000005b169119f0, h:-1, <TCP '127.0.0.1 : 8307'>, <TCP '127.0.0.1 : 59974'>>, duration: 00:00:46.049577 (hh:mm:ss.us))
+2026-11-23T12:49:06.396Z In(166) Hostd[263192]: --> [context]zKq7AVICAgAAAPeNeAEJaG9zdGQAAPPJR2xpYnZtYWNvcmUuc28AAM4fPQBLLywAlDIsAB7bLADg/ywAS1BSAVJ4AGxpYnB0aHJlYWQuc28uMAACP1IPbGliYy5zby42AA==[/context]
+2026-11-23T12:49:24.809Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] DnsConfigImpl: Add RaNameServer[fe80::1]
+2026-11-23T12:49:24.810Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cd44700] [cs:1:1446578556]BeginTransaction invoked.
+2026-11-23T12:49:24.810Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cd44700] [cs:1:1446578556]Transaction started, level = 1
+2026-11-23T12:49:24.812Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cd44700] Checking for empty objects and arrays in comp esx grp network key net_stacks id defaultTcpipStack object
+2026-11-23T12:49:24.813Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cd44700] [cs:1:1446578556]CommitTransaction invoked.
+2026-11-23T12:49:24.813Z In(166) Hostd[263232]: [Originator@6876 sub=Libs] info [ConfigStore:5b0cd44700] [cs:1:1446578556]Transaction committed,level = 1
+2026-11-23T12:49:58.937Z In(166) Hostd[263216]: [Originator@6876 sub=Vimsvc.ha-eventmgr opID=ad993af8 sid=52e649f8 user=root] Event 7862 : User root@192.168.1.30 logged out (login time: Monday, 23 November, 2026 12:41:16 PM, number of API invocations: 10, user agent: gaia-t21 govmomi/0.56.2 (go1.26.0;linux;amd64))
+2026-11-23T12:50:06.606Z In(166) Hostd[263238]: [Originator@6876 sub=Hostsvc.VmkVprobSource] VmkVprobSource::Post event: (vim.event.EventEx) {
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    key = 91, 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    chainId = 235225696, 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    createdTime = "1970-01-01T00:00:00Z", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    userName = "", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    host = (vim.event.HostEventArgument) {
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       name = "gaia-esxi.", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       host = 'vim.HostSystem:ha-host'
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    }, 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    eventTypeId = "esx.audit.ssh.session.opened", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    arguments = (vmodl.KeyAnyValue) [
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->          key = "1", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->          value = "root"
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       }, 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       (vmodl.KeyAnyValue) {
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->          key = "2", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->          value = "192.168.1.30"
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->       }
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    ], 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    objectId = "ha-host", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: -->    objectType = "vim.HostSystem", 
+2026-11-23T12:50:06.606Z In(166) Hostd[263192]: --> }
+2026-11-23T12:50:06.606Z In(166) Hostd[263238]: [Originator@6876 sub=Vimsvc.ha-eventmgr] Event 7863 : SSH session was opened for 'root@192.168.1.30'.

@@ -1,0 +1,132 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t8-linux-20261123T120731Z-54812b",
+  "vm": "gaia-t8-linux",
+  "verdict": "OK",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.000141679,
+      "detail": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 3.1e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.0000075,
+      "detail": "3 files to read, all in [datastore1] gaia-t8-linux"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 21.856048891,
+      "detail": "3 files, 3221226471 bytes in 21.9 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 96.690958988,
+      "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:01) in 96.7 s"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 4.7e-7,
+      "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+    },
+    {
+      "name": "boot",
+      "type": "boot_serial",
+      "verdict": "OK",
+      "seconds": 16.071385991,
+      "attempts": 17,
+      "detail": "serial console matched \"(?m)login: *$\": \"gaia-t8-linux login:\""
+    },
+    {
+      "name": "ssh",
+      "type": "tcp",
+      "verdict": "OK",
+      "seconds": 16.616471944,
+      "attempts": 1,
+      "detail": "connected to 10.254.0.10:22"
+    },
+    {
+      "name": "health",
+      "type": "http",
+      "verdict": "OK",
+      "seconds": 16.771209178,
+      "attempts": 1,
+      "detail": "GET http://10.254.0.10:8080/health: 200"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia-t21-sandbox/images/mc2-vda.qcow2",
+    "format": "qcow2",
+    "bytes": 1252655104,
+    "sha256_before": "53125935ee5789d596d0c9c11865daa7687565c19338054c7400b5025ba8194a",
+    "sha256_after": "53125935ee5789d596d0c9c11865daa7687565c19338054c7400b5025ba8194a",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-54812b",
+    "network": "gaia-verify-54812b",
+    "bridge": "gvb-54812b",
+    "netns": "gaia-verify-54812b",
+    "slot": 0,
+    "probe_address": "10.254.0.1",
+    "guest_ip": "10.254.0.10",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-54812b proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-54812b table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-54812b table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-54812b proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "local fe80::f815:4fff:fedb:1ba0 dev gvn-54812b table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-54812b table local proto kernel metric 256 pref medium"
+    ],
+    "netns_ip_forward": "0",
+    "isolated": true
+  },
+  "timings_s": {
+    "boot": 16.071385991,
+    "image_hash": 0.756918124,
+    "ready": 16.771209178,
+    "sandbox_setup": 3.273430803,
+    "shutdown": 3.003045448,
+    "total": 25.485592184
+  },
+  "shutdown": "acpi",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-23T12:07:31.752830159Z",
+  "finished": "2026-11-23T12:07:57.238422343Z"
+}

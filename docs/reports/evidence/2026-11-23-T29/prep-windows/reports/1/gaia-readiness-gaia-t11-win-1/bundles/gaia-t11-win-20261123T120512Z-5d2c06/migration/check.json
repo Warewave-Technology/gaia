@@ -1,0 +1,36 @@
+{
+  "code": "",
+  "converter": {
+    "state": "not_run",
+    "detail": "a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+    "seconds": 0,
+    "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+    "disks": [],
+    "domain_xml": "",
+    "log": "virt-v2v.log",
+    "command": null
+  },
+  "drivers": null,
+  "first_boot_restarts_s": null,
+  "missing_files": null,
+  "readiness": "UNKNOWN",
+  "reason": "conversion unknown: a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+  "request": {
+    "vm": "gaia-t11-win",
+    "template": "windows-rdp"
+  },
+  "source": {
+    "host": "192.168.1.29",
+    "name": "esxi",
+    "product": "VMware ESXi 8.0.3 build-24677879"
+  },
+  "timings_s": {
+    "conversion": 0,
+    "download": 144.989138749,
+    "total": 0.001945084
+  },
+  "vm": "gaia-t11-win",
+  "vsphere_blocked_calls": 0,
+  "vsphere_calls": 6
+}

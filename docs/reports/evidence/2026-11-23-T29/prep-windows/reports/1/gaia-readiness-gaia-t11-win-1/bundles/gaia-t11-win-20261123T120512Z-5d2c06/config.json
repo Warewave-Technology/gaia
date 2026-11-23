@@ -1,0 +1,25 @@
+{
+  "vm": "gaia-t11-win",
+  "template": "windows-basic",
+  "machine": {
+    "arch": "x86_64",
+    "firmware": "bios",
+    "memory_mib": 1024,
+    "vcpus": 2,
+    "disk_bus": "virtio",
+    "nic_model": "virtio",
+    "mac": "52:54:00:00:00:00"
+  },
+  "boot_timeout_s": 300,
+  "probe_timeout_s": 120,
+  "shutdown_timeout_s": 60,
+  "settle_s": 60,
+  "checks": [
+    {
+      "name": "boot",
+      "type": "winrm",
+      "port": 5985,
+      "boot": true
+    }
+  ]
+}

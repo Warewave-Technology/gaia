@@ -1,0 +1,25 @@
+gaia-t8-linux vmid=62 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:51:13 +0000 gaia-t8-linux-flat.vmdk
+  -rw-------    1 root     root           506 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmsd
+  -rw-r--r--    1 root     root           493 2026-11-23 11:51:32 +0000 gaia-t8-linux.vmx
+gaia-t8-broken vmid=63 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:52:06 +0000 gaia-t8-broken-flat.vmdk
+  -rw-------    1 root     root           507 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmsd
+  -rw-r--r--    1 root     root           495 2026-11-23 11:52:26 +0000 gaia-t8-broken.vmx
+gaia-t21-uefi vmid=64 Powered off
+  -rw-------    1 root     root     3221225472 2026-11-23 11:53:00 +0000 gaia-t21-uefi-flat.vmdk
+  -rw-------    1 root     root           506 2026-11-23 11:53:20 +0000 gaia-t21-uefi.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:53:21 +0000 gaia-t21-uefi.vmsd
+  -rw-r--r--    1 root     root           492 2026-11-23 11:53:20 +0000 gaia-t21-uefi.vmx
+gaia-t11-win vmid=65 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-23 11:57:03 +0000 gaia-t11-win-flat.vmdk
+  -rw-------    1 root     root           478 2026-11-23 11:55:42 +0000 gaia-t11-win.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 11:57:05 +0000 gaia-t11-win.vmsd
+  -rw-r--r--    1 root     root           435 2026-11-23 11:57:04 +0000 gaia-t11-win.vmx
+gaia-t21-win-broken vmid=66 Powered off
+  -rw-------    1 root     root     34359738368 2026-11-23 12:00:39 +0000 gaia-t21-win-broken-flat.vmdk
+  -rw-------    1 root     root           485 2026-11-23 11:59:35 +0000 gaia-t21-win-broken.vmdk
+  -rw-r--r--    1 root     root             0 2026-11-23 12:00:40 +0000 gaia-t21-win-broken.vmsd
+  -rw-r--r--    1 root     root           449 2026-11-23 12:00:40 +0000 gaia-t21-win-broken.vmx

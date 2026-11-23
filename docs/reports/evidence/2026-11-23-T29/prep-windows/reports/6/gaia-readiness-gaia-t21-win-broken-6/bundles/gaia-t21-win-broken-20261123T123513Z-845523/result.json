@@ -1,0 +1,122 @@
+{
+  "format": "gaia-verify-result/v1",
+  "bundle_id": "gaia-t21-win-broken-20261123T123513Z-845523",
+  "vm": "gaia-t21-win-broken",
+  "verdict": "CRITICAL",
+  "checks": [
+    {
+      "name": "source_vm",
+      "type": "inventory",
+      "verdict": "OK",
+      "seconds": 0.001429072,
+      "detail": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+    },
+    {
+      "name": "cold",
+      "type": "power_state",
+      "verdict": "OK",
+      "seconds": 1.3e-7,
+      "detail": "poweredOff"
+    },
+    {
+      "name": "layout",
+      "type": "files",
+      "verdict": "OK",
+      "seconds": 0.00000598,
+      "detail": "3 files to read, all in [datastore1] gaia-t21-win-broken"
+    },
+    {
+      "name": "download",
+      "type": "datastore_http",
+      "verdict": "OK",
+      "seconds": 186.992890964,
+      "detail": "3 files, 34359739302 bytes in 187.0 s (GET /folder, sha256 in downloads.json)"
+    },
+    {
+      "name": "conversion",
+      "type": "virt-v2v",
+      "verdict": "OK",
+      "seconds": 72.704773943,
+      "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:02), virtio-win drivers in 72.7 s"
+    },
+    {
+      "name": "firmware",
+      "type": "firmware",
+      "verdict": "OK",
+      "seconds": 5.7e-7,
+      "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+    },
+    {
+      "name": "boot",
+      "type": "winrm",
+      "verdict": "CRITICAL",
+      "seconds": 300.175471859,
+      "detail": "the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985"
+    },
+    {
+      "name": "rdp",
+      "type": "rdp",
+      "verdict": "UNKNOWN",
+      "seconds": 0,
+      "detail": "not run: the guest did not boot"
+    },
+    {
+      "name": "image_unchanged",
+      "type": "image_hash",
+      "verdict": "OK",
+      "seconds": 0,
+      "detail": "sha256 before and after are equal"
+    }
+  ],
+  "image": {
+    "path": "/var/lib/gaia-t21-sandbox/images/mc6-vda.qcow2",
+    "format": "qcow2",
+    "bytes": 9080406016,
+    "sha256_before": "1babf1aa2acd89c8869bb1c55ee8594afedbf41e1e3af356f27570501bb46a4e",
+    "sha256_after": "1babf1aa2acd89c8869bb1c55ee8594afedbf41e1e3af356f27570501bb46a4e",
+    "unchanged": true
+  },
+  "sandbox": {
+    "domain": "gaia-verify-845523",
+    "network": "gaia-verify-845523",
+    "bridge": "gvb-845523",
+    "netns": "gaia-verify-845523",
+    "slot": 0,
+    "probe_address": "10.254.0.1",
+    "guest_ip": "",
+    "virt": "kvm",
+    "libvirt": "9.0.0",
+    "qemu": "7.2.22",
+    "host_addresses_on_bridge": [],
+    "netns_routes": [
+      "10.254.0.0/24 dev gvn-845523 proto kernel scope link src 10.254.0.1",
+      "local 10.254.0.1 dev gvn-845523 table local proto kernel scope host src 10.254.0.1",
+      "broadcast 10.254.0.255 dev gvn-845523 table local proto kernel scope link src 10.254.0.1",
+      "local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1",
+      "local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1",
+      "broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1",
+      "fe80::/64 dev gvn-845523 proto kernel metric 256 pref medium",
+      "local ::1 dev lo table local proto kernel metric 0 pref medium",
+      "multicast ff00::/8 dev gvn-845523 table local proto kernel metric 256 pref medium"
+    ],
+    "netns_ip_forward": "0",
+    "isolated": true
+  },
+  "timings_s": {
+    "image_hash": 9.362670911,
+    "sandbox_setup": 1.6338692799999999,
+    "shutdown": 0.372551232,
+    "total": 320.049562551
+  },
+  "shutdown": "forced (not booted)",
+  "screenshots": [
+    "screenshot-boot.png",
+    "screenshot-end.png"
+  ],
+  "errors": [],
+  "started": "2026-11-23T12:35:13.563955501Z",
+  "finished": "2026-11-23T12:40:33.613518052Z",
+  "kept_disks": [
+    "gaia-t21-win-broken-20261123T123513Z-845523-after-vda.qcow2"
+  ]
+}

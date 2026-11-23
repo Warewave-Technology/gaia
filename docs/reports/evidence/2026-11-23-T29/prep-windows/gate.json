@@ -1,0 +1,560 @@
+{
+  "a_t8_linux": {
+    "ready": {
+      "readiness": "OK",
+      "reason": "ready for KVM: converted in 97 s, booted in 16 s, all 10 checks passed, 6 vSphere calls, all read-only",
+      "firmware": "bios",
+      "bundle": "gaia-t8-linux-20261123T120731Z-54812b",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t8-linux/gaia-t8-linux.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t8-linux"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 3221226471 bytes in 21.9 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:01) in 96.7 s"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+        },
+        {
+          "name": "boot",
+          "verdict": "OK",
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t8-linux login:\""
+        },
+        {
+          "name": "ssh",
+          "verdict": "OK",
+          "detail": "connected to 10.254.0.10:22"
+        },
+        {
+          "name": "health",
+          "verdict": "OK",
+          "detail": "GET http://10.254.0.10:8080/health: 200"
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        }
+      ]
+    },
+    "broken": {
+      "readiness": "CRITICAL",
+      "reason": "boot critical: no match for \"(?m)login: *$\" on the serial console within 300 s",
+      "firmware": "bios",
+      "bundle": "gaia-t8-broken-20261123T120941Z-910e6a",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t8-broken"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 3221226474 bytes in 21.4 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, bios, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:02) in 77.2 s"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+        },
+        {
+          "name": "boot",
+          "verdict": "CRITICAL",
+          "detail": "no match for \"(?m)login: *$\" on the serial console within 300 s"
+        },
+        {
+          "name": "ssh",
+          "verdict": "UNKNOWN",
+          "detail": "not run: the guest did not boot"
+        },
+        {
+          "name": "health",
+          "verdict": "UNKNOWN",
+          "detail": "not run: the guest did not boot"
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        }
+      ]
+    },
+    "pass": true
+  },
+  "b_t11_windows": {
+    "as_is": {
+      "readiness": "CRITICAL",
+      "reason": "drivers critical: Windows restarts on every boot: virt-v2v's first-boot service cannot install virtio-win's smbus driver and retries it on the next boot: smbus failed to install on 9 of 9 boots (Adding the driver package failed : A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.). Check again with exclude_drivers [\"smbus\"] if the VM does not need it",
+      "firmware": "bios",
+      "bundle": "gaia-t11-win-20261123T122138Z-06fe41",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 34359739281 bytes in 143.4 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01), virtio-win drivers in 72.2 s"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+        },
+        {
+          "name": "boot",
+          "verdict": "OK",
+          "detail": "POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-W"
+        },
+        {
+          "name": "rdp",
+          "verdict": "OK",
+          "detail": "10.254.0.10:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00)"
+        },
+        {
+          "name": "stable",
+          "verdict": "CRITICAL",
+          "detail": "boot did not keep answering for 1m0s without a break inside the 300 s boot timeout: interrupted 8 time(s), the last after 303 s (gave up after 5s: Post \"http://10.254.0.10:5985/wsman-anon/identify\": context deadline exceeded). A guest that "
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        },
+        {
+          "name": "drivers",
+          "verdict": "CRITICAL",
+          "detail": "Windows restarts on every boot: virt-v2v's first-boot service cannot install virtio-win's smbus driver and retries it on the next boot: smbus failed to install on 9 of 9 boots (Adding the driver package failed : A certificate chain processe"
+        }
+      ],
+      "code": "driver_install_loop",
+      "drivers": [
+        "smbus"
+      ],
+      "restarts": [
+        55.1,
+        86.2,
+        116.9,
+        153.4,
+        185.2,
+        228.6,
+        265.7,
+        299.2
+      ]
+    },
+    "without_smbus": {
+      "readiness": "WARNING",
+      "reason": "drivers_excluded warning: converted without virtio-win's smbus driver(s), as the check asked (exclude_drivers): the guest neither has nor installs them; left out of virtio-win: smbus, restarted 4 time(s) on its first boot (at 55 s, 84 s, 129 s, 161 s) before it stayed up",
+      "firmware": "bios",
+      "bundle": "gaia-t11-win-20261123T124528Z-63aed7",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 34359739281 bytes in 152.2 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:01), virtio-win drivers in 70.8 s"
+        },
+        {
+          "name": "drivers_excluded",
+          "verdict": "WARNING",
+          "detail": "converted without virtio-win's smbus driver(s), as the check asked (exclude_drivers): the guest neither has nor installs them; left out of virtio-win: smbus"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+        },
+        {
+          "name": "boot",
+          "verdict": "OK",
+          "detail": "POST http://10.254.0.10:5985/wsman: unauthenticated Identify refused (401, as Windows Server's default), and the WinRM listener answered an NTLM NEGOTIATE with a CHALLENGE from computer \"GAIA-T11-WIN\" (DNS \"GAIA-T11-WIN\", domain \"GAIA-T11-W"
+        },
+        {
+          "name": "rdp",
+          "verdict": "OK",
+          "detail": "10.254.0.10:3389: X.224 Connection Confirm, RDP_NEG_RSP selected protocol CredSSP (reply 03 00 00 13 0e d0 00 00 12 34 00 02 1f 08 00 02 00 00 00)"
+        },
+        {
+          "name": "stable",
+          "verdict": "OK",
+          "detail": "boot kept answering for 1m0s after every check passed (13 probes, one every 5s); before that the guest restarted 4 time(s) on its first boot, as a converted guest does for its first-boot scripts"
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        }
+      ],
+      "first_boot_restarts_s": [
+        55.4,
+        83.9,
+        128.7,
+        161.1
+      ]
+    },
+    "broken": {
+      "readiness": "CRITICAL",
+      "reason": "boot critical: the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped in firmware, the boot loader, a stop error or the Recovery Environment takes no lease or never answers on 5985",
+      "firmware": "bios",
+      "bundle": "gaia-t21-win-broken-20261123T123513Z-845523",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t21-win-broken"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 34359739302 bytes in 187.0 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://microsoft.com/win/2k22 (x86_64, bios, 2 vCPU, 4096 MiB, NIC 00:50:56:3f:b1:02), virtio-win drivers in 72.7 s"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "BIOS on the source and in the sandbox (SeaBIOS)"
+        },
+        {
+          "name": "boot",
+          "verdict": "CRITICAL",
+          "detail": "the guest took no DHCP lease within the 300 s boot timeout. WinRM answers only from a running Windows: the WinRM service listens on 5985 through HTTP.sys once Windows has started its network stack and taken a DHCP lease, so a guest stopped "
+        },
+        {
+          "name": "rdp",
+          "verdict": "UNKNOWN",
+          "detail": "not run: the guest did not boot"
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        }
+      ]
+    },
+    "without_virtio_win": {
+      "readiness": "UNKNOWN",
+      "reason": "conversion unknown: a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/virtio-win-0.1.302.iso",
+      "firmware": "bios",
+      "bundle": "gaia-t11-win-20261123T120512Z-5d2c06",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t11-win/gaia-t11-win.vmx, guest windows2019srvNext_64Guest, 2 vCPU, 4096 MiB, firmware bios, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t11-win"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 34359739281 bytes in 145.0 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "UNKNOWN",
+          "detail": "a Windows guest needs virtio-win 0.1.302 (ADR-005 §2): no virtio-win ISO at /var/lib/gaia-convert/virtio-win-0.1.302.iso: download it from https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.302-1/"
+        },
+        {
+          "name": "firmware",
+          "verdict": "UNKNOWN",
+          "detail": "not run: the conversion did not finish"
+        },
+        {
+          "name": "boot",
+          "verdict": "UNKNOWN",
+          "detail": "not run: the conversion failed"
+        }
+      ]
+    },
+    "t21_ok_was_a_false_positive": true,
+    "pass": true
+  },
+  "c_uefi": {
+    "check": {
+      "readiness": "OK",
+      "reason": "ready for KVM: converted in 82 s, booted in 23 s, all 10 checks passed, 6 vSphere calls, all read-only",
+      "firmware": "efi",
+      "bundle": "gaia-t21-uefi-20261123T121646Z-ee3174",
+      "steps": [
+        {
+          "name": "source_vm",
+          "verdict": "OK",
+          "detail": "[datastore1] gaia-t21-uefi/gaia-t21-uefi.vmx, guest debian12_64Guest, 2 vCPU, 1024 MiB, firmware efi, 1 disk(s), 1 NIC(s)"
+        },
+        {
+          "name": "cold",
+          "verdict": "OK",
+          "detail": "poweredOff"
+        },
+        {
+          "name": "layout",
+          "verdict": "OK",
+          "detail": "3 files to read, all in [datastore1] gaia-t21-uefi"
+        },
+        {
+          "name": "download",
+          "verdict": "OK",
+          "detail": "3 files, 3221226470 bytes in 21.1 s (GET /folder, sha256 in downloads.json)"
+        },
+        {
+          "name": "conversion",
+          "verdict": "OK",
+          "detail": "1 disk(s), http://debian.org/debian/12 (x86_64, efi, 2 vCPU, 1024 MiB, NIC 00:50:56:3f:a8:03) in 81.7 s"
+        },
+        {
+          "name": "firmware",
+          "verdict": "OK",
+          "detail": "UEFI on the source and in the sandbox (OVMF)"
+        },
+        {
+          "name": "boot",
+          "verdict": "OK",
+          "detail": "serial console matched \"(?m)login: *$\": \"gaia-t21-uefi login:\""
+        },
+        {
+          "name": "ssh",
+          "verdict": "OK",
+          "detail": "connected to 10.254.0.10:22"
+        },
+        {
+          "name": "health",
+          "verdict": "OK",
+          "detail": "GET http://10.254.0.10:8080/health: 200"
+        },
+        {
+          "name": "image_unchanged",
+          "verdict": "OK",
+          "detail": "sha256 before and after are equal"
+        }
+      ]
+    },
+    "pass": true
+  },
+  "d_zero_writes": {
+    "calls": 46,
+    "blocked": 0,
+    "ops": [
+      "GET",
+      "Login",
+      "Logout",
+      "RetrievePropertiesEx",
+      "RetrieveServiceContent"
+    ],
+    "hostd_write_tasks_during_checks": 0,
+    "hostd_read_tasks_during_checks": 21,
+    "get_folder_calls": 21,
+    "hostd_write_tasks_by_fixtures_positive_control": 5,
+    "fixture_vms_unchanged": true,
+    "pass": true
+  },
+  "e_reports": {
+    "reports": [
+      {
+        "check": 1,
+        "vm": "gaia-t11-win",
+        "readiness": "UNKNOWN",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 5,
+        "vm": "gaia-t11-win",
+        "readiness": "CRITICAL",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 7,
+        "vm": "gaia-t11-win",
+        "readiness": "WARNING",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 4,
+        "vm": "gaia-t21-uefi",
+        "readiness": "OK",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 6,
+        "vm": "gaia-t21-win-broken",
+        "readiness": "CRITICAL",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 3,
+        "vm": "gaia-t8-broken",
+        "readiness": "CRITICAL",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      },
+      {
+        "check": 2,
+        "vm": "gaia-t8-linux",
+        "readiness": "OK",
+        "sha256sums": true,
+        "gaia": {
+          "exit": 0,
+          "verdict": "OK"
+        },
+        "python": {
+          "exit": 0,
+          "verdict": "OK"
+        }
+      }
+    ],
+    "pass": true
+  },
+  "f_converter": {
+    "image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+    "versions": "virt-v2v-2.13.7-2.fc45.x86_64\nlibguestfs-1.61.4-2.fc45.x86_64\nmingw32-srvany-1.1-14.fc45.noarch\nqemu-kvm-core-11.1.2-1.fc45.x86_64\nkernel-core-7.2.11-300.fc45.x86_64",
+    "virtio_win": {
+      "version": "0.1.302",
+      "state": "ok",
+      "sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d"
+    },
+    "bundles_name_the_image": true,
+    "pass": true
+  },
+  "verdict": "OK"
+}

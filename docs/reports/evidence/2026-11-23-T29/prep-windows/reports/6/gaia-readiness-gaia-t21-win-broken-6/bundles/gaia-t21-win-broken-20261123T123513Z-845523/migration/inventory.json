@@ -1,0 +1,53 @@
+{
+  "name": "gaia-t21-win-broken",
+  "uuid": "",
+  "power_state": "poweredOff",
+  "guest_id": "windows2019srvNext_64Guest",
+  "guest_full_name": "Microsoft Windows Server 2022 (64-bit)",
+  "firmware": "bios",
+  "secure_boot": false,
+  "cpus": 2,
+  "memory_mib": 4096,
+  "vmx": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx",
+  "datacenter": "ha-datacenter",
+  "disks": [
+    {
+      "label": "Hard disk 1",
+      "file": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmdk",
+      "capacity_bytes": 34359738368,
+      "thin": true
+    }
+  ],
+  "nics": [
+    {
+      "label": "Network adapter 1",
+      "type": "VirtualE1000e",
+      "mac": "00:50:56:3f:b1:02"
+    }
+  ],
+  "files": [
+    {
+      "name": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmx",
+      "type": "config",
+      "size": 449
+    },
+    {
+      "name": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmsd",
+      "type": "snapshotList",
+      "size": 0
+    },
+    {
+      "name": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken.vmdk",
+      "type": "diskDescriptor",
+      "size": 485
+    },
+    {
+      "name": "[datastore1] gaia-t21-win-broken/gaia-t21-win-broken-flat.vmdk",
+      "type": "diskExtent",
+      "size": 9251586048
+    }
+  ],
+  "has_snapshots": false,
+  "template": false,
+  "moref": "66"
+}

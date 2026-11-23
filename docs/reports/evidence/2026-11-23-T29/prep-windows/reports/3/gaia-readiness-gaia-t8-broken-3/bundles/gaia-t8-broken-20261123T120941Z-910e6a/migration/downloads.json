@@ -1,0 +1,23 @@
+[
+  {
+    "name": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmx",
+    "local": "/var/lib/gaia-convert/jobs/mc3/in/gaia-t8-broken.vmx",
+    "bytes": 495,
+    "sha256": "760c9f6812afcc7a30050fa5ccd5373773df761e6dba0d2098b820f7c55df9a4",
+    "seconds": 0.075077656
+  },
+  {
+    "name": "[datastore1] gaia-t8-broken/gaia-t8-broken.vmdk",
+    "local": "/var/lib/gaia-convert/jobs/mc3/in/gaia-t8-broken.vmdk",
+    "bytes": 507,
+    "sha256": "8babf704ce4e314cc60f3594bcbe5a3b68709d69e35ef254411e9b5c24ab1bbe",
+    "seconds": 0.011486215
+  },
+  {
+    "name": "[datastore1] gaia-t8-broken/gaia-t8-broken-flat.vmdk",
+    "local": "/var/lib/gaia-convert/jobs/mc3/in/gaia-t8-broken-flat.vmdk",
+    "bytes": 3221225472,
+    "sha256": "dcecc56652312d178ebc3412b000a645e4a35b7334c9ca5931d557ab819e3a25",
+    "seconds": 21.281054215
+  }
+]

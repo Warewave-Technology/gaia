@@ -1,0 +1,54 @@
+[12:07:32.509] image /var/lib/gaia-t21-sandbox/images/mc2-vda.qcow2 (vda): sha256 53125935ee5789d596d0c9c11865daa7687565c19338054c7400b5025ba8194a (1252655104 bytes)
+[12:07:32.911] $ sysctl -q -w net.ipv6.conf.gvb-54812b.disable_ipv6=1
+
+[12:07:32.986] $ ip netns add gaia-verify-54812b
+
+[12:07:32.989] $ ip netns exec gaia-verify-54812b sysctl -q -w net.ipv4.ip_forward=0 net.ipv6.conf.all.forwarding=0
+
+[12:07:33.005] $ ip link add gvh-54812b type veth peer name gvn-54812b
+
+[12:07:33.007] $ sysctl -q -w net.ipv6.conf.gvh-54812b.disable_ipv6=1
+
+[12:07:33.025] $ ip link set gvh-54812b master gvb-54812b up
+
+[12:07:33.053] $ ip link set gvn-54812b netns gaia-verify-54812b
+
+[12:07:33.062] $ ip -n gaia-verify-54812b addr add 10.254.0.1/24 dev gvn-54812b
+
+[12:07:33.069] $ ip -n gaia-verify-54812b link set gvn-54812b up
+
+[12:07:33.070] $ ip -n gaia-verify-54812b link set lo up
+
+[12:07:33.070] $ ip netns exec gaia-verify-54812b dnsmasq --keep-in-foreground --conf-file=/dev/null --no-resolv --no-hosts --port=0 --bind-interfaces --interface=gvn-54812b --except-interface=lo --dhcp-range=10.254.0.10,10.254.0.99,255.255.255.0,1h --dhcp-sequential-ip --dhcp-leasefile=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/dnsmasq.leases --pid-file=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/dnsmasq.pid --log-dhcp --log-facility=/var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/dnsmasq.log --user=root --group=root
+[12:07:33.915] $ qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/gaia-t21-sandbox/images/mc2-vda.qcow2 /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/overlay.qcow2
+
+[12:07:35.778] $ ip -o addr show dev gvb-54812b
+
+[12:07:35.780] $ ip -n gaia-verify-54812b route show table all
+10.254.0.0/24 dev gvn-54812b proto kernel scope link src 10.254.0.1 
+local 10.254.0.1 dev gvn-54812b table local proto kernel scope host src 10.254.0.1 
+broadcast 10.254.0.255 dev gvn-54812b table local proto kernel scope link src 10.254.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+fe80::/64 dev gvn-54812b proto kernel metric 256 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::f815:4fff:fedb:1ba0 dev gvn-54812b table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev gvn-54812b table local proto kernel metric 256 pref medium
+[12:07:35.783] $ ip netns exec gaia-verify-54812b cat /proc/sys/net/ipv4/ip_forward
+0
+[12:07:35.785] guest started (kvm)
+[12:07:51.856] boot reached after 16.071 s
+[12:07:52.243] $ virsh screenshot gaia-verify-54812b --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/screenshot-boot.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/screenshot-boot.ppm, with type of image/png
+[12:07:52.244] guest 00:50:56:3f:a8:01 has 10.254.0.10 after 16.459 s
+[12:07:52.401] $ ip netns exec gaia-verify-54812b /usr/local/sbin/gaia-t21 probe -check {"name":"ssh","type":"tcp","port":22} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.000443988,"detail":"connected to 10.254.0.10:22"}
+[12:07:52.401] check ssh: OK (connected to 10.254.0.10:22)
+[12:07:52.556] $ ip netns exec gaia-verify-54812b /usr/local/sbin/gaia-t21 probe -check {"name":"health","type":"http","port":8080,"path":"/health","expect_status":200,"expect_body":"ok"} -host 10.254.0.10 -timeout 120
+{"ok":true,"attempts":1,"seconds":0.005204782,"detail":"GET http://10.254.0.10:8080/health: 200","status":200,"body_head":"ok"}
+[12:07:52.556] check health: OK (GET http://10.254.0.10:8080/health: 200)
+[12:07:52.964] $ virsh screenshot gaia-verify-54812b --file /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/screenshot-end.ppm
+Screenshot saved to /var/lib/libvirt/images/gaia-t21-sandbox/gaia-verify-54812b/screenshot-end.ppm, with type of image/png
+[12:07:55.969] $ ip netns del gaia-verify-54812b
+
