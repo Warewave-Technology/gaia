@@ -10938,6 +10938,15 @@
             }
           },
           {
+            "description": "older than this check id: the last id of the previous page (ADR-007 C19.4)",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "description": "at most this many (default 100, at most 1000)",
             "in": "query",
             "name": "limit",

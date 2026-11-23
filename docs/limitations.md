@@ -211,13 +211,6 @@ fixtures) are in the reports, not here.
   [T23, T28]
   *Why it waits:* 0.1.302 is the newest virtio-win release (read on 2026-11-23); a release whose `smbus` installs
   on Server 2022 would be measured and pinned (ADR-005 C step 1).
-- **A converted Windows does not pass the stability window, even a healthy one**: virt-v2v's first-boot service
-  restarts the guest after each of its scripts (T28, without smbus: 4 restarts in the first 2 minutes, then none),
-  and `settle_s` starts at the guest's first answer, so the window sees one of them: the check is `CRITICAL`
-  (`stable`), with `drivers_excluded` or without. A guest that loops is told apart by its first-boot log
-  (`driver_install_loop`). [T28]
-  *Why it waits:* ADR-005 B fails any restart inside the window; letting the window start once the guest answers
-  without a break (restarts before that recorded) needs the architect's decision.
 - **Windows guests need virtio-win 0.1.302, downloaded by the operator**; without it a Windows check is `UNKNOWN`.
   [T11, T21]
   *Why it waits:* ADR-005 has the operator supply it (Gaia does not redistribute it); its sha256 is pinned.

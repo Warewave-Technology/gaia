@@ -83,3 +83,9 @@ T28 measured that a healthy converted Windows restarts several times during virt
 - `driver_install_loop` stays in the closed code list (v4) as a migration-check code with no status-table row.
 - Keeping a failed guest's disk for the converter to read the first-boot log: accepted. The copy is deleted when
   the check finishes, and at the latest after 24 hours; its deletion is logged.
+
+### H. Window bound (T29 preparation)
+
+Accepted as built: the window must **start** inside the boot timeout and may end after it, so a healthy guest that
+comes up late is not punished. The check is bounded: it ends at the latest at boot timeout + `settle_s`.
+`guest_restarted_during_boot` is a note code (code list v5) that does not change the VM's status by itself.

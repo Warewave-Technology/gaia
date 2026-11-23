@@ -492,6 +492,37 @@ func TestSettle(t *testing.T) {
 			t.Errorf("%s: %+v", c.name, r)
 		}
 	}
+	// ADR-005 H: a window that starts inside the boot timeout may end after it, and the check ends at the latest at the
+	// boot timeout + d (+ the last probe); one that would start after it is CRITICAL.
+	for _, c := range []struct {
+		name   string
+		downTo time.Duration // the guest does not answer until then
+		want   string
+	}{
+		{"comes up just before the boot timeout", 230 * time.Millisecond, OK},
+		{"comes up after the boot timeout", 330 * time.Millisecond, Critical},
+	} {
+		t0 := time.Now()
+		probe := func(int) CheckResult {
+			if time.Since(t0) < c.downTo {
+				return CheckResult{Verdict: Critical, Detail: "connection refused"}
+			}
+			return CheckResult{Verdict: OK}
+		}
+		w := window{d: 100 * time.Millisecond, every: 10 * time.Millisecond, deadline: t0.Add(250 * time.Millisecond),
+			probe: probe, alive: up, restarts: none, again: again}
+		r := w.settle(ctx, k, t0)
+		end := time.Since(t0)
+		if r.Verdict != c.want || end > 250*time.Millisecond+w.d+2*w.every+20*time.Millisecond {
+			t.Errorf("%s: %+v after %v", c.name, r, end)
+		}
+	}
+	late := window{d: 50 * time.Millisecond, every: 10 * time.Millisecond, deadline: time.Now().Add(-time.Second), probe: answers(), alive: up,
+		restarts: none, again: again}
+	if r := late.settle(ctx, k, time.Now().Add(-2*time.Second)); r.Verdict != Critical || !strings.Contains(r.Detail, "after the 1 s boot timeout") {
+		t.Errorf("checks passed after the boot timeout: %+v", r)
+	}
+
 	c := Config{VM: "w", Template: "windows-basic"}
 	c.Validate() // defaults apply first (a missing MAC is reported after)
 	if c.SettleS != 60 {

@@ -174,4 +174,32 @@ func TestMigrationViewPages(t *testing.T) {
 			t.Fatalf("%s: %d", q, st)
 		}
 	}
+
+	// GET /api/v1/migration-checks is paged with before= (ADR-007 C19.4): the pages walk every check once, newest first.
+	var got []int64
+	before := int64(0)
+	for {
+		var page []store.MigrationCheck
+		if st := f.do(tok, "GET", fmt.Sprintf("/api/v1/migration-checks?source_id=%d&limit=64&before=%d", src.ID, before), "", &page); st != 200 {
+			t.Fatalf("migration-checks before=%d: %d", before, st)
+		}
+		if len(page) > 64 {
+			t.Fatalf("a page of %d checks", len(page))
+		}
+		if len(page) == 0 {
+			break
+		}
+		for _, c := range page {
+			got = append(got, c.ID)
+		}
+		before = page[len(page)-1].ID
+	}
+	for i := 1; i < len(got); i++ {
+		if got[i] >= got[i-1] {
+			t.Fatalf("migration-checks pages: %d after %d", got[i], got[i-1])
+		}
+	}
+	if len(got) != checks {
+		t.Fatalf("migration-checks pages: %d checks, want %d", len(got), checks)
+	}
 }

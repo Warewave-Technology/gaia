@@ -58,8 +58,13 @@
 - New per-check option `exclude_drivers` (a list of virtio-win driver names): the guest is converted without them,
   recorded as a `WARNING` step (`drivers_excluded`) in the bundle and the readiness report, so the check is never
   `OK`. The Migration screen offers **Check again without <driver>**.
-- Known limit (docs/limitations.md): a converted Windows is still `CRITICAL` on `stable`, even without the looping
-  driver, because virt-v2v's own first-boot restarts fall inside the stability window (ADR-005 B, awaiting a decision).
+- The stability window is the first uninterrupted `settle_s` that starts inside the boot timeout (ADR-005 F, H): the
+  guest's own restarts before it (libvirt reboot events) are counted and listed, and after each one every guest check
+  runs again. A converted Windows restarts a few times for virt-v2v's first-boot scripts and then passes (T29: 4
+  restarts in 161 s without `smbus`); one that loops never gets a window and is `CRITICAL`. The check ends at the
+  latest at the boot timeout + `settle_s` (+ the last probe's 5 s).
+- Restore tests use the same window: a restored guest that restarts by itself while it boots is `WARNING` with the
+  note code `guest_restarted_during_boot`, which does not change the VM's status by itself.
 
 ### Notification categories (ADR-007 C8, T28)
 

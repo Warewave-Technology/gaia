@@ -1074,9 +1074,13 @@ func (s *Server) table() []route {
 			roles: writers, in: MigrationCheckRequest{}, out: store.MigrationCheck{}, status: http.StatusCreated, example: `{"vm":"matrix-vm"}`,
 			h: s.queueMigrationCheck},
 		{method: "GET", path: "/api/v1/migration-checks", summary: "Migration checks, newest first", roles: anyRole, out: []store.MigrationCheck{},
-			query: append([]param{{"source_id", "integer", "only this source's"}}, limit...),
+			query: append([]param{{"source_id", "integer", "only this source's"}, {"before", "integer", "older than this check id: the last id of the previous page (ADR-007 C19.4)"}}, limit...),
 			h: func(c *call) (int, any, error) {
 				sid, err := c.intQuery("source_id", 0, 0)
+				if err != nil {
+					return 0, nil, err
+				}
+				before, err := c.intQuery("before", 0, 0)
 				if err != nil {
 					return 0, nil, err
 				}
@@ -1084,7 +1088,7 @@ func (s *Server) table() []route {
 				if err != nil {
 					return 0, nil, err
 				}
-				return list(s.db.MigrationChecks(c.r.Context(), sid, int(n)))
+				return list(s.db.MigrationChecks(c.r.Context(), sid, before, int(n)))
 			}},
 		{method: "GET", path: "/api/v1/migration-checks/{id}", summary: "One migration check", roles: anyRole, out: store.MigrationCheck{},
 			h: func(c *call) (int, any, error) {

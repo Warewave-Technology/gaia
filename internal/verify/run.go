@@ -726,7 +726,8 @@ func (x *run) restartsSince(t time.Time) int {
 // proves the guest got that far, not that it stays: a Windows whose first-boot scripts fail restarts on every boot
 // and answers WinRM for a few seconds each time (T23); a healthy converted Windows restarts a few times for virt-v2v's
 // own first-boot scripts, then stays (T28). Restarts before the window are counted; a guest with no window is
-// CRITICAL.
+// CRITICAL. The window must start inside the boot timeout and may end after it (ADR-005 H), so the check ends at the
+// latest at the boot timeout + d, plus the last probe's own timeout (every).
 type window struct {
 	d, every  time.Duration
 	deadline  time.Time
@@ -740,14 +741,27 @@ type window struct {
 func (w window) settle(ctx context.Context, k Check, t0 time.Time) CheckResult {
 	res := CheckResult{Name: "stable", Type: k.Type, Verdict: OK}
 	start, before, probes := time.Now(), 0, 0
-	sleep := func() bool {
+	sleep := func(d time.Duration) bool {
 		select {
 		case <-ctx.Done():
 			res.Verdict, res.Detail = Unknown, "not finished: "+ctx.Err().Error()
 			return false
-		case <-time.After(w.every):
+		case <-time.After(d):
 			return true
 		}
+	}
+	late := func(why string) CheckResult {
+		res.Verdict = Critical
+		res.Detail = fmt.Sprintf("%s did not keep answering for %s without a break inside the %.0f s boot timeout: interrupted %d time(s), "+
+			"the last after %.0f s (%s). A guest that restarts itself answers for a few seconds only (a Windows whose first-boot "+
+			"scripts fail restarts on every boot)", k.Name, w.d, w.deadline.Sub(t0).Seconds(), before, time.Since(t0).Seconds(), why)
+		return res
+	}
+	if start.After(w.deadline) { // every check passed only after the boot timeout: no window can start inside it
+		res.Verdict = Critical
+		res.Detail = fmt.Sprintf("%s: the guest's checks passed %.0f s after its vCPUs started, after the %.0f s boot timeout, so no stability window "+
+			"could start inside it", k.Name, start.Sub(t0).Seconds(), w.deadline.Sub(t0).Seconds())
+		return res
 	}
 	for {
 		if err := w.alive(); err != nil {
@@ -761,10 +775,11 @@ func (w window) settle(ctx context.Context, k Check, t0 time.Time) CheckResult {
 			return res
 		}
 		if p.Verdict == OK && w.restarts(start) == 0 {
-			if time.Since(start) >= w.d {
+			left := w.d - time.Since(start)
+			if left <= 0 {
 				break
 			}
-			if !sleep() {
+			if !sleep(min(w.every, left)) { // the last probe is at the window's end, not after it
 				return res
 			}
 			continue
@@ -778,13 +793,9 @@ func (w window) settle(ctx context.Context, k Check, t0 time.Time) CheckResult {
 		}
 		for {
 			if time.Now().After(w.deadline) {
-				res.Verdict = Critical
-				res.Detail = fmt.Sprintf("%s did not keep answering for %s without a break inside the %.0f s boot timeout: interrupted %d time(s), "+
-					"the last after %.0f s (%s). A guest that restarts itself answers for a few seconds only (a Windows whose first-boot "+
-					"scripts fail restarts on every boot)", k.Name, w.d, w.deadline.Sub(t0).Seconds(), before, time.Since(t0).Seconds(), why)
-				return res
+				return late(why)
 			}
-			if !sleep() {
+			if !sleep(w.every) {
 				return res
 			}
 			if err := w.alive(); err != nil {
@@ -793,6 +804,9 @@ func (w window) settle(ctx context.Context, k Check, t0 time.Time) CheckResult {
 			}
 			mark := time.Now()
 			if w.probe(max(1, int(w.every.Seconds()))).Verdict == OK && w.again() {
+				if mark.After(w.deadline) { // it answers again, but too late for a window to start (ADR-005 H)
+					return late(why)
+				}
 				start, probes = mark, 0
 				break
 			}

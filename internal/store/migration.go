@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -176,11 +177,14 @@ func (d *DB) MigrationCheckByJob(ctx context.Context, jobID int64) (MigrationChe
 }
 
 // MigrationChecks lists checks newest first, of one source if sourceID > 0.
-func (d *DB) MigrationChecks(ctx context.Context, sourceID int64, limit int) ([]MigrationCheck, error) {
-	if sourceID > 0 {
-		return rowsOf(ctx, d.db, scanMC, `SELECT `+mcCols+` FROM migration_checks WHERE source_id = ? ORDER BY id DESC LIMIT ?`, sourceID, limit)
+func (d *DB) MigrationChecks(ctx context.Context, sourceID, before int64, limit int) ([]MigrationCheck, error) {
+	if before <= 0 {
+		before = math.MaxInt64
 	}
-	return rowsOf(ctx, d.db, scanMC, `SELECT `+mcCols+` FROM migration_checks ORDER BY id DESC LIMIT ?`, limit)
+	if sourceID > 0 {
+		return rowsOf(ctx, d.db, scanMC, `SELECT `+mcCols+` FROM migration_checks WHERE source_id = ? AND id < ? ORDER BY id DESC LIMIT ?`, sourceID, before, limit)
+	}
+	return rowsOf(ctx, d.db, scanMC, `SELECT `+mcCols+` FROM migration_checks WHERE id < ? ORDER BY id DESC LIMIT ?`, before, limit)
 }
 
 // MigrationCheckFilter is a page of the migration screen's checks (ADR-007 C18.7: paged on the server, rule 15).

@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17, C18); amendments win over the text above them.
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17–C19); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -295,3 +295,17 @@ one duration and time format, charts that explain themselves with at most four l
 6. **Single-bundle export:** its `SHA256SUMS` is signed too; it is an audit entry, not a ledger bundle. An unsigned
    `SHA256SUMS` (exports from before 0.2.0) verifies as `UNKNOWN` for the signature, as built.
 7. **Migration view:** paginated on the server before T29's acceptance (CLAUDE.md rule 15).
+
+### C19. Decisions on T29 preparation's `ONAY GEREKİYOR` items (2026-11-23)
+
+1. **Turning the daily report off** for a channel is a step-up action, as built (C18.4).
+2. **Host-scoped causes show their full reach.** "Needs attention" keeps grouping each VM by its determining
+   cause, but a host-scoped cause (`host_key_changed`, `host_key_untrusted`, `host_unreachable`) states every VM
+   on the host: "affects 41 VMs · 38 here, 3 under other causes", and its "Show these VMs" lists all 41.
+3. **Pending export records go into the daily state backup** (they are small); `restore-state` re-queues them.
+   Remove the entry in `docs/limitations.md`.
+4. **`GET /api/v1/migration-checks` is paginated** like the other lists. The live vSphere inventory stays the
+   source's own list; the screen pages it on the client.
+5. **0016 only adds `migration`**, as built: an admin's earlier removal of a category stands.
+6. **The Evidence screen shows "not recorded in the ledger"** on an export that was given without a ledger record
+   (C18.5), next to the download and in its row. Nothing about evidence may look more finished than it is.
