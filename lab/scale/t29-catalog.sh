@@ -8,7 +8,7 @@
 #
 #   (workstation)  lab/scale/t29-catalog.sh make DIR     builds gen for linux/amd64 into DIR with this script
 #   (lab VM, root) DIR/t29-catalog.sh fill               after step 4 (init), before step 5: the catalog into
-#                                                        /var/lib/gaia/gaia.db, as the gaia user; then start gaia
+#                                                        /var/lib/gaia/gaia.db (owned by gaia); then start gaia
 # Exit: 0 OK / 3 UNKNOWN (not done).
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -41,7 +41,8 @@ free_gb=$(df --output=avail -BG /var/lib | tail -1 | tr -dc 0-9)
 ((free_gb >= 8)) || { echo "UNKNOWN: ${free_gb} GB free under /var/lib, the catalog wants 8"; exit 3; }
 systemctl stop gaia 2>/dev/null || true
 t0=$(date +%s)
-runuser -u gaia -- "$here/gen" -db "$DB" -vms 5000 -hosts 100 -points 3000000 -seed 1 >/root/t29-catalog.json
+"$here/gen" -db "$DB" -vms 5000 -hosts 100 -points 3000000 -seed 1 >/root/t29-catalog.json
+chown gaia:gaia "$DB"* # gen ran as root (its directory is under /root); the database stays the gaia user's
 echo "catalog generated in $(($(date +%s) - t0)) s" >&2
 python3 - /root/t29-catalog.json <<'EOF'
 import json, sys
