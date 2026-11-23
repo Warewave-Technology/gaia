@@ -24,7 +24,8 @@ gidiyorlar çünkü."* And on v3: *"Yön doğru, güzel oldu."*
    output, error strings, paths) is under a "Technical details" disclosure, never the first thing seen.
    A cause row describes the cause, not one sample VM.
 4. **One format for time and numbers** (one formatter, used everywhere):
-   - durations: `52 s` under 2 min; `21 min`; `4 h 22 min`; `4 d 10 h`. Never `4h0m0s` or seconds above 2 min.
+   - durations: `52 s` under 2 min; `21 min`; `4 h 22 min`; `4 d 10 h`. Never `4h0m0s`. Measured durations of a
+     restore, a test or a test step keep seconds below 10 min (`4 min 22 s`); others never above 2 min (ADR-007 C17).
    - targets the same way: `target 4 h`.
    - times in server time: `14:05` today, `yesterday 22:51`, `Nov 19 10:43` older; never ISO strings on screen.
 5. **Charts explain themselves.** Lanes are labelled where they are drawn; at most four legend items; no usage

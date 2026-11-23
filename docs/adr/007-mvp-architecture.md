@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10) and 2026-11-22 (C11–C16); amendments win over the text above them.
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -254,3 +254,25 @@ one duration and time format, charts that explain themselves with at most four l
 - **A point that was backed up and checked but not tested is neutral:** `BACKED UP` with "not tested", no ✓ and no
   hatching. `✓ PROVEN` is only for a point a passing restore test proved; `? UNKNOWN` only for something that
   should have been checked and could not be.
+
+## Amendment (2026-11-23, after T27)
+
+### C17. Decisions on T27's `ONAY GEREKİYOR` items
+
+1. **Recompute batching (C11):** back to T24's setting (250 per transaction, no pause): T27 measured no gain from
+   50 + 5 ms on the gate VM. C11's aim is restated as measurable: *while a full recompute runs, view requests keep
+   T24's limit (p95 ≤ 300 ms), and a cold-start recompute of the T24 catalog finishes within 60 s on the gate VM.*
+   T27's 31.4 s cold start and p95 90–102 ms meet it.
+2. **`host_key_changed` (new code, CRITICAL, host scope):** a host that presents a key different from the pinned
+   one is its own cause, not `backup_failing`. Sentence: "kvm-07 presents a different SSH host key than the one
+   pinned on <date>. Gaia reads nothing from it until an admin checks and accepts the new key." Accepting it is a
+   step-up action (ADR-008 §4) and an audit entry. Never accepted automatically.
+3. **`max_ok_fraction` (C12):** accepted as an upper bound; the UI already says "at most".
+4. **OS class (C13):** the libvirt guest step is dropped (Gaia does not keep it); the order is the `os:` tag, then
+   the check template's name, then the default. `capacity_short` moves to the jobs category in T28.
+   When the sandbox does not answer, the server models from the **last slot count the sandbox reported**, shown as
+   "last known: 2 slots, at 14:02", not from 1 and not from a second copy of the setting in `server.json`.
+5. **Incremental ledger checks (C14):** accepted: the hourly check verifies the chain links, sequence, key and the
+   last checked entry's hash; signatures and bundles of older entries are re-verified by the daily full check.
+6. **Durations (C15 rule 4):** accepted with the PO's approval of the screens: seconds are shown below 2 min for
+   any duration, and below 10 min for measured durations of a restore, a test or a test step ("4 min 22 s").
