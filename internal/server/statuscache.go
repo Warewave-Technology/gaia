@@ -21,16 +21,12 @@ import (
 // fullRecomputeEvery is how often every VM is recomputed, whatever is due: a safety net, never the mechanism.
 const fullRecomputeEvery = time.Hour
 
-// recomputeBatch is how many VMs a recompute writes in one transaction.
+// recomputeBatch is how many VMs a recompute writes in one transaction, the start and hourly full recomputes included
+// (ADR-007 C17: T24's setting, no pause; T27 measured no gain from 50 and 5 ms). A view request waits behind at most
+// one batch's commit, never for the whole recompute. C11's aim, measured by TestRecomputeKeepsViews: while a full
+// recompute runs, view requests keep T24's limit (p95 <= 300 ms), and a cold-start recompute of the T24 catalog
+// (5,000 VMs) finishes within 60 s on the gate VM.
 const recomputeBatch = 250
-
-// The start and hourly full recomputes (every VM) yield to requests (ADR-007 C11): smaller batches, and a pause after
-// each, so a view request waits behind at most one batch instead of for the whole recompute (T24: 29.4 s cold at
-// 5,000 VMs). Variables, so the measurement (TestRecomputeYields) can set the earlier behaviour beside this one.
-var (
-	fullRecomputeBatch = 50
-	fullRecomputePause = 5 * time.Millisecond
-)
 
 func unixOf(t time.Time) *float64 {
 	u := float64(t.UnixNano()) / 1e9
@@ -128,7 +124,6 @@ type recomputeState struct {
 func (s *Server) recompute(ctx context.Context, ids []int64, reason string) (RecomputeStats, error) {
 	t0 := time.Now()
 	st := RecomputeStats{At: s.now().UTC().Format(time.RFC3339Nano), Reason: reason}
-	size, pause := recomputeBatch, time.Duration(0)
 	if ids == nil {
 		vms, err := s.db.VMs(ctx, 0)
 		if err != nil {
@@ -136,9 +131,6 @@ func (s *Server) recompute(ctx context.Context, ids []int64, reason string) (Rec
 		}
 		for _, vm := range vms {
 			ids = append(ids, vm.ID)
-		}
-		if reason == "start" || reason == "hourly" { // the scheduler's own: requests come first
-			size, pause = fullRecomputeBatch, fullRecomputePause
 		}
 	}
 	// In batches: each batch is computed, then written in one transaction (one commit, not one per VM).
@@ -149,15 +141,11 @@ func (s *Server) recompute(ctx context.Context, ids []int64, reason string) (Rec
 			errs = append(errs, err)
 		}
 	}
-	for start := 0; start < len(ids); start += size {
-		if start > 0 && pause > 0 {
-			select {
-			case <-ctx.Done():
-				return st, errors.Join(append(errs, ctx.Err())...)
-			case <-time.After(pause):
-			}
+	for start := 0; start < len(ids); start += recomputeBatch {
+		if err := ctx.Err(); err != nil {
+			return st, errors.Join(append(errs, err)...)
 		}
-		batch := ids[start:min(start+size, len(ids))]
+		batch := ids[start:min(start+recomputeBatch, len(ids))]
 		ws := make([]store.StatusWrite, 0, len(batch))
 		for _, id := range batch {
 			in, err := s.statusInput(ctx, id)
