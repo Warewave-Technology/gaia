@@ -1,0 +1,225 @@
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\2000-0001-pnputil-install-drivers.bat"
+Installing drivers from C:\Windows\Drivers\Virtio\
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+
+ERROR: The system was unable to find the specified registry key or value.
+No pending reboot detected.
+Installing: balloon.inf.
+Microsoft PnP Utility
+
+Processing inf :            balloon.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem2.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: fwcfg.inf.
+Microsoft PnP Utility
+
+Processing inf :            fwcfg.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem3.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: netkvm.inf.
+Microsoft PnP Utility
+
+Processing inf :            netkvm.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem5.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: pvpanic.inf.
+Microsoft PnP Utility
+
+Processing inf :            pvpanic.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem6.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: qemupciserial.inf.
+Microsoft PnP Utility
+
+Processing inf :            qemupciserial.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem7.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viofs.inf.
+Microsoft PnP Utility
+
+Processing inf :            viofs.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem8.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viogpudo.inf.
+Microsoft PnP Utility
+
+Processing inf :            viogpudo.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem9.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: vioinput.inf.
+Microsoft PnP Utility
+
+Processing inf :            vioinput.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem10.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viomem.inf.
+Microsoft PnP Utility
+
+Processing inf :            viomem.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem11.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viorng.inf.
+Microsoft PnP Utility
+
+Processing inf :            viorng.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem12.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: vioscsi.inf.
+Microsoft PnP Utility
+
+Processing inf :            vioscsi.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem13.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: vioser.inf.
+Microsoft PnP Utility
+
+Processing inf :            vioser.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem14.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viosock.inf.
+Microsoft PnP Utility
+
+Processing inf :            viosock.inf
+Successfully installed the driver.
+Driver package added successfully.
+Published name :            oem15.inf
+
+
+Total attempted:              1
+Number successfully imported: 1
+
+Installing: viostor.inf.
+Microsoft PnP Utility
+
+Processing inf :            viostor.inf
+Failed to install the driver : No more data is available.
+
+
+Total attempted:              1
+Number successfully imported: 0
+
+Successfully installed viostor.inf.
+All drivers installed successfully.
+.... exit code 0
+Script finished with exit code 0, moving to scripts-done
+        1 file(s) moved.
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\5000-0002-wait-pnp.bat"
+Wait for PnP to complete
+start waiting for PnP to complete @ Mon Nov 23 07:48:35 2026
+done waiting for PnP to complete @ Mon Nov 23 07:48:35 2026
+.... exit code 0
+Script finished with exit code 0, moving to scripts-done
+        1 file(s) moved.
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\5000-0003-install-qemu-ga.bat"
+Installing QEMU Guest Agent
+Attempt 1 of 10
+Writing log to C:\Program Files\Guestfs\Firstboot\Temp\qemu-ga-x86_64.msi.log
+Exit code: 0
+QEMU Guest Agent installed successfully
+.... exit code 0
+Script finished with exit code 0, moving to scripts-done
+        1 file(s) moved.
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+running "C:\Program Files\Guestfs\Firstboot\scripts\5000-0004-install-blnsvr.bat"
+Installing blnsvr.exe
+Service Installed
+Service is starting...
+Service RUNNING.
+.... exit code 0
+Script finished with exit code 0, moving to scripts-done
+        1 file(s) moved.
+starting firstboot service
+effective user: GAIA-T11-WIN$ domain: WORKGROUP
+
+Microsoft Windows [Version 10.0.20348.587]
+uninstalling firstboot service
+Service uninstalled successfully

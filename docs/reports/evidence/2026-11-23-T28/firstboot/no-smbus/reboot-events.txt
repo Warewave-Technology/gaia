@@ -1,0 +1,11 @@
+2026-11-23 07:48:19.670+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:48:19.675+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:48:40.816+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:48:40.822+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:49:18.897+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:49:18.901+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:49:40.445+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+2026-11-23 07:49:40.451+0000: event 'reboot' for domain 'gaia-t28-fb-no-smbus'
+event loop timed out
+events received: 8
+

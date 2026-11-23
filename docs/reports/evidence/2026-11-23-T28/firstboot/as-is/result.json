@@ -1,0 +1,10 @@
+{
+  "variant": "as-is",
+  "converter_image": "sha256:6bbae1e754eb8a70a71d82128588a332c96ec8049bbc76cc5931e4394e05218d",
+  "virtio_win_sha256": "303f7ae40dad495d6ae474fdc571df58958a4dbc5c37a522d80f9a203867949d",
+  "excluded": [],
+  "conversion_s": 247,
+  "boot_window_s": 480,
+  "guest_restarts": 34,
+  "firstboot_log_lines": 1429
+}
