@@ -894,7 +894,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Turn a channel off or on (on again, it starts from now), or change its categories and daily report */
+        /** Turn a channel off or on (on again, it starts from now), or change its categories and daily report (a step-up when it removes a category, turns the daily report off or turns the channel off) */
         patch: operations["patch_notification_channels_by_id"];
         trace?: never;
     };
@@ -2774,6 +2774,7 @@ export interface components {
             ledger_seq: number;
             missing_files?: string[];
             product: string;
+            restarts?: number[];
             source: string;
             timings_s: {
                 [key: string]: number;

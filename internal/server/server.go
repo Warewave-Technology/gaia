@@ -191,25 +191,26 @@ func (c Config) EvidenceLedger() string   { return c.ledgerPath() }
 
 // Server is a running gaia server.
 type Server struct {
-	cfg        Config
-	cfgPath    string
-	db         *store.DB
-	log        *slog.Logger
-	routes     []route
-	sandboxCap sandboxState                     // the sandbox helper's slots (testqueue.go)
-	images     imagesReservation                // the running tests' restored disks (testqueue.go)
-	capCache   capacityCache                    // the proof capacity's inputs (capacityview.go)
-	whatIfRate rateLimiter                      // what-if calls per session (ADR-007 C13)
-	capWatch   capacityWatch                    // capacity_short (capacitywatch.go)
-	testRun    func(context.Context, store.Job) // runs a restore test job; nil: runTest (tests set it)
-	recomputed recomputeState                   // the status table's newest full recompute (statuscache.go)
-	handler    http.Handler
-	started    time.Time
-	backupMu   sync.Mutex
-	version    string
-	openapi    []byte
-	sshKey     hostconn.Key
-	repoLocks  repoLocks
+	cfg         Config
+	cfgPath     string
+	db          *store.DB
+	log         *slog.Logger
+	routes      []route
+	sandboxCap  sandboxState                     // the sandbox helper's slots (testqueue.go)
+	images      imagesReservation                // the running tests' restored disks (testqueue.go)
+	capCache    capacityCache                    // the proof capacity's inputs (capacityview.go)
+	whatIfRate  rateLimiter                      // what-if calls per session (ADR-007 C13)
+	capWatch    capacityWatch                    // capacity_short (capacitywatch.go)
+	keptSweepAt time.Time                        // the last sweep of kept disks (keptdisks.go; the scheduler's goroutine only)
+	testRun     func(context.Context, store.Job) // runs a restore test job; nil: runTest (tests set it)
+	recomputed  recomputeState                   // the status table's newest full recompute (statuscache.go)
+	handler     http.Handler
+	started     time.Time
+	backupMu    sync.Mutex
+	version     string
+	openapi     []byte
+	sshKey      hostconn.Key
+	repoLocks   repoLocks
 	// Kopia's full safety (24 h before an unreferenced content may go); tests use none.
 	maintenanceSafety maintenance.SafetyParameters
 	// Sign-in (ADR-008): the steps of sign-ins under way, step-ups, enrolments on one's own account, CLI sign-ins

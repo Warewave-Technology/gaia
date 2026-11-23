@@ -11,12 +11,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -98,6 +100,10 @@ type Options struct {
 	// read (a migration check reads a converted Windows' first-boot log, ADR-005 C). Owned by the directory's group,
 	// mode 0640; the caller removes it. The images stay untouched either way.
 	KeepDisks string
+	// FirstBoot: the guest boots for the first time as it is (a converted VM: virt-v2v's first-boot service restarts it
+	// after its scripts), so restarts before the stability window are expected and do not change the result. Without
+	// it (a restore test: a backup finished its first boot long ago) such a restart is a WARNING (ADR-005 F).
+	FirstBoot bool
 }
 
 // DiskImage is one restored disk of the guest.
@@ -165,6 +171,9 @@ type Result struct {
 	// KeptDisks are the overlays kept for the caller (Options.KeepDisks), file names in that directory; they are not
 	// part of the bundle.
 	KeptDisks []string `json:"kept_disks,omitempty"`
+	// Restarts are the guest's own restarts (libvirt reboot events), in seconds since its vCPUs started, until its
+	// stability window began (ADR-005 F).
+	Restarts []float64 `json:"restarts,omitempty"`
 	// Filled after sealing (not part of the bundle's result.json).
 	BundleDir    string `json:"bundle_dir,omitempty"`
 	BundleSHA256 string `json:"bundle_sha256,omitempty"`
@@ -199,6 +208,10 @@ type run struct {
 	work     string
 	log      bytes.Buffer // sandbox.log: every command and its output
 	t0       time.Time    // vCPUs started
+
+	rebootMu sync.Mutex
+	reboots  []time.Time // the guest's own restarts (libvirt reboot events), one per restart
+	events   error       // why restarts cannot be counted
 }
 
 // Run verifies one image and seals the evidence. A harness failure still produces a
@@ -365,6 +378,7 @@ func (x *run) verify(ctx context.Context) error {
 		return fmt.Errorf("create sandbox domain: %w", err)
 	}
 	x.domUp = true
+	x.watchReboots(ctx)
 	if err := x.checkIsolation(); err != nil {
 		return err
 	}
@@ -422,11 +436,30 @@ func (x *run) verify(ctx context.Context) error {
 		r.Timings["ready"] = ready
 		if boot.Type != CheckBootSerial && c.SettleS > 0 {
 			ip := x.r.Sandbox.GuestIP
-			st := settle(ctx, boot, time.Duration(c.SettleS)*time.Second, 5*time.Second,
-				func(timeoutS int) CheckResult { return x.probe(ctx, boot, ip, timeoutS) }, x.alive)
+			others := r.Checks[len(r.Checks)-len(probes):]
+			w := window{d: time.Duration(c.SettleS) * time.Second, every: 5 * time.Second,
+				deadline: x.t0.Add(time.Duration(c.BootTimeoutS) * time.Second), firstBoot: x.o.FirstBoot,
+				probe: func(timeoutS int) CheckResult { return x.probe(ctx, boot, ip, timeoutS) },
+				alive: x.alive, restarts: x.restartsSince,
+				// after a restart every guest check runs again; the stability window starts when all pass
+				again: func() bool {
+					for i, k := range probes {
+						others[i] = x.probe(ctx, k, ip, x.c.ProbeTimeoutS)
+					}
+					return len(others) == 0 || Worst(checkVerdicts(others)...) == OK
+				}}
+			st := w.settle(ctx, boot, x.t0)
 			st.Seconds = time.Since(x.t0).Seconds()
+			x.rebootMu.Lock()
+			for _, t := range x.reboots {
+				r.Restarts = append(r.Restarts, math.Round(t.Sub(x.t0).Seconds()*10)/10)
+			}
+			x.rebootMu.Unlock()
 			x.logf("check %s: %s (%s)", st.Name, st.Verdict, st.Detail)
 			r.Checks = append(r.Checks, st)
+		}
+		if x.events != nil {
+			r.Errors = append(r.Errors, "the guest's restarts could not be counted: "+x.events.Error())
 		}
 	}
 	x.screenshot("end")
@@ -648,34 +681,136 @@ func guestPassed(checks []CheckResult, pre int) bool {
 	return len(checks) > pre && Worst(checkVerdicts(checks[pre:])...) == OK
 }
 
-// settle checks that a guest booted by a network probe stays up: the boot probe must keep passing, every `every`,
-// for d after every check passed. One answer proves the guest got that far, not that it stays: a Windows whose
-// first-boot scripts fail restarts on every boot and answers WinRM for a few seconds each time (T23).
-func settle(ctx context.Context, k Check, d, every time.Duration, probe func(timeoutS int) CheckResult, alive func() error) CheckResult {
+// watchReboots counts the guest's own restarts from libvirt's reboot events (on_reboot=restart keeps the same QEMU, so
+// the domain never stops). libvirt 9 sends two events, milliseconds apart, for one restart: events less than a second
+// apart are one restart.
+func (x *run) watchReboots(ctx context.Context) {
+	ch, err := x.l.SubscribeEvents(ctx, libvirt.DomainEventIDReboot, libvirt.OptDomain{x.dom})
+	if err != nil {
+		x.events = err
+		x.logf("reboot events: %v", err)
+		return
+	}
+	go func() {
+		for ev := range ch {
+			m, ok := ev.(*libvirt.DomainEventCallbackRebootMsg)
+			if !ok || m.Msg.Dom.Name != x.dom.Name {
+				continue
+			}
+			now := time.Now()
+			x.rebootMu.Lock()
+			if n := len(x.reboots); n == 0 || now.Sub(x.reboots[n-1]) >= time.Second {
+				x.reboots = append(x.reboots, now)
+				x.logf("guest restarted by itself at %.1f s", now.Sub(x.t0).Seconds())
+			}
+			x.rebootMu.Unlock()
+		}
+	}()
+}
+
+// restartsSince is how many restarts there were after t.
+func (x *run) restartsSince(t time.Time) int {
+	x.rebootMu.Lock()
+	defer x.rebootMu.Unlock()
+	n := 0
+	for _, r := range x.reboots {
+		if r.After(t) {
+			n++
+		}
+	}
+	return n
+}
+
+// window is the stability window of a guest booted by a network probe (ADR-005 B, F): the first uninterrupted d in
+// which the guest keeps answering and does not restart, starting inside its boot timeout (deadline). One answer
+// proves the guest got that far, not that it stays: a Windows whose first-boot scripts fail restarts on every boot
+// and answers WinRM for a few seconds each time (T23); a healthy converted Windows restarts a few times for virt-v2v's
+// own first-boot scripts, then stays (T28). Restarts before the window are counted; a guest with no window is
+// CRITICAL.
+type window struct {
+	d, every  time.Duration
+	deadline  time.Time
+	firstBoot bool
+	probe     func(timeoutS int) CheckResult
+	alive     func() error
+	restarts  func(since time.Time) int // restarts after a time
+	again     func() bool               // the guest's other checks, run again after a restart: all passed
+}
+
+func (w window) settle(ctx context.Context, k Check, t0 time.Time) CheckResult {
 	res := CheckResult{Name: "stable", Type: k.Type, Verdict: OK}
-	start := time.Now()
-	for n := 1; ; n++ {
-		if err := alive(); err != nil {
-			res.Verdict, res.Detail = Critical, fmt.Sprintf("the guest stopped %.0f s after it passed every check: %v", time.Since(start).Seconds(), err)
-			return res
-		}
-		if p := probe(max(1, int(every.Seconds()))); p.Verdict != OK {
-			res.Verdict = p.Verdict
-			res.Detail = fmt.Sprintf("%s stopped answering %.0f s after it passed (probe %d, one every %s for %s): %s. "+
-				"A guest that restarts itself answers for a few seconds only (a Windows whose first-boot scripts fail "+
-				"restarts on every boot)", k.Name, time.Since(start).Seconds(), n, every, d, p.Detail)
-			return res
-		} else if time.Since(start) >= d {
-			res.Detail = fmt.Sprintf("%s kept answering for %s after every check passed (%d probes, one every %s)", k.Name, d, n, every)
-			return res
-		}
+	start, before, probes := time.Now(), 0, 0
+	sleep := func() bool {
 		select {
 		case <-ctx.Done():
 			res.Verdict, res.Detail = Unknown, "not finished: "+ctx.Err().Error()
-			return res
-		case <-time.After(every):
+			return false
+		case <-time.After(w.every):
+			return true
 		}
 	}
+	for {
+		if err := w.alive(); err != nil {
+			res.Verdict, res.Detail = Critical, fmt.Sprintf("the guest stopped %.0f s after its vCPUs started: %v", time.Since(t0).Seconds(), err)
+			return res
+		}
+		probes++
+		p := w.probe(max(1, int(w.every.Seconds())))
+		if p.Verdict == Unknown { // the probe did not run: not checked, never a restart
+			res.Verdict, res.Detail = Unknown, p.Detail
+			return res
+		}
+		if p.Verdict == OK && w.restarts(start) == 0 {
+			if time.Since(start) >= w.d {
+				break
+			}
+			if !sleep() {
+				return res
+			}
+			continue
+		}
+		// Interrupted: the guest restarted or stopped answering. It must answer again, pass every check again and
+		// start a new window inside its boot timeout.
+		before++
+		why := p.Detail
+		if p.Verdict == OK {
+			why = "it restarted"
+		}
+		for {
+			if time.Now().After(w.deadline) {
+				res.Verdict = Critical
+				res.Detail = fmt.Sprintf("%s did not keep answering for %s without a break inside the %.0f s boot timeout: interrupted %d time(s), "+
+					"the last after %.0f s (%s). A guest that restarts itself answers for a few seconds only (a Windows whose first-boot "+
+					"scripts fail restarts on every boot)", k.Name, w.d, w.deadline.Sub(t0).Seconds(), before, time.Since(t0).Seconds(), why)
+				return res
+			}
+			if !sleep() {
+				return res
+			}
+			if err := w.alive(); err != nil {
+				res.Verdict, res.Detail = Critical, fmt.Sprintf("the guest stopped %.0f s after its vCPUs started: %v", time.Since(t0).Seconds(), err)
+				return res
+			}
+			mark := time.Now()
+			if w.probe(max(1, int(w.every.Seconds()))).Verdict == OK && w.again() {
+				start, probes = mark, 0
+				break
+			}
+		}
+	}
+	n := w.restarts(t0)
+	switch {
+	case n == 0:
+		res.Detail = fmt.Sprintf("%s kept answering for %s after every check passed (%d probes, one every %s)", k.Name, w.d, probes, w.every)
+	case w.firstBoot:
+		res.Detail = fmt.Sprintf("%s kept answering for %s after every check passed (%d probes, one every %s); before that the guest restarted "+
+			"%d time(s) on its first boot, as a converted guest does for its first-boot scripts", k.Name, w.d, probes, w.every, n)
+	default:
+		res.Verdict = Warning
+		res.Detail = fmt.Sprintf("%s kept answering for %s (%d probes, one every %s), but the guest restarted %d time(s) before that: a restored "+
+			"backup finished its first boot long ago, so a restart while it boots is not expected (guest_restarted_during_boot)", k.Name, w.d, probes, w.every, n)
+	}
+	return res
 }
 
 // netBootWhy says why a boot probe cannot pass on a guest that did not boot (T11's rule, ADR-005 §3): the report

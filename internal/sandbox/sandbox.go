@@ -47,6 +47,9 @@ type Request struct {
 	// directory (Result.KeptDisks) for gaia server to read and remove: a migration check reads a converted Windows'
 	// first-boot log there (ADR-005 C, driver_install_loop).
 	KeepDisks bool `json:"keep_disks,omitempty"`
+	// FirstBoot: the guest boots for the first time (a converted VM): restarts before its stability window are
+	// expected (ADR-005 F); a restore test leaves it false.
+	FirstBoot bool `json:"first_boot,omitempty"`
 }
 
 // Config is the helper's own configuration.
@@ -246,7 +249,7 @@ func (h *handler) verify(w http.ResponseWriter, r *http.Request) {
 		keep = h.c.ImagesDir
 	}
 	res, err := verify.Run(r.Context(), verify.Options{Config: &req.Config, Disks: req.Disks, RestoreS: req.RestoreS,
-		PreChecks: req.PreChecks, SkipReason: req.SkipReason, KeepDisks: keep,
+		PreChecks: req.PreChecks, SkipReason: req.SkipReason, KeepDisks: keep, FirstBoot: req.FirstBoot,
 		WorkDir: h.c.WorkDir, SerialDir: h.c.SerialDir, EvidenceDir: h.c.BundleDir, Socket: h.c.LibvirtSocket,
 		Self: h.c.Self, Log: &progress, Slot: slot})
 	if res != nil && res.BundleDir != "" {

@@ -76,6 +76,9 @@ func (s *Server) tick(ctx context.Context, now time.Time) error {
 	if werr := s.watchCapacity(ctx, now); werr != nil {
 		err = errors.Join(err, fmt.Errorf("proof capacity: %w", werr))
 	}
+	if kerr := s.sweepKeptDisks(now); kerr != nil {
+		err = errors.Join(err, fmt.Errorf("kept disks: %w", kerr))
+	}
 	return err
 }
 
