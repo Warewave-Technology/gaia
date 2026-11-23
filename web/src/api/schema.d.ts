@@ -2774,6 +2774,7 @@ export interface components {
             ledger_seq: number;
             missing_files?: string[];
             product: string;
+            restarts?: number[];
             source: string;
             timings_s: {
                 [key: string]: number;

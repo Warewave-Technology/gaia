@@ -2887,6 +2887,12 @@
           "product": {
             "type": "string"
           },
+          "restarts": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
           "source": {
             "type": "string"
           },
