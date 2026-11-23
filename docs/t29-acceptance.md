@@ -29,10 +29,16 @@ Sunucu B'ye (9105, `gaia-t17-b`), `gaia-t17-web`'e ve gaia-lab'deki `gaia-backup
 cd ~/Desktop/Works/Warewave/projects/gaia/releases/0.2.0 && awk '/Gaia.s release key is this one line/ { f = 1 } f && /^```$/ { if (b) exit; b = 1; next } b' ../../docs/install.md >allowed_signers && ssh-keygen -Y verify -f allowed_signers -I release@gaia -n gaia-release -s SHA256SUMS.sig <SHA256SUMS && shasum -a 256 -c SHA256SUMS
 ```
 
-- [ ] İlk satır `Good "gaia-release" signature for release@gaia`, her dosya `OK`.
+- [x] İlk satır `Good "gaia-release" signature for release@gaia`, her dosya `OK`.
 
 ```
-(çıktıyı buraya yapıştır)
+Good "gaia-release" signature for release@gaia with ED25519 key SHA256:Nqb0MoKtSc+AZaFGJkfOpgELaRqyYLlkz9e2VjvKanc
+gaia_0.2.0_amd64.deb: OK
+gaia-0.2.0-darwin-amd64.tar.gz: OK
+gaia-0.2.0-darwin-arm64.tar.gz: OK
+gaia-0.2.0-linux-amd64.tar.gz: OK
+gaia-0.2.0-linux-arm64.tar.gz: OK
+BUILDINFO.txt: OK
 ```
 
 ## 1. Yükseltme: kılavuz adım 12, "To 0.2.0"
@@ -67,11 +73,12 @@ Bitince Mac'te:
 gaia system -json | jq -c '{version, schema_version, signin_problem}' && gaia kit status -json | jq -c '.summary | {state, generation}'
 ```
 
-- [ ] `version` `0.2.0 (...)`, `schema_version` `16`, `signin_problem` yok; kit `confirmed`.
-- [ ] Yükseltmeden önceki `gaia login` oturumun çalışmadı (kılavuz: "Every session ends at the upgrade").
+- [x] `version` `0.2.0 (...)`, `schema_version` `16`, `signin_problem` yok; kit `confirmed`.
+- [x] Yükseltmeden önceki `gaia login` oturumun çalışmadı (kılavuz: "Every session ends at the upgrade").
 
 ```
-(çıktıyı buraya yapıştır)
+{"version":"0.2.0 (4901ec4da20d)","schema_version":16,"signin_problem":null}
+{"state":"confirmed","generation":3}
 ```
 
 Not:
@@ -86,6 +93,13 @@ gaia-lab'de (root): Keycloak'ı başlat, sunucunun adresini istemciye ekle, kend
 
 İlk parolan `/root/t26-keycloak/secrets.json` içinde (`.users.yigit.password`); ilk girişte değiştirir ve OTP'yi
 telefonuna eklersin. İstemcinin secret'ı aynı dosyada (`.client_secret`). Bunları ben görmüyorum.
+
+İstemcinin secret'ını tırnaksız ve satır sonu olmadan panoya almak için Mac'te şunu çalıştır, sonra secret alanına yapıştır
+(`jq` `-r` olmadan tırnaklarıyla verir; Keycloak o zaman `invalid_client_credentials` der, Gaia `idp_error`):
+
+```bash
+ssh gaia@192.168.1.30 sudo jq -r .client_secret /root/t26-keycloak/secrets.json | tr -d '\n' | pbcopy
+```
 
 Keycloak'ın sertifikası öz-imzalı; `gaia-t23-b` ona güvenmeli. gaia-lab'den sunucuya kopyala, sunucuda (root) ekle:
 
@@ -108,7 +122,8 @@ gaia api GET /api/v1/settings/signin | jq -c '{oidc: (.oidc | {enabled, issuer, 
 - [ ] SSO açık, roller eşlenmiş; `yigit` SSO kullanıcısı olarak listede, rolü `admin`.
 
 ```
-(çıktıyı buraya yapıştır)
+{"oidc":{"enabled":true,"issuer":"https://gaia-lab.test:8444/realms/gaia","client_id":"gaia","roles":{"gaia-admins":"admin","gaia-operators":"operator","internal-audit":"auditor"}},"secret_set":true}
+[{"username":"admin","role":"admin","source":"local","break_glass":true}]
 ```
 
 Not:
