@@ -60,7 +60,7 @@
   | `status` | `status` |
   | `jobs` | `job_failed`, `full_backup`, `capacity_short` |
   | `integrity` | `integrity`, `quarantine`, `ledger` |
-  | `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed` |
+  | `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed`, `export_not_recorded` |
   | `migration` | `migration_check_finished` |
 
   The daily report belongs to no category: a channel takes it when its `daily_report` is true. A test message
@@ -89,9 +89,23 @@
 - Every export is recorded as an evidence bundle of its own (`export-<time>-<random>`), with its ledger entry: who
   made it, scope, period, and the SHA-256 of its `SHA256SUMS`. The record is made once the export is complete, so it
   is in the server's ledger and in every later export, not in the one it records. Any Restore Evidence Format v1
-  verifier checks it unchanged (no new ledger entry type). An export that cannot be recorded (a ledger that is not
-  intact) is refused. The Evidence screen lists the records as exports, by whom.
+  verifier checks it unchanged (no new ledger entry type). The Evidence screen lists the records as exports, by whom.
+- Every export holds `EXPORT.json`: who made it, its scope (`all`, or `bundle` for a single bundle), its period, and
+  `ledger_record` (`sealed_after_export` with the record's bundle id, `not_recorded` with the reason, or `audit_only`).
+- An export the ledger cannot record (a ledger that is not intact) is **given**, no longer refused (ADR-007 C18.5):
+  its `README.txt` and `EXPORT.json` say `not recorded in the ledger: <reason>`, `SHA256SUMS` is still signed, it is
+  an audit entry, and the new event `export_not_recorded` (category `security`) is sent. The server keeps the record
+  under `<data_dir>/evidence/pending-exports/` and appends it with its next successful ledger write (a restore test's
+  bundle, another export, or a ledger check that finds the ledger intact); that record's subject carries
+  `recorded_late`, `not_recorded_reason` and `given`. Both steps are state changes (`entity=evidence_export`).
+  `gaia evidence export-all` prints a `WARNING` and exits 1 for such an export (the file is written).
+- The single-bundle export (`gaia evidence export <id>`, `GET /api/v1/evidence/{id}/export`) now has `EXPORT.json`
+  and a signed `SHA256SUMS` / `SHA256SUMS.sig` like the full export (ADR-007 C18.6). It is an audit entry, not a ledger
+  bundle.
 - `gaia evidence verify -pubkey anchor.pub -export DIR` checks an unpacked export: every file against `SHA256SUMS`,
   the signature against the key the ledger leads to from the anchor, the ledger with every bundle and the export's
-  daily-report head, and lists the exports the ledger records. A missing `SHA256SUMS.sig` (an export made before
-  0.2.0) is UNKNOWN, never OK.
+  daily-report head, and lists the exports the ledger records (late ones with their reason). A missing
+  `SHA256SUMS.sig` (an export made before 0.2.0) is UNKNOWN, never OK. An export whose `EXPORT.json` says
+  `not_recorded` is UNKNOWN (`export_not_recorded`): no export holds its own record. A single-bundle export is
+  verified with its whole ledger and its one bundle; the bundles it leaves out are counted (`left_out`), not
+  `bundle_missing`.

@@ -122,6 +122,12 @@ fixtures) are in the reports, not here.
   unsigned summary, and `anchor.pub` comes from inside the export, so the auditor must compare its key ID with one
   received elsewhere (the export's README says so). [T20]
   *Why it waits:* whether to sign the export itself is an open question to the architect (T20).
+- **The record of an export given while the ledger could not record it waits in a file**
+  (`<data_dir>/evidence/pending-exports/`, ADR-007 C18.5) until the next successful ledger write; it is not in Gaia's
+  daily state backup, so a server lost before then loses the record (the audit log entry and the notification stay
+  where they were sent). [T29]
+  *Why it waits:* the state backup's members are fixed by T17's rebuild procedure; adding one needs that procedure
+  and its drill updated.
 - **Reading is not audited**; only changes and exports are. [T14]
   *Why it waits:* ADR-007 asks for an audit log of actions; logging every read needs its own retention policy.
 - **`gaia status`'s exit code follows the VMs only**: warnings about the recovery kit, the ledger or notifications

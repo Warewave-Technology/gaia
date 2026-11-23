@@ -332,7 +332,7 @@ reaches the channels that take the category. The categories and their events:
 | `status` | `status`: a VM's status changed, with the reason |
 | `jobs` | `job_failed` (a backup, restore test, verification or state backup failed), `full_backup` (a backup was full although the VM had an earlier one: its checkpoint was gone from the host, a disk was resized, a quarantine), `capacity_short` (the restore tests cannot keep every proof fresh) |
 | `integrity` | `integrity` (a verification found damage), `quarantine`, `ledger` (the evidence ledger does not verify, or verifies again) |
-| `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed` |
+| `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed`, `export_not_recorded` (an evidence export was given while the ledger could not record it, step 10c) |
 | `migration` | `migration_check_finished` (a migration check ended `WARNING`, `CRITICAL` or `UNKNOWN`) |
 
 `gaia channels set <id> categories='[...]'` or `daily_report=true|false` changes what a channel takes. A channel
@@ -643,8 +643,9 @@ JavaScript; without it, use `gaia status`.
 
 The **evidence export** is what an auditor takes away. It holds every bundle, the ledger, the trust anchor and
 the current public key, the newest daily report with its signed ledger head, the evidence specification, a list of
-every restore test, `SHA256SUMS` with its signature `SHA256SUMS.sig`, and a `README.txt` that says how to verify it
-without Gaia's server. From the command line (as `admin` or `auditor`; it asks for your second factor):
+every restore test, `EXPORT.json` (who made it, its scope and period, its record), `SHA256SUMS` with its signature
+`SHA256SUMS.sig`, and a `README.txt` that says how to verify it without Gaia's server. From the command line (as
+`admin` or `auditor`; it asks for your second factor):
 
 ```bash
 gaia evidence export-all -o gaia-evidence.tar.gz
@@ -652,8 +653,21 @@ gaia evidence export-all -o gaia-evidence.tar.gz
 
 Every export is recorded in the evidence ledger as a bundle of its own (the command prints its name, e.g.
 `export-20261123T101500Z-3f9a1c`): who made it, its scope and period, and the SHA-256 of its `SHA256SUMS`. The
-record is sealed once the export is complete, so it is in the server's ledger and in every later export. A server
-whose ledger is not intact refuses the export, because it cannot record it; the Evidence screen shows why.
+record is sealed once the export is complete, so it is in the server's ledger and in every later export.
+
+When the ledger cannot record the export (a ledger that is not intact refuses new entries), the export is still
+given: the auditor may need it exactly then. Its `README.txt` starts with `NOT RECORDED IN THE LEDGER: <reason>`,
+`EXPORT.json` says `"state": "not_recorded"` with the reason, `SHA256SUMS` is signed as always, the export is in the
+audit log, and the channels that take `security` get `export_not_recorded`. The command prints a `WARNING` and exits
+1. The server keeps the record (in `/var/lib/gaia/evidence/pending-exports/`; do not delete it) and appends it to the
+ledger with its next successful ledger write: a restore test's bundle, another export, or a ledger check that finds
+the ledger intact again (hourly, or **Check now** on the Evidence screen). The record says it was made late and why;
+later exports list it. `gaia state-changes list entity=evidence_export` shows both steps.
+
+A single bundle is exported with `gaia evidence export <id> -o FILE` (for example the bundle of one restore test):
+the bundle with the whole ledger and the trust anchor, `EXPORT.json`, and `SHA256SUMS` with `SHA256SUMS.sig` like
+the full export. It is in the audit log; it is not recorded in the ledger. It is verified the same way as below; the
+other bundles the ledger lists are left out by design and counted, not reported as missing.
 
 Verify it on any machine, after unpacking it. First compare the trust anchor's `key_id` and the `key_id` that
 signed `SHA256SUMS` (both in `README.txt`) with the one recorded in step 4, or with the `evidence_key_id` of a daily
@@ -666,8 +680,10 @@ gaia evidence verify -pubkey anchor.pub -export .
 
 It checks every file against `SHA256SUMS`, the signature against the key the ledger leads to from the anchor, the
 ledger with every bundle and the export's daily-report head (`ledger-head-<n>.json`), and lists the earlier exports
-the ledger records. OK exits 0, CRITICAL 2, UNKNOWN 3 (for example an export made before 0.2.0, which has no
-`SHA256SUMS.sig`). The ledger alone, as before:
+the ledger records (with `recorded late` and the reason for one that was given while the ledger could not record
+it). OK exits 0, CRITICAL 2, UNKNOWN 3: for example an export made before 0.2.0, which has no `SHA256SUMS.sig`, or
+an export that says it was not recorded (`export_not_recorded`: no export holds its own record, so whether it was
+recorded later shows in a later export). The ledger alone, as before:
 
 ```bash
 gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles -head ledger-head-<n>.json
