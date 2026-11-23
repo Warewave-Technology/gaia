@@ -332,16 +332,23 @@ reaches the channels that take the category. The categories and their events:
 | `status` | `status`: a VM's status changed, with the reason |
 | `jobs` | `job_failed` (a backup, restore test, verification or state backup failed), `full_backup` (a backup was full although the VM had an earlier one: its checkpoint was gone from the host, a disk was resized, a quarantine), `capacity_short` (the restore tests cannot keep every proof fresh) |
 | `integrity` | `integrity` (a verification found damage), `quarantine`, `ledger` (the evidence ledger does not verify, or verifies again) |
-| `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed` |
+| `security` | `breakglass_signin`, `new_device_signin`, `account_locked`, `settings_changed`, `host_key_changed` (a host presents an SSH key other than the pinned one: its backups are paused until an admin checks the key and accepts it on Inventory → Hosts) |
 | `migration` | `migration_check_finished` (a migration check ended `WARNING`, `CRITICAL` or `UNKNOWN`) |
 
 `gaia channels set <id> categories='[...]'` or `daily_report=true|false` changes what a channel takes. A channel
 added before 0.2.0 was mapped at the upgrade from its event list (still shown as `m2_events`) to the categories of
-those events, and to `security`; it does not get `migration` until you add it (release notes, 0.2.0).
+those events, and to `security`; one that took 0.1.2's default list (every event) gets all five categories,
+`migration` included, and any other gets `migration` only when you add it (release notes, 0.2.0).
 The daily report goes out at
 `daily_report_at` (in `/etc/gaia/server.json`, default `07:00`, server time); `gaia daily-reports run` sends one now.
 A channel is turned off with `gaia channels set <id> enabled=false` (and on again with `enabled=true`; it then
 reports from that moment on). `gaia notifications list` shows every message and its state.
+
+Telling fewer people is a step-up action (ADR-008 §4): removing a category, turning the daily report off
+(`daily_report=false`: the channel's readers no longer get the day's summary and its signed ledger head) and turning
+a channel off ask for a fresh second factor, like the other actions in section 9; `gaia channels set` asks for it
+the same way (a code from the app, or approval in a signed-in browser for a security key). Adding a category, turning
+the daily report or a channel on, needs none.
 
 Gaia also checks the evidence ledger and every bundle with each daily report (and `gaia ledger check` does it now; its exit code is the verdict).
 A ledger that does not verify, or is shorter than the last daily report says, is a `ledger` event and shows in
@@ -389,7 +396,8 @@ gaia recovery-codes
 
 **Asked for again.** These actions need a fresh second factor in the request, every time (ADR-008 §4): forgetting or
 deleting points; user, role, factor and API-token changes; making a policy looser; sign-in and security settings;
-adding or removing a host or a repository; evidence exports. The web UI asks with a dialog, the command line with a
+adding or removing a host or a repository; accepting a host's changed SSH key; removing a category or the daily
+report from a notification channel, or turning a channel off; evidence exports. The web UI asks with a dialog, the command line with a
 prompt. `gaia api GET /api/v1/settings/signin` lists them (`step_up_actions`).
 
 **Sessions.** A session ends after 15 minutes without the user doing anything (the screens refreshing themselves do

@@ -12042,14 +12042,15 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Turn a channel off or on (on again, it starts from now), or change its categories and daily report",
+        "summary": "Turn a channel off or on (on again, it starts from now), or change its categories and daily report (a step-up when it removes a category, turns the daily report off or turns the channel off)",
         "tags": [
           "notification-channels"
         ],
         "x-gaia-example": "{\"enabled\":false,\"reason\":\"mail server replaced\"}",
         "x-gaia-roles": [
           "admin"
-        ]
+        ],
+        "x-gaia-step-up": "when_it_weakens_protection"
       }
     },
     "/api/v1/notification-channels/{id}/test": {

@@ -40,6 +40,11 @@ func TestHostKeyChangedAndAccepted(t *testing.T) {
 	if h2.SSHHostKey != "ssh-ed25519 OLD" || h2.PresentedHostKey != "ssh-ed25519 NEW" || h2.PresentedFingerprint != "SHA256:new" || h2.PresentedAt == "" {
 		t.Fatalf("after the host presented another key: %+v", h2)
 	}
+	if pre, err := d.StateChanges(ctx, "host_key", h.ID, 0, 10); err != nil || len(pre) != 2 {
+		t.Fatalf("state changes %+v %v", pre, err)
+	} else if k, err := d.HostKeyChangeOf(ctx, pre[1]); err != nil || k.PinnedAt != p.SSHHostKeyPinnedAt || k.PresentedAt != pre[1].At {
+		t.Fatalf("the change read back before it was accepted: %+v %v (pinned at %s)", k, err, p.SSHHostKeyPinnedAt)
+	}
 	if rec, err := d.HostKeyPresented(ctx, h.ID, "ssh-ed25519 OLD", "SHA256:old", "SHA256:old"); err != nil || rec {
 		t.Fatalf("the pinned key itself: %v %v", rec, err)
 	}
@@ -62,6 +67,53 @@ func TestHostKeyChangedAndAccepted(t *testing.T) {
 		if cs[i].From != w[0] || cs[i].To != w[1] || cs[i].Actor != w[2] || cs[i].At == "" {
 			t.Fatalf("state change %d: %+v, want %v", i, cs[i], w)
 		}
+	}
+	// The change, read back for the host_key_changed notification (ADR-007 C18.2): both fingerprints, when Gaia saw the
+	// presented key, and when the key it is not was pinned, also once a later key was accepted.
+	k, err := d.HostKeyChangeOf(ctx, cs[1])
+	if err != nil || k != (HostKeyChange{HostID: h.ID, PresentedFingerprint: "SHA256:new", PresentedAt: cs[1].At, PinnedFingerprint: "SHA256:old", PinnedAt: cs[0].At}) {
+		t.Fatalf("the change read back: %+v %v", k, err)
+	}
+	if _, err := d.HostKeyChangeOf(ctx, cs[0]); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("a trusted key read as a change: %v", err)
+	}
+	if rec, err := d.HostKeyPresented(ctx, h.ID, "ssh-ed25519 NEWER", "SHA256:newer", "SHA256:new"); err != nil || !rec {
+		t.Fatalf("a newer key: %v %v", rec, err)
+	}
+	cs, err = d.StateChanges(ctx, "host_key", h.ID, 0, 10)
+	if err != nil || len(cs) != 4 {
+		t.Fatalf("state changes %+v %v", cs, err)
+	}
+	if k, err := d.HostKeyChangeOf(ctx, cs[3]); err != nil || k.PinnedFingerprint != "SHA256:new" || k.PresentedFingerprint != "SHA256:newer" || k.PinnedAt != a.SSHHostKeyPinnedAt {
+		t.Fatalf("the newer key read back: %+v %v", k, err)
+	}
+	if k, err := d.HostKeyChangeOf(ctx, cs[1]); err != nil || k.PinnedAt != cs[0].At {
+		t.Fatalf("the first change after a later accept: %+v %v", k, err)
+	}
+	// A key pinned before its pin was recorded (schema 15's upgrade): not known when a key was trusted since, else the
+	// host's pinned time.
+	old, err := d.CreateHost(ctx, HostInput{Name: "kvm-08", Address: "10.0.0.8", SSHUser: "gaia"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.SQL().ExecContext(ctx, `UPDATE hosts SET ssh_host_key = 'ssh-ed25519 OLD8', ssh_host_key_pinned_at = '2026-11-01T08:00:00Z' WHERE id = ?`, old.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.HostKeyPresented(ctx, old.ID, "ssh-ed25519 NEW8", "SHA256:new8", "SHA256:old8"); err != nil {
+		t.Fatal(err)
+	}
+	cs, err = d.StateChanges(ctx, "host_key", old.ID, 0, 10)
+	if err != nil || len(cs) != 1 {
+		t.Fatalf("state changes %+v %v", cs, err)
+	}
+	if k, err := d.HostKeyChangeOf(ctx, cs[0]); err != nil || k.PinnedAt != "2026-11-01T08:00:00Z" {
+		t.Fatalf("no recorded pin: %+v %v", k, err)
+	}
+	if _, err := d.AcceptPresentedHostKey(ctx, "admin", old.ID, "SHA256:new8", "SHA256:old8"); err != nil {
+		t.Fatal(err)
+	}
+	if k, err := d.HostKeyChangeOf(ctx, cs[0]); err != nil || k.PinnedAt != "" {
+		t.Fatalf("no recorded pin, a key accepted since: %+v %v", k, err)
 	}
 }
 

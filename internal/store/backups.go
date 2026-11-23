@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -345,10 +346,56 @@ func (d *DB) HostKeyPresented(ctx context.Context, id int64, key, fingerprint, p
 			return err
 		}
 		recorded = true
-		return d.recordState(ctx, tx, "host_key", id, from, "changed",
-			"the host presented SSH key "+fingerprint+", not the pinned "+pinnedFingerprint+": Gaia does not connect until an admin accepts it", "system")
+		return d.recordState(ctx, tx, "host_key", id, from, "changed", hostKeyChangedReason(fingerprint, pinnedFingerprint), "system")
 	})
 	return recorded, err
+}
+
+// The reason of a host_key change to "changed"; HostKeyChangeOf reads the fingerprints back from it.
+const (
+	hostKeyChangedPrefix = "the host presented SSH key "
+	hostKeyChangedPinned = ", not the pinned "
+	hostKeyChangedSuffix = ": Gaia does not connect until an admin accepts it"
+)
+
+func hostKeyChangedReason(presented, pinned string) string {
+	return hostKeyChangedPrefix + presented + hostKeyChangedPinned + pinned + hostKeyChangedSuffix
+}
+
+// HostKeyChange is a host's change of SSH key as a host_key state change to "changed" records it (ADR-007 C17; the
+// host_key_changed notification of C18.2): the fingerprints of the key the host presented and of the pinned key it
+// is not, and when that pinned key was pinned.
+type HostKeyChange struct {
+	HostID               int64
+	PresentedFingerprint string
+	PresentedAt          string // the state change's time: when Gaia first saw the key
+	PinnedFingerprint    string
+	PinnedAt             string // "" when not known
+}
+
+// HostKeyChangeOf reads a host_key state change to "changed". The pinned key's time is the host's pinned time while
+// no key was trusted since the change (the host still has that pinned key); after an accepted key, the time of the
+// newest host_key change before it that trusted a key ("" when there is none).
+func (d *DB) HostKeyChangeOf(ctx context.Context, sc StateChange) (HostKeyChange, error) {
+	if sc.Entity != "host_key" || sc.To != "changed" {
+		return HostKeyChange{}, fmt.Errorf("%w: state change %d is not a host's changed SSH key (%s %s -> %s)", ErrInvalid, sc.Seq, sc.Entity, sc.From, sc.To)
+	}
+	rest, ok1 := strings.CutPrefix(sc.Reason, hostKeyChangedPrefix)
+	presented, rest, ok2 := strings.Cut(rest, hostKeyChangedPinned)
+	pinned, ok3 := strings.CutSuffix(rest, hostKeyChangedSuffix)
+	if !ok1 || !ok2 || !ok3 || presented == "" || pinned == "" {
+		return HostKeyChange{}, fmt.Errorf("state change %d: the reason %q does not name the presented and the pinned key", sc.Seq, sc.Reason)
+	}
+	k := HostKeyChange{HostID: sc.EntityID, PresentedFingerprint: presented, PresentedAt: sc.At, PinnedFingerprint: pinned}
+	err := d.db.QueryRowContext(ctx, `SELECT COALESCE(
+		(SELECT NULLIF(ssh_host_key_pinned_at, '') FROM hosts WHERE id = ? AND NOT EXISTS (
+			SELECT 1 FROM state_changes WHERE entity = 'host_key' AND entity_id = ? AND to_state = 'trusted' AND seq > ?)),
+		(SELECT at FROM state_changes WHERE entity = 'host_key' AND entity_id = ? AND to_state = 'trusted' AND seq < ? ORDER BY seq DESC LIMIT 1),
+		'')`, sc.EntityID, sc.EntityID, sc.Seq, sc.EntityID, sc.Seq).Scan(&k.PinnedAt)
+	if err != nil {
+		return HostKeyChange{}, fmt.Errorf("state change %d: when the pinned key was pinned: %w", sc.Seq, err)
+	}
+	return k, nil
 }
 
 // AcceptPresentedHostKey pins the key a host presented in place of the pinned one, when fingerprint is the presented
