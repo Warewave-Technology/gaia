@@ -119,7 +119,7 @@ faktör `acr` = `mfa`. Kaydet (Touch ID ister). Çıkış yap; giriş sayfasınd
 gaia api GET /api/v1/settings/signin | jq -c '{oidc: (.oidc | {enabled, issuer, client_id, roles}), secret_set: .oidc_client_secret_set}' && gaia users list -json | jq -c '[.[] | {username, role, source: (.source // .kind), break_glass}]'
 ```
 
-- [ ] SSO açık, roller eşlenmiş; `yigit` SSO kullanıcısı olarak listede, rolü `admin`.
+- [x] SSO açık, roller eşlenmiş; `yigit` SSO kullanıcısı olarak listede, rolü `admin`.
 
 ```
 {"oidc":{"enabled":true,"issuer":"https://gaia-lab.test:8444/realms/gaia","client_id":"gaia","roles":{"gaia-admins":"admin","gaia-operators":"operator","internal-audit":"auditor"}},"secret_set":true}
@@ -145,35 +145,47 @@ cd ~/Desktop/Works/Warewave/projects/gaia && lab/scale/t29-catalog.sh make /tmp/
 
 Mac'te `/etc/hosts`'a `192.168.1.123 gaia-t24-scale.lab.test`, sertifikayı Keychain'e ekle, tarayıcıda gir (Touch ID).
 
-- [ ] `fill` kataloğu yazdı (`"vms": 5000, "hosts": 100`) ve `status table recomputed` satırını gösterdi.
+- [x] `fill` kataloğu yazdı (`"vms": 5000, "hosts": 100`) ve `status table recomputed` satırını gösterdi.
 
 ```
-(çıktıyı buraya yapıştır)
+catalog generated in 359 s
+{"now": "2026-11-23T17:42:34.238853728Z", "vms": 5000, "hosts": 100, "points": 2931617, "present_points": 85636, "jobs": 3778509, "tests": 845967}
+Created symlink /etc/systemd/system/multi-user.target.wants/gaia-sandbox.service → /lib/systemd/system/gaia-sandbox.service.
+time=2026-11-23T17:48:34.930Z level=INFO msg="gaia server is listening" address=[::]:8443 version="0.2.0 (4901ec4da20d)" schema=16
+time=2026-11-23T17:48:43.471Z level=INFO msg="status table recomputed" reason=start vms=5000 changed=4996 seconds=6.17167813 errors=0
 ```
 
 ## 4. Kabul satırları
 
 ### 4.1 Erişilemeyen bir host, bütün VM'leriyle **tek** grup
 
-Senin sunucunda, gaia-lab'den (root) sunucunun SSH'ını kes:
+Senin sunucun (`gaia-t23-b`) VM'leri gaia-lab'den SSH ile yedekliyor. Hostu erişilemez yapmak için **gaia-lab'de, root
+olarak** sunucunun gaia-lab'e SSH'ını kes (yalnız 192.168.1.122'den gelen 22. port; başka hiçbir şey etkilenmez):
 
 ```bash
 iptables -I INPUT -s 192.168.1.122 -p tcp --dport 22 -j DROP
 ```
 
-Bir sonraki yedek denemesinden sonra (en geç politikanın aralığı kadar) Overview → **Needs attention**'a bak. Mac'te:
+Bekleme: ilk yedek denemesi en geç politikanın aralığında (30 dk) başarısız olur, ama VM'ler RPO hedefi (T23
+politikalarında 2 saat) son başarılı yedekten itibaren dolana kadar `OK` kalır. `host_unreachable` grubu o zaman çıkar.
+Kuralı en fazla 2,5 saat açık bırak. 4.2'nin 6 saatlik ölçümüyle aynı anda yapma (yedekler durur).
+
+Grup çıkınca Overview → **Needs attention**'a bak, sonra **Mac'te** (CLI oturumunla, `gaia-t23-b`'ye):
 
 ```bash
 gaia api GET '/api/v1/views/attention?limit=50' | jq -c '.groups[] | {status, code, scope: .scope.name, count, reach}'
 ```
 
-Sonra kuralı kaldır:
+Bekleneni: `{"status":"CRITICAL","code":"host_unreachable","scope":"gaia-lab","count":3,"reach":{"host_vms":3,"elsewhere":0,"ok":0}}`
+gibi tek satır (üç VM'in de hostu gaia-lab).
+
+Sonra **gaia-lab'de, root olarak** kuralı kaldır (bir sonraki yedek geçince grup kaybolur):
 
 ```bash
 iptables -D INPUT -s 192.168.1.122 -p tcp --dport 22 -j DROP
 ```
 
-Ölçek kurulumunda aynısı: katalogdaki erişilemeyen hostlar (aynı komut, ölçek kurulumunun oturumuyla).
+Ölçek kurulumunda beklemeye gerek yok: katalogda erişilemeyen hostlar zaten var. Aynı komutu ölçek kurulumunun oturumuyla çalıştır; orada bir hostun grubu "of 50" gibi, hostun bütün VM sayısını da gösterir.
 
 - [ ] Ekranda host için **bir** grup (`host_unreachable`, `gaia-lab`); "Show these VMs" hostun bütün VM'lerini
   listeliyor. Başka nedenle listelenen VM varsa grup "affects N VMs · … here, … under other causes" diyor.
