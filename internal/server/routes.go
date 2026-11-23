@@ -753,8 +753,8 @@ func (s *Server) table() []route {
 				}
 				return one(s.db.Channel(c.r.Context(), id))
 			}},
-		{method: "PATCH", path: "/api/v1/notification-channels/{id}", summary: "Turn a channel off or on (on again, it starts from now), or change its categories and daily report",
-			roles: adminOnly, in: ChannelUpdate{}, out: store.Channel{}, example: `{"enabled":false,"reason":"mail server replaced"}`, h: s.updateChannel},
+		{method: "PATCH", path: "/api/v1/notification-channels/{id}", summary: "Turn a channel off or on (on again, it starts from now), or change its categories and daily report (a step-up when it removes a category, turns the daily report off or turns the channel off)",
+			roles: adminOnly, stepUp: stepIfLoose, in: ChannelUpdate{}, out: store.Channel{}, example: `{"enabled":false,"reason":"mail server replaced"}`, h: s.updateChannel},
 		{method: "POST", path: "/api/v1/notification-channels/{id}/test", summary: "Send a test message now; the answer is the notification with its outcome",
 			roles: adminOnly, out: store.Notification{}, h: s.testChannel},
 		{method: "GET", path: "/api/v1/notifications", summary: "Messages sent or to be sent, newest first", roles: []string{store.RoleAdmin, store.RoleOperator},

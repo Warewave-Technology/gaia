@@ -22,7 +22,7 @@ import (
 // Every event sent by category has one of the five (ADR-007 C8); the daily report and the test message have none.
 func TestEventCategories(t *testing.T) {
 	for _, ev := range []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evBreakglass, evNewDevice, evLocked,
-		evSettings, evCapacityShort, evMigrationCheck} {
+		evSettings, evHostKey, evCapacityShort, evMigrationCheck} {
 		if !slices.Contains(allCategories, eventCategory[ev]) {
 			t.Errorf("event %s: category %q", ev, eventCategory[ev])
 		}
@@ -40,7 +40,7 @@ func TestEventCategories(t *testing.T) {
 	}
 	want := map[string]string{evStatus: catStatus, evJobFailed: catJobs, evFullBackup: catJobs, evCapacityShort: catJobs,
 		evIntegrity: catIntegrity, evQuarantine: catIntegrity, evLedger: catIntegrity, evBreakglass: catSecurity, evNewDevice: catSecurity,
-		evLocked: catSecurity, evSettings: catSecurity, evMigrationCheck: catMigration}
+		evLocked: catSecurity, evSettings: catSecurity, evHostKey: catSecurity, evMigrationCheck: catMigration}
 	for ev, cat := range want {
 		if eventCategory[ev] != cat {
 			t.Errorf("%s: %s, want %s", ev, eventCategory[ev], cat)
@@ -55,6 +55,12 @@ func TestEventCategories(t *testing.T) {
 		{[]string{evDaily, evStatus, evLedger, evIntegrity}, []string{catStatus, catIntegrity}, true},
 		{[]string{evLocked, evCapacityShort, evStatus}, []string{catStatus, catJobs, catSecurity}, false},
 		{[]string{evDaily}, []string{}, true},
+		// ADR-007 C18.3: 0.1.2's default list, every event there was, takes every category, migration included; less
+		// than all of it does not.
+		{m2AllEvents, allCategories, true},
+		{append(slices.Clone(m2AllEvents), evLocked, evBreakglass, evNewDevice), allCategories, true},
+		{m2AllEvents[:len(m2AllEvents)-1], []string{catStatus, catJobs, catIntegrity}, false},
+		{allEvents, allCategories, true},
 	} {
 		cats, daily, err := categoriesOfEvents(tc.events)
 		if err != nil || !slices.Equal(cats, tc.cats) || daily != tc.daily {
@@ -89,10 +95,20 @@ func TestM2EventListsMapToCategories(t *testing.T) {
 		t.Fatal(err)
 	}
 	m2 := []string{evStatus, evJobFailed, evFullBackup, evCapacityShort, evIntegrity, evQuarantine, evLedger, evBreakglass, evNewDevice, evLocked, evDaily}
-	now := time.Now().UTC().Format(time.RFC3339Nano)
+	lists := map[string][]string{}
 	for _, ev := range m2 {
+		lists["c-"+ev] = []string{ev}
+	}
+	// Schema 16 (ADR-007 C18.3): 0.1.2's default list as schema 11 left it (with the sign-in events), and the same
+	// without one of its events.
+	signin := []string{evLocked, evBreakglass, evNewDevice}
+	lists["c-default"] = append(slices.Clone(m2AllEvents), signin...)
+	lists["c-default-but-ledger"] = slices.DeleteFunc(slices.Clone(lists["c-default"]), func(e string) bool { return e == evLedger })
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	for name, events := range lists {
+		b, _ := json.Marshal(events)
 		if _, err := db.SQL().ExecContext(ctx, `INSERT INTO notification_channels (name, kind, config, events, enabled, cursor, created_at, updated_at)
-			VALUES (?, 'webhook', '{}', ?, 1, 0, ?, ?)`, "c-"+ev, fmt.Sprintf("[%q]", ev), now, now); err != nil {
+			VALUES (?, 'webhook', '{}', ?, 1, 0, ?, ?)`, name, string(b), now, now); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -100,18 +116,24 @@ func TestM2EventListsMapToCategories(t *testing.T) {
 		t.Fatal(err)
 	}
 	chans, err := db.Channels(ctx)
-	if err != nil || len(chans) != len(m2) {
+	if err != nil || len(chans) != len(lists) {
 		t.Fatalf("%d channels %v", len(chans), err)
 	}
 	for _, c := range chans {
-		ev := strings.TrimPrefix(c.Name, "c-")
-		cats, daily, err := categoriesOfEvents([]string{ev})
+		events := lists[c.Name]
+		cats, daily, err := categoriesOfEvents(events)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !slices.Equal(c.Categories, cats) || c.DailyReport != daily || !slices.Equal(c.M2Events, []string{ev}) {
-			t.Errorf("channel of %s: categories %v, daily report %t (m2 %v); the server maps it to %v, %t", ev, c.Categories, c.DailyReport, c.M2Events, cats, daily)
+		if !slices.Equal(c.Categories, cats) || c.DailyReport != daily || !slices.Equal(c.M2Events, events) {
+			t.Errorf("channel %s: categories %v, daily report %t (m2 %v); the server maps %v to %v, %t", c.Name, c.Categories, c.DailyReport, c.M2Events, events, cats, daily)
 		}
+	}
+	if c, _ := db.ChannelByName(ctx, "c-default"); !slices.Equal(c.Categories, allCategories) {
+		t.Errorf("0.1.2's default list: %v", c.Categories)
+	}
+	if c, _ := db.ChannelByName(ctx, "c-default-but-ledger"); slices.Contains(c.Categories, catMigration) {
+		t.Errorf("less than 0.1.2's default list: %v", c.Categories)
 	}
 }
 
@@ -265,8 +287,9 @@ func TestSettingsChangedEvent(t *testing.T) {
 }
 
 // T28 gate (c) in miniature: a 0.1.2 database with channels of M2 event lists is upgraded by the server, and each
-// channel gets the new events of the categories its list covered: capacity_short (jobs) and settings_changed
-// (security, which schema 11 gave every channel), not those of categories it did not cover.
+// channel gets the new events of the categories its list covered: capacity_short (jobs), settings_changed
+// (security, which schema 11 gave every channel), migration_check_finished only for the channel with 0.1.2's
+// default list, which takes every category (ADR-007 C18.3), not those of categories it did not cover.
 func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -297,7 +320,8 @@ func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 	}
 	sinks := map[string]*webhookSink{}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	for name, events := range map[string]string{"jobs-hook": `["job_failed"]`, "status-hook": `["status","daily_report"]`} {
+	for name, events := range map[string]string{"jobs-hook": `["job_failed"]`, "status-hook": `["status","daily_report"]`,
+		"all-hook": `["daily_report","full_backup","integrity","job_failed","ledger","quarantine","status"]`} {
 		w := newWebhookSink(t)
 		w.secret = "secret of " + name
 		sinks[name] = w
@@ -318,8 +342,8 @@ func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { s.Close() })
-	for name, want := range map[string][]string{"jobs-hook": {catJobs, catSecurity}, "status-hook": {catStatus, catSecurity}} {
-		if c, err := s.db.ChannelByName(ctx, name); err != nil || !slices.Equal(c.Categories, want) || c.DailyReport != (name == "status-hook") {
+	for name, want := range map[string][]string{"jobs-hook": {catJobs, catSecurity}, "status-hook": {catStatus, catSecurity}, "all-hook": allCategories} {
+		if c, err := s.db.ChannelByName(ctx, name); err != nil || !slices.Equal(c.Categories, want) || c.DailyReport != (name != "jobs-hook") {
 			t.Fatalf("%s after the upgrade: %+v %v", name, c, err)
 		}
 	}
@@ -332,10 +356,23 @@ func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 	if err := s.db.SetSetting(ctx, "admin", settingSignin, v); err != nil {
 		t.Fatal(err)
 	}
+	// And a migration check ends WARNING (migration).
+	src, err := s.db.CreateMigrationSource(ctx, "admin", store.MigrationSource{Name: "esxi1", Kind: "vsphere", URL: "https://esxi1.lab/sdk", Username: "root"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mc, err := s.db.QueueMigrationCheck(ctx, "admin", src.ID, "vm-1", nil, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.FinishMigrationCheck(ctx, "system", mc.ID, verify.Warning, "drivers excluded", "", map[string]string{}); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.notifyOnce(ctx, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	for name, want := range map[string][]string{"jobs-hook": {evCapacityShort, evSettings}, "status-hook": {evSettings}} {
+	for name, want := range map[string][]string{"jobs-hook": {evCapacityShort, evSettings}, "status-hook": {evSettings},
+		"all-hook": {evCapacityShort, evMigrationCheck, evSettings}} {
 		w := sinks[name]
 		w.mu.Lock()
 		var got []string

@@ -106,17 +106,21 @@ func (d *DB) AddChannel(ctx context.Context, actor string, c Channel) (Channel, 
 	return d.Channel(ctx, id)
 }
 
-// SetChannelCategories changes what a channel takes (the caller checks the categories); a change is a state change
-// (ChannelCategoriesEntity). The cursor stays: from the next state change on, the new categories decide.
-func (d *DB) SetChannelCategories(ctx context.Context, actor string, id int64, categories []string, dailyReport bool, reason string) (Channel, error) {
-	if categories == nil {
-		categories = []string{}
-	}
-	cats, err := json.Marshal(categories)
-	if err != nil {
-		return Channel{}, err
-	}
-	sub, err := subscription(categories, dailyReport)
+// ChannelChange changes what a channel takes and whether it is on; a nil field stays as it is.
+type ChannelChange struct {
+	Categories  []string // the whole new list (the caller checks it); nil keeps the list
+	DailyReport *bool
+	Enabled     *bool
+}
+
+// UpdateChannel changes a channel in one transaction, if it is still as was (its categories, daily report and
+// enabled): the caller decided from was whether the change weakens who is told (a step-up, ADR-008 §4, ADR-007
+// C18.4), so a channel changed in between is ErrConflict, to be asked again. Each part that changes is a state
+// change: what it takes (ChannelCategoriesEntity; the cursor stays, so from the next state change on the new
+// categories decide), and on or off (notification_channel; a channel turned on again starts at the newest state
+// change: what happened while it was off is not sent).
+func (d *DB) UpdateChannel(ctx context.Context, actor string, id int64, was Channel, ch ChannelChange, reason string) (Channel, error) {
+	expect, err := subscription(was.Categories, was.DailyReport)
 	if err != nil {
 		return Channel{}, err
 	}
@@ -129,19 +133,50 @@ func (d *DB) SetChannelCategories(ctx context.Context, actor string, id int64, c
 		if err != nil {
 			return err
 		}
-		if old == sub {
-			return nil
+		if old != expect || c.Enabled != was.Enabled {
+			return fmt.Errorf("%w: notification channel %s changed meanwhile (it takes %s, enabled %t): look again and repeat the change", ErrConflict, c.Name, old, c.Enabled)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE notification_channels SET categories = ?, daily_report = ?, updated_at = ? WHERE id = ?`,
-			string(cats), dailyReport, d.ts(), id); err != nil {
-			return err
+		if ch.Categories != nil || ch.DailyReport != nil {
+			cats, daily := c.Categories, c.DailyReport
+			if ch.Categories != nil {
+				cats = ch.Categories
+			}
+			if ch.DailyReport != nil {
+				daily = *ch.DailyReport
+			}
+			if err := d.setChannelCategories(ctx, tx, actor, id, old, cats, daily, reason); err != nil {
+				return err
+			}
 		}
-		return d.recordState(ctx, tx, ChannelCategoriesEntity, id, old, sub, reason, actor)
+		if ch.Enabled != nil && *ch.Enabled != c.Enabled {
+			return d.setChannelEnabled(ctx, tx, actor, id, *ch.Enabled, reason)
+		}
+		return nil
 	})
 	if err != nil {
 		return Channel{}, err
 	}
 	return d.Channel(ctx, id)
+}
+
+// setChannelCategories records what a channel takes now, when it is not old (its subscription value).
+func (d *DB) setChannelCategories(ctx context.Context, tx *sql.Tx, actor string, id int64, old string, categories []string, dailyReport bool, reason string) error {
+	if categories == nil {
+		categories = []string{}
+	}
+	cats, err := json.Marshal(categories)
+	if err != nil {
+		return err
+	}
+	sub, err := subscription(categories, dailyReport)
+	if err != nil || sub == old {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE notification_channels SET categories = ?, daily_report = ?, updated_at = ? WHERE id = ?`,
+		string(cats), dailyReport, d.ts(), id); err != nil {
+		return err
+	}
+	return d.recordState(ctx, tx, ChannelCategoriesEntity, id, old, sub, reason, actor)
 }
 
 // ChannelByName loads a channel by name.
@@ -188,20 +223,24 @@ func (d *DB) SetChannelEnabled(ctx context.Context, actor string, id int64, enab
 		if was == enabled {
 			return nil
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE notification_channels SET enabled = ?, updated_at = ?,
-			cursor = CASE WHEN ? THEN (SELECT COALESCE(MAX(seq), 0) FROM state_changes) ELSE cursor END WHERE id = ?`, enabled, d.ts(), enabled, id); err != nil {
-			return err
-		}
-		from, to := "enabled", "disabled"
-		if enabled {
-			from, to = to, from
-		}
-		return d.recordState(ctx, tx, "notification_channel", id, from, to, reason, actor)
+		return d.setChannelEnabled(ctx, tx, actor, id, enabled, reason)
 	})
 	if err != nil {
 		return Channel{}, err
 	}
 	return d.Channel(ctx, id)
+}
+
+func (d *DB) setChannelEnabled(ctx context.Context, tx *sql.Tx, actor string, id int64, enabled bool, reason string) error {
+	if _, err := tx.ExecContext(ctx, `UPDATE notification_channels SET enabled = ?, updated_at = ?,
+		cursor = CASE WHEN ? THEN (SELECT COALESCE(MAX(seq), 0) FROM state_changes) ELSE cursor END WHERE id = ?`, enabled, d.ts(), enabled, id); err != nil {
+		return err
+	}
+	from, to := "enabled", "disabled"
+	if enabled {
+		from, to = to, from
+	}
+	return d.recordState(ctx, tx, "notification_channel", id, from, to, reason, actor)
 }
 
 // Notification is one message to one channel.

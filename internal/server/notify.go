@@ -58,6 +58,9 @@ const (
 	evCapacityShort = "capacity_short"
 	// A migration check ended with a readiness other than OK (ADR-007 C8).
 	evMigrationCheck = "migration_check_finished"
+	// A host presents an SSH key other than the pinned one: Gaia reads nothing from it until an admin accepts the key
+	// (ADR-007 C17.2, C18.2). Sent at once, like every event (security).
+	evHostKey = "host_key_changed"
 )
 
 // Notification categories (ADR-007 C8): a channel takes categories, and every event of a category it takes, also
@@ -88,13 +91,14 @@ var eventCategory = map[string]string{
 	evNewDevice:      catSecurity,
 	evLocked:         catSecurity,
 	evSettings:       catSecurity,
+	evHostKey:        catSecurity,
 	evMigrationCheck: catMigration,
 }
 
 // allEvents are the events a channel can name in the deprecated "events" of ChannelCreate: every event of a category,
 // and the daily report.
 var allEvents = []string{evStatus, evJobFailed, evFullBackup, evCapacityShort, evIntegrity, evQuarantine, evLedger, evBreakglass, evNewDevice,
-	evLocked, evSettings, evMigrationCheck, evDaily}
+	evLocked, evSettings, evHostKey, evMigrationCheck, evDaily}
 
 // channelTakes says whether a channel gets an event: the event's category is one of the channel's.
 func channelTakes(ch store.Channel, ev string) bool {
@@ -118,10 +122,18 @@ func checkCategories(cats []string) ([]string, error) {
 	return out, nil
 }
 
+// m2AllEvents is 0.1.2's default list: every event there was. A list that holds all of them was meant to get
+// everything, so it takes every category, migration included (ADR-007 C18.3; schema 16 for the channels of 0.1.x).
+var m2AllEvents = []string{evStatus, evJobFailed, evIntegrity, evQuarantine, evLedger, evFullBackup, evDaily}
+
 // categoriesOfEvents maps an event list (the deprecated "events" of ChannelCreate) to the categories it covers, whole,
-// and whether it holds the daily report: the rule schema 14 applies to the channels of M2.
+// and whether it holds the daily report: the rule schemas 14 and 16 apply to the channels of M2. A list with every
+// event of 0.1.2 takes every category.
 func categoriesOfEvents(events []string) ([]string, bool, error) {
 	var cats []string
+	if !slices.ContainsFunc(m2AllEvents, func(e string) bool { return !slices.Contains(events, e) }) {
+		cats = slices.Clone(allCategories)
+	}
 	daily := false
 	for _, e := range events {
 		switch cat, ok := eventCategory[e]; {
@@ -189,7 +201,7 @@ type ChannelCreated struct {
 }
 
 // ChannelUpdate turns a channel on or off, or changes what it takes; at least one of enabled, categories and
-// daily_report.
+// daily_report. Removing a category, turning the daily report off or the channel off needs a step-up (weakerChannel).
 type ChannelUpdate struct {
 	Enabled     *bool    `json:"enabled,omitempty"`
 	Categories  []string `json:"categories,omitempty"` // replaces the list; [] takes none
@@ -223,7 +235,30 @@ func channelSubscription(in ChannelCreate) ([]string, bool, error) {
 	return cats, daily, nil
 }
 
-// updateChannel turns a channel on or off and changes what it takes.
+// weakerChannel lists what a change of a channel weakens: who is told (ADR-007 C18.4, ADR-008 §4 and amendment 8).
+// A category removed and the channel turned off weaken it; so does the daily report turned off, since the channel's
+// readers no longer get the day's summary nor its signed ledger head. Adding a category, turning the daily report or
+// the channel on, does not.
+func weakerChannel(cur store.Channel, ch store.ChannelChange) []string {
+	var out []string
+	if ch.Categories != nil {
+		for _, c := range cur.Categories {
+			if !slices.Contains(ch.Categories, c) {
+				out = append(out, "category "+c+" removed")
+			}
+		}
+	}
+	if ch.DailyReport != nil && cur.DailyReport && !*ch.DailyReport {
+		out = append(out, "the daily report turned off")
+	}
+	if ch.Enabled != nil && cur.Enabled && !*ch.Enabled {
+		out = append(out, "the channel turned off")
+	}
+	return out
+}
+
+// updateChannel turns a channel on or off and changes what it takes. A change that weakens who is told needs a
+// step-up (weakerChannel), decided against the channel as stored, which the store checks is still so when it writes.
 func (s *Server) updateChannel(c *call) (int, any, error) {
 	id, err := c.id("id")
 	if err != nil {
@@ -241,33 +276,36 @@ func (s *Server) updateChannel(c *call) (int, any, error) {
 	if reason == "" {
 		reason = "changed by " + c.user.Username
 	}
-	ch, err := s.db.Channel(ctx, id)
+	cur, err := s.db.Channel(ctx, id)
 	if err != nil {
 		return 0, nil, err
 	}
-	if in.Categories != nil || in.DailyReport != nil {
-		cats, daily := ch.Categories, ch.DailyReport
-		if in.Categories != nil {
-			if cats, err = checkCategories(in.Categories); err != nil {
-				return 0, nil, err
-			}
-		}
-		if in.DailyReport != nil {
-			daily = *in.DailyReport
-		}
-		if len(cats) == 0 && !daily {
-			return 0, nil, fmt.Errorf("%w: the channel would take nothing (turn it off instead: enabled false)", store.ErrInvalid)
-		}
-		if ch, err = s.db.SetChannelCategories(ctx, c.user.Username, id, cats, daily, reason); err != nil {
-			return 0, nil, err
-		}
-		c.detail = fmt.Sprintf("channel %s takes categories %v, daily report %t", ch.Name, cats, daily)
-	}
-	if in.Enabled != nil {
-		if ch, err = s.db.SetChannelEnabled(ctx, c.user.Username, id, *in.Enabled, reason); err != nil {
+	change := store.ChannelChange{DailyReport: in.DailyReport, Enabled: in.Enabled}
+	if in.Categories != nil {
+		if change.Categories, err = checkCategories(in.Categories); err != nil {
 			return 0, nil, err
 		}
 	}
+	cats, daily := cur.Categories, cur.DailyReport
+	if change.Categories != nil {
+		cats = change.Categories
+	}
+	if in.DailyReport != nil {
+		daily = *in.DailyReport
+	}
+	if len(cats) == 0 && !daily {
+		return 0, nil, fmt.Errorf("%w: the channel would take nothing (turn it off instead: enabled false)", store.ErrInvalid)
+	}
+	if w := weakerChannel(cur, change); len(w) > 0 {
+		if err := c.requireStepUp("it weakens who is told: " + strings.Join(w, ", ")); err != nil {
+			return 0, nil, err
+		}
+	}
+	ch, err := s.db.UpdateChannel(ctx, c.user.Username, id, cur, change, reason)
+	if err != nil {
+		return 0, nil, err
+	}
+	c.detail = fmt.Sprintf("channel %s takes categories %v, daily report %t, enabled %t", ch.Name, ch.Categories, ch.DailyReport, ch.Enabled)
 	return http.StatusOK, ch, nil
 }
 
@@ -295,6 +333,18 @@ type Event struct {
 	// settings_changed only: the settings that changed, as their JSON names (oidc.issuer); never their values,
 	// which the state change carries.
 	Settings []string `json:"settings,omitempty"`
+	// host_key_changed only.
+	HostKey *HostKeyEvent `json:"host_key,omitempty"`
+}
+
+// HostKeyEvent is a host that presents an SSH key other than the pinned one (ADR-007 C17.2, C18.2).
+type HostKeyEvent struct {
+	HostID               int64  `json:"host_id"`
+	Host                 string `json:"host"`
+	PinnedFingerprint    string `json:"pinned_fingerprint"`
+	PinnedAt             string `json:"pinned_at,omitempty"` // when the pinned key was pinned; left out when not known
+	PresentedFingerprint string `json:"presented_fingerprint"`
+	PresentedAt          string `json:"presented_at"` // when Gaia first saw the presented key
 }
 
 // MigrationEvent is a migration check that ended with a readiness other than OK.
@@ -773,6 +823,31 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		ev.Subject = fmt.Sprintf("migration check of %s on %s: %s", mc.VM, source, sc.To)
 		ev.Text = fmt.Sprintf("The migration check %d of VM %s on source %s ended at %s with the readiness %s.\nWhy: %s\nThe check's page and its readiness report (gaia migration-checks report %d) have the details.",
 			mc.ID, mc.VM, source, sc.At, sc.To, orDash(sc.Reason), mc.ID)
+	case sc.Entity == "host_key" && sc.To == "changed":
+		k, err := s.db.HostKeyChangeOf(ctx, sc)
+		if err != nil {
+			return nil, err
+		}
+		name := fmt.Sprintf("host %d (removed since)", k.HostID)
+		if h, err := s.db.Host(ctx, k.HostID); err == nil {
+			name = h.Name
+		} else if !errors.Is(err, store.ErrNotFound) {
+			return nil, err
+		}
+		ev.Event = evHostKey
+		ev.HostKey = &HostKeyEvent{HostID: k.HostID, Host: name, PinnedFingerprint: k.PinnedFingerprint, PinnedAt: k.PinnedAt,
+			PresentedFingerprint: k.PresentedFingerprint, PresentedAt: k.PresentedAt}
+		pinned := "the one pinned"
+		if k.PinnedAt != "" {
+			pinned += " on " + k.PinnedAt
+		}
+		ev.Subject = fmt.Sprintf("host %s presents a different SSH host key", name)
+		ev.Text = fmt.Sprintf("Host %s presents a different SSH host key than %s.\nPinned:    %s\nPresented: %s (first seen %s)\n"+
+			"Gaia reads nothing from the host until an admin checks the new key and accepts it, so the backups of its VMs are paused.\n"+
+			"Check the key on the host itself (ssh-keygen -lf on its host key file), then accept it on the Hosts page or with "+
+			"gaia hosts accept-key %d fingerprint=%s; accepting asks for a fresh second factor. If nobody changed the host's key, do not accept it: "+
+			"something else may be answering at the host's address.",
+			name, pinned, k.PinnedFingerprint, k.PresentedFingerprint, k.PresentedAt, k.HostID, k.PresentedFingerprint)
 	case sc.Entity == "setting":
 		changed, err := changedSettings(sc.From, sc.To)
 		if err != nil {
