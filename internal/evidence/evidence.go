@@ -362,6 +362,12 @@ func Seal(dir, bundleID string, subject map[string]string, key ed25519.PrivateKe
 
 // SealAt is Seal with a given creation time (for reproducible test vectors).
 func SealAt(dir, bundleID string, subject map[string]string, key ed25519.PrivateKey, created time.Time) (string, error) {
+	return SealExt(dir, bundleID, subject, nil, key, created)
+}
+
+// SealExt is SealAt with extension members: members of manifest.json beyond §5.2 (e.g. "export", which describes an
+// evidence export), which a version 1 verifier ignores (§2: unknown members are ignored). A name of §5.2 is refused.
+func SealExt(dir, bundleID string, subject map[string]string, ext map[string]any, key ed25519.PrivateKey, created time.Time) (string, error) {
 	if !validBundleID(bundleID) {
 		return "", fmt.Errorf("bundle id %q: want 1-255 of A-Z a-z 0-9 . _ -", bundleID)
 	}
@@ -382,11 +388,10 @@ func SealAt(dir, bundleID string, subject map[string]string, key ed25519.Private
 	}
 	m := Manifest{Format: FormatV1, FormatVersion: FormatVersion, BundleID: bundleID, Created: created.UTC().Format(time.RFC3339Nano),
 		KeyID: KeyID(key.Public().(ed25519.PublicKey)), Subject: subject, Files: files}
-	b, err := json.MarshalIndent(m, "", "  ")
+	b, err := manifestBytes(m, ext)
 	if err != nil {
 		return "", err
 	}
-	b = append(b, '\n')
 	if err := writeNew(filepath.Join(dir, ManifestFile), b, 0o644); err != nil {
 		return "", err
 	}
@@ -395,6 +400,52 @@ func SealAt(dir, bundleID string, subject map[string]string, key ed25519.Private
 		return "", err
 	}
 	return sha256Hex(b), nil
+}
+
+// manifestBytes lays out manifest.json: indented, with a final line feed; the members of §5.2 in their order, with the
+// extension members, sorted by name, before "files".
+func manifestBytes(m Manifest, ext map[string]any) ([]byte, error) {
+	if len(ext) == 0 {
+		b, err := json.MarshalIndent(m, "", "  ")
+		return append(b, '\n'), err
+	}
+	type member struct {
+		name  string
+		value any
+	}
+	ms := []member{{"format", m.Format}, {"format_version", m.FormatVersion}, {"bundle_id", m.BundleID}, {"created", m.Created},
+		{"key_id", m.KeyID}, {"subject", m.Subject}}
+	names := slices.Sorted(mapKeys(ext))
+	for _, n := range names {
+		switch n {
+		case "format", "format_version", "bundle_id", "created", "key_id", "subject", "files":
+			return nil, fmt.Errorf("manifest extension member %q: a member of the specification (§5.2)", n)
+		}
+		ms = append(ms, member{n, ext[n]})
+	}
+	ms = append(ms, member{"files", m.Files})
+	var buf bytes.Buffer
+	buf.WriteString("{\n")
+	for i, x := range ms {
+		k, err := json.Marshal(x.name)
+		if err != nil {
+			return nil, err
+		}
+		v, err := json.MarshalIndent(x.value, "  ", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("manifest member %q: %w", x.name, err)
+		}
+		buf.WriteString("  ")
+		buf.Write(k)
+		buf.WriteString(": ")
+		buf.Write(v)
+		if i < len(ms)-1 {
+			buf.WriteByte(',')
+		}
+		buf.WriteByte('\n')
+	}
+	buf.WriteString("}\n")
+	return buf.Bytes(), nil
 }
 
 // walkBundle hashes the regular files under dir, except the seal files at its root, sorted by path (byte

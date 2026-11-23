@@ -1472,11 +1472,17 @@
           "bundle_sha256": {
             "type": "string"
           },
+          "by": {
+            "type": "string"
+          },
           "created_at": {
             "type": "string"
           },
           "id": {
             "type": "integer"
+          },
+          "kind": {
+            "type": "string"
           },
           "ledger_seq": {
             "type": "integer"
@@ -1515,8 +1521,10 @@
         "required": [
           "bundle_id",
           "bundle_sha256",
+          "by",
           "created_at",
           "id",
+          "kind",
           "ledger_seq",
           "migration_check_id",
           "proven_rto_s",
@@ -17211,7 +17219,7 @@
             }
           },
           {
-            "description": "test or migration: only restore tests' or migration checks' entries",
+            "description": "test, migration or export: only restore tests', migration checks' or evidence exports' entries",
             "in": "query",
             "name": "kind",
             "required": false,

@@ -3,7 +3,7 @@
 //
 //	gaia verify -config VM.json -image RESTORED.raw -key KEY.pem -evidence-dir DIR -ledger LEDGER [-restore-json R.json]
 //	gaia evidence keygen -key KEY.pem -pub PUB.pem
-//	gaia evidence verify -pubkey PUB.pem (-bundle DIR | -ledger LEDGER -evidence-dir DIR [-head REPORT.json ...])
+//	gaia evidence verify -pubkey PUB.pem (-bundle DIR | -ledger LEDGER -evidence-dir DIR | -export DIR) [-head REPORT.json ...]
 //	gaia evidence head -ledger LEDGER -key KEY.pem > HEAD.json
 //	gaia migrate-check -url https://ESXI/sdk -password-file F -vm A,B -key KEY.pem -evidence-dir DIR -ledger LEDGER
 //
@@ -222,26 +222,34 @@ func cmdKeygen(args []string) int {
 }
 
 // cmdEvidenceVerify checks a bundle or a ledger with its bundles (Restore Evidence Format v1, docs/spec/evidence-v1.md;
-// v0 read-only). The verdict is the specification's: OK, CRITICAL, or UNKNOWN when something could not be checked
-// (no trust anchor, an unsupported format).
+// v0 read-only), or an evidence export (ADR-007 C7): its files against SHA256SUMS, SHA256SUMS.sig against the
+// ledger's current key, and its ledger with every bundle and head statement. The verdict is the specification's: OK,
+// CRITICAL, or UNKNOWN when something could not be checked (no trust anchor, an unsupported format, no signature).
 func cmdEvidenceVerify(args []string) int {
 	fs := flag.NewFlagSet("evidence verify", flag.ExitOnError)
 	pubPath := fs.String("pubkey", "", "trust anchor: the ledger's genesis key, or the key that signed -bundle (PEM, or base64 of the raw 32 bytes); without it the verdict is at best UNKNOWN")
 	bundle := fs.String("bundle", "", "check one bundle directory")
+	export := fs.String("export", "", "check an evidence export directory (the unpacked gaia evidence export-all): SHA256SUMS, its signature, the ledger, the bundles and the export's ledger head")
 	ledger := fs.String("ledger", "", "check the ledger and every bundle it lists")
 	evDir := fs.String("evidence-dir", "", "the bundles' directory (with -ledger)")
 	var heads []string
-	fs.Func("head", "a ledger head kept outside the ledger: a head statement, or a daily report holding one (repeatable, with -ledger); a ledger cut off or rewritten after it is CRITICAL", func(v string) error {
+	fs.Func("head", "a ledger head kept outside the ledger: a head statement, or a daily report holding one (repeatable, with -ledger or -export); a ledger cut off or rewritten after it is CRITICAL", func(v string) error {
 		heads = append(heads, v)
 		return nil
 	})
 	asJSON := fs.Bool("json", false, "print JSON")
 	fs.Parse(args)
-	if (*bundle == "") == (*ledger == "") || (*ledger != "" && *evDir == "") {
-		return fail(*asJSON, "evidence verify", errors.New("either -bundle or -ledger with -evidence-dir is required"))
+	modes := 0
+	for _, m := range []string{*bundle, *ledger, *export} {
+		if m != "" {
+			modes++
+		}
 	}
-	if len(heads) > 0 && *ledger == "" {
-		return fail(*asJSON, "evidence verify", errors.New("-head needs -ledger"))
+	if modes != 1 || (*ledger != "" && *evDir == "") || (*evDir != "" && *ledger == "") {
+		return fail(*asJSON, "evidence verify", errors.New("one of -bundle, -ledger with -evidence-dir, or -export is required"))
+	}
+	if len(heads) > 0 && *bundle != "" {
+		return fail(*asJSON, "evidence verify", errors.New("-head needs -ledger or -export"))
 	}
 	var statements [][]byte
 	for _, h := range heads {
@@ -263,10 +271,17 @@ func cmdEvidenceVerify(args []string) int {
 		findings []evidence.Finding
 		report   any
 	)
-	if *bundle != "" {
+	switch {
+	case *bundle != "":
 		r := evidence.VerifyBundle(*bundle, pub)
 		verdict, findings, report = r.Verdict, r.Findings, r
-	} else {
+	case *export != "":
+		r, err := evidence.VerifyExport(*export, pub, statements)
+		if err != nil {
+			return fail(*asJSON, "evidence verify", err)
+		}
+		verdict, findings, report = r.Verdict, r.AllFindings(), r
+	default:
 		r, err := evidence.VerifyLedgerHeads(*ledger, *evDir, pub, statements)
 		if err != nil {
 			return fail(*asJSON, "evidence verify", err)
@@ -282,6 +297,9 @@ func cmdEvidenceVerify(args []string) int {
 			"checked_at": time.Now().UTC(), "findings": findings, "report": report})
 	} else {
 		fmt.Printf("evidence: %s (trust anchor %s)\n", verdict, orNone(anchor))
+		if r, ok := report.(evidence.ExportReport); ok {
+			printExport(r)
+		}
 		if r, ok := report.(evidence.LedgerReport); ok {
 			for i, h := range r.Heads {
 				fmt.Printf("  head %d: entry %d %s of %s: %s\n", i+1, h.Seq, h.EntrySHA256, h.Time, h.Result)
@@ -296,6 +314,39 @@ func cmdEvidenceVerify(args []string) int {
 		}
 	}
 	return verify.ExitCode(verdict)
+}
+
+// printExport prints what an export's verification checked, before its findings.
+func printExport(r evidence.ExportReport) {
+	sm := r.Sums
+	if sm.SHA256 == "" {
+		fmt.Printf("  SHA256SUMS: not readable\n")
+	} else {
+		fmt.Printf("  SHA256SUMS: %d files listed, %d match (sha256 %s)\n", sm.Listed, sm.Matching, sm.SHA256)
+	}
+	switch {
+	case sm.KeyID == "":
+		fmt.Printf("  SHA256SUMS.sig: not checked\n")
+	case sm.SignatureValid:
+		fmt.Printf("  SHA256SUMS.sig: valid signature by key %s (signed %s)\n", sm.KeyID, sm.Signed)
+	default:
+		fmt.Printf("  SHA256SUMS.sig: NOT a valid signature by key %s\n", sm.KeyID)
+	}
+	l := r.Ledger
+	fmt.Printf("  ledger: %s, %d entries, %d bundles, keys %s\n", l.Verdict, l.Entries, len(l.Bundles), orNone(strings.Join(l.Keys, ", ")))
+	for i, h := range l.Heads {
+		name := ""
+		if i < len(r.HeadFiles) {
+			name = " (" + r.HeadFiles[i] + ")"
+		}
+		fmt.Printf("  head %d%s: entry %d %s of %s: %s\n", i+1, name, h.Seq, h.EntrySHA256, h.Time, h.Result)
+	}
+	if len(l.Heads) == 0 {
+		fmt.Printf("  head: none (the export has no daily report's head): a ledger cut short is not detected\n")
+	}
+	for _, e := range r.Exports {
+		fmt.Printf("  recorded export: bundle %s, entry %d, %s by %s, SHA256SUMS %s: %s\n", e.BundleID, e.LedgerSeq, e.Export, e.User, e.SumsSHA256, e.Verdict)
+	}
 }
 
 func orNone(s string) string {

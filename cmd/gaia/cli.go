@@ -328,17 +328,26 @@ func writeExport(ctx context.Context, c *client.Client, path, out string, rest [
 			out = rest[i+1]
 		}
 	}
-	b, _, err := c.Do(ctx, "GET", path, nil)
+	b, h, err := c.Do(ctx, "GET", path, nil)
 	if err != nil {
 		return fail(asJSON, cmd, err)
 	}
 	if err := os.WriteFile(out, b, 0o644); err != nil {
 		return fail(asJSON, cmd, err)
 	}
+	// The auditor's export is recorded as an evidence bundle in the ledger (ADR-007 C7); the server names it.
+	recorded := h.Get("X-Gaia-Export-Bundle")
 	if asJSON {
-		emit(map[string]any{"command": cmd, "file": out, "bytes": len(b)})
+		v := map[string]any{"command": cmd, "file": out, "bytes": len(b)}
+		if recorded != "" {
+			v["recorded_as"] = recorded
+		}
+		emit(v)
 	} else {
 		fmt.Printf("wrote %s (%d bytes); verify it with the README inside\n", out, len(b))
+		if recorded != "" {
+			fmt.Printf("the export is recorded in the evidence ledger as bundle %s\n", recorded)
+		}
 	}
 	return 0
 }
