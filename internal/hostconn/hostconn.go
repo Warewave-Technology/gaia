@@ -69,6 +69,15 @@ func LoadOrCreateKey(path, comment string) (Key, error) {
 // Fingerprint is OpenSSH's SHA256 fingerprint of a key ("SHA256:...", as ssh-keygen -lf prints it).
 func Fingerprint(k ssh.PublicKey) string { return ssh.FingerprintSHA256(k) }
 
+// KeyFingerprint is the fingerprint of a key in authorized_keys form ("ssh-ed25519 AAAA...").
+func KeyFingerprint(authorizedKey string) (string, error) {
+	k, _, _, _, err := ssh.ParseAuthorizedKey([]byte(authorizedKey))
+	if err != nil {
+		return "", err
+	}
+	return Fingerprint(k), nil
+}
+
 // Scanned is a host key seen without trusting it.
 type Scanned struct {
 	Fingerprint string `json:"fingerprint"`
@@ -125,13 +134,31 @@ func (u unreachable) Unwrap() error        { return u.error }
 // ErrUntrusted means the host's key was never pinned.
 var ErrUntrusted = errors.New("the host's SSH key is not trusted yet (scan it and trust its fingerprint first)")
 
+// ErrHostKeyChanged marks a host that presented an SSH host key other than the pinned one (ADR-007 C17
+// host_key_changed). Gaia does not connect; the presented key is kept for an admin to check and accept.
+var ErrHostKeyChanged = errors.New("the host presents a different SSH host key than the pinned one")
+
+// HostKeyChangedError is ErrHostKeyChanged with the keys: what the host presented and what was pinned.
+type HostKeyChangedError struct {
+	Presented            Scanned // the key the host presented (authorized_keys form), its fingerprint and type
+	PinnedFingerprint    string
+	PresentedFingerprint string // = Presented.Fingerprint
+}
+
+func (e *HostKeyChangedError) Error() string {
+	return fmt.Sprintf("host key %s is not the pinned %s: refusing to connect", e.PresentedFingerprint, e.PinnedFingerprint)
+}
+
+func (e *HostKeyChangedError) Is(target error) bool { return target == ErrHostKeyChanged }
+
 // Conn is an SSH connection to a host.
 type Conn struct {
 	ssh  *ssh.Client
 	host string
 }
 
-// Dial connects with Gaia's key; the host must present exactly the pinned key.
+// Dial connects with Gaia's key; the host must present exactly the pinned key. A host that presents another key is a
+// *HostKeyChangedError (errors.Is ErrHostKeyChanged), whatever the SSH library makes of the refusal.
 func Dial(ctx context.Context, t Target, key Key) (*Conn, error) {
 	if t.HostKey == "" {
 		return nil, ErrUntrusted
@@ -140,11 +167,14 @@ func Dial(ctx context.Context, t Target, key Key) (*Conn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("pinned host key: %w", err)
 	}
+	var changed *HostKeyChangedError
 	cfg := &ssh.ClientConfig{User: t.User, Auth: []ssh.AuthMethod{ssh.PublicKeys(key.Signer)}, Timeout: 15 * time.Second,
 		HostKeyAlgorithms: []string{pinned.Type()},
 		HostKeyCallback: func(_ string, _ net.Addr, k ssh.PublicKey) error {
 			if Fingerprint(k) != Fingerprint(pinned) {
-				return fmt.Errorf("host key %s is not the pinned %s: refusing to connect", Fingerprint(k), Fingerprint(pinned))
+				changed = &HostKeyChangedError{PinnedFingerprint: Fingerprint(pinned), PresentedFingerprint: Fingerprint(k),
+					Presented: Scanned{Fingerprint: Fingerprint(k), Type: k.Type(), Key: strings.TrimSpace(string(ssh.MarshalAuthorizedKey(k)))}}
+				return changed
 			}
 			return nil
 		}}
@@ -155,6 +185,9 @@ func Dial(ctx context.Context, t Target, key Key) (*Conn, error) {
 	c, chans, reqs, err := ssh.NewClientConn(conn, net.JoinHostPort(t.Address, strconv.Itoa(t.Port)), cfg)
 	if err != nil {
 		conn.Close()
+		if changed != nil {
+			return nil, fmt.Errorf("SSH to %s@%s: %w", t.User, t.Address, changed)
+		}
 		return nil, fmt.Errorf("SSH to %s@%s: %w", t.User, t.Address, err)
 	}
 	cl := ssh.NewClient(c, chans, reqs)

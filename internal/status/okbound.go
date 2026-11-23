@@ -1,8 +1,8 @@
 package status
 
 // OKBound is how much of the time a VM on a policy can be OK at best, and the test interval that would make OK
-// possible all the time (ADR-007 C12). The status model does not change for it; this only says what the model
-// allows.
+// possible all the time (ADR-007 C12; accepted as an upper bound in C17.3, which the screens say as "at most"). The
+// status model does not change for it; this only says what the model allows.
 //
 // Derivation, from Compute: OK needs the theoretical RPO within the RPO target R, a passing test whose proven RTO is
 // within the RTO target, proven RPO <= R and proof age <= A (the maximum proof age). Take the best case: backups

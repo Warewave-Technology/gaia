@@ -9,7 +9,8 @@ import (
 	"github.com/Warewave-Technology/gaia/internal/store"
 )
 
-// The OS class (ADR-007 C13): the os: tag first, the check template's name last; the basis says which.
+// The OS class (ADR-007 C13 as C17 settled it): the os: tag first, then the check template's name, then the default
+// (linux); there is no libvirt guest-information step. The basis says which.
 func TestOSClassOrder(t *testing.T) {
 	for _, c := range []struct{ tag, template, class, basis string }{
 		{"windows", "linux-basic", "windows", "tag os:windows"},
@@ -18,6 +19,9 @@ func TestOSClassOrder(t *testing.T) {
 		{"", "windows-basic", "windows", "check template windows-basic"},
 		{"", "linux-boot", "linux", "check template linux-boot"},
 		{"bsd", "linux-boot", "linux", "check template linux-boot (tag os:bsd is neither windows nor linux)"},
+		{"", "custom-http", "linux", "check template custom-http"}, // the default
+		{"windows", "", "windows", "tag os:windows"},               // the tag without a template
+		{"", "", "linux", "check template "},                       // nothing to go by: the default
 	} {
 		if class, basis := osClass(c.tag, c.template); class != c.class || basis != c.basis {
 			t.Errorf("tag %q template %q: %s (%s), want %s (%s)", c.tag, c.template, class, basis, c.class, c.basis)

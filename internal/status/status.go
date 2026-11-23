@@ -55,6 +55,16 @@ type Backup struct {
 	Unreachable bool      `json:"unreachable"` // the host did not answer over SSH
 	// HostKeyUntrusted: the job did not connect because the host's SSH key was never trusted (hostconn.ErrUntrusted).
 	HostKeyUntrusted bool `json:"host_key_untrusted"`
+	// HostKeyChanged: the job did not connect because the host presented another SSH key than the pinned one
+	// (hostconn.ErrHostKeyChanged, ADR-007 C17).
+	HostKeyChanged bool `json:"host_key_changed"`
+}
+
+// HostKey is what the reasons say about a host whose SSH key changed: when the trusted key was pinned and the
+// fingerprint of the key the host presents now.
+type HostKey struct {
+	PinnedAt             *time.Time
+	PresentedFingerprint string
 }
 
 // Input is everything the status depends on. A nil field is a missing input.
@@ -72,6 +82,9 @@ type Input struct {
 	FailedBackup *Backup // the newest backup job failed after the newest checked point
 	// HostKeyUntrusted: the VM's host has no trusted SSH key now, so no backup can connect to it.
 	HostKeyUntrusted bool
+	// HostKeyChanged: the VM's host presented an SSH key other than the pinned one and no admin has accepted it yet
+	// (ADR-007 C17), so no backup connects to it. Nil when it did not.
+	HostKeyChanged *HostKey
 }
 
 // Reason is one row of the truth table that applied, with the status that row gives, or a note (Status empty).
@@ -143,6 +156,10 @@ func Compute(in Input) Result {
 	if t != nil && r.TheoreticalRPO != nil && *r.TheoreticalRPO > float64(t.RPOS) {
 		p := Params{Point: in.NewestChecked.ID, PointAt: at(in.NewestChecked.TakenAt), TargetS: t.RPOS}
 		switch b := in.FailedBackup; {
+		case b != nil && b.HostKeyChanged && in.Host != nil:
+			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			hostKeyParams(&p, in.HostKeyChanged)
+			add(HostKeyChanged, in.Host, p)
 		case b != nil && b.HostKeyUntrusted && in.Host != nil:
 			p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
 			add(HostKeyUntrusted, in.Host, p)
@@ -176,6 +193,14 @@ func Compute(in Input) Result {
 	}
 	if in.NewestChecked == nil {
 		switch b := in.FailedBackup; {
+		case in.Host != nil && (in.HostKeyChanged != nil || b != nil && b.HostKeyChanged):
+			// Never backed up because the host presents another key than the pinned one: the host's cause (C17).
+			var p Params
+			if b != nil {
+				p.Job, p.JobAt, p.Detail = b.JobID, at(b.FinishedAt), b.Error
+			}
+			hostKeyParams(&p, in.HostKeyChanged)
+			addAs(HostKeyChanged, Variant{Status: Unknown, Rule: "no_checked_point"}, in.Host, p)
 		case in.Host != nil && (in.HostKeyUntrusted || b != nil && b.HostKeyUntrusted):
 			// Never backed up because Gaia does not connect to the host: the host's cause, not the VM's (ADR-007 C11).
 			var p Params
@@ -234,6 +259,13 @@ func Compute(in Input) Result {
 	slices.SortStableFunc(r.Reasons, func(a, b Reason) int { return cmp.Compare(rank[b.Status], rank[a.Status]) })
 	r.Status = r.Reasons[0].Status
 	return r
+}
+
+// hostKeyParams adds what a host_key_changed reason says about the keys, when the host's facts are known.
+func hostKeyParams(p *Params, k *HostKey) {
+	if k != nil {
+		p.PinnedAt, p.Fingerprint = k.PinnedAt, k.PresentedFingerprint
+	}
 }
 
 // NextChange is when time alone next changes the status or its reasons, after in.Now: a checked backup, a proven point

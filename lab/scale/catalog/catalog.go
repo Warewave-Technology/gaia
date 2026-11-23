@@ -158,8 +158,8 @@ func Fill(ctx context.Context, db *sql.DB, o Options) (Summary, error) {
 		hostNames[i] = fmt.Sprintf("kvm-%03d", i+1)
 		// Every host's key is trusted (a placeholder: nothing connects to a catalog host), so its VMs are not
 		// host_key_untrusted (ADR-007 C11).
-		id, err := w.exec("host", `INSERT INTO hosts (name, address, ssh_port, ssh_user, ssh_host_key, created_at, updated_at) VALUES (?, ?, 22, 'gaia-backup', ?, ?, ?)`,
-			hostNames[i], fmt.Sprintf("10.20.%d.%d", i/250, i%250+1), "ssh-ed25519 fixture-"+hostNames[i], created, created)
+		id, err := w.exec("host", `INSERT INTO hosts (name, address, ssh_port, ssh_user, ssh_host_key, ssh_host_key_pinned_at, created_at, updated_at) VALUES (?, ?, 22, 'gaia-backup', ?, ?, ?, ?)`,
+			hostNames[i], fmt.Sprintf("10.20.%d.%d", i/250, i%250+1), "ssh-ed25519 fixture-"+hostNames[i], created, created, created)
 		if err != nil {
 			return sum, err
 		}

@@ -64,16 +64,15 @@ export const capacity = {
   behind: (slots: number, expiring: number, horizon: string) =>
     `With ${plural(slots, 'slot', 'slots')}, ${expiring > 0 ? `${plural(expiring, 'proof expires', 'proofs expire')} before the next test in the next ${horizon}` : 'the tests fall behind'}.`,
   need: (needed: number) => `You need ${plural(needed, 'slot', 'slots')}, or longer test intervals.`,
-  sandboxDown: 'No restore test runs and nothing new is proven until the sandbox helper answers; the numbers of now count no slots.',
-  /** The model while the sandbox does not answer: it starts from the configured slots (docs/design/v3), not from 0. */
-  modelFromConfigured: (slots: number, pct: number) =>
-    `With its ${plural(slots, 'configured slot', 'configured slots')} it would cover ${pct} % of what policies ask.`,
-  modelFromOne: (pct: number) =>
-    `Its configured slots are not known while it does not answer, so the model starts from 1 slot (${pct} % covered); set it to the slots the sandbox has.`,
+  sandboxDown: 'No restore test runs and nothing new is proven until the sandbox helper answers.',
+  /** While the sandbox does not answer the server models from the slot count it last reported (ADR-007 C17). */
+  modelFromLastKnown: (slots: number, at: string, pct: number) =>
+    `The numbers below are modelled from the ${plural(slots, 'slot', 'slots')} it last reported, at ${at}: they would cover ${pct} % of what policies ask.`,
+  neverReported: 'It has never reported its slots, so the numbers below count none.',
+  lastKnown: (slots: number, at: string) => `last known: ${plural(slots, 'slot', 'slots')}, at ${at}`,
   facts: 'The sandbox',
   slotsNow: 'Test slots',
   slotsText: (slots: number, basis: string) => `${n(slots)}${basis ? `, ${basis}` : ''}`,
-  configured: (slots: number) => `${plural(slots, 'slot', 'slots')} configured`,
   memory: 'Memory for tests',
   memoryText: (used: number, limit: number) => `${n(used)} MiB in use of ${n(limit)} MiB`,
   runningNow: 'Running now',

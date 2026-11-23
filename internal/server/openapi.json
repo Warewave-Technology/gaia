@@ -64,6 +64,18 @@
         ],
         "type": "object"
       },
+      "AcceptKeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint"
+        ],
+        "type": "object"
+      },
       "ActivityRow": {
         "additionalProperties": false,
         "properties": {
@@ -277,6 +289,16 @@
               "$ref": "#/components/schemas/NameCount"
             },
             "type": "array"
+          },
+          "params": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Params"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "policies": {
             "items": {
@@ -751,8 +773,18 @@
           "slots": {
             "type": "integer"
           },
+          "slots_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "slots_needed": {
             "type": "integer"
+          },
+          "slots_source": {
+            "type": "string"
           },
           "tests_in_horizon": {
             "type": "integer"
@@ -787,7 +819,9 @@
           "sandbox",
           "sandbox_error",
           "slots",
+          "slots_at",
           "slots_needed",
+          "slots_source",
           "tests_in_horizon",
           "vms"
         ],
@@ -1867,7 +1901,19 @@
           "name": {
             "type": "string"
           },
+          "presented_at": {
+            "type": "string"
+          },
+          "presented_fingerprint": {
+            "type": "string"
+          },
+          "presented_host_key": {
+            "type": "string"
+          },
           "ssh_host_key": {
+            "type": "string"
+          },
+          "ssh_host_key_pinned_at": {
             "type": "string"
           },
           "ssh_port": {
@@ -1885,7 +1931,11 @@
           "created_at",
           "id",
           "name",
+          "presented_at",
+          "presented_fingerprint",
+          "presented_host_key",
           "ssh_host_key",
+          "ssh_host_key_pinned_at",
           "ssh_port",
           "ssh_user",
           "updated_at"
@@ -1991,7 +2041,22 @@
           "ok": {
             "type": "integer"
           },
+          "pinned_fingerprint": {
+            "type": "string"
+          },
+          "presented_at": {
+            "type": "string"
+          },
+          "presented_fingerprint": {
+            "type": "string"
+          },
+          "presented_host_key": {
+            "type": "string"
+          },
           "ssh_host_key": {
+            "type": "string"
+          },
+          "ssh_host_key_pinned_at": {
             "type": "string"
           },
           "ssh_port": {
@@ -2027,7 +2092,12 @@
           "last_point_at",
           "name",
           "ok",
+          "pinned_fingerprint",
+          "presented_at",
+          "presented_fingerprint",
+          "presented_host_key",
           "ssh_host_key",
+          "ssh_host_key_pinned_at",
           "ssh_port",
           "ssh_user",
           "unknown",
@@ -3227,6 +3297,9 @@
           "detail": {
             "type": "string"
           },
+          "fingerprint": {
+            "type": "string"
+          },
           "job": {
             "type": "integer"
           },
@@ -3239,6 +3312,13 @@
           },
           "max_proof_age_s": {
             "type": "integer"
+          },
+          "pinned_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "point": {
             "type": "integer"
@@ -5503,6 +5583,16 @@
           "slots": {
             "type": "integer"
           },
+          "slots_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slots_source": {
+            "type": "string"
+          },
           "total": {
             "type": "integer"
           },
@@ -5519,6 +5609,8 @@
           "next",
           "running",
           "slots",
+          "slots_at",
+          "slots_source",
           "total",
           "waiting_for_admission"
         ],
@@ -8594,6 +8686,123 @@
         ]
       }
     },
+    "/api/v1/hosts/{id}/accept-key": {
+      "post": {
+        "operationId": "post_hosts_by_id_accept_key",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Host"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Not logged in, or the session is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The user's role may not do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "No such record"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Conflicts with existing records"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiError"
+                }
+              }
+            },
+            "description": "The audit log cannot be written, so the action was not done"
+          }
+        },
+        "summary": "Accept the different SSH key a host presented, in place of the pinned one (ADR-007 C17)",
+        "tags": [
+          "hosts"
+        ],
+        "x-gaia-example": "{\"fingerprint\":\"SHA256:none\"}",
+        "x-gaia-roles": [
+          "admin"
+        ],
+        "x-gaia-step-up": "always"
+      }
+    },
     "/api/v1/hosts/{id}/check": {
       "post": {
         "operationId": "post_hosts_by_id_check",
@@ -8912,7 +9121,7 @@
             "description": "The audit log cannot be written, so the action was not done"
           }
         },
-        "summary": "Pin the host's SSH key if it has the fingerprint given",
+        "summary": "Pin the SSH key of a host that has none yet, if it has the fingerprint given",
         "tags": [
           "hosts"
         ],

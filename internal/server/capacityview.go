@@ -39,10 +39,9 @@ func (s *Server) capacityFacts(ctx context.Context) ([]store.CapacityFact, error
 	return fs, nil
 }
 
-// osClass is a VM's class for the expected durations, and where it came from (ADR-007 C13): first the VM's os: tag
-// (os:windows, os:linux), then the guest information libvirt reports, and only last the check template's name. Gaia
-// does not record guest information for a protected VM (the libosinfo id is read only for a converted migration
-// check, internal/migrate), so that step has nothing to read yet and the order is tag, then template.
+// osClass is a VM's class for the expected durations, and where it came from (ADR-007 C13 as C17 settled it): the
+// VM's os: tag (os:windows, os:linux), then the check template's name, then the default (linux). There is no step
+// for the guest information libvirt reports: Gaia does not keep it for a protected VM.
 func osClass(tag, template string) (string, string) {
 	switch t := strings.ToLower(strings.TrimSpace(tag)); {
 	case strings.HasPrefix(t, "windows"):
@@ -146,25 +145,67 @@ type WhatIf struct {
 	Policies []PolicyChange `json:"policies,omitempty"`
 }
 
-// capacityInput is the capacity's input now, with a what-if applied.
-func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, error) {
+// Where a capacity's slot count comes from (ADR-007 C17): the helper's answer; while it does not answer, the count it
+// last reported (never 0 or 1 assumed, never a second copy of the setting); none when it never reported one.
+const (
+	slotsSandbox   = "sandbox"
+	slotsLastKnown = "last_known"
+	slotsNone      = "none"
+	slotsWhatIf    = "what_if"
+)
+
+// slotCount is the slots the capacity counts, where they come from and when the helper reported them.
+type slotCount struct {
+	n      int
+	source string
+	at     *time.Time
+}
+
+// slotsNow is the helper's slot count now; while it does not answer, the count it last reported and when.
+func (s *Server) slotsNow(ctx context.Context) (slotCount, error) {
+	s.sandboxCap.mu.Lock()
+	c, err, at := s.sandboxCap.cap, s.sandboxCap.err, s.sandboxCap.at
+	s.sandboxCap.mu.Unlock()
+	if err == nil && c != nil {
+		return slotCount{n: c.Slots, source: slotsSandbox, at: &at}, nil
+	}
+	last, ok, err := s.db.LastSandboxSlots(ctx)
+	if err != nil {
+		return slotCount{}, err
+	}
+	if !ok {
+		return slotCount{source: slotsNone}, nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, last.ReportedAt)
+	if err != nil {
+		return slotCount{}, fmt.Errorf("the last known slot count: reported_at: %w", err)
+	}
+	return slotCount{n: last.Slots, source: slotsLastKnown, at: &t}, nil
+}
+
+// capacityInput is the capacity's input now, with a what-if applied, and where its slot count comes from.
+func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, slotCount, error) {
 	fs, err := s.capacityFacts(ctx)
 	if err != nil {
-		return capacity.Input{}, err
+		return capacity.Input{}, slotCount{}, err
 	}
 	changes := map[int64]PolicyChange{}
 	for _, p := range w.Policies {
 		if p.TestIntervalS != nil && *p.TestIntervalS < 60 || p.MaxProofAgeS != nil && *p.MaxProofAgeS <= 0 || p.RPOTargetS != nil && *p.RPOTargetS <= 0 {
-			return capacity.Input{}, fmt.Errorf("%w: policy %d: test_interval_s >= 60, max_proof_age_s > 0, rpo_target_s > 0", store.ErrInvalid, p.PolicyID)
+			return capacity.Input{}, slotCount{}, fmt.Errorf("%w: policy %d: test_interval_s >= 60, max_proof_age_s > 0, rpo_target_s > 0", store.ErrInvalid, p.PolicyID)
 		}
 		changes[p.PolicyID] = p
 	}
-	in := capacity.Input{Now: s.now().UTC(), Slots: s.testSlotsNow()}
+	sc, err := s.slotsNow(ctx)
+	if err != nil {
+		return capacity.Input{}, slotCount{}, err
+	}
+	in := capacity.Input{Now: s.now().UTC(), Slots: sc.n}
 	if w.Slots != nil {
 		if *w.Slots < 0 || *w.Slots > 64 {
-			return in, fmt.Errorf("%w: slots 0-64", store.ErrInvalid)
+			return in, sc, fmt.Errorf("%w: slots 0-64", store.ErrInvalid)
 		}
-		in.Slots = *w.Slots
+		in.Slots, sc = *w.Slots, slotCount{n: *w.Slots, source: slotsWhatIf}
 	}
 	for _, f := range fs {
 		v := capacity.VM{ID: f.VMID, Name: f.VM, PolicyID: f.PolicyID, Policy: f.Policy, TestIntervalS: f.TestIntervalS,
@@ -185,16 +226,7 @@ func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, e
 		}
 		in.VMs = append(in.VMs, v)
 	}
-	return in, nil
-}
-
-// testSlotsNow is the slots the capacity counts: the helper's, 0 while it does not answer (nothing is proven then).
-func (s *Server) testSlotsNow() int {
-	c, err := s.sandboxCapacity()
-	if err != nil || c == nil {
-		return 0
-	}
-	return c.Slots
+	return in, sc, nil
 }
 
 // CapacityView is the proof capacity: the numbers, the groups, and the first entries of the lists.
@@ -205,19 +237,23 @@ type CapacityView struct {
 	QueueTotal    int               `json:"queue_total"`
 	Sandbox       *sandbox.Capacity `json:"sandbox"`       // the helper now; nil when it does not answer
 	SandboxError  string            `json:"sandbox_error"` // why
-	WhatIf        *WhatIf           `json:"what_if,omitempty"`
+	// Where slots comes from (ADR-007 C17): sandbox (the helper answered), last_known (it does not answer: the count
+	// it last reported, at slots_at), none (it never reported one: 0), what_if (the request's).
+	SlotsSource string     `json:"slots_source"`
+	SlotsAt     *time.Time `json:"slots_at"` // when the helper reported the count; null for none and what_if
+	WhatIf      *WhatIf    `json:"what_if,omitempty"`
 	// What-if only: each changed policy's C12 figure with the change applied, for the policy editor before it saves.
 	Policies []PolicyOK `json:"policies,omitempty"`
 }
 
 func (s *Server) capacityResult(ctx context.Context, w WhatIf, limit int) (CapacityView, error) {
 	s.refreshSandbox(ctx)
-	in, err := s.capacityInput(ctx, w)
+	in, sc, err := s.capacityInput(ctx, w)
 	if err != nil {
 		return CapacityView{}, err
 	}
 	r := capacity.Compute(in)
-	out := CapacityView{Clock: serverClock(s.now()), Result: r, ExpiringTotal: len(r.Expiring), QueueTotal: len(r.Queue)}
+	out := CapacityView{Clock: serverClock(s.now()), Result: r, ExpiringTotal: len(r.Expiring), QueueTotal: len(r.Queue), SlotsSource: sc.source, SlotsAt: sc.at}
 	out.Expiring, out.Queue = r.Expiring[:min(limit, len(r.Expiring))], r.Queue[:min(limit, len(r.Queue))]
 	if c, err := s.sandboxCapacity(); err != nil {
 		out.SandboxError = err.Error()
@@ -259,13 +295,15 @@ func (s *Server) whatIfView(c *call) (int, any, error) {
 // TestQueueView is the queued restore tests in the order they start, with their estimated starts, in pages; and the
 // sandbox's running tests.
 type TestQueueView struct {
-	Clock   ServerClock          `json:"clock"`
-	Slots   int                  `json:"slots"`
-	Total   int                  `json:"total"`
-	Items   []capacity.QueueItem `json:"items"`
-	Next    string               `json:"next"`
-	Running []sandbox.Running    `json:"running"`
-	Waiting []sandbox.Waiting    `json:"waiting_for_admission"`
+	Clock       ServerClock          `json:"clock"`
+	Slots       int                  `json:"slots"`
+	SlotsSource string               `json:"slots_source"` // as in the capacity view (ADR-007 C17)
+	SlotsAt     *time.Time           `json:"slots_at"`
+	Total       int                  `json:"total"`
+	Items       []capacity.QueueItem `json:"items"`
+	Next        string               `json:"next"`
+	Running     []sandbox.Running    `json:"running"`
+	Waiting     []sandbox.Waiting    `json:"waiting_for_admission"`
 }
 
 func (s *Server) testQueueView(c *call) (int, any, error) {
@@ -277,7 +315,7 @@ func (s *Server) testQueueView(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	out := TestQueueView{Clock: v.Clock, Slots: v.Slots, Total: len(v.Queue), Items: []capacity.QueueItem{}, Running: []sandbox.Running{},
+	out := TestQueueView{Clock: v.Clock, Slots: v.Slots, SlotsSource: v.SlotsSource, SlotsAt: v.SlotsAt, Total: len(v.Queue), Items: []capacity.QueueItem{}, Running: []sandbox.Running{},
 		Waiting: []sandbox.Waiting{}}
 	for i := off; i < len(v.Queue) && i < off+n; i++ {
 		out.Items = append(out.Items, v.Queue[i])
@@ -318,7 +356,7 @@ func (s *Server) capacityInputs(c *call) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	in, err := s.capacityInput(c.r.Context(), WhatIf{})
+	in, _, err := s.capacityInput(c.r.Context(), WhatIf{})
 	if err != nil {
 		return 0, nil, err
 	}

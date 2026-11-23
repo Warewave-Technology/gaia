@@ -32,13 +32,6 @@ const tests = (v: CapacityView) => v.by_os_class.reduce((n, g) => n + g.tests_pe
 /** A queued test the simulation does not start within its horizon has the zero time. */
 const starts = (iso: string) => Date.parse(iso) > 0
 
-/** The slots the sandbox unit is set to, when the server knows them while the helper does not answer (a newer server
- * sends `configured_slots`); null when not known. */
-function configuredSlots(v: CapacityView): number | null {
-  const c = (v as CapacityView & { configured_slots?: number | null }).configured_slots
-  return typeof c === 'number' && c > 0 ? c : null
-}
-
 /** A value that follows `v` once it has stood still for `ms` (the slider asks the what-if once, not at every step). */
 function useSettled<V>(v: V, ms = 300): V {
   const [out, setOut] = useState(v)
@@ -53,7 +46,8 @@ function useSettled<V>(v: V, ms = 300): V {
  * Proof capacity (docs/design/v2/Capacity.dc.html with the v3 rules, ADR-007 C4, C13): can the sandbox's slots run
  * every restore test the policies ask for before the proofs expire. The answer and a what-if that only models are
  * above the fold; demand, the proofs that will expire, the queue and the expected durations are tabs of data-tables.
- * A sandbox that does not answer is UNKNOWN, never a calm zero, and the model then starts from its configured slots.
+ * A sandbox that does not answer is UNKNOWN, never a calm zero; the server then models from the slot count it last
+ * reported (ADR-007 C17: `slots_source` last_known, said as "last known: 2 slots, at 14:02").
  */
 export function Capacity() {
   const t = useT().capacity
@@ -65,9 +59,7 @@ export function Capacity() {
   const [changes, setChanges] = useState<Record<number, number>>({})
   const v = q.data
   const down = v ? v.sandbox === null : false
-  const start = v && down ? (configuredSlots(v) ?? 1) : null
-  const modelSlots = slots ?? start
-  const settled = useSettled(useMemo(() => ({ slots: modelSlots, changes }), [modelSlots, changes]))
+  const settled = useSettled(useMemo(() => ({ slots, changes }), [slots, changes]))
   const body = useMemo<WhatIf | null>(() => {
     const policies = Object.entries(settled.changes).map(([id, iv]) => ({ policy_id: Number(id), test_interval_s: iv })).sort((a, b) => a.policy_id - b.policy_id)
     if (settled.slots === null && policies.length === 0) return null
@@ -81,8 +73,8 @@ export function Capacity() {
   const h = horizon(v)
   return (
     <main className={s.page}>
-      <Headline v={v} m={start !== null && slots === null ? m : undefined} start={start} />
-      <Model v={v} m={m} start={start} modelling={!!body && model.isFetching} failed={body ? model.error : null}
+      <Headline v={v} fmt={fmt} />
+      <Model v={v} m={m} modelling={!!body && model.isFetching} failed={body ? model.error : null}
         slots={slots} setSlots={setSlots} changes={changes} setChanges={setChanges} />
       <section className={s.detail}>
         <Tabs label={t.tabs} value={tab} onChange={(k) => setF({ tab: k === 'demand' ? '' : k })}
@@ -104,11 +96,12 @@ export function Capacity() {
   )
 }
 
-function Headline({ v, m, start }: { v: CapacityView; m: CapacityView | undefined; start: number | null }) {
+function Headline({ v, fmt }: { v: CapacityView; fmt: Fmt }) {
   const t = useT().capacity
   const h = horizon(v)
   const down = v.sandbox === null
-  const configured = configuredSlots(v)
+  /** While the helper does not answer: the slot count it last reported and when (ADR-007 C17), or null. */
+  const last = v.slots_source === 'last_known' && v.slots_at ? t.lastKnown(v.slots, fmt.at(v.slots_at)) : null
   const answer = down ? (
     <span className={s.unknown}><StatusChip status="UNKNOWN" size="lg" />{t.unknown}</span>
   ) : v.demand_slot_s_per_day === 0 ? t.yesNoDemand
@@ -118,7 +111,7 @@ function Headline({ v, m, start }: { v: CapacityView; m: CapacityView | undefine
     <>
       <p>
         {t.sandboxDown}{' '}
-        {m && start !== null && (configured !== null ? t.modelFromConfigured(start, pct(m.coverage)) : t.modelFromOne(pct(m.coverage)))}
+        {last !== null && v.slots_at ? t.modelFromLastKnown(v.slots, fmt.at(v.slots_at), pct(v.coverage)) : t.neverReported}
       </p>
       <TechDetails>{v.sandbox_error}</TechDetails>
     </>
@@ -136,7 +129,7 @@ function Headline({ v, m, start }: { v: CapacityView; m: CapacityView | undefine
       aside={
         <Facts label={t.facts}>
           {v.sandbox === null ? (
-            <Fact term={t.slotsNow}><StatusChip status="UNKNOWN" size="xs" />{t.noAnswer}{configured !== null && <> · {t.configured(configured)}</>}</Fact>
+            <Fact term={t.slotsNow}><StatusChip status="UNKNOWN" size="xs" />{t.noAnswer}{last !== null && <> · {last}</>}</Fact>
           ) : (
             <>
               <Fact term={t.slotsNow}>{t.slotsText(v.sandbox.slots, v.sandbox.basis)}</Fact>
@@ -151,11 +144,9 @@ function Headline({ v, m, start }: { v: CapacityView; m: CapacityView | undefine
   )
 }
 
-function Model({ v, m, start, modelling, failed, slots, setSlots, changes, setChanges }: {
+function Model({ v, m, modelling, failed, slots, setSlots, changes, setChanges }: {
   v: CapacityView
   m: CapacityView | undefined
-  /** While the sandbox does not answer: the slots the model starts from. */
-  start: number | null
   modelling: boolean
   failed: unknown
   slots: number | null
@@ -173,7 +164,7 @@ function Model({ v, m, start, modelling, failed, slots, setSlots, changes, setCh
   const [picked, setPicked] = useState<number | null>(null)
   const pid = picked ?? busiest
   const policy = policies.find((p) => p.id === pid)
-  const base = start ?? v.slots // what the slider shows when nothing is moved
+  const base = v.slots // what the slider shows when nothing is moved: the helper's slots, or the last known ones
   const shown = slots ?? base
   const max = Math.min(64, Math.max(8, v.slots * 2, v.slots_needed + 2))
   const h = horizon(v)

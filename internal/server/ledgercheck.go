@@ -17,7 +17,9 @@ import (
 // Ledger checks (ADR-007 C14): the evidence ledger is checked every hour, with every daily report, and on "Check
 // now". An hourly check and "Check now" are incremental: the entries since the last successful check, and the link to
 // the last entry it checked. The daily report's check is full (every entry, every bundle), and an hourly check is
-// full when no full check ran for a day.
+// full when no full check ran for a day. Accepted as built (C17.5): the incremental check verifies the chain links,
+// the sequence, the key and the last checked entry's hash; the daily full check re-verifies the signatures and bundles
+// of the older entries.
 const (
 	ledgerCheckEvery     = time.Hour
 	ledgerFullEvery      = 24 * time.Hour

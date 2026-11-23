@@ -13,6 +13,14 @@ test('every reason code has a sentence', () => {
   for (const c of codes) assert.ok(reasons[c], `no sentence for reason code ${c}`)
 })
 
+test('host_key_changed says when the trusted key was pinned (ADR-007 C17)', () => {
+  const c = { code: 'host_key_changed', params: { pinned_at: '2026-11-02T09:30:00Z', fingerprint: 'SHA256:x' }, scope: { kind: 'host', id: 7, name: 'kvm-07' },
+    count: 3, since: '14:02', hosts: [], policies: [], at: () => 'Nov 2 09:30' }
+  assert.equal(reasons.host_key_changed.long(c, 0),
+    'kvm-07 presents a different SSH host key than the one pinned on Nov 2 09:30. Gaia reads nothing from it until an admin checks and accepts the new key.')
+  assert.doesNotMatch(reasons.host_key_changed.long({ ...c, at: undefined }, 0), /\d{4}-\d\d-\d\dT/)
+})
+
 test('sentences are said in words, not formulas', () => {
   const now = Date.parse('2026-11-22T14:32:00Z')
   const r = vmReason({ code: 'proof_too_old', params: { test: 7, test_at: '2026-11-22T06:22:00Z', target_s: 6 * 3600 } }, now)

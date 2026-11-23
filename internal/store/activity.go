@@ -137,6 +137,9 @@ type HostRow struct {
 	Unreachable  int    `json:"unreachable"`       // VMs whose status is host_unreachable for this host
 	UnreachSince string `json:"unreachable_since"` // the earliest of their since
 	LastPointAt  string `json:"last_point_at"`     // the newest point of any of its VMs: the last backup that read it
+	// The pinned key's fingerprint, to compare with the presented one, when the host presents a different key
+	// (ADR-007 C17); "" otherwise. The view fills it in.
+	PinnedFingerprint string `json:"pinned_fingerprint"`
 }
 
 // HostRows lists hosts by name, in pages of limit after offset; the total is every host.
@@ -148,11 +151,11 @@ func (d *DB) HostRows(ctx context.Context, offset, limit int) ([]HostRow, int, e
 	rows, err := rowsOf(ctx, d.db, func(s interface{ Scan(...any) error }) (HostRow, error) {
 		var r HostRow
 		var since, last sql.NullString
-		err := s.Scan(&r.ID, &r.Name, &r.Address, &r.SSHPort, &r.SSHUser, &r.SSHHostKey, &r.CreatedAt, &r.UpdatedAt,
-			&r.VMs, &r.Critical, &r.Unknown, &r.Warning, &r.OK, &r.Unreachable, &since, &last)
+		err := s.Scan(append(hostFields(&r.Host), &r.VMs, &r.Critical, &r.Unknown, &r.Warning, &r.OK, &r.Unreachable, &since, &last)...)
 		r.UnreachSince, r.LastPointAt = since.String, last.String
 		return r, err
-	}, `SELECT h.id, h.name, h.address, h.ssh_port, h.ssh_user, h.ssh_host_key, h.created_at, h.updated_at,
+	}, `SELECT h.id, h.name, h.address, h.ssh_port, h.ssh_user, h.ssh_host_key, h.ssh_host_key_pinned_at, h.presented_host_key,
+		h.presented_fingerprint, h.presented_at, h.created_at, h.updated_at,
 		(SELECT COUNT(*) FROM vms v WHERE v.host_id = h.id),
 		(SELECT COUNT(*) FROM vms v JOIN vm_status s ON s.vm_id = v.id WHERE v.host_id = h.id AND s.status = 'CRITICAL'),
 		(SELECT COUNT(*) FROM vms v LEFT JOIN vm_status s ON s.vm_id = v.id WHERE v.host_id = h.id AND (s.status IS NULL OR s.status = 'UNKNOWN')),

@@ -130,8 +130,17 @@ func TestKeyScanPinForward(t *testing.T) {
 	op, _ := ssh.NewSignerFromKey(other)
 	wrong := tg
 	wrong.HostKey = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(op.PublicKey())))
-	if _, err := Dial(ctx, wrong, key); err == nil || !strings.Contains(err.Error(), "not the pinned") {
+	// A host presenting another key than the pinned one (ADR-007 C17): a typed error with both fingerprints and the
+	// presented key, not only a message.
+	_, err = Dial(ctx, wrong, key)
+	var hk *HostKeyChangedError
+	if !errors.Is(err, ErrHostKeyChanged) || !errors.As(err, &hk) || errors.Is(err, ErrUnreachable) || errors.Is(err, ErrUntrusted) {
 		t.Fatalf("a different host key: %v", err)
+	}
+	if hk.PinnedFingerprint != Fingerprint(op.PublicKey()) || hk.PresentedFingerprint != Fingerprint(srv.hostKey.PublicKey()) ||
+		hk.Presented.Fingerprint != hk.PresentedFingerprint || hk.Presented.Type != "ssh-ed25519" ||
+		hk.Presented.Key != strings.TrimSpace(string(ssh.MarshalAuthorizedKey(srv.hostKey.PublicKey()))) || !strings.Contains(err.Error(), "not the pinned") {
+		t.Fatalf("the changed key's facts: %+v (%v)", hk, err)
 	}
 	stranger, _ := LoadOrCreateKey(filepath.Join(dir, "stranger"), "x")
 	if _, err := Dial(ctx, srv.target("gaia-backup", true), stranger); err == nil {

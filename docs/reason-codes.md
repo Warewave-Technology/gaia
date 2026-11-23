@@ -1,4 +1,4 @@
-# Reason codes (version 2)
+# Reason codes (version 3)
 
 Generated from `internal/status/codes.go` by `go test ./internal/status -run TestReasonCodesDoc -update`; do not edit.
 
@@ -14,7 +14,8 @@ without a scope is a cause of the VM itself. Codes are part of the API contract:
 | `no_backup_in_rpo` | CRITICAL | `theoretical_rpo_over_target` | - | `point`, `point_at`, `target_s` | No backup within the RPO target | the newest checked backup is older than the RPO target, and the newest backup job did not fail |
 | `host_unreachable` | CRITICAL | `theoretical_rpo_over_target` | host | `point`, `point_at`, `target_s`, `job`, `job_at`, `detail` | Host does not answer | no backup within the RPO target because the newest backup job could not reach the host over SSH |
 | `host_key_untrusted` | CRITICAL, UNKNOWN | `theoretical_rpo_over_target`, `no_checked_point` | host | `point`, `point_at`, `target_s`, `job`, `job_at`, `detail` | Host key not trusted yet | the host's SSH key was never trusted, so Gaia does not connect to it: no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`) |
-| `backup_failing` | CRITICAL | `theoretical_rpo_over_target` | - | `point`, `point_at`, `target_s`, `job`, `job_at`, `detail` | Backups fail | no backup within the RPO target because the newest backup job failed (for a reason other than the host not answering) |
+| `host_key_changed` | CRITICAL, UNKNOWN | `theoretical_rpo_over_target`, `no_checked_point` | host | `point`, `point_at`, `target_s`, `job`, `job_at`, `detail`, `pinned_at`, `fingerprint` | Host presents a different SSH key | the host presents an SSH host key other than the pinned one, so Gaia reads nothing from it until an admin checks and accepts the new key (never automatically): no backup within the RPO target (CRITICAL), or no checked backup at all (UNKNOWN, rule `no_checked_point`) |
+| `backup_failing` | CRITICAL | `theoretical_rpo_over_target` | - | `point`, `point_at`, `target_s`, `job`, `job_at`, `detail` | Backups fail | no backup within the RPO target because the newest backup job failed (for a reason other than the host not answering or its SSH key) |
 | `test_failed_boot` | CRITICAL | `latest_test_critical` | - | `test`, `point`, `test_at`, `check`, `detail` | Restore test failed to boot | the latest restore test with a verdict is CRITICAL because the restored guest did not boot |
 | `guest_rebooted` | CRITICAL | `latest_test_critical` | - | `test`, `point`, `test_at`, `check`, `detail` | Restored guest restarts by itself | the latest restore test with a verdict is CRITICAL because the guest stopped answering inside the stability window (ADR-005 B) |
 | `test_failed_check` | CRITICAL | `latest_test_critical` | - | `test`, `point`, `test_at`, `check`, `detail` | Restore test check failed | the latest restore test with a verdict is CRITICAL because a check after boot failed (the check is named) |

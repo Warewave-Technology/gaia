@@ -53,7 +53,7 @@ func (s *Server) watchCapacity(ctx context.Context, now time.Time) error {
 	if c, err := s.sandboxCapacity(); err != nil || c == nil {
 		return nil // unknown, not short: the helper's own state says why
 	}
-	in, err := s.capacityInput(ctx, WhatIf{})
+	in, _, err := s.capacityInput(ctx, WhatIf{})
 	if err != nil {
 		return err
 	}

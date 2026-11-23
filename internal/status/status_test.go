@@ -255,6 +255,59 @@ func TestTruthTableExamples(t *testing.T) {
 	}
 }
 
+// A host that presents another SSH key than the pinned one is its own cause (ADR-007 C17): backups that stopped
+// because of it are host_key_changed (CRITICAL, scoped to the host, not backup_failing), with the date the trusted key
+// was pinned and the new key's fingerprint; a VM never backed up on it is UNKNOWN with the same code. Once an admin
+// accepted the key, the job's failure is a plain failure (the server clears the flag) and the host's facts are gone.
+func TestHostKeyChanged(t *testing.T) {
+	host := &Scope{Kind: ScopeHost, ID: 7, Name: "kvm-07"}
+	targets := &Targets{RPOS: 900, RTOS: 600, MaxProofAgeS: 3600}
+	pinned := time.Date(2026, 11, 2, 9, 30, 0, 0, time.UTC)
+	key := &HostKey{PinnedAt: &pinned, PresentedFingerprint: "SHA256:presented"}
+	failed := &Backup{JobID: 12, FinishedAt: ago(60), Error: "host key SHA256:presented is not the pinned SHA256:pinned: refusing to connect", HostKeyChanged: true}
+	r := Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, FailedBackup: failed, HostKeyChanged: key})
+	x := r.Reasons[0]
+	if r.Status != Critical || x.Code != HostKeyChanged || x.Rule != "theoretical_rpo_over_target" || x.Scope != host || x.Params.Job != 12 ||
+		x.Params.PinnedAt == nil || !x.Params.PinnedAt.Equal(pinned) || x.Params.Fingerprint != "SHA256:presented" {
+		t.Fatalf("stopped backups: %s %+v", r.Status, x)
+	}
+	if !strings.Contains(x.Text, "host kvm-07 presents a different SSH host key (SHA256:presented) than the one pinned on 2026-11-02T09:30:00Z") ||
+		!strings.Contains(x.Text, "until an admin checks and accepts the new key") {
+		t.Fatalf("sentence %q", x.Text)
+	}
+	if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == BackupFailing || x.Code == HostKeyUntrusted }) {
+		t.Fatalf("backup_failing or host_key_untrusted as well: %+v", r.Reasons)
+	}
+	// Within the RPO target the status model has no row for it (the Hosts screen shows the host, C17): nothing here.
+	r = Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(60)}, FailedBackup: failed, HostKeyChanged: key})
+	if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == HostKeyChanged }) {
+		t.Fatalf("within the RPO target: %+v", r.Reasons)
+	}
+	for _, in := range []Input{
+		{Now: now, Targets: targets, Host: host, FailedBackup: failed, HostKeyChanged: key}, // the job said so
+		{Now: now, Targets: targets, Host: host, HostKeyChanged: key},                       // the host says so, no job yet
+	} {
+		r := Compute(in)
+		i := slices.IndexFunc(r.Reasons, func(x Reason) bool { return x.Rule == "no_checked_point" })
+		if r.Status != Unknown || i < 0 || r.Reasons[i].Code != HostKeyChanged || r.Reasons[i].Status != Unknown || r.Reasons[i].Scope != host {
+			t.Fatalf("never backed up: %s %+v", r.Status, r.Reasons)
+		}
+		if slices.ContainsFunc(r.Reasons, func(x Reason) bool { return x.Code == NeverBackedUp || x.Code == BackupFailing }) {
+			t.Fatalf("never_backed_up or backup_failing as well: %+v", r.Reasons)
+		}
+		if got := Render(r.Reasons[i], now); got != r.Reasons[i].Text {
+			t.Fatalf("sentence %q / %q", got, r.Reasons[i].Text)
+		}
+	}
+	// Accepted: the server clears the job's flag and the host's facts; the failure stays a failure.
+	accepted := *failed
+	accepted.HostKeyChanged = false
+	r = Compute(Input{Now: now, Targets: targets, Host: host, NewestChecked: &Point{ID: 1, TakenAt: ago(5000)}, FailedBackup: &accepted})
+	if r.Reasons[0].Code != BackupFailing {
+		t.Fatalf("after the key was accepted: %+v", r.Reasons)
+	}
+}
+
 // A host whose SSH key was never trusted is the host's cause (ADR-007 C11): backups that stopped because of it are
 // host_key_untrusted (CRITICAL, not backup_failing), and a VM never backed up on it is UNKNOWN with the same code
 // (not never_backed_up), scoped to the host either way.

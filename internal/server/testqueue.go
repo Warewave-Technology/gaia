@@ -20,7 +20,14 @@ type sandboxState struct {
 	cap *sandbox.Capacity
 	at  time.Time
 	err error
+	// What was last written to the database as the last known slot count (ADR-007 C17).
+	stored      time.Time
+	storedSlots int
 }
+
+// lastKnownEvery is how often an unchanged slot count is written again as the last known one: slots_at is at most
+// this much older than the helper's last answer.
+const lastKnownEvery = time.Minute
 
 // refreshSandbox reads the helper's capacity (at most every 10 s).
 func (s *Server) refreshSandbox(ctx context.Context) {
@@ -35,9 +42,19 @@ func (s *Server) refreshSandbox(ctx context.Context) {
 	c, err := s.sandbox.Capacity(cctx)
 	s.sandboxCap.mu.Lock()
 	defer s.sandboxCap.mu.Unlock()
-	s.sandboxCap.at, s.sandboxCap.err = time.Now(), err
-	if err == nil {
-		s.sandboxCap.cap = &c
+	now := time.Now()
+	s.sandboxCap.at, s.sandboxCap.err = now, err
+	if err != nil {
+		return
+	}
+	s.sandboxCap.cap = &c
+	// The count it reported is the last known one while it does not answer, across restarts (ADR-007 C17).
+	if c.Slots != s.sandboxCap.storedSlots || now.Sub(s.sandboxCap.stored) >= lastKnownEvery {
+		if err := s.db.SetSandboxSlots(context.WithoutCancel(ctx), c.Slots, s.now()); err != nil {
+			s.log.Error("the sandbox's slot count could not be stored as the last known one", "slots", c.Slots, "error", err)
+			return
+		}
+		s.sandboxCap.stored, s.sandboxCap.storedSlots = now, c.Slots
 	}
 }
 

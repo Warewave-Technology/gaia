@@ -21,6 +21,9 @@ export type ReasonIn = {
     rpo_target_s?: number
     rto_target_s?: number
     max_proof_age_s?: number
+    /** host_key_changed: when the trusted key was pinned, and the new key's fingerprint (ADR-007 C17). */
+    pinned_at?: string | null
+    fingerprint?: string
   } | null
   scope?: { kind: string; id: number; name: string } | null
 }
@@ -32,6 +35,8 @@ export type CauseIn = ReasonIn & {
   since: string
   hosts: { name: string; count: number }[]
   policies: { name: string; count: number }[]
+  /** The screen's one time formatter (lib/time fmt.at, server time), for a moment a sentence names. */
+  at?: (iso: string) => string
 }
 
 /** Seconds from an RFC 3339 time to now. */
@@ -40,6 +45,11 @@ const vms = (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'VM' : 'VMs
 const its = (n: number) => (n === 1 ? 'Its VM' : `Its ${vms(n)}`)
 const their = (n: number) => (n === 1 ? 'This VM' : `These ${vms(n)}`)
 const name = (r: ReasonIn, fallback: string) => r.scope?.name ?? fallback
+/** A moment a sentence names: through the screen's formatter when it gave one, else the day alone ("Nov 2"). */
+const day = (c: CauseIn, iso: string | null | undefined) => {
+  if (!iso || !Number.isFinite(Date.parse(iso))) return 'an earlier date'
+  return c.at ? c.at(iso) : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(iso))
+}
 
 /** The check a restore test runs, in words (internal/verify's check names). */
 export function checkName(check: string | undefined): string {
@@ -94,6 +104,13 @@ export const reasons: Record<string, Def> = {
     short: () => 'its SSH key was never confirmed',
     long: (c) => `Gaia does not connect to ${name(c, 'this host')} until someone confirms its SSH key, so ${c.count === 1 ? 'its VM is' : `its ${vms(c.count)} are`} not backed up.`,
     todo: 'On Inventory → Hosts, read the host key, compare its fingerprint with the host’s own, and trust it.',
+  },
+  host_key_changed: {
+    title: 'Host presents a different SSH key',
+    vm: (r) => `Host ${name(r, '?')} presents a different SSH key`,
+    short: () => 'its SSH key is not the pinned one',
+    long: (c) => `${name(c, 'This host')} presents a different SSH host key than the one pinned on ${day(c, c.params?.pinned_at)}. Gaia reads nothing from it until an admin checks and accepts the new key.`,
+    todo: 'On Inventory → Hosts, compare the new key’s fingerprint with the host’s own (ssh-keygen -lf on the host). Accept it only if they match; otherwise treat the host as compromised.',
   },
   backup_failing: {
     title: 'Backups fail',

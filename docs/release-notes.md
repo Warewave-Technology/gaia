@@ -24,6 +24,12 @@
 - Reason codes, the status table, paged views and tags (T24); parallel restore tests in sandbox slots and the proof
   capacity view (T25).
 - Reason codes version 2: `host_key_untrusted` (a host whose SSH key was never trusted is one cause for all its VMs).
+- Reason codes version 3: `host_key_changed` (a host that presents an SSH key other than the pinned one is its own
+  cause, not "backups fail"). Gaia keeps the presented key and reads nothing from the host until an admin compares
+  the fingerprints and accepts it on Inventory → Hosts (`POST /api/v1/hosts/{id}/accept-key`, with a step-up). It is
+  never accepted automatically; `POST /api/v1/hosts/{id}/trust` no longer replaces a pinned key (409).
+- While the sandbox helper does not answer, the proof capacity is modelled from the slot count it last reported
+  (`slots_source: last_known`, `slots_at`), shown as "last known: 2 slots, at 14:02".
 - A policy says how much of the time its VMs can be OK at best (`max_ok_fraction`) and which test interval would make
   it always possible (`suggested_test_interval_s`). OK/WARNING changes caused only by the proof's age on such a policy
   are counted in the daily report instead of being notified one by one.
