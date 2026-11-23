@@ -457,3 +457,37 @@ func TestSettle(t *testing.T) {
 		t.Errorf("default settle_s: %+v", c)
 	}
 }
+
+// A guest whose own checks did not pass leaves what it wrote for the caller (Options.KeepDisks, ADR-005 C); one that
+// passed, or that never started, leaves nothing.
+func TestKeepDisks(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		started bool
+		checks  []CheckResult
+		kept    bool
+	}{
+		{"stable failed", true, []CheckResult{{Name: "conversion", Verdict: Warning}, {Name: "boot", Verdict: OK}, {Name: "stable", Verdict: Critical}}, true},
+		{"all passed", true, []CheckResult{{Name: "conversion", Verdict: Warning}, {Name: "boot", Verdict: OK}, {Name: "stable", Verdict: OK}}, false},
+		{"never started", false, []CheckResult{{Name: "conversion", Verdict: OK}, {Name: "boot", Verdict: Critical}}, false},
+	} {
+		work, keep := t.TempDir(), t.TempDir()
+		ov := filepath.Join(work, "overlay.qcow2")
+		os.WriteFile(ov, []byte("what the guest wrote"), 0o600)
+		x := &run{o: Options{KeepDisks: keep, PreChecks: tc.checks[:1]}, r: &Result{BundleID: "vm1-20261123T080000Z-abc123", Checks: tc.checks},
+			overlays: []string{ov}, disks: []DiskImage{{Target: "vda"}}}
+		if tc.started {
+			x.t0 = time.Now()
+		}
+		x.keepDisks()
+		_, err := os.Stat(filepath.Join(keep, "vm1-20261123T080000Z-abc123-after-vda.qcow2"))
+		if (err == nil) != tc.kept || (len(x.r.KeptDisks) == 1) != tc.kept || len(x.r.Errors) > 0 {
+			t.Errorf("%s: kept %v (%v), errors %v", tc.name, x.r.KeptDisks, err, x.r.Errors)
+		}
+		if tc.kept {
+			if fi, _ := os.Stat(filepath.Join(keep, x.r.KeptDisks[0])); fi.Mode().Perm() != 0o640 {
+				t.Errorf("%s: mode %v", tc.name, fi.Mode())
+			}
+		}
+	}
+}
