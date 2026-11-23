@@ -413,7 +413,7 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 		switch {
 		case cctx.Err() != nil:
 			res.State, res.Detail = "not_run", fmt.Sprintf("the conversion did not end within %s", timeout)
-		case errors.As(runErr, &ee) && ee.ExitCode() == exitNoSuchDriver:
+		case len(res.ExcludedDrivers) > 0 && errors.As(runErr, &ee) && (ee.ExitCode() == exitNoSuchDriver || ee.ExitCode() == exitPrepare):
 			res.State, res.Detail = "not_run", errorLine(logPath)
 		}
 		return res
@@ -440,11 +440,14 @@ func (s *service) run(ctx context.Context, req Request, job string) Result {
 // excludeScript runs in the converter image ahead of virt-v2v (its arguments) when drivers are left out: it unpacks
 // virtio-win's ISO with libguestfs, removes every folder and file named after each driver in $GAIA_EXCLUDE (smbus:
 // smbus/ and smbus.*, at any depth, in any case), lists what it removed in /out/gaia-excluded.txt, and runs virt-v2v
-// with VIRTIO_WIN on the rest. A name with nothing to remove is an operator's mistake: exit 64, nothing converted.
+// with VIRTIO_WIN on the rest. A name with nothing to remove is an operator's mistake: exit 64, nothing converted; any
+// other failure before virt-v2v runs is Gaia's own (exit 66): not checked, never "virt-v2v refused the guest".
 const excludeScript = `set -euo pipefail
+trap 'echo "gaia: error: preparing virtio-win without $GAIA_EXCLUDE failed: $BASH_COMMAND" >&2; exit 66' ERR
 tree=/tmp/virtio-win
 mkdir "$tree"
 guestfish --ro --format=raw -a /virtio-win.iso -m /dev/sda tar-out / - | tar -x -C "$tree"
+chmod -R u+w "$tree" # an ISO's files and folders are read-only
 : >/out/gaia-excluded.txt
 for d in $GAIA_EXCLUDE; do
 	found=$(find "$tree" \( -iname "$d" -o -iname "$d.*" \) -print -prune)
@@ -463,6 +466,7 @@ exec "$@"
 const (
 	excludedList     = "gaia-excluded.txt" // in JOB-out
 	exitNoSuchDriver = 64
+	exitPrepare      = 66
 )
 
 // CheckExcludeDrivers validates a list of virtio-win driver names (ADR-005 C).

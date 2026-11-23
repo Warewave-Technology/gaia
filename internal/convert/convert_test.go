@@ -99,17 +99,34 @@ func TestExcludeScript(t *testing.T) {
 		os.MkdirAll(filepath.Join(iso, filepath.Dir(f)), 0o755)
 		os.WriteFile(filepath.Join(iso, f), []byte(f), 0o644)
 	}
+	// as on the ISO: read-only files and folders
+	filepath.Walk(iso, func(p string, fi os.FileInfo, err error) error {
+		if err == nil && p != iso {
+			defer os.Chmod(p, map[bool]os.FileMode{true: 0o555, false: 0o444}[fi.IsDir()])
+		}
+		return err
+	})
+	t.Cleanup(func() {
+		filepath.Walk(d, func(p string, fi os.FileInfo, err error) error {
+			if err == nil {
+				os.Chmod(p, 0o755)
+			}
+			return nil
+		})
+	})
 	os.MkdirAll(out, 0o755)
 	os.MkdirAll(bin, 0o755)
 	os.WriteFile(filepath.Join(bin, "guestfish"), []byte("#!/bin/sh\nexec tar -c -C '"+iso+"' .\n"), 0o755)
 	script := strings.NewReplacer("/out/", out+"/", "/tmp/virtio-win", filepath.Join(d, "tree")).Replace(excludeScript)
-	run := func(exclude string) (string, error) {
+	runWith := func(edit func(string) string, exclude string) (string, error) {
+		exec.Command("chmod", "-R", "u+w", filepath.Join(d, "tree")).Run() // a run that failed left it read-only
 		os.RemoveAll(filepath.Join(d, "tree"))
-		cmd := exec.Command("bash", "-c", script, "exclude", "sh", "-c", `echo "VIRTIO_WIN=$VIRTIO_WIN"; find "$VIRTIO_WIN" -type f | sed "s|^$VIRTIO_WIN/||" | sort`)
+		cmd := exec.Command("bash", "-c", edit(script), "exclude", "sh", "-c", `echo "VIRTIO_WIN=$VIRTIO_WIN"; find "$VIRTIO_WIN" -type f | sed "s|^$VIRTIO_WIN/||" | sort`)
 		cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "GAIA_EXCLUDE="+exclude)
 		b, err := cmd.CombinedOutput()
 		return string(b), err
 	}
+	run := func(exclude string) (string, error) { return runWith(func(sc string) string { return sc }, exclude) }
 	got, err := run("smbus netkvm") // names match in any case, as Windows does
 	if err != nil {
 		t.Fatalf("%v: %s", err, got)
@@ -130,6 +147,13 @@ func TestExcludeScript(t *testing.T) {
 	}
 	if want := []string{"NetKVM", "amd64/2k22/smbus.sys", "smbus"}; !slicesEqualSorted(paths, want) {
 		t.Errorf("excluded paths %q, want %q", paths, want)
+	}
+	// a step before virt-v2v that fails is Gaia's, exit 66 (here: a tree left without write permission)
+	if got, err := runWith(func(sc string) string { return strings.Replace(sc, `chmod -R u+w "$tree"`, "false", 1) }, "smbus"); err == nil ||
+		!strings.Contains(got, "gaia: error: preparing virtio-win") {
+		t.Errorf("a failed step: %v: %s", err, got)
+	} else if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() != exitPrepare {
+		t.Errorf("a failed step exits %v, want %d", err, exitPrepare)
 	}
 	if got, err := run("smbus nosuchdriver"); err == nil || !strings.Contains(got, "virtio-win has no driver named nosuchdriver") {
 		t.Errorf("an unknown driver: %v: %s", err, got)
