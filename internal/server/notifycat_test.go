@@ -282,7 +282,7 @@ func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 	if err := cfg.resolve(); err != nil {
 		t.Fatal(err)
 	}
-	// The database as 0.1.2 left it (schema 10), with two channels.
+	// The database as 0.1.2 left it (schema 8, tag v0.1.2), with two channels.
 	for _, p := range []string{"", "-wal", "-shm"} {
 		if err := os.Remove(cfg.dbPath() + p); err != nil && !os.IsNotExist(err) {
 			t.Fatal(err)
@@ -292,7 +292,7 @@ func TestUpgradedM2ChannelsGetNewEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := old.Migrate(ctx, 10); err != nil {
+	if _, err := old.Migrate(ctx, 8); err != nil {
 		t.Fatal(err)
 	}
 	sinks := map[string]*webhookSink{}

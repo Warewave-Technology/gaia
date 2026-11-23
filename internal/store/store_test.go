@@ -76,8 +76,9 @@ func TestMigrationsFromEmpty(t *testing.T) {
 
 // A database at the previous schema version, with data in it, migrates to the latest: the data is kept and the
 // schema ends up exactly as on a database migrated from empty.
-// releasedSchema is the schema of the previous release (0.1.2), which this package upgrades (CLAUDE.md rule 12).
-const releasedSchema = 10
+// releasedSchema is the schema of the previous release, 0.1.2 (tag v0.1.2: migrations 1-8), which this package upgrades
+// (CLAUDE.md rule 12). Schemas 9 and up came with package M3.
+const releasedSchema = 8
 
 func TestMigrationFromPreviousSchema(t *testing.T) {
 	ctx := context.Background()
@@ -99,8 +100,17 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		VALUES ('kvm2', '10.0.0.2', 'root', 'ssh-ed25519 AAAA2', ?, '2026-11-10T08:00:00Z'), ('kvm3', '10.0.0.3', 'root', 'ssh-ed25519 AAAA3', ?, '2026-11-11T08:00:00Z')`, now, now); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code)
-		VALUES ('2026-11-09T07:00:00Z', 'host_key', 2, 'untrusted', 'trusted', 'host key SHA256:x trusted by admin', 'admin', '')`); err != nil {
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor)
+		VALUES ('2026-11-09T07:00:00Z', 'host_key', 2, 'untrusted', 'trusted', 'host key SHA256:x trusted by admin', 'admin')`); err != nil {
+		t.Fatal(err)
+	}
+	// Schema 9 (ADR-007 C1): a VM and its stored status from 0.1.2; the status table gains its columns, empty until the
+	// server's start recomputes it (rank UNKNOWN, no code).
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO vms (host_id, name, created_at, updated_at) VALUES (1, 'web1', ?, ?)`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO vm_status (vm_id, status, reason, result, changed_at, computed_at)
+		VALUES (1, 'WARNING', 'proof too old', '{}', ?, ?)`, now, now); err != nil {
 		t.Fatal(err)
 	}
 	// Schema 11 (ADR-008): the earlier sessions end, admins become break-glass, auditors get an expiry.
@@ -112,13 +122,14 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 		VALUES ('abc', 1, ?, ?, ?, '10.0.0.9')`, now, now, now); err != nil {
 		t.Fatal(err)
 	}
-	// Schema 13 (ADR-007 C12, C14): a ledger check from before was a full one; a status change from before has no codes.
+	// Schema 9 and 13 (ADR-007 C3, C12, C14): a ledger check from before was a full one; a status change from 0.1.2 has
+	// no code (codes came with schema 9) and no reason codes.
 	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO ledger_checks (checked_at, reason, verdict, entries, head_seq, head_sha256)
 		VALUES (?, 'daily report', 'OK', 3, 3, 'abc')`, now); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor, code)
-		VALUES (?, 'vm_status', 1, 'OK', 'WARNING', 'x', 'system', 'proof_too_old')`, now); err != nil {
+	if _, err := old.SQL().ExecContext(ctx, `INSERT INTO state_changes (at, entity, entity_id, from_state, to_state, reason, actor)
+		VALUES (?, 'vm_status', 1, 'OK', 'WARNING', 'x', 'system')`, now); err != nil {
 		t.Fatal(err)
 	}
 	// Schema 14 (ADR-007 C8): channels of 0.1.2 with their event lists (0.1.2's default list, one event, the report
@@ -154,8 +165,14 @@ func TestMigrationFromPreviousSchema(t *testing.T) {
 	if cs, err := old.LedgerChecks(ctx, 5); err != nil || len(cs) != 1 || cs[0].Kind != LedgerCheckFull || cs[0].Entries != 3 {
 		t.Fatalf("ledger checks after the upgrade %+v %v", cs, err)
 	}
-	if ch, err := old.VMStatusChangesSince(ctx, ""); err != nil || len(ch) != 1 || ch[0].Code != "proof_too_old" || ch[0].FromCodes != nil || ch[0].ToCodes != nil {
+	if ch, err := old.VMStatusChangesSince(ctx, ""); err != nil || len(ch) != 1 || ch[0].Code != "" || ch[0].To != "WARNING" || ch[0].FromCodes != nil || ch[0].ToCodes != nil {
 		t.Fatalf("status changes after the upgrade %+v %v", ch, err)
+	}
+	var st, code string
+	var rank int
+	if err := old.SQL().QueryRowContext(ctx, `SELECT v.name, s.status, s.code, s.rank FROM vms v JOIN vm_status s ON s.vm_id = v.id`).Scan(new(string), &st, &code, &rank); err != nil ||
+		st != "WARNING" || code != "" || rank != 1 {
+		t.Fatalf("a VM's status from 0.1.2 after the upgrade: %s %q %d %v", st, code, rank, err)
 	}
 	var n int
 	if err := old.SQL().QueryRowContext(ctx, `SELECT count(*) FROM sessions`).Scan(&n); err != nil || n != 0 {
