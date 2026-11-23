@@ -147,6 +147,9 @@ type LedgerReport struct {
 	Bundles  []BundleReport `json:"bundles"`
 	Heads    []HeadCheck    `json:"heads"`  // the head statements given, in order (head.go)
 	Intact   bool           `json:"intact"` // verdict OK
+	// LeftOut: bundles the ledger lists that a single-bundle export leaves out by design (VerifyLedgerBundle); their
+	// entries are verified, their bundles are not there to verify. Always 0 for a whole ledger's verification.
+	LeftOut int `json:"left_out,omitempty"`
 }
 
 func (r *LedgerReport) add(code, where, detail string) {
@@ -1172,7 +1175,7 @@ func VerifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey) (LedgerRe
 // VerifyLedgerHeads is VerifyLedger with head statements kept outside the ledger (§8.6): each must name an entry the
 // ledger still has, unchanged; a ledger shorter than a statement is ledger_truncated.
 func VerifyLedgerHeads(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte) (LedgerReport, error) {
-	return verifyLedger(ledger, bundlesDir, anchor, heads, 0, "")
+	return verifyLedger(ledger, bundlesDir, anchor, heads, 0, "", "")
 }
 
 // VerifyLedgerSince is an incremental VerifyLedgerHeads (ADR-007 C14): a check that already verified entries
@@ -1182,10 +1185,22 @@ func VerifyLedgerHeads(ledger, bundlesDir string, anchor ed25519.PublicKey, head
 // bundles they list are not verified again. Bundle directories without an entry are reported as in a full check.
 // checked 0 is a full check.
 func VerifyLedgerSince(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, checked int, checkedSHA256 string) (LedgerReport, error) {
-	return verifyLedger(ledger, bundlesDir, anchor, heads, checked, checkedSHA256)
+	return verifyLedger(ledger, bundlesDir, anchor, heads, checked, checkedSHA256, "")
 }
 
-func verifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, checked int, checkedSHA256 string) (LedgerReport, error) {
+// VerifyLedgerBundle is VerifyLedgerHeads for a single-bundle export (ADR-007 C18.6, Gaia's, not the specification's
+// §8.2): every entry of the ledger is verified, and bundle, which an entry must name, must be present and intact. The
+// other bundles the ledger lists are left out by design: those that are present are verified, those that are not are
+// counted (LeftOut), not reported as bundle_missing. A bundle directory no entry names is still bundle_unlisted.
+func VerifyLedgerBundle(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, bundle string) (LedgerReport, error) {
+	if bundle == "" {
+		return LedgerReport{}, errors.New("VerifyLedgerBundle: no bundle")
+	}
+	return verifyLedger(ledger, bundlesDir, anchor, heads, 0, "", bundle)
+}
+
+// verifyLedger: only, when set, is the one bundle that must be present (VerifyLedgerBundle).
+func verifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][]byte, checked int, checkedSHA256, only string) (LedgerReport, error) {
 	r := &LedgerReport{Ledger: ledger, Format: "v1", Findings: []Finding{}, Bundles: []BundleReport{}}
 	data, err := os.ReadFile(ledger)
 	switch {
@@ -1226,6 +1241,10 @@ func verifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][
 		}
 		dir := filepath.Join(bundlesDir, b.id)
 		if fi, err := os.Lstat(dir); err != nil || !fi.IsDir() { // a symbolic link is not a bundle
+			if only != "" && b.id != only && errors.Is(err, fs.ErrNotExist) {
+				r.LeftOut++ // a single-bundle export holds only its bundle
+				continue
+			}
 			r.add(CodeBundleMissing, b.id, fmt.Sprintf("line %d names bundle %s; there is no such directory", b.seq, b.id))
 			continue
 		}
@@ -1246,6 +1265,9 @@ func verifyLedger(ledger, bundlesDir string, anchor ed25519.PublicKey, heads [][
 			br.BundleID = b.id
 		}
 		r.Bundles = append(r.Bundles, br.done())
+	}
+	if only != "" && !listed[only] {
+		r.add(CodeBundleMissing, only, fmt.Sprintf("the export is of bundle %s; no ledger entry names it", only))
 	}
 	r.unlisted(bundlesDir, listed)
 	return r.done(), nil

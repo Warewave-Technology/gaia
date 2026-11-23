@@ -1,14 +1,10 @@
 package server
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -198,92 +194,6 @@ func writeExclusive(path string, data []byte, mode os.FileMode) error {
 		return err
 	}
 	return f.Close()
-}
-
-// exportEvidence answers a tar.gz with the bundle, the ledger and the ledger's genesis key, ready for
-// `gaia evidence verify` (or any verifier of the specification).
-func (s *Server) exportEvidence(c *call) (int, any, error) {
-	id, err := c.id("id")
-	if err != nil {
-		return 0, nil, err
-	}
-	e, err := s.db.Evidence(c.r.Context(), id)
-	if err != nil {
-		return 0, nil, err
-	}
-	c.target = "evidence:" + e.BundleID
-	anchor, err := evidence.GenesisKey(s.cfg.ledgerPath())
-	if err != nil {
-		return 0, nil, err
-	}
-	root := "gaia-evidence-" + e.BundleID
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	add := func(name string, body []byte) error {
-		if err := tw.WriteHeader(&tar.Header{Name: root + "/" + name, Mode: 0o644, Size: int64(len(body)), ModTime: time.Now().UTC()}); err != nil {
-			return err
-		}
-		_, err := tw.Write(body)
-		return err
-	}
-	ledger, err := os.ReadFile(s.cfg.ledgerPath())
-	if err != nil {
-		return 0, nil, err
-	}
-	keyID := evidence.KeyID(anchor)
-	readme := fmt.Sprintf(`Evidence bundle %s, exported %s.
-
-Verify it (Restore Evidence Format v1, docs/spec/evidence-v1.md) with:
-  gaia evidence verify -pubkey anchor.pub -ledger ledger.jsonl -evidence-dir bundles
-
-anchor.pub is this installation's trust anchor, key_id %s. A verifier must not take the trust anchor from the
-data it verifies: compare that key_id with the one you recorded when Gaia was installed.
-The ledger lists every bundle; this export holds only %s, so the other bundles show up as bundle_missing.
-`, e.BundleID, time.Now().UTC().Format(time.RFC3339), keyID, e.BundleID)
-	if err := add("README.txt", []byte(readme)); err != nil {
-		return 0, nil, err
-	}
-	if err := add("anchor.pub", []byte(base64.StdEncoding.EncodeToString(anchor)+"\n")); err != nil {
-		return 0, nil, err
-	}
-	if err := add("ledger.jsonl", ledger); err != nil {
-		return 0, nil, err
-	}
-	dir := filepath.Join(s.cfg.bundlesDir(), e.BundleID)
-	err = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		if !d.Type().IsRegular() {
-			return fmt.Errorf("%s: not a regular file", p)
-		}
-		b, err := os.ReadFile(p)
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(s.cfg.bundlesDir(), p)
-		return add("bundles/"+filepath.ToSlash(rel), b)
-	})
-	if err != nil {
-		return 0, nil, fmt.Errorf("bundle %s: %w", e.BundleID, err)
-	}
-	if err := tw.Close(); err != nil {
-		return 0, nil, err
-	}
-	if err := gz.Close(); err != nil {
-		return 0, nil, err
-	}
-	c.raw = true
-	c.detail = fmt.Sprintf("exported %s (%d bytes)", e.BundleID, buf.Len())
-	h := c.w.Header()
-	h.Set("Content-Type", "application/gzip")
-	h.Set("Content-Disposition", `attachment; filename="`+root+`.tar.gz"`)
-	c.w.WriteHeader(http.StatusOK)
-	if _, err := io.Copy(c.w, &buf); err != nil {
-		s.log.Error("sending an evidence export", "bundle", e.BundleID, "error", err)
-	}
-	return http.StatusOK, nil, nil
 }
 
 func errText(err error) string {

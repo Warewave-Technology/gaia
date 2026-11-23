@@ -195,3 +195,70 @@ func TestExportVerification(t *testing.T) {
 		t.Fatal("a file verified as an export")
 	}
 }
+
+// EXPORT.json (ADR-007 C18.5, C18.6): what an export states about its record is reported, a not_recorded export is
+// UNKNOWN (never OK), a single-bundle export verifies its one bundle with the whole ledger and counts the others as
+// left out, and an EXPORT.json that cannot be read falls back to the full verification.
+func TestExportManifestRecord(t *testing.T) {
+	key, pub, _ := keys(t)
+	good := makeExport(t, key)
+	manifest := func(scope, record string) string {
+		return `{"format": "gaia-evidence-export", "format_version": 1, "name": "gaia-evidence-x", "by": {"user": "auditor1"}, "scope": ` + scope +
+			`, "ledger_record": ` + record + `}`
+	}
+	all := `{"kind": "all", "ledger_entries": 3}`
+	cases := []struct {
+		name    string
+		body    string
+		remove  []string // bundle directories removed from the export
+		verdict string
+		codes   []string
+		state   string
+		left    int
+	}{
+		{"sealed after the export", manifest(all, `{"state": "sealed_after_export", "bundle_id": "export-2"}`), nil, OK, nil, ExportRecordSealedAfter, 0},
+		{"not recorded, pending", manifest(all, `{"state": "not_recorded", "bundle_id": "export-2", "reason": "the ledger is not intact"}`), nil,
+			Unknown, []string{CodeExportNotRecorded}, ExportRecordNotRecorded, 0},
+		{"not recorded, not kept", manifest(all, `{"state": "not_recorded", "reason": "disk full"}`), nil, Unknown, []string{CodeExportNotRecorded},
+			ExportRecordNotRecorded, 0},
+		{"single bundle", manifest(`{"kind": "bundle", "bundle": "b1"}`, `{"state": "audit_only"}`), []string{"export-1"}, OK, nil, ExportRecordAuditOnly, 1},
+		{"single bundle, its bundle removed", manifest(`{"kind": "bundle", "bundle": "b1"}`, `{"state": "audit_only"}`), []string{"b1", "export-1"},
+			Critical, []string{CodeBundleMissing}, ExportRecordAuditOnly, 1},
+		{"single bundle the ledger does not list", manifest(`{"kind": "bundle", "bundle": "b9"}`, `{"state": "audit_only"}`), []string{"b1", "export-1"},
+			Critical, []string{CodeBundleMissing}, ExportRecordAuditOnly, 2},
+		{"a full export with a bundle removed", manifest(all, `{"state": "sealed_after_export", "bundle_id": "export-2"}`), []string{"export-1"},
+			Critical, []string{CodeBundleMissing}, ExportRecordSealedAfter, 0},
+		{"not JSON", "{", nil, Unknown, []string{CodeExportManifestMalformed}, "", 0},
+		{"unknown state", manifest(all, `{"state": "recorded_maybe", "bundle_id": "export-2"}`), nil, Unknown, []string{CodeExportManifestMalformed}, "", 0},
+		{"audit_only for a full export", manifest(all, `{"state": "audit_only"}`), nil, Unknown, []string{CodeExportManifestMalformed}, "", 0},
+		{"malformed, a bundle removed: the full verification", manifest(`{"kind": "bundle"}`, `{"state": "audit_only"}`), []string{"export-1"},
+			Critical, []string{CodeExportManifestMalformed, CodeBundleMissing}, "", 0},
+	}
+	for _, c := range cases {
+		d := copyDir(t, good)
+		os.WriteFile(filepath.Join(d, ExportManifestFile), []byte(c.body+"\n"), 0o644)
+		for _, b := range c.remove {
+			os.RemoveAll(filepath.Join(d, ExportBundlesDir, b))
+		}
+		resign(t, d, key)
+		r, err := VerifyExport(d, pub, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var cs []string
+		for _, f := range r.AllFindings() {
+			cs = append(cs, f.Code)
+		}
+		slices.Sort(cs)
+		want := slices.Sorted(slices.Values(c.codes))
+		if r.Verdict != c.verdict || !slices.Equal(slices.Compact(cs), want) || r.Record.State != c.state || r.Ledger.LeftOut != c.left ||
+			r.Record.Manifest != ExportManifestFile {
+			t.Errorf("%s: want %s %v %q left %d, got %s %v %+v left %d", c.name, c.verdict, want, c.state, c.left, r.Verdict, r.AllFindings(), r.Record, r.Ledger.LeftOut)
+		}
+	}
+	// Without EXPORT.json (an export made before 0.2.0): scope all, the record not stated, no finding.
+	r, err := VerifyExport(good, pub, nil)
+	if err != nil || r.Verdict != OK || r.Record.Manifest != "" || r.Record.Scope != ExportScopeAll || r.Record.State != "" {
+		t.Fatalf("no EXPORT.json: %v %+v", err, r.Record)
+	}
+}

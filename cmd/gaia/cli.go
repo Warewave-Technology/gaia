@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Warewave-Technology/gaia/internal/client"
+	"github.com/Warewave-Technology/gaia/internal/verify"
 )
 
 // The CLI side of gaia server: every command is an API call (ADR-007 §6).
@@ -335,12 +336,21 @@ func writeExport(ctx context.Context, c *client.Client, path, out string, rest [
 	if err := os.WriteFile(out, b, 0o644); err != nil {
 		return fail(asJSON, cmd, err)
 	}
-	// The auditor's export is recorded as an evidence bundle in the ledger (ADR-007 C7); the server names it.
+	// The auditor's export is recorded as an evidence bundle in the ledger (ADR-007 C7); the server names it. One the
+	// ledger could not record is given all the same (C18.5): the server says why, and the record it keeps to append
+	// later. That is a WARNING (exit 1): the file is written and complete.
 	recorded := h.Get("X-Gaia-Export-Bundle")
+	notRecorded, pending := h.Get("X-Gaia-Export-Not-Recorded"), h.Get("X-Gaia-Export-Pending-Record")
 	if asJSON {
 		v := map[string]any{"command": cmd, "file": out, "bytes": len(b)}
 		if recorded != "" {
 			v["recorded_as"] = recorded
+		}
+		if notRecorded != "" {
+			v["verdict"], v["not_recorded"] = verify.Warning, notRecorded
+			if pending != "" {
+				v["pending_record"] = pending
+			}
 		}
 		emit(v)
 	} else {
@@ -348,6 +358,17 @@ func writeExport(ctx context.Context, c *client.Client, path, out string, rest [
 		if recorded != "" {
 			fmt.Printf("the export is recorded in the evidence ledger as bundle %s\n", recorded)
 		}
+		if notRecorded != "" {
+			fmt.Printf("WARNING: the export is NOT recorded in the evidence ledger: %s\n", notRecorded)
+			if pending != "" {
+				fmt.Printf("the server keeps its record and appends it as bundle %s with its next successful ledger write\n", pending)
+			} else {
+				fmt.Printf("the server could not keep its record either: the audit log entry is its only record\n")
+			}
+		}
+	}
+	if notRecorded != "" {
+		return verify.ExitCode(verify.Warning)
 	}
 	return 0
 }

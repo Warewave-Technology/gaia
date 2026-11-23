@@ -206,6 +206,7 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 		LedgerSeq: e.Seq, BundleSHA256: sum, Verdict: res.Verdict}); err != nil {
 		return "", "", "", nil, err
 	}
+	s.afterLedgerWrite(ctx) // the ledger takes entries: the records of exports it could not record follow (ADR-007 C18.5)
 	if v, ok := res.Timings["proven_rto"]; ok && res.Verdict == verify.OK {
 		rto = &v
 	}

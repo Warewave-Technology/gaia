@@ -16,6 +16,8 @@
 #      it: CRITICAL), SHA256SUMS.sig removed (UNKNOWN, never OK), SHA256SUMS.sig naming another key (CRITICAL),
 #      export 1's record changed (CRITICAL in both verifiers)
 #   5. for information, not in the verdict: SHA256SUMS.sig checked with openssl, when it has Ed25519 (OpenSSL 3 or later)
+#   6. (T29, ADR-007 C18.6) a single-bundle export of a restore test's bundle: sha256sum -c, gaia evidence verify
+#      -export OK with a valid signature and EXPORT.json's record audit_only; a copy with a bundle file changed CRITICAL
 #
 # Usage:
 #   lab/lab-vm/t28-export.sh local [OUT]   any machine with Go, python3, jq, sha256sum (or shasum): a test server in
@@ -85,9 +87,12 @@ lab)
 	done
 	ws ledger check -json >"$S/ledger-check.json" || true # its exit code is the ledger's verdict, judged below
 	ws evidence list limit=10 -json >"$S/evidence-list.json"
+	tid=$(jq -r '[.[] | select(.test_id != null)][0].id // empty' "$S/evidence-list.json")
+	[[ -n $tid ]] || { echo "UNKNOWN: no restore test bundle among the newest 10 evidence bundles"; exit 3; }
+	sk -o "$S/single-1.tar.gz" GET "/api/v1/evidence/$tid/export"
 	;;
 *)
-	sed -n '2,32p' "$0"
+	sed -n '2,34p' "$0"
 	exit 3
 	;;
 esac
@@ -208,7 +213,22 @@ open(sys.argv[3],"wb").write(base64.b64decode(s["signature"]))' "$X2/SHA256SUMS.
 fi
 echo "openssl: $openssl_result"
 
+echo "== 6. the single-bundle export (ADR-007 C18.6)"
+mkdir -p "$OUT/xs" && tar -C "$OUT/xs" -xzf "$S/single-1.tar.gz"
+XS=$(find "$OUT/xs" -mindepth 1 -maxdepth 1 -type d)
+single_sums_ok=true
+(cd "$XS" && sha -c --quiet SHA256SUMS) || single_sums_ok=false
+gv -pubkey "$XS/anchor.pub" -export "$XS"
+gv -pubkey "$XS/anchor.pub" -export "$XS" -json >"$OUT/gaia-verify-single.json" || true
+gs=$rc
+N=$OUT/neg-single && rm -rf "$N" && cp -a "$XS" "$N"
+printf 'x' >>"$(find "$N/bundles" -mindepth 2 -maxdepth 2 -name manifest.json | head -1)"
+gv -pubkey "$N/anchor.pub" -export "$N" -json >"$OUT/neg-single-gaia.json" || true
+jq -n --argjson g "$rc" --argjson gc "$(codes "$OUT/neg-single-gaia.json")" '{gaia: {exit: $g, codes: $gc}}' >"$OUT/neg-single.json"
+echo "single: exit $gs; bundle changed: $(jq -c . "$OUT/neg-single.json")"
+
 jq -n --arg mode "$mode" --slurpfile sys "$S/system.json" --slurpfile lc "$S/ledger-check.json" \
+	--slurpfile gs "$OUT/gaia-verify-single.json" --slurpfile ns "$OUT/neg-single.json" --argjson gsrc "$gs" --argjson single_sums_ok "$single_sums_ok" \
 	--slurpfile g1 "$OUT/gaia-verify-1.json" --slurpfile g2 "$OUT/gaia-verify-2.json" \
 	--slurpfile p1 "$OUT/python-verify-1.json" --slurpfile p2 "$OUT/python-verify-2.json" \
 	--slurpfile man "$OUT/record-manifest.json" \
@@ -230,6 +250,10 @@ jq -n --arg mode "$mode" --slurpfile sys "$S/system.json" --slurpfile lc "$S/led
 	 server_ledger_check: ($lc[0] | {verdict, kind, entries, head_seq}),
 	 negative: {readme_and_its_sum_changed: ($nr[0] + {sha256sum_c_ok: $readme_sums_ok}), signature_removed: $nn[0],
 	            signature_names_other_key: $nk[0], record_changed: $nc[0]},
+	 single_bundle: {sha256sums_ok: $single_sums_ok,
+	                 gaia: {exit: $gsrc, verdict: $gs[0].verdict, record: ($gs[0].report.record | {scope, bundle, state}),
+	                        sums: ($gs[0].report.sums | {listed, matching, signature_valid, key_id}), left_out: ($gs[0].report.ledger.left_out // 0)},
+	                 bundle_changed: $ns[0]},
 	 openssl_sha256sums_sig: $openssl}
 	| . + {pass: (
 	    .sha256sums_ok
@@ -257,7 +281,13 @@ jq -n --arg mode "$mode" --slurpfile sys "$S/system.json" --slurpfile lc "$S/led
 	    and .negative.signature_names_other_key.gaia.exit == 2
 	    and (.negative.signature_names_other_key.gaia.codes | index("sums_key_mismatch")) != null
 	    and .negative.record_changed.gaia.exit == 2 and .negative.record_changed.python.exit == 2
-	    and (.negative.record_changed.python.codes | index("file_modified")) != null)}
+	    and (.negative.record_changed.python.codes | index("file_modified")) != null
+	    and .single_bundle.sha256sums_ok
+	    and .single_bundle.gaia.exit == 0 and .single_bundle.gaia.verdict == "OK"
+	    and .single_bundle.gaia.record.scope == "bundle" and .single_bundle.gaia.record.state == "audit_only"
+	    and .single_bundle.gaia.sums.signature_valid and .single_bundle.gaia.sums.key_id == .key_ids.server
+	    and .single_bundle.bundle_changed.gaia.exit == 2
+	    and (.single_bundle.bundle_changed.gaia.codes | index("sums_file_modified")) != null)}
 	| . + {verdict: (if .pass then "OK" else "CRITICAL" end)}' | tee "$OUT/gate.json"
 echo "out: $OUT"
 [[ $(jq -r .verdict "$OUT/gate.json") == OK ]] || exit 2
