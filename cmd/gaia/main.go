@@ -229,7 +229,7 @@ func cmdEvidenceVerify(args []string) int {
 	fs := flag.NewFlagSet("evidence verify", flag.ExitOnError)
 	pubPath := fs.String("pubkey", "", "trust anchor: the ledger's genesis key, or the key that signed -bundle (PEM, or base64 of the raw 32 bytes); without it the verdict is at best UNKNOWN")
 	bundle := fs.String("bundle", "", "check one bundle directory")
-	export := fs.String("export", "", "check an evidence export directory (the unpacked gaia evidence export-all): SHA256SUMS, its signature, the ledger, the bundles and the export's ledger head")
+	export := fs.String("export", "", "check an evidence export directory (the unpacked gaia evidence export-all, or gaia evidence export ID: one bundle with the whole ledger): SHA256SUMS, its signature, what EXPORT.json says of its record, the ledger, the bundles and the export's ledger head")
 	ledger := fs.String("ledger", "", "check the ledger and every bundle it lists")
 	evDir := fs.String("evidence-dir", "", "the bundles' directory (with -ledger)")
 	var heads []string
@@ -332,8 +332,33 @@ func printExport(r evidence.ExportReport) {
 	default:
 		fmt.Printf("  SHA256SUMS.sig: NOT a valid signature by key %s\n", sm.KeyID)
 	}
+	rec := r.Record
+	switch {
+	case rec.Manifest == "":
+		fmt.Printf("  export: no %s (made before 0.2.0): scope all, its record not stated\n", evidence.ExportManifestFile)
+	case rec.Scope == evidence.ExportScopeBundle:
+		fmt.Printf("  export: bundle %s with the whole ledger; record: %s\n", rec.Bundle, orNone(rec.State))
+	default:
+		fmt.Printf("  export: all bundles; record: %s\n", orNone(rec.State))
+	}
+	switch rec.State {
+	case evidence.ExportRecordSealedAfter:
+		fmt.Printf("  record: bundle %s, sealed after this export was complete: not in it (the server's ledger and later exports hold it)\n", rec.BundleID)
+	case evidence.ExportRecordNotRecorded:
+		pending := "not kept: the audit log entry is its only record"
+		if rec.BundleID != "" {
+			pending = "pending as bundle " + rec.BundleID + ", appended with the server's next successful ledger write"
+		}
+		fmt.Printf("  record: NOT recorded in the ledger when given: %s; %s\n", rec.Reason, pending)
+	case evidence.ExportRecordAuditOnly:
+		fmt.Printf("  record: none in the ledger by design (a single-bundle export is an audit log entry)\n")
+	}
 	l := r.Ledger
-	fmt.Printf("  ledger: %s, %d entries, %d bundles, keys %s\n", l.Verdict, l.Entries, len(l.Bundles), orNone(strings.Join(l.Keys, ", ")))
+	left := ""
+	if l.LeftOut > 0 {
+		left = fmt.Sprintf(" (%d more left out of this export by design)", l.LeftOut)
+	}
+	fmt.Printf("  ledger: %s, %d entries, %d bundles%s, keys %s\n", l.Verdict, l.Entries, len(l.Bundles), left, orNone(strings.Join(l.Keys, ", ")))
 	for i, h := range l.Heads {
 		name := ""
 		if i < len(r.HeadFiles) {
@@ -345,7 +370,11 @@ func printExport(r evidence.ExportReport) {
 		fmt.Printf("  head: none (the export has no daily report's head): a ledger cut short is not detected\n")
 	}
 	for _, e := range r.Exports {
-		fmt.Printf("  recorded export: bundle %s, entry %d, %s by %s, SHA256SUMS %s: %s\n", e.BundleID, e.LedgerSeq, e.Export, e.User, e.SumsSHA256, e.Verdict)
+		late := ""
+		if e.NotRecordedReason != "" {
+			late = " (recorded late: given while the ledger could not record it: " + e.NotRecordedReason + ")"
+		}
+		fmt.Printf("  recorded export: bundle %s, entry %d, %s by %s, SHA256SUMS %s: %s%s\n", e.BundleID, e.LedgerSeq, e.Export, e.User, e.SumsSHA256, e.Verdict, late)
 	}
 }
 

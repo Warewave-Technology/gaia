@@ -42,6 +42,13 @@ import (
 //
 // Unknown members are ignored. Any Ed25519 implementation checks it: decode public_key, check that its SHA-256 is
 // key_id, verify signature over SHA256SUMS's bytes.
+//
+// EXPORT.json (Gaia 0.2.0 and later; listed in SHA256SUMS like every other file) is the export's own manifest: format
+// "gaia-evidence-export", who made it, its scope (kind "all": every bundle; kind "bundle" with "bundle": one bundle and
+// the whole ledger, ADR-007 C18.6) and period, and ledger_record: {state, bundle_id, reason}, where state is
+// sealed_after_export (a full export, recorded as bundle_id once complete), not_recorded (a full export the ledger
+// could not record: reason; the server appends bundle_id with its next successful ledger write, ADR-007 C18.5) or
+// audit_only (a single-bundle export: an audit log entry, no ledger record). Unknown members are ignored.
 
 // Names and identifiers of the signed SHA256SUMS.
 const (
@@ -66,9 +73,17 @@ const (
 	CodeSumsKeyUnverifiable      = "sums_key_unverifiable"      // UNKNOWN: the ledger leads to no key to compare with
 )
 
+// Finding codes of what an export states about itself (EXPORT.json, ADR-007 C18.5): never OK, never CRITICAL. The
+// record of an export is sealed after the export is complete, so no export holds its own record; these codes say what
+// the export itself states.
+const (
+	CodeExportNotRecorded       = "export_not_recorded"       // UNKNOWN: the ledger could not record the export when it was given
+	CodeExportManifestMalformed = "export_manifest_malformed" // UNKNOWN: EXPORT.json cannot be read: its scope and record are not known
+)
+
 func sumsSeverity(code string) string {
 	switch code {
-	case CodeSumsSignatureMissing, CodeSumsSignatureUnsupported, CodeSumsKeyUnverifiable:
+	case CodeSumsSignatureMissing, CodeSumsSignatureUnsupported, CodeSumsKeyUnverifiable, CodeExportNotRecorded, CodeExportManifestMalformed:
 		return Unknown
 	}
 	return Critical
@@ -140,22 +155,43 @@ type ExportRecord struct {
 	SumsSHA256  string `json:"sha256sums_sha256"`
 	Export      string `json:"export"` // the export's directory name
 	CreatedTime string `json:"created"`
+	// NotRecordedReason: the export was given while the ledger could not record it (ADR-007 C18.5), and this record
+	// was appended later, with the next successful ledger write; why the ledger refused it then. "" for the others.
+	NotRecordedReason string `json:"not_recorded_reason,omitempty"`
+}
+
+// ExportOwnRecord is what an export states about itself in EXPORT.json (Gaia 0.2.0 and later): what it holds and its
+// record. No export holds its own record (it is sealed after the export is complete), so this is what the export
+// says, not something its ledger shows; a not_recorded export is UNKNOWN (export_not_recorded), never OK.
+type ExportOwnRecord struct {
+	Manifest string `json:"manifest"` // EXPORT.json, or "" when the export has none (made before 0.2.0)
+	Scope    string `json:"scope"`    // all (every bundle) or bundle (one bundle, the whole ledger); all when not stated
+	Bundle   string `json:"bundle,omitempty"`
+	// State: sealed_after_export (recorded as BundleID once the export was complete: the server's ledger and every
+	// later export hold it), not_recorded (the ledger refused the record; Gaia appends BundleID with the next
+	// successful ledger write), audit_only (a single-bundle export: an audit log entry, no ledger record), or ""
+	// (not stated: an export made before 0.2.0).
+	State    string    `json:"state"`
+	BundleID string    `json:"bundle_id,omitempty"`
+	Reason   string    `json:"reason,omitempty"`
+	Findings []Finding `json:"findings"`
 }
 
 // ExportReport is the verification of an export directory: SHA256SUMS against the files, its signature against the
 // ledger's current key, and the ledger with every bundle and head statement (specification §8.2).
 type ExportReport struct {
-	Dir       string         `json:"dir"`
-	Verdict   string         `json:"verdict"`
-	Sums      SumsReport     `json:"sums"`
-	HeadFiles []string       `json:"head_files"` // the head statements checked: the export's own, then those given
-	Ledger    LedgerReport   `json:"ledger"`
-	Exports   []ExportRecord `json:"recorded_exports"` // earlier exports this ledger records
+	Dir       string          `json:"dir"`
+	Verdict   string          `json:"verdict"`
+	Sums      SumsReport      `json:"sums"`
+	HeadFiles []string        `json:"head_files"` // the head statements checked: the export's own, then those given
+	Ledger    LedgerReport    `json:"ledger"`
+	Exports   []ExportRecord  `json:"recorded_exports"` // earlier exports this ledger records
+	Record    ExportOwnRecord `json:"record"`           // what the export states about itself (EXPORT.json)
 }
 
-// AllFindings returns the findings of SHA256SUMS, its signature, the ledger and its bundles.
+// AllFindings returns the findings of SHA256SUMS, its signature, the export's own record, the ledger and its bundles.
 func (r ExportReport) AllFindings() []Finding {
-	return append(slices.Clone(r.Sums.Findings), r.Ledger.AllFindings()...)
+	return append(append(slices.Clone(r.Sums.Findings), r.Record.Findings...), r.Ledger.AllFindings()...)
 }
 
 // The export's files with a fixed place.
@@ -163,12 +199,103 @@ const (
 	ExportLedgerFile  = "ledger.jsonl"
 	ExportBundlesDir  = "bundles"
 	ExportHeadPattern = "ledger-head-*.json"
+	// ExportManifestFile is the export's own manifest (Gaia 0.2.0 and later): its format, who made it, its scope and
+	// period, and its record in the ledger (member ledger_record). SHA256SUMS lists it like every other file.
+	ExportManifestFile = "EXPORT.json"
 )
+
+// EXPORT.json's format, scopes and record states.
+const (
+	ExportManifestFormat    = "gaia-evidence-export"
+	ExportScopeAll          = "all"
+	ExportScopeBundle       = "bundle"
+	ExportRecordSealedAfter = "sealed_after_export"
+	ExportRecordNotRecorded = "not_recorded"
+	ExportRecordAuditOnly   = "audit_only"
+)
+
+// readExportManifest reads the export's EXPORT.json. Without one (an export made before 0.2.0) the scope is all and
+// the record is not stated. One that cannot be read is export_manifest_malformed, and the scope is all: every bundle
+// the ledger lists must then be present.
+func readExportManifest(dir string) ExportOwnRecord {
+	r := ExportOwnRecord{Scope: ExportScopeAll, Findings: []Finding{}}
+	bad := func(err error) ExportOwnRecord {
+		r.Scope, r.Bundle, r.State, r.BundleID, r.Reason = ExportScopeAll, "", "", "", ""
+		r.Findings = append(r.Findings, Finding{Code: CodeExportManifestMalformed, Severity: sumsSeverity(CodeExportManifestMalformed), Where: ExportManifestFile,
+			Detail: err.Error() + ": what the export holds and its record are not known; every bundle the ledger lists is required"})
+		return r
+	}
+	b, err := readRegular(filepath.Join(dir, ExportManifestFile))
+	if errors.Is(err, fs.ErrNotExist) {
+		return r
+	}
+	r.Manifest = ExportManifestFile
+	if err != nil {
+		return bad(err)
+	}
+	m, err := parseObject(b)
+	if err != nil {
+		return bad(err)
+	}
+	if f, err := str(m, "format"); err != nil || f != ExportManifestFormat {
+		return bad(fmt.Errorf("format: want %q", ExportManifestFormat))
+	}
+	sc, ok := m["scope"].(map[string]any)
+	if !ok {
+		return bad(errors.New("scope: not an object"))
+	}
+	if r.Scope, err = str(sc, "kind"); err != nil {
+		return bad(fmt.Errorf("scope: %w", err))
+	}
+	switch r.Scope {
+	case ExportScopeAll:
+	case ExportScopeBundle:
+		if r.Bundle, err = str(sc, "bundle"); err != nil || !validBundleID(r.Bundle) {
+			return bad(errors.New("scope: bundle: not a bundle id"))
+		}
+	default:
+		return bad(fmt.Errorf("scope: kind %q (all or bundle)", r.Scope))
+	}
+	lr, ok := m["ledger_record"].(map[string]any)
+	if !ok {
+		return bad(errors.New("ledger_record: not an object"))
+	}
+	if r.State, err = str(lr, "state"); err != nil {
+		return bad(fmt.Errorf("ledger_record: %w", err))
+	}
+	if _, ok := lr["bundle_id"]; ok {
+		if r.BundleID, err = str(lr, "bundle_id"); err != nil || !validBundleID(r.BundleID) {
+			return bad(errors.New("ledger_record: bundle_id: not a bundle id"))
+		}
+	}
+	if _, ok := lr["reason"]; ok {
+		if r.Reason, err = str(lr, "reason"); err != nil {
+			return bad(fmt.Errorf("ledger_record: %w", err))
+		}
+	}
+	switch {
+	case r.State == ExportRecordSealedAfter && r.Scope == ExportScopeAll && r.BundleID != "":
+	case r.State == ExportRecordAuditOnly && r.Scope == ExportScopeBundle:
+	case r.State == ExportRecordNotRecorded && r.Scope == ExportScopeAll:
+		later := "the server could not keep its record either: the audit log entry is its only record"
+		if r.BundleID != "" {
+			later = "the server keeps its record and appends it as bundle " + r.BundleID +
+				" with its next successful ledger write: a later export lists it under its recorded exports"
+		}
+		r.Findings = append(r.Findings, Finding{Code: CodeExportNotRecorded, Severity: sumsSeverity(CodeExportNotRecorded), Where: ExportManifestFile,
+			Detail: fmt.Sprintf("the evidence ledger could not record this export when it was given (%s); %s", r.Reason, later)})
+	default:
+		return bad(fmt.Errorf("ledger_record: state %q with scope %s", r.State, r.Scope))
+	}
+	return r
+}
 
 // VerifyExport checks an evidence export directory (ADR-007 C7) against the trust anchor (nil: none, and the verdict
 // is at best UNKNOWN): every file against SHA256SUMS, SHA256SUMS.sig against SHA256SUMS and the ledger's current key,
-// and the ledger with its bundles (§8.2) and head statements: the export's own ledger-head-*.json, then heads. An
-// error means the verification could not run (no verdict; a four-level tool reports UNKNOWN).
+// and the ledger with its bundles (§8.2) and head statements: the export's own ledger-head-*.json, then heads. A
+// single-bundle export (EXPORT.json scope "bundle") verifies the whole ledger and its one bundle (VerifyLedgerBundle).
+// What EXPORT.json states about the export's record is reported in Record: not_recorded is UNKNOWN. An error means the
+// verification could not run (no verdict; a four-level tool reports UNKNOWN).
 func VerifyExport(dir string, anchor ed25519.PublicKey, heads [][]byte) (ExportReport, error) {
 	r := ExportReport{Dir: dir, HeadFiles: []string{}, Exports: []ExportRecord{}}
 	if fi, err := os.Stat(dir); err != nil {
@@ -176,6 +303,7 @@ func VerifyExport(dir string, anchor ed25519.PublicKey, heads [][]byte) (ExportR
 	} else if !fi.IsDir() {
 		return r, fmt.Errorf("%s: not a directory", dir)
 	}
+	r.Record = readExportManifest(dir)
 	own, err := filepath.Glob(filepath.Join(dir, ExportHeadPattern))
 	if err != nil {
 		return r, err
@@ -194,7 +322,13 @@ func VerifyExport(dir string, anchor ed25519.PublicKey, heads [][]byte) (ExportR
 		statements = append(statements, h)
 		r.HeadFiles = append(r.HeadFiles, fmt.Sprintf("(given %d)", i+1))
 	}
-	if r.Ledger, err = VerifyLedgerHeads(filepath.Join(dir, ExportLedgerFile), filepath.Join(dir, ExportBundlesDir), anchor, statements); err != nil {
+	ledger, bundles := filepath.Join(dir, ExportLedgerFile), filepath.Join(dir, ExportBundlesDir)
+	if r.Record.Scope == ExportScopeBundle { // one bundle with the whole ledger: the other bundles are left out by design
+		r.Ledger, err = VerifyLedgerBundle(ledger, bundles, anchor, statements, r.Record.Bundle)
+	} else {
+		r.Ledger, err = VerifyLedgerHeads(ledger, bundles, anchor, statements)
+	}
+	if err != nil {
 		return r, err
 	}
 	r.Sums = checkSums(dir, r.Ledger.Keys)
@@ -437,7 +571,8 @@ func recordedExports(l LedgerReport, bundlesDir string) ([]ExportRecord, error) 
 		}
 		sj := man.Subject
 		out = append(out, ExportRecord{BundleID: b.BundleID, LedgerSeq: seq[b.BundleID], Verdict: b.Verdict, User: sj["user"], Scope: sj["scope"],
-			PeriodFrom: sj["period_from"], PeriodTo: sj["period_to"], SumsSHA256: sj["sha256sums_sha256"], Export: sj["export"], CreatedTime: man.Created})
+			PeriodFrom: sj["period_from"], PeriodTo: sj["period_to"], SumsSHA256: sj["sha256sums_sha256"], Export: sj["export"], CreatedTime: man.Created,
+			NotRecordedReason: sj["not_recorded_reason"]})
 	}
 	return out, nil
 }

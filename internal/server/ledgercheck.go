@@ -146,7 +146,10 @@ func (s *Server) ledgerCheckIfDue(ctx context.Context, now time.Time) error {
 			break
 		}
 	}
-	_, err = s.checkLedger(ctx, "system", "hourly", kind)
+	c, err := s.checkLedger(ctx, "system", "hourly", kind)
+	if err == nil && c.Verdict == evidence.OK {
+		s.afterLedgerWrite(ctx) // an intact ledger takes the records of exports it could not record (ADR-007 C18.5)
+	}
 	return err
 }
 

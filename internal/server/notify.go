@@ -85,6 +85,7 @@ var eventCategory = map[string]string{
 	evQuarantine:     catIntegrity,
 	evLedger:         catIntegrity,
 	evBreakglass:     catSecurity,
+	evExportNotRec:   catSecurity,
 	evNewDevice:      catSecurity,
 	evLocked:         catSecurity,
 	evSettings:       catSecurity,
@@ -94,7 +95,7 @@ var eventCategory = map[string]string{
 // allEvents are the events a channel can name in the deprecated "events" of ChannelCreate: every event of a category,
 // and the daily report.
 var allEvents = []string{evStatus, evJobFailed, evFullBackup, evCapacityShort, evIntegrity, evQuarantine, evLedger, evBreakglass, evNewDevice,
-	evLocked, evSettings, evMigrationCheck, evDaily}
+	evLocked, evSettings, evMigrationCheck, evExportNotRec, evDaily}
 
 // channelTakes says whether a channel gets an event: the event's category is one of the channel's.
 func channelTakes(ch store.Channel, ev string) bool {
@@ -724,6 +725,8 @@ func (s *Server) classify(ctx context.Context, sc store.StateChange) (*Event, er
 		ev.Subject = fmt.Sprintf("repository %s: verification %d found damage in %d point disk(s)", r.Name, v.ID, len(aff))
 		ev.Text = fmt.Sprintf("The %s verification %d of repository %s found damage at %s. These points are marked failed and prove nothing any more:\n%s",
 			v.Mode, v.ID, r.Name, sc.At, strings.Join(lines, "\n"))
+	case sc.Entity == exportEntity && sc.To == exportNotRecorded: // ADR-007 C18.5; its later recording is no event
+		ev.Event, ev.Subject, ev.Text = evExportNotRec, exportNotRecordedSubject, exportNotRecordedText(sc)
 	case sc.Entity == "signin" && (sc.To == evBreakglass || sc.To == evNewDevice):
 		ev.Event = sc.To
 		if sc.To == evBreakglass {

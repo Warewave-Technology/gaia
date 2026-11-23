@@ -465,7 +465,11 @@ func (s *Server) ledgerInfo(c *call) (int, any, error) {
 }
 
 func (s *Server) verifyLedger(c *call) (int, any, error) {
-	return one(s.checkLedger(c.r.Context(), c.user.Username, "requested by "+c.user.Username, store.LedgerCheckIncremental))
+	lc, err := s.checkLedger(c.r.Context(), c.user.Username, "requested by "+c.user.Username, store.LedgerCheckIncremental)
+	if err == nil && lc.Verdict == evidence.OK {
+		s.afterLedgerWrite(c.r.Context()) // an intact ledger takes the records of exports it could not record (ADR-007 C18.5)
+	}
+	return one(lc, err)
 }
 
 func (s *Server) createDailyReport(c *call) (int, any, error) {
