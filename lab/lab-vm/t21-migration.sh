@@ -57,7 +57,10 @@ SB_SOCK=/run/gaia-t21-sandbox/sandbox.sock
 SB_WORK=$LV_IMAGES/gaia-t21-sandbox
 CONV_USER=gaia-convert
 CONV_HOME=/var/lib/gaia-convert
-API=https://127.0.0.1:8443
+# Since T26 (ADR-008) the server needs a DNS name for WebAuthn and the admin signs in with a second factor: the name
+# gaia-lab.test (in /etc/hosts, as t27-lab.sh), and the admin's security key in software (lab/tools/softkey).
+API=https://gaia-lab.test:8443
+WORK=/root/t21-work
 LINUX_VMS=(gaia-t8-linux gaia-t8-broken gaia-t21-uefi)
 WIN_VMS=(gaia-t11-win gaia-t21-win-broken)
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -81,6 +84,8 @@ section() { printf '\n== %s\n' "$*"; }
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 gaia() { "$BIN/gaia" "$@"; }
 api() { gaia "$@" -json; }
+# sk METHOD PATH [JSON] [-o FILE]: a call that may need a step-up, with the admin's key in software
+sk() { "$BIN/softkey" call -cli-config /root/.config/gaia/cli.json -key "$WORK/admin-key.json" "$@"; }
 
 # Observations on the ESXi host, lab only, through the fixture's SSH (read-only commands).
 ssh_dir=$(mktemp -d)
@@ -130,7 +135,7 @@ for f in "$OUT_DIR"/check-*.json; do
 	d="$OUT_DIR/reports/$id"
 	if [[ -z "${GATE_ONLY:-}" ]]; then
 		mkdir -p "$d"
-		api migration-checks report "$id" -o "$d/report.tar.gz" >/dev/null
+		sk -o "$d/report.tar.gz" GET "/api/v1/migration-checks/$id/report" >/dev/null # a step-up download
 		tar -C "$d" -xzf "$d/report.tar.gz"
 	fi
 	root=$(find "$d" -mindepth 1 -maxdepth 1 -type d -name 'gaia-readiness-*')
@@ -227,7 +232,7 @@ cleanup() {
 	done
 	rm -f "/run/systemd/system/$UNIT.service" "/run/systemd/system/$SB_UNIT.service" /run/systemd/system/gaia-convert.service
 	systemctl daemon-reload
-	rm -rf "$SRV_HOME" "$SB_HOME" "$SB_WORK" "$CONV_HOME/jobs" "$CONV_HOME/virtio-win-0.1.302.iso" /root/.config/gaia
+	rm -rf "$SRV_HOME" "$SB_HOME" "$SB_WORK" "$CONV_HOME/jobs" "$CONV_HOME/virtio-win-0.1.302.iso" /root/.config/gaia "$WORK"
 	userdel "$SRV_USER" >/dev/null 2>&1 || true
 	"$repo_root/lab/esxi/fixture-t8.sh" delete "$ESXI_IP" || echo "WARNING: fixture-t8 delete failed"
 	"$repo_root/lab/esxi/fixture-t11.sh" delete "$ESXI_IP" || echo "WARNING: fixture-t11 delete failed"
@@ -259,12 +264,15 @@ asowner() {
 	if [[ "$owner" == root ]]; then "$@"; else runuser -u "$owner" -- env PATH="$PATH" HOME="$(getent passwd "$owner" | cut -d: -f6)" "$@"; fi
 }
 asowner make -C "$repo_root" -s build
+asowner go build -C "$repo_root" -o "$BIN/softkey" ./lab/tools/softkey
 go version -m "$BIN/gaia" | grep -E 'vcs\.(revision|modified)' || echo "no VCS stamp"
 virsh -q version
 podman --version
 
 section "free space"
 cleanup
+install -d -m 0700 "$WORK"
+grep -q " gaia-lab.test\$" /etc/hosts || echo "$(hostname -I | awk '{ print $1 }') gaia-lab.test" >>/etc/hosts
 free_kib=$(df -Pk /var/lib | awk 'NR == 2 { print $4 }')
 ((free_kib >= 60 * 1048576)) || { echo "UNKNOWN: $((free_kib / 1048576)) GiB free on /var/lib, needs 60 GiB"; exit 3; }
 df -h /var/lib
@@ -314,8 +322,9 @@ kitfile="$SRV_HOME/kit.pass"
 head -c 24 /dev/urandom | base64 | install -m 0600 -o "$SRV_USER" -g "$SRV_USER" /dev/stdin "$pwfile"
 head -c 24 /dev/urandom | base64 | install -m 0600 -o "$SRV_USER" -g "$SRV_USER" /dev/stdin "$kitfile"
 runuser -u "$SRV_USER" -- "$SRV_BIN" server init -config "$SRV_HOME/server.json" -data-dir "$SRV_HOME/data" \
-	-listen 127.0.0.1:8443 -hostname 127.0.0.1 -admin admin -password-file "$pwfile" -kit-passphrase-file "$kitfile" -json >"$OUT_DIR/server-init.json"
-cert=$(jq -r .result.tls_certificate_sha256 "$OUT_DIR/server-init.json")
+	-listen :8443 -hostname gaia-lab.test -public-url "$API" -admin admin -password-file "$pwfile" -kit-passphrase-file "$kitfile" \
+	-json >"$WORK/server-init.json" # never in OUT_DIR
+cert=$(jq -r .result.tls_certificate_sha256 "$WORK/server-init.json")
 jq --arg s "$SB_SOCK" --arg i "$SB_HOME/images" '. + {sandbox_socket: $s, sandbox_images_dir: $i}' "$SRV_HOME/server.json" >"$OUT_DIR/server.json"
 install -m 0640 -o "$SRV_USER" -g "$SRV_USER" "$OUT_DIR/server.json" "$SRV_HOME/server.json"
 sed -e "s|^User=.*|User=$SRV_USER|" -e "s|^Group=.*|Group=$SRV_USER|" \
@@ -329,7 +338,8 @@ for ((i = 0; i < 30; i++)); do [[ -S $SB_SOCK && -S /run/gaia-convert/convert.so
 systemctl start "$UNIT"
 SRV_STARTED=1
 for ((i = 0; i < 30; i++)); do curl -fsk "$API/api/v1/health" >/dev/null 2>&1 && break; sleep 1; done
-api login -server "$API" -user admin -fingerprint "$cert" -password-file "$pwfile" >/dev/null
+"$BIN/softkey" login -cli-config /root/.config/gaia/cli.json -server "$API" -fingerprint "$cert" -user admin \
+	-password-file "$pwfile" -key "$WORK/admin-key.json" >/dev/null
 api system | jq -c '{version, schema_version}' | tee "$OUT_DIR/system.json"
 systemctl show gaia-convert -p User -p NoNewPrivileges -p CapabilityBoundingSet | tee "$OUT_DIR/convert-unit.txt"
 api api GET /api/v1/converter | tee "$OUT_DIR/converter-before.json" | jq -c '{reachable, image: .info.image, present: .info.image_present, virtio_win: .info.virtio_win.state}'
