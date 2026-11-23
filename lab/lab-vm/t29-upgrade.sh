@@ -11,7 +11,7 @@
 #       command-line login no longer works (ADR-008 §9)
 #   (d) "To 0.2.0" in step 12: public_url with a name, a new TLS certificate for it, the admin signs in again and
 #       enrols a security key (in software, lab/tools/softkey), and the data of 0.1.2 is there: the repository, the
-#       state backup, the user; a new state backup runs; the operator must change the short password (ADR-008 §2)
+#       state backup, the user; a new state backup runs; the operator's short password is marked for a change (ADR-008 §2)
 #
 # Usage (on gaia-lab, as root):
 #   systemd-run --unit=gaia-t29u --collect -E HOME=/root lab/lab-vm/t29-upgrade.sh run OLD_RELEASE_DIR NEW_RELEASE_DIR
@@ -220,20 +220,22 @@ for ((i = 0; i < 60; i++)); do
 	sleep 5
 done
 echo "$sb2" | jq -c '{id, state}' | tee "$OUT/d-state-backup.json"
-# The operator's 12-character password from 0.1.2: the right password, then a forced change (ADR-008 §2).
+# The operator's 12-character password from 0.1.2: accepted, marked for a change (too_short), which is asked after the
+# second factor's enrolment (ADR-008 §2; signin.go afterFactor).
 curl -sk --resolve "$NAME:8443:$IP" -H 'Content-Type: application/json' \
 	--data "$(jq -nc --arg p "$(cat "$D/op1.pw")" '{username: "op1", password: $p}')" "https://$NAME:8443/api/v1/login" |
 	jq -c '{stage, password_change}' | tee "$OUT/d-op1.json"
+new users list -json | jq -c '[.[] | select(.username == "op1") | {username, password_change}][0]' | tee "$OUT/d-op1-user.json"
 jq -n --slurpfile sys "$OUT/d-system.json" --slurpfile repos "$OUT/d-repositories.json" --slurpfile users "$OUT/d-users.json" \
-	--slurpfile before "$OUT/d-state-backups-before.json" --argjson sb "$sb2" --slurpfile op1 "$OUT/d-op1.json" \
+	--slurpfile before "$OUT/d-state-backups-before.json" --argjson sb "$sb2" --slurpfile op1 "$OUT/d-op1.json" --slurpfile op1u "$OUT/d-op1-user.json" \
 	--slurpfile brepo "$OUT/b-repository.json" --slurpfile bsb "$OUT/b-state-backup.json" --arg v "$V_NEW" \
 	--arg who "$(cat "$OUT/d-whoami.txt")" \
 	'{version: $sys[0].version, schema: $sys[0].schema_version, signin_problem: ($sys[0].signin_problem // ""), whoami: $who,
 	  repository_kept: ($repos[0] | any(.id == $brepo[0].id and .name == "main")), users: $users[0],
-	  state_backup_of_0_1_2_kept: ($before[0] | any(.id == $bsb[0].id and .state == "ok")), new_state_backup: $sb.state, op1: $op1[0]}
+	  state_backup_of_0_1_2_kept: ($before[0] | any(.id == $bsb[0].id and .state == "ok")), new_state_backup: $sb.state, op1: ($op1[0] + {marked: $op1u[0].password_change})}
 	 | . + {pass: ((.version | startswith($v + " (")) and .schema == 16 and .signin_problem == "" and (.whoami | contains("admin"))
 	              and .repository_kept and (.users | any(.username == "op1")) and .state_backup_of_0_1_2_kept and .new_state_backup == "ok"
-	              and .op1.stage == "change_password" and .op1.password_change == "too_short")}' | tee "$OUT/d.json"
+	              and .op1.stage == "enrol" and .op1.marked == "too_short")}' | tee "$OUT/d.json"
 
 section "gate (T29: the upgrade from $V_OLD)"
 jq -n --slurpfile a "$OUT/a.json" --slurpfile b "$OUT/b.json" --slurpfile c "$OUT/c.json" --slurpfile d "$OUT/d.json" \
