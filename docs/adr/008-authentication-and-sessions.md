@@ -143,3 +143,8 @@ SAML; SCIM provisioning; more than one IdP; hardware-bound client certificates; 
    first use and as a daily count.
 7. **IdP guidance:** the install guide tells the IdP administrator how to make the IdP report a second factor
    (`acr`), with the Keycloak example from T26.
+
+## Amendments (2026-11-23, after T28)
+
+8. **§4 list:** accepting a host's changed SSH key (ADR-007 C17.2); removing a notification category from a channel
+   or disabling a channel (ADR-007 C18.4).

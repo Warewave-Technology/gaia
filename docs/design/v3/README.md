@@ -50,5 +50,5 @@ gidiyorlar çünkü."* And on v3: *"Yön doğru, güzel oldu."*
 | Activity | Job vocabulary (C16); queued jobs folded by kind with counts, each showing queue position and estimated start; data-table. |
 | Evidence | Headline rewritten as one sentence, no button inside text; "Check now" next to the ledger fact; entries as data-table. |
 | Sign-in and security | Step-up list as action names ("Restore over a running VM", "Forget a point", …); routes only under details. |
-| Proof capacity | Lists as data-tables; while slots are unknown, the model starts from the configured slots, not 0. |
+| Proof capacity | Lists as data-tables; while the sandbox does not answer, the model starts from the last slot count it reported, shown as "last known" with its time (ADR-007 C17.4). |
 | All | Duration/time formatter (rule 4); sentences from codes (rule 3). |

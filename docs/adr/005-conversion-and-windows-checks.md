@@ -59,3 +59,27 @@ pinning by digest follows the release-location decision (ADR-007 C10).
 
 Not stored in the recovery kit. After `restore-state`, migration sources show `UNKNOWN: credentials missing`
 until they are added again.
+
+## Amendment (2026-11-23, after T28)
+
+### F. When the stability window starts (refines B; T28 gate (a))
+
+T28 measured that a healthy converted Windows restarts several times during virt-v2v's own first-boot scripts
+(4 restarts in the first ~2 min on Server 2022), so B's wording made every converted Windows `CRITICAL`.
+- The window is the **first uninterrupted `settle_s`** inside the guest's boot timeout in which every guest check
+  passes. Restarts before it are counted and written to the bundle with their times.
+- No uninterrupted window inside the boot timeout → `CRITICAL` with `guest_rebooted` (and, for a Windows migration
+  check, `driver_install_loop` with the driver's name when the first-boot log shows it).
+- **Migration checks:** restarts before the window are expected (first-boot scripts) and stated in the readiness
+  report; they do not change the result.
+- **Restore tests:** a restored backup has finished its first boot long ago, so a restart before the window is not
+  expected: the test is `WARNING` with `guest_restarted_during_boot` and the count. A restart inside the window is
+  `CRITICAL` as before.
+- T28's re-run of the Windows gate is repeated with this rule in T29's preparation: expected result `WARNING`
+  (`drivers_excluded`) with the restarts listed.
+
+### G. Decisions on T28's other ADR-005 items
+
+- `driver_install_loop` stays in the closed code list (v4) as a migration-check code with no status-table row.
+- Keeping a failed guest's disk for the converter to read the first-boot log: accepted. The copy is deleted when
+  the check finishes, and at the latest after 24 hours; its deletion is logged.

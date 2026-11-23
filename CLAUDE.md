@@ -2,7 +2,7 @@
 
 You are the implementation engineer for **Gaia**, a free (AGPL-3.0-or-later) end-to-end backup and
 recoverability platform. The MVP was accepted in T23 (2026-11-19). Read `README.md`, every file in `docs/adr/`
-(**ADR-008** with its 2026-11-22 amendments, **ADR-007 amendments C1–C16**, **ADR-005 amendments A–E**, a note in
+(**ADR-008** with its 2026-11-22 amendments, **ADR-007 amendments C1–C18**, **ADR-005 amendments A–G**, a note in
 ADR-006), the design references in `docs/design/v2/` and `docs/design/v3/` and the reports in `docs/reports/` before you change anything.
 
 ## Who does what
@@ -141,6 +141,11 @@ exists. Keep the free-space checks, cache handling and `fstrim` in every lab run
   bundle is in the ledger; (c) an M2 channel receives a new event in its category after the upgrade.
 
 ### T29 — M3 acceptance and release 0.2.0
+- **Preparation (before the release):** apply ADR-005 F–G and ADR-007 C18 (changed host key acts at once with its
+  notification, category mapping of "all events" channels, step-up for removing categories, export when the
+  ledger cannot record it, signed single-bundle exports, paginated migration view). Re-run T21's Windows gate with
+  ADR-005 F; expected `WARNING` (`drivers_excluded`) with the first-boot restarts listed. Add the Windows migration
+  check to the acceptance checklist below.
 - Release `0.2.0` as in T22 (packages, checksums, signature). The upgrade from `0.1.2` is part of the test.
 - Yiğit upgrades his T23 server to `0.2.0` following the guide and turns on SSO against the lab Keycloak. A second,
   clean instance gets the T24 synthetic catalog for the scale part.

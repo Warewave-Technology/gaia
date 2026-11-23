@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17); amendments win over the text above them.
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17, C18); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -276,3 +276,22 @@ one duration and time format, charts that explain themselves with at most four l
    last checked entry's hash; signatures and bundles of older entries are re-verified by the daily full check.
 6. **Durations (C15 rule 4):** accepted with the PO's approval of the screens: seconds are shown below 2 min for
    any duration, and below 10 min for measured durations of a restore, a test or a test step ("4 min 22 s").
+
+### C18. Decisions on T28's `ONAY GEREKİYOR` items (2026-11-23)
+
+1. **A changed host key acts at once (refines C17.2).** Gaia stops reading from the host, so its VMs' backups are
+   paused. New status-table row: a VM whose host is `host_key_changed` is at least `WARNING` (`host_key_changed`,
+   "backups paused") from the moment the change is seen, and `CRITICAL` when its RPO target passes, as before.
+   The host is a `CRITICAL` cause in "Needs attention" at once.
+2. **Notification:** event `host_key_changed` in the `security` category, sent immediately.
+3. **M2 channels and categories (C8):** a 0.1.x channel that carried 0.1.2's default "all events" list gets all
+   five categories, `migration` included; other channels keep the mapping as built. Every old channel keeping
+   `security` (from schema 11) is accepted: security events should reach someone.
+4. **Removing a category from a channel, or disabling a channel, is a step-up action** (it weakens who is told,
+   ADR-008 §4 "weakening"). Adding a category is not.
+5. **Export when the ledger cannot record it (C7):** the export is **given**, not refused: the auditor may need it
+   exactly then. Its manifest and README say "not recorded in the ledger: <reason>", `SHA256SUMS` is still signed,
+   the export is an audit entry and a `security` notification is sent. The next successful ledger write records it.
+6. **Single-bundle export:** its `SHA256SUMS` is signed too; it is an audit entry, not a ledger bundle. An unsigned
+   `SHA256SUMS` (exports from before 0.2.0) verifies as `UNKNOWN` for the signature, as built.
+7. **Migration view:** paginated on the server before T29's acceptance (CLAUDE.md rule 15).
