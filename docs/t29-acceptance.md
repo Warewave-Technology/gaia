@@ -214,6 +214,10 @@ lab/lab-vm/t29-capacity.sh start ~/t29-capacity-1
 lab/lab-vm/t29-capacity.sh check ~/t29-capacity-1
 ```
 
+`check`'i 6 saat dolduktan sonraki **20 dakika içinde** çalıştır (`start` saati söyler; bir hatırlatıcı kur). Kanıtı
+süresi dolan VM'lerin listesi `check` anında okunuyor, pencere bitiminden çok sonra okunursa başka bir anı ölçer; betik
+o zaman `UNKNOWN` der ve `start`'ı yeniden çalıştırmak gerekir.
+
 Sonra aynısını `-slots 4` ile (`~/t29-capacity-4`). Betik, ekrandaki sayıları (Capacity: tests in 24 h, coverage, "will
 expire") o 6 saatte biten testlerle ve süresi gerçekten dolan kanıtlarla karşılaştırıyor: test sayısı %20 (ya da 2
 test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
@@ -280,7 +284,11 @@ test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
 }
 ```
 
-Not:
+Not (Claude, 2026-11-25): iki `check` de 2026-11-24 17:55 UTC'de çalıştı, pencereler 02:48 ve 11:36'da bitmişti.
+Test sayıları pencereye göre süzüldüğü için doğru; ama `proof_too_old` listesi 17:55'teki durum. Bu yüzden 1 slottaki
+`expiries` eşleşmesi tesadüf, ikisi de yeniden ölçülmeli. 4 slottaki 6 `UNKNOWN` test gerçek bir bulgu: Windows
+(32 GiB) ve `gaia-t23-uefi` (6 GiB) aynı dakikada başlıyor; sandbox images dizininde 36 GB boş olduğu için ikincisi
+beklemek yerine "not tested" (`UNKNOWN`) oluyor. Kapasite görünümü diski hesaba katmadığı için bunu öngörmüyor.
 
 ### 4.3 Yeni bir tarayıcıdan giriş bildiriliyor
 

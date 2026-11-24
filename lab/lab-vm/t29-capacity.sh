@@ -4,7 +4,7 @@
 #
 #   lab/lab-vm/t29-capacity.sh start DIR    the capacity view now (slots, demand, coverage, the proofs it says will
 #                                           expire), into DIR/start.json
-#   lab/lab-vm/t29-capacity.sh check DIR    6 hours later: what happened in the 6 hours after start, next to what the view
+#   lab/lab-vm/t29-capacity.sh check DIR    6 hours later (within 20 minutes): what happened in the 6 hours after start, next to what the view
 #                                           said, into DIR/check.json
 #
 # What is compared:
@@ -18,6 +18,7 @@
 set -euo pipefail
 
 WINDOW_S=$((6 * 3600))
+LATE_S=$((20 * 60)) # check within this long after the window ends
 GAIA=${GAIA:-gaia}
 cmd=${1:-}
 DIR=${2:-}
@@ -42,6 +43,12 @@ check)
 	start=$(jq -r '.started_at | fromdateiso8601' "$DIR/start.json")
 	now=$(date +%s)
 	((now >= start + WINDOW_S)) || { echo "UNKNOWN: only $(((now - start) / 60)) of 360 minutes have passed"; exit 3; }
+	# The proof_too_old list is read now: it stands for the window's end only shortly after it (T29: a check run 15 h
+	# late compared a later state and matched by chance).
+	((now <= start + WINDOW_S + LATE_S)) || {
+		echo "UNKNOWN: the window ended $(((now - start - WINDOW_S) / 60)) minutes ago; check within $((LATE_S / 60)) minutes of its end (run start again)"
+		exit 3
+	}
 	"$GAIA" api GET '/api/v1/restore-tests?limit=1000' >"$DIR/tests.json"
 	"$GAIA" api GET '/api/v1/views/capacity?limit=500' >"$DIR/capacity-end.json"
 	"$GAIA" api GET '/api/v1/views/vm-list?code=proof_too_old&limit=200' | jq '[.rows[].vm] | sort' >"$DIR/too-old-end.json"
@@ -49,7 +56,7 @@ check)
 		def ts: if . == null or . == "" then null else sub("\\.[0-9]+"; "") | sub("(?<z>[+-][0-9]{2}):(?<m>[0-9]{2})$"; "Z") | fromdateiso8601 end;
 		$s[0] as $s | ($s.started_at | ts) as $t0 | ($t0 + $w) as $t1
 		| [$t[0][] | select(.finished_at != "" and (.finished_at | ts) > $t0 and (.finished_at | ts) <= $t1)] as $done
-		| {started_at: $s.started_at, slots: $s.slots, slots_at_end: $e[0].slots, coverage: $s.coverage,
+		| {started_at: $s.started_at, checked_at: (now | todate), slots: $s.slots, slots_at_end: $e[0].slots, coverage: $s.coverage,
 		   tests: {expected: ($s.tests_expected_in_window * 10 | round / 10), finished: ($done | length),
 		           by_verdict: ($done | group_by(.verdict) | map({(.[0].verdict): length}) | add // {})},
 		   expiries: {
