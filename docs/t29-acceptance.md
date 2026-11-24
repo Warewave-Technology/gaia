@@ -284,7 +284,15 @@ Not:
 
 ### 4.3 Yeni bir tarayıcıdan giriş bildiriliyor
 
-Başka bir tarayıcıda (ya da gizli pencerede) admin olarak gir. gaia-lab'de (root):
+Önce gaia-lab'de (root) bildirim alıcısının çalıştığına bak. Alıcı `systemd-run` ile açılan geçici bir birim, gaia-lab
+yeniden başlayınca kapanıyor (2026-11-19 22:39'dan 2026-11-24 21:09'a kadar kapalıydı; ilk denemede bu yüzden bir şey
+gelmedi). `active` demiyorsa başlat:
+
+```bash
+systemctl is-active gaia-t23-sink || /root/gaia/lab/lab-vm/t23-sink.sh start 192.168.1.30
+```
+
+Sonra başka bir tarayıcıda (ya da gizli pencerede) admin olarak gir. gaia-lab'de (root):
 
 ```bash
 /root/gaia/lab/lab-vm/t23-sink.sh list 10
@@ -326,15 +334,16 @@ gaia api GET /api/v1/sessions | jq -c '.[] | {id, username, kind, method, last_a
 ### 4.5 Step-up'sız yıkıcı bir işlem reddediliyor
 
 Önce kılavuzun 9. adımıyla bir deneme kullanıcısı ekle (`gaia users add username=t29-silinecek role=auditor`), id'sini al.
-Sonra adım istemeyen bir istemciyle (`curl`, CLI oturumunun token'ıyla; `gaia` komutu step-up'ı kendisi istediği için
-burada kullanılmıyor) onu silmeyi dene:
+Sonra step-up istemeyen bir istemciyle (`curl`, CLI oturumunun token'ıyla; `gaia` komutu step-up'ı kendisi istediği
+için burada kullanılmıyor) onu kapatmayı dene. Gaia kullanıcı silmez, kapatır (`disabled`); ilk sürümdeki `DELETE`
+komutu yanlıştı (`no such endpoint`):
 
 ```bash
-curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -X DELETE https://gaia-t23-b.lab.test:8443/api/v1/users/<id> ; echo; gaia users list -json | jq -c '[.[].username]'
+curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -H 'Content-Type: application/json' -X PATCH -d '{"disabled":true}' https://gaia-t23-b.lab.test:8443/api/v1/users/<id> ; echo; gaia users list -json | jq -c '[.[] | {username, disabled}]'
 ```
 
-- [ ] Cevap `step_up_required`; kullanıcı listede duruyor. (Sonra `gaia users set <id> disabled=true` ile kapatabilirsin;
-  `gaia` step-up'ı tarayıcıda onaylatır.) - Çıktıdaki hatayı verdi
+- [ ] Cevap `step_up_required`; `t29-silinecek` listede `"disabled":false` duruyor. (Sonra `gaia users set <id>
+  disabled=true` ile kapatabilirsin; `gaia` step-up'ı tarayıcıda onaylatır.) - Çıktıdaki hatayı verdi
 
 ```
 warewave-tech:gaia yigit.basalma$ curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -X DELETE https://gaia-t23-b.lab.test:8443/api/v1/users/3 ; echo; gaia users list -j
@@ -349,8 +358,15 @@ son | jq -c '[.[].username]'
 
 ### 4.6 Keycloak durunca break-glass çalışıyor ve bildiriliyor
 
-gaia-lab'de (root): `/root/gaia/lab/lab-vm/t26-keycloak.sh stop`. SSO kullanıcısıyla açık bir oturumda yıkıcı bir işlem
-dene (reddedilmeli: `idp_unreachable`). Sonra yerel admin (break-glass) olarak gir. gaia-lab'de:
+Önce 4.3'teki gibi alıcının çalıştığına bak. gaia-lab'de (root): `/root/gaia/lab/lab-vm/t26-keycloak.sh stop`.
+
+**10 dakika bekle.** Gaia bir SSO oturumunu Keycloak'a 10 dakikada bir soruyor (ADR-008 §2); Keycloak'ın cevap
+vermediğini ancak bu sorudan sonra biliyor ve oturumu `idp_unreachable` diye işaretliyor. Bundan önce step-up penceresi
+seni Keycloak'a yönlendirmeye çalışır; Keycloak kapalı olduğu için o bağlantı açılmaz (ilk denemede gördüğün buydu).
+10 dakika sonra **Inventory → Security → Sessions**'ta SSO oturumunun yanında `IDP UNREACHABLE` işareti çıkar.
+
+Sonra SSO kullanıcısıyla açık oturumda yıkıcı bir işlem dene (örneğin `t29-silinecek`'i kapat). Pencere işlemi
+`idp_unreachable` nedeniyle reddettiğini söylemeli. Sonra yerel admin (break-glass) olarak gir. gaia-lab'de:
 
 ```bash
 /root/gaia/lab/lab-vm/t23-sink.sh list 10
@@ -419,20 +435,21 @@ cd /root/gaia && systemd-run --unit=gaia-t21 --collect -E HOME=/root lab/lab-vm/
 d=$(ls -d /root/t21-* | tail -1); jq -c '{verdict, a: .a_t8_linux.pass, b: .b_t11_windows.pass, c: .c_uefi.pass, d: .d_zero_writes.pass, e: .e_reports.pass, f: .f_converter.pass}' $d/gate.json; jq -c '.b_t11_windows | {as_is: {readiness: .as_is.readiness, code: .as_is.code}, without_smbus: {readiness: .without_smbus.readiness, first_boot_restarts_s: .without_smbus.first_boot_restarts_s, warnings: [.without_smbus.steps[] | select(.verdict != "OK") | .name]}}' $d/gate.json
 ```
 
-- [ ] Beklenen: ilk satır `{"verdict":"OK","a":true,"b":true,"c":true,"d":true,"e":true,"f":true}`. İkinci satırda
+- [x] Beklenen: ilk satır `{"verdict":"OK","a":true,"b":true,"c":true,"d":true,"e":true,"f":true}`. İkinci satırda
   `as_is` için `CRITICAL` `driver_install_loop`, `without_smbus` için `WARNING`. `first_boot_restarts_s` ilk
   açılıştaki yeniden başlatmaları saniye olarak listeler, `warnings` de `["drivers_excluded"]` olur.
 
 ```
-(iki satırı buraya yapıştır)
+{"verdict":"OK","a":true,"b":true,"c":true,"d":true,"e":true,"f":true}
+{"as_is":{"readiness":"CRITICAL","code":"driver_install_loop"},"without_smbus":{"readiness":"WARNING","first_boot_restarts_s":[60.6,91,136,170.8],"warnings":["drivers_excluded"]}}
 ```
 
 ## 5. İki soru
 
 > Binlerce VM arasında sorunlu olanı ve nedenini hemen bulabiliyor muyum?
 
-Cevap:
+Cevap: Evet, needs attention kısmı muhteşem çalışıyor.
 
 > Giriş çıkışların yeterince sıkı olduğuna güveniyor muyum?
 
-Cevap:
+Cevap: Evet, bence epeyce güzel olmuş
