@@ -187,11 +187,11 @@ iptables -D INPUT -s 192.168.1.122 -p tcp --dport 22 -j DROP
 
 Ölçek kurulumunda beklemeye gerek yok: katalogda erişilemeyen hostlar zaten var. Aynı komutu ölçek kurulumunun oturumuyla çalıştır; orada bir hostun grubu "of 50" gibi, hostun bütün VM sayısını da gösterir.
 
-- [ ] Ekranda host için **bir** grup (`host_unreachable`, `gaia-lab`); "Show these VMs" hostun bütün VM'lerini
+- [x] Ekranda host için **bir** grup (`host_unreachable`, `gaia-lab`); "Show these VMs" hostun bütün VM'lerini
   listeliyor. Başka nedenle listelenen VM varsa grup "affects N VMs · … here, … under other causes" diyor.
 
 ```
-(çıktıyı buraya yapıştır)
+{"status":"CRITICAL","code":"host_unreachable","scope":"gaia-lab","count":3,"reach":{"host_vms":3,"elsewhere":0,"ok":0}}
 ```
 
 Not:
@@ -218,15 +218,66 @@ Sonra aynısını `-slots 4` ile (`~/t29-capacity-4`). Betik, ekrandaki sayılar
 expire") o 6 saatte biten testlerle ve süresi gerçekten dolan kanıtlarla karşılaştırıyor: test sayısı %20 (ya da 2
 test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
 
-- [ ] 1 slot: `"verdict": "OK"`.
+- [x] 1 slot: `"verdict": "OK"`.
 - [ ] 4 slot: `"verdict": "OK"`.
 
 ```
-(1 slot check çıktısı)
+{
+  "started_at": "2026-11-23T20:48:37Z",
+  "slots": 1,
+  "slots_at_end": 1,
+  "coverage": 1,
+  "tests": {
+    "expected": 18,
+    "finished": 18,
+    "by_verdict": {
+      "OK": 18
+    },
+    "match": true
+  },
+  "expiries": {
+    "said": [
+      "gaia-t23-uefi"
+    ],
+    "happened": [
+      "gaia-t23-uefi"
+    ],
+    "proof_too_old_at_start": [],
+    "proof_too_old_at_end": [],
+    "match": true
+  },
+  "verdict": "OK"
+}
 ```
 
 ```
-(4 slot check çıktısı)
+{
+  "started_at": "2026-11-24T05:36:35Z",
+  "slots": 4,
+  "slots_at_end": 4,
+  "coverage": 1,
+  "tests": {
+    "expected": 18,
+    "finished": 18,
+    "by_verdict": {
+      "OK": 12,
+      "UNKNOWN": 6
+    },
+    "match": true
+  },
+  "expiries": {
+    "said": [],
+    "happened": [
+      "gaia-t23-uefi"
+    ],
+    "proof_too_old_at_start": [],
+    "proof_too_old_at_end": [
+      "gaia-t23-uefi"
+    ],
+    "match": false
+  },
+  "verdict": "CRITICAL"
+}
 ```
 
 Not:
@@ -239,10 +290,19 @@ Başka bir tarayıcıda (ya da gizli pencerede) admin olarak gir. gaia-lab'de (r
 /root/gaia/lab/lab-vm/t23-sink.sh list 10
 ```
 
-- [ ] `new_device_signin` olayı kanala geldi.
+- [ ] `new_device_signin` olayı kanala geldi. - Kanala bişey gelmedi
 
 ```
-(çıktıyı buraya yapıştır)
+2026-11-18T23:32:19Z    mail    status  Gaia gaia-t23-a: gaia-t23-win: WARNING -> OK
+2026-11-18T23:32:19Z    webhook status  Gaia gaia-t23-a: gaia-t23-win: WARNING -> OK
+2026-11-19T07:00:04Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T07:00:04Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:49:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:49:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:51:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T13:51:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
+2026-11-19T15:36:54Z    mail    daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
+2026-11-19T15:36:54Z    webhook daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
 ```
 
 ### 4.4 Boşta kalan oturum bitiyor
@@ -255,11 +315,12 @@ tıkla.
 gaia api GET /api/v1/sessions | jq -c '.[] | {id, username, kind, method, last_active_at, last_seen_at, user_agent: .user_agent[0:40]}'
 ```
 
-- [ ] İkinci listede tarayıcı oturumu yok (`last_seen_at` arka plan isteklerinde ilerlese de `last_active_at`
+- [x] İkinci listede tarayıcı oturumu yok (`last_seen_at` arka plan isteklerinde ilerlese de `last_active_at`
   ilerlemedi); tarayıcı giriş sayfasına döndü.
 
 ```
-(iki listeyi buraya yapıştır)
+{"id":17,"username":"admin","kind":"cli","method":"webauthn","last_active_at":"2026-11-24T19:46:56.422562016Z","last_seen_at":"2026-11-24T19:46:56.422562016Z","user_agent":"Go-http-client/1.1"}
+{"id":16,"username":"admin","kind":"browser","method":"webauthn","last_active_at":"2026-11-24T19:46:49.719980694Z","last_seen_at":"2026-11-24T19:46:49.719980694Z","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 1"}
 ```
 
 ### 4.5 Step-up'sız yıkıcı bir işlem reddediliyor
@@ -273,10 +334,17 @@ curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support
 ```
 
 - [ ] Cevap `step_up_required`; kullanıcı listede duruyor. (Sonra `gaia users set <id> disabled=true` ile kapatabilirsin;
-  `gaia` step-up'ı tarayıcıda onaylatır.)
+  `gaia` step-up'ı tarayıcıda onaylatır.) - Çıktıdaki hatayı verdi
 
 ```
-(çıktıyı buraya yapıştır)
+warewave-tech:gaia yigit.basalma$ curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -X DELETE https://gaia-t23-b.lab.test:8443/api/v1/users/3 ; echo; gaia users list -j
+son | jq -c '[.[].username]'
+{
+  "error": "no such endpoint: DELETE /api/v1/users/3",
+  "code": "not_found"
+}
+
+["admin","yigit","t29-silinecek"]
 ```
 
 ### 4.6 Keycloak durunca break-glass çalışıyor ve bildiriliyor
@@ -294,7 +362,7 @@ Sonra Keycloak'ı yeniden başlat: `/root/gaia/lab/lab-vm/t26-keycloak.sh start`
   kanala geldi.
 
 ```
-(çıktıyı buraya yapıştır)
+Kullanıcıyı disable etmeye çalıştım, confirm ekranı açıldı, sign in again linki de görünüyor ama tıklayınca gitmiyor. idp_unreachable şeklinde bir uyarı/hata hiçbir yerde yok.
 ```
 
 ### 4.7 5,000 VM'lik kurulumun Overview'u küçük olan kadar hızlı
@@ -306,27 +374,57 @@ kurulumun oturumuyla:
 for i in 1 2 3; do /usr/bin/time -p gaia api GET '/api/v1/views/fleet' >/dev/null; done 2>&1 | grep real
 ```
 
-- [ ] İkisi de ekranda 2 saniye içinde etkileşimli; sorularının cevabını aynı hızla buldun.
+- [x] İkisi de ekranda 2 saniye içinde etkileşimli; sorularının cevabını aynı hızla buldun.
 
 ```
-(iki kurulumun çıktısı)
+Küçük olan
+real 0.11
+real 0.11
+real 0.11
+
+Büyük olan
+real 0.21
+real 0.22
+real 0.21
 ```
 
 Not:
 
 ### 4.8 Windows migration check'i (T28, ADR-005 F)
 
-gaia-lab'de (root), T29 hazırlığındaki runner'ı çalıştır (`/root/gaia`'nın `main`'i: `v0.2.0`'ın ürün kodu ve sonraki lab betikleri):
+**Ne yapıyor:** ESXi'deki Windows Server 2022 test VM'ini (`gaia-t11-win`) KVM'e dönüştürüp açıyor ve "taşınırsa
+çalışır mı" kontrolünü yapıyor. Bu kontrol iki kez çalışıyor: bir kez olduğu gibi, bir kez de smbus sürücüsü
+dışarıda bırakılarak. Yanında Linux, UEFI ve bozuk disk kontrolleri de çalışıyor. Hepsi gaia-lab'de **kendi geçici
+Gaia sunucusunu** (`gaia-t21-server`) kuruyor ve sonunda siliyor. Senin sunucuna (`gaia-t23-b`) ve ölçek kurulumuna
+dokunmuyor. ESXi'ye yalnız okuma yapıyor.
+
+**Nerede:** gaia-lab'de (192.168.1.30), root olarak. ESXi hostu (192.168.1.29) açık olmalı. Mac'te bir şey
+çalıştırmıyorsun.
+
+**Süre:** yaklaşık 1 saat (T29 hazırlığındaki çalıştırma 11:50 → 12:52). 4.2'nin 6 saatiyle aynı anda yapma; ikisi
+de gaia-lab'in belleğini ve CPU'sunu kullanıyor.
+
+1. gaia-lab'de, root olarak başlat. Komut arka planda bir systemd birimi olarak çalışıyor ve günlüğü izliyor:
 
 ```bash
 cd /root/gaia && systemd-run --unit=gaia-t21 --collect -E HOME=/root lab/lab-vm/t21-migration.sh 192.168.1.29 && journalctl -fu gaia-t21
 ```
 
-- [ ] `gaia-t11-win` as-is: `CRITICAL` `driver_install_loop` (smbus); "without smbus": `WARNING`, ilk açılıştaki
-  yeniden başlatmalar listeli. Gate `"verdict":"OK"`.
+   `Ctrl-C` yalnız izlemeyi bırakır, çalıştırma devam eder. Tekrar izlemek için: `journalctl -fu gaia-t21`
+
+2. Bitince günlüğün sonunda iki satır var: `{"verdict":...}` ile başlayan gate satırı ve `out: /root/t21-...`.
+   Kaçırdıysan, gaia-lab'de root olarak:
+
+```bash
+d=$(ls -d /root/t21-* | tail -1); jq -c '{verdict, a: .a_t8_linux.pass, b: .b_t11_windows.pass, c: .c_uefi.pass, d: .d_zero_writes.pass, e: .e_reports.pass, f: .f_converter.pass}' $d/gate.json; jq -c '.b_t11_windows | {as_is: {readiness: .as_is.readiness, code: .as_is.code}, without_smbus: {readiness: .without_smbus.readiness, first_boot_restarts_s: .without_smbus.first_boot_restarts_s, warnings: [.without_smbus.steps[] | select(.verdict != "OK") | .name]}}' $d/gate.json
+```
+
+- [ ] Beklenen: ilk satır `{"verdict":"OK","a":true,"b":true,"c":true,"d":true,"e":true,"f":true}`. İkinci satırda
+  `as_is` için `CRITICAL` `driver_install_loop`, `without_smbus` için `WARNING`. `first_boot_restarts_s` ilk
+  açılıştaki yeniden başlatmaları saniye olarak listeler, `warnings` de `["drivers_excluded"]` olur.
 
 ```
-(gate satırını buraya yapıştır)
+(iki satırı buraya yapıştır)
 ```
 
 ## 5. İki soru
