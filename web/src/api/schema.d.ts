@@ -2263,9 +2263,12 @@ export interface components {
             clock: components["schemas"]["ServerClock"];
             coverage: number;
             demand_slot_s_per_day: number;
+            disks_too_large: components["schemas"]["TooLarge"][];
             expiring: components["schemas"]["Expiring"][];
             expiring_total: number;
             horizon_s: number;
+            images: components["schemas"]["ImagesRoom"];
+            images_room_bytes: number;
             /** Format: date-time */
             now: string;
             policies?: components["schemas"]["PolicyOK"][];
@@ -2604,6 +2607,22 @@ export interface components {
             next: string;
             rows: components["schemas"]["HostRow"][];
             total: number;
+        };
+        ImagesRoom: {
+            dir: string;
+            error: string;
+            free_bytes: number;
+            held_bytes: number;
+            room_bytes: number;
+            waiting: components["schemas"]["ImagesWaiting"][];
+        };
+        ImagesWaiting: {
+            job_id: number;
+            need_bytes: number;
+            /** Format: date-time */
+            since: string;
+            vm: string;
+            vm_id: number;
         };
         Info: {
             image: string;
@@ -3462,6 +3481,7 @@ export interface components {
             slots_source: string;
             total: number;
             waiting_for_admission: components["schemas"]["Waiting"][];
+            waiting_for_images: components["schemas"]["ImagesWaiting"][];
         };
         TestView: {
             bundle_id: string;
@@ -3485,6 +3505,11 @@ export interface components {
             at: string;
             id: number;
             kind: string;
+        };
+        TooLarge: {
+            disk_bytes: number;
+            vm: string;
+            vm_id: number;
         };
         TrustRequest: {
             fingerprint: string;

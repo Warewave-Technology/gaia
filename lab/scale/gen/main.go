@@ -25,6 +25,7 @@ func main() {
 	points := flag.Int("points", 3_000_000, "points in all")
 	seed := flag.Uint64("seed", 1, "random seed")
 	nowS := flag.String("now", "", "the history ends here (RFC 3339; default: now)")
+	disks := flag.Bool("disks", false, "give every point a disk (8 to 128 GiB by VM), for measuring what reads them (T29)")
 	flag.Parse()
 	now := time.Now().UTC()
 	if *nowS != "" {
@@ -48,6 +49,15 @@ func main() {
 	sum, err := catalog.Fill(context.Background(), db.SQL(), catalog.Options{VMs: *vms, Hosts: *hosts, Points: *points, Now: now, Seed: *seed})
 	if err != nil {
 		fail(err)
+	}
+	if *disks {
+		// One disk per point, its size fixed per VM: 8 GiB times 1 to 16. (The catalog's points have none: nothing
+		// restores them.)
+		if _, err := db.SQL().ExecContext(context.Background(), `INSERT INTO point_disks (point_id, target, size_bytes, block_size, store_id,
+			changed_bytes, read_bytes, written_bytes) SELECT id, 'vda', (8 << 30) * (1 + vm_id % 16), 4194304, 'gen', 0, 0, 0 FROM points
+			WHERE NOT EXISTS (SELECT 1 FROM point_disks k WHERE k.point_id = points.id)`); err != nil {
+			fail(err)
+		}
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

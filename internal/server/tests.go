@@ -156,7 +156,7 @@ func (s *Server) testPoint(ctx context.Context, vm store.VM, pol store.Policy, p
 	if err != nil {
 		return "", "", "", nil, err
 	}
-	release, err := s.reserveImages(restoreReservation(disks))
+	release, err := s.reserveImages(t.JobID, restoreReservation(disks))
 	if err != nil {
 		return "", "", "", nil, err
 	}

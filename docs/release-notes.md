@@ -1,5 +1,21 @@
 # Release notes
 
+## 0.2.1 (package M3, T29 acceptance)
+
+- **A restore test waits for room in the sandbox images directory instead of failing.** Every test reserves the full
+  size of its VM's disks there (ADR-007 C13). In 0.2.0 a test that did not fit beside the running tests' started anyway
+  and was `UNKNOWN` ("not tested: the sandbox images directory ... has ... bytes free"). With several slots, two large
+  VMs due in the same minute then lost a test every time (T29: a 32 GiB Windows guest and a 6 GiB Linux guest in a
+  36 GB directory, 4 slots). Now such a test stays queued until the running tests give the room back. Smaller tests
+  may pass it for 10 minutes, then nothing passes it, as for memory. A VM whose disks do not fit even with nothing
+  running is still tested at once and says why (`UNKNOWN`).
+- **The proof capacity counts that room.** The simulation behind "Proofs that expire", the queue's estimated starts
+  and the what-if hold back tests whose disks do not fit beside the running ones. `GET /api/v1/views/capacity` has
+  `images` (`free_bytes`, `held_bytes`, `room_bytes`, `waiting`), `images_room_bytes` and `disks_too_large` (VMs never
+  tested because their disks do not fit even alone). `GET /api/v1/views/test-queue` has `waiting_for_images`. The
+  Proof capacity screen shows the room, the tests that wait for it, and the VMs that never fit.
+- Schema 17: an index on a point's disks (the scheduler and the capacity read every VM's newest point's disk size).
+
 ## 0.2.0 (2026-11-23, package M3)
 
 ### Strict sign-in (ADR-008, T26)

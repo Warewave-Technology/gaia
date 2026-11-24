@@ -62,14 +62,14 @@ func TestMigrationsFromEmpty(t *testing.T) {
 		}
 	}
 	done, err := d.Migrate(ctx, 0)
-	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}) || Latest() != 16 {
+	if err != nil || !slices.Equal(done, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}) || Latest() != 17 {
 		t.Fatalf("from empty: %v %v (latest %d)", done, err, Latest())
 	}
 	if done, err := d.Migrate(ctx, 0); err != nil || len(done) != 0 {
 		t.Fatalf("again: %v %v", done, err)
 	}
 	applied, err := d.Applied(ctx)
-	if err != nil || len(applied) != 16 || applied[15].Name != "0016_all_events_channels.sql" {
+	if err != nil || len(applied) != 17 || applied[16].Name != "0017_point_disks_point.sql" {
 		t.Fatalf("applied %+v %v", applied, err)
 	}
 }
@@ -802,5 +802,52 @@ func TestBackupPointsDisksVerifications(t *testing.T) {
 	}
 	if js, err := d.FailInterruptedJobs(ctx, "server restarted"); err != nil || len(js) != 0 {
 		t.Fatalf("interrupted %v %v", js, err)
+	}
+}
+
+// From 0.2.0 (schema 16) to 17: a point's disks are kept and read by point through the new index; the capacity's
+// facts carry the newest checked point's disk size (T29: the scheduler and the simulation count it).
+func TestMigrationFrom020(t *testing.T) {
+	ctx := context.Background()
+	d := open(t)
+	if _, err := d.Migrate(ctx, 16); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	for _, q := range []string{
+		`INSERT INTO hosts (name, address, ssh_user, created_at, updated_at) VALUES ('kvm1', '10.0.0.1', 'root', '` + now + `', '` + now + `')`,
+		`INSERT INTO vms (host_id, name, created_at, updated_at) VALUES (1, 'win', '` + now + `', '` + now + `')`,
+		`INSERT INTO repositories (name, kind, location, splitter, hash, created_at) VALUES ('r', 'filesystem', '/r', 'FIXED-4M', 'BLAKE3-256', '` + now + `')`,
+		`INSERT INTO jobs (kind, vm_id, state, reason, created_at) VALUES ('backup', 1, 'ok', 'b', '` + now + `')`,
+		`INSERT INTO points (vm_id, job_id, repository_id, kind, taken_at, check_state, bytes, state, checkpoint, reason, machine)
+			VALUES (1, 1, 1, 'full', '` + now + `', 'ok', 1, 'present', 'c', '', '{}')`,
+		`INSERT INTO point_disks (point_id, target, size_bytes, block_size, store_id, changed_bytes, read_bytes, written_bytes) VALUES (1, 'vda', 34359738368, 4194304, 'k1', 0, 0, 0), (1, 'vdb', 1073741824, 4194304, 'k2', 0, 0, 0)`,
+	} {
+		if _, err := d.SQL().ExecContext(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	if done, err := d.Migrate(ctx, 0); err != nil || !slices.Equal(done, []int{17}) {
+		t.Fatalf("16 -> latest: %v %v", done, err)
+	}
+	var plan string
+	if err := d.SQL().QueryRowContext(ctx, `EXPLAIN QUERY PLAN SELECT size_bytes FROM point_disks WHERE point_id = 1`).Scan(new(int), new(int), new(int), &plan); err != nil ||
+		!strings.Contains(plan, "point_disks_point") {
+		t.Fatalf("plan %q %v", plan, err)
+	}
+	ks, err := d.PointDisks(ctx, 1)
+	if err != nil || len(ks) != 2 || ks[0].SizeBytes != 34359738368 {
+		t.Fatalf("disks %+v %v", ks, err)
+	}
+	if _, err := d.SQL().ExecContext(ctx, `INSERT INTO policies (name, repository_id, backup_interval_s, test_interval_s, keep_last, keep_daily,
+		keep_weekly, rpo_target_s, rto_target_s, max_proof_age_s, check_template, created_at, updated_at) VALUES ('p', 1, 1800, 3600, 24, 7, 0, 7200, 900, 5400, 'linux-boot', ?, ?)`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.SQL().ExecContext(ctx, `UPDATE vms SET policy_id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	fs, err := d.CapacityFacts(ctx)
+	if err != nil || len(fs) != 1 || fs[0].DiskBytes != 34359738368+1073741824 {
+		t.Fatalf("capacity facts %+v %v", fs, err)
 	}
 }

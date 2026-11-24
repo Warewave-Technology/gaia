@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -201,6 +202,9 @@ func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, s
 		return capacity.Input{}, slotCount{}, err
 	}
 	in := capacity.Input{Now: s.now().UTC(), Slots: sc.n}
+	if im := s.imagesNow(); im.Error == "" {
+		in.ImagesRoomBytes = im.RoomBytes
+	}
 	if w.Slots != nil {
 		if *w.Slots < 0 || *w.Slots > 64 {
 			return in, sc, fmt.Errorf("%w: slots 0-64", store.ErrInvalid)
@@ -210,7 +214,7 @@ func (s *Server) capacityInput(ctx context.Context, w WhatIf) (capacity.Input, s
 	for _, f := range fs {
 		v := capacity.VM{ID: f.VMID, Name: f.VM, PolicyID: f.PolicyID, Policy: f.Policy, TestIntervalS: f.TestIntervalS,
 			MaxProofAgeS: f.MaxProofAgeS, Durations: f.Durations, Critical: f.Rank == store.RankCritical, LastQueued: parseTime(f.LastQueued),
-			QueuedJob: f.QueuedJob, QueuedAt: parseTime(f.QueuedAt), RunningSince: parseTime(f.RunningSince)}
+			QueuedJob: f.QueuedJob, QueuedAt: parseTime(f.QueuedAt), RunningSince: parseTime(f.RunningSince), DiskBytes: f.DiskBytes}
 		v.Class, v.ClassBasis = osClass(f.OSTag, f.CheckTemplate)
 		if f.ProofAt != nil {
 			t := timeOf(*f.ProofAt)
@@ -242,6 +246,8 @@ type CapacityView struct {
 	SlotsSource string     `json:"slots_source"`
 	SlotsAt     *time.Time `json:"slots_at"` // when the helper reported the count; null for none and what_if
 	WhatIf      *WhatIf    `json:"what_if,omitempty"`
+	// The sandbox images directory, where every test reserves its disks' full size (T29): the simulation counts it.
+	Images ImagesRoom `json:"images"`
 	// What-if only: each changed policy's C12 figure with the change applied, for the policy editor before it saves.
 	Policies []PolicyOK `json:"policies,omitempty"`
 }
@@ -253,7 +259,19 @@ func (s *Server) capacityResult(ctx context.Context, w WhatIf, limit int) (Capac
 		return CapacityView{}, err
 	}
 	r := capacity.Compute(in)
-	out := CapacityView{Clock: serverClock(s.now()), Result: r, ExpiringTotal: len(r.Expiring), QueueTotal: len(r.Queue), SlotsSource: sc.source, SlotsAt: sc.at}
+	out := CapacityView{Clock: serverClock(s.now()), Result: r, ExpiringTotal: len(r.Expiring), QueueTotal: len(r.Queue), SlotsSource: sc.source, SlotsAt: sc.at,
+		Images: s.imagesNow()}
+	for i, w := range out.Images.Waiting { // a waiting test is in the queue, with its VM's name (a few at most)
+		if k := slices.IndexFunc(r.Queue, func(q capacity.QueueItem) bool { return q.JobID == w.JobID }); k >= 0 {
+			out.Images.Waiting[i].VM = r.Queue[k].VM
+			continue
+		}
+		vm, err := s.db.VM(ctx, w.VMID) // its VM lost its policy since it was queued
+		if err != nil {
+			return CapacityView{}, err
+		}
+		out.Images.Waiting[i].VM = vm.Name
+	}
 	out.Expiring, out.Queue = r.Expiring[:min(limit, len(r.Expiring))], r.Queue[:min(limit, len(r.Queue))]
 	if c, err := s.sandboxCapacity(); err != nil {
 		out.SandboxError = err.Error()
@@ -292,6 +310,29 @@ func (s *Server) whatIfView(c *call) (int, any, error) {
 	return http.StatusOK, v, nil
 }
 
+// ImagesRoom is the sandbox images directory as the scheduler sees it: free now, held by the running tests (their
+// disks' full size), the room with no test running (free + held), and the tests that wait for the running ones.
+type ImagesRoom struct {
+	Dir       string          `json:"dir"`
+	FreeBytes int64           `json:"free_bytes"`
+	HeldBytes int64           `json:"held_bytes"`
+	RoomBytes int64           `json:"room_bytes"`
+	Waiting   []ImagesWaiting `json:"waiting"`
+	Error     string          `json:"error"` // the free space could not be read: the simulation does not count the room
+}
+
+func (s *Server) imagesNow() ImagesRoom {
+	held, waiting := s.imagesHeld()
+	out := ImagesRoom{Dir: s.cfg.SandboxImagesDir, HeldBytes: held, Waiting: waiting}
+	free, err := freeBytes(s.cfg.SandboxImagesDir)
+	if err != nil {
+		out.Error = err.Error()
+		return out
+	}
+	out.FreeBytes, out.RoomBytes = free, free+held
+	return out
+}
+
 // TestQueueView is the queued restore tests in the order they start, with their estimated starts, in pages; and the
 // sandbox's running tests.
 type TestQueueView struct {
@@ -304,6 +345,8 @@ type TestQueueView struct {
 	Next        string               `json:"next"`
 	Running     []sandbox.Running    `json:"running"`
 	Waiting     []sandbox.Waiting    `json:"waiting_for_admission"`
+	// Queued tests held back because the running tests hold the room their disks need in the images directory.
+	WaitingForImages []ImagesWaiting `json:"waiting_for_images"`
 }
 
 func (s *Server) testQueueView(c *call) (int, any, error) {
@@ -316,7 +359,7 @@ func (s *Server) testQueueView(c *call) (int, any, error) {
 		return 0, nil, err
 	}
 	out := TestQueueView{Clock: v.Clock, Slots: v.Slots, SlotsSource: v.SlotsSource, SlotsAt: v.SlotsAt, Total: len(v.Queue), Items: []capacity.QueueItem{}, Running: []sandbox.Running{},
-		Waiting: []sandbox.Waiting{}}
+		Waiting: []sandbox.Waiting{}, WaitingForImages: v.Images.Waiting}
 	for i := off; i < len(v.Queue) && i < off+n; i++ {
 		out.Items = append(out.Items, v.Queue[i])
 	}

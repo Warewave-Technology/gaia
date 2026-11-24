@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { durationBasis, orderReason, osClassBasis } from './en-capacity.ts'
+import { capacity, durationBasis, orderReason, osClassBasis } from './en-capacity.ts'
 
 // docs/design/v3 rule 3: the queue's reasons and the durations' bases are sentences, never the server's raw text with
 // an ISO time in it (internal/capacity reasonOf and Expected).
@@ -21,4 +21,13 @@ test('an expected duration says where it comes from', () => {
   assert.equal(osClassBasis('libvirt guest info'), "from libvirt's guest information")
   assert.equal(osClassBasis('check template'), "guessed from its check template's name")
   assert.equal(osClassBasis(undefined), '')
+})
+
+// T29: the room for restored disks in sizes, and a VM that never fits said as a consequence, not a raw byte count.
+test('the room for restored disks is said in sizes', () => {
+  assert.equal(capacity.disksText(6442450944, 36406611968), '6.0 GiB held by running tests, of 33.9 GiB')
+  assert.equal(capacity.tooLarge(1, 36406611968),
+    "1 VM's disks do not fit the sandbox's 33.9 GiB for restored disks, even with no other test running: it is never tested.")
+  assert.match(capacity.tooLarge(3, 36406611968), /^3 VMs' disks do not fit .* they are never tested\.$/)
+  assert.equal(capacity.diskNeed(34359738368), 'needs 32.0 GiB for its disks; it starts when running tests give the room back')
 })

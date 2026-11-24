@@ -850,7 +850,7 @@ new schema version. Gaia refuses to start on a database written by a newer versi
 
 From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): add a notification channel (step 8c).
 
-**To 0.2.0 (schema 11, strict sign-in, ADR-008):**
+**To 0.2.0 (schema 16, strict sign-in, ADR-008):**
 
 - Every session ends at the upgrade, the 12-hour command-line logins of 0.1.x included: sign in again (step 6).
 - Everyone enrols a second factor at the next sign-in; admins a security key, in a browser opened by a name with the
@@ -866,6 +866,9 @@ From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): 
   ADR-008's (step 9).
 - Existing admins are break-glass; existing auditors expire 30 days after the upgrade unless renewed.
 - Existing notification channels also get `breakglass_signin`, `new_device_signin` and `account_locked`.
+
+**To 0.2.1 (schema 17):** nothing else to do. The migration adds an index; on a large catalog the first start after the
+upgrade takes a few seconds longer while it is built.
 
 **From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
 

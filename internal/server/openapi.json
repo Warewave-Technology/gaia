@@ -757,6 +757,12 @@
           "demand_slot_s_per_day": {
             "type": "number"
           },
+          "disks_too_large": {
+            "items": {
+              "$ref": "#/components/schemas/TooLarge"
+            },
+            "type": "array"
+          },
           "expiring": {
             "items": {
               "$ref": "#/components/schemas/Expiring"
@@ -768,6 +774,12 @@
           },
           "horizon_s": {
             "type": "number"
+          },
+          "images": {
+            "$ref": "#/components/schemas/ImagesRoom"
+          },
+          "images_room_bytes": {
+            "type": "integer"
           },
           "now": {
             "format": "date-time",
@@ -841,9 +853,12 @@
           "clock",
           "coverage",
           "demand_slot_s_per_day",
+          "disks_too_large",
           "expiring",
           "expiring_total",
           "horizon_s",
+          "images",
+          "images_room_bytes",
           "now",
           "queue",
           "queue_total",
@@ -2184,6 +2199,70 @@
           "next",
           "rows",
           "total"
+        ],
+        "type": "object"
+      },
+      "ImagesRoom": {
+        "additionalProperties": false,
+        "properties": {
+          "dir": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "free_bytes": {
+            "type": "integer"
+          },
+          "held_bytes": {
+            "type": "integer"
+          },
+          "room_bytes": {
+            "type": "integer"
+          },
+          "waiting": {
+            "items": {
+              "$ref": "#/components/schemas/ImagesWaiting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "dir",
+          "error",
+          "free_bytes",
+          "held_bytes",
+          "room_bytes",
+          "waiting"
+        ],
+        "type": "object"
+      },
+      "ImagesWaiting": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "type": "integer"
+          },
+          "need_bytes": {
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id",
+          "need_bytes",
+          "since",
+          "vm",
+          "vm_id"
         ],
         "type": "object"
       },
@@ -5706,6 +5785,12 @@
               "$ref": "#/components/schemas/Waiting"
             },
             "type": "array"
+          },
+          "waiting_for_images": {
+            "items": {
+              "$ref": "#/components/schemas/ImagesWaiting"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -5717,7 +5802,8 @@
           "slots_at",
           "slots_source",
           "total",
-          "waiting_for_admission"
+          "waiting_for_admission",
+          "waiting_for_images"
         ],
         "type": "object"
       },
@@ -5812,6 +5898,26 @@
           "at",
           "id",
           "kind"
+        ],
+        "type": "object"
+      },
+      "TooLarge": {
+        "additionalProperties": false,
+        "properties": {
+          "disk_bytes": {
+            "type": "integer"
+          },
+          "vm": {
+            "type": "string"
+          },
+          "vm_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "disk_bytes",
+          "vm",
+          "vm_id"
         ],
         "type": "object"
       },

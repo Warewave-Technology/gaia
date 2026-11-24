@@ -79,6 +79,13 @@ export const capacity = {
   running: (r: number) => (r === 0 ? 'no restore test' : plural(r, 'restore test', 'restore tests')),
   waitingMem: 'Waiting for memory',
   waiting: (w: number) => (w === 0 ? 'none' : plural(w, 'test', 'tests')),
+  disks: 'Room for restored disks',
+  disksText: (held: number, room: number) => `${size(held)} held by running tests, of ${size(room)}`,
+  disksUnknown: 'not readable',
+  waitingDisk: 'Waiting for disk room',
+  /** VMs whose disks do not fit the sandbox images directory even alone: never tested (T29). */
+  tooLarge: (vms: number, room: number) =>
+    `${plural(vms, 'VM\'s disks do', 'VMs\' disks do')} not fit the sandbox's ${size(room)} for restored disks, even with no other test running: ${vms === 1 ? 'it is' : 'they are'} never tested.`,
   noAnswer: 'does not answer',
 
   model: 'Model a change',
@@ -133,12 +140,14 @@ export const capacity = {
   expiringCut: (shown: number, total: number) => `The ${n(shown)} that expire first are listed, of ${n(total)}.`,
 
   queueCaption: 'Test queue',
-  nowCaption: 'Running now and waiting for memory',
+  nowCaption: 'Running now and waiting for room',
   qcol: { pos: '#', vm: 'VM', state: 'State', why: 'Why this place', expected: 'Expected', where: 'Slot', note: 'Why it waits' },
   slot: (s: number, slots: number) => `slot ${s} of ${slots}`,
   runningFor: (d: string) => `for ${d}`,
   waitingSince: (at: string) => `since ${at}`,
   waitingMemory: 'waiting for memory',
+  waitingDiskRoom: 'waiting for disk room',
+  diskNeed: (need: number) => `needs ${size(need)} for its disks; it starts when running tests give the room back`,
   memMiB: (m: number) => `${n(m)} MiB`,
   position: (p: number) => `#${n(p)}`,
   startsAt: (at: string) => `starts ${at}`,

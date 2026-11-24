@@ -119,6 +119,7 @@ function Headline({ v, fmt }: { v: CapacityView; fmt: Fmt }) {
     <p>
       {t.ask(Math.round(tests(v)), v.vms)}{' '}
       {v.coverage >= 1 ? t.ok(v.slots) : <><b>{t.behind(v.slots, v.expiring_total, h)}</b> {t.need(v.slots_needed)}</>}
+      {v.disks_too_large.length > 0 && <>{' '}<b>{t.tooLarge(v.disks_too_large.length, v.images_room_bytes)}</b></>}
     </p>
   )
   return (
@@ -138,6 +139,10 @@ function Headline({ v, fmt }: { v: CapacityView; fmt: Fmt }) {
               <Fact term={t.waitingMem}>{t.waiting(v.sandbox.waiting.length)}</Fact>
             </>
           )}
+          <Fact term={t.disks}>
+            {v.images.error ? <><StatusChip status="UNKNOWN" size="xs" />{t.disksUnknown}</> : t.disksText(v.images.held_bytes, v.images.room_bytes)}
+          </Fact>
+          <Fact term={t.waitingDisk}>{t.waiting(v.images.waiting.length)}</Fact>
         </Facts>
       }
     />
@@ -367,7 +372,7 @@ function ExpiringList({ v, fmt, loading }: { v: CapacityView; fmt: Fmt; loading:
   )
 }
 
-type NowRow = { key: string; vm: string; running: boolean; slot?: number; memory: number; since: string; why?: string }
+type NowRow = { key: string; vm: string; running: boolean; slot?: number; memory: number | null; disk?: boolean; since: string; why?: string }
 
 /** The queue in the order it starts, paged by the server; what runs now and what waits for memory above it. */
 function Queue({ h, down }: { h: string; down: boolean }) {
@@ -399,14 +404,17 @@ function NowTable({ head }: { head: TestQueueView }) {
   const rows: NowRow[] = [
     ...head.running.map((r) => ({ key: `run/${r.slot}`, vm: r.vm, running: true, slot: r.slot, memory: r.memory_mib, since: r.since })),
     ...head.waiting_for_admission.map((w) => ({ key: `wait/${w.vm}`, vm: w.vm, running: false, memory: w.memory_mib, since: w.since, why: w.why })),
+    ...head.waiting_for_images.map((w) => ({ key: `disk/${w.job_id}`, vm: w.vm, running: false, memory: null, disk: true, since: w.since,
+      why: t.diskNeed(w.need_bytes) })),
   ]
   if (rows.length === 0) return null
   const cols: Column<NowRow>[] = [
     { key: 'state', header: t.qcol.state, width: '220px',
       cell: (r) => <JobState state={r.running ? 'running' : 'queued'} detail={r.running ? t.runningFor(dur(fmt.age(r.since))) : t.waitingSince(fmt.at(r.since))} /> },
     { key: 'vm', header: t.qcol.vm, width: '26%', title: (r) => r.vm, cell: (r) => <span className={s.name}>{r.vm}</span> },
-    { key: 'slot', header: t.qcol.where, width: '150px', cell: (r) => (r.slot !== undefined ? t.slot(r.slot, head.slots) : t.waitingMemory) },
-    { key: 'mem', header: t.memory, numeric: true, width: '150px', cell: (r) => t.memMiB(r.memory) },
+    { key: 'slot', header: t.qcol.where, width: '170px',
+      cell: (r) => (r.slot !== undefined ? t.slot(r.slot, head.slots) : r.disk ? t.waitingDiskRoom : t.waitingMemory) },
+    { key: 'mem', header: t.memory, numeric: true, width: '150px', cell: (r) => (r.memory === null ? '' : t.memMiB(r.memory)) },
     { key: 'why', header: t.qcol.note, title: (r) => r.why || undefined, cell: (r) => r.why ?? '' },
   ]
   return <DataTable caption={t.nowCaption} columns={cols} rows={rows} rowKey={(r) => r.key} sizes={false} height="200px" />

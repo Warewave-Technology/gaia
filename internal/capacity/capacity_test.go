@@ -123,3 +123,79 @@ func TestRunning(t *testing.T) {
 		t.Fatalf("queue behind a running test: %+v", r.Queue)
 	}
 }
+
+// The images directory (T29): a test whose disks do not fit beside the running tests' waits for them, as the scheduler
+// holds it. On the T29 lab, 4 slots and a 36 GB directory: the Windows VM (32 GiB of disks, about 8 minutes) and
+// gaia-t23-uefi (6 GiB, under a minute) are due at the same minute; they never run together, and both are tested every
+// hour. Without the room counted, they would run at once (what the scheduler refused before 0.2.1).
+func TestImagesRoom(t *testing.T) {
+	const gib = int64(1) << 30
+	vms := []VM{
+		{ID: 1, Name: "linux2", Policy: "t23-linux", Class: "linux", TestIntervalS: 3600, MaxProofAgeS: 5400, Durations: []float64{48},
+			ProofAt: at(-20), QueuedJob: 11, QueuedAt: at(0), DiskBytes: 4 * gib},
+		{ID: 2, Name: "uefi", Policy: "t23-linux", Class: "linux", TestIntervalS: 3600, MaxProofAgeS: 5400, Durations: []float64{50},
+			ProofAt: at(-60), QueuedJob: 12, QueuedAt: at(0), DiskBytes: 6 * gib},
+		{ID: 3, Name: "win", Policy: "t23-windows", Class: "windows", TestIntervalS: 3600, MaxProofAgeS: 5400, Durations: []float64{460},
+			ProofAt: at(-30), QueuedJob: 13, QueuedAt: at(0), DiskBytes: 32 * gib},
+	}
+	room := int64(36_406_611_968)
+	r := Compute(Input{Now: now, Slots: 4, VMs: vms, ImagesRoomBytes: room})
+	if r.TestsInHorizon != 72 || len(r.Expiring) != 0 || len(r.TooLarge) != 0 || r.ImagesRoomBytes != room {
+		t.Fatalf("tests %d expiring %+v too large %+v", r.TestsInHorizon, r.Expiring, r.TooLarge)
+	}
+	// uefi's proof ends first, so it is first; linux2 (4 GiB) fits beside it; win waits until both end.
+	starts := map[string]time.Time{}
+	for _, q := range r.Queue {
+		starts[q.VM] = q.EstimatedStart
+	}
+	if !starts["uefi"].Equal(now) || !starts["linux2"].Equal(now) || !starts["win"].Equal(now.Add(50*time.Second)) {
+		t.Fatalf("starts %v", starts)
+	}
+	// Not counted, they all start at once.
+	r = Compute(Input{Now: now, Slots: 4, VMs: vms})
+	for _, q := range r.Queue {
+		if !q.EstimatedStart.Equal(now) {
+			t.Fatalf("without the room: %+v", r.Queue)
+		}
+	}
+	// A VM whose disks do not fit even alone is never tested: listed, and its proof expires with no next test.
+	vms[2].DiskBytes = 40 * gib
+	r = Compute(Input{Now: now, Slots: 4, VMs: vms, ImagesRoomBytes: room})
+	if len(r.TooLarge) != 1 || r.TooLarge[0].VM != "win" || len(r.Expiring) != 1 || r.Expiring[0].VM != "win" || r.Expiring[0].NextTestStart != nil ||
+		r.TestsInHorizon != 48 || r.Queue[len(r.Queue)-1].VM != "win" || !r.Queue[len(r.Queue)-1].EstimatedStart.IsZero() {
+		t.Fatalf("too large: %+v expiring %+v tests %d queue %+v", r.TooLarge, r.Expiring, r.TestsInHorizon, r.Queue)
+	}
+}
+
+// Smaller tests may pass one that waits for room only for PassFor since it was due (ADR-007 C13); then nothing
+// passes it. One 10 GiB directory, a long 6 GiB test running, a 6 GiB test waiting (queued 9 or 11 minutes ago), and a
+// 1 GiB test behind it.
+func TestImagesPassFor(t *testing.T) {
+	const gib = int64(1) << 30
+	vms := func(waited int) []VM {
+		return []VM{
+			{ID: 1, Name: "running", Policy: "p", Class: "linux", TestIntervalS: 86400, MaxProofAgeS: 86400, Durations: []float64{3600},
+				ProofAt: at(-100), RunningSince: at(-1), LastQueued: at(-2), DiskBytes: 6 * gib},
+			{ID: 2, Name: "big", Policy: "p", Class: "linux", TestIntervalS: 86400, MaxProofAgeS: 86400, Durations: []float64{60},
+				ProofAt: at(-50), QueuedJob: 22, QueuedAt: at(-waited), DiskBytes: 6 * gib},
+			{ID: 3, Name: "small", Policy: "p", Class: "linux", TestIntervalS: 86400, MaxProofAgeS: 86400, Durations: []float64{60},
+				ProofAt: at(-40), QueuedJob: 23, QueuedAt: at(-1), DiskBytes: 1 * gib},
+		}
+	}
+	start := func(r Result, vm string) time.Time {
+		for _, q := range r.Queue {
+			if q.VM == vm {
+				return q.EstimatedStart
+			}
+		}
+		return time.Time{}
+	}
+	r := Compute(Input{Now: now, Slots: 3, VMs: vms(9), ImagesRoomBytes: 10 * gib})
+	if !start(r, "small").Equal(now) || !start(r, "big").Equal(*at(59)) {
+		t.Fatalf("waited 9 min: small %v big %v", start(r, "small"), start(r, "big"))
+	}
+	r = Compute(Input{Now: now, Slots: 3, VMs: vms(11), ImagesRoomBytes: 10 * gib})
+	if !start(r, "small").Equal(*at(59)) || !start(r, "big").Equal(*at(59)) {
+		t.Fatalf("waited 11 min: small %v big %v", start(r, "small"), start(r, "big"))
+	}
+}

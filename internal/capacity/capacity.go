@@ -14,6 +14,10 @@
 // The queue (C4): retests of CRITICAL VMs first, then VMs never proven, then by the time their proof expires, then by
 // policy name, then by when the test was queued. Simulate runs that queue on the slots for the next Horizon: every
 // queued test's estimated start, and the VMs whose proof expires before their next test finishes.
+//
+// A test also needs room for its restored disks in the sandbox images directory (their full size, ADR-007 C13): with
+// the directory's room given, a test whose disks do not fit beside the running ones waits for them, and smaller tests
+// may pass it for 10 minutes, as the scheduler does (T29). A VM whose disks do not fit even alone is never tested.
 package capacity
 
 import (
@@ -52,6 +56,7 @@ type VM struct {
 	QueuedJob     int64      `json:"queued_job"`    // a queued test job, 0 if none
 	QueuedAt      *time.Time `json:"queued_at"`     // and when it was queued
 	RunningSince  *time.Time `json:"running_since"` // a running test started; nil if none
+	DiskBytes     int64      `json:"disk_bytes"`    // what its test reserves in the images directory; 0: unknown
 }
 
 // Input is what the capacity is computed from.
@@ -59,6 +64,18 @@ type Input struct {
 	Now   time.Time
 	Slots int
 	VMs   []VM
+	// ImagesRoomBytes is the sandbox images directory's room with no test running; 0: not known, not limited.
+	ImagesRoomBytes int64
+}
+
+// PassFor is how long smaller tests may pass a test that waits for room; then nothing passes it (ADR-007 C13).
+const PassFor = 10 * time.Minute
+
+// TooLarge is a VM whose restored disks do not fit the images directory even with no other test running.
+type TooLarge struct {
+	VMID      int64  `json:"vm_id"`
+	VM        string `json:"vm"`
+	DiskBytes int64  `json:"disk_bytes"`
 }
 
 // Group is the demand of a set of VMs (an OS class, a policy).
@@ -108,6 +125,9 @@ type Result struct {
 	Queue          []QueueItem `json:"queue"`
 	HorizonS       float64     `json:"horizon_s"`
 	TestsInHorizon int         `json:"tests_in_horizon"` // tests the simulation started
+	// The images directory's room the simulation counted (0: not limited), and the VMs it can never test.
+	ImagesRoomBytes int64      `json:"images_room_bytes"`
+	TooLarge        []TooLarge `json:"disks_too_large"`
 }
 
 // Expected is a VM's expected test duration and where it came from.
@@ -144,7 +164,7 @@ func ClassMedians(vms []VM) map[string]float64 {
 func Compute(in Input) Result {
 	cm := ClassMedians(in.VMs)
 	r := Result{Now: in.Now, Slots: in.Slots, VMs: len(in.VMs), CapacityS: float64(in.Slots) * Day, ByClass: []Group{}, ByPolicy: []Group{},
-		Expiring: []Expiring{}, Queue: []QueueItem{}, HorizonS: Horizon.Seconds()}
+		Expiring: []Expiring{}, Queue: []QueueItem{}, HorizonS: Horizon.Seconds(), ImagesRoomBytes: in.ImagesRoomBytes, TooLarge: []TooLarge{}}
 	type acc struct {
 		g  Group
 		ds []float64
@@ -195,6 +215,7 @@ type simVM struct {
 	i          int
 	v          *VM
 	due        time.Time // when its next test is queued (it waits from then)
+	queued     time.Time // the same, before it was moved to now: how long a test queued before now has waited
 	job        int64     // the real queued job, for its first test
 	proofEnd   *time.Time
 	critical   bool
@@ -269,6 +290,9 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 	var ready byOrder
 	sims := make([]*simVM, len(in.VMs))
 	slot := 0
+	room := in.ImagesRoomBytes
+	var runs []simRun  // the tests in the slots, with their disks
+	var never []*simVM // too large for the images directory: never started
 	for i := range in.VMs {
 		v := &in.VMs[i]
 		a := &simVM{i: i, v: v, critical: v.Critical, never: v.ProofAt == nil}
@@ -288,6 +312,7 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 				slot++
 			}
 			a.firstStart, a.firstEnd = v.RunningSince, &fin
+			runs = append(runs, simRun{end: fin, disk: v.DiskBytes})
 			a.critical, a.never = false, false
 			e := fin.Add(time.Duration(v.MaxProofAgeS) * time.Second)
 			a.proofEnd = &e
@@ -302,8 +327,14 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 		default:
 			a.due = in.Now
 		}
+		a.queued = a.due
 		if a.due.Before(in.Now) {
 			a.due = in.Now
+		}
+		if room > 0 && v.DiskBytes > room {
+			r.TooLarge = append(r.TooLarge, TooLarge{VMID: v.ID, VM: v.Name, DiskBytes: v.DiskBytes})
+			never = append(never, a)
+			continue
 		}
 		heap.Push(&notDue, a)
 	}
@@ -336,6 +367,7 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 		for notDue.Len() > 0 && !notDue[0].due.After(t) {
 			heap.Push(&ready, heap.Pop(&notDue))
 		}
+		runs = slices.DeleteFunc(runs, func(x simRun) bool { return !x.end.After(t) }) // t only grows: at most a test per slot stays
 		if ready.Len() == 0 {
 			if notDue.Len() == 0 {
 				break
@@ -343,7 +375,20 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 			free[k] = notDue[0].due // idle until the next test is queued
 			continue
 		}
-		a := heap.Pop(&ready).(*simVM)
+		a := pick(&ready, runs, room, t)
+		if a == nil { // nothing fits beside the running tests: this slot waits for the first of them to end
+			next := time.Time{}
+			for _, x := range runs {
+				if next.IsZero() || x.end.Before(next) {
+					next = x.end
+				}
+			}
+			if next.IsZero() {
+				break // cannot happen: a test that does not fit alone is never queued here
+			}
+			free[k] = next
+			continue
+		}
 		d := time.Duration(exp[a.i] * float64(time.Second))
 		start, fin := t, t.Add(d)
 		if a.job != 0 {
@@ -357,17 +402,21 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 		}
 		r.TestsInHorizon++
 		free[k] = fin
+		if room > 0 {
+			runs = append(runs, simRun{end: fin, disk: a.v.DiskBytes})
+		}
 		e := fin.Add(time.Duration(a.v.MaxProofAgeS) * time.Second)
 		a.proofEnd, a.critical, a.never = &e, false, false
 		a.due = a.due.Add(time.Duration(a.v.TestIntervalS) * time.Second) // the scheduler queues at its interval
 		if a.due.Before(start) {
 			a.due = a.due.Add(time.Duration(math.Ceil(start.Sub(a.due).Seconds()/float64(a.v.TestIntervalS))) * time.Duration(a.v.TestIntervalS) * time.Second)
 		}
+		a.queued = a.due
 		heap.Push(&notDue, a)
 	}
 	// Queued jobs that do not start in the horizon keep their order after the ones that do.
 	var late []*simVM
-	for _, h := range [][]*simVM{ready, notDue} {
+	for _, h := range [][]*simVM{ready, notDue, never} {
 		for _, a := range h {
 			if a.job != 0 {
 				late = append(late, a)
@@ -380,6 +429,42 @@ func simulate(in Input, exp []float64, basis []string, r *Result) {
 		r.Queue = append(r.Queue, QueueItem{JobID: a.job, VMID: a.v.ID, VM: a.v.Name, Position: pos, Reason: reasonOf(a), ExpectedS: exp[a.i], DurationBasis: basis[a.i]})
 	}
 	expiring(in, sims, end, r)
+}
+
+// simRun is a test in a slot: when it ends and the room it holds in the images directory.
+type simRun struct {
+	end  time.Time
+	disk int64
+}
+
+// pick takes the next test to start at t from the ready ones, in C4's order: the first whose disks fit beside the
+// running tests' (room 0: no limit). Smaller tests may pass one that does not fit until it has waited PassFor since it
+// was queued; then nothing passes it. nil: nothing may start now.
+func pick(ready *byOrder, runs []simRun, room int64, t time.Time) *simVM {
+	if room <= 0 {
+		return heap.Pop(ready).(*simVM)
+	}
+	var used int64
+	for _, x := range runs {
+		used += x.disk // runs holds the tests still running at t
+	}
+	var passed []*simVM
+	var got *simVM
+	for ready.Len() > 0 {
+		a := heap.Pop(ready).(*simVM)
+		if a.v.DiskBytes <= room-used {
+			got = a
+			break
+		}
+		passed = append(passed, a)
+		if len(passed) == 1 && t.Sub(a.queued) >= PassFor {
+			break // the first in the order has waited long enough: nobody passes it
+		}
+	}
+	for _, a := range passed {
+		heap.Push(ready, a)
+	}
+	return got
 }
 
 // expiring lists the VMs whose current proof expires within the horizon before their next test finishes.

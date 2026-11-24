@@ -23,6 +23,7 @@ type CapacityFact struct {
 	QueuedAt      string
 	RunningSince  string
 	Durations     []float64 // its last 10 tests that ran, newest first (seconds)
+	DiskBytes     int64     // the full size of the disks of its newest checked point (what its test reserves); 0 without one
 }
 
 // CapacityFacts reads every VM with a policy, in one query, and the durations of each one's last 10 tests that ran.
@@ -32,7 +33,7 @@ func (d *DB) CapacityFacts(ctx context.Context) ([]CapacityFact, error) {
 		var last, qat, run, osTag sql.NullString
 		var qjob sql.NullInt64
 		err := s.Scan(&f.VMID, &f.VM, &f.PolicyID, &f.Policy, &f.CheckTemplate, &f.TestIntervalS, &f.MaxProofAgeS, &f.ProofAt, &f.Rank,
-			&last, &qjob, &qat, &run, &osTag)
+			&last, &qjob, &qat, &run, &osTag, &f.DiskBytes)
 		f.LastQueued, f.QueuedJob, f.QueuedAt, f.RunningSince, f.OSTag = last.String, qjob.Int64, qat.String, run.String, osTag.String
 		return f, err
 	}, `SELECT v.id, v.name, p.id, p.name, p.check_template, p.test_interval_s, p.max_proof_age_s, s.proven_finished_at, COALESCE(s.rank, 1),
@@ -40,7 +41,9 @@ func (d *DB) CapacityFacts(ctx context.Context) ([]CapacityFact, error) {
 		(SELECT j.id FROM jobs j WHERE j.vm_id = v.id AND j.kind = 'restore_test' AND j.state IN ('queued', 'running') AND j.state = 'queued' ORDER BY j.id LIMIT 1),
 		(SELECT j.created_at FROM jobs j WHERE j.vm_id = v.id AND j.kind = 'restore_test' AND j.state IN ('queued', 'running') AND j.state = 'queued' ORDER BY j.id LIMIT 1),
 		(SELECT j.started_at FROM jobs j WHERE j.vm_id = v.id AND j.kind = 'restore_test' AND j.state IN ('queued', 'running') AND j.state = 'running' ORDER BY j.id LIMIT 1),
-		(SELECT t.value FROM vm_tags t WHERE t.vm_id = v.id AND t.key = 'os' ORDER BY t.value LIMIT 1)
+		(SELECT t.value FROM vm_tags t WHERE t.vm_id = v.id AND t.key = 'os' ORDER BY t.value LIMIT 1),
+		(SELECT COALESCE(SUM(k.size_bytes), 0) FROM point_disks k WHERE k.point_id = (SELECT pt.id FROM points pt
+			WHERE pt.vm_id = v.id AND pt.state = 'present' AND pt.check_state = 'ok' ORDER BY pt.id DESC LIMIT 1))
 		FROM vms v JOIN policies p ON p.id = v.policy_id LEFT JOIN vm_status s ON s.vm_id = v.id ORDER BY v.id`)
 	if err != nil {
 		return nil, err

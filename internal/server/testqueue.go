@@ -1,8 +1,11 @@
 package server
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -84,7 +87,8 @@ func (s *Server) slotFreed() {
 	}
 }
 
-// dispatchTests starts queued restore tests in C4's order while slots are free, one per VM.
+// dispatchTests starts queued restore tests in C4's order while slots are free, one per VM. A test whose restored disks
+// do not fit beside the running tests' waits for them (imagesAdmit); after waiting imagesPassFor, nothing passes it.
 func (s *Server) dispatchTests(ctx context.Context) error {
 	s.refreshSandbox(ctx)
 	qs, err := s.db.QueuedTests(ctx)
@@ -93,6 +97,8 @@ func (s *Server) dispatchTests(ctx context.Context) error {
 	}
 	n := 0
 	s.testing.Range(func(_, _ any) bool { n++; return true })
+	s.imagesForget(qs)
+	free, ferr := freeBytes(s.cfg.SandboxImagesDir)
 	for _, j := range qs {
 		if n >= s.testSlots() {
 			return nil
@@ -100,7 +106,21 @@ func (s *Server) dispatchTests(ctx context.Context) error {
 		if j.VMID == nil {
 			continue
 		}
+		if _, busy := s.testing.Load(*j.VMID); busy {
+			continue
+		}
+		need, err := s.testNeed(ctx, *j.VMID)
+		if err != nil {
+			return err
+		}
+		if ok, waited := s.imagesAdmit(j, need, free, ferr); !ok {
+			if waited >= imagesPassFor {
+				return nil // it waited long enough: the tests after it wait for it (ADR-007 C13)
+			}
+			continue // a smaller test may pass it meanwhile
+		}
 		if _, busy := s.testing.LoadOrStore(*j.VMID, j.ID); busy {
+			s.imagesDrop(j.ID) // started meanwhile by another dispatch
 			continue
 		}
 		n++
@@ -114,6 +134,7 @@ func (s *Server) dispatchTests(ctx context.Context) error {
 			defer s.stateChanged()
 			defer s.slotFreed()
 			defer s.testing.Delete(*j.VMID)
+			defer s.imagesDrop(j.ID) // room reserved for a test that ended before its restore took it
 			defer s.retryIfStopped(j)
 			run(s.jobs, j)
 		}(j)
@@ -121,10 +142,117 @@ func (s *Server) dispatchTests(ctx context.Context) error {
 	return nil
 }
 
+// testNeed is what a VM's test would reserve in the images directory now: the full size of its newest checked point's
+// disks (the point restoreTest takes); 0 without one (the test then says why it cannot run).
+func (s *Server) testNeed(ctx context.Context, vmID int64) (int64, error) {
+	p, err := s.db.LatestPoint(ctx, vmID)
+	if errors.Is(err, store.ErrNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	disks, err := s.db.PointDisks(ctx, p.ID)
+	if err != nil {
+		return 0, err
+	}
+	return restoreReservation(disks), nil
+}
+
 // imagesReservation is the restored disks of the running tests, so parallel tests do not fill the images directory.
 type imagesReservation struct {
-	mu    sync.Mutex
-	bytes int64
+	mu      sync.Mutex
+	bytes   int64
+	byJob   map[int64]int64      // reserved when the test was sent, until its restore takes it (reserveImages)
+	waiting map[int64]imagesWait // tests held because the running tests hold the room they need
+}
+
+type imagesWait struct {
+	vmID  int64
+	need  int64
+	since time.Time
+}
+
+// imagesPassFor is how long smaller tests may pass a test that waits for room; then nothing passes it (ADR-007 C13,
+// as for memory in the sandbox helper).
+const imagesPassFor = 10 * time.Minute
+
+// imagesAdmit decides whether a queued test may be sent now (T29): it may when its disks fit beside what the running
+// tests hold (the room is reserved for it now), or when they would not fit even with no test running (it runs and
+// says why at once: UNKNOWN, as a restore larger than the directory always did). Otherwise it waits for the running
+// tests, and waited is how long it has waited. A free space that cannot be read admits the test (its restore says why).
+func (s *Server) imagesAdmit(j store.Job, need, free int64, ferr error) (ok bool, waited time.Duration) {
+	if ferr != nil || need <= 0 {
+		return true, 0
+	}
+	s.images.mu.Lock()
+	defer s.images.mu.Unlock()
+	if need <= free-s.images.bytes || need > free+s.images.bytes {
+		if w, held := s.images.waiting[j.ID]; held {
+			delete(s.images.waiting, j.ID)
+			s.log.Info("a restore test waited for room in the sandbox images directory", "job", j.ID, "vm", w.vmID, "waited_s", int(time.Since(w.since).Seconds()))
+		}
+		if need <= free-s.images.bytes {
+			if s.images.byJob == nil {
+				s.images.byJob = map[int64]int64{}
+			}
+			s.images.bytes += need
+			s.images.byJob[j.ID] = need
+		}
+		return true, 0
+	}
+	if s.images.waiting == nil {
+		s.images.waiting = map[int64]imagesWait{}
+	}
+	w, held := s.images.waiting[j.ID]
+	if !held {
+		w = imagesWait{vmID: *j.VMID, need: need, since: time.Now()}
+		s.images.waiting[j.ID] = w
+		s.log.Info("a restore test waits for room in the sandbox images directory", "job", j.ID, "vm", *j.VMID, "need", need,
+			"free", free, "held_by_running_tests", s.images.bytes)
+	}
+	return false, time.Since(w.since)
+}
+
+// imagesDrop gives back the room reserved for a test whose restore did not take it.
+func (s *Server) imagesDrop(job int64) {
+	s.images.mu.Lock()
+	defer s.images.mu.Unlock()
+	s.images.bytes -= s.images.byJob[job]
+	delete(s.images.byJob, job)
+	delete(s.images.waiting, job)
+}
+
+// imagesForget forgets the waits of tests no longer queued (cancelled, or the VM removed).
+func (s *Server) imagesForget(queued []store.Job) {
+	s.images.mu.Lock()
+	defer s.images.mu.Unlock()
+	for id := range s.images.waiting {
+		if !slices.ContainsFunc(queued, func(j store.Job) bool { return j.ID == id }) {
+			delete(s.images.waiting, id)
+		}
+	}
+}
+
+// imagesHeld is what the running tests hold in the images directory and the tests that wait for room, oldest first.
+func (s *Server) imagesHeld() (int64, []ImagesWaiting) {
+	s.images.mu.Lock()
+	defer s.images.mu.Unlock()
+	out := []ImagesWaiting{}
+	for id, w := range s.images.waiting {
+		out = append(out, ImagesWaiting{JobID: id, VMID: w.vmID, NeedBytes: w.need, Since: w.since.UTC()})
+	}
+	slices.SortFunc(out, func(a, b ImagesWaiting) int { return cmp.Or(a.Since.Compare(b.Since), cmp.Compare(a.JobID, b.JobID)) })
+	return s.images.bytes, out
+}
+
+// ImagesWaiting is a queued test that waits for the running tests to give back room in the sandbox images directory.
+type ImagesWaiting struct {
+	JobID     int64     `json:"job_id"`
+	VMID      int64     `json:"vm_id"`
+	VM        string    `json:"vm"`
+	NeedBytes int64     `json:"need_bytes"`
+	Since     time.Time `json:"since"`
 }
 
 // restoreReservation is what a restore reserves in the images directory: the full (virtual) size of every disk of the
@@ -138,14 +266,17 @@ func restoreReservation(disks []store.PointDisk) int64 {
 }
 
 // reserveImages reserves room for a test's restored disks (their full size: the safe bound) in the sandbox images
-// directory, beside what the running tests reserved; it says why when there is no room. release gives it back.
-func (s *Server) reserveImages(need int64) (release func(), err error) {
+// directory, beside what the running tests reserved; it says why when there is no room. The room reserved when the
+// test was sent (imagesAdmit) is its own: it is taken back first. release gives it back.
+func (s *Server) reserveImages(job, need int64) (release func(), err error) {
 	free, err := freeBytes(s.cfg.SandboxImagesDir)
+	s.images.mu.Lock()
+	defer s.images.mu.Unlock()
+	s.images.bytes -= s.images.byJob[job]
+	delete(s.images.byJob, job)
 	if err != nil {
 		return nil, fmt.Errorf("the sandbox images directory %s: %w", s.cfg.SandboxImagesDir, err)
 	}
-	s.images.mu.Lock()
-	defer s.images.mu.Unlock()
 	if free-s.images.bytes < need {
 		return nil, fmt.Errorf("the sandbox images directory %s has %d bytes free, %d of them held by running tests; this restore needs up to %d",
 			s.cfg.SandboxImagesDir, free, s.images.bytes, need)
