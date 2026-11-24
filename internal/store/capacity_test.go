@@ -9,9 +9,9 @@ import (
 )
 
 // The capacity's facts on a full-size synthetic catalog (T29, CLAUDE.md rule 15): every VM's newest checked point's
-// disk size is read with them (schema 17's index). It needs a catalog made by lab/scale/gen with -disks, in
-// GAIA_SCALE_DB; without one it is skipped. It prints the times of 5 reads and fails when their median is over 2 s
-// (the view is cached for 30 s and the scheduler reads one VM at a time):
+// disk size is read with them (through point_disks' UNIQUE (point_id, target) index). It needs a catalog made by
+// lab/scale/gen with -disks, in GAIA_SCALE_DB; without one it is skipped. It prints the times of 5 reads and fails
+// when their median is over 2 s (the view is cached for 30 s and the scheduler reads one VM at a time):
 //
 //	go run ./lab/scale/gen -db /tmp/cat.db -disks && GAIA_SCALE_DB=/tmp/cat.db go test ./internal/store -run TestCapacityFactsAtScale -v
 func TestCapacityFactsAtScale(t *testing.T) {

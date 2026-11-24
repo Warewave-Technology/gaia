@@ -867,8 +867,7 @@ From schema 5 to 6 (T18) there is nothing else to do. From schema 6 to 7 (T19): 
 - Existing admins are break-glass; existing auditors expire 30 days after the upgrade unless renewed.
 - Existing notification channels also get `breakglass_signin`, `new_device_signin` and `account_locked`.
 
-**To 0.2.1 (schema 17):** nothing else to do. The migration adds an index; on a large catalog the first start after the
-upgrade takes a few seconds longer while it is built.
+**To 0.2.1 (schema 16, as 0.2.0):** nothing else to do.
 
 **From a version without the recovery kit** (schema 4 or older): write the first kit and save it (step 8b):
 

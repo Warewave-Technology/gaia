@@ -14,7 +14,7 @@
   `images` (`free_bytes`, `held_bytes`, `room_bytes`, `waiting`), `images_room_bytes` and `disks_too_large` (VMs never
   tested because their disks do not fit even alone). `GET /api/v1/views/test-queue` has `waiting_for_images`. The
   Proof capacity screen shows the room, the tests that wait for it, and the VMs that never fit.
-- Schema 17: an index on a point's disks (the scheduler and the capacity read every VM's newest point's disk size).
+- No schema change (still 16).
 
 ## 0.2.0 (2026-11-23, package M3)
 

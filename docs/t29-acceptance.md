@@ -205,7 +205,7 @@ sunucuyu da `0.2.1`'e yükselt, kılavuz adım 12'nin 1–3. maddeleri ve "To 0.
 scp ~/Desktop/Works/Warewave/projects/gaia/releases/0.2.1/gaia_0.2.1_amd64.deb ~/Desktop/Works/Warewave/projects/gaia/releases/0.2.1/SHA256SUMS gaia@192.168.1.122:/tmp/
 ```
 
-Bitince Mac'te `gaia system -json | jq -c '{version, schema_version}'`: `0.2.1 (...)`, `17`. Ölçek kurulumu için aynı
+Bitince Mac'te `gaia system -json | jq -c '{version, schema_version}'`: `0.2.1 (...)`, `16`. Ölçek kurulumu için aynı
 şeyi `192.168.1.123` ile yap; 4.7'nin komutunu orada bir kez daha çalıştır.
 
 Önce tek slot. Sunucuda (root), kılavuz adım 10b:
