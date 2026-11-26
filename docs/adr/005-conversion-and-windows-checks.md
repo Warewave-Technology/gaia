@@ -89,3 +89,5 @@ T28 measured that a healthy converted Windows restarts several times during virt
 Accepted as built: the window must **start** inside the boot timeout and may end after it, so a healthy guest that
 comes up late is not punished. The check is bounded: it ends at the latest at boot timeout + `settle_s`.
 `guest_restarted_during_boot` is a note code (code list v5) that does not change the VM's status by itself.
+The bound includes the last probe's own timeout (5 s): the last probe starts at the end of the window, so a
+tighter bound would leave the window's last seconds unproven (accepted 2026-11-27, T29).

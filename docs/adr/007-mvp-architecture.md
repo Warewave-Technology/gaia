@@ -1,6 +1,6 @@
 # ADR-007: MVP architecture
 
-Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17–C19); amendments win over the text above them.
+Status: accepted (2026-11-16), amended 2026-11-16 (B1–B5), 2026-11-20 (C1–C10), 2026-11-22 (C11–C16) and 2026-11-23 (C17–C19) and 2026-11-27 (C20); amendments win over the text above them.
 The feasibility study ended with **GO** (2026-11-16).
 
 ## Scope of the MVP
@@ -309,3 +309,19 @@ one duration and time format, charts that explain themselves with at most four l
 5. **0016 only adds `migration`**, as built: an admin's earlier removal of a category stands.
 6. **The Evidence screen shows "not recorded in the ledger"** on an export that was given without a ledger record
    (C18.5), next to the download and in its row. Nothing about evidence may look more finished than it is.
+
+## Amendment (2026-11-27, M3 closed)
+
+M3 was accepted in T29 (0.2.1, signed). The PO's answers, in his words: *"Evet, needs attention kısmı muhteşem
+çalışıyor."* and *"Evet, bence epeyce güzel olmuş."*
+
+### C20. Decisions on T29's `ONAY GEREKİYOR` items
+
+1. **Disk admission for restore tests (extends C4 and C13; built in 0.2.1).** A test starts only when the restored
+   disks of the VM's newest checked point fit in the sandbox images directory next to what running tests hold.
+   Otherwise it waits in the queue; smaller tests may pass it for 10 minutes, then nobody passes it (C13's memory
+   rule, now for memory and disk alike). A VM whose disks do not fit even alone is `UNKNOWN` at once with the reason
+   and listed as `disks_too_large`. Proof capacity simulates the images room as well as the slots; the formulas for
+   demand, capacity, coverage and slots needed are unchanged.
+2. **Reach of host-scoped causes (C19.2):** "affects N VMs" counts every VM on the host, OK ones included, and says
+   how many are still OK: they will be affected soon (an unreachable host's VMs are OK only until their RPO passes).
