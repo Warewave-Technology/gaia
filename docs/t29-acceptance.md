@@ -426,9 +426,13 @@ Sonra Mac'te, ölçek kurulumunun oturumuyla, sürümü ve aynı ölçümü al:
 gaia system -json | jq -c '{version, schema_version}'; for i in 1 2 3; do /usr/bin/time -p gaia api GET '/api/v1/views/fleet' >/dev/null; done 2>&1 | grep real
 ```
 
-- [ ] `0.2.1 (2a6fa5e4206b)`, `16`; `real` değerleri 2 saniyenin altında.
+- [x] `0.2.1 (2a6fa5e4206b)`, `16`; `real` değerleri 2 saniyenin altında.
 
 ```
+{"version":"0.2.1 (2a6fa5e4206b)","schema_version":16}
+real 0.20
+real 0.20
+real 0.20
 ```
 
 Not:
