@@ -1,0 +1,23 @@
+{
+  "started_at": "2026-11-26T16:35:13Z",
+  "checked_at": "2026-11-26T22:35:54Z",
+  "slots": 4,
+  "slots_at_end": 4,
+  "coverage": 1,
+  "tests": {
+    "expected": 18,
+    "finished": 18,
+    "by_verdict": {
+      "OK": 18
+    },
+    "match": true
+  },
+  "expiries": {
+    "said": [],
+    "happened": [],
+    "proof_too_old_at_start": [],
+    "proof_too_old_at_end": [],
+    "match": true
+  },
+  "verdict": "OK"
+}

@@ -1,0 +1,74 @@
+{
+  "clock": {
+    "now": "2026-11-26T10:32:30.638368335Z",
+    "zone": "Etc/UTC",
+    "offset_s": 0
+  },
+  "now": "2026-11-26T10:32:30.638294566Z",
+  "slots": 1,
+  "vms": 3,
+  "demand_slot_s_per_day": 13541.013824892,
+  "capacity_slot_s_per_day": 86400,
+  "coverage": 1,
+  "slots_needed": 1,
+  "by_os_class": [
+    {
+      "name": "windows",
+      "vms": 1,
+      "tests_per_day": 24,
+      "demand_slot_s_per_day": 11200.135368144,
+      "median_test_s": 466.672307006
+    },
+    {
+      "name": "linux",
+      "vms": 2,
+      "tests_per_day": 48,
+      "demand_slot_s_per_day": 2340.878456748,
+      "median_test_s": 48.768301182250006
+    }
+  ],
+  "by_policy": [
+    {
+      "name": "t23-windows",
+      "vms": 1,
+      "tests_per_day": 24,
+      "demand_slot_s_per_day": 11200.135368144,
+      "median_test_s": 466.672307006
+    },
+    {
+      "name": "t23-linux",
+      "vms": 2,
+      "tests_per_day": 48,
+      "demand_slot_s_per_day": 2340.878456748,
+      "median_test_s": 48.768301182250006
+    }
+  ],
+  "expiring": [],
+  "queue": [],
+  "horizon_s": 86400,
+  "tests_in_horizon": 72,
+  "images_room_bytes": 36276850688,
+  "disks_too_large": [],
+  "expiring_total": 0,
+  "queue_total": 0,
+  "sandbox": {
+    "slots": 1,
+    "memory_limit_mib": 5964,
+    "overhead_mib": 256,
+    "used_mib": 0,
+    "running": [],
+    "waiting": [],
+    "basis": "memory limit 3/4 of 7953 MiB"
+  },
+  "sandbox_error": "",
+  "slots_source": "sandbox",
+  "slots_at": "2026-11-26T10:32:30.637203724Z",
+  "images": {
+    "dir": "/var/lib/gaia-sandbox/images",
+    "free_bytes": 36276850688,
+    "held_bytes": 0,
+    "room_bytes": 36276850688,
+    "waiting": [],
+    "error": ""
+  }
+}

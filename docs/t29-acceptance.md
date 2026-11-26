@@ -233,11 +233,12 @@ expire") o 6 saatte biten testlerle ve süresi gerçekten dolan kanıtlarla kar�
 test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
 
 - [x] 1 slot: `"verdict": "OK"`.
-- [ ] 4 slot: `"verdict": "OK"`.
+- [x] 4 slot: `"verdict": "OK"`.
 
 ```
 {
-  "started_at": "2026-11-23T20:48:37Z",
+  "started_at": "2026-11-26T10:32:30Z",
+  "checked_at": "2026-11-26T16:33:38Z",
   "slots": 1,
   "slots_at_end": 1,
   "coverage": 1,
@@ -250,12 +251,8 @@ test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
     "match": true
   },
   "expiries": {
-    "said": [
-      "gaia-t23-uefi"
-    ],
-    "happened": [
-      "gaia-t23-uefi"
-    ],
+    "said": [],
+    "happened": [],
     "proof_too_old_at_start": [],
     "proof_too_old_at_end": [],
     "match": true
@@ -266,7 +263,8 @@ test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
 
 ```
 {
-  "started_at": "2026-11-24T05:36:35Z",
+  "started_at": "2026-11-26T16:35:13Z",
+  "checked_at": "2026-11-26T22:35:54Z",
   "slots": 4,
   "slots_at_end": 4,
   "coverage": 1,
@@ -274,23 +272,18 @@ test) içinde, süresi dolacağı söylenen VM'ler de dolanlarla aynı.
     "expected": 18,
     "finished": 18,
     "by_verdict": {
-      "OK": 12,
-      "UNKNOWN": 6
+      "OK": 18
     },
     "match": true
   },
   "expiries": {
     "said": [],
-    "happened": [
-      "gaia-t23-uefi"
-    ],
+    "happened": [],
     "proof_too_old_at_start": [],
-    "proof_too_old_at_end": [
-      "gaia-t23-uefi"
-    ],
-    "match": false
+    "proof_too_old_at_end": [],
+    "match": true
   },
-  "verdict": "CRITICAL"
+  "verdict": "OK"
 }
 ```
 
@@ -316,19 +309,19 @@ Sonra başka bir tarayıcıda (ya da gizli pencerede) admin olarak gir. gaia-lab
 /root/gaia/lab/lab-vm/t23-sink.sh list 10
 ```
 
-- [ ] `new_device_signin` olayı kanala geldi. - Kanala bişey gelmedi
+- [x] `new_device_signin` olayı kanala geldi.
 
 ```
-2026-11-18T23:32:19Z    mail    status  Gaia gaia-t23-a: gaia-t23-win: WARNING -> OK
-2026-11-18T23:32:19Z    webhook status  Gaia gaia-t23-a: gaia-t23-win: WARNING -> OK
-2026-11-19T07:00:04Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T07:00:04Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T13:49:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T13:49:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T13:51:14Z    mail    daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T13:51:14Z    webhook daily_report    Gaia gaia-t23-a: daily report 2026-11-19: 3 OK
-2026-11-19T15:36:54Z    mail    daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
-2026-11-19T15:36:54Z    webhook daily_report    Gaia gaia-t23-b: daily report 2026-11-19: 3 OK
+2026-11-25T10:23:54Z    mail    job_failed      Gaia gaia-t23-b: restore_test job 1432 of gaia-t23-win failed
+2026-11-25T10:23:54Z    webhook job_failed      Gaia gaia-t23-b: restore_test job 1432 of gaia-t23-win failed
+2026-11-25T11:23:54Z    mail    job_failed      Gaia gaia-t23-b: restore_test job 1441 of gaia-t23-win failed
+2026-11-25T11:23:54Z    webhook job_failed      Gaia gaia-t23-b: restore_test job 1441 of gaia-t23-win failed
+2026-11-25T12:00:41Z    mail    breakglass_signin       Gaia gaia-t23-b: break-glass sign-in while single sign-on is on
+2026-11-25T12:00:41Z    webhook breakglass_signin       Gaia gaia-t23-b: break-glass sign-in while single sign-on is on
+2026-11-25T12:01:26Z    mail    breakglass_signin       Gaia gaia-t23-b: break-glass sign-in while single sign-on is on
+2026-11-25T12:01:26Z    webhook breakglass_signin       Gaia gaia-t23-b: break-glass sign-in while single sign-on is on
+2026-11-25T12:10:21Z    mail    new_device_signin       Gaia gaia-t23-b: sign-in from a new device
+2026-11-25T12:10:21Z    webhook new_device_signin       Gaia gaia-t23-b: sign-in from a new device
 ```
 
 ### 4.4 Boşta kalan oturum bitiyor
@@ -345,8 +338,12 @@ gaia api GET /api/v1/sessions | jq -c '.[] | {id, username, kind, method, last_a
   ilerlemedi); tarayıcı giriş sayfasına döndü.
 
 ```
-{"id":17,"username":"admin","kind":"cli","method":"webauthn","last_active_at":"2026-11-24T19:46:56.422562016Z","last_seen_at":"2026-11-24T19:46:56.422562016Z","user_agent":"Go-http-client/1.1"}
-{"id":16,"username":"admin","kind":"browser","method":"webauthn","last_active_at":"2026-11-24T19:46:49.719980694Z","last_seen_at":"2026-11-24T19:46:49.719980694Z","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 1"}
+1. Çıktı
+{"id":21,"username":"admin","kind":"cli","method":"webauthn","last_active_at":"2026-11-25T12:11:44.840748835Z","last_seen_at":"2026-11-25T12:11:44.840748835Z","user_agent":"Go-http-client/1.1"}
+{"id":20,"username":"admin","kind":"browser","method":"webauthn","last_active_at":"2026-11-25T12:05:01.333272937Z","last_seen_at":"2026-11-25T12:11:36.488195849Z","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 1"}
+
+2. Çıktı
+{"id":21,"username":"admin","kind":"cli","method":"webauthn","last_active_at":"2026-11-25T12:22:25.61348556Z","last_seen_at":"2026-11-25T12:22:25.61348556Z","user_agent":"Go-http-client/1.1"}
 ```
 
 ### 4.5 Step-up'sız yıkıcı bir işlem reddediliyor
@@ -360,18 +357,18 @@ komutu yanlıştı (`no such endpoint`):
 curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -H 'Content-Type: application/json' -X PATCH -d '{"disabled":true}' https://gaia-t23-b.lab.test:8443/api/v1/users/<id> ; echo; gaia users list -json | jq -c '[.[] | {username, disabled}]'
 ```
 
-- [ ] Cevap `step_up_required`; `t29-silinecek` listede `"disabled":false` duruyor. (Sonra `gaia users set <id>
+- [x] Cevap `step_up_required`; `t29-silinecek` listede `"disabled":false` duruyor. (Sonra `gaia users set <id>
   disabled=true` ile kapatabilirsin; `gaia` step-up'ı tarayıcıda onaylatır.) - Çıktıdaki hatayı verdi
 
 ```
 warewave-tech:gaia yigit.basalma$ curl -sk -H "Authorization: Bearer $(jq -r .token ~/Library/Application\ Support/gaia/cli.json)" -X DELETE https://gaia-t23-b.lab.test:8443/api/v1/users/3 ; echo; gaia users list -j
 son | jq -c '[.[].username]'
 {
-  "error": "no such endpoint: DELETE /api/v1/users/3",
-  "code": "not_found"
+  "error": "a destructive or security action (ADR-008 §4): ask for a step-up for PATCH /api/v1/users/3 first",
+  "code": "step_up_required"
 }
 
-["admin","yigit","t29-silinecek"]
+[{"username":"admin","disabled":false},{"username":"yigit","disabled":false},{"username":"t29-silinecek","disabled":false}]
 ```
 
 ### 4.6 Keycloak durunca break-glass çalışıyor ve bildiriliyor
@@ -392,11 +389,11 @@ Sonra SSO kullanıcısıyla açık oturumda yıkıcı bir işlem dene (örneğin
 
 Sonra Keycloak'ı yeniden başlat: `/root/gaia/lab/lab-vm/t26-keycloak.sh start`.
 
-- [ ] SSO oturumunda yıkıcı işlem `idp_unreachable` ile reddedildi; break-glass girişi çalıştı; `breakglass_signin`
+- [x] SSO oturumunda yıkıcı işlem `idp_unreachable` ile reddedildi; break-glass girişi çalıştı; `breakglass_signin`
   kanala geldi.
 
 ```
-Kullanıcıyı disable etmeye çalıştım, confirm ekranı açıldı, sign in again linki de görünüyor ama tıklayınca gitmiyor. idp_unreachable şeklinde bir uyarı/hata hiçbir yerde yok.
+The identity provider did not answer at the last session refresh, so it cannot check your second factor now. Your session goes on until its limit; a break-glass admin can do this action with a local account.
 ```
 
 ### 4.7 5,000 VM'lik kurulumun Overview'u küçük olan kadar hızlı
@@ -420,6 +417,18 @@ Büyük olan
 real 0.21
 real 0.22
 real 0.21
+```
+
+**0.2.1 ile bir kez daha (ikinci tur, eksik).** `gaia-t24-scale`'i 4.2'nin başındaki gibi yükselt (`192.168.1.123`).
+Sonra Mac'te, ölçek kurulumunun oturumuyla, sürümü ve aynı ölçümü al:
+
+```bash
+gaia system -json | jq -c '{version, schema_version}'; for i in 1 2 3; do /usr/bin/time -p gaia api GET '/api/v1/views/fleet' >/dev/null; done 2>&1 | grep real
+```
+
+- [ ] `0.2.1 (2a6fa5e4206b)`, `16`; `real` değerleri 2 saniyenin altında.
+
+```
 ```
 
 Not:

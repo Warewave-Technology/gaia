@@ -1,0 +1,23 @@
+{
+  "started_at": "2026-11-26T16:35:13Z",
+  "slots": 4,
+  "slots_source": "sandbox",
+  "vms": 3,
+  "coverage": 1,
+  "slots_needed": 1,
+  "tests_in_horizon": 72,
+  "horizon_s": 86400,
+  "tests_expected_in_window": 18,
+  "expiring_in_window": [],
+  "expiring_total": 0,
+  "by_os_class": [
+    {
+      "os_class": "windows",
+      "slots_needed": null
+    },
+    {
+      "os_class": "linux",
+      "slots_needed": null
+    }
+  ]
+}

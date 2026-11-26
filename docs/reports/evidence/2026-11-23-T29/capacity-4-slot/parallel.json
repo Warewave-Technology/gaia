@@ -1,0 +1,41 @@
+{
+  "started_at": "2026-11-26T16:35:13Z",
+  "slots": 4,
+  "tests": 18,
+  "by_vm": [
+    {
+      "vm_id": 1,
+      "tests": 6,
+      "verdicts": [
+        "OK"
+      ],
+      "rto_s": {
+        "min": 24.795537901,
+        "max": 26.352221898
+      }
+    },
+    {
+      "vm_id": 2,
+      "tests": 6,
+      "verdicts": [
+        "OK"
+      ],
+      "rto_s": {
+        "min": 31.438113168,
+        "max": 34.672013756
+      }
+    },
+    {
+      "vm_id": 3,
+      "tests": 6,
+      "verdicts": [
+        "OK"
+      ],
+      "rto_s": {
+        "min": 326.50253239,
+        "max": 337.519456338
+      }
+    }
+  ],
+  "peak_running": 1
+}
